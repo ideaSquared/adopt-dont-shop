@@ -10,11 +10,11 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 
 const transporter = nodemailer.createTransport({
-	host: 'smtp.ethereal.email',
-	port: '587',
+	host: import.meta.env.VITE_MAIL_HOST,
+	port: import.meta.env.VITE_MAIL_PORT,
 	auth: {
-		user: 'priscilla.cole@ethereal.email',
-		pass: '2XAugn2xjukG766Kej',
+		user: import.meta.env.VITE_MAIL_USER,
+		pass: import.meta.env.VITE_MAIL_PASS,
 	},
 });
 
