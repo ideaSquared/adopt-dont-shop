@@ -26,8 +26,10 @@ const LoginForm = () => {
 			setAlert({ message: 'Login successful!', type: 'success' });
 			navigate('/'); // Redirect to home after successful login
 		} catch (error) {
-			// Assuming login method throws an error on failure
-			setAlert({ message: error.message, type: 'danger' });
+			// Assuming login method provides an error with a message property
+			const errorMessage =
+				error.message || 'Login failed due to an unexpected error.';
+			setAlert({ message: errorMessage, type: 'danger' });
 		}
 	};
 

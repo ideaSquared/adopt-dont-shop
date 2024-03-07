@@ -32,10 +32,13 @@ const ChangeDetailsForm = () => {
 					body: JSON.stringify(formData),
 				}
 			);
-			if (!response.ok) throw new Error('Update failed');
-			const data = await response.json();
+
+			const data = await response.json(); // Parse response body first
+			if (!response.ok) {
+				throw new Error(data.message || 'Failed to update details.'); // Use server-provided message if available
+			}
+
 			setAlert({ message: 'Details updated successfully!', type: 'success' });
-			// Update UI or state as needed
 		} catch (error) {
 			setAlert({ message: error.message, type: 'danger' });
 		}

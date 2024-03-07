@@ -43,10 +43,26 @@ export const AuthProvider = ({ children }) => {
 			setIsLoggedIn(true);
 			setIsAdmin(response.data.isAdmin); // Directly update isAdmin based on the response
 		} catch (error) {
-			console.error('Login failed:', error);
+			console.error('Login attempt failed:', error);
 			setIsLoggedIn(false);
 			setIsAdmin(false); // Ensure consistency in state
-			throw error;
+
+			// Check if the error is due to an Axios response (i.e., a response that falls outside the range of 2xx)
+			if (error.response) {
+				// The request was made and the server responded with a status code that falls out of the range of 2xx
+				const errorMessage =
+					error.response.data.message ||
+					'An unexpected error occurred during login.';
+				throw new Error(errorMessage);
+			} else if (error.request) {
+				// The request was made but no response was received
+				throw new Error(
+					'The login request was made but no response was received'
+				);
+			} else {
+				// Something happened in setting up the request that triggered an Error
+				throw new Error('An error occurred while setting up the login request');
+			}
 		}
 	};
 

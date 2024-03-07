@@ -52,11 +52,11 @@ const ResetPasswordForm = () => {
 					}),
 				}
 			);
+			const data = await response.json(); // Move this line outside the if condition
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || 'Reset password failed.');
+				throw new Error(data.message || 'Reset password failed.');
 			}
-			const data = await response.json();
+
 			setAlert({
 				message:
 					'Password has been reset successfully. You can now log in with your new password.',

@@ -19,7 +19,13 @@ const ForgotPasswordForm = () => {
 					body: JSON.stringify({ email }),
 				}
 			);
-			if (!response.ok) throw new Error('Failed to send password reset email.');
+			if (!response.ok) {
+				const errorData = await response.json(); // Attempt to parse error message from the server
+				throw new Error(
+					errorData.message || 'Failed to send password reset email.'
+				);
+			}
+
 			const data = await response.json();
 			setAlert({
 				message: 'Successfully sent password reset email.',

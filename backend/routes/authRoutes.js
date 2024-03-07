@@ -22,6 +22,14 @@ const transporter = nodemailer.createTransport({
 router.post('/register', async (req, res) => {
 	const { email, password } = req.body;
 	try {
+		// Check if user already exists
+		const existingUser = await User.findOne({ email });
+		if (existingUser) {
+			return res.status(409).json({
+				message: 'User already exists - please try login or reset password',
+			});
+		}
+
 		const hashedPassword = await bcrypt.hash(password, 12);
 		const user = await User.create({
 			email,
@@ -39,7 +47,9 @@ router.post('/login', async (req, res) => {
 	try {
 		const user = await User.findOne({ email });
 		if (!user || !(await bcrypt.compare(password, user.password))) {
-			return res.status(401).json({ message: 'Invalid credentials.' });
+			return res
+				.status(401)
+				.json({ message: 'Email does not exist or password is not correct.' });
 		}
 		const token = jwt.sign(
 			{ userId: user._id, isAdmin: user.isAdmin },
@@ -60,30 +70,30 @@ router.post('/login', async (req, res) => {
 		res.status(500).json({ message: 'Logging in failed.' });
 	}
 });
-
-// Update User Details
 router.put('/details', authenticateToken, async (req, res) => {
 	const { email, password } = req.body;
 	try {
 		const userId = req.user.userId; // Extracted from authenticated token
 
 		const user = await User.findById(userId);
-
 		if (!user) {
 			return res.status(404).json({ message: 'User not found.' });
 		}
 
 		if (email) user.email = email;
 		if (password) {
-			// It's crucial to hash the new password before saving it
 			const hashedPassword = await bcrypt.hash(password, 12);
 			user.password = hashedPassword;
 		}
 
 		await user.save();
-		res.status(200).json({ message: 'User updated successfully.' });
+		res.status(200).json({ message: 'User details updated successfully.' });
 	} catch (error) {
-		res.status(500).json({ message: 'Updating user failed.' });
+		console.error('Error updating user details:', error);
+		// Identify specific types of errors if possible and return more specific messages
+		res
+			.status(500)
+			.json({ message: 'Failed to update user details. Please try again.' });
 	}
 });
 
@@ -130,7 +140,10 @@ router.post('/forgot-password', async (req, res) => {
 				}
 			});
 		} catch (error) {
-			res.status(500).json({ message: 'Requesting password reset failed.' });
+			console.error('Requesting password reset failed:', error);
+			return res
+				.status(500)
+				.json({ message: 'Failed to process password reset request.' });
 		}
 	});
 });
@@ -157,7 +170,11 @@ router.post('/reset-password', async (req, res) => {
 		res.status(200).json({ message: 'Password has been reset.' });
 	} catch (error) {
 		console.error('Resetting password failed:', error);
-		res.status(500).json({ message: 'Resetting password failed.' });
+		// Differentiate between validation errors, database errors, etc., if possible
+		res.status(500).json({
+			message:
+				'An error occurred while resetting the password. Please try again.',
+		});
 	}
 });
 

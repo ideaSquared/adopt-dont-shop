@@ -28,13 +28,25 @@ const CreateAccount = () => {
 					body: JSON.stringify(formData),
 				}
 			);
-			if (!response.ok) throw new Error('Registration failed');
-			const data = await response.json();
-			setAlert({ message: 'Registration successful!', type: 'success' });
-			// Redirect user or clear form
-			navigate('/login');
+
+			// First, check if the response is OK (status in the range 200-299)
+			if (response.ok) {
+				const data = await response.json();
+				setAlert({ message: 'Registration successful!', type: 'success' });
+				// Redirect user or clear form
+				navigate('/login');
+			} else {
+				// If response is not ok, try to parse the error message from the response body
+				const errorData = await response.json();
+				const errorMessage = errorData.message || 'Registration failed';
+				setAlert({ message: errorMessage, type: 'danger' });
+			}
 		} catch (error) {
-			setAlert({ message: error.message, type: 'danger' });
+			// Handle network error or other unexpected errors
+			setAlert({
+				message: error.message || 'An unexpected error occurred',
+				type: 'danger',
+			});
 		}
 	};
 
