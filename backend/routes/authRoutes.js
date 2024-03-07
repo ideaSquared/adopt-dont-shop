@@ -10,11 +10,11 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 
 const transporter = nodemailer.createTransport({
-	host: import.meta.env.VITE_MAIL_HOST,
-	port: import.meta.env.VITE_MAIL_PORT,
+	host: process.env.VITE_MAIL_HOST,
+	port: process.env.VITE_MAIL_PORT,
 	auth: {
-		user: import.meta.env.VITE_MAIL_USER,
-		pass: import.meta.env.VITE_MAIL_PASS,
+		user: process.env.VITE_MAIL_USER,
+		pass: process.env.VITE_MAIL_PASS,
 	},
 });
 
