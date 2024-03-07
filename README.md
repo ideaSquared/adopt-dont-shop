@@ -1,3 +1,11 @@
+Next To-Do:
+
+- Add front-end interactive validation
+- Add testing for frontend
+- Add testing for backend
+- Build models
+- Develop pets
+- Develop rescues
 
 ```
 pet-adoption-react
