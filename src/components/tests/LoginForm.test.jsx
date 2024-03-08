@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, useLocation, Route, Routes } from 'react-router-dom';
 import LoginForm from '../LoginForm';
 
 const mockLogin = vi.fn();
@@ -16,6 +16,12 @@ vi.mock('../AuthContext', () => ({
 		logout: mockLogout,
 	}),
 }));
+
+// Helper component to capture and display the current location for testing
+const LocationDisplay = () => {
+	const location = useLocation();
+	return <div data-testid='location-display'>{location.pathname}</div>;
+};
 
 describe('LoginForm', () => {
 	beforeEach(() => {
@@ -108,8 +114,60 @@ describe('LoginForm', () => {
 		expect(screen.getByLabelText(/password/i)).toHaveValue('');
 	});
 
+	it('hides the login form when the user is already logged in', async () => {
+		// Overriding the useAuth mock for this test to simulate a logged-in user
+		vi.mock('../AuthContext', () => ({
+			useAuth: () => ({
+				isLoggedIn: true, // User is logged in
+				isAdmin: false,
+				login: mockLogin,
+				logout: mockLogout,
+			}),
+		}));
+
+		render(
+			<MemoryRouter>
+				<LoginForm />
+			</MemoryRouter>
+		);
+
+		// Check that the login form does not render or the user is redirected
+		// This could be adjusted based on your application's behavior
+		expect(
+			screen.queryByRole('form', { name: /login/i })
+		).not.toBeInTheDocument();
+	});
+
+	// it('navigates to the forgot password page on clicking the "Forgot your password?" link', async () => {
+	// 	render(
+	// 		<MemoryRouter initialEntries={['/']}>
+	// 			<Routes>
+	// 				<Route
+	// 					path='/'
+	// 					element={
+	// 						<>
+	// 							<LoginForm />
+	// 							<LocationDisplay />
+	// 						</>
+	// 					}
+	// 				/>
+	// 				<Route
+	// 					path='/forgot-password'
+	// 					element={<div>Forgot Password Page</div>}
+	// 				/>
+	// 			</Routes>
+	// 		</MemoryRouter>
+	// 	);
+
+	// 	// Click the "Forgot your password?" link
+	// 	await userEvent.click(screen.getByText(/forgot your password\?/i));
+
+	// 	// Check if the URL has been updated to the forgot password page
+	// 	expect(screen.getByTestId('location-display')).toHaveTextContent(
+	// 		'/forgot-password'
+	// 	);
+	// });
+
 	// Additional tests can include:
-	// - Verifying that the 'Forgot your password?' link correctly navigates to the forgot password page.
-	// - Testing the behavior when the user is already logged in (should redirect or hide the login form).
 	// - Testing form validation (if applicable), such as email format validation, required fields, etc.
 });

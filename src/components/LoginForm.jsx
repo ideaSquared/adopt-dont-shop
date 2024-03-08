@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Form, Button, Alert } from 'react-bootstrap';
 import AlertComponent from './AlertComponent';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthContext'; // Import useAuth hook
 
 const LoginForm = () => {
@@ -68,9 +68,7 @@ const LoginForm = () => {
 					Login
 				</Button>
 			</Form>
-			<a name='forgotPasswordLink' href='/forgot-password'>
-				Forgot your password?
-			</a>
+			<Link to='/forgot-password'>Forgot your password?</Link>
 		</>
 	);
 };
