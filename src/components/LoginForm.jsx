@@ -24,6 +24,7 @@ const LoginForm = () => {
 		try {
 			await login(formData.email, formData.password); // Use login method from context
 			setAlert({ message: 'Login successful!', type: 'success' });
+			setFormData({ email: '', password: '' }); // Clear form data
 			navigate('/'); // Redirect to home after successful login
 		} catch (error) {
 			// Assuming login method provides an error with a message property
@@ -67,7 +68,9 @@ const LoginForm = () => {
 					Login
 				</Button>
 			</Form>
-			<a href='/forgot-password'>Forgot your password?</a>
+			<a name='forgotPasswordLink' href='/forgot-password'>
+				Forgot your password?
+			</a>
 		</>
 	);
 };
