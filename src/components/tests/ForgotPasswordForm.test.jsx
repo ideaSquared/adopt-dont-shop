@@ -80,22 +80,25 @@ describe('ForgotPasswordForm', () => {
 		).toBeInTheDocument();
 	});
 
-	// it('navigates back to the login page on clicking the "Back to Login" link', async () => {
-	// 	render(
-	// 		<MemoryRouter initialEntries={['/forgot-password']}>
-	// 			<Routes>
-	// 				<Route path='/forgot-password' element={<ForgotPasswordForm />} />
-	// 			</Routes>
-	// 		</MemoryRouter>
-	// 	);
+	/*
+	FIX: Need to figure out navigation mocking to get this test to work
+	*/
+	/* it('navigates back to the login page on clicking the "Back to Login" link', async () => {
+		render(
+			<MemoryRouter initialEntries={['/forgot-password']}>
+				<Routes>
+					<Route path='/forgot-password' element={<ForgotPasswordForm />} />
+				</Routes>
+			</MemoryRouter>
+		);
 
-	// 	// Assuming you have a link with text "Back to Login" for navigation
-	// 	await userEvent.click(screen.getByText(/back to login/i));
+		// Assuming you have a link with text "Back to Login" for navigation
+		await userEvent.click(screen.getByText(/back to login/i));
 
-	// 	// Since useNavigate is mocked, check if it was called with the expected argument
-	// 	const navigate = require('react-router-dom').useNavigate();
-	// 	expect(navigate).toHaveBeenCalledWith('/login'); // Adjust '/login' as necessary based on your app's routing
-	// });
+		// Since useNavigate is mocked, check if it was called with the expected argument
+		const navigate = require('react-router-dom').useNavigate();
+		expect(navigate).toHaveBeenCalledWith('/login'); // Adjust '/login' as necessary based on your app's routing
+	 });*/
 
 	// Additional tests can include:
 	// - Input validation: Ensure the form validates the email input correctly.

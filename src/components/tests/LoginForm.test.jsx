@@ -138,35 +138,39 @@ describe('LoginForm', () => {
 		).not.toBeInTheDocument();
 	});
 
-	// it('navigates to the forgot password page on clicking the "Forgot your password?" link', async () => {
-	// 	render(
-	// 		<MemoryRouter initialEntries={['/']}>
-	// 			<Routes>
-	// 				<Route
-	// 					path='/'
-	// 					element={
-	// 						<>
-	// 							<LoginForm />
-	// 							<LocationDisplay />
-	// 						</>
-	// 					}
-	// 				/>
-	// 				<Route
-	// 					path='/forgot-password'
-	// 					element={<div>Forgot Password Page</div>}
-	// 				/>
-	// 			</Routes>
-	// 		</MemoryRouter>
-	// 	);
+	/*
+	FIX: Need to figure out navigation mocking to get this test to work
+	*/
+	/*it('navigates to the forgot password page on clicking the "Forgot your password?" link', async () => {
+		render(
+			<MemoryRouter initialEntries={['/']}>
+				<Routes>
+					<Route
+						path='/'
+						element={
+							<>
+								<LoginForm />
+								<LocationDisplay />
+							</>
+						}
+					/>
+					<Route
+						path='/forgot-password'
+						element={<div>Forgot Password Page</div>}
+					/>
+				</Routes>
+			</MemoryRouter>
+		);
 
-	// 	// Click the "Forgot your password?" link
-	// 	await userEvent.click(screen.getByText(/forgot your password\?/i));
+		// Click the "Forgot your password?" link
+		await userEvent.click(screen.getByText(/forgot your password\?/i));
 
-	// 	// Check if the URL has been updated to the forgot password page
-	// 	expect(screen.getByTestId('location-display')).toHaveTextContent(
-	// 		'/forgot-password'
-	// 	);
-	// });
+		// Check if the URL has been updated to the forgot password page
+		expect(screen.getByTestId('location-display')).toHaveTextContent(
+			'/forgot-password'
+		);
+	});
+	*/
 
 	// Additional tests can include:
 	// - Testing form validation (if applicable), such as email format validation, required fields, etc.
