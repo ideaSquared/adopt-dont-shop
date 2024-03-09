@@ -1,9 +1,8 @@
 // middleware/authenticateToken.js
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
 const authenticateToken = (req, res, next) => {
-	// Assuming the cookie-parser middleware is used to parse cookies into req.cookies
-	const token = req.cookies.token; // Access the token directly from req.cookies
+	const token = req.cookies.token; // Assuming cookie-parser middleware is used
 
 	if (token == null) {
 		return res.status(401).json({ error: 'No token provided' });
@@ -19,4 +18,4 @@ const authenticateToken = (req, res, next) => {
 	});
 };
 
-module.exports = authenticateToken;
+export default authenticateToken;

@@ -1,10 +1,11 @@
 // adminRoutes.js
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const authenticateToken = require('../middleware/authenticateToken');
-const checkAdmin = require('../middleware/checkAdmin');
-const nodemailer = require('nodemailer');
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import User from '../models/User.js'; // Make sure the path is correct and includes .js extension
+import authenticateToken from '../middleware/authenticateToken.js'; // Adjust the path as necessary and include .js extension
+import checkAdmin from '../middleware/checkAdmin.js'; // Adjust the path as necessary and include .js extension
+import nodemailer from 'nodemailer';
+
 const router = express.Router();
 
 router.get('/users', authenticateToken, checkAdmin, async (req, res) => {
@@ -58,4 +59,4 @@ router.post(
 	}
 );
 
-module.exports = router;
+export default router;

@@ -1,5 +1,5 @@
 // Rescue.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const rescueStaffSchema = new Schema({
 	userId: {
@@ -51,4 +51,4 @@ const rescueSchema = new Schema({
 	},
 });
 
-module.exports = mongoose.model('Rescue', rescueSchema);
+export default mongoose.model('Rescue', rescueSchema);

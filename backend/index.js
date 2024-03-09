@@ -1,14 +1,22 @@
 // index.js
-const express = require('express');
-const connectDB = require('./mongoConnection');
-const authRoutes = require('./routes/authRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-require('dotenv').config();
-const path = require('path');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
+import express from 'express';
+import dotenv from 'dotenv';
+import path from 'path';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import connectDB from './mongoConnection.js';
+import authRoutes from './routes/authRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+
+dotenv.config();
 
 const app = express();
+
+// Since __dirname is not available in ES module scope, we define it manually
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // CORS configuration
 const corsOptions = {
@@ -34,3 +42,5 @@ app.get('*', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+export default app;

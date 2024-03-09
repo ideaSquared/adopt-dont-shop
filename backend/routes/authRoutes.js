@@ -1,12 +1,13 @@
 // authRoutes.js
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const crypto = require('crypto'); // Node.js crypto module for token generation
-const authenticateToken = require('../middleware/authenticateToken');
-const checkAdmin = require('../middleware/checkAdmin');
-const nodemailer = require('nodemailer');
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js'; // Adjust the path as necessary
+import crypto from 'crypto';
+import authenticateToken from '../middleware/authenticateToken.js'; // Adjust the path as necessary
+import checkAdmin from '../middleware/checkAdmin.js'; // Adjust the path as necessary
+import nodemailer from 'nodemailer';
+
 const router = express.Router();
 
 const transporter = nodemailer.createTransport({
@@ -22,7 +23,6 @@ const transporter = nodemailer.createTransport({
 router.post('/register', async (req, res) => {
 	const { email, password } = req.body;
 	try {
-		// Check if user already exists
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
 			return res.status(409).json({
@@ -208,4 +208,4 @@ router.get('/status', authenticateToken, async (req, res) => {
 	}
 });
 
-module.exports = router;
+export default router;
