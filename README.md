@@ -9,22 +9,38 @@ Next To-Do:
 
 ```
 pet-adoption-react
-├─ .env.production
-├─ .eslintrc.cjs
+├─ .github
+│  └─ workflows
+│     ├─ backend-ci.yml
+│     └─ frontend-ci.yml
 ├─ .gitignore
 ├─ backend
-│  ├─ .env
 │  ├─ index.js
 │  ├─ middleware
 │  │  ├─ authenticateToken.js
 │  │  └─ checkAdmin.js
 │  ├─ models
+│  │  ├─ Conversation.js
+│  │  ├─ Message.js
+│  │  ├─ Pet.js
+│  │  ├─ Rating.js
+│  │  ├─ Rescue.js
 │  │  └─ User.js
 │  ├─ mongoConnection.js
 │  ├─ package-lock.json
 │  ├─ package.json
-│  └─ routes
-│     └─ authRoutes.js
+│  ├─ routes
+│  │  ├─ adminRoutes.js
+│  │  └─ authRoutes.js
+│  ├─ server.js
+│  ├─ services
+│  │  └─ emailService.js
+│  ├─ test
+│  │  ├─ adminRoutes.test.js
+│  │  ├─ authRoutes.test.js
+│  │  └─ database.js
+│  └─ utils
+│     └─ tokenGenerator.js
 ├─ index.html
 ├─ package-lock.json
 ├─ package.json
@@ -46,7 +62,15 @@ pet-adoption-react
 │  │  ├─ HomePage.jsx
 │  │  ├─ LoginForm.jsx
 │  │  ├─ Navbar.jsx
-│  │  └─ ResetPasswordForm.jsx
+│  │  ├─ ResetPasswordForm.jsx
+│  │  └─ tests
+│  │     ├─ AdminDashboard.test.jsx
+│  │     ├─ ChangeDetailsForm.test.jsx
+│  │     ├─ CreateAccountForm.test.jsx
+│  │     ├─ ForgotPasswordForm.test.jsx
+│  │     ├─ LoginForm.test.jsx
+│  │     ├─ ResetPasswordForm.test.jsx
+│  │     └─ setupTests.js
 │  ├─ index.css
 │  └─ main.jsx
 └─ vite.config.js

@@ -2,7 +2,15 @@ name: Backend CI
 
 on:
   push:
+    paths:
+      - 'backend/**'
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
   pull_request:
+    paths:
+      - 'backend/**'
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
 
 jobs:
   test:
@@ -22,7 +30,9 @@ jobs:
           node-version: '20'
       - name: Install Dependencies
         run: npm install
+        working-directory: ./backend
       - name: Run Tests
         run: npm test
+        working-directory: ./backend
         env:
-          MONGO_URL: mongodb://localhost:27017/staging
+          MONGO_URL: mongodb://localhost:27017/yourdbname
