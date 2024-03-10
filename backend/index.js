@@ -1,4 +1,3 @@
-// index.js
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -6,9 +5,11 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import connectDB from './mongoConnection.js';
-import authRoutes from './routes/authRoutes.js';
+import createAuthRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import User from './models/User.js';
+import { generateResetToken } from './utils/tokenGenerator.js';
+import { sendPasswordResetEmail } from './services/emailService.js';
 
 dotenv.config();
 
@@ -20,19 +21,24 @@ const __dirname = dirname(__filename);
 
 // CORS configuration
 const corsOptions = {
-	origin: 'http://localhost:5173', // Adjust this to your frontend's origin
-	credentials: true, // This is important for cookies, authorization headers with HTTPS
+	origin: 'http://localhost:5173',
+	credentials: true,
 };
 
 app.use(cors(corsOptions));
-app.use(cookieParser()); // Use cookie-parser middleware
-
-connectDB(); // Connect to MongoDB
-
+app.use(cookieParser());
 app.use(express.json());
+
+// Create routes
+const authRoutes = createAuthRoutes({
+	generateResetToken,
+	sendPasswordResetEmail,
+	User,
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Handle SPA routing: serve your React app
@@ -40,7 +46,10 @@ app.get('*', (req, res) => {
 	res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Error-handling middleware
+app.use((err, req, res, next) => {
+	console.error(err);
+	res.status(500).json({ message: 'Something went wrong' });
+});
 
 export default app;

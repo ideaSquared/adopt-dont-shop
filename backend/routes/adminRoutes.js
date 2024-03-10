@@ -27,7 +27,10 @@ router.delete(
 	async (req, res) => {
 		try {
 			const { id } = req.params;
-			await User.findByIdAndDelete(id);
+			const deletedUser = await User.findByIdAndDelete(id);
+			if (!deletedUser) {
+				return res.status(404).json({ message: 'User not found.' });
+			}
 			res.json({ message: 'User deleted successfully.' });
 		} catch (err) {
 			console.error(err);
@@ -49,8 +52,16 @@ router.post(
 			// Hash the new password
 			const hashedPassword = await bcrypt.hash(password, 12);
 
-			// Update the user's password
-			await User.findByIdAndUpdate(id, { password: hashedPassword });
+			// Attempt to update the user's password
+			const updatedUser = await User.findByIdAndUpdate(
+				id,
+				{ password: hashedPassword },
+				{ new: true }
+			);
+
+			if (!updatedUser) {
+				return res.status(404).json({ message: 'User not found.' });
+			}
 			res.json({ message: 'Password reset successfully.' });
 		} catch (err) {
 			console.error(err);
