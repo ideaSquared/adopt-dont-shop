@@ -10,7 +10,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import User from './models/User.js';
 import { generateResetToken } from './utils/tokenGenerator.js';
 import { sendPasswordResetEmail } from './services/emailService.js';
-// testpush
+
 dotenv.config();
 
 const app = express();

@@ -2,9 +2,7 @@ name: Backend CI
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 jobs:
   test:
@@ -17,14 +15,14 @@ jobs:
           - 27017:27017
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
-    - name: Install Dependencies
-      run: npm install
-    - name: Run Tests
-      run: npm test
-      env:
-        MONGO_URL: mongodb://localhost:27017/staging
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - name: Install Dependencies
+        run: npm install
+      - name: Run Tests
+        run: npm test
+        env:
+          MONGO_URL: mongodb://localhost:27017/staging
