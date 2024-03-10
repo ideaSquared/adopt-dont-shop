@@ -1,3 +1,6 @@
+[![Backend CI](https://github.com/ideaSquared/pet-adoption/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/ideaSquared/pet-adoption/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/ideaSquared/pet-adoption/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/ideaSquared/pet-adoption/actions/workflows/frontend-ci.yml)
+
 Next To-Do:
 
 - Add front-end interactive validation
