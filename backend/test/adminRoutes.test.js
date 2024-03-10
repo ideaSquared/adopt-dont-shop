@@ -18,6 +18,7 @@ describe('Admin Routes', function () {
 
 	before(async () => {
 		await connectToDatabase();
+		const secret = process.env.SECRET_KEY;
 		sinon.stub(jwt, 'verify').callsFake((token, secret, callback) => {
 			// Simulate verification success
 			callback(null, { userId: 'mockUserId', isAdmin: true }); // Adjust the payload as needed
