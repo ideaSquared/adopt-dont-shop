@@ -36,3 +36,4 @@ jobs:
         working-directory: ./backend
         env:
           MONGO_URL: mongodb://localhost:27017/yourdbname
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
