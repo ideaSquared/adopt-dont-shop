@@ -1,5 +1,5 @@
 // server.js
-import app from './app.js'; // Adjust the path as needed
+import app from './index.js'; // Adjust the path as needed
 import connectDB from './mongoConnection.js';
 import dotenv from 'dotenv';
 
