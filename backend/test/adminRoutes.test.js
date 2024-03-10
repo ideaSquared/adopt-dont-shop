@@ -9,37 +9,36 @@ import { connectToDatabase, disconnectFromDatabase } from './database.js';
 describe('Admin Routes', function () {
 	let cookie;
 
-	beforeEach(function () {
-		// This will execute before each test in this describe block
-		const token = 'dummyToken'; // The actual value is inconsequential due to the stubbing of jwt.verify
-		cookie = `token=${token};`; // Prepares the cookie to be attached to every request
-		sinon.restore();
-	});
-
 	before(async () => {
 		await connectToDatabase();
-		const secret = process.env.SECRET_KEY;
-		sinon.stub(jwt, 'verify').callsFake((token, secret, callback) => {
-			// Simulate verification success
-			callback(null, { userId: 'mockUserId', isAdmin: true }); // Adjust the payload as needed
-		});
+		sinon.stub(jwt, 'verify'); // Globally stub jwt.verify to configure in each context
 	});
 
 	after(async () => {
 		await disconnectFromDatabase();
-		sinon.restore(); // Restore all stubs
+		sinon.restore(); // Restore all stubs once after all tests
+	});
+
+	beforeEach(function () {
+		// Reset the jwt.verify stub to its default behavior before each test
+		// This is crucial because jwt.verify's behavior is modified in different contexts
+		sinon.resetBehavior();
+		sinon.resetHistory();
+
+		const token = 'dummyToken'; // The actual value is inconsequential due to the stubbing of jwt.verify
+		cookie = `token=${token};`; // Prepares the cookie to be attached to every request
 	});
 
 	context('as a non-admin user', function () {
 		beforeEach(function () {
-			// Stub jwt.verify to simulate a non-admin user
-			sinon.stub(jwt, 'verify').callsFake((token, secret, callback) => {
+			// Stub jwt.verify to simulate a non-admin user for each test in this context
+			jwt.verify.callsFake((token, secret, callback) => {
 				callback(null, { userId: 'mockUserId', isAdmin: false });
 			});
 		});
 
 		it('should reject non-admin user access to admin routes', async function () {
-			const res = await request(app).get('/api/admin/users').expect(401); // Assuming your checkAdmin middleware properly rejects non-admins
+			const res = await request(app).get('/api/admin/users').expect(401);
 
 			expect(res.body)
 				.to.have.property('error')
@@ -49,22 +48,20 @@ describe('Admin Routes', function () {
 
 	context('as an admin user', function () {
 		beforeEach(function () {
-			// Stub jwt.verify to simulate an admin user
-			sinon.stub(jwt, 'verify').callsFake((token, secret, callback) => {
+			// Stub jwt.verify to simulate an admin user for each test in this context
+			jwt.verify.callsFake((token, secret, callback) => {
 				callback(null, { userId: 'mockUserId', isAdmin: true });
 			});
 		});
 
 		it('should not delete a user that does not exist', async function () {
-			// Use a random or specifically formatted string that does not correspond to any user ID in the database
 			const nonExistentUserId = '5f8d0d55b54764421b7156d9';
 
 			const res = await request(app)
 				.delete(`/api/admin/users/delete/${nonExistentUserId}`)
-				.set('Cookie', cookie) // Use the admin user cookie
-				.expect(404); // Not Found response expected
+				.set('Cookie', cookie)
+				.expect(404);
 
-			// Check for an appropriate error message
 			expect(res.body)
 				.to.have.property('message')
 				.that.includes('User not found.');

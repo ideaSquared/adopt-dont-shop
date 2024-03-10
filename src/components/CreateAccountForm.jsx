@@ -4,7 +4,11 @@ import AlertComponent from './AlertComponent';
 import { useNavigate } from 'react-router-dom';
 
 const CreateAccount = () => {
-	const [formData, setFormData] = useState({ email: '', password: '' });
+	const [formData, setFormData] = useState({
+		email: '',
+		password: '',
+		firstName: '',
+	});
 	const [alert, setAlert] = useState({ message: null, type: null });
 	const navigate = useNavigate(); // Initialize useNavigate
 
@@ -58,6 +62,19 @@ const CreateAccount = () => {
 				onClose={() => setAlert({ message: null, type: null })}
 			/>
 			<form onSubmit={handleSubmit}>
+				<div className='mb-3'>
+					<label htmlFor='firstName' className='form-label'>
+						First Name
+					</label>
+					<input
+						type='text'
+						className='form-control'
+						id='firstName'
+						name='firstName'
+						value={formData.firstName}
+						onChange={handleChange}
+					/>
+				</div>
 				<div className='mb-3'>
 					<label htmlFor='email' className='form-label'>
 						Email address

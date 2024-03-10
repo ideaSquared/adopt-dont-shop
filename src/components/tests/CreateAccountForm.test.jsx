@@ -59,6 +59,7 @@ describe('CreateAccountForm', () => {
 		render(<CreateAccount />);
 
 		// Fill out and submit the form
+		userEvent.type(screen.getByLabelText(/First Name/i), 'John');
 		userEvent.type(screen.getByLabelText(/email address/i), 'test@example.com');
 		userEvent.type(screen.getByLabelText(/password/i), 'password123');
 		userEvent.click(screen.getByRole('button', { name: /create account/i }));

@@ -17,7 +17,7 @@ export default function createAuthRoutes({
 
 	// Register User
 	router.post('/register', async (req, res) => {
-		const { email, password } = req.body;
+		const { email, password, firstName } = req.body;
 		try {
 			const existingUser = await User.findOne({ email });
 			if (existingUser) {
@@ -30,6 +30,7 @@ export default function createAuthRoutes({
 			const user = await User.create({
 				email,
 				password: hashedPassword,
+				firstName,
 			});
 			res.status(201).json({ message: 'User created!', userId: user._id });
 		} catch (error) {
@@ -69,7 +70,7 @@ export default function createAuthRoutes({
 
 	// Change Details User
 	router.put('/details', authenticateToken, async (req, res) => {
-		const { email, password } = req.body;
+		const { email, password, firstName } = req.body;
 		try {
 			const userId = req.user.userId; // Extracted from authenticated token
 
@@ -78,6 +79,7 @@ export default function createAuthRoutes({
 				return res.status(404).json({ message: 'User not found.' });
 			}
 
+			if (firstName) user.firstName = firstName;
 			if (email) user.email = email;
 			if (password) {
 				const hashedPassword = await bcrypt.hash(password, 12);

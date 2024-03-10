@@ -1,3 +1,4 @@
+// ChangeDetailsForm.test.jsx
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -53,6 +54,7 @@ describe('ChangeDetailsForm', () => {
 		});
 
 		render(<ChangeDetailsForm />);
+		userEvent.type(screen.getByLabelText(/New First Name/i), 'John');
 		userEvent.type(screen.getByLabelText(/New Email/i), 'new@example.com');
 		userEvent.type(screen.getByLabelText(/New Password/i), 'newpassword');
 		userEvent.click(screen.getByRole('button', { name: /Update Details/i }));

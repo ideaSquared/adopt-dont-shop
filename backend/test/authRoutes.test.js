@@ -80,6 +80,7 @@ describe('Auth Routes', function () {
 			const res = await request(app)
 				.post('/api/auth/register')
 				.send({
+					firstName: 'testNew',
 					email: 'test-new-user@example.com',
 					password: 'password123',
 				})
@@ -101,6 +102,7 @@ describe('Auth Routes', function () {
 			const res = await request(app)
 				.post('/api/auth/register')
 				.send({
+					firstName: 'testNew',
 					email: 'existing-user@example.com',
 					password: 'password123',
 				})
@@ -178,6 +180,7 @@ describe('Auth Routes', function () {
 		it('should update user details when authenticated', async () => {
 			const user = {
 				_id: 'mockUserId',
+				firstName: 'originalName',
 				email: 'original@example.com',
 				password: 'password',
 				save: sinon.stub().resolves(true),
@@ -188,7 +191,11 @@ describe('Auth Routes', function () {
 			const res = await request(app)
 				.put('/api/auth/details')
 				.set('Cookie', cookie)
-				.send({ email: 'updated@example.com', password: 'newPassword' })
+				.send({
+					email: 'updated@example.com',
+					password: 'newPassword',
+					firstName: 'newName',
+				})
 				.expect(200);
 
 			expect(res.body).to.have.property(
