@@ -8,5 +8,9 @@ export default defineConfig({
 		globals: true, // Enable global variables like `expect`
 		environment: 'jsdom',
 		setupFiles: ['./src/components/tests/setupTests.js'], // Adjust the path to your setup file
+		include: [
+			'src/components/tests/*.test.{js,jsx}', // Matches test files in src/components/tests
+			'src/**/*.test.{js,jsx}', // Matches test files anywhere in src
+		],
 	},
 });
