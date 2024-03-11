@@ -37,10 +37,10 @@ const CreateAccount = () => {
 			if (response.ok) {
 				const data = await response.json();
 				setAlert({ message: 'Registration successful!', type: 'success' });
-				// Redirect user or clear form
-				navigate('/login');
+				// Redirect user to select action: adopt or rehome a pet
+				navigate('/select-action');
 			} else {
-				// If response is not ok, try to parse the error message from the response body
+				// Handle error response
 				const errorData = await response.json();
 				const errorMessage = errorData.message || 'Registration failed';
 				setAlert({ message: errorMessage, type: 'danger' });
@@ -64,7 +64,7 @@ const CreateAccount = () => {
 			<form onSubmit={handleSubmit}>
 				<div className='mb-3'>
 					<label htmlFor='firstName' className='form-label'>
-						First Name
+						First name
 					</label>
 					<input
 						type='text'

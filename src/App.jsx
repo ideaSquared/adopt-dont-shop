@@ -11,6 +11,11 @@ import ResetPasswordForm from './components/ResetPasswordForm';
 import ChangeDetailsForm from './components/ChangeDetailsForm';
 import HomePage from './components/HomePage';
 import AdminDashboard from './components/AdminDashboard';
+import PetActionSelection from './components/PetActionSelection';
+import AccountTypeSelection from './components/AccountTypeSelection';
+import CharityForm from './components/CharityForm';
+import CompanyForm from './components/CompanyForm';
+import ContactUs from './components/ContactUs';
 
 function App() {
 	const [count, setCount] = useState(0);
@@ -26,7 +31,11 @@ function App() {
 				<Route path='/reset-password' element={<ResetPasswordForm />} />
 				<Route path='/change-details' element={<ChangeDetailsForm />} />
 				<Route path='/admin' element={<AdminDashboard />} />
-				{/* Add more routes as needed */}
+				<Route path='/select-action' element={<PetActionSelection />} />
+				<Route path='/select-account-type' element={<AccountTypeSelection />} />
+				<Route path='/charity-form' element={<CharityForm />} />
+				<Route path='/company-form' element={<CompanyForm />} />
+				<Route path='/contact-us' element={<ContactUs />} />
 			</Routes>
 		</Router>
 	);

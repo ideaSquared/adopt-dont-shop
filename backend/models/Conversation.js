@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const conversationSchema = new Schema({
+const conversationSchema = new mongoose.Schema({
 	participants: [{ type: Schema.Types.ObjectId, ref: 'User' }],
 	startedBy: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
 	startedAt: { type: Date, required: true },

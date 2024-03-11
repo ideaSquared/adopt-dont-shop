@@ -1,5 +1,6 @@
 // Rescue.js
 import mongoose from 'mongoose';
+const { Schema } = mongoose; // Destructure Schema from mongoose
 
 const rescueStaffSchema = new Schema({
 	userId: {
@@ -26,11 +27,11 @@ const rescueStaffSchema = new Schema({
 const rescueSchema = new Schema({
 	rescueName: {
 		type: String,
-		required: true,
+		required: false,
 	},
 	rescueAddress: {
 		type: String,
-		required: true,
+		required: false,
 	},
 	rescueType: {
 		type: String,
@@ -39,7 +40,7 @@ const rescueSchema = new Schema({
 	},
 	referenceNumber: {
 		type: String,
-		required: true,
+		required: false,
 	},
 	referenceNumberVerified: {
 		type: Boolean,
