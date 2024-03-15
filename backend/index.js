@@ -8,6 +8,7 @@ import { dirname } from 'path';
 import createAuthRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import rescueRoutes from './routes/rescueRoutes.js';
+import charityRoutes from './routes/charityAPIRoutes.js';
 import User from './models/User.js';
 import { generateResetToken } from './utils/tokenGenerator.js';
 import { sendPasswordResetEmail } from './services/emailService.js';
@@ -39,6 +40,7 @@ const authRoutes = createAuthRoutes({
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/rescue', rescueRoutes);
+app.use('/api', charityRoutes);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
