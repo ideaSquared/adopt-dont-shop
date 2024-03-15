@@ -1,4 +1,4 @@
-import mongoose from 'mongodb';
+import mongoose from 'mongoose';
 
 /**
  * Generates a new MongoDB ObjectId using Mongoose.
