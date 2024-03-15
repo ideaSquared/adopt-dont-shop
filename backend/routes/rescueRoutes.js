@@ -154,7 +154,6 @@ router.post('/:type(charity|company)', async (req, res) => {
 			data: newRescue,
 		});
 	} catch (error) {
-		console.log(error); // Logging the error can be helpful for debugging
 		let errorMessage = `Failed to create ${type} rescue`;
 
 		// You might want to customize your error message based on the error
@@ -220,7 +219,6 @@ router.put('/:rescueId/staff', authenticateToken, async (req, res) => {
 
 	try {
 		const rescue = await Rescue.findById(rescueId);
-		console.log('Rescue: ', rescue + '\n');
 		if (!rescue) return res.status(404).send({ message: 'Rescue not found' });
 
 		// Check if the editor has permission to edit rescue staff
