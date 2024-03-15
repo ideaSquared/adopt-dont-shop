@@ -2,9 +2,9 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js'; // Adjust the path as necessary
-import authenticateToken from '../middleware/authenticateToken.js'; // Adjust the path as necessary
-import checkAdmin from '../middleware/checkAdmin.js'; // Adjust the path as necessary
+import User from '../models/User.js';
+import authenticateToken from '../middleware/authenticateToken.js';
+import checkAdmin from '../middleware/checkAdmin.js';
 import { generateResetToken } from '../utils/tokenGenerator.js';
 import { sendPasswordResetEmail } from '../services/emailService.js';
 
