@@ -1,14 +1,10 @@
 [![Backend CI](https://github.com/ideaSquared/pet-adoption/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/ideaSquared/pet-adoption/actions/workflows/backend-ci.yml)
 [![Frontend CI](https://github.com/ideaSquared/pet-adoption/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/ideaSquared/pet-adoption/actions/workflows/frontend-ci.yml)
 
-Next To-Do:
+To-Do:
 
-- Add front-end interactive validation
-- Add testing for frontend
-- Add testing for backend
-- Build models
-- Develop pets
-- Develop rescues
+- Input type validation across backend, with tests
+- Input type validation on front-end
 
 ```
 pet-adoption-react
@@ -18,6 +14,7 @@ pet-adoption-react
 │     └─ frontend-ci.yml
 ├─ .gitignore
 ├─ backend
+│  ├─ .env
 │  ├─ index.js
 │  ├─ middleware
 │  │  ├─ authenticateToken.js
@@ -30,21 +27,6 @@ pet-adoption-react
 │  │  ├─ Rescue.js
 │  │  └─ User.js
 │  ├─ mongoConnection.js
-│  ├─ package-lock.json
-│  ├─ package.json
-│  ├─ routes
-│  │  ├─ adminRoutes.js
-│  │  └─ authRoutes.js
-│  ├─ server.js
-│  ├─ services
-│  │  └─ emailService.js
-│  ├─ test
-│  │  ├─ adminRoutes.test.js
-│  │  ├─ authRoutes.test.js
-│  │  └─ database.js
-│  └─ utils
-│     └─ tokenGenerator.js
-├─ index.html
 ├─ package-lock.json
 ├─ package.json
 ├─ public
@@ -56,15 +38,20 @@ pet-adoption-react
 │  ├─ assets
 │  │  └─ react.svg
 │  ├─ components
+│  │  ├─ AccountTypeSelection.jsx
 │  │  ├─ AdminDashboard.jsx
 │  │  ├─ AlertComponent.jsx
 │  │  ├─ AuthContext.jsx
 │  │  ├─ ChangeDetailsForm.jsx
+│  │  ├─ CharityForm.jsx
+│  │  ├─ CompanyForm.jsx
+│  │  ├─ ContactUs.jsx
 │  │  ├─ CreateAccountForm.jsx
 │  │  ├─ ForgotPasswordForm.jsx
 │  │  ├─ HomePage.jsx
 │  │  ├─ LoginForm.jsx
 │  │  ├─ Navbar.jsx
+│  │  ├─ PetActionSelection.jsx
 │  │  ├─ ResetPasswordForm.jsx
 │  │  └─ tests
 │  │     ├─ AdminDashboard.test.jsx
@@ -72,7 +59,6 @@ pet-adoption-react
 │  │     ├─ CreateAccountForm.test.jsx
 │  │     ├─ ForgotPasswordForm.test.jsx
 │  │     ├─ LoginForm.test.jsx
-│  │     ├─ ResetPasswordForm.test.jsx
 │  │     └─ setupTests.js
 │  ├─ index.css
 │  └─ main.jsx
