@@ -2,8 +2,6 @@
 import request from 'supertest';
 import { expect } from 'chai';
 import app from '../index.js'; // Ensure this is the correct path to your Express app
-import sinon from 'sinon';
-import axios from 'axios';
 
 describe('Charity API tests', () => {
 	let originalApiKey;
@@ -18,7 +16,7 @@ describe('Charity API tests', () => {
 		process.env.CHARITY_COMMISSION_API_KEY = originalApiKey;
 	});
 
-	describe.only('GET /api/charity/:registeredNumber', function () {
+	describe('GET /api/charity/:registeredNumber', function () {
 		this.timeout(5000);
 
 		it('should return charity details for a valid reference number', async () => {
