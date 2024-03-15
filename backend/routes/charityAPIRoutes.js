@@ -5,7 +5,7 @@ const router = express.Router();
 
 // https://register-of-charities.charitycommission.gov.uk/
 
-router.get('/charityregister/:registeredNumber', async (req, res) => {
+router.get('/:registeredNumber', async (req, res) => {
 	const { registeredNumber } = req.params;
 
 	const apiSuffix = '0';
