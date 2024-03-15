@@ -1,8 +1,12 @@
 // rescueRoutes.js
 import express from 'express';
-import Rescue from '../models/Rescue.js'; // Adjust the path as necessary
+import Rescue from '../models/Rescue.js';
 import rescueService from '../services/rescueService.js';
 import { capitalizeFirstChar } from '../utils/stringManipulation.js';
+import User from '../models/User.js';
+import authenticateToken from '../middleware/authenticateToken.js';
+import mongoose from 'mongoose';
+
 const router = express.Router();
 
 // Route for fetching all rescues
@@ -166,26 +170,33 @@ router.post('/:type(charity|company)', async (req, res) => {
 	}
 });
 
-router.put('/:rescueId', async (req, res) => {
-	const { rescueId } = req.params;
-	const updates = req.body; // {rescueName, rescueAddress, etc.}
-	const userId = req.user._id; // Assuming you have middleware to authenticate and add the user object
+router.put('/:id', authenticateToken, async (req, res) => {
+	const { id } = req.params;
+	const updates = req.body; // Contains the fields to be updated
+	const userId = req.user?.userId; // Ensure this is optional chaining in case user is undefined
 
 	try {
-		const rescue = await Rescue.findById(rescueId);
-		if (!rescue) return res.status(404).send({ message: 'Rescue not found' });
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).send({ message: 'Invalid rescue ID' });
+		}
+
+		const rescue = await Rescue.findById(id);
+		if (!rescue) {
+			return res.status(404).send({ message: 'Rescue not found' });
+		}
 
 		// Check if user has edit permissions
 		const hasPermission = rescue.staff.some(
 			(staff) =>
-				staff.userId.equals(userId) &&
+				staff.userId.toString() === userId &&
 				staff.permissions.includes('edit_rescue_info')
 		);
 
-		if (!hasPermission)
+		if (!hasPermission) {
 			return res
 				.status(403)
 				.send({ message: 'No permission to edit this rescue' });
+		}
 
 		// Perform the update
 		Object.keys(updates).forEach((key) => {
@@ -195,19 +206,21 @@ router.put('/:rescueId', async (req, res) => {
 		await rescue.save();
 		res.send({ message: 'Rescue updated successfully', data: rescue });
 	} catch (error) {
+		console.error('Update rescue error:', error);
 		res
 			.status(500)
-			.send({ message: 'Failed to update rescue', error: error.toString() });
+			.send({ message: 'Failed to update rescue', error: error.message });
 	}
 });
 
-router.put('/:rescueId/staff', async (req, res) => {
+router.put('/:rescueId/staff', authenticateToken, async (req, res) => {
 	const { rescueId } = req.params;
 	const { userId, permissions } = req.body; // For adding or updating staff details
-	const editorUserId = req.user._id; // The user attempting to make the change
+	const editorUserId = req.user?.userId; // The user attempting to make the change
 
 	try {
 		const rescue = await Rescue.findById(rescueId);
+		console.log('Rescue: ', rescue + '\n');
 		if (!rescue) return res.status(404).send({ message: 'Rescue not found' });
 
 		// Check if the editor has permission to edit rescue staff
@@ -241,37 +254,51 @@ router.put('/:rescueId/staff', async (req, res) => {
 	}
 });
 
-router.put('/:rescueId/staff/:staffId/verify', async (req, res) => {
-	const { rescueId, staffId } = req.params;
-	const userId = req.user._id; // The user attempting to verify the staff
+router.put(
+	'/:rescueId/staff/:staffId/verify',
+	authenticateToken,
+	async (req, res) => {
+		const { rescueId, staffId } = req.params;
+		const userId = req.user?.userId; // The user attempting to verify the staff
 
-	try {
-		const rescue = await Rescue.findById(rescueId);
-		if (!rescue) return res.status(404).send({ message: 'Rescue not found' });
+		try {
+			const rescue = await Rescue.findById(rescueId);
+			if (!rescue) {
+				return res.status(404).json({ message: 'Rescue not found' });
+			}
 
-		// Check if the user has permission to verify staff
-		const hasPermission = rescue.staff.some(
-			(staff) =>
-				staff.userId.equals(userId) &&
-				staff.permissions.includes('edit_rescue_info')
-		);
+			const staffMember = rescue.staff.find(
+				(member) => member._id.toString() === staffId
+			);
+			if (!staffMember) {
+				return res.status(404).json({ message: 'Staff member not found' });
+			}
 
-		if (!hasPermission)
-			return res.status(403).send({ message: 'No permission to verify staff' });
+			// Check if the user has permission to verify staff, comparing string representations
+			const hasPermission = rescue.staff.some(
+				(staffMember) =>
+					staffMember.userId.toString() === userId.toString() &&
+					staffMember.permissions.includes('edit_rescue_info')
+			);
 
-		// Find and verify the staff member
-		const staffMember = rescue.staff.id(staffId); // Using Mongoose's id method to find a subdocument
-		if (!staffMember)
-			return res.status(404).send({ message: 'Staff member not found' });
+			if (!hasPermission) {
+				return res
+					.status(403)
+					.json({ message: 'No permission to verify staff' });
+			}
 
-		staffMember.verifiedByRescue = true;
-		await rescue.save();
-		res.send({ message: 'Staff member verified successfully' });
-	} catch (error) {
-		res
-			.status(500)
-			.send({ message: 'Failed to verify staff', error: error.toString() });
+			// Verify the staff member
+			staffMember.verifiedByRescue = true;
+			await rescue.save();
+			return res
+				.status(200)
+				.json({ message: 'Staff member verified successfully' });
+		} catch (error) {
+			return res
+				.status(500)
+				.json({ message: 'Failed to verify staff', error: error.toString() });
+		}
 	}
-});
+);
 
 export default router;
