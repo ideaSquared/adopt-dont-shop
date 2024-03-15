@@ -1,9 +1,9 @@
-const { ObjectId } = require('mongodb');
+import mongoose from 'mongodb';
 
 /**
- * Generates a new MongoDB ObjectId.
- * @returns {ObjectId} A new ObjectId.
+ * Generates a new MongoDB ObjectId using Mongoose.
+ * @returns {mongoose.Types.ObjectId} A new ObjectId.
  */
-export function generateObjectId() {
-	return new ObjectId();
-}
+const generateObjectId = () => new mongoose.Types.ObjectId();
+
+export { generateObjectId };
