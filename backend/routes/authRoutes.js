@@ -7,6 +7,14 @@ import authenticateToken from '../middleware/authenticateToken.js';
 import checkAdmin from '../middleware/checkAdmin.js';
 import { generateResetToken } from '../utils/tokenGenerator.js';
 import { sendPasswordResetEmail } from '../services/emailService.js';
+import {
+	validateRequest,
+	registerSchema,
+	loginSchema,
+	updateDetailsSchema,
+	resetPasswordSchema,
+	forgotPasswordSchema,
+} from '../middleware/joiValidateSchema.js'; // Adjust the path as necessary
 
 export default function createAuthRoutes({
 	tokenGenerator,
@@ -16,30 +24,34 @@ export default function createAuthRoutes({
 	const router = express.Router();
 
 	// Register User
-	router.post('/register', async (req, res) => {
-		const { email, password, firstName } = req.body;
-		try {
-			const existingUser = await User.findOne({ email });
-			if (existingUser) {
-				return res.status(409).json({
-					message: 'User already exists - please try login or reset password',
-				});
-			}
+	router.post(
+		'/register',
+		validateRequest(registerSchema),
+		async (req, res) => {
+			const { email, password, firstName } = req.body;
+			try {
+				const existingUser = await User.findOne({ email });
+				if (existingUser) {
+					return res.status(409).json({
+						message: 'User already exists - please try login or reset password',
+					});
+				}
 
-			const hashedPassword = await bcrypt.hash(password, 12);
-			const user = await User.create({
-				email,
-				password: hashedPassword,
-				firstName,
-			});
-			res.status(201).json({ message: 'User created!', userId: user._id });
-		} catch (error) {
-			res.status(500).json({ message: 'Creating user failed.' });
+				const hashedPassword = await bcrypt.hash(password, 12);
+				const user = await User.create({
+					email,
+					password: hashedPassword,
+					firstName,
+				});
+				res.status(201).json({ message: 'User created!', userId: user._id });
+			} catch (error) {
+				res.status(500).json({ message: 'Creating user failed.' });
+			}
 		}
-	});
+	);
 
 	// Login User
-	router.post('/login', async (req, res) => {
+	router.post('/login', validateRequest(loginSchema), async (req, res) => {
 		const { email, password } = req.body;
 		try {
 			const user = await User.findOne({ email });
@@ -69,94 +81,107 @@ export default function createAuthRoutes({
 	});
 
 	// Change Details User
-	router.put('/details', authenticateToken, async (req, res) => {
-		const { email, password, firstName } = req.body;
-		try {
-			const userId = req.user.userId; // Extracted from authenticated token
+	router.put(
+		'/details',
+		authenticateToken,
+		validateRequest(updateDetailsSchema),
+		async (req, res) => {
+			const { email, password, firstName } = req.body;
+			try {
+				const userId = req.user.userId; // Extracted from authenticated token
 
-			const user = await User.findById(userId);
-			if (!user) {
-				return res.status(404).json({ message: 'User not found.' });
+				const user = await User.findById(userId);
+				if (!user) {
+					return res.status(404).json({ message: 'User not found.' });
+				}
+
+				if (firstName) user.firstName = firstName;
+				if (email) user.email = email;
+				if (password) {
+					const hashedPassword = await bcrypt.hash(password, 12);
+					user.password = hashedPassword;
+				}
+
+				await user.save();
+				res.status(200).json({ message: 'User details updated successfully.' });
+			} catch (error) {
+				console.error('Error updating user details:', error);
+				// Identify specific types of errors if possible and return more specific messages
+				res.status(500).json({
+					message: 'Failed to update user details. Please try again.',
+				});
 			}
-
-			if (firstName) user.firstName = firstName;
-			if (email) user.email = email;
-			if (password) {
-				const hashedPassword = await bcrypt.hash(password, 12);
-				user.password = hashedPassword;
-			}
-
-			await user.save();
-			res.status(200).json({ message: 'User details updated successfully.' });
-		} catch (error) {
-			console.error('Error updating user details:', error);
-			// Identify specific types of errors if possible and return more specific messages
-			res
-				.status(500)
-				.json({ message: 'Failed to update user details. Please try again.' });
 		}
-	});
+	);
 
 	// Forgot Password - Request Reset
-	router.post('/forgot-password', async (req, res) => {
-		const { email } = req.body;
-		try {
-			const user = await User.findOne({ email });
-			if (!user) {
-				return res.status(404).json({ message: 'User not found.' });
+	router.post(
+		'/forgot-password',
+		validateRequest(forgotPasswordSchema),
+		async (req, res) => {
+			const { email } = req.body;
+			try {
+				const user = await User.findOne({ email });
+				if (!user) {
+					return res.status(404).json({ message: 'User not found.' });
+				}
+
+				const token = await generateResetToken();
+				user.resetToken = token;
+				user.resetTokenExpiration = Date.now() + 3600000; // 1 hour from now
+				await user.save();
+
+				const FRONTEND_BASE_URL =
+					process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+				const resetURL = `${FRONTEND_BASE_URL}/reset-password?token=${token}`;
+
+				await sendPasswordResetEmail(email, resetURL);
+				res.status(200).json({
+					message: 'Password reset email sent. Redirecting to login page...',
+				});
+			} catch (error) {
+				console.error('Error in forgot-password route:', error);
+				res
+					.status(500)
+					.json({ message: 'Failed to process password reset request.' });
 			}
-
-			const token = await generateResetToken();
-			user.resetToken = token;
-			user.resetTokenExpiration = Date.now() + 3600000; // 1 hour from now
-			await user.save();
-
-			const FRONTEND_BASE_URL =
-				process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-			const resetURL = `${FRONTEND_BASE_URL}/reset-password?token=${token}`;
-
-			await sendPasswordResetEmail(email, resetURL);
-			res.status(200).json({
-				message: 'Password reset email sent. Redirecting to login page...',
-			});
-		} catch (error) {
-			console.error('Error in forgot-password route:', error);
-			res
-				.status(500)
-				.json({ message: 'Failed to process password reset request.' });
 		}
-	});
+	);
 
 	// Reset Password
-	router.post('/reset-password', async (req, res) => {
-		const { token, newPassword } = req.body;
-		try {
-			const user = await User.findOne({
-				resetToken: token,
-				resetTokenExpiration: { $gt: Date.now() },
-			});
-			if (!user) {
-				return res
-					.status(400)
-					.json({ message: 'Token is invalid or has expired.' });
+	router.post(
+		'/reset-password',
+		validateRequest(resetPasswordSchema),
+		async (req, res) => {
+			const { token, newPassword } = req.body;
+			try {
+				const user = await User.findOne({
+					resetToken: token,
+					resetTokenExpiration: { $gt: Date.now() },
+				});
+				if (!user) {
+					return res
+						.status(400)
+						.json({ message: 'Token is invalid or has expired.' });
+				}
+
+				// Hash the new password
+				const hashedPassword = await bcrypt.hash(newPassword, 12);
+				user.password = hashedPassword;
+				user.resetToken = undefined; // Clear the reset token fields after successful reset
+				user.resetTokenExpiration = undefined;
+				await user.save(); // Save the updated user object
+
+				res.status(200).json({ message: 'Password has been reset.' });
+			} catch (error) {
+				console.error('Resetting password failed:', error);
+				res.status(500).json({
+					message:
+						'An error occurred while resetting the password. Please try again.',
+				});
 			}
-
-			// Hash the new password
-			const hashedPassword = await bcrypt.hash(newPassword, 12);
-			user.password = hashedPassword;
-			user.resetToken = undefined; // Clear the reset token fields after successful reset
-			user.resetTokenExpiration = undefined;
-			await user.save(); // Save the updated user object
-
-			res.status(200).json({ message: 'Password has been reset.' });
-		} catch (error) {
-			console.error('Resetting password failed:', error);
-			res.status(500).json({
-				message:
-					'An error occurred while resetting the password. Please try again.',
-			});
 		}
-	});
+	);
 
 	// Logout
 	router.post('/logout', (req, res) => {

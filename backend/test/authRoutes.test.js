@@ -115,6 +115,32 @@ describe('Auth Routes', function () {
 			);
 			userMock.verify();
 		});
+
+		it('should reject registration with invalid email format', async () => {
+			const res = await request(app)
+				.post('/api/auth/register')
+				.send({
+					firstName: 'Test',
+					email: 'invalid-email', // This email format is invalid
+					password: 'password123',
+				})
+				.expect(400); // Adjust depending on how your app handles validation errors
+
+			expect(res.body).to.have.property('message').that.includes('email'); // The error message should mention the email field
+		});
+
+		it('should reject registration with missing password', async () => {
+			const res = await request(app)
+				.post('/api/auth/register')
+				.send({
+					firstName: 'Test',
+					email: 'test@example.com',
+					// Omitting the password field
+				})
+				.expect(400); // Adjust depending on how your app handles validation errors
+
+			expect(res.body).to.have.property('message').that.includes('password'); // The error message should mention the password field
+		});
 	});
 
 	describe('POST /api/auth/login', () => {
@@ -162,6 +188,30 @@ describe('Auth Routes', function () {
 			expect(res.body).to.have.property('message').that.includes('not correct');
 			userMock.verify();
 		});
+
+		it('should reject login with invalid email format', async () => {
+			const res = await request(app)
+				.post('/api/auth/login')
+				.send({
+					email: 'invalid-email',
+					password: 'password123',
+				})
+				.expect(400);
+
+			expect(res.body).to.have.property('message').that.includes('email');
+		});
+
+		it('should reject login with missing password', async () => {
+			const res = await request(app)
+				.post('/api/auth/login')
+				.send({
+					email: 'test@example.com',
+					// Omitting the password field
+				})
+				.expect(400);
+
+			expect(res.body).to.have.property('message').that.includes('password');
+		});
 	});
 
 	describe('PUT /api/auth/details', () => {
@@ -205,6 +255,50 @@ describe('Auth Routes', function () {
 			);
 			expect(user.save.calledOnce).to.be.true;
 		});
+
+		it('should reject update with invalid email format', async () => {
+			const res = await request(app)
+				.put('/api/auth/details')
+				.set('Cookie', cookie)
+				.send({ email: 'invalidEmailFormat' }) // Invalid email format
+				.expect(400);
+
+			expect(res.body).to.have.property('message').that.includes('email');
+		});
+
+		it('should reject update with short password', async () => {
+			const res = await request(app)
+				.put('/api/auth/details')
+				.set('Cookie', cookie)
+				.send({ password: '123' }) // Password too short
+				.expect(400);
+
+			expect(res.body).to.have.property('message').that.includes('password');
+		});
+
+		it('should reject update with invalid firstName length', async () => {
+			const res = await request(app)
+				.put('/api/auth/details')
+				.set('Cookie', cookie)
+				.send({ firstName: 'A' }) // FirstName too short
+				.expect(400);
+
+			expect(res.body).to.have.property('message').that.includes('firstName');
+		});
+
+		// TODO: Send a validation error back, rather than just the error message
+		// it('should reject update without any valid fields', async () => {
+		// 	const res = await request(app)
+		// 		.put('/api/auth/details')
+		// 		.set('Cookie', cookie)
+		// 		.send({}) // Empty body
+		// 		.expect(400);
+
+		// 	expect(res.body).to.have.property(
+		// 		'message',
+		// 		'Validation error: must provide at least one valid field to update'
+		// 	);
+		// });
 	});
 
 	describe('POST /api/auth/reset-password', () => {
@@ -257,6 +351,18 @@ describe('Auth Routes', function () {
 			);
 			userMock.verify();
 		});
+
+		it('should reject reset with short new password', async () => {
+			const res = await request(app)
+				.post('/api/auth/reset-password')
+				.send({
+					token: 'valid-token', // Assuming this is considered valid in your tests
+					newPassword: '123', // Too short
+				})
+				.expect(400);
+
+			expect(res.body).to.have.property('message').that.includes('newPassword');
+		});
 	});
 
 	describe('POST /api/auth/logout', () => {
@@ -303,6 +409,24 @@ describe('Auth Routes', function () {
 
 			expect(res.body).to.have.property('message', 'User not found.');
 			userMock.verify();
+		});
+
+		it('should reject forgot password request with invalid email format', async () => {
+			const res = await request(app)
+				.post('/api/auth/forgot-password')
+				.send({ email: 'invalidEmailFormat' }) // Invalid email format
+				.expect(400);
+
+			expect(res.body).to.have.property('message').that.includes('email');
+		});
+
+		it('should reject forgot password request with empty email', async () => {
+			const res = await request(app)
+				.post('/api/auth/forgot-password')
+				.send({ email: '' }) // Empty email submission
+				.expect(400);
+
+			expect(res.body).to.have.property('message').that.includes('email');
 		});
 	});
 
