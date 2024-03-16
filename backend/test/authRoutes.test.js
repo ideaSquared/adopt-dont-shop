@@ -9,30 +9,43 @@ import nodemailer from 'nodemailer';
 import User from '../models/User.js'; // Adjust the path as needed
 import app from '../index.js';
 
+/**
+ * Test suite for authentication-related routes.
+ *
+ * This suite covers testing for various authentication operations such as user registration, login, and password reset functionalities.
+ * It employs `supertest` for making HTTP calls, `sinon` for mocking and stubbing external dependencies like JWT verification and email sending,
+ * and `chai` for assertions. The tests ensure that the authentication flows work as expected under different scenarios,
+ * including successful operations and handling of error cases.
+ */
 describe('Auth Routes', function () {
 	let tokenGeneratorMock;
 	let emailServiceMock;
 	let userMock;
 	let cookie;
 
+	/**
+	 * Before each test, resets and sets up the mock environment.
+	 * This includes mocking external services like nodemailer for email operations and setting up mocks for token generation and email service.
+	 * Additionally, it mocks the User model to simulate database operations and sets up a dummy authentication cookie for use in requests.
+	 * The JWT verification process is also stubbed to simulate an authenticated session.
+	 */
 	beforeEach(async () => {
-		// Clean up Sinon environment
-		sinon.restore();
+		// Cleanup and setup for a fresh testing environment before each test.
+		sinon.restore(); // Clears all sinon stubs, mocks, and spies.
 
-		// Setup nodemailer stub
+		// Mock nodemailer's transport creation to simulate email sending without actual network requests.
 		sinon.stub(nodemailer, 'createTransport').returns({
 			sendMail: (mailOptions, callback) => {
-				// Check if a callback function is provided
+				// Simulate asynchronous email sending success.
 				if (callback && typeof callback === 'function') {
-					callback(null, { messageId: 'mockMessageId' }); // Simulate successful email sending
+					callback(null, { messageId: 'mockMessageId' });
 				} else {
-					// If no callback is provided, return a promise
 					return Promise.resolve({ messageId: 'mockMessageId' });
 				}
 			},
 		});
 
-		// Setup tokenGenerator and emailService mocks
+		// Prepare mocks for token generation and email sending, crucial for password reset functionality.
 		tokenGeneratorMock = {
 			generateResetToken: sinon.stub().resolves('mockToken123'),
 		};
@@ -42,31 +55,44 @@ describe('Auth Routes', function () {
 			}),
 		};
 
-		// Stub User model methods
+		// Mock the User model to prevent actual database interactions, allowing for controlled responses.
 		userMock = sinon.mock(User);
 
-		// Replace actual dependencies with mocks/stubs
+		// Inject mocks into the application, replacing real implementations.
 		app.set('tokenGenerator', tokenGeneratorMock);
 		app.set('emailService', emailServiceMock);
 		app.set('User', userMock);
 
-		const secret = process.env.SECRET_KEY; // Replace with your actual secret key
-		const payload = { userId: 'mockUserId', isAdmin: false };
-		const token = jwt.sign(payload, secret);
+		// Generate a mock JWT token for simulating authenticated requests.
+		const secret = process.env.SECRET_KEY; // Your JWT secret.
+		const payload = { userId: 'mockUserId', isAdmin: false }; // Mock payload.
+		const token = jwt.sign(payload, secret); // Sign to get a mock token.
 
-		cookie = `token=${token};`; // Prepare the cookie with the valid JWT token
+		// Prepare a simulated authentication cookie for use in requests.
+		cookie = `token=${token};`;
 
-		// Setup JWT verification stub
+		// Stub the JWT verification process to always authenticate the mock token.
 		sinon.stub(jwt, 'verify').callsFake((token, secret, callback) => {
-			callback(null, { userId: 'mockUserId', isAdmin: false }); // Adjust the payload as needed
+			callback(null, { userId: 'mockUserId', isAdmin: false });
 		});
 	});
 
+	/**
+	 * After each test, restores the Sinon sandbox to clean up all mocks, stubs, and spies.
+	 * This ensures a clean state for subsequent tests.
+	 */
 	afterEach(() => {
-		// Restore all stubs, mocks, and spies
-		sinon.restore();
+		// Restore the testing environment back to its original state after each test.
+		sinon.restore(); // Clears and restores all sinon mocks, stubs, and spies.
 	});
 
+	/**
+	 * Tests user registration functionality, verifying the behavior when:
+	 * - Registering a new user successfully.
+	 * - Attempting to register with an email that already exists.
+	 * - Submitting a registration with an invalid email format.
+	 * - Trying to register without providing a password.
+	 */
 	describe('POST /api/auth/register', () => {
 		it('should register a new user', async () => {
 			// Assuming your User.create method is used within this route
@@ -143,6 +169,13 @@ describe('Auth Routes', function () {
 		});
 	});
 
+	/**
+	 * Tests user login functionality, including scenarios such as:
+	 * - Logging in successfully with correct credentials.
+	 * - Rejection of login attempts with incorrect passwords.
+	 * - Validation of email format on login attempts.
+	 * - Requirement of a password for login.
+	 */
 	describe('POST /api/auth/login', () => {
 		it('should login an existing user', async () => {
 			const hashedPassword = await bcrypt.hash('password123', 12);
@@ -214,8 +247,19 @@ describe('Auth Routes', function () {
 		});
 	});
 
+	/**
+	 * Tests the functionality for authenticated users to update their details, covering cases such as:
+	 * - Successfully updating user details.
+	 * - Handling attempts to update details for a non-existent user ID.
+	 * - Validating email format on detail updates.
+	 * - Ensuring password complexity on updates.
+	 * - Verifying firstName field requirements on updates.
+	 */
 	describe('PUT /api/auth/details', () => {
 		it('should return 404 for non-existent user ID', async () => {
+			// Testing the scenario where the user ID does not exist.
+			// This test ensures that when attempting to update details for a non-existent user ID,
+			// the system returns a 404 error indicating the user was not found.
 			userMock.expects('findById').withArgs('mockUserId').resolves(null);
 
 			const res = await request(app)
@@ -229,6 +273,9 @@ describe('Auth Routes', function () {
 		});
 
 		it('should update user details when authenticated', async () => {
+			// Testing the successful update of user details when authenticated.
+			// This test verifies that when providing valid details for update (email, password, firstName),
+			// the system successfully updates the user details and returns a 200 status code with a success message.
 			const user = {
 				_id: 'mockUserId',
 				firstName: 'originalName',
@@ -257,6 +304,9 @@ describe('Auth Routes', function () {
 		});
 
 		it('should reject update with invalid email format', async () => {
+			// Testing the rejection of update with an invalid email format.
+			// This test ensures that when providing an email with an invalid format for update,
+			// the system rejects the request and returns a 400 error indicating the email format issue.
 			const res = await request(app)
 				.put('/api/auth/details')
 				.set('Cookie', cookie)
@@ -267,6 +317,9 @@ describe('Auth Routes', function () {
 		});
 
 		it('should reject update with short password', async () => {
+			// Testing the rejection of update with a short password.
+			// This test ensures that when providing a password that does not meet the length requirement for update,
+			// the system rejects the request and returns a 400 error indicating the password issue.
 			const res = await request(app)
 				.put('/api/auth/details')
 				.set('Cookie', cookie)
@@ -277,6 +330,9 @@ describe('Auth Routes', function () {
 		});
 
 		it('should reject update with invalid firstName length', async () => {
+			// Testing the rejection of update with an invalid firstName length.
+			// This test ensures that when providing a firstName that does not meet the length requirement for update,
+			// the system rejects the request and returns a 400 error indicating the firstName issue.
 			const res = await request(app)
 				.put('/api/auth/details')
 				.set('Cookie', cookie)
@@ -301,8 +357,18 @@ describe('Auth Routes', function () {
 		// });
 	});
 
+	/**
+	 * Tests the password reset functionality, assessing behavior in scenarios like:
+	 * - Successfully resetting a password with a valid token.
+	 * - Rejecting reset attempts with invalid or expired tokens.
+	 * - Validating new password requirements during a reset.
+	 */
 	describe('POST /api/auth/reset-password', () => {
 		it('should reset the password with a valid token', async () => {
+			// Testing the password reset functionality with a valid token.
+			// This test verifies that when providing a valid token and a new password,
+			// the system successfully resets the password for the corresponding user.
+			// It expects a response with status code 200 and a message confirming the password reset.
 			const user = {
 				email: 'reset@example.com',
 				password: 'oldPasswordHash',
@@ -332,6 +398,10 @@ describe('Auth Routes', function () {
 		});
 
 		it('should reject reset with invalid or expired token', async () => {
+			// Testing the rejection of password reset with an invalid or expired token.
+			// This test ensures that when providing an invalid or expired token for password reset,
+			// the system rejects the request and returns a 400 error indicating the token issue.
+			// It expects a response with status code 400 and a message indicating the token is invalid or expired.
 			userMock
 				.expects('findOne')
 				.withArgs({
@@ -353,6 +423,9 @@ describe('Auth Routes', function () {
 		});
 
 		it('should reject reset with short new password', async () => {
+			// Testing the rejection of password reset with a short new password.
+			// This test ensures that when providing a new password that does not meet the length requirement,
+			// the system rejects the request and returns a 400 error indicating the password issue.
 			const res = await request(app)
 				.post('/api/auth/reset-password')
 				.send({
@@ -364,18 +437,27 @@ describe('Auth Routes', function () {
 			expect(res.body).to.have.property('message').that.includes('newPassword');
 		});
 	});
-
+	/**
+	 * Test suite for the logout endpoint in the authentication API.
+	 * It verifies that the logout process successfully logs the user out by checking the server's response.
+	 */
 	describe('POST /api/auth/logout', () => {
 		it('should log the user out', async () => {
 			const res = await request(app).post('/api/auth/logout').expect(200);
 
 			expect(res.body).to.have.property('message', 'Logged out successfully');
-			// Additional checks for cookie clearing can be done if needed
+			// Additional validation could include checking for the absence of a session token or cookie.
 		});
 	});
 
+	/**
+	 * Test suite for the forgot password functionality in the authentication API.
+	 * It tests scenarios including successful initiation of the password reset process for existing emails,
+	 * handling of non-existent emails, validation of email format, and handling of empty email input.
+	 */
 	describe('POST /api/auth/forgot-password', () => {
 		it('should initiate password reset process for existing email', async () => {
+			// Mock the database call to simulate finding a user by email.
 			userMock
 				.expects('findOne')
 				.withArgs({ email: 'exists@example.com' })
@@ -393,10 +475,11 @@ describe('Auth Routes', function () {
 				'message',
 				'Password reset email sent. Redirecting to login page...'
 			);
-			userMock.verify();
+			userMock.verify(); // Ensure the mock expectation is met.
 		});
 
 		it('should return 404 for email not found in database', async () => {
+			// Mock the database call to simulate not finding a user by email.
 			userMock
 				.expects('findOne')
 				.withArgs({ email: 'notfound@example.com' })
@@ -414,7 +497,7 @@ describe('Auth Routes', function () {
 		it('should reject forgot password request with invalid email format', async () => {
 			const res = await request(app)
 				.post('/api/auth/forgot-password')
-				.send({ email: 'invalidEmailFormat' }) // Invalid email format
+				.send({ email: 'invalidEmailFormat' }) // Test with invalid email format.
 				.expect(400);
 
 			expect(res.body).to.have.property('message').that.includes('email');
@@ -423,15 +506,21 @@ describe('Auth Routes', function () {
 		it('should reject forgot password request with empty email', async () => {
 			const res = await request(app)
 				.post('/api/auth/forgot-password')
-				.send({ email: '' }) // Empty email submission
+				.send({ email: '' }) // Test with empty email field.
 				.expect(400);
 
 			expect(res.body).to.have.property('message').that.includes('email');
 		});
 	});
 
+	/**
+	 * Test suite for checking the authentication status of a user.
+	 * It verifies that the endpoint correctly returns the user's authentication status,
+	 * including whether the user is logged in and if they have admin privileges.
+	 */
 	describe('GET /api/auth/status', () => {
 		it('should return user status for authenticated request', async () => {
+			// Mock the database call to simulate finding a user by ID.
 			userMock.expects('findById').withArgs('mockUserId').resolves({
 				_id: 'mockUserId',
 				email: 'user@example.com',
@@ -440,7 +529,7 @@ describe('Auth Routes', function () {
 
 			const res = await request(app)
 				.get('/api/auth/status')
-				.set('Cookie', cookie)
+				.set('Cookie', cookie) // Simulate sending an authentication cookie.
 				.expect(200);
 
 			expect(res.body).to.include({

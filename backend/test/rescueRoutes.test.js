@@ -14,21 +14,41 @@ import { generateObjectId } from '../utils/generateObjectId.js';
 
 const mockObjectId = '65f1fa2aadeb2ca9f053f7f8';
 
+/**
+ * Test suite for testing the rescue-related routes.
+ *
+ * It covers scenarios including fetching all rescues, fetching a specific rescue by ID,
+ * filtering rescues by type, creating individual, charity, and company rescues,
+ * updating rescue information, and managing rescue staff.
+ */
 describe('Rescue Routes', function () {
 	let rescueMock;
 
+	/**
+	 * Sets up the testing environment before each test case runs.
+	 * This setup includes connecting to a mock database, creating a mock for the Rescue model,
+	 * and stubbing the jwt.verify function globally to allow customization in each test case.
+	 */
 	beforeEach(async () => {
-		await connectToDatabase();
-		rescueMock = sinon.mock(Rescue);
-		sinon.stub(jwt, 'verify'); // Globally stub jwt.verify to configure in each context
+		await connectToDatabase(); // Mock connection to the database.
+		rescueMock = sinon.mock(Rescue); // Create a mock of the Rescue model to prevent actual database interaction.
+		sinon.stub(jwt, 'verify'); // Stub jwt.verify to bypass actual token verification.
 	});
 
+	/**
+	 * Cleans up after each test case runs.
+	 * This cleanup involves disconnecting from the mock database, restoring the Rescue mock to its original state,
+	 * and resetting the sinon environment to ensure a clean slate for the next test.
+	 */
 	afterEach(async () => {
-		await disconnectFromDatabase();
-		rescueMock.restore();
-		sinon.restore();
+		await disconnectFromDatabase(); // Mock disconnection from the database.
+		rescueMock.restore(); // Restore the Rescue model mock to its original state.
+		sinon.restore(); // Reset the sinon environment, removing all mocks, stubs, and spies.
 	});
 
+	/**
+	 * Tests for fetching all rescues.
+	 */
 	describe('GET /api/rescue', () => {
 		it('should fetch all rescues', async function () {
 			const mockRescues = [
@@ -36,21 +56,24 @@ describe('Rescue Routes', function () {
 				{ rescueType: 'Charity', rescueName: 'Test Rescue 2' },
 			];
 
-			rescueMock.expects('find').withArgs({}).resolves(mockRescues);
+			rescueMock.expects('find').withArgs({}).resolves(mockRescues); // Expect the find method to be called with no filters.
 
-			const response = await request(app).get('/api/rescue');
+			const response = await request(app).get('/api/rescue'); // Perform a GET request to the /api/rescue endpoint.
 
-			rescueMock.verify();
+			rescueMock.verify(); // Verify that the expected mock interactions occurred.
 
-			expect(response.status).to.equal(200);
-			expect(response.body.message).to.equal('Rescues fetched successfully');
-			expect(response.body.data).to.deep.equal(mockRescues);
+			expect(response.status).to.equal(200); // Assert that the HTTP response status code is 200 OK.
+			expect(response.body.message).to.equal('Rescues fetched successfully'); // Assert that the response message is as expected.
+			expect(response.body.data).to.deep.equal(mockRescues); // Assert that the response data matches the mock rescues.
 		});
 	});
 
+	/**
+	 * Tests for fetching a specific rescue by its ID.
+	 */
 	describe('GET /api/rescue/:id', () => {
 		it('should fetch a specific rescue by id', async function () {
-			const mockRescueId = mockObjectId;
+			const mockRescueId = mockObjectId; // A mock rescue ID for testing.
 			const mockRescueData = {
 				_id: mockRescueId,
 				rescueType: 'Charity',
@@ -60,31 +83,35 @@ describe('Rescue Routes', function () {
 			rescueMock
 				.expects('findById')
 				.withArgs(mockRescueId)
-				.resolves(mockRescueData);
+				.resolves(mockRescueData); // Expect the findById method to be called with the mock rescue ID.
 
-			const response = await request(app).get(`/api/rescue/${mockRescueId}`);
+			const response = await request(app).get(`/api/rescue/${mockRescueId}`); // Perform a GET request to the /api/rescue/:id endpoint.
 
-			rescueMock.verify();
+			rescueMock.verify(); // Verify that the expected mock interactions occurred.
 
-			expect(response.status).to.equal(200);
-			expect(response.body.message).to.equal('Rescue fetched successfully');
-			expect(response.body.data).to.deep.equal(mockRescueData);
+			expect(response.status).to.equal(200); // Assert that the HTTP response status code is 200 OK.
+			expect(response.body.message).to.equal('Rescue fetched successfully'); // Assert that the response message is as expected.
+			expect(response.body.data).to.deep.equal(mockRescueData); // Assert that the response data matches the mock rescue data.
 		});
 
 		it('should return a 404 status code if the rescue does not exist', async function () {
-			const mockRescueId = mockObjectId;
+			const mockRescueId = mockObjectId; // A mock rescue ID for testing.
 
-			rescueMock.expects('findById').withArgs(mockRescueId).resolves(null);
+			rescueMock.expects('findById').withArgs(mockRescueId).resolves(null); // Expect the findById method to be called with the mock rescue ID and resolve to null.
 
-			const response = await request(app).get(`/api/rescue/${mockRescueId}`);
+			const response = await request(app).get(`/api/rescue/${mockRescueId}`); // Perform a GET request to the /api/rescue/:id endpoint.
 
-			rescueMock.verify();
+			rescueMock.verify(); // Verify that the expected mock interactions occurred.
 
-			expect(response.status).to.equal(404);
-			expect(response.body.message).to.equal('Rescue not found');
+			expect(response.status).to.equal(404); // Assert that the HTTP response status code is 404 Not Found.
+			expect(response.body.message).to.equal('Rescue not found'); // Assert that the response message indicates the rescue was not found.
 		});
 	});
 
+	/**
+	 * Test suite for filtering rescues based on their type.
+	 * Iterates over predefined rescue types and checks if the API correctly fetches rescues of each type.
+	 */
 	describe('GET /api/rescue/filter', () => {
 		const rescueTypes = ['Individual', 'Charity', 'Company'];
 
@@ -97,30 +124,33 @@ describe('Rescue Routes', function () {
 				rescueMock
 					.expects('find')
 					.withArgs({ rescueType: type })
-					.resolves(mockRescues);
+					.resolves(mockRescues); // Setup mock expectation for the find query with a specific rescue type.
 
 				const response = await request(app).get(
 					`/api/rescue/filter?type=${type}`
-				);
+				); // Test the filter endpoint with each type.
 
-				rescueMock.verify();
+				rescueMock.verify(); // Verify that the mock expectations were met.
 
-				expect(response.status).to.equal(200);
+				expect(response.status).to.equal(200); // The response should have a status code of 200.
 				expect(response.body.message).to.equal(
 					`${type} rescues fetched successfully`
-				);
-				expect(response.body.data).to.deep.equal(mockRescues);
+				); // The success message should reflect the rescue type.
+				expect(response.body.data).to.deep.equal(mockRescues); // The data returned should match the mock rescues.
 			});
 		});
 	});
 
+	/**
+	 * Test suite for creating an individual rescue entry.
+	 */
 	describe('POST /api/rescue/individual', () => {
 		it('should create an individual rescue', async () => {
 			const requestPayload = {
 				rescueType: 'Individual',
 				staff: [
 					{
-						userId: mockObjectId, // Assuming this is a valid ObjectId string
+						userId: mockObjectId,
 						permissions: [
 							'edit_rescue_info',
 							'add_pet',
@@ -142,37 +172,39 @@ describe('Rescue Routes', function () {
 			rescueMock
 				.expects('create')
 				.withArgs(requestPayload)
-				.resolves(expectedRescue);
+				.resolves(expectedRescue); // Expect the Rescue model's create method to be called with the request payload.
 
 			const res = await request(app)
 				.post('/api/rescue/individual')
-				.send(requestPayload)
-				.expect(201);
+				.send(requestPayload) // Perform the POST request with the payload.
+				.expect(201); // Expect a 201 status code for successful creation.
 
 			expect(res.body.message).to.equal(
 				'Individual rescue created successfully'
-			);
-			rescueMock.verify();
+			); // Verify the success message.
+			rescueMock.verify(); // Ensure the mock expectation was met.
 		});
 
 		it('should handle errors when creating individual rescue', async () => {
-			const userId = 'mockUserId';
-
-			// Simulate sending a request without required rescueType
+			// Simulate an error by not including required fields in the request.
 			const res = await request(app)
 				.post('/api/rescue/individual')
-				.send({ userId })
-				.expect(400);
+				.send({ userId: 'mockUserId' })
+				.expect(400); // Expect a 400 status code for a bad request.
 
-			// Adjust the expected error message to match Joi's validation error for missing required fields
+			// The error message should indicate the missing 'rescueType' field.
 			expect(res.body.message).to.include('"rescueType" is required');
 		});
 	});
 
+	/**
+	 * Test suite for creating a charity rescue entry.
+	 */
 	describe('POST /api/rescue/charity', function () {
 		let saveStub;
 
 		before(() => {
+			// Stub the save method of the Rescue model to simulate database save operations.
 			saveStub = sinon.stub(Rescue.prototype, 'save').resolves({
 				rescueType: 'Charity',
 				rescueName: 'Test Charity',
@@ -197,16 +229,18 @@ describe('Rescue Routes', function () {
 		});
 
 		after(() => {
+			// Restore the stubbed method after the tests.
 			saveStub.restore();
 		});
 
 		it('should create a new charity rescue and return a 201 status code', async () => {
+			// Define the data for a new charity rescue.
 			const rescueData = {
 				rescueType: 'Charity',
 				rescueName: 'Test Charity',
 				rescueAddress: '123 Charity Lane',
 				referenceNumber: process.env.VALID_CHARITY_REGISTER_NUMBER,
-				userId: mockObjectId, // Assuming this is a valid ObjectId string
+				userId: mockObjectId,
 				staff: [
 					{
 						userId: mockObjectId,
@@ -223,12 +257,13 @@ describe('Rescue Routes', function () {
 				],
 			};
 
-			// Assuming the saveStub or similar logic to handle database save operation
+			// Perform the POST request to create a new charity rescue.
 			const response = await request(app)
 				.post('/api/rescue/charity')
 				.send(rescueData)
 				.expect(201);
 
+			// Check the response status code and message.
 			expect(response.status).to.equal(201);
 			expect(response.body.message).to.equal(
 				'Charity rescue created successfully'
@@ -236,22 +271,23 @@ describe('Rescue Routes', function () {
 		});
 
 		it('should return a 400 status code if required fields are missing', async () => {
-			const incompleteData = {}; // Missing required fields
-
+			// Perform the POST request with incomplete data.
 			const response = await request(app)
 				.post('/api/rescue/charity')
-				.send(incompleteData)
+				.send({})
 				.expect(400);
 
-			// Check for a Joi validation error message
-			expect(response.body.message).to.include('"rescueType" is required'); // Adjust as per actual Joi error message structure
+			// The response should indicate that the 'rescueType' field is required.
+			expect(response.body.message).to.include('"rescueType" is required');
 		});
 
 		it('should return a 400 status code if the referenceNumber is not unique', async () => {
+			// Stub the isReferenceNumberUnique method to simulate a duplicate reference number.
 			const isUniqueStub = sinon
 				.stub(rescueService, 'isReferenceNumberUnique')
 				.resolves(false);
 
+			// Define the data for a charity rescue with a duplicate reference number.
 			const duplicateData = {
 				rescueType: 'Charity',
 				rescueName: 'Another Test Chairty',
@@ -274,24 +310,31 @@ describe('Rescue Routes', function () {
 				],
 			};
 
+			// Perform the POST request with the duplicate data.
 			const response = await request(app)
 				.post('/api/rescue/charity')
 				.send(duplicateData);
 
+			// The response should indicate that the reference number already exists.
 			expect(response.status).to.equal(400);
 			expect(response.body.message).to.contain(
 				'A rescue with the given reference number already exists'
 			);
 
+			// Verify that the isReferenceNumberUnique stub was called once.
 			sinon.assert.calledOnce(isUniqueStub);
-			isUniqueStub.restore();
+			isUniqueStub.restore(); // Restore the stubbed method after the test.
 		});
 	});
 
+	/**
+	 * Test suite for creating a company rescue entry.
+	 */
 	describe('POST /api/rescue/company', function () {
 		let saveStub;
 
 		before(() => {
+			// Stub the save method of the Rescue model to simulate database save operations for company rescues.
 			saveStub = sinon.stub(Rescue.prototype, 'save').resolves({
 				rescueType: 'Company',
 				rescueName: 'Test Company',
@@ -316,16 +359,18 @@ describe('Rescue Routes', function () {
 		});
 
 		after(() => {
+			// Restore the stubbed method after the tests.
 			saveStub.restore();
 		});
 
 		it('should create a new company rescue and return a 201 status code', async () => {
+			// Define the data for a new company rescue.
 			const rescueData = {
 				rescueType: 'Company',
 				rescueName: 'Test Company',
 				rescueAddress: '123 Company Lane',
 				referenceNumber: 'COMP12345678',
-				userId: mockObjectId, // Assuming this is a valid ObjectId string
+				userId: mockObjectId,
 				staff: [
 					{
 						userId: mockObjectId,
@@ -342,11 +387,12 @@ describe('Rescue Routes', function () {
 				],
 			};
 
-			// Assuming the saveStub or similar logic to handle database save operation
+			// Perform the POST request to create a new company rescue.
 			const response = await request(app)
 				.post('/api/rescue/company')
 				.send(rescueData);
 
+			// Check the response status code and message.
 			expect(response.status).to.equal(201);
 			expect(response.body.message).to.equal(
 				'Company rescue created successfully'
@@ -354,22 +400,23 @@ describe('Rescue Routes', function () {
 		});
 
 		it('should return a 400 status code if required fields are missing', async () => {
-			const incompleteData = {}; // Missing required fields
-
+			// Perform the POST request with incomplete data.
 			const response = await request(app)
 				.post('/api/rescue/company')
-				.send(incompleteData)
+				.send({})
 				.expect(400);
 
-			// Check for a Joi validation error message
-			expect(response.body.message).to.include('"rescueType" is required'); // Adjust as per actual Joi error message structure
+			// The response should indicate that the 'rescueType' field is required.
+			expect(response.body.message).to.include('"rescueType" is required');
 		});
 
 		it('should return a 400 status code if the referenceNumber is not unique', async () => {
+			// Stub the isReferenceNumberUnique method to simulate a duplicate reference number.
 			const isUniqueStub = sinon
 				.stub(rescueService, 'isReferenceNumberUnique')
 				.resolves(false);
 
+			// Define the data for a company rescue with a duplicate reference number.
 			const duplicateData = {
 				rescueType: 'Company',
 				rescueName: 'Another Test Company',
@@ -392,46 +439,55 @@ describe('Rescue Routes', function () {
 				],
 			};
 
+			// Perform the POST request with the duplicate data.
 			const response = await request(app)
 				.post('/api/rescue/company')
 				.send(duplicateData);
 
+			// The response should indicate that the reference number already exists.
 			expect(response.status).to.equal(400);
 			expect(response.body.message).to.contain(
 				'A rescue with the given reference number already exists'
 			);
 
+			// Verify that the isReferenceNumberUnique stub was called once.
 			sinon.assert.calledOnce(isUniqueStub);
-			isUniqueStub.restore();
+			isUniqueStub.restore(); // Restore the stubbed method after the test.
 		});
 	});
 
+	/**
+	 * Test suite for updating rescue information by ID.
+	 * It tests various scenarios including successful updates, handling of non-existent rescues,
+	 * validation of rescue IDs, and permission checks for editing rescues.
+	 */
 	describe('PUT /api/rescue/:rescueId', function () {
 		let cookie, existingRescueId, jwtVerifyStub;
 
 		beforeEach(() => {
-			// Reset Sinon sandbox or restore individual stubs/spies to their original methods
+			// Resets the Sinon environment to ensure a clean state for each test.
 			sinon.restore();
 
+			// Prepares a mock authentication token for the request.
 			const token = 'dummyToken';
 			cookie = `token=${token};`;
 
-			// Stub the jwt.verify method specifically for this set of tests
+			// Stubs the JWT verification to simulate an authenticated user without admin privileges.
 			jwtVerifyStub = sinon
 				.stub(jwt, 'verify')
 				.callsFake((token, secret, callback) => {
 					callback(null, { userId: 'mockUserId', isAdmin: false });
 				});
 
-			// Generate a mock rescue ID that would exist in the database
+			// Generates a mock ID for a rescue that exists in the database for testing.
 			existingRescueId = generateObjectId();
 
+			// Stubs the Rescue.findById method to simulate fetching rescues from the database.
 			sinon.stub(Rescue, 'findById').callsFake((id) => {
 				if (id.toString() === existingRescueId.toString()) {
 					return Promise.resolve({
 						_id: existingRescueId,
 						rescueName: 'Existing Name',
-						// Mock the staff array to prevent TypeError during .some call
 						staff: [
 							{
 								userId: 'mockUserId',
@@ -453,12 +509,13 @@ describe('Rescue Routes', function () {
 		});
 
 		afterEach(() => {
-			// Restore stubs and mocks after each test to clean up
+			// Restores the JWT verification stub to its original state after each test.
 			if (jwtVerifyStub && jwtVerifyStub.restore) {
 				jwtVerifyStub.restore();
 			}
 		});
 
+		// Tests the response when the specified rescue does not exist in the database.
 		it('should return a 404 if the rescue is not found', async function () {
 			const nonExistingRescueId = generateObjectId();
 
@@ -471,8 +528,9 @@ describe('Rescue Routes', function () {
 			expect(response.body.message).to.equal('Rescue not found');
 		});
 
+		// Tests successful update of a rescue with valid data.
 		it('should successfully update a rescue with valid data', async function () {
-			const validUpdateBody = { rescueName: 'Updated Name' }; // Assume the rescue accepts a 'rescueName' field for updates
+			const validUpdateBody = { rescueName: 'Updated Name' };
 
 			const response = await request(app)
 				.put(`/api/rescue/${existingRescueId}`)
@@ -486,6 +544,7 @@ describe('Rescue Routes', function () {
 			);
 		});
 
+		// Tests handling of invalid rescue IDs.
 		it('should return a 400 for an invalid rescue ID', async function () {
 			const invalidRescueId = 'invalidId';
 
@@ -498,17 +557,16 @@ describe('Rescue Routes', function () {
 			expect(response.body.message).to.equal('Invalid rescue ID');
 		});
 
+		// Tests permission check for editing rescue information.
 		it('should return a 403 if the user does not have permission to edit', async function () {
-			if (jwtVerifyStub && jwtVerifyStub.restore) {
-				jwtVerifyStub.restore();
-			}
+			// Redefines the JWT verification stub to simulate a user without edit permissions.
+			jwtVerifyStub.restore();
 			jwtVerifyStub = sinon
 				.stub(jwt, 'verify')
 				.callsFake((token, secret, callback) => {
 					callback(null, { userId: 'mockUserIdNoPerms', isAdmin: false });
 				});
 
-			// Assuming the jwt.verify callFake is set up to mimic a user without edit permissions
 			const response = await request(app)
 				.put(`/api/rescue/${existingRescueId}`)
 				.set('Cookie', cookie)
@@ -521,9 +579,14 @@ describe('Rescue Routes', function () {
 		});
 	});
 
+	/**
+	 * Test suite for updating staff information in a rescue entity.
+	 * It tests the functionality to update and add staff members to a rescue, ensuring only authorized users can make changes.
+	 */
 	describe('PUT /api/rescue/:rescueId/staff', function () {
 		let cookie, existingRescueId, editorUserId, jwtVerifyStub;
 
+		// Setup before each test: resets stubs, prepares authentication and mocks retrieval of a rescue by ID.
 		beforeEach(async () => {
 			sinon.restore();
 			const token = 'dummyToken';
@@ -531,12 +594,14 @@ describe('Rescue Routes', function () {
 			existingRescueId = generateObjectId();
 			editorUserId = generateObjectId(); // Mock editor user ID
 
+			// Stub JWT verification to simulate an authenticated user session.
 			jwtVerifyStub = sinon
 				.stub(jwt, 'verify')
 				.callsFake((token, secret, callback) => {
 					callback(null, { userId: editorUserId.toString(), isAdmin: false });
 				});
 
+			// Stub the Rescue.findById method to simulate database lookup.
 			sinon.stub(Rescue, 'findById').callsFake((id) => {
 				if (id.toString() === existingRescueId.toString()) {
 					return Promise.resolve({
@@ -556,12 +621,14 @@ describe('Rescue Routes', function () {
 			});
 		});
 
+		// Cleanup after each test.
 		afterEach(() => {
 			if (jwtVerifyStub && jwtVerifyStub.restore) {
 				jwtVerifyStub.restore();
 			}
 		});
 
+		// Tests for various scenarios including rescue not found, unauthorized access, updating, and adding staff members.
 		it('should return a 404 if the rescue is not found', async function () {
 			const nonExistingRescueId = generateObjectId();
 
@@ -634,6 +701,10 @@ describe('Rescue Routes', function () {
 		});
 	});
 
+	/**
+	 * Test suite for verifying staff members in a rescue entity.
+	 * It tests the functionality to verify a staff member's association with a rescue, including authorization and error handling.
+	 */
 	describe('PUT /api/rescue/:rescueId/staff/:staffId/verify', function () {
 		let cookie,
 			rescueId,
@@ -643,6 +714,7 @@ describe('Rescue Routes', function () {
 			userIdNonEdit,
 			jwtVerifyStub;
 
+		// Setup before each test: resets stubs, prepares authentication, and mocks rescue retrieval.
 		beforeEach(async () => {
 			sinon.restore();
 			const token = 'dummyToken';
@@ -653,12 +725,14 @@ describe('Rescue Routes', function () {
 			userId = generateObjectId(); // Mock user ID
 			userIdNonEdit = generateObjectId();
 
+			// Stub JWT verification to simulate an authenticated user session.
 			jwtVerifyStub = sinon
 				.stub(jwt, 'verify')
 				.callsFake((token, secret, callback) => {
 					callback(null, { userId: userId.toString(), isAdmin: false });
 				});
 
+			// Stub the Rescue.findById method to simulate database lookup, including staff member details.
 			sinon.stub(Rescue, 'findById').callsFake((id) => {
 				if (id.toString() === rescueId.toString()) {
 					return Promise.resolve({
@@ -685,12 +759,14 @@ describe('Rescue Routes', function () {
 			});
 		});
 
+		// Cleanup after each test.
 		afterEach(() => {
 			if (jwtVerifyStub && jwtVerifyStub.restore) {
 				jwtVerifyStub.restore();
 			}
 		});
 
+		// Tests for various scenarios including rescue not found, unauthorized verification, staff member not found, successful verification, and error handling.
 		it('should return a 404 if the rescue is not found', async function () {
 			const response = await request(app)
 				.put(`/api/rescue/nonExistingRescueId/staff/${staffId}/verify`)
@@ -737,8 +813,8 @@ describe('Rescue Routes', function () {
 		});
 
 		it('should handle unexpected errors gracefully', async function () {
-			// Simulate an error scenario by throwing an error in the findById stub
-			Rescue.findById.restore(); // Restore original stub
+			// Simulate an error scenario by throwing an error in the findById stub.
+			Rescue.findById.restore(); // Restore original stub.
 			sinon.stub(Rescue, 'findById').throws(new Error('Unexpected error'));
 
 			const response = await request(app)
