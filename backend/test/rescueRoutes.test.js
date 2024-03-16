@@ -116,14 +116,11 @@ describe('Rescue Routes', function () {
 
 	describe('POST /api/rescue/individual', () => {
 		it('should create an individual rescue', async () => {
-			const userId = 'mockUserId';
-
-			const expectedRescue = {
-				_id: 'newRescueId',
+			const requestPayload = {
 				rescueType: 'Individual',
 				staff: [
 					{
-						userId,
+						userId: mockObjectId, // Assuming this is a valid ObjectId string
 						permissions: [
 							'edit_rescue_info',
 							'add_pet',
@@ -137,34 +134,22 @@ describe('Rescue Routes', function () {
 				],
 			};
 
+			const expectedRescue = {
+				_id: 'newRescueId',
+				...requestPayload,
+			};
+
 			rescueMock
 				.expects('create')
-				.withArgs({
-					rescueType: 'Individual',
-					staff: [
-						{
-							userId,
-							permissions: [
-								'edit_rescue_info',
-								'add_pet',
-								'delete_pet',
-								'edit_pet',
-								'see_messages',
-								'send_messages',
-							],
-							verifiedByRescue: true,
-						},
-					],
-				})
+				.withArgs(requestPayload)
 				.resolves(expectedRescue);
 
 			const res = await request(app)
 				.post('/api/rescue/individual')
-				.send({ userId })
+				.send(requestPayload)
 				.expect(201);
 
-			expect(res.body).to.have.property(
-				'message',
+			expect(res.body.message).to.equal(
 				'Individual rescue created successfully'
 			);
 			rescueMock.verify();
@@ -173,37 +158,14 @@ describe('Rescue Routes', function () {
 		it('should handle errors when creating individual rescue', async () => {
 			const userId = 'mockUserId';
 
-			rescueMock
-				.expects('create')
-				.withArgs({
-					rescueType: 'Individual',
-					staff: [
-						{
-							userId,
-							permissions: [
-								'edit_rescue_info',
-								'add_pet',
-								'delete_pet',
-								'edit_pet',
-								'see_messages',
-								'send_messages',
-							],
-							verifiedByRescue: true,
-						},
-					],
-				})
-				.rejects(new Error('Failed to create individual rescue'));
-
+			// Simulate sending a request without required rescueType
 			const res = await request(app)
 				.post('/api/rescue/individual')
 				.send({ userId })
 				.expect(400);
 
-			expect(res.body).to.have.property(
-				'message',
-				'Failed to create individual rescue'
-			);
-			rescueMock.verify();
+			// Adjust the expected error message to match Joi's validation error for missing required fields
+			expect(res.body.message).to.include('"rescueType" is required');
 		});
 	});
 
@@ -240,15 +202,32 @@ describe('Rescue Routes', function () {
 
 		it('should create a new charity rescue and return a 201 status code', async () => {
 			const rescueData = {
+				rescueType: 'Charity',
 				rescueName: 'Test Charity',
 				rescueAddress: '123 Charity Lane',
 				referenceNumber: process.env.VALID_CHARITY_REGISTER_NUMBER,
-				userId: 'user123',
+				userId: mockObjectId, // Assuming this is a valid ObjectId string
+				staff: [
+					{
+						userId: mockObjectId,
+						permissions: [
+							'edit_rescue_info',
+							'add_pet',
+							'delete_pet',
+							'edit_pet',
+							'see_messages',
+							'send_messages',
+						],
+						verifiedByRescue: true,
+					},
+				],
 			};
 
+			// Assuming the saveStub or similar logic to handle database save operation
 			const response = await request(app)
 				.post('/api/rescue/charity')
-				.send(rescueData);
+				.send(rescueData)
+				.expect(201);
 
 			expect(response.status).to.equal(201);
 			expect(response.body.message).to.equal(
@@ -257,16 +236,15 @@ describe('Rescue Routes', function () {
 		});
 
 		it('should return a 400 status code if required fields are missing', async () => {
-			const incompleteData = {
-				userId: 'user123',
-			};
+			const incompleteData = {}; // Missing required fields
 
 			const response = await request(app)
 				.post('/api/rescue/charity')
-				.send(incompleteData);
+				.send(incompleteData)
+				.expect(400);
 
-			expect(response.status).to.equal(400);
-			expect(response.body.message).to.include('Missing required fields');
+			// Check for a Joi validation error message
+			expect(response.body.message).to.include('"rescueType" is required'); // Adjust as per actual Joi error message structure
 		});
 
 		it('should return a 400 status code if the referenceNumber is not unique', async () => {
@@ -275,10 +253,25 @@ describe('Rescue Routes', function () {
 				.resolves(false);
 
 			const duplicateData = {
-				rescueName: 'Another Test Charity',
-				rescueAddress: '456 Charity Lane',
+				rescueType: 'Charity',
+				rescueName: 'Another Test Chairty',
+				rescueAddress: '456 Chairty Lane',
 				referenceNumber: 'CH12345678',
-				userId: 'user456',
+				userId: mockObjectId,
+				staff: [
+					{
+						userId: mockObjectId,
+						permissions: [
+							'edit_rescue_info',
+							'add_pet',
+							'delete_pet',
+							'edit_pet',
+							'see_messages',
+							'send_messages',
+						],
+						verifiedByRescue: true,
+					},
+				],
 			};
 
 			const response = await request(app)
@@ -328,12 +321,28 @@ describe('Rescue Routes', function () {
 
 		it('should create a new company rescue and return a 201 status code', async () => {
 			const rescueData = {
+				rescueType: 'Company',
 				rescueName: 'Test Company',
 				rescueAddress: '123 Company Lane',
 				referenceNumber: 'COMP12345678',
-				userId: 'user123',
+				userId: mockObjectId, // Assuming this is a valid ObjectId string
+				staff: [
+					{
+						userId: mockObjectId,
+						permissions: [
+							'edit_rescue_info',
+							'add_pet',
+							'delete_pet',
+							'edit_pet',
+							'see_messages',
+							'send_messages',
+						],
+						verifiedByRescue: true,
+					},
+				],
 			};
 
+			// Assuming the saveStub or similar logic to handle database save operation
 			const response = await request(app)
 				.post('/api/rescue/company')
 				.send(rescueData);
@@ -345,16 +354,15 @@ describe('Rescue Routes', function () {
 		});
 
 		it('should return a 400 status code if required fields are missing', async () => {
-			const incompleteData = {
-				userId: 'user123',
-			};
+			const incompleteData = {}; // Missing required fields
 
 			const response = await request(app)
 				.post('/api/rescue/company')
-				.send(incompleteData);
+				.send(incompleteData)
+				.expect(400);
 
-			expect(response.status).to.equal(400);
-			expect(response.body.message).to.include('Missing required fields');
+			// Check for a Joi validation error message
+			expect(response.body.message).to.include('"rescueType" is required'); // Adjust as per actual Joi error message structure
 		});
 
 		it('should return a 400 status code if the referenceNumber is not unique', async () => {
@@ -363,10 +371,25 @@ describe('Rescue Routes', function () {
 				.resolves(false);
 
 			const duplicateData = {
+				rescueType: 'Company',
 				rescueName: 'Another Test Company',
 				rescueAddress: '456 Company Lane',
 				referenceNumber: 'COMP12345678',
-				userId: 'user456',
+				userId: mockObjectId,
+				staff: [
+					{
+						userId: mockObjectId,
+						permissions: [
+							'edit_rescue_info',
+							'add_pet',
+							'delete_pet',
+							'edit_pet',
+							'see_messages',
+							'send_messages',
+						],
+						verifiedByRescue: true,
+					},
+				],
 			};
 
 			const response = await request(app)

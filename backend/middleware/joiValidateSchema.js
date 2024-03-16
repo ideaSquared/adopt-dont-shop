@@ -1,3 +1,4 @@
+// joiValidateSchema.js
 import Joi from 'joi';
 
 // Schema with sanitization for registration
@@ -31,9 +32,33 @@ const forgotPasswordSchema = Joi.object({
 	email: Joi.string().email().lowercase().trim().required(),
 });
 
-// Add this schema for admin-specific actions
+// Validation schema for admin-specific actions
 const adminResetPasswordSchema = Joi.object({
 	password: Joi.string().min(6).required(),
+});
+
+const rescueStaffJoiSchema = Joi.object({
+	userId: Joi.string().required(), // Assuming MongoDB ObjectId is passed as a string
+	permissions: Joi.array().items(
+		Joi.string().valid(
+			'edit_rescue_info',
+			'add_pet',
+			'delete_pet',
+			'edit_pet',
+			'see_messages',
+			'send_messages'
+		)
+	),
+	verifiedByRescue: Joi.boolean(),
+});
+
+const rescueJoiSchema = Joi.object({
+	rescueName: Joi.string().allow(''), // Allows an empty string, assuming required: false means it can be empty
+	rescueAddress: Joi.string().allow(''),
+	rescueType: Joi.string().valid('Individual', 'Charity', 'Company').required(),
+	referenceNumber: Joi.string().allow(''),
+	referenceNumberVerified: Joi.boolean(),
+	staff: Joi.array().items(rescueStaffJoiSchema), // Validates each staff member with the defined Joi schema
 });
 
 // Utility function to validate request body against a schema
@@ -59,5 +84,7 @@ export {
 	resetPasswordSchema,
 	forgotPasswordSchema,
 	adminResetPasswordSchema,
+	rescueStaffJoiSchema,
 	validateRequest,
+	rescueJoiSchema,
 };

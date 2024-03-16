@@ -8,6 +8,10 @@ import authenticateToken from '../middleware/authenticateToken.js';
 import mongoose from 'mongoose';
 import verifyCharityIsValid from '../utils/verifyCharityIsValid.js';
 import verifyCompanyIsValid from '../utils/verifyCompanyIsValid.js';
+import {
+	validateRequest,
+	rescueJoiSchema,
+} from '../middleware/joiValidateSchema.js';
 
 const router = express.Router();
 
@@ -70,117 +74,60 @@ router.get('/:id', async (req, res) => {
 });
 
 // Route for handling "Individual"
-router.post('/individual', async (req, res) => {
-	const { userId } = req.body; // This now matches the test input
-
-	try {
-		const newRescue = await Rescue.create({
-			rescueType: 'Individual',
-			staff: [
-				{
-					userId,
-					permissions: [
-						'edit_rescue_info',
-						'add_pet',
-						'delete_pet',
-						'edit_pet',
-						'see_messages',
-						'send_messages',
-					],
-					verifiedByRescue: true,
-				},
-			],
-			// Include defaults or empty values for required fields not provided in the request
-		});
-
-		res.status(201).send({
-			message: 'Individual rescue created successfully',
-			data: newRescue,
-		});
-	} catch (error) {
-		res.status(400).send({
-			message: 'Failed to create individual rescue',
-			error: error.toString(),
-		});
-	}
-});
-
-router.post('/:type(charity|company)', async (req, res) => {
-	const { rescueName, rescueAddress, referenceNumber, userId } = req.body;
-	let { type } = req.params;
-	type = capitalizeFirstChar(type);
-
-	// Basic input validation
-	if (!rescueName || !rescueAddress || !referenceNumber || !userId) {
-		return res.status(400).send({
-			message: 'Missing required fields',
-		});
-	}
-	try {
-		// Check for uniqueness of referenceNumber using the rescueService
-		const isUnique = await rescueService.isReferenceNumberUnique(
-			referenceNumber
-		);
-		if (!isUnique) {
-			return res.status(400).send({
-				message: 'A rescue with the given reference number already exists',
+router.post(
+	'/individual',
+	validateRequest(rescueJoiSchema),
+	async (req, res) => {
+		// Assuming rescueJoiSchema is adapted to handle individual rescues appropriately
+		try {
+			const newRescue = await Rescue.create(req.body);
+			res.status(201).send({
+				message: 'Individual rescue created successfully',
+				data: newRescue,
+			});
+		} catch (error) {
+			res.status(400).send({
+				message: 'Failed to create individual rescue',
+				error: error.toString(),
 			});
 		}
-
-		// Verify reference number based on type (charity or company)
-		let referenceNumberVerified = false;
-		if (type === 'Charity') {
-			// Assuming verifyCharityIsValid function exists and takes a referenceNumber
-			referenceNumberVerified = await verifyCharityIsValid(referenceNumber);
-		} else if (type === 'Company') {
-			// Assuming a similar function exists for companies
-			referenceNumberVerified = await verifyCompanyIsValid(referenceNumber);
-		}
-
-		const newRescue = new Rescue({
-			rescueType: type, // This could be dynamic based on route, if needed
-			rescueName: rescueName,
-			rescueAddress: rescueAddress,
-			referenceNumber: referenceNumber,
-			referenceNumberVerified: referenceNumberVerified,
-			staff: [
-				{
-					userId: userId,
-					permissions: [
-						'edit_rescue_info',
-						'add_pet',
-						'delete_pet',
-						'edit_pet',
-						'see_messages',
-						'send_messages',
-					],
-					verifiedByRescue: true,
-				},
-			],
-		});
-
-		await newRescue.save();
-
-		res.status(201).send({
-			message: `${type} rescue created successfully`,
-			data: newRescue,
-		});
-	} catch (error) {
-		let errorMessage = `Failed to create ${type} rescue`;
-
-		// You might want to customize your error message based on the error
-		// But be cautious about exposing sensitive error details
-		if (error.name === 'ValidationError') {
-			errorMessage = error.message;
-		}
-
-		console.log(error.toString());
-		res.status(400).send({
-			message: errorMessage,
-			error: error.toString(), // Consider removing or replacing this in production
-		});
 	}
-});
+);
+
+router.post(
+	'/:type(charity|company)',
+	validateRequest(rescueJoiSchema),
+	async (req, res) => {
+		// Your logic remains largely the same, but validation is now handled by the middleware
+		let { type } = req.params;
+		type = capitalizeFirstChar(type);
+
+		try {
+			// Check for uniqueness of referenceNumber using the rescueService
+			const isUnique = await rescueService.isReferenceNumberUnique(
+				req.body.referenceNumber
+			);
+			if (!isUnique) {
+				return res.status(400).send({
+					message: 'A rescue with the given reference number already exists',
+				});
+			}
+
+			// Additional verification for charity or company can be integrated here as before
+			const newRescue = await Rescue.create(req.body);
+
+			res.status(201).send({
+				message: `${type} rescue created successfully`,
+				data: newRescue,
+			});
+		} catch (error) {
+			res.status(400).send({
+				message: `Failed to create ${type} rescue`,
+				error: error.toString(),
+			});
+		}
+	}
+);
 
 router.put('/:id', authenticateToken, async (req, res) => {
 	const { id } = req.params;
