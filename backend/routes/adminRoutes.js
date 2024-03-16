@@ -5,6 +5,10 @@ import User from '../models/User.js'; // Make sure the path is correct and inclu
 import authenticateToken from '../middleware/authenticateToken.js'; // Adjust the path as necessary and include .js extension
 import checkAdmin from '../middleware/checkAdmin.js'; // Adjust the path as necessary and include .js extension
 import nodemailer from 'nodemailer';
+import {
+	validateRequest,
+	adminResetPasswordSchema,
+} from '../middleware/joiValidateSchema.js';
 
 const router = express.Router();
 
@@ -39,11 +43,12 @@ router.delete(
 	}
 );
 
-// Reset password for user by ID
+// Reset password for user by ID with validation
 router.post(
 	'/users/reset-password/:id',
 	authenticateToken,
 	checkAdmin,
+	validateRequest(adminResetPasswordSchema),
 	async (req, res) => {
 		try {
 			const { id } = req.params;

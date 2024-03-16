@@ -31,6 +31,11 @@ const forgotPasswordSchema = Joi.object({
 	email: Joi.string().email().lowercase().trim().required(),
 });
 
+// Add this schema for admin-specific actions
+const adminResetPasswordSchema = Joi.object({
+	password: Joi.string().min(6).required(),
+});
+
 // Utility function to validate request body against a schema
 const validateRequest = (schema) => (req, res, next) => {
 	const { error, value } = schema.validate(req.body, {
@@ -53,5 +58,6 @@ export {
 	updateDetailsSchema,
 	resetPasswordSchema,
 	forgotPasswordSchema,
+	adminResetPasswordSchema,
 	validateRequest,
 };
