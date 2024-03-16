@@ -6,6 +6,8 @@ import { capitalizeFirstChar } from '../utils/stringManipulation.js';
 import User from '../models/User.js';
 import authenticateToken from '../middleware/authenticateToken.js';
 import mongoose from 'mongoose';
+import verifyCharityIsValid from '../utils/verifyCharityIsValid.js';
+import verifyCompanyIsValid from '../utils/verifyCompanyIsValid.js';
 
 const router = express.Router();
 
@@ -125,12 +127,22 @@ router.post('/:type(charity|company)', async (req, res) => {
 			});
 		}
 
+		// Verify reference number based on type (charity or company)
+		let referenceNumberVerified = false;
+		if (type === 'Charity') {
+			// Assuming verifyCharityIsValid function exists and takes a referenceNumber
+			referenceNumberVerified = await verifyCharityIsValid(referenceNumber);
+		} else if (type === 'Company') {
+			// Assuming a similar function exists for companies
+			referenceNumberVerified = await verifyCompanyIsValid(referenceNumber);
+		}
+
 		const newRescue = new Rescue({
 			rescueType: type, // This could be dynamic based on route, if needed
 			rescueName: rescueName,
 			rescueAddress: rescueAddress,
 			referenceNumber: referenceNumber,
-			referenceNumberVerified: false,
+			referenceNumberVerified: referenceNumberVerified,
 			staff: [
 				{
 					userId: userId,
@@ -162,6 +174,7 @@ router.post('/:type(charity|company)', async (req, res) => {
 			errorMessage = error.message;
 		}
 
+		console.log(error.toString());
 		res.status(400).send({
 			message: errorMessage,
 			error: error.toString(), // Consider removing or replacing this in production

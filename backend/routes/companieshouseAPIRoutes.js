@@ -1,5 +1,6 @@
 import express from 'express';
 import axios from 'axios';
+import verifyCompanyIsValid from '../utils/verifyCompanyIsValid.js';
 
 const router = express.Router();
 
@@ -19,9 +20,18 @@ router.get('/:companyNumber', async (req, res) => {
 			},
 		});
 
+		// Use the verifyCompanyIsValid function to validate the fetched company data
+		const isValid = verifyCompanyIsValid(response.data);
+
+		if (!isValid) {
+			return res.status(400).json({
+				message: 'Company does not meet the validation criteria',
+			});
+		}
+
 		res.status(200).json({
 			data: response.data,
-			message: 'Successfully fetched company details',
+			message: 'Successfully fetched and verified company details',
 		});
 	} catch (error) {
 		if (error.response) {

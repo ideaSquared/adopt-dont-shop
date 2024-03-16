@@ -242,7 +242,7 @@ describe('Rescue Routes', function () {
 			const rescueData = {
 				rescueName: 'Test Charity',
 				rescueAddress: '123 Charity Lane',
-				referenceNumber: 'CH12345678',
+				referenceNumber: process.env.VALID_CHARITY_REGISTER_NUMBER,
 				userId: 'user123',
 			};
 

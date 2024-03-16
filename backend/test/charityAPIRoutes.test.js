@@ -6,6 +6,11 @@ import app from '../index.js'; // Ensure this is the correct path to your Expres
 describe('Charity Register API tests', () => {
 	let originalApiKey;
 
+	const validCharityRegisterNumber = process.env.VALID_CHARITY_REGISTER_NUMBER;
+	const invalidCharityRegisterNumber =
+		process.env.INVALID_CHARITY_REGISTER_NUMBER;
+	const nonExistentCharityRegisterNumber = '0000000'; // Assuming this is an invalid reference number
+
 	before(() => {
 		// Save the original API key
 		originalApiKey = process.env.CHARITY_COMMISSION_API_KEY;
@@ -19,21 +24,28 @@ describe('Charity Register API tests', () => {
 	describe('GET /api/charityregister/:registeredNumber', function () {
 		this.timeout(5000);
 
-		it('should return charityregister details for a valid reference number', async () => {
-			const validReference = '1190812';
+		it('should return true if the charity is validated with a valid reference number', async () => {
 			const res = await request(app).get(
-				`/api/charityregister/${validReference}`
+				`/api/charityregister/${validCharityRegisterNumber}`
 			);
 
 			expect(res.statusCode).to.equal(200);
 			expect(res.body).to.not.be.empty;
 			expect(res.body).to.be.an('object');
 		});
-
-		it('should return a 404 status for a non-existent charityregister reference number', async () => {
-			const invalidReference = '0000000'; // Assuming this is an invalid reference number
+		it('should return false if the charity is validated with a removed charity with a valid reference number', async () => {
 			const res = await request(app).get(
-				`/api/charityregister/${invalidReference}`
+				`/api/charityregister/${invalidCharityRegisterNumber}`
+			);
+
+			expect(res.statusCode).to.equal(400);
+			expect(res.body)
+				.to.have.property('message')
+				.that.includes('Charity does not meet the validation criteria');
+		});
+		it('should return a 404 status for a non-existent charityregister reference number', async () => {
+			const res = await request(app).get(
+				`/api/charityregister/${nonExistentCharityRegisterNumber}`
 			);
 
 			expect(res.statusCode).to.equal(404);
@@ -50,9 +62,8 @@ describe('Charity Register API tests', () => {
 
 			process.env.CHARITY_COMMISSION_API_KEY = 'invalid_test_key';
 			// This test requires you to modify your route handler to simulate an unauthorized access scenario.
-			const validReference = '1190812';
 			const res = await request(app).get(
-				`/api/charityregister/${validReference}`
+				`/api/charityregister/${validCharityRegisterNumber}`
 			);
 
 			// Assuming the test environment doesn't include a valid API key

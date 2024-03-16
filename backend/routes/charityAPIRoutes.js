@@ -1,5 +1,6 @@
 import express from 'express';
 import axios from 'axios';
+import verifyCharityIsValid from '../utils/verifyCharityIsValid.js';
 
 const router = express.Router();
 
@@ -12,7 +13,6 @@ router.get('/:registeredNumber', async (req, res) => {
 	const baseUrl =
 		'https://api.charitycommission.gov.uk/register/api/allcharitydetailsV2';
 	const fullURL = `${baseUrl}/${registeredNumber}/${apiSuffix}`;
-	console.log(fullURL);
 
 	try {
 		const response = await axios.get(fullURL, {
@@ -24,10 +24,19 @@ router.get('/:registeredNumber', async (req, res) => {
 
 		// Assuming the API returns 200 for found charities and 404 for not found
 		if (response.status === 200) {
-			res.status(200).json({
-				data: response.data,
-				message: 'Successfully fetched charity details',
-			});
+			// Use the utility function to validate the charity data
+			const isValid = verifyCharityIsValid(response.data);
+
+			if (isValid) {
+				res.status(200).json({
+					data: response.data,
+					message: 'Successfully fetched and verified charity details',
+				});
+			} else {
+				res
+					.status(400)
+					.json({ message: 'Charity does not meet the validation criteria' });
+			}
 		} else {
 			// Handle unexpected statuses
 			console.error('Unexpected response status:', response.status);
