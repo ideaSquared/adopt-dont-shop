@@ -2,6 +2,7 @@
 import express from 'express'; // For routing.
 import axios from 'axios'; // For making HTTP requests.
 import verifyCharityIsValid from '../utils/verifyCharityIsValid.js'; // Custom utility function for validating charity data.
+import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 
 // Create a new router instance.
 const router = express.Router();
@@ -59,7 +60,7 @@ router.get('/:registeredNumber', async (req, res) => {
 			}
 		} else {
 			// Log and handle unexpected response statuses.
-			console.error('Unexpected response status:', response.status);
+			Sentry.captureException(response);
 			res
 				.status(response.status)
 				.json({ message: 'Unexpected error occurred' });
@@ -78,11 +79,12 @@ router.get('/:registeredNumber', async (req, res) => {
 				});
 			} else {
 				// Handle other HTTP errors with the status code and message from the response.
+				Sentry.captureException(error);
 				res.status(error.response.status).json({ message: error.message });
 			}
 		} else {
 			// Handle network errors or other issues not related to the HTTP response.
-			console.error('Error fetching charity details:', error);
+			Sentry.captureException(error);
 			res.status(503).json({ message: 'Service unavailable' });
 		}
 	}

@@ -2,6 +2,7 @@
 import express from 'express';
 import axios from 'axios';
 import verifyCompanyIsValid from '../utils/verifyCompanyIsValid.js'; // A utility function to validate the company data against custom criteria.
+import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 
 // Create a new router instance for handling routes.
 const router = express.Router();
@@ -61,12 +62,13 @@ router.get('/:companyNumber', async (req, res) => {
 		// Handle errors from the Companies House API.
 		if (error.response) {
 			// Forward the HTTP status code from the Companies House API and respond with the error message.
+			Sentry.captureException(error);
 			res
 				.status(error.response.status)
 				.json({ message: error.response.data.error });
 		} else {
 			// Handle network errors or other issues not related to the HTTP response.
-			console.error('Error fetching company details:', error);
+			Sentry.captureException(error);
 			res.status(503).json({ message: 'Service unavailable' });
 		}
 	}

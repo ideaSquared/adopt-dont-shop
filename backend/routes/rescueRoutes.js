@@ -10,6 +10,7 @@ import {
 	validateRequest,
 	rescueJoiSchema,
 } from '../middleware/joiValidateSchema.js'; // Middleware for validating request bodies against Joi schemas.
+import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 
 // Create a router for handling rescue-related routes.
 const router = express.Router();
@@ -28,9 +29,10 @@ router.get('/', async (req, res) => {
 			data: rescues,
 		});
 	} catch (error) {
+		Sentry.captureException(error);
 		res.status(500).send({
 			message: 'Failed to fetch rescues',
-			error: error.toString(),
+			error: error.message,
 		});
 	}
 });
@@ -60,9 +62,10 @@ router.get('/filter', async (req, res) => {
 			data: rescues,
 		});
 	} catch (error) {
+		Sentry.captureException(error);
 		res.status(500).send({
 			message: `Failed to fetch ${type} rescues`,
-			error: error.toString(),
+			error: error.message,
 		});
 	}
 });
@@ -87,9 +90,10 @@ router.get('/:id', async (req, res) => {
 			.status(200)
 			.send({ message: 'Rescue fetched successfully', data: rescue });
 	} catch (error) {
+		Sentry.captureException(error);
 		res
 			.status(500)
-			.send({ message: 'Failed to fetch rescue', error: error.toString() });
+			.send({ message: 'Failed to fetch rescue', error: error.message });
 	}
 });
 
@@ -111,9 +115,10 @@ router.post(
 				data: newRescue,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			res.status(400).send({
 				message: 'Failed to create individual rescue',
-				error: error.toString(),
+				error: error.message,
 			});
 		}
 	}
@@ -149,9 +154,10 @@ router.post(
 				data: newRescue,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			res.status(400).send({
 				message: `Failed to create ${type} rescue`,
-				error: error.toString(),
+				error: error.message,
 			});
 		}
 	}
@@ -201,7 +207,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 		await rescue.save(); // Save the updated document to the database.
 		res.send({ message: 'Rescue updated successfully', data: rescue });
 	} catch (error) {
-		console.error('Update rescue error:', error);
+		Sentry.captureException(error);
 		res
 			.status(500)
 			.send({ message: 'Failed to update rescue', error: error.message });
@@ -257,9 +263,10 @@ router.put('/:rescueId/staff', authenticateToken, async (req, res) => {
 		res.send({ message: 'Staff updated successfully', data: rescue.staff });
 	} catch (error) {
 		// On error, return a 500 response with the error message.
+		Sentry.captureException(error);
 		res
 			.status(500)
-			.send({ message: 'Failed to update staff', error: error.toString() });
+			.send({ message: 'Failed to update staff', error: error.message });
 	}
 });
 
@@ -319,9 +326,10 @@ router.put(
 				.json({ message: 'Staff member verified successfully' });
 		} catch (error) {
 			// On error, return a 500 response with the error message.
+			Sentry.captureException(error);
 			return res
 				.status(500)
-				.json({ message: 'Failed to verify staff', error: error.toString() });
+				.json({ message: 'Failed to verify staff', error: error.message });
 		}
 	}
 );

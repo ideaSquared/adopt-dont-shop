@@ -18,6 +18,7 @@ import {
 	resetPasswordSchema,
 	forgotPasswordSchema,
 } from '../middleware/joiValidateSchema.js';
+import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 
 export default function createAuthRoutes({
 	tokenGenerator,
@@ -54,6 +55,7 @@ export default function createAuthRoutes({
 				});
 				res.status(201).json({ message: 'User created!', userId: user._id });
 			} catch (error) {
+				entry.captureException('Error creating user:', error);
 				res.status(500).json({ message: 'Creating user failed.' });
 			}
 		}
@@ -90,6 +92,7 @@ export default function createAuthRoutes({
 			});
 			res.status(200).json({ userId: user._id, isAdmin: user.isAdmin });
 		} catch (error) {
+			entry.captureException('Error logging in:', error);
 			res.status(500).json({ message: 'Logging in failed.' });
 		}
 	});
@@ -124,7 +127,7 @@ export default function createAuthRoutes({
 				await user.save();
 				res.status(200).json({ message: 'User details updated successfully.' });
 			} catch (error) {
-				console.error('Error updating user details:', error);
+				Sentry.captureException(error);
 				res.status(500).json({
 					message: 'Failed to update user details. Please try again.',
 				});
@@ -162,7 +165,7 @@ export default function createAuthRoutes({
 					message: 'Password reset email sent. Redirecting to login page...',
 				});
 			} catch (error) {
-				console.error('Error in forgot-password route:', error);
+				Sentry.captureException(error);
 				res
 					.status(500)
 					.json({ message: 'Failed to process password reset request.' });
@@ -201,7 +204,7 @@ export default function createAuthRoutes({
 				await user.save();
 				res.status(200).json({ message: 'Password has been reset.' });
 			} catch (error) {
-				console.error('Resetting password failed:', error);
+				Sentry.captureException(error);
 				res.status(500).json({
 					message:
 						'An error occurred while resetting the password. Please try again.',
@@ -241,7 +244,7 @@ export default function createAuthRoutes({
 				isAdmin: user.isAdmin,
 			});
 		} catch (error) {
-			console.error('Failed to retrieve user status:', error);
+			Sentry.captureException(error);
 			res.status(500).json({ message: 'Error checking user status.' });
 		}
 	});

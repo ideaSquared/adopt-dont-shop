@@ -14,9 +14,28 @@ import User from './models/User.js';
 import { generateResetToken } from './utils/tokenGenerator.js';
 import { sendPasswordResetEmail } from './services/emailService.js';
 
+import * as Sentry from '@sentry/node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
+
 dotenv.config();
 
 const app = express();
+
+Sentry.init({
+	dsn: process.env.SENTRY_DSN,
+	integrations: [
+		// enable HTTP calls tracing
+		new Sentry.Integrations.Http({ tracing: true }),
+		// enable Express.js middleware tracing
+		new Sentry.Integrations.Express({ app }),
+		nodeProfilingIntegration(),
+	],
+	// Performance Monitoring
+	tracesSampleRate: 1.0, //  Capture 100% of the transactions
+	// Set sampling rate for profiling - this is relative to tracesSampleRate
+	profilesSampleRate: 1.0,
+	environment: process.env.SENTRY_ENVIRONMENT, // Set the environment
+});
 
 // Since __dirname is not available in ES module scope, we define it manually
 const __filename = fileURLToPath(import.meta.url);
@@ -31,6 +50,13 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
+
+// The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());
+// TracingHandler creates a trace for every incoming request
+app.use(Sentry.Handlers.tracingHandler());
+// The error handler must be registered before any other error middleware and after all controllers
+app.use(Sentry.Handlers.errorHandler());
 
 // Create routes
 const authRoutes = createAuthRoutes({
@@ -47,6 +73,13 @@ app.use('/api/companieshouse', companiesHouseRoutes);
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+if (process.env.NODE_ENV !== 'production') {
+	app.get('/debug-sentry', function mainHandler(req, res) {
+		Sentry.captureMessage('Something happened');
+		throw new Error('My first Sentry error!');
+	});
+}
+
 // Handle SPA routing: serve your React app
 app.get('*', (req, res) => {
 	res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -56,6 +89,14 @@ app.get('*', (req, res) => {
 app.use((err, req, res, next) => {
 	console.error(err);
 	res.status(500).json({ message: 'Something went wrong' });
+});
+
+// Optional fallthrough error handler
+app.use(function onError(err, req, res, next) {
+	// The error id is attached to `res.sentry` to be returned
+	// and optionally displayed to the user for support.
+	res.statusCode = 500;
+	res.end(res.sentry + '\n');
 });
 
 export default app;

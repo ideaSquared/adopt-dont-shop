@@ -9,6 +9,7 @@ import {
 	validateRequest,
 	adminResetPasswordSchema,
 } from '../middleware/joiValidateSchema.js'; // For validating request bodies against Joi schemas.
+import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 
 // Initialize a new router instance from Express to define admin-specific routes.
 const router = express.Router();
@@ -27,7 +28,7 @@ router.get('/users', authenticateToken, checkAdmin, async (req, res) => {
 		res.json(users);
 	} catch (err) {
 		// Log and respond with an error if something goes wrong.
-		console.error(err);
+		Sentry.captureException(err); // Log the error to Sentry
 		res
 			.status(500)
 			.json({ message: 'An error occurred while fetching users.' });
@@ -58,7 +59,7 @@ router.delete(
 			res.json({ message: 'User deleted successfully.' });
 		} catch (err) {
 			// Log and respond with an error if deletion fails.
-			console.error(err);
+			Sentry.captureException(err); // Log the error to Sentry
 			res.status(500).json({ message: 'Failed to delete user.' });
 		}
 	}
@@ -101,7 +102,7 @@ router.post(
 			res.json({ message: 'Password reset successfully.' });
 		} catch (err) {
 			// Log and respond with an error if the password reset fails.
-			console.error(err);
+			Sentry.captureException(err); // Log the error to Sentry
 			res.status(500).json({ message: 'Failed to reset password.' });
 		}
 	}
