@@ -12,11 +12,12 @@ import app from '../index.js'; // Ensure this path correctly points to your Expr
 describe('Charity Register API tests', () => {
 	let originalApiKey;
 
-	// Pre-defined charity registration numbers for testing purposes
-	const validCharityRegisterNumber = process.env.VALID_CHARITY_REGISTER_NUMBER;
+	// Use environment variables or hardcoded values for testing
+	const validCharityRegisterNumber =
+		process.env.VALID_CHARITY_REGISTER_NUMBER || '123456'; // Example valid number
 	const invalidCharityRegisterNumber =
-		process.env.INVALID_CHARITY_REGISTER_NUMBER;
-	const nonExistentCharityRegisterNumber = '0000000'; // Assumed to be invalid for testing
+		process.env.INVALID_CHARITY_REGISTER_NUMBER || '654321'; // Example invalid but existent number
+	const nonExistentCharityRegisterNumber = '0000000'; // Assumed non-existent for testing
 
 	before(() => {
 		// Save the original API key before tests modify it
@@ -28,67 +29,55 @@ describe('Charity Register API tests', () => {
 		process.env.CHARITY_COMMISSION_API_KEY = originalApiKey;
 	});
 
-	/**
-	 * Tests the charity validation endpoint with various charity registration numbers.
-	 */
 	describe('GET /api/charityregister/:registeredNumber', function () {
-		this.timeout(5000); // Extends default timeout for external API calls
+		this.timeout(10000); // Extends default timeout for external API calls
 
-		it('should return true if the charity is validated with a valid reference number', async () => {
+		it('should validate and return data for a valid charity number', async () => {
 			const res = await request(app).get(
 				`/api/charityregister/${validCharityRegisterNumber}`
 			);
 
 			expect(res.statusCode).to.equal(200);
-			expect(res.body).to.not.be.empty;
-			expect(res.body).to.be.an('object');
+			expect(res.body.data).to.not.be.empty; // Assuming 'data' contains the charity details
 		});
 
-		it('should return false if the charity is validated with a removed charity with a valid reference number', async () => {
+		it('should indicate validation failure for a removed but valid reference number', async () => {
 			const res = await request(app).get(
 				`/api/charityregister/${invalidCharityRegisterNumber}`
 			);
 
 			expect(res.statusCode).to.equal(400);
-			expect(res.body)
-				.to.have.property('message')
-				.that.includes('Charity does not meet the validation criteria');
+			expect(res.body.message).to.include(
+				'Charity does not meet the validation criteria'
+			);
 		});
 
-		it('should return a 404 status for a non-existent charity register reference number', async () => {
+		it('should return a 404 status for a non-existent charity number', async () => {
 			const res = await request(app).get(
 				`/api/charityregister/${nonExistentCharityRegisterNumber}`
 			);
 
 			expect(res.statusCode).to.equal(404);
-			expect(res.body)
-				.to.have.property('message')
-				.that.includes('No charity found with the provided reference number');
+			expect(res.body.message).to.include(
+				'No charity found with the provided reference number'
+			);
 		});
 
-		it('should return a 401 status for requests without a valid API key', async () => {
-			// Temporarily modify the API key to simulate an unauthorized request
+		it('should return a 401 status for requests with an invalid API key', async () => {
+			// Modify the API key environment variable to simulate an unauthorized request
 			process.env.CHARITY_COMMISSION_API_KEY = 'invalid_test_key';
 
 			const res = await request(app).get(
 				`/api/charityregister/${validCharityRegisterNumber}`
 			);
 
-			// Assuming your API correctly handles unauthorized requests, expecting a 401 Unauthorized response
+			// Restore the original API key for subsequent tests
+			process.env.CHARITY_COMMISSION_API_KEY = originalApiKey;
+
 			expect(res.statusCode).to.equal(401);
-			expect(res.body)
-				.to.have.property('message')
-				.that.includes('Unauthorized');
-
-			// Restore the original API key after this test
-			after(() => {
-				process.env.CHARITY_COMMISSION_API_KEY = originalApiKey;
-			});
+			expect(res.body.message).to.include('Unauthorized');
 		});
-	});
 
-	// Additional test ideas commented for further implementation:
-	// 1. Verify the API returns the required data (name/active) for a valid charity number.
-	// 2. Verify the format of a valid charity registration number (e.g., length, numerical value).
-	// 3. Simulate and test the application's response if the Charity Register API is down.
+		// Additional tests for thorough coverage could be implemented here
+	});
 });

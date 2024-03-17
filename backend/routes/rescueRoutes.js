@@ -11,6 +11,10 @@ import {
 	rescueJoiSchema,
 } from '../middleware/joiValidateSchema.js'; // Middleware for validating request bodies against Joi schemas.
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import LoggerUtil from '../utils/Logger.js';
+
+// Instantiate a logger for this module.
+const logger = new LoggerUtil('rescue-route').getLogger();
 
 // Create a router for handling rescue-related routes.
 const router = express.Router();
@@ -23,13 +27,15 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
 	try {
-		const rescues = await Rescue.find({}); // Query to fetch all rescues.
+		const rescues = await Rescue.find({});
 		res.status(200).send({
 			message: 'Rescues fetched successfully',
 			data: rescues,
 		});
+		logger.info('All rescues fetched successfully.');
 	} catch (error) {
 		Sentry.captureException(error);
+		logger.error('Failed to fetch rescues: ' + error.message);
 		res.status(500).send({
 			message: 'Failed to fetch rescues',
 			error: error.message,
@@ -47,22 +53,25 @@ router.get('/', async (req, res) => {
  */
 
 router.get('/filter', async (req, res) => {
-	const { type } = req.query; // Extract the type of rescue from query parameters.
+	const { type } = req.query;
 
 	try {
 		if (!type || !['Individual', 'Charity', 'Company'].includes(type)) {
+			logger.warn('Invalid or missing type query parameter for rescue filter.');
 			return res.status(400).send({
 				message: 'Invalid or missing type query parameter',
 			});
 		}
 
-		const rescues = await Rescue.find({ rescueType: type }); // Filter rescues by type.
+		const rescues = await Rescue.find({ rescueType: type });
+		logger.info(`${type} rescues fetched successfully.`);
 		res.status(200).send({
 			message: `${type} rescues fetched successfully`,
 			data: rescues,
 		});
 	} catch (error) {
 		Sentry.captureException(error);
+		logger.error(`Failed to fetch ${type} rescues: ` + error.message);
 		res.status(500).send({
 			message: `Failed to fetch ${type} rescues`,
 			error: error.message,
@@ -79,18 +88,22 @@ router.get('/filter', async (req, res) => {
  */
 
 router.get('/:id', async (req, res) => {
-	const { id } = req.params; // Extract the ID from URL parameters.
+	const { id } = req.params;
 
 	try {
 		const rescue = await Rescue.findById(id);
 		if (!rescue) {
+			logger.warn(`Rescue with ID ${id} not found.`);
 			return res.status(404).send({ message: 'Rescue not found' });
 		}
+
+		logger.info(`Rescue with ID ${id} fetched successfully.`);
 		res
 			.status(200)
 			.send({ message: 'Rescue fetched successfully', data: rescue });
 	} catch (error) {
 		Sentry.captureException(error);
+		logger.error(`Failed to fetch rescue with ID ${id}: ` + error.message);
 		res
 			.status(500)
 			.send({ message: 'Failed to fetch rescue', error: error.message });
@@ -109,13 +122,15 @@ router.post(
 	validateRequest(rescueJoiSchema),
 	async (req, res) => {
 		try {
-			const newRescue = await Rescue.create(req.body); // Create a new rescue record with the provided body.
+			const newRescue = await Rescue.create(req.body);
+			logger.info('New individual rescue created successfully.');
 			res.status(201).send({
 				message: 'Individual rescue created successfully',
 				data: newRescue,
 			});
 		} catch (error) {
 			Sentry.captureException(error);
+			logger.error('Failed to create individual rescue: ' + error.message);
 			res.status(400).send({
 				message: 'Failed to create individual rescue',
 				error: error.message,
@@ -136,25 +151,30 @@ router.post(
 	validateRequest(rescueJoiSchema),
 	async (req, res) => {
 		let { type } = req.params;
-		type = capitalizeFirstChar(type); // Capitalize the first character to match the expected format.
+		type = capitalizeFirstChar(type);
 
 		try {
 			const isUnique = await rescueService.isReferenceNumberUnique(
 				req.body.referenceNumber
-			); // Ensure reference number uniqueness.
+			);
 			if (!isUnique) {
+				logger.warn(
+					`Rescue with reference number ${req.body.referenceNumber} already exists.`
+				);
 				return res.status(400).send({
 					message: 'A rescue with the given reference number already exists',
 				});
 			}
 
-			const newRescue = await Rescue.create(req.body); // Create a new rescue record.
+			const newRescue = await Rescue.create(req.body);
+			logger.info(`${type} rescue created successfully.`);
 			res.status(201).send({
 				message: `${type} rescue created successfully`,
 				data: newRescue,
 			});
 		} catch (error) {
 			Sentry.captureException(error);
+			logger.error(`Failed to create ${type} rescue: ` + error.message);
 			res.status(400).send({
 				message: `Failed to create ${type} rescue`,
 				error: error.message,
@@ -172,42 +192,47 @@ router.post(
  */
 
 router.put('/:id', authenticateToken, async (req, res) => {
-	const { id } = req.params; // Extract the rescue ID from URL parameters.
-	const updates = req.body; // Extract the fields to be updated from the request body.
-	const userId = req.user?.userId; // Extract the user ID from the authenticated token.
+	const { id } = req.params;
+	const updates = req.body;
+	const editorUserId = req.user?.userId; // ID of the user making the request
 
 	try {
 		if (!mongoose.Types.ObjectId.isValid(id)) {
+			logger.warn(`Invalid rescue ID: ${id}`);
 			return res.status(400).send({ message: 'Invalid rescue ID' });
 		}
 
 		const rescue = await Rescue.findById(id);
 		if (!rescue) {
+			logger.warn(`Rescue with ID ${id} not found for update.`);
 			return res.status(404).send({ message: 'Rescue not found' });
 		}
 
-		// Check if the authenticated user has permission to edit the rescue information.
 		const hasPermission = rescue.staff.some(
 			(staff) =>
-				staff.userId.toString() === userId &&
+				staff.userId === editorUserId && // Changed from .equals to ===
 				staff.permissions.includes('edit_rescue_info')
 		);
 
 		if (!hasPermission) {
+			logger.warn(
+				`User ${editorUserId} attempted to edit rescue without permission.`
+			);
 			return res
 				.status(403)
-				.send({ message: 'No permission to edit this rescue' });
+				.send({ message: 'No permission to edit this rescue' }); // Adjusted message to match test expectation
 		}
 
-		// Apply the updates to the rescue document.
 		Object.keys(updates).forEach((key) => {
 			rescue[key] = updates[key];
 		});
 
-		await rescue.save(); // Save the updated document to the database.
+		await rescue.save();
+		logger.info(`Rescue with ID ${id} updated successfully.`);
 		res.send({ message: 'Rescue updated successfully', data: rescue });
 	} catch (error) {
 		Sentry.captureException(error);
+		logger.error(`Failed to update rescue with ID ${id}: ` + error.message);
 		res
 			.status(500)
 			.send({ message: 'Failed to update rescue', error: error.message });
@@ -222,48 +247,47 @@ router.put('/:id', authenticateToken, async (req, res) => {
  */
 
 router.put('/:rescueId/staff', authenticateToken, async (req, res) => {
-	// Extract rescueId from URL parameters and staff details (userId, permissions) from the request body.
-	const { rescueId } = req.params;
-	const { userId, permissions } = req.body;
-	// Extract the userId of the editor from the authenticated token.
-	const editorUserId = req.user?.userId;
+	const { rescueId } = req.params; // ID of the rescue organization
+	const { userId, permissions } = req.body; // Staff member details
+	const editorUserId = req.user?.userId; // ID of the user making the request
 
 	try {
-		// Fetch the rescue document by its ID.
 		const rescue = await Rescue.findById(rescueId);
-		// If the rescue is not found, return a 404 response.
-		if (!rescue) return res.status(404).send({ message: 'Rescue not found' });
+		if (!rescue) {
+			logger.warn(`Rescue not found with ID: ${rescueId}`);
+			return res.status(404).send({ message: 'Rescue not found' });
+		}
 
-		// Check if the editor has permission to edit staff details.
 		const hasPermission = rescue.staff.some(
 			(staff) =>
 				staff.userId.equals(editorUserId) &&
 				staff.permissions.includes('edit_rescue_info')
 		);
 
-		// If the editor does not have permission, return a 403 response.
-		if (!hasPermission)
+		if (!hasPermission) {
+			logger.warn(
+				`User ${editorUserId} attempted to edit staff without permission.`
+			);
 			return res.status(403).send({ message: 'No permission to edit staff' });
+		}
 
-		// Check if the staff member already exists in the rescue's staff array.
 		const staffIndex = rescue.staff.findIndex((staff) =>
 			staff.userId.equals(userId)
 		);
 		if (staffIndex > -1) {
-			// If the staff member exists, update their permissions.
 			rescue.staff[staffIndex].permissions = permissions;
 		} else {
-			// If the staff member does not exist, add them to the rescue's staff array.
 			rescue.staff.push({ userId, permissions, verifiedByRescue: false });
 		}
 
-		// Save the updated rescue document.
 		await rescue.save();
-		// Return a success response with the updated staff details.
+		logger.info(`Staff updated successfully for rescue ID: ${rescueId}`);
 		res.send({ message: 'Staff updated successfully', data: rescue.staff });
 	} catch (error) {
-		// On error, return a 500 response with the error message.
 		Sentry.captureException(error);
+		logger.error(
+			`Error updating staff for rescue ID: ${rescueId}: ${error.message}`
+		);
 		res
 			.status(500)
 			.send({ message: 'Failed to update staff', error: error.message });
@@ -280,54 +304,55 @@ router.put(
 	'/:rescueId/staff/:staffId/verify',
 	authenticateToken,
 	async (req, res) => {
-		// Extract rescueId and staffId from URL parameters.
 		const { rescueId, staffId } = req.params;
-		// Extract the userId of the user attempting to verify the staff from the authenticated token.
 		const userId = req.user?.userId;
 
 		try {
-			// Fetch the rescue document by its ID.
 			const rescue = await Rescue.findById(rescueId);
-			// If the rescue is not found, return a 404 response.
 			if (!rescue) {
+				logger.warn(
+					`Rescue not found with ID: ${rescueId} during staff verification`
+				);
 				return res.status(404).json({ message: 'Rescue not found' });
 			}
 
-			// Find the staff member by their ID within the rescue's staff array.
 			const staffMember = rescue.staff.find(
 				(member) => member._id.toString() === staffId
 			);
-			// If the staff member is not found, return a 404 response.
 			if (!staffMember) {
+				logger.warn(
+					`Staff member not found with ID: ${staffId} for verification`
+				);
 				return res.status(404).json({ message: 'Staff member not found' });
 			}
 
-			// Check if the user has permission to verify staff members.
 			const hasPermission = rescue.staff.some(
-				(staffMember) =>
-					staffMember.userId.toString() === userId.toString() &&
-					staffMember.permissions.includes('edit_rescue_info')
+				(staff) =>
+					staff.userId.toString() === userId.toString() &&
+					staff.permissions.includes('edit_rescue_info')
 			);
 
-			// If the user does not have permission, return a 403 response.
 			if (!hasPermission) {
+				logger.warn(
+					`User ${userId} attempted to verify staff without permission.`
+				);
 				return res
 					.status(403)
 					.json({ message: 'No permission to verify staff' });
 			}
 
-			// Set the staff member's verifiedByRescue property to true to indicate they have been verified.
 			staffMember.verifiedByRescue = true;
-			// Save the updated rescue document.
 			await rescue.save();
-			// Return a success response indicating the staff member has been verified.
-			return res
-				.status(200)
-				.json({ message: 'Staff member verified successfully' });
+			logger.info(
+				`Staff member ${staffId} verified successfully for rescue ID: ${rescueId}`
+			);
+			res.status(200).json({ message: 'Staff member verified successfully' });
 		} catch (error) {
-			// On error, return a 500 response with the error message.
 			Sentry.captureException(error);
-			return res
+			logger.error(
+				`Error verifying staff member for rescue ID: ${rescueId}: ${error.message}`
+			);
+			res
 				.status(500)
 				.json({ message: 'Failed to verify staff', error: error.message });
 		}

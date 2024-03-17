@@ -18,7 +18,9 @@ import {
 	resetPasswordSchema,
 	forgotPasswordSchema,
 } from '../middleware/joiValidateSchema.js';
+
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import LoggerUtil from '../utils/Logger.js';
 
 export default function createAuthRoutes({
 	tokenGenerator,
@@ -26,6 +28,7 @@ export default function createAuthRoutes({
 	User,
 }) {
 	const router = express.Router();
+	const logger = new LoggerUtil('auth-service').getLogger(); // Initialize logger for auth-service
 
 	/**
 	 * Route handler for user registration. Validates the request body against the registerSchema,
@@ -42,6 +45,7 @@ export default function createAuthRoutes({
 				// Check if user already exists.
 				const existingUser = await User.findOne({ email });
 				if (existingUser) {
+					logger.warn(`Error existing user: ${email}`);
 					return res.status(409).json({
 						message: 'User already exists - please try login or reset password',
 					});
@@ -53,9 +57,11 @@ export default function createAuthRoutes({
 					password: hashedPassword,
 					firstName,
 				});
+				logger.info(`New user registered: ${user._id}`);
 				res.status(201).json({ message: 'User created!', userId: user._id });
 			} catch (error) {
-				entry.captureException('Error creating user:', error);
+				logger.error(`Error creating user: ${error}`);
+				Sentry.captureException(error);
 				res.status(500).json({ message: 'Creating user failed.' });
 			}
 		}
@@ -74,6 +80,7 @@ export default function createAuthRoutes({
 			// Check if user exists and password is correct.
 			const user = await User.findOne({ email });
 			if (!user || !(await bcrypt.compare(password, user.password))) {
+				logger.info(`Login attempt failed: Invalid credentials for ${email}`);
 				return res.status(401).json({
 					message: 'Email does not exist or password is not correct.',
 				});
@@ -84,6 +91,7 @@ export default function createAuthRoutes({
 				process.env.SECRET_KEY,
 				{ expiresIn: '1h' }
 			);
+			logger.info(`User logged in: ${user._id}`);
 			res.cookie('token', token, {
 				httpOnly: true,
 				secure: process.env.NODE_ENV === 'production',
@@ -92,7 +100,8 @@ export default function createAuthRoutes({
 			});
 			res.status(200).json({ userId: user._id, isAdmin: user.isAdmin });
 		} catch (error) {
-			entry.captureException('Error logging in:', error);
+			logger.error(`Error logging in user: ${error}`);
+			Sentry.captureException(error);
 			res.status(500).json({ message: 'Logging in failed.' });
 		}
 	});
@@ -110,23 +119,45 @@ export default function createAuthRoutes({
 		validateRequest(updateDetailsSchema),
 		async (req, res) => {
 			const { email, password, firstName } = req.body;
+			const userId = req.user.userId; // Extracting userId for logging purposes
+			logger.info(`Updating user details for userId: ${userId}`); // Log the start of the process
+
 			try {
-				// Update user details based on the authenticated user's ID.
-				const userId = req.user.userId;
 				const user = await User.findById(userId);
 				if (!user) {
+					logger.warn(`User not found for userId: ${userId}`); // Log when user is not found
 					return res.status(404).json({ message: 'User not found.' });
 				}
-				// Update provided fields.
-				if (firstName) user.firstName = firstName;
-				if (email) user.email = email;
+
+				// Log the fields that are being updated
+				let fieldsUpdated = [];
+				if (firstName) {
+					user.firstName = firstName;
+					fieldsUpdated.push('firstName');
+				}
+				if (email) {
+					user.email = email;
+					fieldsUpdated.push('email');
+				}
 				if (password) {
 					const hashedPassword = await bcrypt.hash(password, 12);
 					user.password = hashedPassword;
+					fieldsUpdated.push('password');
 				}
 				await user.save();
+
+				// Log successful update, including which fields were updated
+				logger.info(
+					`User details updated for userId: ${userId}. Fields updated: ${fieldsUpdated.join(
+						', '
+					)}`
+				);
+
 				res.status(200).json({ message: 'User details updated successfully.' });
 			} catch (error) {
+				logger.error(
+					`Error updating user details for userId: ${userId}: ${error.message}`
+				); // Log any exceptions
 				Sentry.captureException(error);
 				res.status(500).json({
 					message: 'Failed to update user details. Please try again.',
@@ -147,24 +178,36 @@ export default function createAuthRoutes({
 		validateRequest(forgotPasswordSchema),
 		async (req, res) => {
 			const { email } = req.body;
+			logger.info(`Password reset requested for email: ${email}`); // Log the initiation of a password reset request
+
 			try {
-				// Generate a reset token and send a password reset email.
 				const user = await User.findOne({ email });
 				if (!user) {
+					logger.warn(
+						`Password reset failed: User not found for email: ${email}`
+					); // Log when user is not found
 					return res.status(404).json({ message: 'User not found.' });
 				}
+
 				const token = await generateResetToken();
 				user.resetToken = token;
-				user.resetTokenExpiration = Date.now() + 3600000; // 1 hour from now.
+				user.resetTokenExpiration = Date.now() + 3600000; // 1 hour from now
 				await user.save();
+
 				const FRONTEND_BASE_URL =
 					process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
 				const resetURL = `${FRONTEND_BASE_URL}/reset-password?token=${token}`;
-				await sendPasswordResetEmail(email, resetURL);
+
+				await sendPasswordResetEmail(email, resetURL); // Assuming this method might throw an error if email sending fails
+				logger.info(`Password reset email sent to: ${email}`); // Log the successful email sending
+
 				res.status(200).json({
 					message: 'Password reset email sent. Redirecting to login page...',
 				});
 			} catch (error) {
+				logger.error(
+					`Failed to process password reset for email: ${email}. Error: ${error.message}`
+				); // Log any exceptions
 				Sentry.captureException(error);
 				res
 					.status(500)
@@ -185,25 +228,40 @@ export default function createAuthRoutes({
 		validateRequest(resetPasswordSchema),
 		async (req, res) => {
 			const { token, newPassword } = req.body;
+
+			logger.info(`Password reset process initiated with token: ${token}`);
+
 			try {
-				// Find user by reset token and check if token is still valid.
 				const user = await User.findOne({
 					resetToken: token,
 					resetTokenExpiration: { $gt: Date.now() },
 				});
+
 				if (!user) {
+					// Log when the token is invalid or has expired
+					logger.warn(
+						`Password reset failed: Token is invalid or has expired. Token: ${token}`
+					);
 					return res
 						.status(400)
 						.json({ message: 'Token is invalid or has expired.' });
 				}
-				// Hash new password and update user document.
+
+				// Hash new password and update user document
 				const hashedPassword = await bcrypt.hash(newPassword, 12);
 				user.password = hashedPassword;
 				user.resetToken = undefined;
 				user.resetTokenExpiration = undefined;
 				await user.save();
+
+				// Log successful password reset
+				logger.info(`Password successfully reset for user: ${user._id}`);
 				res.status(200).json({ message: 'Password has been reset.' });
 			} catch (error) {
+				// Log any exceptions that occur during the password reset process
+				logger.error(
+					`An error occurred during the password reset process. Token: ${token}, Error: ${error.message}`
+				);
 				Sentry.captureException(error);
 				res.status(500).json({
 					message:
@@ -220,8 +278,14 @@ export default function createAuthRoutes({
 	 */
 
 	router.post('/logout', (req, res) => {
+		// Log the user's attempt to log out
+		logger.info('User logout initiated');
+
 		res.clearCookie('token');
 		res.status(200).json({ message: 'Logged out successfully' });
+
+		// Log the successful logout
+		logger.info('User logged out successfully');
 	});
 
 	/**
@@ -233,17 +297,35 @@ export default function createAuthRoutes({
 
 	router.get('/status', authenticateToken, async (req, res) => {
 		try {
-			// Verify authentication and return user status.
+			// Log the attempt to check user's authentication status
+			logger.info(
+				`Checking authentication status for userId: ${req.user.userId}`
+			);
+
 			const user = await User.findById(req.user.userId);
 			if (!user) {
+				// Log if the user is not found
+				logger.warn(
+					`User not found during authentication status check for userId: ${req.user.userId}`
+				);
 				return res.status(404).json({ message: 'User not found.' });
 			}
+
 			res.status(200).json({
 				isLoggedIn: true,
 				userId: req.user.userId,
 				isAdmin: user.isAdmin,
 			});
+
+			// Log the successful authentication status check
+			logger.info(
+				`Authentication status checked successfully for userId: ${req.user.userId}`
+			);
 		} catch (error) {
+			// Log any errors during the authentication status check
+			logger.error(
+				`Error checking authentication status for userId: ${req.user.userId}. Error: ${error.message}`
+			);
 			Sentry.captureException(error);
 			res.status(500).json({ message: 'Error checking user status.' });
 		}

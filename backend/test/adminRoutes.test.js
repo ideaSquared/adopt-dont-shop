@@ -107,5 +107,99 @@ describe('Admin Routes', function () {
 			// Validate the response to ensure the operation was rejected due to the invalid new password.
 			expect(res.body).to.have.property('message').that.includes('password');
 		});
+
+		it('should fetch all users successfully', async function () {
+			// Simulate adding users to test fetching.
+			await User.create([
+				{ email: 'user1@example.com', password: 'password1', isAdmin: false },
+				{ email: 'user2@example.com', password: 'password2', isAdmin: false },
+			]);
+
+			const res = await request(app)
+				.get('/api/admin/users')
+				.set('Cookie', cookie) // Simulate sending the auth cookie.
+				.expect(200); // Expect a successful fetch operation.
+
+			// Validate the response to ensure all users are fetched successfully.
+			expect(res.body).to.be.an('array').that.has.lengthOf.at.least(2);
+			expect(res.body[0]).to.have.property('email');
+			expect(res.body[1]).to.have.property('email');
+		});
+
+		it('should delete a user successfully', async function () {
+			// Simulate adding a user to test deletion.
+			const userToDelete = await User.create({
+				email: 'user-to-delete@example.com',
+				password: 'password',
+				isAdmin: false,
+			});
+
+			const res = await request(app)
+				.delete(`/api/admin/users/delete/${userToDelete._id}`)
+				.set('Cookie', cookie) // Simulate sending the auth cookie.
+				.expect(200); // Expect a successful delete operation.
+
+			// Validate the response to ensure the user has been deleted successfully.
+			expect(res.body).to.have.property(
+				'message',
+				'User deleted successfully.'
+			);
+
+			// Further validate by trying to fetch the deleted user.
+			const fetchDeletedUser = await User.findById(userToDelete._id);
+			expect(fetchDeletedUser).to.be.null; // The user should not exist in the database anymore.
+		});
+
+		it('should return an error if the user to delete does not exist', async function () {
+			const nonExistingUserId = '5e9f8f8f8f8f8f8f8f8f8f8f'; // Simulate a non-existing user ID.
+
+			const res = await request(app)
+				.delete(`/api/admin/users/delete/${nonExistingUserId}`)
+				.set('Cookie', cookie) // Simulate sending the auth cookie.
+				.expect(404); // Expect a 404 Not Found response.
+
+			// Validate the response to ensure the correct error message is returned.
+			expect(res.body).to.have.property('message', 'User not found.');
+		});
+
+		it('should handle database errors when fetching users', async function () {
+			// Stub the find method of the User model to simulate a database error.
+			sinon.stub(User, 'find').throws(new Error('Simulated database error'));
+
+			const res = await request(app)
+				.get('/api/admin/users')
+				.set('Cookie', cookie)
+				.expect(500); // Expect an internal server error due to database failure.
+
+			// Validate that the error response is as expected.
+			expect(res.body).to.have.property(
+				'message',
+				'An error occurred while fetching users.'
+			);
+
+			// Restore the stubbed method to its original function after the test.
+			User.find.restore();
+		});
+
+		it('should handle database errors when deleting a user', async function () {
+			// Assume user ID to simulate deletion
+			const userId = 'someUserId';
+
+			// Stub the findByIdAndDelete method of the User model to simulate a database error.
+			sinon
+				.stub(User, 'findByIdAndDelete')
+				.throws(new Error('Simulated database error'));
+
+			const res = await request(app)
+				.delete(`/api/admin/users/delete/${userId}`)
+				.set('Cookie', cookie)
+				.expect(500); // Expect an internal server error due to database failure.
+
+			// Validate that the error response is as expected.
+			expect(res.body).to.have.property('message', 'Failed to delete user.');
+
+			// Restore the stubbed method to its original function after the test.
+			User.findByIdAndDelete.restore();
+		});
 	});
 });

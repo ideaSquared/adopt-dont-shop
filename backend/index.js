@@ -16,10 +16,12 @@ import { sendPasswordResetEmail } from './services/emailService.js';
 
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import LoggerUtil from './utils/Logger.js';
 
 dotenv.config();
 
 const app = express();
+app.use(LoggerUtil.httpLogger());
 
 Sentry.init({
 	dsn: process.env.SENTRY_DSN,

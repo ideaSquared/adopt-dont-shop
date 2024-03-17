@@ -9,7 +9,10 @@ import {
 	validateRequest,
 	adminResetPasswordSchema,
 } from '../middleware/joiValidateSchema.js'; // For validating request bodies against Joi schemas.
+
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import LoggerUtil from '../utils/Logger.js';
+const logger = new LoggerUtil('admin-service').getLogger();
 
 // Initialize a new router instance from Express to define admin-specific routes.
 const router = express.Router();
@@ -22,13 +25,12 @@ const router = express.Router();
  */
 router.get('/users', authenticateToken, checkAdmin, async (req, res) => {
 	try {
-		// Fetch all users from the database.
 		const users = await User.find({});
-		// Respond with the list of users.
 		res.json(users);
+		logger.info('Fetched all users successfully');
 	} catch (err) {
-		// Log and respond with an error if something goes wrong.
-		Sentry.captureException(err); // Log the error to Sentry
+		Sentry.captureException(err);
+		logger.error('An error occurred while fetching users: %s', err.message);
 		res
 			.status(500)
 			.json({ message: 'An error occurred while fetching users.' });
@@ -53,13 +55,18 @@ router.delete(
 			const deletedUser = await User.findByIdAndDelete(id);
 			if (!deletedUser) {
 				// Respond with a 404 error if the user is not found.
+				logger.info(`Delete User: User with ID ${id} not found.`);
 				return res.status(404).json({ message: 'User not found.' });
 			}
 			// Respond to confirm the user has been deleted.
+			logger.info(`Delete User: User with ID ${id} deleted successfully.`);
 			res.json({ message: 'User deleted successfully.' });
 		} catch (err) {
 			// Log and respond with an error if deletion fails.
 			Sentry.captureException(err); // Log the error to Sentry
+			logger.error(
+				`Delete User: Failed to delete user with ID ${req.params.id}. Error: ${err.message}`
+			);
 			res.status(500).json({ message: 'Failed to delete user.' });
 		}
 	}
@@ -99,10 +106,16 @@ router.post(
 				return res.status(404).json({ message: 'User not found.' });
 			}
 			// Respond to confirm the password has been reset.
+			logger.info(
+				`Reset Password: Password for user with ID ${id} reset successfully.`
+			);
 			res.json({ message: 'Password reset successfully.' });
 		} catch (err) {
 			// Log and respond with an error if the password reset fails.
 			Sentry.captureException(err); // Log the error to Sentry
+			logger.error(
+				`Reset Password: Failed to reset password for user with ID ${req.params.id}. Error: ${err.message}`
+			);
 			res.status(500).json({ message: 'Failed to reset password.' });
 		}
 	}

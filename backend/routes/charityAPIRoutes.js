@@ -2,7 +2,10 @@
 import express from 'express'; // For routing.
 import axios from 'axios'; // For making HTTP requests.
 import verifyCharityIsValid from '../utils/verifyCharityIsValid.js'; // Custom utility function for validating charity data.
+
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import LoggerUtil from '../utils/Logger.js';
+const logger = new LoggerUtil('charity-api-wrapper').getLogger();
 
 // Create a new router instance.
 const router = express.Router();
@@ -21,71 +24,96 @@ const router = express.Router();
  * @returns JSON response with either the charity information and a success message, an error message with an appropriate status code, or a service unavailable message in case of network issues or unexpected errors.
  */
 router.get('/:registeredNumber', async (req, res) => {
-	// Destructure the registered number from the request parameters.
+	// Extract the registered number from the request parameters.
 	const { registeredNumber } = req.params;
 
-	// API endpoint suffix, as required by the Charity Commission API format.
+	// Log the initiation of a request to fetch charity information
+	logger.info(
+		`Fetching charity information for registered number: ${registeredNumber}`
+	);
+
+	// Define the API endpoint components
 	const apiSuffix = '0';
-	// Base URL for the Charity Commission API.
 	const baseUrl =
 		'https://api.charitycommission.gov.uk/register/api/allcharitydetailsV2';
-	// Construct the full URL by combining the base URL, registered number, and suffix.
 	const fullURL = `${baseUrl}/${registeredNumber}/${apiSuffix}`;
 
 	try {
-		// Make a GET request to the Charity Commission API with necessary headers.
+		// Perform the API request
 		const response = await axios.get(fullURL, {
 			headers: {
-				'Cache-Control': 'no-cache', // Ensures the response is not cached for up-to-date information.
-				'Ocp-Apim-Subscription-Key': process.env.CHARITY_COMMISSION_API_KEY, // Subscription key for API access.
+				'Cache-Control': 'no-cache',
+				'Ocp-Apim-Subscription-Key': process.env.CHARITY_COMMISSION_API_KEY,
 			},
 		});
 
-		// If the API returns a 200 status, proceed to validate the charity data.
+		// Check if the response status is 200 (OK)
 		if (response.status === 200) {
-			// Use the custom utility function to validate the charity data.
+			// Validate the charity data using the custom utility function
 			const isValid = verifyCharityIsValid(response.data);
-
-			// If the charity is valid according to custom criteria, respond with the charity data.
 			if (isValid) {
+				// Log successful validation
+				logger.info(`Charity ${registeredNumber} passed validation.`);
+				// Respond with the charity data
 				res.status(200).json({
 					data: response.data,
 					message: 'Successfully fetched and verified charity details',
 				});
 			} else {
-				// If the charity does not meet the validation criteria, respond with an error.
+				// Log failed validation
+				logger.warn(
+					`Charity ${registeredNumber} did not meet validation criteria.`
+				);
+				// Respond with a validation error message
 				res
 					.status(400)
 					.json({ message: 'Charity does not meet the validation criteria' });
 			}
 		} else {
-			// Log and handle unexpected response statuses.
-			Sentry.captureException(response);
+			// Log unexpected API response status
+			logger.error(
+				`Unexpected response status: ${response.status} for charity ${registeredNumber}`
+			);
+			Sentry.captureException(
+				new Error(`Unexpected response status: ${response.status}`)
+			);
+			// Respond with an error message indicating an unexpected error
 			res
 				.status(response.status)
 				.json({ message: 'Unexpected error occurred' });
 		}
 	} catch (error) {
-		// Handle errors from the Charity Commission API.
 		if (error.response) {
-			// Specific handling for common HTTP status codes such as 404 (Not Found) or 401 (Unauthorized).
-			if (error.response.status === 404) {
-				res.status(404).json({
-					message: 'No charity found with the provided reference number',
-				});
-			} else if (error.response.status === 401) {
-				res.status(401).json({
-					message: 'Unauthorized access to the Charity Commission API',
-				});
-			} else {
-				// Handle other HTTP errors with the status code and message from the response.
-				Sentry.captureException(error);
-				res.status(error.response.status).json({ message: error.message });
+			// Assuming you want to customize the message based on the status code
+			let errorMessage;
+			switch (error.response.status) {
+				case 404:
+					errorMessage = 'No charity found with the provided reference number';
+					break;
+				case 401:
+					errorMessage = 'Unauthorized access to the Charity Commission API';
+					break;
+				default:
+					errorMessage = 'Unexpected error occurred'; // Default message
 			}
+
+			// Log API response errors with a custom message
+			logger.error(
+				`HTTP error fetching charity ${registeredNumber}: ${errorMessage}`,
+				{ statusCode: error.response.status }
+			);
+			Sentry.captureException(new Error(errorMessage));
+			// Respond with the custom error message
+			res.status(error.response.status).json({ message: errorMessage });
 		} else {
-			// Handle network errors or other issues not related to the HTTP response.
-			Sentry.captureException(error);
-			res.status(503).json({ message: 'Service unavailable' });
+			// Handle network errors or other issues not related to the HTTP response
+			const networkErrorMessage =
+				'Service unavailable due to network error or unexpected issue';
+			logger.error(
+				`Network or unexpected error fetching charity ${registeredNumber}: ${networkErrorMessage}`
+			);
+			Sentry.captureException(new Error(networkErrorMessage));
+			res.status(503).json({ message: networkErrorMessage });
 		}
 	}
 });
