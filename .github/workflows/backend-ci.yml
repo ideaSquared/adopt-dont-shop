@@ -43,3 +43,8 @@ jobs:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           VALID_CHARITY_REGISTER_NUMBER: ${{ secrets.VALID_CHARITY_REGISTER_NUMBER }}
           VALID_COMPANY_HOUSE_NUMBER: ${{ secrets.VALID_COMPANY_HOUSE_NUMBER }}
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: ideaSquared/pet-adoption
