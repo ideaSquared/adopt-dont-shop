@@ -76,7 +76,7 @@ describe('Pet Creation Routes', function () {
 						},
 						specific: {
 							breed: 'Golden Retriever',
-							intelligence_level: 5, // Assuming this is a numeric value
+							intelligence_level: 'High',
 							activity_level: 'High',
 						},
 					},
@@ -208,7 +208,7 @@ describe('Pet Creation Routes', function () {
 						},
 						specific: {
 							breed: 'Siamese',
-							intelligence_level: 4,
+							intelligence_level: 'High',
 							activity_level: 'Low',
 						},
 					},
@@ -269,7 +269,6 @@ describe('Pet Creation Routes', function () {
 				updatedPetData = {
 					petName: 'Attempted Update Name',
 					age: 6,
-					// Include other fields that might be updated
 				};
 
 				sinon

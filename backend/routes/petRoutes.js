@@ -4,6 +4,11 @@ import Rescue from '../models/Rescue.js'; // Assuming your Rescue model is in th
 import mongoose from 'mongoose';
 import authenticateToken from '../middleware/authenticateToken.js';
 
+import {
+	validateRequest,
+	petJoiSchema,
+} from '../middleware/joiValidateSchema.js';
+
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
 const logger = new LoggerUtil('pet-service').getLogger();
@@ -26,35 +31,40 @@ const checkPermission = async (userId, permissionRequired) => {
 };
 
 // Create a new pet record
-router.post('/', authenticateToken, async (req, res) => {
-	try {
-		const userId = req.user?.userId;
+router.post(
+	'/',
+	authenticateToken,
+	validateRequest(petJoiSchema),
+	async (req, res) => {
+		try {
+			const userId = req.user?.userId;
 
-		const hasPermission = await checkPermission(userId, 'add_pet');
-		if (!hasPermission) {
-			logger.warn(
-				`User ${userId} attempted to add pet without sufficient permissions.`
-			);
-			return res
-				.status(403)
-				.send({ message: 'Insufficient permissions to add pet' });
+			const hasPermission = await checkPermission(userId, 'add_pet');
+			if (!hasPermission) {
+				logger.warn(
+					`User ${userId} attempted to add pet without sufficient permissions.`
+				);
+				return res
+					.status(403)
+					.send({ message: 'Insufficient permissions to add pet' });
+			}
+
+			const newPet = await Pet.create(req.body);
+			logger.info(`New pet created with ID: ${newPet._id} by User ${userId}`);
+			res.status(201).send({
+				message: 'Pet created successfully',
+				data: newPet,
+			});
+		} catch (error) {
+			logger.error(`Error creating pet: ${error.message}`, { error });
+			Sentry.captureException(error);
+			res.status(500).send({
+				message: 'An error occurred',
+				error: error.message,
+			});
 		}
-
-		const newPet = await Pet.create(req.body);
-		logger.info(`New pet created with ID: ${newPet._id} by User ${userId}`);
-		res.status(201).send({
-			message: 'Pet created successfully',
-			data: newPet,
-		});
-	} catch (error) {
-		logger.error(`Error creating pet: ${error.message}`, { error });
-		Sentry.captureException(error);
-		res.status(500).send({
-			message: 'An error occurred',
-			error: error.message,
-		});
 	}
-});
+);
 
 // Get all pet records
 router.get('/', authenticateToken, async (req, res) => {
@@ -105,44 +115,51 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Update a pet record by ID
-router.put('/:id', authenticateToken, async (req, res) => {
-	const userId = req.user?.userId;
-	const { id } = req.params;
+router.put(
+	'/:id',
+	authenticateToken,
 
-	try {
-		logger.info(`User ${userId} attempting to update pet with ID: ${id}`);
-		const hasPermission = await checkPermission(userId, 'edit_pet');
+	async (req, res) => {
+		const userId = req.user?.userId;
+		const { id } = req.params;
 
-		if (!hasPermission) {
-			logger.warn(`User ${userId} lacks permission to edit pet with ID: ${id}`);
-			return res
-				.status(403)
-				.send({ message: 'Insufficient permissions to edit pet' });
+		try {
+			logger.info(`User ${userId} attempting to update pet with ID: ${id}`);
+			const hasPermission = await checkPermission(userId, 'edit_pet');
+
+			if (!hasPermission) {
+				logger.warn(
+					`User ${userId} lacks permission to edit pet with ID: ${id}`
+				);
+				return res
+					.status(403)
+					.send({ message: 'Insufficient permissions to edit pet' });
+			}
+
+			const pet = await Pet.findByIdAndUpdate(id, req.body, { new: true });
+			if (!pet) {
+				logger.warn(`Pet not found with ID: ${id} for update operation`);
+				return res.status(404).send({ message: 'Pet not found' });
+			}
+
+			logger.info(`Pet with ID: ${id} updated successfully by User ${userId}`);
+			res.status(200).send({
+				message: 'Pet updated successfully',
+				data: pet,
+			});
+		} catch (error) {
+			logger.error(`Failed to update pet with ID: ${id}: ${error.message}`, {
+				error,
+				userId,
+			});
+			Sentry.captureException(error);
+			res.status(500).send({
+				message: 'Failed to update pet',
+				error: error.message,
+			});
 		}
-
-		const pet = await Pet.findByIdAndUpdate(id, req.body, { new: true });
-		if (!pet) {
-			logger.warn(`Pet not found with ID: ${id} for update operation`);
-			return res.status(404).send({ message: 'Pet not found' });
-		}
-
-		logger.info(`Pet with ID: ${id} updated successfully by User ${userId}`);
-		res.status(200).send({
-			message: 'Pet updated successfully',
-			data: pet,
-		});
-	} catch (error) {
-		logger.error(`Failed to update pet with ID: ${id}: ${error.message}`, {
-			error,
-			userId,
-		});
-		Sentry.captureException(error);
-		res.status(500).send({
-			message: 'Failed to update pet',
-			error: error.message,
-		});
 	}
-});
+);
 
 // Delete a pet record by ID
 router.delete('/:id', authenticateToken, async (req, res) => {

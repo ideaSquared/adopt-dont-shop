@@ -1,5 +1,7 @@
 // Import the Joi package for data validation.
 import Joi from 'joi';
+import LoggerUtil from '../utils/Logger.js';
+const logger = new LoggerUtil('joi-validation-service').getLogger();
 
 /**
  * Joi schema for user registration. It enforces validation and sanitization rules
@@ -93,6 +95,31 @@ const rescueJoiSchema = Joi.object({
 	staff: Joi.array().items(rescueStaffJoiSchema), // Validates each staff member with the defined Joi schema
 });
 
+// Joi schema for adding/updating pet details
+const petJoiSchema = Joi.object({
+	petName: Joi.string().required(),
+	ownerId: Joi.string().required().min(1), // Assuming you'll pass the ObjectId as a string
+	shortDescription: Joi.string().required(),
+	longDescription: Joi.string().required(),
+	age: Joi.number().required(),
+	gender: Joi.string().required().valid('Male', 'Female', 'Other'), // Adjust valid options as needed
+	status: Joi.string().required(), // You might want to validate against specific status options
+	images: Joi.array().items(Joi.string()), // Validate as an array of strings (URLs)
+	characteristics: Joi.object({
+		common: Joi.object({
+			vaccination_status: Joi.string().required(),
+			temperament: Joi.string().required(),
+			size: Joi.string().required(),
+		}),
+		specific: Joi.object({
+			breed: Joi.string().required(),
+			activity_level: Joi.string().required(),
+			intelligence_level: Joi.string().required(),
+		}),
+	}),
+	archived: Joi.boolean(),
+});
+
 /**
  * Utility function for validating the request body against a given Joi schema.
  * It applies the schema to the request body, returning a 400 status code with a detailed message if validation fails,
@@ -102,16 +129,30 @@ const rescueJoiSchema = Joi.object({
  * @returns {Function} - An Express middleware function that validates and sanitizes the request body.
  */
 const validateRequest = (schema) => (req, res, next) => {
+	// Log the incoming request for validation
+	logger.debug(`Validating request for ${req.path}`);
+
 	const { error, value } = schema.validate(req.body, {
 		abortEarly: false, // Report all errors, not just the first one
 		stripUnknown: true, // Remove unknown keys from the validated data
 	});
+
 	if (error) {
+		// Log the validation error
+		logger.warn(
+			`Validation error for request to ${req.path}: ${error.details
+				.map((x) => x.message)
+				.join(', ')}`
+		);
+
 		// Respond with a 400 status code and a detailed error message if validation fails.
 		res
 			.status(400)
 			.json({ message: error.details.map((x) => x.message).join(', ') });
 	} else {
+		// Log successful validation
+		logger.debug(`Validation successful for request to ${req.path}`);
+
 		req.body = value; // Override req.body with sanitized values
 		next();
 	}
@@ -126,6 +167,7 @@ export {
 	forgotPasswordSchema,
 	adminResetPasswordSchema,
 	rescueStaffJoiSchema,
+	petJoiSchema,
 	validateRequest,
 	rescueJoiSchema,
 };

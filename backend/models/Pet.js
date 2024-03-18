@@ -42,7 +42,7 @@ const petSchema = new mongoose.Schema({
 		},
 	},
 	// Indicates whether the pet is archived. This is required and defaults to false. Useful for hiding pets from active listings without deleting.
-	archived: { type: Boolean, required: true, default: false },
+	archived: { type: Boolean, default: false },
 });
 
 // Export the Pet model, making it available for CRUD operations and queries.
