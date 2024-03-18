@@ -19,9 +19,9 @@ const conversationSchema = new mongoose.Schema({
 	// Timestamp indicating when the conversation was started. It is required for every conversation document.
 	startedAt: { type: Date, required: true },
 	// The content of the last message in the conversation. Required to quickly show recent activity without fetching all messages.
-	lastMessage: { type: String, required: true },
+	lastMessage: { type: String, required: false },
 	// Timestamp for the last message sent in the conversation. Helps in sorting or displaying recent conversations.
-	lastMessageAt: { type: Date, required: true },
+	lastMessageAt: { type: Date, required: false },
 	// Reference to the User who sent the last message. It is required to identify the author of the last message quickly.
 	lastMessageBy: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
 	// An optional subject for the conversation. Useful for giving context or a brief about the conversation's purpose.
