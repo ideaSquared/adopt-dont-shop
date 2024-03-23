@@ -20,8 +20,6 @@ const messageSchema = new mongoose.Schema({
 	},
 	// Reference to the User who sent this message. It is required to track the message sender.
 	senderId: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
-	// Reference to the User who is the recipient of this message. It is required to deliver the message appropriately.
-	recipientId: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
 	// The text content of the message. This field is required for every message document.
 	messageText: { type: String, required: true },
 	// The timestamp indicating when the message was sent. This is required for sorting and displaying messages chronologically.
@@ -31,8 +29,8 @@ const messageSchema = new mongoose.Schema({
 	// An array of attachments that may accompany the message. Each attachment includes its type, URL, and an optional description.
 	attachments: [
 		{
-			type: { type: String, required: true }, // The type of attachment, e.g., image, video, etc. The field name is 'type' inside an object, hence the nesting.
-			url: { type: String, required: true }, // The URL where the attachment is stored. Required for accessing the attachment.
+			type: { type: String }, // The type of attachment, e.g., image, video, etc. The field name is 'type' inside an object, hence the nesting.
+			url: { type: String }, // The URL where the attachment is stored. Required for accessing the attachment.
 			description: { type: String }, // An optional description of the attachment for additional context.
 		},
 	],

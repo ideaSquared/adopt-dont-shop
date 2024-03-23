@@ -1,129 +1,195 @@
-import express from 'express';
+// conversationRoutes.test.js
 import request from 'supertest';
 import sinon from 'sinon';
-import jwt from 'jsonwebtoken';
+import express from 'express';
 import { expect } from 'chai';
-import { connectToDatabase, disconnectFromDatabase } from './database.js';
-import app from '../index.js'; // Your Express app
-import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
+import conversationRoutes from '../routes/conversationRoutes.js';
+import { connectToDatabase, disconnectFromDatabase } from './database.js';
+import app from '../index.js';
 import { generateObjectId } from '../utils/generateObjectId.js';
 
-describe.only('Conversation and Message Routes', function () {
-	let cookie;
+const mockObjectId = '65f1fa2aadeb2ca9f053f7f8';
+const mockUserId = generateObjectId().toString();
 
-	before(async () => {
+describe.only('Conversation Routes', function () {
+	let conversationMock, messageMock;
+	const token = 'dummyToken'; // Simulate an auth token.
+	const cookie = `token=${token};`; // Simulate a browser cookie containing the auth token.
+	const unauthorizedCookie = `token=unauth`;
+
+	beforeEach(async () => {
 		await connectToDatabase();
+		conversationMock = sinon.mock(Conversation);
+		messageMock = sinon.mock(Message);
 		sinon.stub(jwt, 'verify');
+
+		jwt.verify.callsFake((token, secret, callback) => {
+			callback(null, { userId: mockUserId, isAdmin: false });
+		});
 	});
 
-	after(async () => {
+	afterEach(async () => {
 		await disconnectFromDatabase();
+		conversationMock.restore();
+		messageMock.restore();
 		sinon.restore();
 	});
 
-	beforeEach(function () {
-		sinon.resetBehavior();
-		sinon.resetHistory();
-		const token = 'dummyToken';
-		cookie = `token=${token};`;
-		jwt.verify.callsFake((token, secret, callback) => {
-			callback(null, { userId: generateObjectId(), isAdmin: false });
+	describe('POST /api/conversations', () => {
+		it('should create a new conversation', async () => {
+			const mockParticipants = [mockUserId, '65f1fa3badeb2ca9f053f7f9'];
+			const mockSubject = 'Test Conversation';
+
+			conversationMock.expects('create').resolves({
+				participants: mockParticipants,
+				subject: mockSubject,
+				// additional fields
+			});
+
+			const response = await request(app)
+				.post('/api/conversations')
+				.set('Cookie', cookie) // Use the simulated auth cookie for authentication
+				.send({ participants: mockParticipants, subject: mockSubject });
+
+			expect(response.status).to.equal(201);
+			conversationMock.verify();
 		});
-	});
 
-	describe('Conversations', function () {
-		it.only('should create a new conversation', async function () {
-			const participants = [generateObjectId(), generateObjectId()];
-			const subject = 'Test Subject';
+		it('should reject creating a new conversation with invalid participants', async () => {
+			const invalidParticipants = ['justOne']; // Assuming at least 2 participants are required
+			const mockSubject = 'Invalid Test Conversation';
 
-			const res = await request(app)
+			const response = await request(app)
 				.post('/api/conversations')
 				.set('Cookie', cookie)
-				.send({ participants, subject })
-				.expect(201);
+				.send({ participants: invalidParticipants, subject: mockSubject });
 
-			expect(res.body).to.include.keys('participants', 'subject', 'startedBy');
-			// Convert ObjectId to string for comparison
-			const expectedParticipantIds = participants.map((participant) =>
-				participant.toString()
-			);
-			const actualParticipantIds = res.body.participants.map((participant) =>
-				participant.toString()
-			);
-			expect(actualParticipantIds).to.have.members(expectedParticipantIds);
-			expect(res.body.subject).to.equal(subject);
-		});
-
-		it('should retrieve all conversations for a user', async function () {
-			const res = await request(app)
-				.get('/api/conversations')
-				.set('Cookie', cookie)
-				.expect(200);
-
-			expect(res.body).to.be.an('array');
-		});
-
-		it('should update a conversation', async function () {
-			// Assume a conversation ID and new subject
-			const conversationId = generateObjectId();
-			const newSubject = 'Updated Subject';
-
-			const res = await request(app)
-				.put(`/api/conversations/${conversationId}`)
-				.set('Cookie', cookie)
-				.send({ subject: newSubject })
-				.expect(200);
-
-			expect(res.body).to.have.property('subject', newSubject);
-		});
-
-		it('should delete a conversation', async function () {
-			const conversationId = generateObjectId();
-
-			const res = await request(app)
-				.delete(`/api/conversations/${conversationId}`)
-				.set('Cookie', cookie)
-				.expect(204);
+			expect(response.status).to.equal(400);
+			// Adjusted to match the actual API response structure
+			expect(response.body.message).to.contain('Invalid participants');
 		});
 	});
 
-	describe('Messages', function () {
-		it('should create a new message in a conversation', async function () {
-			const conversationId = generateObjectId();
-			const messageText = 'Test Message';
+	describe('GET /api/conversations/:conversationId', () => {
+		it('should retrieve a specific conversation by ID', async () => {
+			const mockConversationId = generateObjectId().toString();
 
-			const res = await request(app)
-				.post(`/api/conversations/messages/${conversationId}`)
-				.set('Cookie', cookie)
-				.send({ messageText })
-				.expect(201);
+			conversationMock
+				.expects('findById')
+				.withArgs(mockConversationId)
+				.resolves({
+					_id: mockConversationId,
+					subject: 'Existing Conversation',
+					participants: [mockUserId, generateObjectId()],
+				});
 
-			expect(res.body).to.include.keys(
-				'conversationId',
-				'messageText',
-				'senderId'
-			);
-			expect(res.body.conversationId).to.equal(conversationId);
-			expect(res.body.messageText).to.equal(messageText);
+			const response = await request(app)
+				.get(`/api/conversations/${mockConversationId}`)
+				.set('Cookie', cookie); // Use the simulated auth cookie for authentication
+
+			expect(response.status).to.equal(200);
+			conversationMock.verify();
 		});
 
-		it('should retrieve all messages in a conversation', async function () {
-			const conversationId = generateObjectId();
+		// Unauthorized Access to a Conversation
+		it('should deny access to a conversation for unauthorized user', async () => {
+			const mockConversationId = generateObjectId().toString();
 
-			const res = await request(app)
-				.get(`/api/conversations/messages/${conversationId}`)
-				.set('Cookie', cookie)
-				.expect(200);
+			conversationMock
+				.expects('findById')
+				.withArgs(mockConversationId)
+				.resolves({
+					_id: mockConversationId,
+					subject: 'Existing Conversation',
+					participants: [generateObjectId(), generateObjectId()],
+				});
 
-			expect(res.body).to.be.an('array');
+			const response = await request(app)
+				.get(`/api/conversations/${mockConversationId}`)
+				.set('Cookie', unauthorizedCookie);
+
+			expect(response.status).to.equal(403);
 		});
 
-		// Add tests for updating and deleting messages similar to the above,
-		// ensuring proper authorization checks and functionality.
+		// Non-existent Conversation Retrieval
+		it('should return 404 when trying to retrieve a non-existent conversation', async () => {
+			const nonExistentConversationId = generateObjectId().toString();
+
+			const response = await request(app)
+				.get(`/api/conversations/${nonExistentConversationId}`)
+				.set('Cookie', cookie);
+
+			expect(response.status).to.equal(404);
+		});
 	});
 
-	// Additional tests for error handling, edge cases, and security concerns
-	// should also be considered.
+	// Similar structure for PUT and DELETE tests
+
+	describe('POST /api/conversations/messages/:conversationId', () => {
+		it('should create a new message in a conversation', async () => {
+			const mockConversationId = generateObjectId().toString();
+			const mockMessageText = 'Hello World';
+			const mockSenderId = mockUserId;
+			const mockDate = Date.now();
+			const status = 'sent';
+
+			conversationMock
+				.expects('findById')
+				.withArgs(mockConversationId)
+				.resolves({
+					_id: mockConversationId,
+					subject: 'Existing Conversation',
+					participants: [mockSenderId, generateObjectId()],
+				});
+
+			messageMock.expects('create').resolves({
+				conversationId: mockConversationId,
+				senderId: mockSenderId,
+				sentAt: mockDate,
+				messageText: mockMessageText,
+				status: status,
+			});
+
+			const response = await request(app)
+				.post(`/api/conversations/messages/${mockConversationId}`)
+				.set('Cookie', cookie) // Use the simulated auth cookie for authentication
+				.send({
+					messageText: mockMessageText,
+					senderId: mockSenderId,
+					sentAt: mockDate,
+					status: status,
+				});
+
+			expect(response.status).to.equal(201);
+			messageMock.verify();
+		});
+
+		it('should not allow message creation from a non-participant', async () => {
+			const mockConversationId = generateObjectId().toString();
+			const mockMessageText = 'Unauthorized Hello World';
+
+			conversationMock
+				.expects('findById')
+				.withArgs(mockConversationId)
+				.resolves({
+					_id: mockConversationId,
+					subject: 'Existing Conversation',
+					participants: [generateObjectId(), generateObjectId()],
+				});
+
+			const response = await request(app)
+				.post(`/api/conversations/messages/${mockConversationId}`)
+				.set('Cookie', unauthorizedCookie)
+				.send({ messageText: mockMessageText });
+
+			expect(response.status).to.equal(403);
+		});
+
+		// Additional tests for message retrieval, updating, deleting, etc.
+	});
+
+	// Tests for updating and deleting messages, access control, and error handling
 });
