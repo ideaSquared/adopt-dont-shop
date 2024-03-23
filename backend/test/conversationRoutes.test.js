@@ -14,7 +14,7 @@ import { generateObjectId } from '../utils/generateObjectId.js';
 const mockObjectId = '65f1fa2aadeb2ca9f053f7f8';
 const mockUserId = generateObjectId().toString();
 
-describe.only('Conversation Routes', function () {
+describe('Conversation Routes', function () {
 	let conversationMock, messageMock;
 	const token = 'dummyToken'; // Simulate an auth token.
 	const cookie = `token=${token};`; // Simulate a browser cookie containing the auth token.
@@ -127,7 +127,109 @@ describe.only('Conversation Routes', function () {
 		});
 	});
 
-	// Similar structure for PUT and DELETE tests
+	describe('PUT /api/conversations/:conversationId', () => {
+		it('should update a conversation successfully', async () => {
+			const mockConversationId = generateObjectId().toString();
+			const mockParticipants = [mockUserId, generateObjectId().toString()];
+			const mockSubject = 'Updated Conversation Subject';
+
+			conversationMock
+				.expects('findById')
+				.withArgs(mockConversationId)
+				.resolves({
+					_id: mockConversationId,
+					participants: mockParticipants,
+					subject: 'Original Conversation Subject',
+				});
+
+			conversationMock
+				.expects('findByIdAndUpdate')
+				.withArgs(
+					mockConversationId,
+					{ $set: { participants: mockParticipants, subject: mockSubject } },
+					{ new: true }
+				)
+				.resolves({
+					_id: mockConversationId,
+					participants: mockParticipants,
+					subject: mockSubject,
+				});
+
+			const response = await request(app)
+				.put(`/api/conversations/${mockConversationId}`)
+				.set('Cookie', cookie)
+				.send({ participants: mockParticipants, subject: mockSubject });
+
+			expect(response.status).to.equal(200);
+			expect(response.body.subject).to.equal(mockSubject);
+			conversationMock.verify();
+		});
+
+		/* TODO: Will verify with joi */
+		// it('should return 400 for missing required fields', async () => {
+		// 	const mockConversationId = generateObjectId().toString();
+
+		// 	const response = await request(app)
+		// 		.put(`/api/conversations/${mockConversationId}`)
+		// 		.set('Cookie', cookie)
+		// 		.send({}); // Missing participants and subject
+
+		// 	expect(response.status).to.equal(400);
+		// 	expect(response.body.message).to.contain('Missing required fields');
+		// });
+
+		it('should return 404 if the conversation does not exist', async () => {
+			const nonExistentConversationId = generateObjectId().toString();
+
+			conversationMock
+				.expects('findById')
+				.withArgs(nonExistentConversationId)
+				.resolves(null);
+
+			const response = await request(app)
+				.put(`/api/conversations/${nonExistentConversationId}`)
+				.set('Cookie', cookie)
+				.send({ participants: [mockUserId], subject: 'Should Fail' });
+
+			expect(response.status).to.equal(404);
+			conversationMock.verify();
+		});
+
+		it('should return 500 on internal server error', async () => {
+			const mockConversationId = generateObjectId().toString();
+			const mockParticipants = [mockUserId, generateObjectId().toString()];
+			const mockSubject = 'Updated Conversation Subject';
+
+			conversationMock
+				.expects('findById')
+				.withArgs(mockConversationId)
+				.resolves({
+					_id: mockConversationId,
+					participants: mockParticipants,
+					subject: 'Original Conversation Subject',
+				});
+
+			conversationMock
+				.expects('findByIdAndUpdate')
+				.withArgs(
+					mockConversationId,
+					{ $set: { participants: mockParticipants, subject: mockSubject } },
+					{ new: true }
+				)
+				.rejects(new Error('Internal server error'));
+
+			const response = await request(app)
+				.put(`/api/conversations/${mockConversationId}`)
+				.set('Cookie', cookie)
+				.send({ participants: mockParticipants, subject: mockSubject });
+
+			expect(response.status).to.equal(500);
+			expect(response.body.message).to.contain('Internal server error');
+			conversationMock.verify();
+		});
+
+		// Additional tests for authorization and validation logic can be added here
+	});
 
 	describe('POST /api/conversations/messages/:conversationId', () => {
 		it('should create a new message in a conversation', async () => {

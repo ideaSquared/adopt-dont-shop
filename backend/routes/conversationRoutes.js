@@ -125,14 +125,7 @@ router.put(
 		const userId = req.user.userId?.userId; // Assuming `req.user` is populated by `authenticateToken` middleware
 		const conversationId = req.params.conversationId;
 
-		if (!participants || !subject) {
-			logger.warn('Missing required fields for conversation update');
-			return res.status(400).json({ message: 'Missing required fields' });
-		}
-
 		try {
-			const conversation = await Conversation.findById(conversationId);
-
 			// Perform the update
 			const updatedFields = { participants, subject };
 			const updatedConversation = await Conversation.findByIdAndUpdate(
@@ -177,8 +170,6 @@ router.post(
 		}
 
 		try {
-			const conversation = await Conversation.findById(conversationId);
-
 			const newMessage = await Message.create({
 				conversationId,
 				senderId: userId,
