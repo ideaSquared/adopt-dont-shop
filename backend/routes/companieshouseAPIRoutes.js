@@ -47,6 +47,9 @@ router.get('/:companyNumber', async (req, res) => {
 			logger.error(
 				'COMPANIES_HOUSE_API_KEY is not defined in environment variables.'
 			);
+			Sentry.captureException(
+				'COMPANIES_HOUSE_API_KEY is not defined in environment variables'
+			);
 			return res
 				.status(500)
 				.json({ message: 'Internal server error due to missing API key' });

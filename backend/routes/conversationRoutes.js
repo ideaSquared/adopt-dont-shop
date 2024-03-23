@@ -44,6 +44,7 @@ async function checkParticipant(req, res, next) {
 		logger.error(
 			`Error in checkParticipant middleware for conversation ${conversationId}: ${error.message}`
 		);
+		Sentry.captureException(error);
 		res.status(500).json({ message: error.message });
 	}
 }
@@ -78,6 +79,7 @@ router.post('/', authenticateToken, async (req, res) => {
 		res.status(201).json(newConversation);
 	} catch (error) {
 		logger.error(`Error creating conversation: ${error.message}`);
+		Sentry.captureException(error);
 		res.status(500).json({ message: error.message });
 	}
 });
@@ -92,6 +94,7 @@ router.get('/', authenticateToken, checkParticipant, async (req, res) => {
 		res.json(conversations);
 	} catch (error) {
 		logger.error(`Error fetching conversations: ${error.message}`);
+		Sentry.captureException(error);
 		res.status(500).json({ message: error.message });
 	}
 });
@@ -110,6 +113,7 @@ router.get(
 			res.json(conversation); // Send the conversation as a response
 		} catch (error) {
 			logger.error(`Error fetching specific conversation: ${error.message}`);
+			Sentry.captureException(error);
 			res.status(500).json({ message: error.message });
 		}
 	}
@@ -138,6 +142,7 @@ router.put(
 			res.json(updatedConversation);
 		} catch (error) {
 			logger.error(`Error updating conversation: ${error.message}`);
+			Sentry.captureException(error);
 			res.status(500).json({ message: error.message });
 		}
 	}
@@ -150,6 +155,7 @@ router.delete('/:conversationId', authenticateToken, async (req, res) => {
 		res.status(204).end();
 	} catch (error) {
 		logger.error(`Error deleting conversation: ${error.message}`);
+		Sentry.captureException(error);
 		res.status(500).json({ message: error.message });
 	}
 });
@@ -184,6 +190,7 @@ router.post(
 			res.status(201).json(newMessage);
 		} catch (error) {
 			logger.error(`Error creating message in conversation: ${error.message}`);
+			Sentry.captureException(error);
 			res.status(500).json({ message: error.message });
 		}
 	}
@@ -207,6 +214,7 @@ router.get(
 			logger.error(
 				`Error fetching messages for conversation: ${error.message}`
 			);
+			Sentry.captureException(error);
 			res.status(500).json({ message: error.message });
 		}
 	}
