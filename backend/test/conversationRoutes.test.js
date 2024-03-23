@@ -80,10 +80,11 @@ describe.only('Conversation Routes', function () {
 			conversationMock
 				.expects('findById')
 				.withArgs(mockConversationId)
+				.twice() // Expect the call twice
 				.resolves({
 					_id: mockConversationId,
 					subject: 'Existing Conversation',
-					participants: [mockUserId, generateObjectId()],
+					participants: [mockUserId.toString(), generateObjectId().toString()],
 				});
 
 			const response = await request(app)
@@ -139,6 +140,7 @@ describe.only('Conversation Routes', function () {
 			conversationMock
 				.expects('findById')
 				.withArgs(mockConversationId)
+				.twice() // Expect the call twice
 				.resolves({
 					_id: mockConversationId,
 					subject: 'Existing Conversation',

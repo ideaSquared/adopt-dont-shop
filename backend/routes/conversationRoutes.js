@@ -3,12 +3,50 @@ import express from 'express';
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import authenticateToken from '../middleware/authenticateToken.js';
-import checkParticipant from '../middleware/checkParticipant.js';
 
 import LoggerUtil from '../utils/Logger.js'; // Logging utility.
 const logger = new LoggerUtil('conversation-service').getLogger();
 
 const router = express.Router();
+
+// Middleware to check if the user is a participant in the conversation
+async function checkParticipant(req, res, next) {
+	const userId = req.user.userId; // Assuming `req.user` is populated by `authenticateToken` middleware
+	const conversationId = req.params.conversationId;
+
+	try {
+		const conversation = await Conversation.findById(conversationId);
+		if (!conversation) {
+			logger.warn(`Conversation not found for ID: ${conversationId}`);
+			return res.status(404).json({ message: 'Conversation not found' });
+		}
+
+		// Check if the user is a participant of the conversation
+		const isParticipant = conversation.participants.some(
+			(participant) => participant.toString() === userId.toString()
+		);
+
+		if (!isParticipant) {
+			logger.warn(
+				`User ${userId} is not a participant in conversation ${conversationId}`
+			);
+			return res
+				.status(403)
+				.json({ message: 'User is not a participant in this conversation' });
+		}
+
+		logger.info(
+			`User ${userId} verified as participant in conversation ${conversationId}`
+		);
+		// User is a participant, proceed to the next middleware
+		next();
+	} catch (error) {
+		logger.error(
+			`Error in checkParticipant middleware for conversation ${conversationId}: ${error.message}`
+		);
+		res.status(500).json({ message: error.message });
+	}
+}
 
 // CRUD Routes for Conversations
 // Create a new conversation
@@ -45,7 +83,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Get all conversations for a user
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, checkParticipant, async (req, res) => {
 	try {
 		const conversations = await Conversation.find({
 			participants: req.user.userId,
@@ -58,78 +96,59 @@ router.get('/', authenticateToken, async (req, res) => {
 	}
 });
 
-// Get a specific conversation by ID
-router.get('/:conversationId', authenticateToken, async (req, res) => {
-	const userId = req.user.userId;
+// Get a specific conversation by ID, using middleware to check if user is a participant
+router.get(
+	'/:conversationId',
+	authenticateToken,
+	checkParticipant,
+	async (req, res) => {
+		try {
+			const conversationId = req.params.conversationId; // This should be a string from the URL params.
+			const conversation = await Conversation.findById(conversationId); // Assuming findById can handle string input directly.
 
-	try {
-		const conversation = await Conversation.findById(req.params.conversationId);
-		if (!conversation) {
-			logger.warn('Conversation not found');
-			return res.status(404).json({ message: 'Conversation not found' });
+			logger.info(`Fetched conversation with ID: ${conversation._id}`);
+			res.json(conversation); // Send the conversation as a response
+		} catch (error) {
+			logger.error(`Error fetching specific conversation: ${error.message}`);
+			res.status(500).json({ message: error.message });
 		}
-
-		const isParticipant = conversation.participants.some(
-			(participant) => participant.toString() === userId.toString()
-		);
-		if (!isParticipant) {
-			logger.warn('User is not a participant in this conversation');
-			return res
-				.status(403)
-				.json({ message: 'User is not a participant in this conversation' });
-		}
-		logger.info(`Fetched conversation with ID: ${conversation._id}`);
-		res.json(conversation);
-	} catch (error) {
-		logger.error(`Error fetching specific conversation: ${error.message}`);
-		res.status(500).json({ message: error.message });
 	}
-});
+);
 
 // Update a conversation (e.g., add a new participant)
-router.put('/:conversationId', authenticateToken, async (req, res) => {
-	const { participants, subject } = req.body;
-	const userId = req.user.userId?.userId; // Assuming `req.user` is populated by `authenticateToken` middleware
-	const conversationId = req.params.conversationId;
+router.put(
+	'/:conversationId',
+	authenticateToken,
+	checkParticipant,
+	async (req, res) => {
+		const { participants, subject } = req.body;
+		const userId = req.user.userId?.userId; // Assuming `req.user` is populated by `authenticateToken` middleware
+		const conversationId = req.params.conversationId;
 
-	if (!participants || !subject) {
-		logger.warn('Missing required fields for conversation update');
-		return res.status(400).json({ message: 'Missing required fields' });
-	}
-
-	try {
-		const conversation = await Conversation.findById(conversationId);
-
-		if (!conversation) {
-			logger.warn('Conversation not found for update');
-			return res.status(404).json({ message: 'Conversation not found' });
+		if (!participants || !subject) {
+			logger.warn('Missing required fields for conversation update');
+			return res.status(400).json({ message: 'Missing required fields' });
 		}
 
-		// Check if the user is a participant of the conversation
-		const isParticipant = conversation.participants.some(
-			(participant) => participant.toString() === userId.toString()
-		);
-		if (!isParticipant) {
-			return res
-				.status(403)
-				.json({ message: 'User is not a participant in this conversation' });
+		try {
+			const conversation = await Conversation.findById(conversationId);
+
+			// Perform the update
+			const updatedFields = { participants, subject };
+			const updatedConversation = await Conversation.findByIdAndUpdate(
+				conversationId,
+				{ $set: updatedFields },
+				{ new: true }
+			);
+
+			logger.info(`Updated conversation with ID: ${updatedConversation._id}`);
+			res.json(updatedConversation);
+		} catch (error) {
+			logger.error(`Error updating conversation: ${error.message}`);
+			res.status(500).json({ message: error.message });
 		}
-
-		// Perform the update
-		const updatedFields = { participants, subject };
-		const updatedConversation = await Conversation.findByIdAndUpdate(
-			conversationId,
-			{ $set: updatedFields },
-			{ new: true }
-		);
-
-		logger.info(`Updated conversation with ID: ${updatedConversation._id}`);
-		res.json(updatedConversation);
-	} catch (error) {
-		logger.error(`Error updating conversation: ${error.message}`);
-		res.status(500).json({ message: error.message });
 	}
-});
+);
 // Delete a conversation
 router.delete('/:conversationId', authenticateToken, async (req, res) => {
 	try {
@@ -147,6 +166,7 @@ router.delete('/:conversationId', authenticateToken, async (req, res) => {
 router.post(
 	'/messages/:conversationId',
 	authenticateToken,
+	checkParticipant,
 	async (req, res) => {
 		const { messageText } = req.body;
 		const conversationId = req.params.conversationId;
@@ -158,19 +178,6 @@ router.post(
 
 		try {
 			const conversation = await Conversation.findById(conversationId);
-
-			if (!conversation) {
-				return res.status(404).json({ message: 'Conversation not found' });
-			}
-
-			const isParticipant = conversation.participants.some(
-				(participant) => participant.toString() === userId.toString()
-			);
-			if (!isParticipant) {
-				return res
-					.status(403)
-					.json({ message: 'User is not a participant in this conversation' });
-			}
 
 			const newMessage = await Message.create({
 				conversationId,
@@ -192,20 +199,27 @@ router.post(
 );
 
 // Get all messages in a conversation
-router.get('/messages/:conversationId', authenticateToken, async (req, res) => {
-	try {
-		const messages = await Message.find({
-			conversationId: req.params.conversationId,
-		});
-		logger.info(
-			`Fetched all messages for conversation ID: ${req.params.conversationId}`
-		);
-		res.json(messages);
-	} catch (error) {
-		logger.error(`Error fetching messages for conversation: ${error.message}`);
-		res.status(500).json({ message: error.message });
+router.get(
+	'/messages/:conversationId',
+	authenticateToken,
+	checkParticipant,
+	async (req, res) => {
+		try {
+			const messages = await Message.find({
+				conversationId: req.params.conversationId,
+			});
+			logger.info(
+				`Fetched all messages for conversation ID: ${req.params.conversationId}`
+			);
+			res.json(messages);
+		} catch (error) {
+			logger.error(
+				`Error fetching messages for conversation: ${error.message}`
+			);
+			res.status(500).json({ message: error.message });
+		}
 	}
-});
+);
 
 // Updating or deleting messages can follow a similar pattern, with additional checks
 // to ensure that the user performing the action is the message sender.
