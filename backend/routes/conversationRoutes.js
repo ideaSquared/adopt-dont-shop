@@ -2,6 +2,7 @@ import express from 'express';
 // Import the Conversation and Message models you defined earlier.
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
+import Sentry from '@sentry/node'; // Error tracking utility.
 import authenticateToken from '../middleware/authenticateToken.js';
 
 import LoggerUtil from '../utils/Logger.js'; // Logging utility.
