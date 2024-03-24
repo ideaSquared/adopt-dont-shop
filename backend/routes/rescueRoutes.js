@@ -165,9 +165,9 @@ router.post(
 					return res.status(400).send({
 						message: 'A rescue with the given reference number already exists',
 					});
-				} else {
-					req.body.referenceNumberVerified = true;
 				}
+
+				// TODO: Validate the reference number, is it valid and matches out validation? If so - update req.body.referenceNumberVerified to true.
 			}
 
 			const newRescue = await Rescue.create(req.body);
