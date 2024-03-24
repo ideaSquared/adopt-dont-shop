@@ -12,6 +12,7 @@ import charityRegisterRoutes from './routes/charityAPIRoutes.js';
 import companiesHouseRoutes from './routes/companieshouseAPIRoutes.js';
 import petRoutes from './routes/petRoutes.js';
 import conversationRoutes from './routes/conversationRoutes.js';
+import logRoutes from './routes/logRoutes.js';
 import User from './models/User.js';
 import { generateResetToken } from './utils/tokenGenerator.js';
 import { sendPasswordResetEmail } from './services/emailService.js';
@@ -75,6 +76,7 @@ app.use('/api/charityregister', charityRegisterRoutes);
 app.use('/api/companieshouse', companiesHouseRoutes);
 app.use('/api/pets', petRoutes);
 app.use('/api/conversations', conversationRoutes);
+app.use('/api/logs', logRoutes);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
