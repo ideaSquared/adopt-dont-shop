@@ -201,6 +201,8 @@ describe('Rescue Routes', function () {
 	 * Test suite for creating a charity rescue entry.
 	 */
 	describe('POST /api/rescue/charity', function () {
+		this.timeout(10000);
+
 		let saveStub;
 
 		before(() => {
@@ -233,7 +235,7 @@ describe('Rescue Routes', function () {
 			saveStub.restore();
 		});
 
-		it('should create a new charity rescue and return a 201 status code', async () => {
+		it('should create a new charity rescue with a valid charity register number and return a 201 status code', async () => {
 			// Define the data for a new charity rescue.
 			const rescueData = {
 				rescueType: 'Charity',
@@ -268,6 +270,7 @@ describe('Rescue Routes', function () {
 			expect(response.body.message).to.equal(
 				'Charity rescue created successfully'
 			);
+			expect(response.body.data.referenceNumberVerified).to.be.true;
 		});
 
 		it('should return a 400 status code if required fields are missing', async () => {
@@ -325,12 +328,51 @@ describe('Rescue Routes', function () {
 			sinon.assert.calledOnce(isUniqueStub);
 			isUniqueStub.restore(); // Restore the stubbed method after the test.
 		});
+
+		it('should create a new charity rescue without a valid reference number and return a 201 status code with referenceNumberVerified as false', async () => {
+			// Define the data for a new charity rescue.
+			const rescueData = {
+				rescueType: 'Charity',
+				rescueName: 'Test Charity',
+				rescueAddress: '123 Charity Lane',
+				referenceNumber: process.env.INVALID_CHARITY_REGISTER_NUMBER,
+				userId: mockObjectId,
+				staff: [
+					{
+						userId: mockObjectId,
+						permissions: [
+							'edit_rescue_info',
+							'add_pet',
+							'delete_pet',
+							'edit_pet',
+							'see_messages',
+							'send_messages',
+						],
+						verifiedByRescue: true,
+					},
+				],
+			};
+
+			// Perform the POST request to create a new charity rescue.
+			const response = await request(app)
+				.post('/api/rescue/charity')
+				.send(rescueData)
+				.expect(201);
+
+			// Check the response status code and message.
+			expect(response.status).to.equal(201);
+			expect(response.body.message).to.equal(
+				'Charity rescue created successfully'
+			);
+			expect(response.body.data.referenceNumberVerified).to.be.false;
+		});
 	});
 
 	/**
 	 * Test suite for creating a company rescue entry.
 	 */
 	describe('POST /api/rescue/company', function () {
+		this.timeout(5000);
 		let saveStub;
 
 		before(() => {
@@ -369,7 +411,7 @@ describe('Rescue Routes', function () {
 				rescueType: 'Company',
 				rescueName: 'Test Company',
 				rescueAddress: '123 Company Lane',
-				referenceNumber: 'COMP12345678',
+				referenceNumber: '02953832',
 				userId: mockObjectId,
 				staff: [
 					{
@@ -397,6 +439,7 @@ describe('Rescue Routes', function () {
 			expect(response.body.message).to.equal(
 				'Company rescue created successfully'
 			);
+			expect(response.body.data.referenceNumberVerified).to.be.true;
 		});
 
 		it('should return a 400 status code if required fields are missing', async () => {
@@ -453,6 +496,44 @@ describe('Rescue Routes', function () {
 			// Verify that the isReferenceNumberUnique stub was called once.
 			sinon.assert.calledOnce(isUniqueStub);
 			isUniqueStub.restore(); // Restore the stubbed method after the test.
+		});
+
+		it('should create a new company rescue without a valid reference number and return a 201 status code with referenceNumberVerified as false', async () => {
+			// Define the data for a new charity rescue.
+			const rescueData = {
+				rescueType: 'Company',
+				rescueName: 'Test Company',
+				rescueAddress: '123 Company Lane',
+				referenceNumber: '',
+				userId: mockObjectId,
+				staff: [
+					{
+						userId: mockObjectId,
+						permissions: [
+							'edit_rescue_info',
+							'add_pet',
+							'delete_pet',
+							'edit_pet',
+							'see_messages',
+							'send_messages',
+						],
+						verifiedByRescue: true,
+					},
+				],
+			};
+
+			// Perform the POST request to create a new charity rescue.
+			const response = await request(app)
+				.post('/api/rescue/company')
+				.send(rescueData)
+				.expect(201);
+
+			// Check the response status code and message.
+			expect(response.status).to.equal(201);
+			expect(response.body.message).to.equal(
+				'Company rescue created successfully'
+			);
+			expect(response.body.data.referenceNumberVerified).to.be.false;
 		});
 	});
 

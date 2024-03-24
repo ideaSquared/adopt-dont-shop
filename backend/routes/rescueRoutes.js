@@ -13,6 +13,9 @@ import {
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
 
+import fetchAndValidateCharity from '../utils/verifyCharity.js';
+import fetchAndValidateCompany from '../utils/verifyCompany.js';
+
 // Instantiate a logger for this module.
 const logger = new LoggerUtil('rescue-route').getLogger();
 
@@ -167,7 +170,29 @@ router.post(
 					});
 				}
 
-				// TODO: Validate the reference number, is it valid and matches out validation? If so - update req.body.referenceNumberVerified to true.
+				if (type === 'Charity') {
+					// Validate the charity reference number
+					const isValidCharity = await fetchAndValidateCharity(
+						req.body.referenceNumber
+					);
+
+					if (isValidCharity) {
+						req.body.referenceNumberVerified = true;
+					} else {
+						req.body.referenceNumberVerified = false;
+					}
+				} else if (type === 'Company') {
+					// Validate the company house reference number
+					const isValidCompany = await fetchAndValidateCompany(
+						req.body.referenceNumber
+					);
+
+					if (isValidCompany) {
+						req.body.referenceNumberVerified = true;
+					} else {
+						req.body.referenceNumberVerified = false;
+					}
+				}
 			}
 
 			const newRescue = await Rescue.create(req.body);
