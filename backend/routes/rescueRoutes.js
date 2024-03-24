@@ -154,16 +154,20 @@ router.post(
 		type = capitalizeFirstChar(type);
 
 		try {
-			const isUnique = await rescueService.isReferenceNumberUnique(
-				req.body.referenceNumber
-			);
-			if (!isUnique) {
-				logger.warn(
-					`Rescue with reference number ${req.body.referenceNumber} already exists.`
+			if (req.body.referenceNumber) {
+				const isUnique = await rescueService.isReferenceNumberUnique(
+					req.body.referenceNumber
 				);
-				return res.status(400).send({
-					message: 'A rescue with the given reference number already exists',
-				});
+				if (!isUnique) {
+					logger.warn(
+						`Rescue with reference number ${req.body.referenceNumber} already exists.`
+					);
+					return res.status(400).send({
+						message: 'A rescue with the given reference number already exists',
+					});
+				} else {
+					req.body.verifiedByRescue = true;
+				}
 			}
 
 			const newRescue = await Rescue.create(req.body);
