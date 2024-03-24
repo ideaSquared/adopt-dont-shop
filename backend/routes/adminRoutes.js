@@ -2,6 +2,9 @@
 import express from 'express';
 import bcrypt from 'bcryptjs'; // For hashing passwords.
 import User from '../models/User.js'; // Import the User model for database operations.
+import Conversation from '../models/Conversation.js';
+import Rescue from '../models/Rescue.js';
+import Pet from '../models/Pet.js';
 import authenticateToken from '../middleware/authenticateToken.js'; // Middleware to check if the request is authenticated.
 import checkAdmin from '../middleware/checkAdmin.js'; // Middleware to check if the authenticated user is an admin.
 import nodemailer from 'nodemailer'; // Imported but not used in this snippet. Potentially for sending emails (e.g., password reset instructions).
@@ -79,7 +82,6 @@ router.delete(
  * It hashes the new password before updating the user's record in the database, returning a success message upon completion.
  * In case the specified user is not found or if there's an error during the update process, it responds with an error message.
  */
-
 router.post(
 	'/users/reset-password/:id',
 	authenticateToken,
@@ -120,6 +122,56 @@ router.post(
 		}
 	}
 );
+
+// Get all conversations for a user
+router.get(
+	'/conversations',
+	authenticateToken,
+	checkAdmin,
+	async (req, res) => {
+		try {
+			const conversations = await Conversation.find({});
+			logger.info('Fetched all conversations for user');
+			res.json(conversations);
+		} catch (error) {
+			logger.error(`Error fetching conversations: ${error.message}`);
+			Sentry.captureException(error);
+			res.status(500).json({ message: error.message });
+		}
+	}
+);
+
+router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
+	try {
+		const rescues = await Rescue.find({});
+		logger.info('All rescues fetched successfully.');
+		res.json(rescues);
+	} catch (error) {
+		Sentry.captureException(error);
+		logger.error('Failed to fetch rescues: ' + error.message);
+		res.status(500).send({
+			message: 'Failed to fetch rescues',
+			error: error.message,
+		});
+	}
+});
+
+// Get all pet records
+router.get('/pets', authenticateToken, checkAdmin, async (req, res) => {
+	try {
+		logger.info('Fetching all pets');
+		const pets = await Pet.find({});
+		logger.info(`Successfully fetched all pets. Count: ${pets.length}`);
+		res.json(pets);
+	} catch (error) {
+		logger.error(`Failed to fetch pets: ${error.message}`, { error });
+		Sentry.captureException(error);
+		res.status(500).send({
+			message: 'Failed to fetch pets',
+			error: error.message,
+		});
+	}
+});
 
 // Export the router to make these routes available to the rest of the application.
 export default router;

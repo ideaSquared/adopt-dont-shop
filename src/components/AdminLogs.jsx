@@ -25,7 +25,13 @@ const Logs = () => {
 		try {
 			const res = await axios.get(endpoint);
 			if (Array.isArray(res.data)) {
-				setLogs(res.data);
+				// Assuming each log has a 'timestamp' field and sorting by it.
+				const sortedData = res.data.sort((a, b) => {
+					// Convert timestamps to dates and compare them to sort in descending order.
+					return new Date(b.timestamp) - new Date(a.timestamp);
+				});
+				console.log(sortedData);
+				setLogs(sortedData);
 			} else {
 				console.error('Data is not an array:', res.data);
 				setLogs([]);
@@ -40,19 +46,19 @@ const Logs = () => {
 		<Table striped bordered hover>
 			<thead>
 				<tr>
-					<th>Date</th>
-					<th>User</th>
-					<th>Action</th>
-					<th>Details</th>
+					<th>Timestamp</th>
+					<th>Level</th>
+					<th>Service</th>
+					<th>Message</th>
 				</tr>
 			</thead>
 			<tbody>
 				{logs.map((log) => (
 					<tr key={log._id}>
-						<td>{new Date(log.date).toLocaleString()}</td>
-						<td>{log.user}</td>
-						<td>{log.action}</td>
-						<td>{log.details}</td>
+						<td>{new Date(log.timestamp).toLocaleString()}</td>
+						<td>{log.level}</td>
+						<td>{log.service}</td>
+						<td>{log.message}</td>
 					</tr>
 				))}
 			</tbody>

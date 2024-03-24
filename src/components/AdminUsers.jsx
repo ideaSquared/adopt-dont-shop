@@ -22,7 +22,7 @@ const Users = () => {
 
 	const fetchUsers = async () => {
 		// Adapt endpoint as needed
-		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/users`;
+		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/users`;
 		try {
 			const res = await axios.get(endpoint);
 			if (Array.isArray(res.data)) {

@@ -21,7 +21,7 @@ const Conversations = () => {
 	}, [isAdmin, navigate]);
 
 	const fetchConversations = async () => {
-		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/conversations`;
+		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/conversations`;
 		try {
 			const res = await axios.get(endpoint);
 			if (Array.isArray(res.data)) {

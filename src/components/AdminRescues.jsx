@@ -21,7 +21,7 @@ const Rescues = () => {
 	}, [isAdmin, navigate]);
 
 	const fetchRescues = async () => {
-		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/rescues`;
+		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/rescues`;
 		try {
 			const res = await axios.get(endpoint);
 			if (Array.isArray(res.data)) {
@@ -41,16 +41,14 @@ const Rescues = () => {
 			<thead>
 				<tr>
 					<th>Rescue Name</th>
-					<th>Location</th>
-					<th>Actions</th>
+					<th>Type</th>
 				</tr>
 			</thead>
 			<tbody>
 				{rescues.map((rescue) => (
 					<tr key={rescue._id}>
-						<td>{rescue.name}</td>
-						<td>{rescue.location}</td>
-						<td>{/* Implement actions such as edit or delete */}</td>
+						<td>{rescue.rescueName}</td>
+						<td>{rescue.rescueType}</td>
 					</tr>
 				))}
 			</tbody>

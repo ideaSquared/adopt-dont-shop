@@ -21,7 +21,7 @@ const Pets = () => {
 	}, [isAdmin, navigate]);
 
 	const fetchPets = async () => {
-		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/pets`;
+		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/pets`;
 		try {
 			const res = await axios.get(endpoint);
 			if (Array.isArray(res.data)) {
@@ -42,14 +42,16 @@ const Pets = () => {
 				<tr>
 					<th>Pet Name</th>
 					<th>Type</th>
+					<th>Status</th>
 					<th>Actions</th>
 				</tr>
 			</thead>
 			<tbody>
 				{pets.map((pet) => (
 					<tr key={pet._id}>
-						<td>{pet.name}</td>
+						<td>{pet.petName}</td>
 						<td>{pet.type}</td>
+						<td>{pet.status}</td>
 						<td>{/* Implement actions such as edit or delete */}</td>
 					</tr>
 				))}
