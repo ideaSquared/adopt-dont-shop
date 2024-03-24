@@ -52,7 +52,13 @@ const Pets = () => {
 						<td>{pet.petName}</td>
 						<td>{pet.type}</td>
 						<td>{pet.status}</td>
-						<td>{/* Implement actions such as edit or delete */}</td>
+						<td>
+							{
+								<Button variant='danger' onClick={() => deletePet(pet._id)}>
+									Delete
+								</Button>
+							}
+						</td>
 					</tr>
 				))}
 			</tbody>

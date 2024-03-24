@@ -141,6 +141,30 @@ router.get(
 	}
 );
 
+router.delete(
+	'/conversations/:id', // :id is a route parameter that allows us to capture the ID of the conversation to delete
+	authenticateToken,
+	checkAdmin,
+	async (req, res) => {
+		try {
+			const id = req.params.id; // Extract the ID from the request parameters
+			const result = await Conversation.findByIdAndDelete(id); // Use Mongoose's findByIdAndDelete method to remove the conversation
+
+			if (result) {
+				logger.info(`Deleted conversation with ID: ${id}`);
+				res.json({ message: 'Conversation deleted successfully' });
+			} else {
+				logger.warn(`Conversation with ID: ${id} not found`);
+				res.status(404).json({ message: 'Conversation not found' });
+			}
+		} catch (error) {
+			logger.error(`Error deleting conversation: ${error.message}`);
+			Sentry.captureException(error);
+			res.status(500).json({ message: error.message });
+		}
+	}
+);
+
 router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 	try {
 		const rescues = await Rescue.find({});
@@ -155,6 +179,30 @@ router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 		});
 	}
 });
+
+router.delete(
+	'/rescues/:id', // :id is a route parameter that allows us to capture the ID of the rescue to delete
+	authenticateToken,
+	checkAdmin,
+	async (req, res) => {
+		try {
+			const id = req.params.id; // Extract the ID from the request parameters
+			const result = await Rescue.findByIdAndDelete(id); // Use Mongoose's findByIdAndDelete method to remove the rescue
+
+			if (result) {
+				logger.info(`Deleted rescue with ID: ${id}`);
+				res.json({ message: 'Rescue deleted successfully' });
+			} else {
+				logger.warn(`Rescue with ID: ${id} not found`);
+				res.status(404).json({ message: 'Rescue not found' });
+			}
+		} catch (error) {
+			logger.error(`Error deleting rescue: ${error.message}`);
+			Sentry.captureException(error);
+			res.status(500).json({ message: error.message });
+		}
+	}
+);
 
 // Get all pet records
 router.get('/pets', authenticateToken, checkAdmin, async (req, res) => {
@@ -172,6 +220,30 @@ router.get('/pets', authenticateToken, checkAdmin, async (req, res) => {
 		});
 	}
 });
+
+router.delete(
+	'/pets/:id', // :id is a route parameter for capturing the ID of the pet to delete
+	authenticateToken,
+	checkAdmin,
+	async (req, res) => {
+		try {
+			const id = req.params.id; // Extract the ID from the request parameters
+			const result = await Pet.findByIdAndDelete(id); // Use Mongoose's findByIdAndDelete method to remove the pet
+
+			if (result) {
+				logger.info(`Deleted pet with ID: ${id}`);
+				res.json({ message: 'Pet deleted successfully' });
+			} else {
+				logger.warn(`Pet with ID: ${id} not found`);
+				res.status(404).json({ message: 'Pet not found' });
+			}
+		} catch (error) {
+			logger.error(`Error deleting pet: ${error.message}`);
+			Sentry.captureException(error);
+			res.status(500).json({ message: error.message });
+		}
+	}
+);
 
 // Export the router to make these routes available to the rest of the application.
 export default router;

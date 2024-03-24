@@ -3,11 +3,15 @@ import express from 'express';
 import bcrypt from 'bcryptjs'; // Used for hashing passwords to simulate real user password storage.
 import request from 'supertest';
 import User from '../models/User.js'; // The Mongoose model for user data manipulation.
+import Conversation from '../models/Conversation.js';
+import Rescue from '../models/Rescue.js';
+import Pet from '../models/Pet.js';
 import sinon from 'sinon';
 import jwt from 'jsonwebtoken';
 import { expect } from 'chai'; // Assertion library for validating test outcomes.
 import { connectToDatabase, disconnectFromDatabase } from './database.js'; // Utilities for database connection handling in tests.
 import app from '../index.js';
+import { generateObjectId } from '../utils/generateObjectId.js';
 
 // Set up the test environment for admin route testing.
 describe('Admin Routes', function () {
@@ -55,7 +59,7 @@ describe('Admin Routes', function () {
 	});
 
 	// Group tests that simulate admin user interactions with admin routes.
-	context('as an admin user', function () {
+	context.only('as an admin user', function () {
 		// Before each test in this context, configure the JWT stub to simulate an admin user.
 		beforeEach(function () {
 			jwt.verify.callsFake((token, secret, callback) => {
@@ -200,6 +204,100 @@ describe('Admin Routes', function () {
 
 			// Restore the stubbed method to its original function after the test.
 			User.findByIdAndDelete.restore();
+		});
+
+		// Test deleting a pet successfully by an admin.
+		it('should delete a pet successfully', async function () {
+			// Simulate adding a pet to test deletion.
+			const petToDelete = await Pet.create({
+				petName: 'Buddy',
+				ownerId: generateObjectId(),
+				gender: 'Male',
+				status: 'Available',
+				shortDescription: 'Friendly dog',
+				longDescription: 'Very friendly and playful dog',
+				type: 'Cat',
+				age: 3,
+				characteristics: {
+					common: {
+						size: 'Medium',
+						temperament: 'Friendly',
+						vaccination_status: 'Up to date',
+					},
+					specific: {
+						breed: 'Golden Retriever',
+						intelligence_level: 5,
+						activity_level: 'High',
+					},
+				},
+			});
+
+			const res = await request(app)
+				.delete(`/api/admin/pets/${petToDelete._id}`)
+				.set('Cookie', cookie) // Simulate sending the auth cookie.
+				.expect(200); // Expect a successful delete operation.
+
+			// Validate the response to ensure the pet has been deleted successfully.
+			expect(res.body).to.have.property('message', 'Pet deleted successfully');
+
+			// Further validate by trying to fetch the deleted pet.
+			const fetchDeletedPet = await Pet.findById(petToDelete._id);
+			expect(fetchDeletedPet).to.be.null; // The pet should not exist in the database anymore.
+		});
+
+		// Test deleting a rescue successfully by an admin.
+		it('should delete a rescue successfully', async function () {
+			// Simulate adding a rescue to test deletion.
+			const rescueToDelete = await Rescue.create({
+				rescueName: 'Safe Haven',
+				rescueType: 'Charity',
+			});
+
+			const res = await request(app)
+				.delete(`/api/admin/rescues/${rescueToDelete._id}`)
+				.set('Cookie', cookie) // Simulate sending the auth cookie.
+				.expect(200); // Expect a successful delete operation.
+
+			// Validate the response to ensure the rescue has been deleted successfully.
+			expect(res.body).to.have.property(
+				'message',
+				'Rescue deleted successfully'
+			);
+
+			// Further validate by trying to fetch the deleted rescue.
+			const fetchDeletedRescue = await Rescue.findById(rescueToDelete._id);
+			expect(fetchDeletedRescue).to.be.null; // The rescue should not exist in the database anymore.
+		});
+
+		// Test deleting a conversation successfully by an admin.
+		it('should delete a conversation successfully', async function () {
+			// Simulate adding a conversation to test deletion.
+			const conversationToDelete = await Conversation.create({
+				participants: [generateObjectId(), generateObjectId()], // Use actual ObjectId instances or strings that are valid ObjectIds
+				messagesCount: 1,
+				unreadMessages: 0,
+				status: 'active',
+				lastMessageBy: generateObjectId(), // Use an actual ObjectId instance or a string that is a valid ObjectId
+				startedAt: new Date(),
+				startedBy: generateObjectId(), // Use an actual ObjectId instance or a string that is a valid ObjectId
+			});
+
+			const res = await request(app)
+				.delete(`/api/admin/conversations/${conversationToDelete._id}`)
+				.set('Cookie', cookie) // Simulate sending the auth cookie.
+				.expect(200); // Expect a successful delete operation.
+
+			// Validate the response to ensure the conversation has been deleted successfully.
+			expect(res.body).to.have.property(
+				'message',
+				'Conversation deleted successfully'
+			);
+
+			// Further validate by trying to fetch the deleted conversation.
+			const fetchDeletedConversation = await Conversation.findById(
+				conversationToDelete._id
+			);
+			expect(fetchDeletedConversation).to.be.null; // The conversation should not exist in the database anymore.
 		});
 	});
 });
