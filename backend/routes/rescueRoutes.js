@@ -166,7 +166,7 @@ router.post(
 						message: 'A rescue with the given reference number already exists',
 					});
 				} else {
-					req.body.verifiedByRescue = true;
+					req.body.referenceNumberVerified = true;
 				}
 			}
 
