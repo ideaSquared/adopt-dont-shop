@@ -1,4 +1,4 @@
-// AdminDashboard.jsx
+// Users.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Table } from 'react-bootstrap';
@@ -7,25 +7,24 @@ import { useAuth } from './AuthContext'; // Import useAuth hook
 
 axios.defaults.withCredentials = true;
 
-const AdminDashboard = () => {
+const Users = () => {
 	const [users, setUsers] = useState([]);
 	const navigate = useNavigate(); // Hook for navigation
 	const { isAdmin } = useAuth(); // Use useAuth hook to access isAdmin
 
 	useEffect(() => {
-		// Verify if the user is an admin using the isAdmin value from AuthContext
 		if (!isAdmin) {
 			navigate('/'); // Redirect to root if not admin
 			return; // Prevent further execution
 		}
 		fetchUsers();
-	}, [isAdmin, navigate]); // Adding isAdmin and navigate to the dependency array
+	}, [isAdmin, navigate]);
 
 	const fetchUsers = async () => {
+		// Adapt endpoint as needed
+		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/users`;
 		try {
-			const res = await axios.get(
-				`${import.meta.env.VITE_API_BASE_URL}/admin/users`
-			);
+			const res = await axios.get(endpoint);
 			if (Array.isArray(res.data)) {
 				setUsers(res.data);
 			} else {
@@ -33,7 +32,7 @@ const AdminDashboard = () => {
 				setUsers([]); // Handle non-array data
 			}
 		} catch (error) {
-			alert('Failed to fetch users. Make sure you are logged in as an admin.');
+			alert('Failed to fetch users.');
 			console.error(error);
 		}
 	};
@@ -95,4 +94,4 @@ const AdminDashboard = () => {
 	);
 };
 
-export default AdminDashboard;
+export default Users;

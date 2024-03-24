@@ -10,7 +10,14 @@ import ForgotPasswordForm from './components/ForgotPasswordForm';
 import ResetPasswordForm from './components/ResetPasswordForm';
 import ChangeDetailsForm from './components/ChangeDetailsForm';
 import HomePage from './components/HomePage';
+
 import AdminDashboard from './components/AdminDashboard';
+import AdminUsers from './components/AdminUsers';
+import AdminPets from './components/AdminPets';
+import AdminRescues from './components/AdminRescues';
+import AdminLogs from './components/AdminLogs';
+import AdminConversation from './components/AdminConversations';
+
 import PetActionSelection from './components/PetActionSelection';
 import AccountTypeSelection from './components/AccountTypeSelection';
 import CharityForm from './components/CharityForm';
@@ -31,6 +38,11 @@ function App() {
 				<Route path='/reset-password' element={<ResetPasswordForm />} />
 				<Route path='/change-details' element={<ChangeDetailsForm />} />
 				<Route path='/admin' element={<AdminDashboard />} />
+				<Route path='/admin/users' element={<AdminUsers />} />
+				<Route path='/admin/pets' element={<AdminPets />} />
+				<Route path='/admin/rescues' element={<AdminRescues />} />
+				<Route path='/admin/logs' element={<AdminLogs />} />
+				<Route path='/admin/conversations' element={<AdminConversation />} />
 				<Route path='/select-action' element={<PetActionSelection />} />
 				<Route path='/select-account-type' element={<AccountTypeSelection />} />
 				<Route path='/charity-form' element={<CharityForm />} />
