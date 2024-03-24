@@ -4,11 +4,6 @@ import reactLogo from './assets/react.svg';
 import viteLogo from '/vite.svg';
 import './App.css';
 import CustomNavbar from './components/Navbar';
-import LoginForm from './components/LoginForm';
-import CreateAccountForm from './components/CreateAccountForm';
-import ForgotPasswordForm from './components/ForgotPasswordForm';
-import ResetPasswordForm from './components/ResetPasswordForm';
-import ChangeDetailsForm from './components/ChangeDetailsForm';
 import HomePage from './components/HomePage';
 
 import AdminDashboard from './components/AdminDashboard';
@@ -18,10 +13,16 @@ import AdminRescues from './components/AdminRescues';
 import AdminLogs from './components/AdminLogs';
 import AdminConversation from './components/AdminConversations';
 
-import PetActionSelection from './components/PetActionSelection';
-import AccountTypeSelection from './components/AccountTypeSelection';
-import CharityForm from './components/CharityForm';
-import CompanyForm from './components/CompanyForm';
+import LoginForm from './components/UserLoginForm';
+import ForgotPasswordForm from './components/UserForgotPasswordForm';
+import ResetPasswordForm from './components/UserResetPasswordForm';
+import ChangeDetailsForm from './components/UserChangeDetailsForm';
+
+import CreateAccountForm from './components/CreateAccountForm';
+import PetActionSelection from './components/CreateAccountPetActionSelection';
+import AccountTypeSelection from './components/CreateAccountAccountTypeSelection';
+import CharityForm from './components/CreateAccountCharityForm';
+import CompanyForm from './components/CreateAccountCompanyForm';
 import ContactUs from './components/ContactUs';
 
 function App() {

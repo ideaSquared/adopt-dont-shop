@@ -1,6 +1,7 @@
 // AccountTypeSelection.js
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import Button from 'react-bootstrap/Button';
 
 const AccountTypeSelection = () => {
 	const navigate = useNavigate();
@@ -26,14 +27,20 @@ const AccountTypeSelection = () => {
 	return (
 		<div>
 			<h2>I'm looking to...</h2>
-			<button onClick={() => handleSelection('individual')}>Individual</button>
-			<button onClick={() => handleSelection('charity')}>
-				Registered Charity
-			</button>
-			<button onClick={() => handleSelection('company')}>
-				Registered Company
-			</button>
-			<button onClick={() => handleSelection('other')}>Other</button>
+			<div>
+				<Button variant='primary' onClick={() => handleSelection('individual')}>
+					Individual
+				</Button>
+				<Button variant='primary' onClick={() => handleSelection('charity')}>
+					Registered Charity
+				</Button>
+				<Button variant='primary' onClick={() => handleSelection('company')}>
+					Registered Company
+				</Button>
+				<Button variant='primary' onClick={() => handleSelection('other')}>
+					Other
+				</Button>
+			</div>
 		</div>
 	);
 };
