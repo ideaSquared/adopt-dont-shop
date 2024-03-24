@@ -1,6 +1,7 @@
 // CharityForm.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button, Container } from 'react-bootstrap';
 
 const CharityForm = () => {
 	const [formData, setFormData] = useState({
@@ -25,7 +26,7 @@ const CharityForm = () => {
 	};
 
 	return (
-		<div className='container mt-5'>
+		<Container>
 			<h2>Company Registration Form</h2>
 			<form onSubmit={handleSubmit}>
 				<div className='mb-3'>
@@ -74,7 +75,7 @@ const CharityForm = () => {
 					Submit
 				</button>
 			</form>
-		</div>
+		</Container>
 	);
 };
 

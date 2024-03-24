@@ -1,6 +1,7 @@
 // CharityForm.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button, Container } from 'react-bootstrap';
 
 const CharityForm = () => {
 	const [formData, setFormData] = useState({
@@ -17,15 +18,63 @@ const CharityForm = () => {
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-		// Submit formData to your backend
-		console.log(formData);
-		// Assuming '/api/rescue' is your endpoint for creating a rescue
-		// Adjust navigation or add more logic as needed
-		navigate('/success-page');
+
+		try {
+			const userId = localStorage.getItem('userId'); // Retrieve stored user ID
+			const requestBody = {
+				rescueName: formData.rescueName, // Prefill rescueName from the form
+				rescueAddress: formData.rescueAddress, // Prefill rescueAddress from the form
+				rescueType: 'Charity',
+				staff: [
+					{
+						userId: userId, // Assuming this is how you've stored/fetched the userId
+						permissions: [
+							'edit_rescue_info',
+							'add_pet',
+							'edit_pet',
+							'delete_pet',
+							'send_messages',
+						],
+						verifiedByRescue: true,
+					},
+				],
+			};
+
+			// Conditionally add referenceNumber if it's filled in
+			if (formData.referenceNumber.trim()) {
+				requestBody.referenceNumber = formData.referenceNumber;
+			}
+
+			const response = await fetch(
+				`${import.meta.env.VITE_API_BASE_URL}/rescue/charity`,
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(requestBody),
+				}
+			);
+
+			const data = await response.json();
+			if (response.ok) {
+				// Handle success, maybe navigate to a success page or display a success message
+				console.log('Rescue created successfully', data);
+				navigate('/login');
+			} else {
+				// Handle server-side validation errors or other issues
+				console.error('Failed to create rescue', data.message);
+			}
+		} catch (error) {
+			// Handle unexpected errors
+			console.error('Error creating rescue', error);
+		}
+
+		navigate('/login');
 	};
 
 	return (
-		<div className='container mt-5'>
+		<Container>
 			<h2>Charity Registration Form</h2>
 			<form onSubmit={handleSubmit}>
 				<div className='mb-3'>
@@ -67,14 +116,13 @@ const CharityForm = () => {
 						name='referenceNumber'
 						value={formData.referenceNumber}
 						onChange={handleChange}
-						required
 					/>
 				</div>
 				<button type='submit' className='btn btn-primary'>
 					Submit
 				</button>
 			</form>
-		</div>
+		</Container>
 	);
 };
 

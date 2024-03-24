@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'; // Make sure you're using react-router-dom
 import AlertComponent from './AlertComponent';
 import { useNavigate } from 'react-router-dom';
+import { Container } from 'react-bootstrap';
 
 const ResetPasswordForm = () => {
 	const location = useLocation(); // Use the useLocation hook to access the query params
@@ -69,31 +70,33 @@ const ResetPasswordForm = () => {
 	};
 
 	return (
-		<>
-			<AlertComponent
-				type={alert.type}
-				message={alert.message}
-				onClose={() => setAlert({ message: null, type: null })}
-			/>
-			<form onSubmit={handleSubmit}>
-				<div className='mb-3'>
-					<label htmlFor='newPassword' className='form-label'>
-						New Password
-					</label>
-					<input
-						type='password'
-						className='form-control'
-						id='newPassword'
-						name='newPassword'
-						value={formData.newPassword}
-						onChange={handleChange}
-					/>
-				</div>
-				<button type='submit' className='btn btn-primary'>
-					Reset Password
-				</button>
-			</form>
-		</>
+		<Container>
+			<>
+				<AlertComponent
+					type={alert.type}
+					message={alert.message}
+					onClose={() => setAlert({ message: null, type: null })}
+				/>
+				<form onSubmit={handleSubmit}>
+					<div className='mb-3'>
+						<label htmlFor='newPassword' className='form-label'>
+							New Password
+						</label>
+						<input
+							type='password'
+							className='form-control'
+							id='newPassword'
+							name='newPassword'
+							value={formData.newPassword}
+							onChange={handleChange}
+						/>
+					</div>
+					<button type='submit' className='btn btn-primary'>
+						Reset Password
+					</button>
+				</form>
+			</>
+		</Container>
 	);
 };
 

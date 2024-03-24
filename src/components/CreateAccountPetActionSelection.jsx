@@ -1,6 +1,7 @@
 // PetActionSelection.js
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button, Container } from 'react-bootstrap';
 
 const PetActionSelection = () => {
 	const navigate = useNavigate();
@@ -13,15 +14,15 @@ const PetActionSelection = () => {
 	};
 
 	return (
-		<div>
+		<Container>
 			<h2>I'm looking to...</h2>
-			<button onClick={() => handleActionSelection('adopt')}>
+			<Button variant='primary' onClick={() => handleActionSelection('adopt')}>
 				Adopt a Pet
-			</button>
-			<button onClick={() => handleActionSelection('rehome')}>
+			</Button>
+			<Button variant='primary' onClick={() => handleActionSelection('rehome')}>
 				Rehome a Pet
-			</button>
-		</div>
+			</Button>
+		</Container>
 	);
 };
 

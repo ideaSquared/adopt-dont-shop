@@ -1,6 +1,6 @@
 // LoginForm.jsx
 import React, { useState } from 'react';
-import { Form, Button, Alert } from 'react-bootstrap';
+import { Form, Button, Alert, Container } from 'react-bootstrap';
 import AlertComponent from './AlertComponent';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthContext'; // Import useAuth hook
@@ -35,41 +35,43 @@ const LoginForm = () => {
 	};
 
 	return (
-		<>
-			{alert.message && (
-				<AlertComponent
-					type={alert.type}
-					message={alert.message}
-					onClose={() => setAlert({ message: null, type: null })}
-				/>
-			)}
-			<Form onSubmit={handleSubmit}>
-				<Form.Group className='mb-3' controlId='email'>
-					<Form.Label>Email address</Form.Label>
-					<Form.Control
-						type='email'
-						name='email'
-						value={formData.email}
-						onChange={handleChange}
-						placeholder='Enter email'
+		<Container>
+			<>
+				{alert.message && (
+					<AlertComponent
+						type={alert.type}
+						message={alert.message}
+						onClose={() => setAlert({ message: null, type: null })}
 					/>
-				</Form.Group>
-				<Form.Group className='mb-3' controlId='password'>
-					<Form.Label>Password</Form.Label>
-					<Form.Control
-						type='password'
-						name='password'
-						value={formData.password}
-						onChange={handleChange}
-						placeholder='Password'
-					/>
-				</Form.Group>
-				<Button variant='primary' type='submit'>
-					Login
-				</Button>
-			</Form>
-			<Link to='/forgot-password'>Forgot your password?</Link>
-		</>
+				)}
+				<Form onSubmit={handleSubmit}>
+					<Form.Group className='mb-3' controlId='email'>
+						<Form.Label>Email address</Form.Label>
+						<Form.Control
+							type='email'
+							name='email'
+							value={formData.email}
+							onChange={handleChange}
+							placeholder='Enter email'
+						/>
+					</Form.Group>
+					<Form.Group className='mb-3' controlId='password'>
+						<Form.Label>Password</Form.Label>
+						<Form.Control
+							type='password'
+							name='password'
+							value={formData.password}
+							onChange={handleChange}
+							placeholder='Password'
+						/>
+					</Form.Group>
+					<Button variant='primary' type='submit'>
+						Login
+					</Button>
+				</Form>
+				<Link to='/forgot-password'>Forgot your password?</Link>
+			</>
+		</Container>
 	);
 };
 

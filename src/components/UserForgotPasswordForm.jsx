@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import AlertComponent from './AlertComponent';
 import { useNavigate } from 'react-router-dom';
+import { Container } from 'react-bootstrap';
 
 const ForgotPasswordForm = () => {
 	const [email, setEmail] = useState('');
@@ -38,30 +39,32 @@ const ForgotPasswordForm = () => {
 	};
 
 	return (
-		<>
-			<AlertComponent
-				type={alert.type}
-				message={alert.message}
-				onClose={() => setAlert({ message: null, type: null })}
-			/>
-			<form onSubmit={handleSubmit}>
-				<div className='mb-3'>
-					<label htmlFor='email' className='form-label'>
-						Email address
-					</label>
-					<input
-						type='email'
-						className='form-control'
-						id='email'
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-					/>
-				</div>
-				<button type='submit' className='btn btn-primary'>
-					Send Reset Email
-				</button>
-			</form>
-		</>
+		<Container>
+			<>
+				<AlertComponent
+					type={alert.type}
+					message={alert.message}
+					onClose={() => setAlert({ message: null, type: null })}
+				/>
+				<form onSubmit={handleSubmit}>
+					<div className='mb-3'>
+						<label htmlFor='email' className='form-label'>
+							Email address
+						</label>
+						<input
+							type='email'
+							className='form-control'
+							id='email'
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+						/>
+					</div>
+					<button type='submit' className='btn btn-primary'>
+						Send Reset Email
+					</button>
+				</form>
+			</>
+		</Container>
 	);
 };
 
