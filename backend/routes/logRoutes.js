@@ -7,7 +7,7 @@ import checkAdmin from '../middleware/checkAdmin.js';
 import Sentry from '@sentry/node'; // Error tracking utility.
 import LoggerUtil from '../utils/Logger.js'; // Logging utility.
 import authenticateToken from '../middleware/authenticateToken.js';
-const logger = new LoggerUtil('conversation-service').getLogger();
+const logger = new LoggerUtil('logger-service').getLogger();
 
 const router = express.Router();
 
