@@ -36,6 +36,18 @@ const Pets = () => {
 		}
 	};
 
+	const deletePet = async (id) => {
+		try {
+			await axios.delete(
+				`${import.meta.env.VITE_API_BASE_URL}/admin/pets/${id}`
+			);
+			fetchPets(); // Refresh the list after deleting
+		} catch (error) {
+			alert('Failed to delete pet. Make sure you are logged in as an admin.');
+			console.error(error);
+		}
+	};
+
 	return (
 		<Table striped bordered hover>
 			<thead>

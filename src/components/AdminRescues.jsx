@@ -1,7 +1,7 @@
 // Rescues.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Table } from 'react-bootstrap';
+import { Button, Table } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
@@ -36,6 +36,20 @@ const Rescues = () => {
 		}
 	};
 
+	const deleteRescue = async (id) => {
+		try {
+			await axios.delete(
+				`${import.meta.env.VITE_API_BASE_URL}/admin/rescues/${id}`
+			);
+			fetchRescues(); // Refresh the list after deleting
+		} catch (error) {
+			alert(
+				'Failed to delete rescue. Make sure you are logged in as an admin.'
+			);
+			console.error(error);
+		}
+	};
+
 	return (
 		<Table striped bordered hover>
 			<thead>
@@ -49,6 +63,16 @@ const Rescues = () => {
 					<tr key={rescue._id}>
 						<td>{rescue.rescueName}</td>
 						<td>{rescue.rescueType}</td>
+						<td>
+							{
+								<Button
+									variant='danger'
+									onClick={() => deleteRescue(rescue._id)}
+								>
+									Delete
+								</Button>
+							}
+						</td>
 					</tr>
 				))}
 			</tbody>

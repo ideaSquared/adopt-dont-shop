@@ -1,7 +1,7 @@
 // Conversations.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Table } from 'react-bootstrap';
+import { Button, Table } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
@@ -36,6 +36,20 @@ const Conversations = () => {
 		}
 	};
 
+	const deleteConversation = async (id) => {
+		try {
+			await axios.delete(
+				`${import.meta.env.VITE_API_BASE_URL}/admin/conversation/${id}`
+			);
+			fetchConversations(); // Refresh the list after deleting
+		} catch (error) {
+			alert(
+				'Failed to delete conversation. Make sure you are logged in as an admin.'
+			);
+			console.error(error);
+		}
+	};
+
 	return (
 		<Table striped bordered hover>
 			<thead>
@@ -52,9 +66,12 @@ const Conversations = () => {
 						<td>{conversation._id}</td>
 						<td>{conversation.participants.join(', ')}</td>
 						<td>{conversation.lastMessage}</td>
-						<td>
-							{/* Actions like viewing details or deletion could go here */}
-						</td>
+						<Button
+							variant='danger'
+							onClick={() => deleteConversation(rescue._id)}
+						>
+							Delete
+						</Button>
 					</tr>
 				))}
 			</tbody>
