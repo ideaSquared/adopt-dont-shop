@@ -35,7 +35,7 @@ export const sendPasswordResetEmail = async (email, resetURL) => {
 	});
 
 	const mailOptions = {
-		from: 'your_email@example.com',
+		from: 'help@adontdontshop.app',
 		to: email,
 		subject: 'Reset Your Password',
 		html: `<p>You requested a password reset. Click <a href="${resetURL}">here</a> to reset your password.</p>`,
