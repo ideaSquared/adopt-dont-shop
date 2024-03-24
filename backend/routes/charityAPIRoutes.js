@@ -1,3 +1,10 @@
+/*
+
+!!!DEPRECIATED!!!
+This is now a utility function rather than a route, however as this may be useful route for example if a user needs to change their reference number then we can call this to re-verify it. Currently not in use.
+
+ */
+
 // Import necessary modules.
 import express from 'express'; // For routing.
 import axios from 'axios'; // For making HTTP requests.
