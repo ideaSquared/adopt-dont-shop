@@ -178,8 +178,12 @@ router.post(
 
 					if (isValidCharity) {
 						req.body.referenceNumberVerified = true;
+						logger.info(`Charity validated with ${req.body.referenceNumber}`);
 					} else {
 						req.body.referenceNumberVerified = false;
+						logger.info(
+							`Charity unable to be validated with ${req.body.referenceNumber}`
+						);
 					}
 				} else if (type === 'Company') {
 					// Validate the company house reference number
@@ -189,8 +193,12 @@ router.post(
 
 					if (isValidCompany) {
 						req.body.referenceNumberVerified = true;
+						logger.info(`Company validated with ${req.body.referenceNumber}`);
 					} else {
 						req.body.referenceNumberVerified = false;
+						logger.info(
+							`Company unable to be validated with ${req.body.referenceNumber}`
+						);
 					}
 				}
 			}
