@@ -8,7 +8,7 @@ import { generateObjectId } from '../utils/generateObjectId.js';
 
 const mockUserId = generateObjectId().toString();
 
-describe.only('Log Routes', function () {
+describe('Log Routes', function () {
 	const token = 'dummyToken'; // Simulate an auth token.
 	const cookie = `token=${token};`; // Simulate a browser cookie containing the auth token.
 

@@ -68,6 +68,7 @@ describe('Pet Creation Routes', function () {
 						'Rex is a very friendly and energetic dog that loves to play and run around.',
 					gender: 'Male',
 					status: 'Available',
+					type: 'Dog',
 					characteristics: {
 						common: {
 							size: 'Medium',
@@ -200,6 +201,7 @@ describe('Pet Creation Routes', function () {
 						'Buddy is a quiet and lovely indoor cat looking for a new home.',
 					gender: 'Male',
 					status: 'Available',
+					type: 'Cat',
 					characteristics: {
 						common: {
 							size: 'Small',
