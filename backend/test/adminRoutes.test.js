@@ -85,10 +85,7 @@ describe('Admin Routes', function () {
 				.expect(200); // Expect a successful operation.
 
 			// Validate the response to ensure the password reset was successful.
-			expect(res.body).to.have.property(
-				'message',
-				'Password reset required. Please check your email to reset your password.'
-			);
+			expect(res.body).to.have.property('message', 'Password reset required.');
 		});
 
 		// Test the rejection of a password reset attempt with an invalid new password by an admin.
