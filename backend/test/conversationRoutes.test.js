@@ -294,7 +294,7 @@ describe('Conversation Routes', function () {
 	});
 
 	describe('POST /api/conversations/messages/:conversationId', () => {
-		it.only('should create a new message in a conversation', async () => {
+		it('should create a new message in a conversation', async () => {
 			const mockConversationId = generateObjectId().toString();
 			const mockMessageText = 'Hello World';
 			const mockSenderId = mockUserId;

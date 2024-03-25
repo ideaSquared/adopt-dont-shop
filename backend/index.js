@@ -13,7 +13,6 @@ import companiesHouseRoutes from './routes/companieshouseAPIRoutes.js';
 import petRoutes from './routes/petRoutes.js';
 import conversationRoutes from './routes/conversationRoutes.js';
 import logRoutes from './routes/logRoutes.js';
-import User from './models/User.js';
 import { generateResetToken } from './utils/tokenGenerator.js';
 import { sendPasswordResetEmail } from './services/emailService.js';
 
@@ -67,7 +66,6 @@ app.use(Sentry.Handlers.errorHandler());
 const authRoutes = createAuthRoutes({
 	generateResetToken,
 	sendPasswordResetEmail,
-	User,
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
