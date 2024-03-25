@@ -7,8 +7,7 @@ import User from '../models/User.js'; // User model for interacting with the dat
 import authenticateToken from '../middleware/authenticateToken.js';
 import checkAdmin from '../middleware/checkAdmin.js';
 // Utilities for generating tokens and sending emails.
-import { generateResetToken } from '../utils/tokenGenerator.js';
-import { sendPasswordResetEmail } from '../services/emailService.js';
+import handlePasswordReset from '../utils/handleResetPassword.js';
 // Validation middleware for request bodies.
 import {
 	validateRequest,
@@ -22,11 +21,10 @@ import {
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
 
-export default function createAuthRoutes({
-	tokenGenerator,
-	emailService,
-	User,
-}) {
+// TEMP
+import mongoose from 'mongoose';
+
+export default function createAuthRoutes({ tokenGenerator, emailService }) {
 	const router = express.Router();
 	const logger = new LoggerUtil('auth-service').getLogger(); // Initialize logger for auth-service
 
@@ -85,6 +83,13 @@ export default function createAuthRoutes({
 					message: 'Email does not exist or password is not correct.',
 				});
 			}
+
+			if (user.resetTokenForceFlag) {
+				logger.warn(`Reset password required for: ${email}`);
+				await handlePasswordReset(user);
+				return res.status(403).json({ message: 'Reset password required' });
+			}
+
 			// Generate a token and send it as a HttpOnly cookie.
 			const token = jwt.sign(
 				{ userId: user._id, isAdmin: user.isAdmin },
@@ -189,17 +194,7 @@ export default function createAuthRoutes({
 					return res.status(404).json({ message: 'User not found.' });
 				}
 
-				const token = await generateResetToken();
-				user.resetToken = token;
-				user.resetTokenExpiration = Date.now() + 3600000; // 1 hour from now
-				await user.save();
-
-				const FRONTEND_BASE_URL =
-					process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-				const resetURL = `${FRONTEND_BASE_URL}/reset-password?token=${token}`;
-
-				await sendPasswordResetEmail(email, resetURL); // Assuming this method might throw an error if email sending fails
-				logger.info(`Password reset email sent to: ${email}`); // Log the successful email sending
+				await handlePasswordReset(user);
 
 				res.status(200).json({
 					message: 'Password reset email sent. Redirecting to login page...',

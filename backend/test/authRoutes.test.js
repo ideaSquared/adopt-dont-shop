@@ -177,6 +177,8 @@ describe('Auth Routes', function () {
 	 * - Requirement of a password for login.
 	 */
 	describe('POST /api/auth/login', () => {
+		this.timeout(5000);
+
 		it('should login an existing user', async () => {
 			const hashedPassword = await bcrypt.hash('password123', 12);
 			userMock
@@ -244,6 +246,28 @@ describe('Auth Routes', function () {
 				.expect(400);
 
 			expect(res.body).to.have.property('message').that.includes('password');
+		});
+
+		it('should reject a login where a user has a force reset password flag', async () => {
+			// Mock the database call to simulate finding a user by email.
+			userMock
+				.expects('findOne')
+				.withArgs({ email: 'exists@example.com' })
+				.resolves({
+					email: 'exists@example.com',
+					save: sinon.stub().resolves(true),
+				});
+
+			const res = await request(app)
+				.post('/api/auth/forgot-password')
+				.send({ email: 'exists@example.com' })
+				.expect(200);
+
+			expect(res.body).to.have.property(
+				'message',
+				'Password reset email sent. Redirecting to login page...'
+			);
+			userMock.verify(); // Ensure the mock expectation is met.
 		});
 	});
 

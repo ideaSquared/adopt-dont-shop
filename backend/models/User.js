@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema({
 	resetToken: String,
 	// The expiration date for the password reset token. This is optional and used in conjunction with the resetToken to manage password resets securely.
 	resetTokenExpiration: Date,
+	// A boolean to force a password reset. This is optional and set by the system for example if there is a potential compromise.
+	resetTokenForceFlag: Boolean,
 	// A boolean indicating whether the user has administrative privileges. Defaults to false for most users.
 	isAdmin: { type: Boolean, default: false },
 });
