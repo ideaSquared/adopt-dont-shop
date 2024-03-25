@@ -6,6 +6,12 @@ import Sentry from '@sentry/node'; // Error tracking utility.
 import authenticateToken from '../middleware/authenticateToken.js';
 
 import LoggerUtil from '../utils/Logger.js'; // Logging utility.
+import {
+	validateRequest,
+	conversationSchema,
+	updateConversationSchema,
+	messageSchema,
+} from '../middleware/joiValidateSchema.js';
 const logger = new LoggerUtil('conversation-service').getLogger();
 
 const router = express.Router();
@@ -52,38 +58,43 @@ async function checkParticipant(req, res, next) {
 
 // CRUD Routes for Conversations
 // Create a new conversation
-router.post('/', authenticateToken, async (req, res) => {
-	const { participants, subject } = req.body;
-	if (
-		!participants ||
-		!Array.isArray(participants) ||
-		participants.length < 2
-	) {
-		// Assuming at least 2 participants are required
-		logger.warn('Invalid participants for new conversation');
-		return res.status(400).json({ message: 'Invalid participants' });
+router.post(
+	'/',
+	authenticateToken,
+	validateRequest(conversationSchema),
+	async (req, res) => {
+		const { participants, subject } = req.body;
+		if (
+			!participants ||
+			!Array.isArray(participants) ||
+			participants.length < 2
+		) {
+			// Assuming at least 2 participants are required
+			logger.warn('Invalid participants for new conversation');
+			return res.status(400).json({ message: 'Invalid participants' });
+		}
+		try {
+			const newConversation = await Conversation.create({
+				participants,
+				startedBy: req.user.userId,
+				startedAt: new Date(),
+				subject,
+				status: 'active',
+				unreadMessages: 0,
+				messagesCount: 1,
+				lastMessage: '',
+				lastMessageAt: new Date(),
+				lastMessageBy: req.user.userId,
+			});
+			logger.info(`New conversation created with ID: ${newConversation._id}`);
+			res.status(201).json(newConversation);
+		} catch (error) {
+			logger.error(`Error creating conversation: ${error.message}`);
+			Sentry.captureException(error);
+			res.status(500).json({ message: error.message });
+		}
 	}
-	try {
-		const newConversation = await Conversation.create({
-			participants,
-			startedBy: req.user.userId,
-			startedAt: new Date(),
-			subject,
-			status: 'active',
-			unreadMessages: 0,
-			messagesCount: 0,
-			lastMessage: '',
-			lastMessageAt: new Date(),
-			lastMessageBy: req.user.userId,
-		});
-		logger.info(`New conversation created with ID: ${newConversation._id}`);
-		res.status(201).json(newConversation);
-	} catch (error) {
-		logger.error(`Error creating conversation: ${error.message}`);
-		Sentry.captureException(error);
-		res.status(500).json({ message: error.message });
-	}
-});
+);
 
 // Get all conversations for a user
 router.get('/', authenticateToken, checkParticipant, async (req, res) => {
@@ -125,19 +136,32 @@ router.put(
 	'/:conversationId',
 	authenticateToken,
 	checkParticipant,
+	validateRequest(updateConversationSchema), // Use the update schema here
 	async (req, res) => {
-		const { participants, subject } = req.body;
-		const userId = req.user.userId?.userId; // Assuming `req.user` is populated by `authenticateToken` middleware
+		const { participants, subject, lastMessage, lastMessageAt, lastMessageBy } =
+			req.body;
 		const conversationId = req.params.conversationId;
 
 		try {
-			// Perform the update
-			const updatedFields = { participants, subject };
+			// Construct the update object based on provided fields
+			const updatePayload = {};
+			if (participants !== undefined) updatePayload.participants = participants;
+			if (subject !== undefined) updatePayload.subject = subject;
+			if (lastMessage !== undefined) updatePayload.lastMessage = lastMessage;
+			if (lastMessageAt !== undefined)
+				updatePayload.lastMessageAt = lastMessageAt;
+			if (lastMessageBy !== undefined)
+				updatePayload.lastMessageBy = lastMessageBy;
+
 			const updatedConversation = await Conversation.findByIdAndUpdate(
 				conversationId,
-				{ $set: updatedFields },
+				{ $set: updatePayload },
 				{ new: true }
 			);
+
+			if (!updatedConversation) {
+				return res.status(404).json({ message: 'Conversation not found' });
+			}
 
 			logger.info(`Updated conversation with ID: ${updatedConversation._id}`);
 			res.json(updatedConversation);
@@ -148,6 +172,7 @@ router.put(
 		}
 	}
 );
+
 // Delete a conversation
 router.delete('/:conversationId', authenticateToken, async (req, res) => {
 	try {
@@ -167,6 +192,7 @@ router.post(
 	'/messages/:conversationId',
 	authenticateToken,
 	checkParticipant,
+	validateRequest(messageSchema),
 	async (req, res) => {
 		const { messageText } = req.body;
 		const conversationId = req.params.conversationId;
@@ -202,6 +228,7 @@ router.get(
 	'/messages/:conversationId',
 	authenticateToken,
 	checkParticipant,
+	validateRequest(messageSchema),
 	async (req, res) => {
 		try {
 			const messages = await Message.find({

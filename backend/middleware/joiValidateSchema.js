@@ -121,6 +121,63 @@ const petJoiSchema = Joi.object({
 	archived: Joi.boolean(),
 });
 
+const conversationSchema = Joi.object({
+	participants: Joi.array().items(Joi.string()).min(2).required().messages({
+		'array.base': `"participants" should be an array`,
+		'array.min': `"participants" should have at least 2 participants`,
+	}),
+	startedBy: Joi.string().required(),
+	startedAt: Joi.date().required(),
+	lastMessage: Joi.string().allow('', null),
+	lastMessageAt: Joi.date().allow(null),
+	lastMessageBy: Joi.string().required(),
+	subject: Joi.string().allow('', null),
+	status: Joi.string().valid('active', 'closed').required(),
+	unreadMessages: Joi.number().integer().min(0).required(),
+	messagesCount: Joi.number().integer().min(0).required(),
+});
+
+const updateConversationSchema = Joi.object({
+	participants: Joi.array().items(Joi.string()).min(2).optional().messages({
+		'array.base': `"participants" should be an array`,
+		'array.min': `"participants" should have at least 2 participants`,
+	}),
+	subject: Joi.string().allow('', null).optional(),
+	// For updates, these fields remain optional as they might not change with every update
+	lastMessage: Joi.string().allow('', null).optional(),
+	lastMessageAt: Joi.date().allow(null).optional(),
+	lastMessageBy: Joi.string().optional(),
+	// Do not allow updating fields like startedBy, startedAt, status, unreadMessages, and messagesCount as these are typically managed internally
+}).min(1); // Ensure at least one field is provided for an update
+
+const messageSchema = Joi.object({
+	conversationId: Joi.string().required(),
+	senderId: Joi.string().required(),
+	messageText: Joi.string().required(),
+	sentAt: Joi.date().required(),
+	readAt: Joi.date().allow(null),
+	attachments: Joi.array()
+		.items(
+			Joi.object({
+				type: Joi.string().required(), // Since "type" is a reserved keyword in JavaScript, ensure proper handling if implementing custom validation logic
+				url: Joi.string().required(),
+				description: Joi.string().allow('', null),
+			})
+		)
+		.optional()
+		.default([]), // Assume attachments are optional and default to an empty array if not provided
+	status: Joi.string().valid('sent', 'delivered', 'read').required(),
+});
+
+const ratingSchema = Joi.object({
+	userId: Joi.string().required(),
+	targetId: Joi.string().required(),
+	targetType: Joi.string().required().valid('pet', 'user'),
+	ratingSource: Joi.string().required().valid('rescue', 'user'),
+	ratingType: Joi.string().required().default('like'),
+	onModel: Joi.string().required().valid('Pet', 'User'),
+});
+
 /**
  * Utility function for validating the request body against a given Joi schema.
  * It applies the schema to the request body, returning a 400 status code with a detailed message if validation fails,
@@ -169,6 +226,10 @@ export {
 	adminResetPasswordSchema,
 	rescueStaffJoiSchema,
 	petJoiSchema,
+	conversationSchema,
+	updateConversationSchema,
+	messageSchema,
+	ratingSchema,
 	validateRequest,
 	rescueJoiSchema,
 };

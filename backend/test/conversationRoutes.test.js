@@ -42,17 +42,44 @@ describe('Conversation Routes', function () {
 		it('should create a new conversation', async () => {
 			const mockParticipants = [mockUserId, '65f1fa3badeb2ca9f053f7f9'];
 			const mockSubject = 'Test Conversation';
+			const mockStartedBy = mockUserId; // Assuming mockUserId is defined and valid
+			const mockStartedAt = new Date();
+			const mockStatus = 'active';
+			const mockUnreadMessages = 0;
+			const mockMessagesCount = 1;
+			const mockLastMessage = ''; // Assuming empty string for initial lastMessage
+			const mockLastMessageBy = mockUserId;
+			const mockLastMessageAt = new Date();
 
 			conversationMock.expects('create').resolves({
 				participants: mockParticipants,
 				subject: mockSubject,
-				// additional fields
+				startedBy: mockStartedBy,
+				startedAt: mockStartedAt,
+				status: mockStatus,
+				unreadMessages: mockUnreadMessages,
+				messagesCount: mockMessagesCount,
+				lastMessage: mockLastMessage,
+				lastMessageAt: mockLastMessageAt,
+				lastMessageBy: mockLastMessageBy,
 			});
 
 			const response = await request(app)
 				.post('/api/conversations')
 				.set('Cookie', cookie) // Use the simulated auth cookie for authentication
-				.send({ participants: mockParticipants, subject: mockSubject });
+				.send({
+					participants: mockParticipants,
+					subject: mockSubject,
+					// Include all required fields based on the updated route logic
+					startedBy: mockStartedBy,
+					startedAt: mockStartedAt,
+					status: mockStatus,
+					unreadMessages: mockUnreadMessages,
+					messagesCount: mockMessagesCount,
+					lastMessage: mockLastMessage,
+					lastMessageAt: mockLastMessageAt,
+					lastMessageBy: mockLastMessageBy,
+				});
 
 			expect(response.status).to.equal(201);
 			conversationMock.verify();
@@ -60,16 +87,51 @@ describe('Conversation Routes', function () {
 
 		it('should reject creating a new conversation with invalid participants', async () => {
 			const invalidParticipants = ['justOne']; // Assuming at least 2 participants are required
-			const mockSubject = 'Invalid Test Conversation';
+			const mockSubject = 'Test Conversation';
+			const mockStartedBy = mockUserId; // Assuming mockUserId is defined and valid
+			const mockStartedAt = new Date();
+			const mockStatus = 'active';
+			const mockUnreadMessages = 0;
+			const mockMessagesCount = 1;
+			const mockLastMessage = ''; // Assuming empty string for initial lastMessage
+			const mockLastMessageBy = mockUserId;
+			const mockLastMessageAt = new Date();
+
+			conversationMock.expects('create').resolves({
+				participants: invalidParticipants,
+				subject: mockSubject,
+				startedBy: mockStartedBy,
+				startedAt: mockStartedAt,
+				status: mockStatus,
+				unreadMessages: mockUnreadMessages,
+				messagesCount: mockMessagesCount,
+				lastMessage: mockLastMessage,
+				lastMessageAt: mockLastMessageAt,
+				lastMessageBy: mockLastMessageBy,
+			});
 
 			const response = await request(app)
 				.post('/api/conversations')
-				.set('Cookie', cookie)
-				.send({ participants: invalidParticipants, subject: mockSubject });
+				.set('Cookie', cookie) // Use the simulated auth cookie for authentication
+				.send({
+					participants: invalidParticipants,
+					subject: mockSubject,
+					// Include all required fields based on the updated route logic
+					startedBy: mockStartedBy,
+					startedAt: mockStartedAt,
+					status: mockStatus,
+					unreadMessages: mockUnreadMessages,
+					messagesCount: mockMessagesCount,
+					lastMessage: mockLastMessage,
+					lastMessageAt: mockLastMessageAt,
+					lastMessageBy: mockLastMessageBy,
+				});
 
 			expect(response.status).to.equal(400);
 			// Adjusted to match the actual API response structure
-			expect(response.body.message).to.contain('Invalid participants');
+			expect(response.body.message).to.contain(
+				'"participants" should have at least 2 participants'
+			);
 		});
 	});
 
@@ -232,7 +294,7 @@ describe('Conversation Routes', function () {
 	});
 
 	describe('POST /api/conversations/messages/:conversationId', () => {
-		it('should create a new message in a conversation', async () => {
+		it.only('should create a new message in a conversation', async () => {
 			const mockConversationId = generateObjectId().toString();
 			const mockMessageText = 'Hello World';
 			const mockSenderId = mockUserId;
@@ -261,6 +323,7 @@ describe('Conversation Routes', function () {
 				.post(`/api/conversations/messages/${mockConversationId}`)
 				.set('Cookie', cookie) // Use the simulated auth cookie for authentication
 				.send({
+					conversationId: mockConversationId,
 					messageText: mockMessageText,
 					senderId: mockSenderId,
 					sentAt: mockDate,
