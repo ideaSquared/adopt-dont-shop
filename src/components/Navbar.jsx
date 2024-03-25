@@ -11,7 +11,7 @@ const CustomNavbar = () => {
 		<Navbar bg='light' expand='lg' className='bg-body-tertiary rounded'>
 			<Container fluid>
 				<LinkContainer to='/'>
-					<Navbar.Brand>SaveThePet</Navbar.Brand>
+					<Navbar.Brand>AdoptDontShop</Navbar.Brand>
 				</LinkContainer>
 				<Navbar.Toggle aria-controls='navbarScroll' />
 				<Navbar.Collapse id='navbarScroll'>
