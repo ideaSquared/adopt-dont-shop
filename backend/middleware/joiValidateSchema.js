@@ -224,7 +224,6 @@ export {
 	updateDetailsSchema,
 	resetPasswordSchema,
 	forgotPasswordSchema,
-	adminResetPasswordSchema,
 	rescueStaffJoiSchema,
 	petJoiSchema,
 	conversationSchema,

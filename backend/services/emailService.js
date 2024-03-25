@@ -26,11 +26,11 @@ import nodemailer from 'nodemailer';
 
 export const sendPasswordResetEmail = async (email, resetURL) => {
 	const transporter = nodemailer.createTransport({
-		host: process.env.VITE_MAIL_HOST,
-		port: process.env.VITE_MAIL_PORT,
+		host: process.env.MAIL_HOST,
+		port: process.env.MAIL_PORT,
 		auth: {
-			user: process.env.VITE_MAIL_USER,
-			pass: process.env.VITE_MAIL_PASS,
+			user: process.env.MAIL_USER,
+			pass: process.env.MAIL_PASS,
 		},
 	});
 

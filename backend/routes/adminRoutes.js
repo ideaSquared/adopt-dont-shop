@@ -8,10 +8,7 @@ import Pet from '../models/Pet.js';
 import authenticateToken from '../middleware/authenticateToken.js'; // Middleware to check if the request is authenticated.
 import checkAdmin from '../middleware/checkAdmin.js'; // Middleware to check if the authenticated user is an admin.
 import nodemailer from 'nodemailer'; // Imported but not used in this snippet. Potentially for sending emails (e.g., password reset instructions).
-import {
-	validateRequest,
-	adminResetPasswordSchema,
-} from '../middleware/joiValidateSchema.js'; // For validating request bodies against Joi schemas.
+import { validateRequest } from '../middleware/joiValidateSchema.js'; // For validating request bodies against Joi schemas.
 
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
@@ -105,8 +102,7 @@ router.post(
 				`Reset Password: Forced password reset flag for user with ID ${req.params.id} set to true successfully.`
 			);
 			res.json({
-				message:
-					'Password reset required. Please check your email to reset your password.',
+				message: 'Password reset required.',
 			});
 		} catch (err) {
 			// Log and respond with an error if setting the forced password reset flag fails.

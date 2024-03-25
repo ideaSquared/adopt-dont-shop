@@ -87,7 +87,10 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			if (user.resetTokenForceFlag) {
 				logger.warn(`Reset password required for: ${email}`);
 				await handlePasswordReset(user);
-				return res.status(403).json({ message: 'Reset password required' });
+				return res.status(403).json({
+					message:
+						'Password reset required. Please check your email to reset your password.',
+				});
 			}
 
 			// Generate a token and send it as a HttpOnly cookie.
