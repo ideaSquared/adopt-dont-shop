@@ -51,14 +51,10 @@ const Users = () => {
 
 	const resetPassword = async (id) => {
 		try {
-			const newPassword = prompt('Enter new password:');
 			await axios.post(
-				`${import.meta.env.VITE_API_BASE_URL}/admin/users/reset-password/${id}`,
-				{
-					password: newPassword,
-				}
+				`${import.meta.env.VITE_API_BASE_URL}/admin/users/reset-password/${id}`
 			);
-			alert('Password reset successfully');
+			alert('Password reset forced successfully');
 		} catch (error) {
 			alert(
 				'Failed to reset password. Make sure you are logged in as an admin.'
@@ -84,7 +80,7 @@ const Users = () => {
 								Delete
 							</Button>{' '}
 							<Button variant='warning' onClick={() => resetPassword(user._id)}>
-								Reset Password
+								Force Reset Password
 							</Button>
 						</td>
 					</tr>

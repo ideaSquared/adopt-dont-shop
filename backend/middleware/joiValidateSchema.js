@@ -56,12 +56,13 @@ const forgotPasswordSchema = Joi.object({
 });
 
 /**
+ * !!! DEPRECIATED: No longer sending password
  * Joi schema for admin-initiated password reset actions. It requires a new password,
  * enforcing validation rules on the password.
  */
-const adminResetPasswordSchema = Joi.object({
-	password: Joi.string().min(6).required(),
-});
+// const adminResetPasswordSchema = Joi.object({
+// 	password: Joi.string().min(6).required(),
+// });
 
 /**
  * Joi schema for defining rescue staff details, including their userId, permissions, and verification status.

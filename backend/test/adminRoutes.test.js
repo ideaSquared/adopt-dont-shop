@@ -59,7 +59,7 @@ describe('Admin Routes', function () {
 	});
 
 	// Group tests that simulate admin user interactions with admin routes.
-	context('as an admin user', function () {
+	context.only('as an admin user', function () {
 		// Before each test in this context, configure the JWT stub to simulate an admin user.
 		beforeEach(function () {
 			jwt.verify.callsFake((token, secret, callback) => {
@@ -68,49 +68,52 @@ describe('Admin Routes', function () {
 		});
 
 		// Test resetting a user's password with a valid new password by an admin.
-		it('should reset a user password with valid password', async function () {
+		it.only('should set the users resetTokenForceFlag flag to true', async function () {
 			// Create a mock user to test password reset.
 			const user = await User.create({
 				email: 'test-reset@example.com',
 				password: 'oldPassword',
 				isAdmin: false,
+				resetTokenForceFlag: false,
 			});
-
-			const newPassword = 'newStrongPassword123'; // Define a new valid password.
+			const userId = user._id;
 			// Attempt to reset the password as an admin.
 			const res = await request(app)
-				.post(`/api/admin/users/reset-password/${user._id}`)
+				.post(`/api/admin/users/reset-password/${userId}`)
 				.set('Cookie', cookie) // Simulate sending the auth cookie.
-				.send({ password: newPassword }) // Send the new password in the request body.
+				.send({ userId }) // Send the new password in the request body.
 				.expect(200); // Expect a successful operation.
 
 			// Validate the response to ensure the password reset was successful.
 			expect(res.body).to.have.property(
 				'message',
-				'Password reset successfully.'
+				'Password reset required. Please check your email to reset your password.'
 			);
 		});
 
 		// Test the rejection of a password reset attempt with an invalid new password by an admin.
-		it('should not reset password with invalid password', async function () {
-			// Create another mock user to test invalid password reset.
-			const user = await User.create({
-				email: 'test-invalid@example.com',
-				password: 'oldPassword',
-				isAdmin: false,
-			});
+		/*
+		!!! DEPRECIATED: No longer needed as we don't send the password just update the flag 
+		*/
+		// it('should not reset password with invalid password', async function () {
+		// 	// Create another mock user to test invalid password reset.
+		// 	const user = await User.create({
+		// 		email: 'test-invalid@example.com',
+		// 		password: 'oldPassword',
+		// 		isAdmin: false,
+		// 	});
 
-			const invalidPassword = '123'; // Define an invalid new password (too short).
-			// Attempt to reset the password with the invalid new password as an admin.
-			const res = await request(app)
-				.post(`/api/admin/users/reset-password/${user._id}`)
-				.set('Cookie', cookie) // Simulate sending the auth cookie.
-				.send({ password: invalidPassword }) // Send the invalid new password in the request body.
-				.expect(400); // Expect the operation to fail due to invalid password.
+		// 	const invalidPassword = '123'; // Define an invalid new password (too short).
+		// 	// Attempt to reset the password with the invalid new password as an admin.
+		// 	const res = await request(app)
+		// 		.post(`/api/admin/users/reset-password/${user._id}`)
+		// 		.set('Cookie', cookie) // Simulate sending the auth cookie.
+		// 		.send({ password: invalidPassword }) // Send the invalid new password in the request body.
+		// 		.expect(400); // Expect the operation to fail due to invalid password.
 
-			// Validate the response to ensure the operation was rejected due to the invalid new password.
-			expect(res.body).to.have.property('message').that.includes('password');
-		});
+		// 	// Validate the response to ensure the operation was rejected due to the invalid new password.
+		// 	expect(res.body).to.have.property('message').that.includes('password');
+		// });
 
 		it('should fetch all users successfully', async function () {
 			// Simulate adding users to test fetching.

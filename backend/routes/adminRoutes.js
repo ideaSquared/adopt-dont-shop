@@ -86,39 +86,35 @@ router.post(
 	'/users/reset-password/:id',
 	authenticateToken,
 	checkAdmin,
-	validateRequest(adminResetPasswordSchema),
 	async (req, res) => {
 		try {
-			// Extract the user ID and new password from the request.
-			const { id } = req.params;
-			const { password } = req.body;
+			// Assuming this is where you check if the user exists and set the resetTokenForceFlag
+			const user = await User.findOne({ _id: req.params.id }); // Find the user by ID
 
-			// Hash the new password before saving it.
-			const hashedPassword = await bcrypt.hash(password, 12);
-
-			// Attempt to update the user's password in the database.
-			const updatedUser = await User.findByIdAndUpdate(
-				id,
-				{ password: hashedPassword },
-				{ new: true } // Return the updated document.
-			);
-
-			if (!updatedUser) {
-				// Respond with a 404 error if the user is not found.
+			if (!user) {
+				// If the user doesn't exist, respond with a 404 error.
 				return res.status(404).json({ message: 'User not found.' });
 			}
-			// Respond to confirm the password has been reset.
+
+			// Assuming this is where you set the resetTokenForceFlag for the user
+			user.resetTokenForceFlag = true; // Set the flag to true
+			await user.save(); // Save the user document with the updated flag
+
+			// Respond to confirm the forced password reset flag has been set.
 			logger.info(
-				`Reset Password: Password for user with ID ${id} reset successfully.`
+				`Reset Password: Forced password reset flag for user with ID ${req.params.id} set to true successfully.`
 			);
-			res.json({ message: 'Password reset successfully.' });
+			res.json({
+				message:
+					'Password reset required. Please check your email to reset your password.',
+			});
 		} catch (err) {
-			// Log and respond with an error if the password reset fails.
+			// Log and respond with an error if setting the forced password reset flag fails.
 			Sentry.captureException(err); // Log the error to Sentry
 			logger.error(
-				`Reset Password: Failed to reset password for user with ID ${req.params.id}. Error: ${err.message}`
+				`Reset Password: Failed to set forced password reset flag for user with ID ${req.params.id}. Error: ${err.message}`
 			);
-			res.status(500).json({ message: 'Failed to reset password.' });
+			res.status(500).json({ message: 'Failed to enforce password reset.' });
 		}
 	}
 );
