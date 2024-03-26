@@ -159,7 +159,52 @@ router.delete(
 
 router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 	try {
-		const rescues = await Rescue.find({});
+		const rescues = await Rescue.aggregate([
+			{
+				$lookup: {
+					from: 'users',
+					localField: 'staff.userId',
+					foreignField: '_id',
+					as: 'staffDetails',
+				},
+			},
+			{
+				$project: {
+					_id: 1,
+					rescueName: 1,
+					rescueType: 1,
+					staff: {
+						$map: {
+							input: '$staff',
+							as: 'staffItem',
+							in: {
+								$mergeObjects: [
+									'$$staffItem',
+									{
+										userDetails: {
+											$arrayElemAt: [
+												{
+													$filter: {
+														input: '$staffDetails',
+														as: 'detail',
+														cond: {
+															$eq: ['$$detail._id', '$$staffItem.userId'],
+														},
+													},
+												},
+												0,
+											],
+										},
+									},
+								],
+							},
+						},
+					},
+				},
+			},
+		]);
+
+		// No need for an additional map to handle the userDetails since it's now handled within the aggregation pipeline.
 		logger.info('All rescues fetched successfully.');
 		res.json(rescues);
 	} catch (error) {
