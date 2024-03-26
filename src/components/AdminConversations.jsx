@@ -1,16 +1,7 @@
 // Conversations.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {
-	Button,
-	Container,
-	Table,
-	Modal,
-	Row,
-	Col,
-	Form,
-	Badge,
-} from 'react-bootstrap';
+import { Button, Container, Table, Modal, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import PaginationControls from './PaginationControls';
@@ -35,50 +26,66 @@ const Conversations = () => {
 			navigate('/');
 			return;
 		}
-
-		const fetchConversations = async () => {
-			const endpoint = `${
-				import.meta.env.VITE_API_BASE_URL
-			}/admin/conversations`;
-			try {
-				const { data } = await axios.get(endpoint);
-				if (Array.isArray(data)) {
-					// Directly filter and set conversations after fetching
-					const filteredData = data.filter((conversation) => {
-						// Check for status filter
-						const statusMatch =
-							!filterStatus || conversation.status === filterStatus;
-
-						// Check for search term in subject or participants' emails
-						const searchTermMatch =
-							!searchTerm ||
-							conversation.subject
-								.toLowerCase()
-								.includes(searchTerm.toLowerCase()) ||
-							conversation.participants.some((participant) =>
-								participant.email
-									.toLowerCase()
-									.includes(searchTerm.toLowerCase())
-							);
-
-						return statusMatch && searchTermMatch;
-					});
-
-					setConversations(filteredData);
-					setFilteredConversations(filteredData); // You might only need one state if not filtering on the client side
-				} else {
-					console.error('Data is not an array:', data);
-					setConversations([]);
-					setFilteredConversations([]);
-				}
-			} catch (error) {
-				alert('Failed to fetch conversations.');
-				console.error(error);
-			}
-		};
-
 		fetchConversations();
 	}, [isAdmin, navigate, filterStatus, searchTerm]);
+
+	const deleteConversation = async (id) => {
+		// Confirmation dialog
+		const isConfirmed = window.confirm(
+			'Are you sure you want to delete this conversation?'
+		);
+		if (!isConfirmed) {
+			return; // Stop the function if the user cancels the action
+		}
+		try {
+			await axios.delete(
+				`${import.meta.env.VITE_API_BASE_URL}/admin/conversations/${id}`
+			);
+			fetchConversations();
+		} catch (error) {
+			alert(
+				'Failed to delete conversation. Make sure you are logged in as an admin.'
+			);
+			console.error(error);
+		}
+	};
+
+	const fetchConversations = async () => {
+		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/conversations`;
+		try {
+			const { data } = await axios.get(endpoint);
+			if (Array.isArray(data)) {
+				// Directly filter and set conversations after fetching
+				const filteredData = data.filter((conversation) => {
+					// Check for status filter
+					const statusMatch =
+						!filterStatus || conversation.status === filterStatus;
+
+					// Check for search term in subject or participants' emails
+					const searchTermMatch =
+						!searchTerm ||
+						conversation.subject
+							.toLowerCase()
+							.includes(searchTerm.toLowerCase()) ||
+						conversation.participants.some((participant) =>
+							participant.email.toLowerCase().includes(searchTerm.toLowerCase())
+						);
+
+					return statusMatch && searchTermMatch;
+				});
+
+				setConversations(filteredData);
+				setFilteredConversations(filteredData); // You might only need one state if not filtering on the client side
+			} else {
+				console.error('Data is not an array:', data);
+				setConversations([]);
+				setFilteredConversations([]);
+			}
+		} catch (error) {
+			alert('Failed to fetch conversations.');
+			console.error(error);
+		}
+	};
 
 	const indexOfLastConversation = currentPage * conversationsPerPage;
 	const indexOfFirstConversation =
@@ -140,6 +147,7 @@ const Conversations = () => {
 							<tr
 								key={conversation._id}
 								onClick={() => handleShowDetails(conversation)}
+								style={{ cursor: 'pointer' }}
 							>
 								<td>{conversation.subject}</td>
 								<td>
@@ -153,11 +161,19 @@ const Conversations = () => {
 								</td>
 								<td>{conversation.lastMessage}</td>
 								<td>{new Date(conversation.lastMessageAt).toLocaleString()}</td>
-								<td>{conversation.status}</td>
+								<td>
+									<StatusBadge
+										type='conversation'
+										value={conversation.status}
+									/>
+								</td>
 								<td>
 									<Button
 										variant='danger'
-										onClick={() => deleteConversation(conversation._id)}
+										onClick={(e) => {
+											e.stopPropagation(); // Stop event propagation
+											deleteConversation(conversation._id);
+										}}
 									>
 										Delete
 									</Button>

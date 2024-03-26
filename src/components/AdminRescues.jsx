@@ -195,7 +195,7 @@ const Rescues = () => {
 									<Button
 										variant='danger'
 										onClick={(e) => {
-											e.stopPropagation(); // Prevent row click event from firing
+											e.stopPropagation(); // Stop event propagation
 											deleteRescue(rescue._id);
 										}}
 									>

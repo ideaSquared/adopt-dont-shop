@@ -165,7 +165,7 @@ const Pets = () => {
 								<td>
 									<Button
 										variant='danger'
-										onClick={() => {
+										onClick={(e) => {
 											e.stopPropagation();
 											deletePet(pet._id);
 										}}

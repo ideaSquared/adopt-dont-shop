@@ -137,17 +137,12 @@ const Users = () => {
 						{currentUsers.map((user) => (
 							<tr key={user._id}>
 								<td>{user.firstName}</td>
-								<td>{user.email}</td>{' '}
+								<td>{user.email}</td>
 								<td>
 									{user.resetTokenForceFlag && (
-										<StatusBadge
-											type='misc'
-											value='Force Reset Flag'
-										></StatusBadge>
+										<StatusBadge type='misc' value='Force Reset Flag' />
 									)}
-									{user.isAdmin && (
-										<StatusBadge type='misc' value='Admin'></StatusBadge>
-									)}
+									{user.isAdmin && <StatusBadge type='misc' value='Admin' />}
 								</td>
 								<td>
 									<Button
