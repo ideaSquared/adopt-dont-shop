@@ -906,4 +906,121 @@ describe('Rescue Routes', function () {
 			expect(response.body.message).to.equal('Failed to verify staff');
 		});
 	});
+
+	// Test suite for deleting a staff member from a rescue
+	describe('DELETE /api/rescue/:rescueId/staff/:staffId', function () {
+		let cookie, rescueId, staffIdToDelete, editorUserId, jwtVerifyStub;
+
+		// Setup before each test: resets stubs, prepares authentication and mocks rescue retrieval
+		beforeEach(async () => {
+			sinon.restore();
+			const token = 'dummyToken';
+			cookie = `token=${token};`;
+			rescueId = generateObjectId();
+			staffIdToDelete = generateObjectId();
+			editorUserId = generateObjectId(); // Mock editor user ID as someone with permission
+
+			// Stub JWT verification to simulate an authenticated user session
+			jwtVerifyStub = sinon
+				.stub(jwt, 'verify')
+				.callsFake((token, secret, callback) => {
+					callback(null, { userId: editorUserId.toString(), isAdmin: false });
+				});
+
+			// Stub the Rescue.findById method to simulate finding a rescue with staff, including the editor
+			sinon.stub(Rescue, 'findById').callsFake((id) => {
+				if (id.toString() === rescueId.toString()) {
+					return Promise.resolve({
+						_id: rescueId,
+						staff: [
+							{
+								_id: staffIdToDelete,
+								userId: staffIdToDelete,
+								permissions: ['edit_rescue_info'],
+								verifiedByRescue: true,
+							},
+							{
+								_id: editorUserId,
+								userId: editorUserId,
+								permissions: ['edit_rescue_info'],
+								verifiedByRescue: true,
+							},
+						],
+						save: sinon.stub().resolves(true),
+					});
+				} else {
+					return Promise.resolve(null);
+				}
+			});
+		});
+
+		// Cleanup after each test
+		afterEach(() => {
+			if (jwtVerifyStub && jwtVerifyStub.restore) {
+				jwtVerifyStub.restore();
+			}
+		});
+
+		it('should successfully delete a staff member', async function () {
+			const response = await request(app)
+				.delete(`/api/rescue/${rescueId}/staff/${staffIdToDelete}`)
+				.set('Cookie', cookie)
+				.expect(200);
+
+			expect(response.body.message).to.equal(
+				'Staff member deleted successfully'
+			);
+		});
+
+		it('should return a 404 if the rescue is not found', async function () {
+			const nonExistingRescueId = generateObjectId();
+
+			const response = await request(app)
+				.delete(`/api/rescue/${nonExistingRescueId}/staff/${staffIdToDelete}`)
+				.set('Cookie', cookie)
+				.expect(404);
+
+			expect(response.body.message).to.equal('Rescue not found');
+		});
+
+		it('should return a 404 if the staff member is not found', async function () {
+			const nonExistingStaffId = generateObjectId();
+
+			const response = await request(app)
+				.delete(`/api/rescue/${rescueId}/staff/${nonExistingStaffId}`)
+				.set('Cookie', cookie)
+				.expect(404);
+
+			expect(response.body.message).to.equal('Staff member not found');
+		});
+
+		it('should return a 403 if trying to delete own user', async function () {
+			const response = await request(app)
+				.delete(`/api/rescue/${rescueId}/staff/${editorUserId}`)
+				.set('Cookie', cookie)
+				.expect(403);
+
+			expect(response.body.message).to.equal('Cannot delete your own user');
+		});
+
+		it('should return a 403 if the user does not have permission to delete staff', async function () {
+			const nonEditorUserId = generateObjectId(); // A user without permission
+			jwtVerifyStub.restore();
+			jwtVerifyStub = sinon
+				.stub(jwt, 'verify')
+				.callsFake((token, secret, callback) => {
+					callback(null, {
+						userId: nonEditorUserId.toString(),
+						isAdmin: false,
+					});
+				});
+
+			const response = await request(app)
+				.delete(`/api/rescue/${rescueId}/staff/${staffIdToDelete}`)
+				.set('Cookie', cookie)
+				.expect(403);
+
+			expect(response.body.message).to.equal('No permission to delete staff');
+		});
+	});
 });

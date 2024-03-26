@@ -396,5 +396,69 @@ router.put(
 	}
 );
 
+router.delete(
+	'/:rescueId/staff/:staffId',
+	authenticateToken,
+	async (req, res) => {
+		const { rescueId, staffId } = req.params;
+		const editorUserId = req.user?.userId; // ID of the user making the request
+
+		try {
+			const rescue = await Rescue.findById(rescueId);
+			if (!rescue) {
+				logger.warn(`Rescue not found with ID: ${rescueId}`);
+				return res.status(404).send({ message: 'Rescue not found' });
+			}
+
+			// Check if the user has permission to edit staff information.
+			const hasPermission = rescue.staff.some(
+				(staff) =>
+					staff.userId.toString() === editorUserId.toString() &&
+					staff.permissions.includes('edit_rescue_info')
+			);
+
+			if (!hasPermission) {
+				logger.warn(
+					`User ${editorUserId} attempted to delete staff without permission.`
+				);
+				return res
+					.status(403)
+					.send({ message: 'No permission to delete staff' });
+			}
+
+			// Prevent user from deleting their own user record.
+			if (staffId === editorUserId) {
+				logger.warn(`User ${editorUserId} attempted to delete their own user.`);
+				return res.status(403).send({ message: 'Cannot delete your own user' });
+			}
+
+			// Find and remove the staff member from the staff array.
+			const staffIndex = rescue.staff.findIndex(
+				(staff) => staff.userId.toString() === staffId
+			);
+			if (staffIndex > -1) {
+				rescue.staff.splice(staffIndex, 1); // Remove the staff member
+				await rescue.save(); // Save the changes to the database
+				logger.info(
+					`Staff member with ID: ${staffId} deleted successfully from rescue ID: ${rescueId}`
+				);
+				return res
+					.status(200)
+					.send({ message: 'Staff member deleted successfully' });
+			} else {
+				return res.status(404).send({ message: 'Staff member not found' });
+			}
+		} catch (error) {
+			Sentry.captureException(error);
+			logger.error(
+				`Error deleting staff member for rescue ID: ${rescueId}: ${error.message}`
+			);
+			res
+				.status(500)
+				.send({ message: 'Failed to delete staff', error: error.message });
+		}
+	}
+);
+
 // Export the router to make it available for use within the Express application.
 export default router;
