@@ -10,7 +10,7 @@ const AdminDashboard = () => {
 	};
 
 	return (
-		<Container>
+		<Container fluid>
 			<Row className='justify-content-md-center'>
 				<Col xs={12} md={8}>
 					<h1>Admin Dashboard</h1>

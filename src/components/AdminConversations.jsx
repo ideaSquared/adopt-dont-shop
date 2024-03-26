@@ -103,26 +103,27 @@ const Conversations = () => {
 	return (
 		<>
 			<Container fluid>
-				<Row className='mb-3'>
-					<Col>
+				<div className='mt-3 mb-3'>
+					<Form>
 						<Form.Control
 							type='text'
 							placeholder='Search by subject or participant'
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
+							className='mb-3'
 						/>
-					</Col>
-					<Col>
+
 						<Form.Select
 							value={filterStatus}
 							onChange={(e) => setFilterStatus(e.target.value)}
+							className='mb-3'
 						>
 							<option value=''>Filter by Status</option>
 							<option value='active'>Active</option>
 							<option value='closed'>Closed</option>
 						</Form.Select>
-					</Col>
-				</Row>
+					</Form>
+				</div>
 				<Table striped bordered hover>
 					<thead>
 						<tr>
@@ -158,7 +159,6 @@ const Conversations = () => {
 										variant='danger'
 										onClick={() => deleteConversation(conversation._id)}
 									>
-										{' '}
 										Delete
 									</Button>
 								</td>

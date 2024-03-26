@@ -58,7 +58,7 @@ const Logs = () => {
 	const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
 
 	return (
-		<Container>
+		<Container fluid>
 			<div className='p-3 mb-3 d-flex justify-content-end'>
 				{/* Dropdowns for filtering */}
 				<DropdownFilter

@@ -98,7 +98,7 @@ const Users = () => {
 	const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
 	return (
-		<Container>
+		<Container fluid>
 			<div className='mt-3 mb-3'>
 				<Form>
 					{/* Search and Filter Form */}

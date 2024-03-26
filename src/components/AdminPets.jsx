@@ -106,7 +106,7 @@ const Pets = () => {
 
 	return (
 		<>
-			<Container>
+			<Container fluid>
 				<div className='mt-3 mb-3'>
 					<Form>
 						<Form.Group controlId='formPetType' className='mb-2'>
