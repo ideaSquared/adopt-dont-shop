@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Container, Table, Form, Modal } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 axios.defaults.withCredentials = true;
@@ -13,6 +13,7 @@ const Rescues = () => {
 	const [searchEmail, setSearchEmail] = useState('');
 	const navigate = useNavigate();
 	const { isAdmin } = useAuth();
+	const location = useLocation();
 
 	const [showModal, setShowModal] = useState(false);
 	const [selectedRescueDetails, setselectedRescueDetails] = useState(null);
@@ -22,8 +23,13 @@ const Rescues = () => {
 			navigate('/');
 			return;
 		}
+
+		const params = new URLSearchParams(location.search);
+		const searchNameParam = params.get('searchName');
+		if (searchNameParam) setSearchName(searchNameParam);
+
 		fetchRescues();
-	}, [isAdmin, navigate]);
+	}, [isAdmin, navigate, location.search]);
 
 	const fetchRescues = async () => {
 		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/rescues`;
@@ -103,7 +109,6 @@ const Rescues = () => {
 		.filter((rescue) => (filterType ? rescue.rescueType === filterType : true))
 		.filter(
 			(rescue) =>
-				// Include rescue if searchName is empty or if rescueName matches searchName
 				searchName === '' ||
 				rescue.rescueName?.toLowerCase().includes(searchName.toLowerCase())
 		)

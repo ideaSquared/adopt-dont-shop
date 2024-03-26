@@ -318,7 +318,50 @@ router.delete(
 router.get('/pets', authenticateToken, checkAdmin, async (req, res) => {
 	try {
 		logger.info('Fetching all pets');
-		const pets = await Pet.find({});
+
+		const pets = await Pet.aggregate([
+			{
+				$lookup: {
+					from: 'rescues', // The collection to join.
+					localField: 'ownerId', // The field from the pets collection.
+					foreignField: '_id', // The field from the rescues collection.
+					as: 'rescueInfo', // The array to put the joined documents in.
+				},
+			},
+			{
+				$lookup: {
+					from: 'users', // The collection to join.
+					localField: 'ownerId', // The field from the pets collection.
+					foreignField: '_id', // The field from the users collection.
+					as: 'userInfo', // The array to put the joined documents in.
+				},
+			},
+			{
+				$project: {
+					petDetails: '$$ROOT',
+					ownerInfo: {
+						$cond: {
+							if: {
+								$and: [
+									{ $gt: [{ $size: '$rescueInfo' }, 0] }, // Checks if rescueInfo is not empty
+									{
+										$ifNull: [
+											{ $arrayElemAt: ['$rescueInfo.rescueName', 0] },
+											false,
+										],
+									}, // Checks if rescueName is not null
+								],
+							},
+							then: { $arrayElemAt: ['$rescueInfo.rescueName', 0] }, // Uses the rescueName if conditions are met
+							else: { $arrayElemAt: ['$userInfo.email', 0] }, // Falls back to userInfo.email otherwise
+						},
+					},
+				},
+			},
+		]);
+
+		console.log(pets);
+
 		logger.info(`Successfully fetched all pets. Count: ${pets.length}`);
 		res.json(pets);
 	} catch (error) {

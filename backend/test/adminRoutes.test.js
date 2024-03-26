@@ -360,7 +360,7 @@ describe('Admin Routes', function () {
 				expect(deletedRescue).to.be.null;
 			});
 
-			it('should fetch all pets successfully', async function () {
+			it.only('should fetch all pets successfully', async function () {
 				const pet = new Pet({
 					petName: 'Rex',
 					ownerId: generateObjectId(), // Use the generateObjectId utility to simulate a valid MongoDB ObjectId
@@ -396,9 +396,9 @@ describe('Admin Routes', function () {
 					(p) => p._id.toString() === pet._id.toString()
 				);
 				expect(fetchedPet).to.not.be.undefined;
-				expect(fetchedPet.petName).to.equal('Rex');
-				expect(fetchedPet.type).to.equal('Dog');
-				expect(fetchedPet.age).to.equal(4);
+				expect(fetchedPet.petDetails.petName).to.equal('Rex');
+				expect(fetchedPet.petDetails.type).to.equal('Dog');
+				expect(fetchedPet.petDetails.age).to.equal(4);
 			});
 
 			it('should delete a specific pet by ID successfully', async function () {

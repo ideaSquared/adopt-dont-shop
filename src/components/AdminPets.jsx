@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Table, Container, Form, Modal } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 axios.defaults.withCredentials = true;
@@ -33,7 +33,12 @@ const Pets = () => {
 		try {
 			const res = await axios.get(endpoint);
 			if (Array.isArray(res.data)) {
-				setPets(res.data);
+				setPets(
+					res.data.map((pet) => ({
+						...pet.petDetails, // Assuming pet details are embedded under petDetails
+						ownerInfo: pet.ownerInfo, // Add owner info directly
+					}))
+				);
 			} else {
 				console.error('Data is not an array:', res.data);
 				setPets([]);
@@ -81,7 +86,6 @@ const Pets = () => {
 		.filter((pet) => (filterType ? pet.type === filterType : true))
 		.filter(
 			(pet) =>
-				// Include rescue if searchName is empty or if rescueName matches searchName
 				searchName === '' ||
 				pet.petName?.toLowerCase().includes(searchName.toLowerCase())
 		);
@@ -121,7 +125,7 @@ const Pets = () => {
 							<tr>
 								<th>Pet Name</th>
 								<th>Type</th>
-								<th>Status</th>
+								<th>Owner Info</th>
 								<th>Actions</th>
 							</tr>
 						</thead>
@@ -130,7 +134,16 @@ const Pets = () => {
 								<tr key={pet._id}>
 									<td>{pet.petName}</td>
 									<td>{pet.type}</td>
-									<td>{pet.status}</td>
+									<td>
+										<Link
+											to={`/admin/rescues?searchName=${encodeURIComponent(
+												pet.ownerInfo
+											)}`}
+										>
+											{pet.ownerInfo}
+										</Link>
+									</td>{' '}
+									{/* Displaying ownerInfo */}
 									<td>
 										<Button
 											variant='info'
