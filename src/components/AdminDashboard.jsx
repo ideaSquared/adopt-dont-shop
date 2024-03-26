@@ -22,24 +22,50 @@ const AdminDashboard = () => {
 			</Row>
 			<Row className='justify-content-md-center'>
 				<Col xs={12} md={8}>
-					<Button onClick={() => redirectTo('/admin/users')} className='m-2'>
-						Admin Users
-					</Button>
-					<Button onClick={() => redirectTo('/admin/pets')} className='m-2'>
-						Admin Pets
-					</Button>
-					<Button onClick={() => redirectTo('/admin/rescues')} className='m-2'>
-						Admin Rescues
-					</Button>
-					<Button onClick={() => redirectTo('/admin/logs')} className='m-2'>
-						Admin Logs
-					</Button>
-					<Button
-						onClick={() => redirectTo('/admin/conversations')}
-						className='m-2'
-					>
-						Admin Conversations
-					</Button>
+					<Row className='g-2'>
+						{' '}
+						{/* Add a gap between buttons */}
+						<Col>
+							<Button
+								onClick={() => redirectTo('/admin/users')}
+								className='w-100'
+							>
+								Users
+							</Button>
+						</Col>
+						<Col>
+							<Button
+								onClick={() => redirectTo('/admin/pets')}
+								className='w-100'
+							>
+								Pets
+							</Button>
+						</Col>
+						<Col>
+							<Button
+								onClick={() => redirectTo('/admin/rescues')}
+								className='w-100'
+							>
+								Rescues
+							</Button>
+						</Col>
+						<Col>
+							<Button
+								onClick={() => redirectTo('/admin/logs')}
+								className='w-100'
+							>
+								Logs
+							</Button>
+						</Col>
+						<Col>
+							<Button
+								onClick={() => redirectTo('/admin/conversations')}
+								className='w-100'
+							>
+								Conversations
+							</Button>
+						</Col>
+					</Row>
 				</Col>
 			</Row>
 		</Container>
