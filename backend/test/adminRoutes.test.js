@@ -300,4 +300,145 @@ describe('Admin Routes', function () {
 			expect(fetchDeletedConversation).to.be.null; // The conversation should not exist in the database anymore.
 		});
 	});
+
+	// Assuming necessary imports and setup are already in place from the given test setup
+
+	describe('Admin Routes Extended Tests', function () {
+		const mockAdminUserId = generateObjectId();
+
+		// Additional setup for admin context is assumed to be done here
+		context('as an admin user', function () {
+			beforeEach(function () {
+				// Stub to simulate admin user verification
+				jwt.verify.callsFake((token, secret, callback) => {
+					callback(null, { userId: mockAdminUserId, isAdmin: true });
+				});
+			});
+
+			it('should fetch all rescues successfully', async function () {
+				const rescue = new Rescue({
+					rescueName: 'Test Rescue',
+					rescueType: 'Charity',
+					staff: [{ userId: mockAdminUserId, permissions: [] }],
+				});
+				await rescue.save();
+
+				const res = await request(app)
+					.get('/api/admin/rescues')
+					.set('Cookie', cookie)
+					.expect(200);
+
+				expect(res.body).to.be.an('array').that.is.not.empty;
+				const fetchedRescue = res.body.find(
+					(r) => r._id.toString() === rescue._id.toString()
+				);
+				expect(fetchedRescue).to.not.be.undefined;
+				expect(fetchedRescue.rescueName).to.equal('Test Rescue');
+				expect(fetchedRescue.rescueType).to.equal('Charity');
+				expect(fetchedRescue.staff[0].userId).to.equal(
+					mockAdminUserId.toString()
+				);
+			});
+
+			it('should delete a specific rescue by ID successfully', async function () {
+				const rescueToDelete = await Rescue.create({
+					rescueName: 'Rescue To Delete',
+					rescueType: 'Individual',
+				});
+
+				const res = await request(app)
+					.delete(`/api/admin/rescues/${rescueToDelete._id}`)
+					.set('Cookie', cookie)
+					.expect(200);
+
+				expect(res.body).to.have.property(
+					'message',
+					'Rescue deleted successfully'
+				);
+
+				const deletedRescue = await Rescue.findById(rescueToDelete._id);
+				expect(deletedRescue).to.be.null;
+			});
+
+			it('should fetch all pets successfully', async function () {
+				const pet = new Pet({
+					petName: 'Rex',
+					ownerId: generateObjectId(), // Use the generateObjectId utility to simulate a valid MongoDB ObjectId
+					age: 4,
+					shortDescription: 'Friendly and energetic dog',
+					longDescription:
+						'Rex is a very friendly and energetic dog that loves to play and run around.',
+					gender: 'Male',
+					status: 'Available',
+					type: 'Dog',
+					characteristics: {
+						common: {
+							size: 'Medium',
+							temperament: 'Friendly',
+							vaccination_status: 'Up-to-date',
+						},
+						specific: {
+							breed: 'Golden Retriever',
+							intelligence_level: 'High',
+							activity_level: 'High',
+						},
+					},
+				});
+				await pet.save();
+
+				const res = await request(app)
+					.get('/api/admin/pets')
+					.set('Cookie', cookie)
+					.expect(200);
+
+				expect(res.body).to.be.an('array').that.is.not.empty;
+				const fetchedPet = res.body.find(
+					(p) => p._id.toString() === pet._id.toString()
+				);
+				expect(fetchedPet).to.not.be.undefined;
+				expect(fetchedPet.petName).to.equal('Rex');
+				expect(fetchedPet.type).to.equal('Dog');
+				expect(fetchedPet.age).to.equal(4);
+			});
+
+			it('should delete a specific pet by ID successfully', async function () {
+				const petToDelete = await Pet.create({
+					petName: 'Rex',
+					ownerId: generateObjectId(), // Use the generateObjectId utility to simulate a valid MongoDB ObjectId
+					age: 4,
+					shortDescription: 'Friendly and energetic dog',
+					longDescription:
+						'Rex is a very friendly and energetic dog that loves to play and run around.',
+					gender: 'Male',
+					status: 'Available',
+					type: 'Dog',
+					characteristics: {
+						common: {
+							size: 'Medium',
+							temperament: 'Friendly',
+							vaccination_status: 'Up-to-date',
+						},
+						specific: {
+							breed: 'Golden Retriever',
+							intelligence_level: 'High',
+							activity_level: 'High',
+						},
+					},
+				});
+
+				const res = await request(app)
+					.delete(`/api/admin/pets/${petToDelete._id}`)
+					.set('Cookie', cookie)
+					.expect(200);
+
+				expect(res.body).to.have.property(
+					'message',
+					'Pet deleted successfully'
+				);
+
+				const deletedPet = await Pet.findById(petToDelete._id);
+				expect(deletedPet).to.be.null;
+			});
+		});
+	});
 });

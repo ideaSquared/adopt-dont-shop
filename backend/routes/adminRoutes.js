@@ -379,5 +379,52 @@ router.delete(
 	}
 );
 
+router.delete(
+	'/rescues/:rescueId/staff/:staffId',
+	authenticateToken,
+	checkAdmin,
+	async (req, res) => {
+		const { rescueId, staffId } = req.params;
+
+		try {
+			// Find the rescue organization from which to delete the staff member
+			const rescue = await Rescue.findById(rescueId);
+			if (!rescue) {
+				logger.warn(`Rescue with ID ${rescueId} not found.`);
+				return res.status(404).send({ message: 'Rescue not found.' });
+			}
+
+			// Check if the staff member exists within the rescue organization
+			const staffIndex = rescue.staff.findIndex(
+				(member) => member.userId.toString() === staffId
+			);
+			if (staffIndex === -1) {
+				logger.warn(
+					`Staff member with ID ${staffId} not found in rescue ${rescueId}.`
+				);
+				return res.status(404).send({ message: 'Staff member not found.' });
+			}
+
+			// Remove the staff member from the rescue organization
+			rescue.staff.splice(staffIndex, 1);
+			await rescue.save();
+
+			logger.info(
+				`Staff member with ID ${staffId} deleted from rescue ${rescueId} successfully.`
+			);
+			res.send({ message: 'Staff member deleted successfully.' });
+		} catch (error) {
+			Sentry.captureException(error);
+			logger.error(
+				`Failed to delete staff member with ID ${staffId} from rescue ${rescueId}: ${error.message}`
+			);
+			res.status(500).send({
+				message: 'Failed to delete staff member.',
+				error: error.message,
+			});
+		}
+	}
+);
+
 // Export the router to make these routes available to the rest of the application.
 export default router;
