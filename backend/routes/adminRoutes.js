@@ -123,8 +123,15 @@ router.get(
 	checkAdmin,
 	async (req, res) => {
 		try {
-			const conversations = await Conversation.find({});
-			logger.info('Fetched all conversations for user');
+			// Use the .populate method to include details from the referenced User collection.
+			// The path 'participants' corresponds to the field in the Conversation schema that holds the references.
+			// The select option is used to specify that only the 'email' field of the participants should be included.
+			const conversations = await Conversation.find({}).populate({
+				path: 'participants',
+				select: 'email', // Adjust according to the fields you need, for example 'email name' to include names as well
+			});
+
+			logger.info('Fetched all conversations.');
 			res.json(conversations);
 		} catch (error) {
 			logger.error(`Error fetching conversations: ${error.message}`);
@@ -359,9 +366,6 @@ router.get('/pets', authenticateToken, checkAdmin, async (req, res) => {
 				},
 			},
 		]);
-
-		console.log(pets);
-
 		logger.info(`Successfully fetched all pets. Count: ${pets.length}`);
 		res.json(pets);
 	} catch (error) {

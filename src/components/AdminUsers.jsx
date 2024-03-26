@@ -1,16 +1,20 @@
-// Users.jsx
+// AdminUsers.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Table, Container, Badge, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext'; // Import useAuth hook
+import { useAuth } from './AuthContext';
+import PaginationControls from './PaginationControls';
+import StatusBadge from './StatusBadge';
 
 axios.defaults.withCredentials = true;
 
 const Users = () => {
 	const [users, setUsers] = useState([]);
-	const navigate = useNavigate(); // Hook for navigation
-	const { isAdmin } = useAuth(); // Use useAuth hook to access isAdmin
+	const [currentPage, setCurrentPage] = useState(1);
+	const [usersPerPage] = useState(10); // Define how many users per page
+	const navigate = useNavigate();
+	const { isAdmin } = useAuth();
 	const [searchTerm, setSearchTerm] = useState('');
 	const [filterFlags, setFilterFlags] = useState({
 		forceReset: false,
@@ -19,22 +23,20 @@ const Users = () => {
 
 	useEffect(() => {
 		if (!isAdmin) {
-			navigate('/'); // Redirect to root if not admin
-			return; // Prevent further execution
+			navigate('/');
+			return;
 		}
 		fetchUsers();
-	}, [isAdmin, navigate]);
+	}, [isAdmin]); // navigate is stable, no need to include in deps
 
 	const fetchUsers = async () => {
-		// Adapt endpoint as needed
 		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/users`;
 		try {
-			const res = await axios.get(endpoint);
-			if (Array.isArray(res.data)) {
-				setUsers(res.data);
+			const { data } = await axios.get(endpoint);
+			if (Array.isArray(data)) {
+				setUsers(data);
 			} else {
-				console.error('Data is not an array:', res.data);
-				setUsers([]); // Handle non-array data
+				console.error('Data is not an array:', data);
 			}
 		} catch (error) {
 			alert('Failed to fetch users.');
@@ -42,61 +44,46 @@ const Users = () => {
 		}
 	};
 
-	const deleteUser = async (id) => {
-		// Confirmation dialog
+	const handleUserAction = async (id, action) => {
+		const actionMessages = {
+			delete: 'delete this user',
+			resetPassword: 'reset the password for this user',
+		};
 		const isConfirmed = window.confirm(
-			'Are you sure you want to delete this user?'
+			`Are you sure you want to ${actionMessages[action]}?`
 		);
-		if (!isConfirmed) {
-			return; // Stop the function if the user cancels the action
-		}
+		if (!isConfirmed) return;
+
 		try {
-			await axios.delete(
-				`${import.meta.env.VITE_API_BASE_URL}/admin/users/delete/${id}`
+			const actionEndpoints = {
+				delete: `/admin/users/delete/${id}`,
+				resetPassword: `/admin/users/reset-password/${id}`,
+			};
+			await axios[action === 'delete' ? 'delete' : 'post'](
+				`${import.meta.env.VITE_API_BASE_URL}${actionEndpoints[action]}`
 			);
-			fetchUsers(); // Refresh the list after deleting
+			action === 'delete'
+				? fetchUsers()
+				: alert('Password reset forced successfully');
 		} catch (error) {
-			alert('Failed to delete user. Make sure you are logged in as an admin.');
+			alert(`Failed to ${action}. Make sure you are logged in as an admin.`);
 			console.error(error);
 		}
 	};
 
-	const resetPassword = async (id) => {
-		// Confirmation dialog
-		const isConfirmed = window.confirm(
-			'Are you sure you want to reset the password for this user?'
-		);
-		if (!isConfirmed) {
-			return; // Stop the function if the user cancels the action
-		}
-		try {
-			await axios.post(
-				`${import.meta.env.VITE_API_BASE_URL}/admin/users/reset-password/${id}`
-			);
-			alert('Password reset forced successfully');
-		} catch (error) {
-			alert(
-				'Failed to reset password. Make sure you are logged in as an admin.'
-			);
-			console.error(error);
-		}
-	};
-
-	// Handler for search term changes
-	const handleSearchChange = (e) => {
-		setSearchTerm(e.target.value);
-	};
-
-	// Handler for filter flag changes
-	const handleFilterFlagChange = (e) => {
+	const handleSearchChange = (e) => setSearchTerm(e.target.value);
+	const handleFilterFlagChange = (e) =>
 		setFilterFlags((prev) => ({ ...prev, [e.target.name]: e.target.checked }));
-	};
 
-	// Filter users based on search term and flags
 	const filteredUsers = users.filter((user) => {
-		const searchMatch =
-			user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			user.firstName.toLowerCase().includes(searchTerm.toLowerCase());
+		const searchMatch = searchTerm
+			.toLowerCase()
+			.split(' ')
+			.some(
+				(term) =>
+					user.email.toLowerCase().includes(term) ||
+					user.firstName.toLowerCase().includes(term)
+			);
 		const forceResetMatch = filterFlags.forceReset
 			? user.resetTokenForceFlag
 			: true;
@@ -104,10 +91,17 @@ const Users = () => {
 		return searchMatch && forceResetMatch && adminMatch;
 	});
 
+	// Pagination logic
+	const indexOfLastUser = currentPage * usersPerPage;
+	const indexOfFirstUser = indexOfLastUser - usersPerPage;
+	const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+	const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
 	return (
 		<Container>
 			<div className='mt-3 mb-3'>
 				<Form>
+					{/* Search and Filter Form */}
 					<Form.Group className='mb-3' controlId='search'>
 						<Form.Control
 							type='text'
@@ -140,27 +134,33 @@ const Users = () => {
 						</tr>
 					</thead>
 					<tbody>
-						{filteredUsers.map((user) => (
+						{currentUsers.map((user) => (
 							<tr key={user._id}>
 								<td>{user.firstName}</td>
-								<td>{user.email}</td>
+								<td>{user.email}</td>{' '}
 								<td>
-									{/* Conditional Badge Rendering */}
 									{user.resetTokenForceFlag && (
-										<Badge bg='info' className='me-2'>
-											Force reset password
-										</Badge>
+										<StatusBadge
+											type='misc'
+											value='Force Reset Flag'
+										></StatusBadge>
 									)}
-									{user.isAdmin && <Badge bg='success'>Admin</Badge>}
+									{user.isAdmin && (
+										<StatusBadge type='misc' value='Admin'></StatusBadge>
+									)}
 								</td>
 								<td>
 									<Button
 										variant='warning'
-										onClick={() => resetPassword(user._id)}
+										onClick={() => handleUserAction(user._id, 'resetPassword')}
+										className='me-2'
 									>
-										Force reset password
-									</Button>{' '}
-									<Button variant='danger' onClick={() => deleteUser(user._id)}>
+										Reset Password
+									</Button>
+									<Button
+										variant='danger'
+										onClick={() => handleUserAction(user._id, 'delete')}
+									>
 										Delete
 									</Button>
 								</td>
@@ -168,6 +168,11 @@ const Users = () => {
 						))}
 					</tbody>
 				</Table>
+				<PaginationControls
+					currentPage={currentPage}
+					totalPages={totalPages}
+					onChangePage={setCurrentPage}
+				/>
 			</div>
 		</Container>
 	);

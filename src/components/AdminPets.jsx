@@ -1,4 +1,3 @@
-// Pets.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
@@ -11,11 +10,14 @@ import {
 } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import PaginationControls from './PaginationControls';
 
 axios.defaults.withCredentials = true;
 
 const Pets = () => {
 	const [pets, setPets] = useState([]);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [petsPerPage] = useState(1); // Define how many pets per page
 	const navigate = useNavigate();
 	const { isAdmin } = useAuth();
 
@@ -31,23 +33,21 @@ const Pets = () => {
 			return;
 		}
 		fetchPets();
-	}, [isAdmin, navigate]);
-
-	const uniquePetTypes = Array.from(new Set(pets.map((pet) => pet.type)));
+	}, [isAdmin]);
 
 	const fetchPets = async () => {
 		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/pets`;
 		try {
-			const res = await axios.get(endpoint);
-			if (Array.isArray(res.data)) {
-				setPets(
-					res.data.map((pet) => ({
-						...pet.petDetails, // Assuming pet details are embedded under petDetails
-						ownerInfo: pet.ownerInfo, // Add owner info directly
-					}))
-				);
+			const { data } = await axios.get(endpoint);
+			if (Array.isArray(data)) {
+				const petsWithDetails = data.map((pet) => ({
+					...pet.petDetails, // Incorporate pet details
+					ownerInfo: pet.ownerInfo, // Add owner info directly
+					_id: pet._id, // Ensure _id is included for key props
+				}));
+				setPets(petsWithDetails);
 			} else {
-				console.error('Data is not an array:', res.data);
+				console.error('Data is not an array:', data);
 				setPets([]);
 			}
 		} catch (error) {
@@ -89,13 +89,20 @@ const Pets = () => {
 		}
 	};
 
+	const uniquePetTypes = [...new Set(pets.map((pet) => pet.type))];
 	const filteredPets = pets
-		.filter((pet) => (filterType ? pet.type === filterType : true))
+		.filter((pet) => !filterType || pet.type === filterType)
 		.filter(
 			(pet) =>
-				searchName === '' ||
-				pet.petName?.toLowerCase().includes(searchName.toLowerCase())
+				!searchName ||
+				pet.petName.toLowerCase().includes(searchName.toLowerCase())
 		);
+
+	// Pagination logic
+	const indexOfLastPet = currentPage * petsPerPage;
+	const indexOfFirstPet = indexOfLastPet - petsPerPage;
+	const currentPets = filteredPets.slice(indexOfFirstPet, indexOfLastPet);
+	const totalPages = Math.ceil(filteredPets.length / petsPerPage);
 
 	return (
 		<>
@@ -127,46 +134,50 @@ const Pets = () => {
 							/>
 						</Form.Group>
 					</Form>
-					<Table striped bordered hover>
-						<thead>
-							<tr>
-								<th>Pet Name</th>
-								<th>Type</th>
-								<th>Owner Info</th>
-								<th>Actions</th>
-							</tr>
-						</thead>
-						<tbody>
-							{filteredPets.map((pet) => (
-								<tr key={pet._id}>
-									<td>{pet.petName}</td>
-									<td>{pet.type}</td>
-									<td>
-										<Link
-											to={`/admin/rescues?searchName=${encodeURIComponent(
-												pet.ownerInfo
-											)}`}
-										>
-											{pet.ownerInfo}
-										</Link>
-									</td>{' '}
-									{/* Displaying ownerInfo */}
-									<td>
-										<Button
-											variant='info'
-											onClick={() => fetchPetDetails(pet._id)}
-										>
-											Details
-										</Button>{' '}
-										<Button variant='danger' onClick={() => deletePet(pet._id)}>
-											Delete
-										</Button>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</Table>
 				</div>
+				<Table striped bordered hover>
+					<thead>
+						<tr>
+							<th>Pet Name</th>
+							<th>Type</th>
+							<th>Owner Info</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						{currentPets.map((pet) => (
+							<tr key={pet._id}>
+								<td>{pet.petName}</td>
+								<td>{pet.type}</td>
+								<td>
+									<Link
+										to={`/admin/rescues?searchName=${encodeURIComponent(
+											pet.ownerInfo
+										)}`}
+									>
+										{pet.ownerInfo}
+									</Link>
+								</td>
+								<td>
+									<Button
+										variant='info'
+										onClick={() => fetchPetDetails(pet._id)}
+									>
+										Details
+									</Button>{' '}
+									<Button variant='danger' onClick={() => deletePet(pet._id)}>
+										Delete
+									</Button>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</Table>
+				<PaginationControls
+					currentPage={currentPage}
+					totalPages={totalPages}
+					onChangePage={setCurrentPage}
+				/>
 			</Container>
 
 			<Modal show={showModal} onHide={() => setShowModal(false)}>

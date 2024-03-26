@@ -4,6 +4,7 @@ import { Badge, Dropdown, Table, Container } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import PaginationControls from './PaginationControls';
+import StatusBadge from './StatusBadge';
 
 // Configure axios defaults just once, possibly outside of the component or in a separate file
 axios.defaults.withCredentials = true;
@@ -56,14 +57,6 @@ const Logs = () => {
 	);
 	const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
 
-	const getBadgeVariant = (level) =>
-		({
-			error: 'danger',
-			warn: 'warning',
-			info: 'info',
-			debug: 'secondary',
-		}[level] || 'primary');
-
 	return (
 		<Container>
 			<div className='p-3 mb-3 d-flex justify-content-end'>
@@ -95,12 +88,10 @@ const Logs = () => {
 						<tr key={log._id}>
 							<td>{new Date(log.timestamp).toLocaleString()}</td>
 							<td>
-								<Badge bg={getBadgeVariant(log.level)}>
-									{log.level.toUpperCase()}
-								</Badge>
+								<StatusBadge type='loglevel' value={log.level} />
 							</td>
 							<td>
-								<Badge bg='info'>{log.service.toUpperCase()}</Badge>
+								<StatusBadge type='logservice' value={log.service} />
 							</td>
 							<td>{log.message}</td>
 						</tr>

@@ -3,11 +3,14 @@ import axios from 'axios';
 import { Button, Container, Table, Form, Modal } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import PaginationControls from './PaginationControls';
 
 axios.defaults.withCredentials = true;
 
 const Rescues = () => {
 	const [rescues, setRescues] = useState([]);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [rescuesPerPage] = useState(10); // Define how many rescues per page
 	const [filterType, setFilterType] = useState('');
 	const [searchName, setSearchName] = useState('');
 	const [searchEmail, setSearchEmail] = useState('');
@@ -16,31 +19,24 @@ const Rescues = () => {
 	const location = useLocation();
 
 	const [showModal, setShowModal] = useState(false);
-	const [selectedRescueDetails, setselectedRescueDetails] = useState(null);
+	const [selectedRescueDetails, setSelectedRescueDetails] = useState(null);
 
 	useEffect(() => {
 		if (!isAdmin) {
 			navigate('/');
 			return;
 		}
-
 		const params = new URLSearchParams(location.search);
 		const searchNameParam = params.get('searchName');
 		if (searchNameParam) setSearchName(searchNameParam);
-
 		fetchRescues();
-	}, [isAdmin, navigate, location.search]);
+	}, [isAdmin, location.search]);
 
 	const fetchRescues = async () => {
 		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/rescues`;
 		try {
-			const res = await axios.get(endpoint);
-			if (Array.isArray(res.data)) {
-				setRescues(res.data);
-			} else {
-				console.error('Data is not an array:', res.data);
-				setRescues([]);
-			}
+			const { data } = await axios.get(endpoint);
+			setRescues(Array.isArray(data) ? data : []);
 		} catch (error) {
 			alert('Failed to fetch rescues.');
 			console.error(error);
@@ -105,22 +101,32 @@ const Rescues = () => {
 		}
 	};
 
+	// Adjust filteredRescues logic here if needed for pagination
 	const filteredRescues = rescues
-		.filter((rescue) => (filterType ? rescue.rescueType === filterType : true))
+		.filter((rescue) => !filterType || rescue.rescueType === filterType)
 		.filter(
 			(rescue) =>
-				searchName === '' ||
+				!searchName ||
 				rescue.rescueName?.toLowerCase().includes(searchName.toLowerCase())
 		)
-		.filter((rescue) =>
-			rescue.staff?.some(
-				(staffMember) =>
-					staffMember.userDetails &&
-					staffMember.userDetails.email
+		.filter(
+			(rescue) =>
+				!searchEmail ||
+				rescue.staff?.some((staffMember) =>
+					staffMember.userDetails?.email
 						.toLowerCase()
 						.includes(searchEmail.toLowerCase())
-			)
+				)
 		);
+
+	// Pagination logic
+	const indexOfLastRescue = currentPage * rescuesPerPage;
+	const indexOfFirstRescue = indexOfLastRescue - rescuesPerPage;
+	const currentRescues = filteredRescues.slice(
+		indexOfFirstRescue,
+		indexOfLastRescue
+	);
+	const totalPages = Math.ceil(filteredRescues.length / rescuesPerPage);
 
 	return (
 		<>
@@ -199,6 +205,11 @@ const Rescues = () => {
 						))}
 					</tbody>
 				</Table>
+				<PaginationControls
+					currentPage={currentPage}
+					totalPages={totalPages}
+					onChangePage={setCurrentPage}
+				/>
 			</Container>
 			<Modal show={showModal} onHide={() => setShowModal(false)}>
 				<Modal.Header closeButton>

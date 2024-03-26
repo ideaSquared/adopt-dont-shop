@@ -13,7 +13,12 @@ const { Schema } = mongoose;
  */
 const conversationSchema = new mongoose.Schema({
 	// Array of participant references. Each participant is referenced by their ObjectId in the User collection.
-	participants: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+	participants: [
+		{
+			type: mongoose.Schema.Types.ObjectId,
+			ref: 'User', // This should match the name you've given your User model
+		},
+	],
 	// Reference to the User who started the conversation. It is required for every conversation document.
 	startedBy: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
 	// Timestamp indicating when the conversation was started. It is required for every conversation document.
