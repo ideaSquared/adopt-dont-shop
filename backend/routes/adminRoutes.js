@@ -258,6 +258,30 @@ router.get('/pets', authenticateToken, checkAdmin, async (req, res) => {
 	}
 });
 
+router.get('/pets/:id', authenticateToken, checkAdmin, async (req, res) => {
+	try {
+		const { id } = req.params;
+		logger.info(`Fetching pet with ID: ${id}`);
+		const pet = await Pet.findById(id);
+		if (!pet) {
+			logger.warn(`Pet not found with ID: ${id}`);
+			return res.status(404).send({ message: 'Pet not found' });
+		}
+		logger.info(`Successfully fetched pet with ID: ${id}`);
+		res.json(pet);
+	} catch (error) {
+		logger.error(
+			`Failed to fetch pet with ID: ${req.params.id}: ${error.message}`,
+			{ error }
+		);
+		Sentry.captureException(error);
+		res.status(500).send({
+			message: 'Failed to fetch pet',
+			error: error.message,
+		});
+	}
+});
+
 router.delete(
 	'/pets/:id', // :id is a route parameter for capturing the ID of the pet to delete
 	authenticateToken,
