@@ -250,6 +250,9 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				user.password = hashedPassword;
 				user.resetToken = undefined;
 				user.resetTokenExpiration = undefined;
+				if (user.resetTokenForceFlag) {
+					user.resetTokenForceFlag = undefined;
+				}
 				await user.save();
 
 				// Log successful password reset
