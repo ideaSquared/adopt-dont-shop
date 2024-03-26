@@ -1,7 +1,7 @@
 // Users.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Button, Table } from 'react-bootstrap';
+import { Button, Table, Container, Badge, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext'; // Import useAuth hook
 
@@ -11,6 +11,11 @@ const Users = () => {
 	const [users, setUsers] = useState([]);
 	const navigate = useNavigate(); // Hook for navigation
 	const { isAdmin } = useAuth(); // Use useAuth hook to access isAdmin
+	const [searchTerm, setSearchTerm] = useState('');
+	const [filterFlags, setFilterFlags] = useState({
+		forceReset: false,
+		admin: false,
+	});
 
 	useEffect(() => {
 		if (!isAdmin) {
@@ -63,30 +68,94 @@ const Users = () => {
 		}
 	};
 
+	// Handler for search term changes
+	const handleSearchChange = (e) => {
+		setSearchTerm(e.target.value);
+	};
+
+	// Handler for filter flag changes
+	const handleFilterFlagChange = (e) => {
+		setFilterFlags((prev) => ({ ...prev, [e.target.name]: e.target.checked }));
+	};
+
+	// Filter users based on search term and flags
+	const filteredUsers = users.filter((user) => {
+		const searchMatch =
+			user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			user.firstName.toLowerCase().includes(searchTerm.toLowerCase());
+		const forceResetMatch = filterFlags.forceReset
+			? user.resetTokenForceFlag
+			: true;
+		const adminMatch = filterFlags.admin ? user.isAdmin : true;
+		return searchMatch && forceResetMatch && adminMatch;
+	});
+
 	return (
-		<Table striped bordered hover>
-			<thead>
-				<tr>
-					<th>Email</th>
-					<th>Actions</th>
-				</tr>
-			</thead>
-			<tbody>
-				{users.map((user) => (
-					<tr key={user._id}>
-						<td>{user.email}</td>
-						<td>
-							<Button variant='danger' onClick={() => deleteUser(user._id)}>
-								Delete
-							</Button>{' '}
-							<Button variant='warning' onClick={() => resetPassword(user._id)}>
-								Force Reset Password
-							</Button>
-						</td>
-					</tr>
-				))}
-			</tbody>
-		</Table>
+		<Container>
+			<div className='mt-3 mb-3'>
+				<Form>
+					<Form.Group className='mb-3' controlId='search'>
+						<Form.Control
+							type='text'
+							placeholder='Search by email or first name'
+							onChange={handleSearchChange}
+						/>
+					</Form.Group>
+					<Form.Check
+						inline
+						label='Force Reset Password'
+						name='forceReset'
+						type='checkbox'
+						onChange={handleFilterFlagChange}
+					/>
+					<Form.Check
+						inline
+						label='Admin'
+						name='admin'
+						type='checkbox'
+						onChange={handleFilterFlagChange}
+					/>
+				</Form>
+				<Table striped bordered hover>
+					<thead>
+						<tr>
+							<th>First name</th>
+							<th>Email</th>
+							<th>Flags</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						{filteredUsers.map((user) => (
+							<tr key={user._id}>
+								<td>{user.firstName}</td>
+								<td>{user.email}</td>
+								<td>
+									{/* Conditional Badge Rendering */}
+									{user.resetTokenForceFlag && (
+										<Badge bg='info' className='me-2'>
+											Force reset password
+										</Badge>
+									)}
+									{user.isAdmin && <Badge bg='success'>Admin</Badge>}
+								</td>
+								<td>
+									<Button
+										variant='warning'
+										onClick={() => resetPassword(user._id)}
+									>
+										Force reset password
+									</Button>{' '}
+									<Button variant='danger' onClick={() => deleteUser(user._id)}>
+										Delete
+									</Button>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</Table>
+			</div>
+		</Container>
 	);
 };
 
