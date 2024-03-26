@@ -1,7 +1,14 @@
 // Pets.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Button, Table, Container, Form, Modal } from 'react-bootstrap';
+import {
+	Button,
+	Table,
+	Container,
+	Form,
+	Modal,
+	Pagination,
+} from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 

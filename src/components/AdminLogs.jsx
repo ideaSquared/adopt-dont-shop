@@ -4,13 +4,16 @@ import axios from 'axios';
 import { Table, Badge, Dropdown, Container } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import PaginationControls from './PaginationControls';
 
 axios.defaults.withCredentials = true;
 
 const Logs = () => {
+	// Pagination
 	const [logs, setLogs] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [logsPerPage, setLogsPerPage] = useState(10);
+	// Pagination
 	const navigate = useNavigate();
 	const { isAdmin } = useAuth();
 	const [filter, setFilter] = useState('all');
@@ -40,12 +43,8 @@ const Logs = () => {
 	const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
 
 	// Handlers for pagination controls
-	const handlePreviousClick = () => {
-		setCurrentPage(currentPage - 1);
-	};
-
-	const handleNextClick = () => {
-		setCurrentPage(currentPage + 1);
+	const onChangePage = (page) => {
+		setCurrentPage(page);
 	};
 
 	const fetchLogs = async () => {
@@ -58,7 +57,6 @@ const Logs = () => {
 					// Convert timestamps to dates and compare them to sort in descending order.
 					return new Date(b.timestamp) - new Date(a.timestamp);
 				});
-				console.log(sortedData);
 				setLogs(sortedData);
 			} else {
 				console.error('Data is not an array:', res.data);
@@ -165,23 +163,11 @@ const Logs = () => {
 					</tbody>
 				</Table>
 
-				{/* Pagination Controls */}
-				<div className='d-flex justify-content-between mt-3'>
-					<button
-						className='btn btn-info'
-						disabled={currentPage === 1}
-						onClick={handlePreviousClick}
-					>
-						Previous
-					</button>
-					<button
-						className='btn btn-info'
-						disabled={currentPage >= totalPages}
-						onClick={handleNextClick}
-					>
-						Next
-					</button>
-				</div>
+				<PaginationControls
+					currentPage={currentPage}
+					totalPages={totalPages}
+					onChangePage={onChangePage}
+				/>
 			</Container>
 		</>
 	);
