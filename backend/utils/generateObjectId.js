@@ -15,6 +15,14 @@ import mongoose from 'mongoose';
  * driver for ObjectId generation, providing a convenient method accessible through Mongoose's API.
  */
 
-const generateObjectId = () => new mongoose.Types.ObjectId();
+const generateObjectId = (input) => {
+	if (typeof input === 'string' && mongoose.Types.ObjectId.isValid(input)) {
+		return new mongoose.Types.ObjectId(input);
+	} else if (typeof input === 'number') {
+		// createFromTime takes a time in seconds since the Unix epoch
+		return mongoose.Types.ObjectId.createFromTime(Math.floor(input / 1000));
+	}
+	return new mongoose.Types.ObjectId();
+};
 
 export { generateObjectId };
