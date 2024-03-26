@@ -12,6 +12,7 @@ import { validateRequest } from '../middleware/joiValidateSchema.js'; // For val
 
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
+import { generateObjectId } from '../utils/generateObjectId.js';
 const logger = new LoggerUtil('admin-service').getLogger();
 
 // Initialize a new router instance from Express to define admin-specific routes.
@@ -212,6 +213,78 @@ router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 		logger.error('Failed to fetch rescues: ' + error.message);
 		res.status(500).send({
 			message: 'Failed to fetch rescues',
+			error: error.message,
+		});
+	}
+});
+
+router.get('/rescues/:id', authenticateToken, checkAdmin, async (req, res) => {
+	const { id } = req.params;
+
+	try {
+		const rescue = await Rescue.aggregate([
+			{
+				$match: {
+					_id: generateObjectId(id), // Ensure to match the specific document by its ID
+				},
+			},
+			{
+				$lookup: {
+					from: 'users',
+					localField: 'staff.userId',
+					foreignField: '_id',
+					as: 'staffDetails',
+				},
+			},
+			{
+				$project: {
+					_id: 1,
+					rescueName: 1,
+					rescueType: 1,
+					staff: {
+						$map: {
+							input: '$staff',
+							as: 'staffItem',
+							in: {
+								$mergeObjects: [
+									'$$staffItem',
+									{
+										userDetails: {
+											$arrayElemAt: [
+												{
+													$filter: {
+														input: '$staffDetails',
+														as: 'detail',
+														cond: {
+															$eq: ['$$detail._id', '$$staffItem.userId'],
+														},
+													},
+												},
+												0,
+											],
+										},
+									},
+								],
+							},
+						},
+					},
+				},
+			},
+		]);
+
+		if (rescue.length === 0) {
+			return res.status(404).send({
+				message: 'Rescue not found',
+			});
+		}
+
+		logger.info(`Rescue fetched successfully for ${rescue[0].rescueName}.`);
+		res.json(rescue[0]); // Since findById is expected to return a single document
+	} catch (error) {
+		Sentry.captureException(error);
+		logger.error('Failed to fetch rescue: ' + error.message);
+		res.status(500).send({
+			message: 'Failed to fetch rescue',
 			error: error.message,
 		});
 	}

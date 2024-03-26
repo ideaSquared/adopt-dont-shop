@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Button, Container, Table, Form } from 'react-bootstrap';
+import { Button, Container, Table, Form, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
@@ -13,6 +13,9 @@ const Rescues = () => {
 	const [searchEmail, setSearchEmail] = useState('');
 	const navigate = useNavigate();
 	const { isAdmin } = useAuth();
+
+	const [showModal, setShowModal] = useState(false);
+	const [selectedRescueDetails, setselectedRescueDetails] = useState(null);
 
 	useEffect(() => {
 		if (!isAdmin) {
@@ -34,6 +37,20 @@ const Rescues = () => {
 			}
 		} catch (error) {
 			alert('Failed to fetch rescues.');
+			console.error(error);
+		}
+	};
+
+	const fetchRescueDetails = async (petId) => {
+		try {
+			const endpoint = `${
+				import.meta.env.VITE_API_BASE_URL
+			}/admin/rescues/${petId}`;
+			const res = await axios.get(endpoint);
+			setselectedRescueDetails(res.data);
+			setShowModal(true); // Show the modal with pet details
+		} catch (error) {
+			alert('Failed to fetch rescue details.');
 			console.error(error);
 		}
 	};
@@ -71,76 +88,113 @@ const Rescues = () => {
 		);
 
 	return (
-		<Container>
-			<div className='mt-3 mb-3'>
-				<Form>
-					<Form.Group className='mb-3' controlId='filterType'>
-						<Form.Label>Filter by Type</Form.Label>
-						<Form.Control
-							as='select'
-							value={filterType}
-							onChange={(e) => setFilterType(e.target.value)}
-						>
-							<option value=''>All Types</option>
-							<option value='Individual'>Individual</option>
-							<option value='Charity'>Charity</option>
-							<option value='Company'>Company</option>
-						</Form.Control>
-					</Form.Group>
-					<Form.Group className='mb-3' controlId='searchName'>
-						<Form.Label>Search by Name</Form.Label>
-						<Form.Control
-							type='text'
-							placeholder='Search by rescue name'
-							value={searchName}
-							onChange={(e) => setSearchName(e.target.value)}
-						/>
-					</Form.Group>
-					<Form.Group className='mb-3' controlId='searchEmail'>
-						<Form.Label>Search by Staff Email</Form.Label>
-						<Form.Control
-							type='text'
-							placeholder='Search by staff email'
-							value={searchEmail}
-							onChange={(e) => setSearchEmail(e.target.value)}
-						/>
-					</Form.Group>
-				</Form>
-			</div>
-			<Table striped bordered hover>
-				<thead>
-					<tr>
-						<th>Rescue Name</th>
-						<th>Type</th>
-						<th>Actions</th>
-						<th>Staff</th>
-					</tr>
-				</thead>
-				<tbody>
-					{filteredRescues.map((rescue) => (
-						<tr key={rescue._id}>
-							<td>{rescue.rescueName ?? ''}</td>
-							<td>{rescue.rescueType ?? 'Type Unavailable'}</td>
-							<td>
-								{rescue.staff.map((staffMember, index) => (
-									<div key={index}>
-										{staffMember.userDetails?.email ?? 'Email not available'}
-									</div>
-								))}
-							</td>
-							<td>
-								<Button
-									variant='danger'
-									onClick={() => deleteRescue(rescue._id)}
-								>
-									Delete
-								</Button>
-							</td>
+		<>
+			<Container>
+				<div className='mt-3 mb-3'>
+					<Form>
+						<Form.Group className='mb-3' controlId='filterType'>
+							<Form.Label>Filter by Type</Form.Label>
+							<Form.Control
+								as='select'
+								value={filterType}
+								onChange={(e) => setFilterType(e.target.value)}
+							>
+								<option value=''>All Types</option>
+								<option value='Individual'>Individual</option>
+								<option value='Charity'>Charity</option>
+								<option value='Company'>Company</option>
+							</Form.Control>
+						</Form.Group>
+						<Form.Group className='mb-3' controlId='searchName'>
+							<Form.Label>Search by Name</Form.Label>
+							<Form.Control
+								type='text'
+								placeholder='Search by rescue name'
+								value={searchName}
+								onChange={(e) => setSearchName(e.target.value)}
+							/>
+						</Form.Group>
+						<Form.Group className='mb-3' controlId='searchEmail'>
+							<Form.Label>Search by Staff Email</Form.Label>
+							<Form.Control
+								type='text'
+								placeholder='Search by staff email'
+								value={searchEmail}
+								onChange={(e) => setSearchEmail(e.target.value)}
+							/>
+						</Form.Group>
+					</Form>
+				</div>
+				<Table striped bordered hover>
+					<thead>
+						<tr>
+							<th>Rescue Name</th>
+							<th>Type</th>
+							<th>Actions</th>
+							<th>Staff</th>
 						</tr>
-					))}
-				</tbody>
-			</Table>
-		</Container>
+					</thead>
+					<tbody>
+						{filteredRescues.map((rescue) => (
+							<tr key={rescue._id}>
+								<td>{rescue.rescueName ?? ''}</td>
+								<td>{rescue.rescueType ?? 'Type Unavailable'}</td>
+								<td>
+									{rescue.staff.map((staffMember, index) => (
+										<div key={index}>
+											{staffMember.userDetails?.email ?? 'Email not available'}
+										</div>
+									))}
+								</td>
+								<td>
+									<Button
+										variant='info'
+										onClick={() => fetchRescueDetails(rescue._id)}
+									>
+										Details
+									</Button>{' '}
+									<Button
+										variant='danger'
+										onClick={() => deleteRescue(rescue._id)}
+									>
+										Delete
+									</Button>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</Table>
+			</Container>
+			<Modal show={showModal} onHide={() => setShowModal(false)}>
+				<Modal.Header closeButton>
+					<Modal.Title>Rescue Details</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>
+					{selectedRescueDetails ? (
+						<div>
+							<h4>{selectedRescueDetails.rescueName}</h4>
+							<p>
+								<b>Type:</b> {selectedRescueDetails.rescueType}
+							</p>
+							<ul className='list-group'>
+								{selectedRescueDetails.staff.map((staffMember, index) => (
+									<li key={index} className='list-group-item'>
+										{staffMember.userDetails?.email ?? 'Email not available'}
+									</li>
+								))}
+							</ul>
+						</div>
+					) : (
+						<p>Loading details...</p>
+					)}
+				</Modal.Body>
+				<Modal.Footer>
+					<Button variant='secondary' onClick={() => setShowModal(false)}>
+						Close
+					</Button>
+				</Modal.Footer>
+			</Modal>
+		</>
 	);
 };
 
