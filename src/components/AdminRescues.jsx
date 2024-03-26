@@ -49,7 +49,7 @@ const Rescues = () => {
 				import.meta.env.VITE_API_BASE_URL
 			}/admin/rescues/${petId}`;
 			const res = await axios.get(endpoint);
-			setselectedRescueDetails(res.data);
+			setSelectedRescueDetails(res.data);
 			setShowModal(true); // Show the modal with pet details
 		} catch (error) {
 			alert('Failed to fetch rescue details.');
@@ -171,13 +171,17 @@ const Rescues = () => {
 						<tr>
 							<th>Rescue Name</th>
 							<th>Type</th>
-							<th>Actions</th>
 							<th>Staff</th>
+							<th>Actions</th>
 						</tr>
 					</thead>
 					<tbody>
 						{filteredRescues.map((rescue) => (
-							<tr key={rescue._id}>
+							<tr
+								key={rescue._id}
+								onClick={() => fetchRescueDetails(rescue._id)}
+								style={{ cursor: 'pointer' }} // Add this line if you want to change the cursor on hover
+							>
 								<td>{rescue.rescueName ?? ''}</td>
 								<td>{rescue.rescueType ?? 'Type Unavailable'}</td>
 								<td>
@@ -189,14 +193,11 @@ const Rescues = () => {
 								</td>
 								<td>
 									<Button
-										variant='info'
-										onClick={() => fetchRescueDetails(rescue._id)}
-									>
-										Details
-									</Button>{' '}
-									<Button
 										variant='danger'
-										onClick={() => deleteRescue(rescue._id)}
+										onClick={(e) => {
+											e.stopPropagation(); // Prevent row click event from firing
+											deleteRescue(rescue._id);
+										}}
 									>
 										Delete
 									</Button>

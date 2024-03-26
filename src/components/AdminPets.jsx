@@ -17,7 +17,7 @@ axios.defaults.withCredentials = true;
 const Pets = () => {
 	const [pets, setPets] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
-	const [petsPerPage] = useState(1); // Define how many pets per page
+	const [petsPerPage] = useState(10); // Define how many pets per page
 	const navigate = useNavigate();
 	const { isAdmin } = useAuth();
 
@@ -146,7 +146,11 @@ const Pets = () => {
 					</thead>
 					<tbody>
 						{currentPets.map((pet) => (
-							<tr key={pet._id}>
+							<tr
+								key={pet._id}
+								onClick={() => fetchPetDetails(pet._id)}
+								style={{ cursor: 'pointer' }} // Add this line if you want to change the cursor on hover
+							>
 								<td>{pet.petName}</td>
 								<td>{pet.type}</td>
 								<td>
@@ -160,12 +164,12 @@ const Pets = () => {
 								</td>
 								<td>
 									<Button
-										variant='info'
-										onClick={() => fetchPetDetails(pet._id)}
+										variant='danger'
+										onClick={() => {
+											e.stopPropagation();
+											deletePet(pet._id);
+										}}
 									>
-										Details
-									</Button>{' '}
-									<Button variant='danger' onClick={() => deletePet(pet._id)}>
 										Delete
 									</Button>
 								</td>
