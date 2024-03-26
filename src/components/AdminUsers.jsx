@@ -43,6 +43,13 @@ const Users = () => {
 	};
 
 	const deleteUser = async (id) => {
+		// Confirmation dialog
+		const isConfirmed = window.confirm(
+			'Are you sure you want to delete this user?'
+		);
+		if (!isConfirmed) {
+			return; // Stop the function if the user cancels the action
+		}
 		try {
 			await axios.delete(
 				`${import.meta.env.VITE_API_BASE_URL}/admin/users/delete/${id}`
@@ -55,6 +62,13 @@ const Users = () => {
 	};
 
 	const resetPassword = async (id) => {
+		// Confirmation dialog
+		const isConfirmed = window.confirm(
+			'Are you sure you want to reset the password for this user?'
+		);
+		if (!isConfirmed) {
+			return; // Stop the function if the user cancels the action
+		}
 		try {
 			await axios.post(
 				`${import.meta.env.VITE_API_BASE_URL}/admin/users/reset-password/${id}`

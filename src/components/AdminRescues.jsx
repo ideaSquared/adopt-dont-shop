@@ -93,7 +93,6 @@ const Rescues = () => {
 			);
 			// Refresh the rescue details to reflect the deletion
 			fetchRescueDetails(rescueId);
-			alert('Staff member deleted successfully.');
 		} catch (error) {
 			alert('Failed to delete staff member. Please try again.');
 			console.error(error);
