@@ -56,6 +56,13 @@ const Rescues = () => {
 	};
 
 	const deleteRescue = async (id) => {
+		// Confirmation dialog
+		const isConfirmed = window.confirm(
+			'Are you sure you want to delete this rescue?'
+		);
+		if (!isConfirmed) {
+			return; // Stop the function if the user cancels the action
+		}
 		try {
 			await axios.delete(
 				`${import.meta.env.VITE_API_BASE_URL}/admin/rescues/${id}`
@@ -65,6 +72,30 @@ const Rescues = () => {
 			alert(
 				'Failed to delete rescue. Make sure you are logged in as an admin.'
 			);
+			console.error(error);
+		}
+	};
+
+	const deleteStaffFromRescue = async (rescueId, staffId) => {
+		// Confirmation dialog
+		const isConfirmed = window.confirm(
+			'Are you sure you want to delete this staff member?'
+		);
+		if (!isConfirmed) {
+			return; // Stop the function if the user cancels the action
+		}
+
+		try {
+			await axios.delete(
+				`${
+					import.meta.env.VITE_API_BASE_URL
+				}/admin/rescues/${rescueId}/staff/${staffId}`
+			);
+			// Refresh the rescue details to reflect the deletion
+			fetchRescueDetails(rescueId);
+			alert('Staff member deleted successfully.');
+		} catch (error) {
+			alert('Failed to delete staff member. Please try again.');
 			console.error(error);
 		}
 	};
@@ -178,8 +209,22 @@ const Rescues = () => {
 							</p>
 							<ul className='list-group'>
 								{selectedRescueDetails.staff.map((staffMember, index) => (
-									<li key={index} className='list-group-item'>
+									<li
+										key={index}
+										className='list-group-item d-flex justify-content-between align-items-center'
+									>
 										{staffMember.userDetails?.email ?? 'Email not available'}
+										<Button
+											variant='danger'
+											onClick={() =>
+												deleteStaffFromRescue(
+													selectedRescueDetails._id,
+													staffMember.userId
+												)
+											}
+										>
+											Delete
+										</Button>
 									</li>
 								))}
 							</ul>
