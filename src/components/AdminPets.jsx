@@ -59,6 +59,13 @@ const Pets = () => {
 	};
 
 	const deletePet = async (id) => {
+		// Confirmation dialog
+		const isConfirmed = window.confirm(
+			'Are you sure you want to delete this pet?'
+		);
+		if (!isConfirmed) {
+			return; // Stop the function if the user cancels the action
+		}
 		try {
 			await axios.delete(
 				`${import.meta.env.VITE_API_BASE_URL}/admin/pets/${id}`
