@@ -59,7 +59,7 @@ describe('Admin Routes', function () {
 	});
 
 	// Group tests that simulate admin user interactions with admin routes.
-	context.only('as an admin user', function () {
+	context('as an admin user', function () {
 		// Before each test in this context, configure the JWT stub to simulate an admin user.
 		beforeEach(function () {
 			jwt.verify.callsFake((token, secret, callback) => {
@@ -68,7 +68,7 @@ describe('Admin Routes', function () {
 		});
 
 		// Test resetting a user's password with a valid new password by an admin.
-		it.only('should set the users resetTokenForceFlag flag to true', async function () {
+		it('should set the users resetTokenForceFlag flag to true', async function () {
 			// Create a mock user to test password reset.
 			const user = await User.create({
 				email: 'test-reset@example.com',
