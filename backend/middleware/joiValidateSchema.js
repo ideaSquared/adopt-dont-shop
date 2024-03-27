@@ -34,7 +34,7 @@ const loginSchema = Joi.object({
  */
 const updateDetailsSchema = Joi.object({
 	email: Joi.string().email().lowercase().trim(),
-	password: Joi.string().min(6).trim(),
+	password: Joi.string().min(6).trim().allow(null, ''),
 	firstName: Joi.string().trim().min(3).max(30),
 }).min(1); // Ensure at least one field is provided for the update.
 
