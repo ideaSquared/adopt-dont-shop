@@ -43,7 +43,7 @@ const CustomNavbar = () => {
 							<>
 								<LinkContainer to='/change-details'>
 									<Button variant='secondary' className='mx-2'>
-										Change Details
+										My Profile
 									</Button>
 								</LinkContainer>
 								{isAdmin && (
