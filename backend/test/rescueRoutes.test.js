@@ -22,7 +22,7 @@ const mockObjectId = '65f1fa2aadeb2ca9f053f7f8';
  * updating rescue information, and managing rescue staff.
  */
 describe('Rescue Routes', function () {
-	let rescueMock;
+	let rescueMock, cookie, jwtVerifyStub;
 
 	/**
 	 * Sets up the testing environment before each test case runs.
@@ -30,9 +30,25 @@ describe('Rescue Routes', function () {
 	 * and stubbing the jwt.verify function globally to allow customization in each test case.
 	 */
 	beforeEach(async () => {
+		sinon.restore(); // Reset sinon to clear previous stubs/mocks
+
 		await connectToDatabase(); // Mock connection to the database.
 		rescueMock = sinon.mock(Rescue); // Create a mock of the Rescue model to prevent actual database interaction.
-		sinon.stub(jwt, 'verify'); // Stub jwt.verify to bypass actual token verification.
+
+		// Simulate JWT token and set it as a cookie
+		const token = 'dummyToken';
+		cookie = `token=${token};`;
+
+		// Stub JWT verification to simulate an authenticated user session
+		jwtVerifyStub = sinon
+			.stub(jwt, 'verify')
+			.callsFake((token, secret, callback) => {
+				callback(null, {
+					userId: 'mockUserId',
+					permissions: ['edit_rescue_info'],
+					isAdmin: false,
+				});
+			});
 	});
 
 	/**
@@ -44,6 +60,11 @@ describe('Rescue Routes', function () {
 		await disconnectFromDatabase(); // Mock disconnection from the database.
 		rescueMock.restore(); // Restore the Rescue model mock to its original state.
 		sinon.restore(); // Reset the sinon environment, removing all mocks, stubs, and spies.
+
+		// Restore JWT stub to ensure clean state for next tests
+		if (jwtVerifyStub && jwtVerifyStub.restore) {
+			jwtVerifyStub.restore();
+		}
 	});
 
 	/**
@@ -58,7 +79,9 @@ describe('Rescue Routes', function () {
 
 			rescueMock.expects('find').withArgs({}).resolves(mockRescues); // Expect the find method to be called with no filters.
 
-			const response = await request(app).get('/api/rescue'); // Perform a GET request to the /api/rescue endpoint.
+			const response = await request(app)
+				.get('/api/rescue')
+				.set('Cookie', cookie); // Perform a GET request to the /api/rescue endpoint.
 
 			rescueMock.verify(); // Verify that the expected mock interactions occurred.
 
@@ -85,7 +108,9 @@ describe('Rescue Routes', function () {
 				.withArgs(mockRescueId)
 				.resolves(mockRescueData); // Expect the findById method to be called with the mock rescue ID.
 
-			const response = await request(app).get(`/api/rescue/${mockRescueId}`); // Perform a GET request to the /api/rescue/:id endpoint.
+			const response = await request(app)
+				.get(`/api/rescue/${mockRescueId}`)
+				.set('Cookie', cookie); // Perform a GET request to the /api/rescue/:id endpoint.
 
 			rescueMock.verify(); // Verify that the expected mock interactions occurred.
 
@@ -99,7 +124,9 @@ describe('Rescue Routes', function () {
 
 			rescueMock.expects('findById').withArgs(mockRescueId).resolves(null); // Expect the findById method to be called with the mock rescue ID and resolve to null.
 
-			const response = await request(app).get(`/api/rescue/${mockRescueId}`); // Perform a GET request to the /api/rescue/:id endpoint.
+			const response = await request(app)
+				.get(`/api/rescue/${mockRescueId}`)
+				.set('Cookie', cookie); // Perform a GET request to the /api/rescue/:id endpoint.
 
 			rescueMock.verify(); // Verify that the expected mock interactions occurred.
 
@@ -126,9 +153,9 @@ describe('Rescue Routes', function () {
 					.withArgs({ rescueType: type })
 					.resolves(mockRescues); // Setup mock expectation for the find query with a specific rescue type.
 
-				const response = await request(app).get(
-					`/api/rescue/filter?type=${type}`
-				); // Test the filter endpoint with each type.
+				const response = await request(app)
+					.get(`/api/rescue/filter?type=${type}`)
+					.set('Cookie', cookie); // Test the filter endpoint with each type.
 
 				rescueMock.verify(); // Verify that the mock expectations were met.
 
@@ -176,6 +203,7 @@ describe('Rescue Routes', function () {
 
 			const res = await request(app)
 				.post('/api/rescue/individual')
+				.set('Cookie', cookie)
 				.send(requestPayload) // Perform the POST request with the payload.
 				.expect(201); // Expect a 201 status code for successful creation.
 
@@ -189,6 +217,7 @@ describe('Rescue Routes', function () {
 			// Simulate an error by not including required fields in the request.
 			const res = await request(app)
 				.post('/api/rescue/individual')
+				.set('Cookie', cookie)
 				.send({ userId: 'mockUserId' })
 				.expect(400); // Expect a 400 status code for a bad request.
 
@@ -262,6 +291,7 @@ describe('Rescue Routes', function () {
 			// Perform the POST request to create a new charity rescue.
 			const response = await request(app)
 				.post('/api/rescue/charity')
+				.set('Cookie', cookie)
 				.send(rescueData)
 				.expect(201);
 
@@ -277,6 +307,7 @@ describe('Rescue Routes', function () {
 			// Perform the POST request with incomplete data.
 			const response = await request(app)
 				.post('/api/rescue/charity')
+				.set('Cookie', cookie)
 				.send({})
 				.expect(400);
 
@@ -316,6 +347,7 @@ describe('Rescue Routes', function () {
 			// Perform the POST request with the duplicate data.
 			const response = await request(app)
 				.post('/api/rescue/charity')
+				.set('Cookie', cookie)
 				.send(duplicateData);
 
 			// The response should indicate that the reference number already exists.
@@ -356,6 +388,7 @@ describe('Rescue Routes', function () {
 			// Perform the POST request to create a new charity rescue.
 			const response = await request(app)
 				.post('/api/rescue/charity')
+				.set('Cookie', cookie)
 				.send(rescueData)
 				.expect(201);
 
@@ -432,6 +465,7 @@ describe('Rescue Routes', function () {
 			// Perform the POST request to create a new company rescue.
 			const response = await request(app)
 				.post('/api/rescue/company')
+				.set('Cookie', cookie)
 				.send(rescueData);
 
 			// Check the response status code and message.
@@ -446,6 +480,7 @@ describe('Rescue Routes', function () {
 			// Perform the POST request with incomplete data.
 			const response = await request(app)
 				.post('/api/rescue/company')
+				.set('Cookie', cookie)
 				.send({})
 				.expect(400);
 
@@ -485,6 +520,7 @@ describe('Rescue Routes', function () {
 			// Perform the POST request with the duplicate data.
 			const response = await request(app)
 				.post('/api/rescue/company')
+				.set('Cookie', cookie)
 				.send(duplicateData);
 
 			// The response should indicate that the reference number already exists.
@@ -525,6 +561,7 @@ describe('Rescue Routes', function () {
 			// Perform the POST request to create a new charity rescue.
 			const response = await request(app)
 				.post('/api/rescue/company')
+				.set('Cookie', cookie)
 				.send(rescueData)
 				.expect(201);
 

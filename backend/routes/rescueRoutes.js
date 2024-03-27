@@ -28,7 +28,7 @@ const router = express.Router();
  * On success, it returns a 200 status code along with a message and the fetched data.
  * On failure, it catches any errors, returning a 500 status code and the error message.
  */
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
 	try {
 		const rescues = await Rescue.find({});
 		res.status(200).send({
@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
  * On failure, catches any errors, returning a 500 status code and the error message.
  */
 
-router.get('/filter', async (req, res) => {
+router.get('/filter', authenticateToken, async (req, res) => {
 	const { type } = req.query;
 
 	try {
@@ -90,7 +90,7 @@ router.get('/filter', async (req, res) => {
  * On failure, catches any errors, returning a 500 status code and the error message.
  */
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
 	const { id } = req.params;
 
 	try {
@@ -123,6 +123,7 @@ router.get('/:id', async (req, res) => {
 router.post(
 	'/individual',
 	validateRequest(rescueJoiSchema),
+	authenticateToken,
 	async (req, res) => {
 		try {
 			const newRescue = await Rescue.create(req.body);
@@ -152,6 +153,7 @@ router.post(
 router.post(
 	'/:type(charity|company)',
 	validateRequest(rescueJoiSchema),
+	authenticateToken,
 	async (req, res) => {
 		let { type } = req.params;
 		type = capitalizeFirstChar(type);
