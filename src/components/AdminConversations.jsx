@@ -152,11 +152,13 @@ const Conversations = () => {
 								<td>{conversation.subject}</td>
 								<td>
 									{conversation.participants.map((participant, index) => (
-										<StatusBadge
-											type='conversation'
-											value={participant.email}
-											caps={false}
-										/>
+										<>
+											<StatusBadge
+												type='conversation'
+												value={participant.email}
+												caps={false}
+											/>{' '}
+										</>
 									))}
 								</td>
 								<td>{conversation.lastMessage}</td>
@@ -203,11 +205,13 @@ const Conversations = () => {
 							<p>
 								<strong>Participants:</strong>{' '}
 								{selectedConversation.participants.map((participant, index) => (
-									<StatusBadge
-										type='conversation'
-										value={participant.email}
-										caps={false}
-									/>
+									<>
+										<StatusBadge
+											type='conversation'
+											value={participant.email}
+											caps={false}
+										/>{' '}
+									</>
 								))}
 							</p>
 							<p>
@@ -215,6 +219,14 @@ const Conversations = () => {
 								<StatusBadge
 									type='conversation'
 									value={selectedConversation.status}
+								/>
+							</p>
+							<p>
+								<strong>Started By:</strong>{' '}
+								<StatusBadge
+									type='conversation'
+									value={selectedConversation.startedBy.email}
+									caps={false}
 								/>
 							</p>
 							<p>
@@ -227,6 +239,7 @@ const Conversations = () => {
 									/>
 								}
 							</p>
+
 							<p>
 								<strong>Last Message:</strong>{' '}
 								{selectedConversation.lastMessage}

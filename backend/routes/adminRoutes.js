@@ -134,6 +134,10 @@ router.get(
 				.populate({
 					path: 'lastMessageBy', // Make sure this matches the field name in your Conversation schema
 					select: 'email',
+				})
+				.populate({
+					path: 'startedBy', // Make sure this matches the field name in your Conversation schema
+					select: 'email',
 				});
 
 			logger.info('Fetched all conversations.');
