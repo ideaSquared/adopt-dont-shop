@@ -5,6 +5,7 @@ import User from '../models/User.js'; // Import the User model for database oper
 import Conversation from '../models/Conversation.js';
 import Rescue from '../models/Rescue.js';
 import Pet from '../models/Pet.js';
+import Message from '../models/Message.js';
 import authenticateToken from '../middleware/authenticateToken.js'; // Middleware to check if the request is authenticated.
 import checkAdmin from '../middleware/checkAdmin.js'; // Middleware to check if the authenticated user is an admin.
 import nodemailer from 'nodemailer'; // Imported but not used in this snippet. Potentially for sending emails (e.g., password reset instructions).
@@ -144,6 +145,33 @@ router.get(
 			res.json(conversations);
 		} catch (error) {
 			logger.error(`Error fetching conversations: ${error.message}`);
+			Sentry.captureException(error);
+			res.status(500).json({ message: error.message });
+		}
+	}
+);
+
+// Route to get messages for a specific conversation
+router.get(
+	'/conversations/:conversationId/messages',
+	authenticateToken,
+	checkAdmin,
+	async (req, res) => {
+		const { conversationId } = req.params; // Extracting conversationId from URL parameters
+		try {
+			const messages = await Message.find({
+				conversationId: conversationId,
+			}).populate({
+				path: 'senderId',
+				select: 'email', // Assuming you want to fetch the email of the sender
+			});
+
+			logger.info(`Fetched all messages for ${conversationId}.`);
+			res.json(messages);
+		} catch (error) {
+			logger.error(
+				`Error fetching all messages for ${conversationId}:  ${error.message}`
+			);
 			Sentry.captureException(error);
 			res.status(500).json({ message: error.message });
 		}

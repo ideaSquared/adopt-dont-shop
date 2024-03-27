@@ -12,6 +12,8 @@ axios.defaults.withCredentials = true;
 const Conversations = () => {
 	const [conversations, setConversations] = useState([]);
 	const [filteredConversations, setFilteredConversations] = useState([]);
+	const [messages, setMessages] = useState([]);
+	const [loadingMessages, setLoadingMessages] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [conversationsPerPage] = useState(10);
 	const [searchTerm, setSearchTerm] = useState('');
@@ -87,6 +89,25 @@ const Conversations = () => {
 		}
 	};
 
+	const fetchMessages = async (conversationId) => {
+		setLoadingMessages(true);
+		const endpoint = `${
+			import.meta.env.VITE_API_BASE_URL
+		}/admin/conversations/${conversationId}/messages`; // Adjust endpoint as necessary
+		try {
+			const { data } = await axios.get(endpoint);
+			const sortedData = data.sort(
+				(a, b) => new Date(b.sentAt) - new Date(a.sentAt)
+			);
+			setMessages(sortedData); // Set the sorted messages to state
+		} catch (error) {
+			console.error('Failed to fetch messages:', error);
+			alert('Failed to fetch messages for the selected conversation.');
+		} finally {
+			setLoadingMessages(false);
+		}
+	};
+
 	const indexOfLastConversation = currentPage * conversationsPerPage;
 	const indexOfFirstConversation =
 		indexOfLastConversation - conversationsPerPage;
@@ -101,6 +122,7 @@ const Conversations = () => {
 	// Handle showing the modal with full conversation details
 	const handleShowDetails = (conversation) => {
 		setSelectedConversation(conversation);
+		fetchMessages(conversation._id);
 		setShowModal(true);
 	};
 
@@ -248,7 +270,25 @@ const Conversations = () => {
 								<strong>Last Message At:</strong>{' '}
 								{new Date(selectedConversation.lastMessageAt).toLocaleString()}
 							</p>
-							{/* Assuming you have a way to render or link to the full conversation or messages here */}
+							<h5>Messages</h5>
+							<Table striped bordered hover size='sm'>
+								<thead>
+									<tr>
+										<th>Text</th>
+										<th>Sent At</th>
+										<th>Status</th>
+									</tr>
+								</thead>
+								<tbody>
+									{messages.map((message) => (
+										<tr key={message._id}>
+											<td>{message.messageText}</td>
+											<td>{new Date(message.sentAt).toLocaleString()}</td>
+											<td>{message.status}</td>
+										</tr>
+									))}
+								</tbody>
+							</Table>
 						</>
 					) : (
 						<p>Loading conversation details...</p>
