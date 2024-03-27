@@ -126,10 +126,15 @@ router.get(
 			// Use the .populate method to include details from the referenced User collection.
 			// The path 'participants' corresponds to the field in the Conversation schema that holds the references.
 			// The select option is used to specify that only the 'email' field of the participants should be included.
-			const conversations = await Conversation.find({}).populate({
-				path: 'participants',
-				select: 'email', // Adjust according to the fields you need, for example 'email name' to include names as well
-			});
+			const conversations = await Conversation.find({})
+				.populate({
+					path: 'participants',
+					select: 'email', // Assuming you want to fetch the email of participants
+				})
+				.populate({
+					path: 'lastMessageBy', // Make sure this matches the field name in your Conversation schema
+					select: 'email',
+				});
 
 			logger.info('Fetched all conversations.');
 			res.json(conversations);

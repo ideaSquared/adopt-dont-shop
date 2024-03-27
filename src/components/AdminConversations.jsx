@@ -219,7 +219,13 @@ const Conversations = () => {
 							</p>
 							<p>
 								<strong>Last Message By:</strong>{' '}
-								{selectedConversation.lastMessageBy}
+								{
+									<StatusBadge
+										type='conversation'
+										value={selectedConversation.lastMessageBy.email}
+										caps={false}
+									/>
+								}
 							</p>
 							<p>
 								<strong>Last Message:</strong>{' '}
