@@ -8,6 +8,7 @@ import { expect } from 'chai';
 import nodemailer from 'nodemailer';
 import User from '../models/User.js'; // Adjust the path as needed
 import app from '../index.js';
+import { generateObjectId } from '../utils/generateObjectId.js';
 
 /**
  * Test suite for authentication-related routes.
@@ -379,6 +380,58 @@ describe('Auth Routes', function () {
 		// 		'Validation error: must provide at least one valid field to update'
 		// 	);
 		// });
+	});
+
+	describe('GET /api/auth/details', () => {
+		it('should return the user details for an authenticated user', async () => {
+			const expectedUserWithoutPassword = {
+				_id: 'mockUserId',
+				firstName: 'testUser',
+				email: 'test@example.com',
+				// Note: Password is intentionally omitted
+			};
+
+			// First stub the findById method
+			const findByIdStub = sinon.stub(User, 'findById').returns({
+				// Then stub the select method to resolve with the expected user object
+				select: sinon.stub().resolves(expectedUserWithoutPassword),
+			});
+
+			const res = await request(app)
+				.get('/api/auth/details')
+				.set('Cookie', cookie) // Assuming the authentication process sets a cookie
+				.expect(200);
+
+			// Assertions to verify the response matches expectations
+			expect(res.body).to.have.property('email', 'test@example.com');
+			expect(res.body).to.have.property('firstName', 'testUser');
+			expect(res.body).not.to.have.property('password');
+
+			// Verify that the expectations on the mock were met
+			sinon.restore();
+		});
+
+		it('should return 404 for non-existent user ID', async () => {
+			// Simulate scenario where user ID does not exist
+			const findByIdStub = sinon.stub(User, 'findById').returns({
+				// Stub the select method to resolve with null, simulating a non-existent user
+				select: sinon.stub().resolves(null),
+			});
+
+			const res = await request(app)
+				.get('/api/auth/details')
+				.set('Cookie', cookie) // Assuming cookie is defined elsewhere
+				.expect(404);
+
+			expect(res.body).to.have.property('message', 'User not found.');
+		});
+
+		it('should return 401 for unauthenticated requests', async () => {
+			// No need to stub `findById` here since this test simulates an unauthenticated request
+			const res = await request(app).get('/api/auth/details').expect(401);
+
+			expect(res.body).to.have.property('error', 'No token provided');
+		});
 	});
 
 	/**

@@ -174,6 +174,36 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		}
 	);
 
+	router.get('/details', authenticateToken, async (req, res) => {
+		const userId = req.user.userId; // Assuming authenticateToken middleware adds user info to req
+		logger.info(`Fetching user details for userId: ${userId}`); // Log the start of the process
+
+		try {
+			const user = await User.findById(userId).select('-password'); // Exclude password from the result
+			if (!user) {
+				logger.warn(`User not found for userId: ${userId}`); // Log when user is not found
+				return res.status(404).json({ message: 'User not found.' });
+			}
+
+			// Prepare the data to be returned
+			const userDetails = {
+				email: user.email,
+				firstName: user.firstName,
+			};
+
+			logger.info(`User details fetched successfully for userId: ${userId}`);
+			res.status(200).json(userDetails);
+		} catch (error) {
+			logger.error(
+				`Error fetching user details for userId: ${userId}: ${error.message}`
+			); // Log any exceptions
+			Sentry.captureException(error);
+			res.status(500).json({
+				message: 'Failed to fetch user details. Please try again.',
+			});
+		}
+	});
+
 	/**
 	 * Route handler for initiating a password reset process. Validates the request body against the forgotPasswordSchema,
 	 * generates a password reset token, saves it with the user's record, and sends a password reset email.
