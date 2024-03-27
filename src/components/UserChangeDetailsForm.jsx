@@ -1,18 +1,52 @@
-// ChangeDetailsForm.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AlertComponent from './AlertComponent';
 import { useNavigate } from 'react-router-dom';
-import { Container } from 'react-bootstrap';
+import { Container, Form, Button, Row, Col } from 'react-bootstrap';
 
 const ChangeDetailsForm = () => {
 	const [formData, setFormData] = useState({
 		email: '',
 		password: '',
+		confirmPassword: '', // Add confirm password field
 		firstName: '',
 	});
 	const [alert, setAlert] = useState({ message: null, type: null });
-	const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
-	const navigate = useNavigate(); // Initialize useNavigate
+	const token = localStorage.getItem('token');
+	const navigate = useNavigate();
+
+	// Function to fetch current user details and pre-fill the form
+	useEffect(() => {
+		const fetchUserDetails = async () => {
+			try {
+				const response = await fetch(
+					`${import.meta.env.VITE_API_BASE_URL}/auth/details`,
+					{
+						method: 'GET',
+						credentials: 'include',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `Bearer ${token}`,
+						},
+					}
+				);
+
+				const data = await response.json();
+				if (response.ok) {
+					setFormData({
+						...formData,
+						email: data.email,
+						firstName: data.firstName,
+					});
+				} else {
+					throw new Error(data.message || 'Failed to fetch user details.');
+				}
+			} catch (error) {
+				setAlert({ message: error.message, type: 'danger' });
+			}
+		};
+
+		fetchUserDetails();
+	}, [token]); // Ensure the effect runs once on component mount
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -24,6 +58,13 @@ const ChangeDetailsForm = () => {
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
+
+		// Validate password and confirmPassword match
+		if (formData.password !== formData.confirmPassword) {
+			setAlert({ message: 'Passwords do not match.', type: 'danger' });
+			return; // Stop the form submission
+		}
+
 		try {
 			const response = await fetch(
 				`${import.meta.env.VITE_API_BASE_URL}/auth/details`,
@@ -38,9 +79,9 @@ const ChangeDetailsForm = () => {
 				}
 			);
 
-			const data = await response.json(); // Parse response body first
+			const data = await response.json();
 			if (!response.ok) {
-				throw new Error(data.message || 'Failed to update details.'); // Use server-provided message if available
+				throw new Error(data.message || 'Failed to update details.');
 			}
 
 			setAlert({ message: 'Details updated successfully!', type: 'success' });
@@ -57,50 +98,56 @@ const ChangeDetailsForm = () => {
 					message={alert.message}
 					onClose={() => setAlert({ message: null, type: null })}
 				/>
-				<form onSubmit={handleSubmit}>
-					<div className='mb-3'>
-						<label htmlFor='firstName' className='form-label'>
-							New First Name
-						</label>
-						<input
+				<Form onSubmit={handleSubmit}>
+					<Form.Group className='mb-3' controlId='firstName'>
+						<Form.Label>First name</Form.Label>
+						<Form.Control
 							type='text'
-							className='form-control'
-							id='firstName'
 							name='firstName'
 							value={formData.firstName}
 							onChange={handleChange}
 						/>
-					</div>
-					<div className='mb-3'>
-						<label htmlFor='email' className='form-label'>
-							New Email
-						</label>
-						<input
+					</Form.Group>
+
+					<Form.Group className='mb-3' controlId='email'>
+						<Form.Label>Email</Form.Label>
+						<Form.Control
 							type='email'
-							className='form-control'
-							id='email'
 							name='email'
 							value={formData.email}
 							onChange={handleChange}
 						/>
-					</div>
-					<div className='mb-3'>
-						<label htmlFor='password' className='form-label'>
-							New Password
-						</label>
-						<input
-							type='password'
-							className='form-control'
-							id='password'
-							name='password'
-							value={formData.password}
-							onChange={handleChange}
-						/>
-					</div>
-					<button type='submit' className='btn btn-primary'>
+					</Form.Group>
+
+					<Row>
+						<Col>
+							<Form.Group className='mb-3' controlId='password'>
+								<Form.Label>Password</Form.Label>
+								<Form.Control
+									type='password'
+									name='password'
+									value={formData.password}
+									onChange={handleChange}
+								/>
+							</Form.Group>
+						</Col>
+						<Col>
+							<Form.Group className='mb-3' controlId='confirmPassword'>
+								<Form.Label>Confirm password</Form.Label>
+								<Form.Control
+									type='password'
+									name='confirmPassword'
+									value={formData.confirmPassword}
+									onChange={handleChange}
+								/>
+							</Form.Group>
+						</Col>
+					</Row>
+
+					<Button variant='primary' type='submit'>
 						Update Details
-					</button>
-				</form>
+					</Button>
+				</Form>
 			</>
 		</Container>
 	);
