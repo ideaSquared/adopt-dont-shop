@@ -360,7 +360,7 @@ describe('Admin Routes', function () {
 				expect(deletedRescue).to.be.null;
 			});
 
-			it.only('should fetch all pets successfully', async function () {
+			it('should fetch all pets successfully', async function () {
 				const pet = new Pet({
 					petName: 'Rex',
 					ownerId: generateObjectId(), // Use the generateObjectId utility to simulate a valid MongoDB ObjectId
