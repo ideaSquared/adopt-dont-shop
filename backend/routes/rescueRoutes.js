@@ -16,6 +16,8 @@ import LoggerUtil from '../utils/Logger.js';
 import fetchAndValidateCharity from '../utils/verifyCharity.js';
 import fetchAndValidateCompany from '../utils/verifyCompany.js';
 
+import { generateObjectId } from '../utils/generateObjectId.js';
+
 // Instantiate a logger for this module.
 const logger = new LoggerUtil('rescue-route').getLogger();
 
@@ -344,7 +346,7 @@ router.put(
 	authenticateToken,
 	async (req, res) => {
 		const { rescueId, staffId } = req.params;
-		const userId = req.user?.userId;
+		const userId = req.user.userId;
 
 		try {
 			const rescue = await Rescue.findById(rescueId);
@@ -355,8 +357,10 @@ router.put(
 				return res.status(404).json({ message: 'Rescue not found' });
 			}
 
+			console.log(rescue);
+
 			const staffMember = rescue.staff.find(
-				(member) => member._id.toString() === staffId
+				(member) => member.userId.toString() === staffId.toString()
 			);
 			if (!staffMember) {
 				logger.warn(

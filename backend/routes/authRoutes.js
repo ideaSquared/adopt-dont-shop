@@ -388,6 +388,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				`Rescue organization fetched successfully for user ${userId}`
 			);
 			const responseData = {
+				id: rescue.id,
 				rescueName: rescue.rescueName,
 				rescueAddress: rescue.rescueAddress,
 				rescueType: rescue.rescueType,

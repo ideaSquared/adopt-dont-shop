@@ -15,6 +15,7 @@ import axios from 'axios';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
+		id: '',
 		staff: [],
 		rescueName: '',
 		rescueType: '',
@@ -26,27 +27,27 @@ const RescueProfile = () => {
 	const userId = localStorage.getItem('userId');
 
 	useEffect(() => {
-		const fetchRescueProfile = async () => {
-			try {
-				// Assuming this URL is where you get your rescue profile data
-				const response = await axios.get(
-					`${import.meta.env.VITE_API_BASE_URL}/auth/my-rescue`,
-					{
-						withCredentials: true,
-					}
-				);
-
-				setRescueProfile({
-					...response.data,
-					staff: response.data.staff || [],
-				});
-			} catch (error) {
-				console.error('Error fetching rescue profile:', error);
-			}
-		};
-
 		fetchRescueProfile();
 	}, []);
+
+	const fetchRescueProfile = async () => {
+		try {
+			// Assuming this URL is where you get your rescue profile data
+			const response = await axios.get(
+				`${import.meta.env.VITE_API_BASE_URL}/auth/my-rescue`,
+				{
+					withCredentials: true,
+				}
+			);
+
+			setRescueProfile({
+				...response.data,
+				staff: response.data.staff || [],
+			});
+		} catch (error) {
+			console.error('Error fetching rescue profile:', error);
+		}
+	};
 
 	// Calculate unique permissions for table headers
 	const uniquePermissions = Array.from(
@@ -89,20 +90,75 @@ const RescueProfile = () => {
 		}));
 	};
 
-	const handleRemoveStaff = (staffId) => {
-		setRescueProfile((prevState) => ({
-			...prevState,
-			staff: prevState.staff.filter((staff) => staff._id !== staffId),
-		}));
+	const verifyStaffMember = async (rescueId, staffId) => {
+		try {
+			const response = await axios.put(
+				`${
+					import.meta.env.VITE_API_BASE_URL
+				}/rescue/${rescueId}/staff/${staffId}/verify`,
+				{}, // PUT request does not need a body for this operation
+				{ withCredentials: true }
+			);
+
+			// Reload or update the rescue profile to reflect the changes
+			fetchRescueProfile();
+		} catch (error) {
+			console.error(
+				'Error verifying staff member:',
+				error.response?.data || error.message
+			);
+		}
 	};
 
-	const saveUpdates = async () => {
+	const removeStaffMember = async (rescueId, staffId) => {
 		try {
-			// Placeholder for PUT or PATCH request to update the rescue profile
-			console.log('Saving updates', rescueProfile);
+			const response = await axios.delete(
+				`${
+					import.meta.env.VITE_API_BASE_URL
+				}/rescue/${rescueId}/staff/${staffId}`,
+				{ withCredentials: true }
+			);
+			// Reload or update the rescue profile to reflect the changes
+			fetchRescueProfile();
 		} catch (error) {
-			console.error('Error saving updates:', error);
+			console.error(
+				'Error removing staff member:',
+				error.response?.data || error.message
+			);
 		}
+	};
+
+	const updateRescueProfile = async (rescueId, updates) => {
+		try {
+			const response = await axios.put(
+				`${import.meta.env.VITE_API_BASE_URL}/rescue/${rescueId}`,
+				updates,
+				{ withCredentials: true }
+			);
+			console.log('Rescue profile updated successfully:', response.data);
+			// Optionally, refresh the local data to reflect the update
+			fetchRescueProfile();
+		} catch (error) {
+			console.error(
+				'Error updating rescue profile:',
+				error.response?.data || error.message
+			);
+		}
+	};
+
+	// Updated handleRemoveStaff to use the new API call
+	const handleRemoveStaff = (staffId) => {
+		removeStaffMember(rescueProfile.id, staffId);
+	};
+
+	// Assuming each staff member's verification status can be toggled with a button in your UI
+	const handleVerifyStaff = (staffId) => {
+		verifyStaffMember(rescueProfile.id, staffId);
+	};
+
+	const saveUpdates = () => {
+		// Assuming `rescueProfile` contains the updated rescue profile data
+		updateRescueProfile(rescueProfile.id, rescueProfile);
 	};
 
 	return (
@@ -116,6 +172,9 @@ const RescueProfile = () => {
 					>
 						{rescueProfile.referenceNumberVerified ? 'Verified' : 'Un-verified'}
 					</Badge>
+				</span>{' '}
+				<span style={{ verticalAlign: 'top' }} bg='light'>
+					<Badge style={{ fontSize: '16px' }}>{rescueProfile.id}</Badge>
 				</span>
 			</h1>
 
@@ -233,7 +292,7 @@ const RescueProfile = () => {
 								) : (
 									<Button
 										variant='warning'
-										onClick={() => handleVerifyStaff(staff._id)}
+										onClick={() => handleVerifyStaff(staff.userId._id)}
 									>
 										Verify Staff
 									</Button>
@@ -242,7 +301,7 @@ const RescueProfile = () => {
 							<td>
 								<Button
 									variant='danger'
-									onClick={() => handleRemoveStaff(staff._id)}
+									onClick={() => handleRemoveStaff(staff.userId._id)}
 								>
 									Remove Staff
 								</Button>
