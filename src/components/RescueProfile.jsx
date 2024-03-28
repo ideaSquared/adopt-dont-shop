@@ -53,10 +53,6 @@ const RescueProfile = () => {
 				}
 			);
 
-			if (!response.ok) {
-				navigate('/');
-			}
-
 			setRescueProfile({
 				...response.data,
 				staff: response.data.staff || [],
