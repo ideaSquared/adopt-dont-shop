@@ -12,6 +12,7 @@ import {
 	Col,
 } from 'react-bootstrap';
 import axios from 'axios';
+import AlertComponent from './AlertComponent';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
@@ -23,8 +24,8 @@ const RescueProfile = () => {
 		referenceNumber: '',
 		referenceNumberVerified: false,
 	});
-
 	const userId = localStorage.getItem('userId');
+	const [alertInfo, setAlertInfo] = useState({ type: '', message: '' });
 
 	useEffect(() => {
 		fetchRescueProfile();
@@ -200,8 +201,12 @@ const RescueProfile = () => {
 	};
 
 	const handleReferenceNumberSubmit = async () => {
+		alert('Test');
 		if (!rescueProfile.referenceNumber) {
-			alert('Please enter a reference number to submit for verification.');
+			setAlertInfo({
+				type: 'danger',
+				message: 'Please enter a reference number to submit for verification.',
+			});
 			return;
 		}
 
@@ -215,27 +220,36 @@ const RescueProfile = () => {
 				{ withCredentials: true }
 			);
 
-			if (response.data.verified) {
+			if (response.data.data.referenceNumberVerified) {
+				setAlertInfo({
+					type: 'success',
+					message: 'Reference number verified successfully.',
+				});
 				setRescueProfile((prev) => ({
 					...prev,
 					referenceNumberVerified: true,
 				}));
-				alert('Reference number verified successfully.');
 			} else {
+				setAlertInfo({
+					type: 'danger',
+					message: 'Failed to verify reference number.',
+				});
 				setRescueProfile((prev) => ({
 					...prev,
 					referenceNumberVerified: false,
 				}));
-				alert('Failed to verify reference number.');
 			}
+			fetchRescueProfile();
 		} catch (error) {
 			console.error(
 				'Error submitting reference number for verification:',
 				error
 			);
-			alert(
-				'Error submitting reference number for verification. Please try again later.'
-			);
+			setAlertInfo({
+				type: 'danger',
+				message:
+					'Error submitting reference number for verification. Please try again later.',
+			});
 		}
 	};
 
@@ -270,6 +284,14 @@ const RescueProfile = () => {
 					<Badge style={{ fontSize: '16px' }}>{rescueProfile.id}</Badge>
 				</span>
 			</h1>
+
+			{alertInfo.message && (
+				<AlertComponent
+					type={alertInfo.type}
+					message={alertInfo.message}
+					onClose={() => setAlertInfo({ type: '', message: '' })}
+				/>
+			)}
 
 			<Form>
 				<Row>
