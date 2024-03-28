@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import { expect } from 'chai';
 import nodemailer from 'nodemailer';
 import User from '../models/User.js'; // Adjust the path as needed
+import Rescue from '../models/Rescue.js';
 import app from '../index.js';
 import { generateObjectId } from '../utils/generateObjectId.js';
 
@@ -21,7 +22,7 @@ import { generateObjectId } from '../utils/generateObjectId.js';
 describe('Auth Routes', function () {
 	let tokenGeneratorMock;
 	let emailServiceMock;
-	let userMock;
+	let userMock, rescueMock, populateStub;
 	let cookie;
 
 	/**
@@ -55,6 +56,7 @@ describe('Auth Routes', function () {
 				messageId: 'mockMessageId',
 			}),
 		};
+		rescueMock = sinon.mock(Rescue); // Assuming you have a Rescue model
 
 		// Mock the User model to prevent actual database interactions, allowing for controlled responses.
 		userMock = sinon.mock(User);
@@ -63,6 +65,7 @@ describe('Auth Routes', function () {
 		app.set('tokenGenerator', tokenGeneratorMock);
 		app.set('emailService', emailServiceMock);
 		app.set('User', userMock);
+		// app.set('Rescue', rescueMock);
 
 		// Generate a mock JWT token for simulating authenticated requests.
 		const secret = process.env.SECRET_KEY; // Your JWT secret.
@@ -616,5 +619,113 @@ describe('Auth Routes', function () {
 			});
 			userMock.verify();
 		});
+	});
+
+	describe.only('GET /api/auth/my-rescue', () => {
+		it('should successfully fetch rescue organization for user', async () => {
+			// Setup mock for Rescue.findOne to simulate finding a rescue organization
+			const mockRescueData = {
+				rescueName: 'Happy Paws Rescue',
+				rescueAddress: '1234 Rescue Lane, Petville, PV 56789',
+				rescueType: 'Charity',
+				referenceNumber: 'HP123456789',
+				referenceNumberVerified: true,
+				staff: [
+					{
+						userId: {
+							_id: 'mockUserId', // Assume populated userId
+							email: 'user@example.com', // Mock email for the user, simulating population
+						},
+						permissions: [
+							'edit_rescue_info',
+							'add_pet',
+							'delete_pet',
+							'edit_pet',
+							'see_messages',
+							'send_messages',
+						],
+						verifiedByRescue: true,
+					},
+					{
+						userId: {
+							_id: '60de5be8673d4f2f6c8c1234', // Another mock ObjectId
+							email: 'another@example.com', // Mock email for the second user
+						},
+						permissions: ['edit_rescue_info', 'see_messages'],
+						verifiedByRescue: false,
+					},
+				],
+			};
+
+			// Setup an object to mimic the chainable Mongoose methods
+			const populateMock = sinon
+				.stub()
+				.returns(Promise.resolve(mockRescueData));
+
+			// Now mock `findOne` to return an object that contains our `populate` mock as a method
+			rescueMock
+				.expects('findOne')
+				.withArgs({ 'staff.userId': 'mockUserId' })
+				.returns({ populate: populateMock });
+
+			const res = await request(app)
+				.get('/api/auth/my-rescue')
+				.set('Cookie', cookie)
+				.expect(200);
+
+			expect(res.body).to.have.property(
+				'message',
+				'Rescue organization fetched successfully'
+			);
+			expect(res.body.data).to.deep.equal(mockRescueData); // Verify the response data includes populated userId fields
+			rescueMock.verify();
+		});
+
+		it('should return 404 when the userId is not a member of any staff', async () => {
+			// Setup mock for Rescue.findOne to simulate NOT finding a rescue organization for the given userId
+			const mockRescueData = null; // No data found
+
+			// Setup an object to mimic the chainable Mongoose methods
+			const populateMock = sinon
+				.stub()
+				.returns(Promise.resolve(mockRescueData));
+
+			// Now mock `findOne` to return an object that contains our `populate` mock as a method
+			rescueMock
+				.expects('findOne')
+				.withArgs({ 'staff.userId': 'mockUserId' })
+				.returns({ populate: populateMock });
+
+			const res = await request(app)
+				.get('/api/auth/my-rescue')
+				.set('Cookie', cookie)
+				.expect(404); // Expecting a 404 Not Found status code
+
+			expect(res.body).to.have.property(
+				'message',
+				'User is not a staff member of any rescue organization' // Adjust the message to match your actual API response for not found
+			);
+
+			// Verify that findOne was called as expected
+			rescueMock.verify();
+		});
+
+		// it('should return 500 if there is an error fetching the rescue organization', async () => {
+		// 	rescueMock
+		// 		.expects('findOne')
+		// 		.withArgs({ 'staff.userId': 'mockUserId' })
+		// 		.rejects(new Error('Mock error'));
+
+		// 	const res = await request(app)
+		// 		.get('/api/auth/my-rescue')
+		// 		.set('Cookie', cookie)
+		// 		.expect(500);
+
+		// 	expect(res.body).to.have.property(
+		// 		'message',
+		// 		'An error occurred while fetching the rescue organization'
+		// 	);
+		// 	rescueMock.verify();
+		// });
 	});
 });

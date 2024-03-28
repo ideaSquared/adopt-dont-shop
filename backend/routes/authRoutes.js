@@ -3,6 +3,7 @@ import express from 'express'; // For routing.
 import bcrypt from 'bcryptjs'; // For hashing passwords.
 import jwt from 'jsonwebtoken'; // For creating JSON Web Tokens.
 import User from '../models/User.js'; // User model for interacting with the database.
+import Rescue from '../models/Rescue.js';
 // Middleware for authentication and admin checks.
 import authenticateToken from '../middleware/authenticateToken.js';
 import checkAdmin from '../middleware/checkAdmin.js';
@@ -359,6 +360,55 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			);
 			Sentry.captureException(error);
 			res.status(500).json({ message: 'Error checking user status.' });
+		}
+	});
+
+	router.get('/my-rescue', authenticateToken, async (req, res) => {
+		const userId = req.user.userId; // Assuming authenticateToken adds user to req
+
+		logger.info(`Fetching rescue organization for user ${userId}`);
+
+		try {
+			// Find a rescue where the user is listed as a staff member
+			// Ensure your Rescue schema includes an array of staff objects with a userId field
+			const rescue = await Rescue.findOne({ 'staff.userId': userId }).populate({
+				path: 'staff.userId', // Path to the field you want to populate.
+				select: 'email', // Field(s) you want from the populated documents, in this case, just the email.
+			});
+			if (!rescue) {
+				logger.warn(
+					`User ${userId} is not a staff member of any rescue organization`
+				);
+				return res.status(404).send({
+					message: 'User is not a staff member of any rescue organization',
+				});
+			}
+
+			logger.info(
+				`Rescue organization fetched successfully for user ${userId}`
+			);
+			const responseData = {
+				rescueName: rescue.rescueName,
+				rescueAddress: rescue.rescueAddress,
+				rescueType: rescue.rescueType,
+				referenceNumber: rescue.referenceNumber,
+				referenceNumberVerified: rescue.referenceNumberVerified,
+				staff: rescue.staff, // Consider filtering or restructuring this data based on your needs
+			};
+
+			res.status(200).send({
+				message: 'Rescue organization fetched successfully',
+				data: responseData,
+			});
+		} catch (error) {
+			Sentry.captureException(error);
+			logger.error(
+				`Failed to fetch rescue organization for user ${userId}: ${error}`
+			);
+			res.status(500).send({
+				message: 'An error occurred while fetching the rescue organization',
+				error: error.message,
+			});
 		}
 	});
 
