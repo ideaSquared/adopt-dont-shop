@@ -269,6 +269,7 @@ router.put(
 			if (type.toLowerCase() === 'charity') {
 				const isValidCharity = await fetchAndValidateCharity(referenceNumber);
 				if (isValidCharity) {
+					existingRescue.referenceNumber = referenceNumber;
 					existingRescue.referenceNumberVerified = true;
 					logger.info(`Charity validated with ${referenceNumber}`);
 				} else {
@@ -278,6 +279,7 @@ router.put(
 			} else if (type.toLowerCase() === 'company') {
 				const isValidCompany = await fetchAndValidateCompany(referenceNumber);
 				if (isValidCompany) {
+					existingRescue.referenceNumber = referenceNumber;
 					existingRescue.referenceNumberVerified = true;
 					logger.info(`Company validated with ${referenceNumber}`);
 				} else {
@@ -426,8 +428,6 @@ router.put(
 
 		const editorUserId = req.user.userId; // ID of the user making the request
 
-		console.log('SID: ', staffId);
-
 		try {
 			const rescue = await Rescue.findById(rescueId);
 			if (!rescue) {
@@ -503,8 +503,6 @@ router.put(
 				);
 				return res.status(404).json({ message: 'Rescue not found' });
 			}
-
-			console.log(rescue);
 
 			const staffMember = rescue.staff.find(
 				(member) => member.userId.toString() === staffId.toString()
