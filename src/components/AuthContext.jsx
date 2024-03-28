@@ -12,6 +12,9 @@ export const AuthProvider = ({ children }) => {
 
 	useEffect(() => {
 		checkLoginStatus();
+		if (checkLoginStatus()) {
+			checkRescueRoute();
+		}
 	}, []);
 
 	const checkLoginStatus = async () => {
