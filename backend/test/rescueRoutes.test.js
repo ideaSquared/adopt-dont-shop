@@ -6,6 +6,7 @@ import { expect } from 'chai';
 import jwt from 'jsonwebtoken';
 import Rescue from '../models/Rescue.js';
 import rescueRoutes from '../routes/rescueRoutes.js';
+import User from '../models/User.js';
 import { connectToDatabase, disconnectFromDatabase } from './database.js';
 import mongoose from 'mongoose';
 import rescueService from '../services/rescueService.js';
@@ -581,7 +582,7 @@ describe('Rescue Routes', function () {
 	 * validation of rescue IDs, and permission checks for editing rescues.
 	 */
 	describe('PUT /api/rescue/:rescueId', function () {
-		let cookie, existingRescueId, jwtVerifyStub;
+		let cookie, existingRescueId, jwtVerifyStub, mockUserId, mockUserIdNoPerms;
 
 		beforeEach(() => {
 			// Resets the Sinon environment to ensure a clean state for each test.
@@ -591,15 +592,17 @@ describe('Rescue Routes', function () {
 			const token = 'dummyToken';
 			cookie = `token=${token};`;
 
+			// Generates a mock ID for a rescue that exists in the database for testing.
+			existingRescueId = generateObjectId();
+			mockUserIdNoPerms = generateObjectId();
+			mockUserId = generateObjectId();
+
 			// Stubs the JWT verification to simulate an authenticated user without admin privileges.
 			jwtVerifyStub = sinon
 				.stub(jwt, 'verify')
 				.callsFake((token, secret, callback) => {
-					callback(null, { userId: 'mockUserId', isAdmin: false });
+					callback(null, { userId: mockUserId, isAdmin: false });
 				});
-
-			// Generates a mock ID for a rescue that exists in the database for testing.
-			existingRescueId = generateObjectId();
 
 			// Stubs the Rescue.findById method to simulate fetching rescues from the database.
 			sinon.stub(Rescue, 'findById').callsFake((id) => {
@@ -607,14 +610,15 @@ describe('Rescue Routes', function () {
 					return Promise.resolve({
 						_id: existingRescueId,
 						rescueName: 'Existing Name',
+						rescueType: 'Company',
 						staff: [
 							{
-								userId: 'mockUserId',
+								userId: mockUserId,
 								permissions: ['edit_rescue_info'],
 								verifiedByRescue: true,
 							},
 							{
-								userId: 'mockUserIdNoPerms',
+								userId: mockUserIdNoPerms,
 								permissions: ['see_messages'],
 								verifiedByRescue: true,
 							},
@@ -649,7 +653,10 @@ describe('Rescue Routes', function () {
 
 		// Tests successful update of a rescue with valid data.
 		it('should successfully update a rescue with valid data', async function () {
-			const validUpdateBody = { rescueName: 'Updated Name' };
+			const validUpdateBody = {
+				rescueName: 'Updated Name',
+				rescueType: 'Company',
+			};
 
 			const response = await request(app)
 				.put(`/api/rescue/${existingRescueId}`)
@@ -683,7 +690,7 @@ describe('Rescue Routes', function () {
 			jwtVerifyStub = sinon
 				.stub(jwt, 'verify')
 				.callsFake((token, secret, callback) => {
-					callback(null, { userId: 'mockUserIdNoPerms', isAdmin: false });
+					callback(null, { userId: mockUserIdNoPerms, isAdmin: false });
 				});
 
 			const response = await request(app)
@@ -702,33 +709,42 @@ describe('Rescue Routes', function () {
 	 * Test suite for updating staff information in a rescue entity.
 	 * It tests the functionality to update and add staff members to a rescue, ensuring only authorized users can make changes.
 	 */
-	describe('PUT /api/rescue/:rescueId/staff', function () {
-		let cookie, existingRescueId, editorUserId, jwtVerifyStub;
+	describe('POST /api/rescue/:rescueId/staff', function () {
+		let cookie, existingRescueId, jwtVerifyStub, userFindOneStub;
 
-		// Setup before each test: resets stubs, prepares authentication and mocks retrieval of a rescue by ID.
-		beforeEach(async () => {
+		const mockEditorUserId = generateObjectId();
+		const mockNonEditorUserId = generateObjectId();
+
+		beforeEach(() => {
+			// Resets the Sinon environment and stubs.
 			sinon.restore();
+
+			// Prepares a mock authentication token and stubs JWT verification.
 			const token = 'dummyToken';
 			cookie = `token=${token};`;
-			existingRescueId = generateObjectId();
-			editorUserId = generateObjectId(); // Mock editor user ID
-
-			// Stub JWT verification to simulate an authenticated user session.
 			jwtVerifyStub = sinon
 				.stub(jwt, 'verify')
 				.callsFake((token, secret, callback) => {
-					callback(null, { userId: editorUserId.toString(), isAdmin: false });
+					callback(null, { userId: mockEditorUserId, isAdmin: false });
 				});
 
-			// Stub the Rescue.findById method to simulate database lookup.
+			// Generates a mock ID for a rescue that exists in the database.
+			existingRescueId = generateObjectId();
+
+			// Stubs for Rescue.findById and User.findOne.
 			sinon.stub(Rescue, 'findById').callsFake((id) => {
 				if (id.toString() === existingRescueId.toString()) {
 					return Promise.resolve({
 						_id: existingRescueId,
 						staff: [
 							{
-								userId: editorUserId,
+								userId: mockEditorUserId,
 								permissions: ['edit_rescue_info'],
+								verifiedByRescue: true,
+							},
+							{
+								userId: mockNonEditorUserId,
+								permissions: ['see_messages'],
 								verifiedByRescue: true,
 							},
 						],
@@ -738,86 +754,95 @@ describe('Rescue Routes', function () {
 					return Promise.resolve(null);
 				}
 			});
+
+			// Stub User.findOne to simulate finding a user by email.
+			userFindOneStub = sinon.stub(User, 'findOne');
 		});
 
-		// Cleanup after each test.
-		afterEach(() => {
-			if (jwtVerifyStub && jwtVerifyStub.restore) {
-				jwtVerifyStub.restore();
-			}
-		});
-
-		// Tests for various scenarios including rescue not found, unauthorized access, updating, and adding staff members.
 		it('should return a 404 if the rescue is not found', async function () {
 			const nonExistingRescueId = generateObjectId();
 
 			const response = await request(app)
-				.put(`/api/rescue/${nonExistingRescueId}/staff`)
+				.post(`/api/rescue/${nonExistingRescueId}/staff`)
 				.set('Cookie', cookie)
-				.send({ userId: editorUserId, permissions: ['edit_rescue_info'] })
+				.send({
+					email: 'newstaff@example.com',
+					permissions: ['edit_rescue_info'],
+				})
 				.expect(404);
 
 			expect(response.body.message).to.equal('Rescue not found');
 		});
 
 		it('should return a 403 if the user does not have permission to edit staff', async function () {
-			const nonEditorUserId = generateObjectId(); // A different user without edit permissions
-			jwtVerifyStub.restore(); // Restore to redefine behavior
-			jwtVerifyStub = sinon
-				.stub(jwt, 'verify')
-				.callsFake((token, secret, callback) => {
-					callback(null, {
-						userId: nonEditorUserId.toString(),
-						isAdmin: false,
-					});
-				});
+			jwtVerifyStub.callsFake((token, secret, callback) => {
+				callback(null, { userId: mockNonEditorUserId, isAdmin: false });
+			});
 
 			const response = await request(app)
-				.put(`/api/rescue/${existingRescueId}/staff`)
+				.post(`/api/rescue/${existingRescueId}/staff`)
 				.set('Cookie', cookie)
-				.send({ userId: generateObjectId(), permissions: ['edit_rescue_info'] })
+				.send({
+					email: 'newstaff@example.com',
+					permissions: ['edit_rescue_info'],
+					password: 'test',
+					firstName: 'Test',
+				})
 				.expect(403);
 
 			expect(response.body.message).to.equal('No permission to edit staff');
 		});
 
-		it('should successfully update an existing staff member', async function () {
-			const staffUserId = editorUserId; // Assuming the editor updates their own permissions
-			const updatedPermissions = ['edit_rescue_info', 'add_staff'];
+		it('should add a new staff member successfully', async function () {
+			userFindOneStub.callsFake(() =>
+				Promise.resolve({
+					_id: 'mockNewUserId',
+					email: 'newstaff@example.com',
+					password: 'test',
+					firstName: 'Test',
+				})
+			);
 
 			const response = await request(app)
-				.put(`/api/rescue/${existingRescueId}/staff`)
+				.post(`/api/rescue/${existingRescueId}/staff`)
 				.set('Cookie', cookie)
-				.send({ userId: staffUserId, permissions: updatedPermissions })
+				.send({
+					email: 'newstaff@example.com',
+					permissions: ['edit_rescue_info'],
+					firstName: 'New',
+					password: 'password',
+				})
 				.expect(200);
 
-			expect(response.body.message).to.equal('Staff updated successfully');
-			expect(response.body.data).to.satisfy((staff) =>
-				staff.some(
-					(member) =>
-						member.userId.toString() === staffUserId.toString() &&
-						member.permissions.includes('add_staff')
-				)
+			expect(response.body.message).to.equal(
+				'New staff member added successfully'
 			);
 		});
 
-		it('should successfully add a new staff member', async function () {
-			const newStaffUserId = generateObjectId();
-			const permissions = ['see_messages'];
+		it('should return a 409 if the staff member already exists', async function () {
+			userFindOneStub.callsFake(() =>
+				Promise.resolve({
+					_id: mockNonEditorUserId,
+					email: 'existingstaff@example.com',
+				})
+			);
 
 			const response = await request(app)
-				.put(`/api/rescue/${existingRescueId}/staff`)
+				.post(`/api/rescue/${existingRescueId}/staff`)
 				.set('Cookie', cookie)
-				.send({ userId: newStaffUserId, permissions })
-				.expect(200);
+				.send({
+					email: 'existingstaff@example.com',
+					permissions: ['edit_rescue_info'],
+					firstName: 'Existing',
+					password: 'password',
+				})
+				.expect(409);
 
-			expect(response.body.message).to.equal('Staff updated successfully');
-			expect(response.body.data).to.satisfy((staff) =>
-				staff.some(
-					(member) => member.userId.toString() === newStaffUserId.toString()
-				)
-			);
+			expect(response.body.message).to.equal('Staff member already exists');
 		});
+
+		// Optionally test for creating a new user if one doesn't exist.
+		// This part depends on whether you decide to allow staff member creation in this route.
 	});
 
 	/**

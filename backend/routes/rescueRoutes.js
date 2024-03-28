@@ -335,7 +335,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
 		const hasPermission = rescue.staff.some(
 			(staff) =>
-				staff.userId === editorUserId && // Changed from .equals to ===
+				staff.userId.equals(editorUserId) && // Changed from .equals to ===
 				staff.permissions.includes('edit_rescue_info')
 		);
 
