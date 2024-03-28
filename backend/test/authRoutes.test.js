@@ -625,6 +625,7 @@ describe('Auth Routes', function () {
 		it('should successfully fetch rescue organization for user', async () => {
 			// Setup mock for Rescue.findOne to simulate finding a rescue organization
 			const mockRescueData = {
+				id: 'mockRescueId',
 				rescueName: 'Happy Paws Rescue',
 				rescueAddress: '1234 Rescue Lane, Petville, PV 56789',
 				rescueType: 'Charity',
@@ -673,11 +674,7 @@ describe('Auth Routes', function () {
 				.set('Cookie', cookie)
 				.expect(200);
 
-			expect(res.body).to.have.property(
-				'message',
-				'Rescue organization fetched successfully'
-			);
-			expect(res.body.data).to.deep.equal(mockRescueData); // Verify the response data includes populated userId fields
+			expect(res.body).to.deep.equal(mockRescueData); // Verify the response data includes populated userId fields
 			rescueMock.verify();
 		});
 

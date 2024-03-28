@@ -11,6 +11,7 @@ import mongoose from 'mongoose';
 import rescueService from '../services/rescueService.js';
 import app from '../index.js';
 import { generateObjectId } from '../utils/generateObjectId.js';
+import { capitalizeFirstChar } from '../utils/stringManipulation.js';
 
 const mockObjectId = '65f1fa2aadeb2ca9f053f7f8';
 
@@ -860,7 +861,7 @@ describe('Rescue Routes', function () {
 								_id: staffId,
 								userId: userId,
 								permissions: ['edit_rescue_info'],
-								verifiedByRescue: false,
+								verifiedByRescue: true,
 							},
 							{
 								_id: staffIdNonEdit,
@@ -899,11 +900,11 @@ describe('Rescue Routes', function () {
 			jwtVerifyStub = sinon
 				.stub(jwt, 'verify')
 				.callsFake((token, secret, callback) => {
-					callback(null, { userId: userIdNonEdit.toString(), isAdmin: false });
+					callback(null, { userId: userIdNonEdit, isAdmin: false });
 				});
 
 			const response = await request(app)
-				.put(`/api/rescue/${rescueId}/staff/${staffIdNonEdit}/verify`)
+				.put(`/api/rescue/${rescueId}/staff/${userIdNonEdit}/verify`)
 				.set('Cookie', cookie)
 				.expect(403);
 
@@ -921,7 +922,7 @@ describe('Rescue Routes', function () {
 
 		it('should successfully verify a staff member', async function () {
 			const response = await request(app)
-				.put(`/api/rescue/${rescueId}/staff/${staffId}/verify`)
+				.put(`/api/rescue/${rescueId}/staff/${userIdNonEdit}/verify`)
 				.set('Cookie', cookie)
 				.expect(200);
 
@@ -1061,6 +1062,268 @@ describe('Rescue Routes', function () {
 		});
 	});
 
-	// TODO: '/:rescueId/staff/:staffId/permissions'
-	// TODO: ''/:rescueId/:type(charity|company)'
+	describe('PUT /api/rescue/:rescueId/staff/:staffId/permissions', () => {
+		let cookie, existingRescueId, jwtVerifyStub;
+
+		let staffUserIdPermitted,
+			staffUserIdNotPermitted,
+			notExistingRescueId,
+			staffId;
+		staffUserIdPermitted = generateObjectId();
+		staffUserIdNotPermitted = generateObjectId();
+		staffId = generateObjectId();
+		notExistingRescueId = generateObjectId();
+
+		beforeEach(() => {
+			// Resets the Sinon environment to ensure a clean state for each test.
+			sinon.restore();
+
+			// Prepares a mock authentication token for the request.
+			const token = 'dummyToken';
+			cookie = `token=${token};`;
+
+			// Stubs the JWT verification to simulate an authenticated user without admin privileges.
+			jwtVerifyStub = sinon
+				.stub(jwt, 'verify')
+				.callsFake((token, secret, callback) => {
+					callback(null, { userId: staffUserIdPermitted, isAdmin: false });
+				});
+
+			// Generates a mock ID for a rescue that exists in the database for testing.
+			existingRescueId = generateObjectId();
+
+			// Stubs the Rescue.findById method to simulate fetching rescues from the database.
+			sinon.stub(Rescue, 'findById').callsFake((id) => {
+				if (id.toString() === existingRescueId.toString()) {
+					return Promise.resolve({
+						_id: existingRescueId,
+						rescueName: 'Existing Name',
+						staff: [
+							{
+								userId: staffUserIdPermitted,
+								permissions: ['edit_rescue_info'],
+								verifiedByRescue: true,
+							},
+							{
+								userId: staffUserIdNotPermitted,
+								permissions: ['see_messages'],
+								verifiedByRescue: true,
+							},
+						],
+						save: sinon.stub().resolves(true),
+					});
+				} else {
+					return Promise.resolve(null);
+				}
+			});
+		});
+
+		afterEach(() => {
+			// Restores the JWT verification stub to its original state after each test.
+			if (jwtVerifyStub && jwtVerifyStub.restore) {
+				jwtVerifyStub.restore();
+			}
+		});
+
+		it('should update permissions for a staff member', async () => {
+			const permissions = ['edit_pet', 'delete_pet'];
+
+			const response = await request(app)
+				.put(
+					`/api/rescue/${existingRescueId}/staff/${staffUserIdPermitted}/permissions`
+				)
+				.set('Cookie', cookie)
+				.send({ permissions })
+				.expect(200);
+
+			expect(response.body.message).to.equal(
+				'Permissions updated successfully'
+			);
+			expect(response.body.data.permissions).to.deep.equal(permissions);
+		});
+
+		it('should return a 404 if the rescue is not found', async () => {
+			const permissions = ['edit_pet'];
+
+			const response = await request(app)
+				.put(`/api/rescue/${notExistingRescueId}/staff/${staffId}/permissions`)
+				.set('Cookie', cookie)
+				.send({ permissions })
+				.expect(404);
+
+			expect(response.body.message).to.equal('Rescue not found');
+		});
+
+		it('should return a 403 if the user does not have permission to edit permissions', async () => {
+			const permissions = ['edit_pet'];
+
+			jwtVerifyStub.restore();
+			jwtVerifyStub = sinon
+				.stub(jwt, 'verify')
+				.callsFake((token, secret, callback) => {
+					callback(null, {
+						userId: staffUserIdNotPermitted,
+						permissions: ['see_messages'],
+						isAdmin: false,
+					});
+				});
+
+			const response = await request(app)
+				.put(`/api/rescue/${existingRescueId}/staff/${staffId}/permissions`)
+				.set('Cookie', cookie)
+				.send({ permissions })
+				.expect(403);
+
+			expect(response.body.message).to.equal(
+				'No permission to edit permissions'
+			);
+		});
+
+		it('should return a 404 if the staff member is not found', async () => {
+			const staffId = generateObjectId();
+			const permissions = ['edit_pet'];
+
+			// Assume rescue exists but staff does not
+			// Rescue.findById mock should be adjusted accordingly
+
+			const response = await request(app)
+				.put(`/api/rescue/${existingRescueId}/staff/${staffId}/permissions`)
+				.set('Cookie', cookie)
+				.send({ permissions })
+				.expect(404);
+
+			expect(response.body.message).to.equal('Staff member not found');
+		});
+	});
+
+	describe('PUT /api/rescue/:rescueId/:type(charity|company)/validate', () => {
+		this.timeout(10000);
+
+		const types = ['charity', 'company'];
+
+		let cookie, existingRescueId, jwtVerifyStub;
+
+		let staffUserIdPermitted,
+			staffUserIdNotPermitted,
+			notExistingRescueId,
+			staffId,
+			cappedType;
+
+		staffUserIdPermitted = generateObjectId();
+		staffUserIdNotPermitted = generateObjectId();
+		staffId = generateObjectId();
+		notExistingRescueId = generateObjectId();
+		const validCompanyHouseNumber = '05045773';
+		const invalidCompanyHouseNumber = '08530268';
+		const validCharityReferenceNumber = '1190812';
+		const invalidCharityReferenceNumber = '1109139';
+
+		beforeEach(() => {
+			// Resets the Sinon environment to ensure a clean state for each test.
+			sinon.restore();
+
+			// Prepares a mock authentication token for the request.
+			const token = 'dummyToken';
+			cookie = `token=${token};`;
+
+			// Stubs the JWT verification to simulate an authenticated user without admin privileges.
+			jwtVerifyStub = sinon
+				.stub(jwt, 'verify')
+				.callsFake((token, secret, callback) => {
+					callback(null, { userId: staffUserIdPermitted, isAdmin: false });
+				});
+
+			// Generates a mock ID for a rescue that exists in the database for testing.
+			existingRescueId = generateObjectId();
+
+			// Stubs the Rescue.findById method to simulate fetching rescues from the database.
+			sinon.stub(Rescue, 'findById').callsFake((id) => {
+				if (id.toString() === existingRescueId.toString()) {
+					return Promise.resolve({
+						_id: existingRescueId,
+						rescueName: 'Existing Name',
+						staff: [
+							{
+								userId: staffUserIdPermitted,
+								permissions: ['edit_rescue_info'],
+								verifiedByRescue: true,
+							},
+							{
+								userId: staffUserIdNotPermitted,
+								permissions: ['see_messages'],
+								verifiedByRescue: true,
+							},
+						],
+						save: sinon.stub().resolves(true),
+					});
+				} else {
+					return Promise.resolve(null);
+				}
+			});
+		});
+
+		afterEach(() => {
+			// Restores the JWT verification stub to its original state after each test.
+			if (jwtVerifyStub && jwtVerifyStub.restore) {
+				jwtVerifyStub.restore();
+			}
+		});
+
+		types.forEach((type) => {
+			it(`should update and validate a ${type} with a reference number`, async () => {
+				let referenceNumber = '';
+
+				if (type === 'charity') {
+					referenceNumber = validCharityReferenceNumber;
+				} else if (type === 'company') {
+					referenceNumber = validCompanyHouseNumber;
+				}
+
+				cappedType = capitalizeFirstChar(type);
+
+				const response = await request(app)
+					.put(`/api/rescue/${existingRescueId}/${type}/validate`)
+					.set('Cookie', cookie)
+					.send({ referenceNumber })
+					.expect(200);
+
+				expect(response.body.message).to.equal(
+					`${cappedType} rescue updated successfully`
+				);
+				expect(response.body.data.referenceNumberVerified).to.be.true;
+			});
+
+			it(`should return a 404 if the ${type} rescue is not found`, async () => {
+				const rescueId = generateObjectId();
+				const referenceNumber = 'VALID1234';
+
+				const response = await request(app)
+					.put(`/api/rescue/${rescueId}/${type}/validate`)
+					.set('Cookie', cookie)
+					.send({ referenceNumber })
+					.expect(404);
+
+				expect(response.body.message).to.equal('Rescue not found');
+			});
+
+			it(`should return a 400 if the reference number already exists for another ${type}`, async () => {
+				sinon.stub(rescueService, 'isReferenceNumberUnique').resolves(false);
+
+				const rescueId = generateObjectId();
+				const referenceNumber = 'DUPLICATE1234';
+
+				// Mock isReferenceNumberUnique to return false
+
+				const response = await request(app)
+					.put(`/api/rescue/${existingRescueId}/${type}/validate`)
+					.set('Cookie', cookie)
+					.send({ referenceNumber })
+					.expect(400);
+
+				expect(response.body.message).to.equal(
+					'A rescue with the given reference number already exists'
+				);
+			});
+		});
+	});
 });
