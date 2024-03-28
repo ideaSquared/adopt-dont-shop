@@ -335,6 +335,72 @@ router.put('/:rescueId/staff', authenticateToken, async (req, res) => {
 	}
 });
 
+router.put(
+	'/:rescueId/staff/:staffId/permissions',
+	authenticateToken,
+	async (req, res) => {
+		const { rescueId } = req.params; // ID of the rescue organization
+		const { staffId } = req.params; // ID of the staff member
+		const { permissions } = req.body; // New permissions array
+
+		const editorUserId = req.user.userId; // ID of the user making the request
+
+		console.log('SID: ', staffId);
+
+		try {
+			const rescue = await Rescue.findById(rescueId);
+			if (!rescue) {
+				logger.warn(`Rescue not found with ID: ${rescueId}`);
+				return res.status(404).send({ message: 'Rescue not found' });
+			}
+
+			const hasPermission = rescue.staff.some(
+				(staff) =>
+					staff.userId.equals(editorUserId) &&
+					staff.permissions.includes('edit_rescue_info')
+			);
+
+			if (!hasPermission) {
+				logger.warn(
+					`User ${editorUserId} attempted to edit permissions without the necessary permission.`
+				);
+				return res
+					.status(403)
+					.send({ message: 'No permission to edit permissions' });
+			}
+
+			const staffIndex = rescue.staff.findIndex((staff) =>
+				staff.userId.equals(staffId)
+			);
+			if (staffIndex > -1) {
+				// Update permissions directly if the staff member exists
+				rescue.staff[staffIndex].permissions = permissions;
+			} else {
+				// Respond with an error if the specified staff member doesn't exist
+				return res.status(404).send({ message: 'Staff member not found' });
+			}
+
+			await rescue.save();
+			logger.info(
+				`Permissions updated successfully for staff ID: ${staffId} in rescue ID: ${rescueId}`
+			);
+			res.send({
+				message: 'Permissions updated successfully',
+				data: rescue.staff[staffIndex],
+			});
+		} catch (error) {
+			Sentry.captureException(error);
+			logger.error(
+				`Error updating permissions for staff ID: ${staffId} in rescue ID: ${rescueId}: ${error.message}`
+			);
+			res.status(500).send({
+				message: 'Failed to update permissions',
+				error: error.message,
+			});
+		}
+	}
+);
+
 /**
  * Route handler for verifying a staff member of a specific rescue organization.
  * It authenticates the user token, checks if the authenticated user has permission to verify staff, and then updates the staff member's verified status.

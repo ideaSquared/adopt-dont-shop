@@ -54,21 +54,67 @@ const RescueProfile = () => {
 		new Set(rescueProfile.staff.flatMap((staff) => staff.permissions))
 	);
 
-	const handlePermissionChange = (staffId, permission, isChecked) => {
-		setRescueProfile((prevState) => ({
-			...prevState,
-			staff: prevState.staff.map((staff) => {
-				if (staff._id === staffId) {
+	const handlePermissionChange = async (staffId, permission, isChecked) => {
+		// Update local state first for immediate feedback
+		setRescueProfile((prevState) => {
+			const updatedStaff = prevState.staff.map((staff) => {
+				if (staff.userId === staffId) {
+					const updatedPermissions = isChecked
+						? [...staff.permissions, permission]
+						: staff.permissions.filter((p) => p !== permission);
+
 					return {
 						...staff,
-						permissions: isChecked
-							? [...staff.permissions, permission]
-							: staff.permissions.filter((p) => p !== permission),
+						permissions: updatedPermissions,
 					};
 				}
 				return staff;
-			}),
-		}));
+			});
+
+			return {
+				...prevState,
+				staff: updatedStaff,
+			};
+		});
+
+		console.log(staffId);
+		console.log(rescueProfile);
+
+		// Prepare the data for updating the backend
+		const updatedPermissions = rescueProfile.staff.find(
+			(s) => s.userId._id === staffId
+		).permissions;
+		if (isChecked && !updatedPermissions.includes(permission)) {
+			updatedPermissions.push(permission);
+		} else if (!isChecked) {
+			const index = updatedPermissions.indexOf(permission);
+			if (index > -1) {
+				updatedPermissions.splice(index, 1); // Remove permission if unchecked
+			}
+		}
+
+		// Send an update request to the backend
+		try {
+			const response = await axios.put(
+				`${import.meta.env.VITE_API_BASE_URL}/rescue/${
+					rescueProfile.id
+				}/staff/${staffId}/permissions`,
+				{
+					permissions: updatedPermissions,
+				},
+				{
+					withCredentials: true,
+				}
+			);
+			console.log('Permissions updated successfully:', response.data);
+			// Optionally, you could fetch the updated rescue profile here to ensure the UI is fully in sync with the backend
+			fetchRescueProfile();
+		} catch (error) {
+			console.error(
+				'Error updating staff permissions:',
+				error.response?.data || error.message
+			);
+		}
 	};
 
 	const handleRescueInfoChange = (e) => {
@@ -111,6 +157,13 @@ const RescueProfile = () => {
 	};
 
 	const removeStaffMember = async (rescueId, staffId) => {
+		const isConfirmed = window.confirm(
+			'Are you sure you want to delete this staff member?'
+		);
+		if (!isConfirmed) {
+			return; // Stop the function if the user cancels the action
+		}
+
 		try {
 			const response = await axios.delete(
 				`${
@@ -273,7 +326,7 @@ const RescueProfile = () => {
 											checked={staff.permissions.includes(permission)}
 											onChange={(e) =>
 												handlePermissionChange(
-													staff._id,
+													staff.userId._id,
 													permission,
 													e.target.checked
 												)
