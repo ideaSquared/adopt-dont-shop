@@ -396,10 +396,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				staff: rescue.staff, // Consider filtering or restructuring this data based on your needs
 			};
 
-			res.status(200).send({
-				message: 'Rescue organization fetched successfully',
-				data: responseData,
-			});
+			res.json(responseData);
 		} catch (error) {
 			Sentry.captureException(error);
 			logger.error(
