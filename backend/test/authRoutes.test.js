@@ -621,7 +621,7 @@ describe('Auth Routes', function () {
 		});
 	});
 
-	describe.only('GET /api/auth/my-rescue', () => {
+	describe('GET /api/auth/my-rescue', () => {
 		it('should successfully fetch rescue organization for user', async () => {
 			// Setup mock for Rescue.findOne to simulate finding a rescue organization
 			const mockRescueData = {
