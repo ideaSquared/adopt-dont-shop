@@ -199,6 +199,46 @@ const RescueProfile = () => {
 		}
 	};
 
+	const handleReferenceNumberSubmit = async () => {
+		if (!rescueProfile.referenceNumber) {
+			alert('Please enter a reference number to submit for verification.');
+			return;
+		}
+
+		try {
+			// Adjust the URL and request method according to your actual backend endpoint and its requirements
+			const response = await axios.put(
+				`${import.meta.env.VITE_API_BASE_URL}/rescue/${
+					rescueProfile.id
+				}/${rescueProfile.rescueType.toLowerCase()}/validate`,
+				{ referenceNumber: rescueProfile.referenceNumber.trim() }, // Or send as query params as per your API
+				{ withCredentials: true }
+			);
+
+			if (response.data.verified) {
+				setRescueProfile((prev) => ({
+					...prev,
+					referenceNumberVerified: true,
+				}));
+				alert('Reference number verified successfully.');
+			} else {
+				setRescueProfile((prev) => ({
+					...prev,
+					referenceNumberVerified: false,
+				}));
+				alert('Failed to verify reference number.');
+			}
+		} catch (error) {
+			console.error(
+				'Error submitting reference number for verification:',
+				error
+			);
+			alert(
+				'Error submitting reference number for verification. Please try again later.'
+			);
+		}
+	};
+
 	// Updated handleRemoveStaff to use the new API call
 	const handleRemoveStaff = (staffId) => {
 		removeStaffMember(rescueProfile.id, staffId);
@@ -275,7 +315,7 @@ const RescueProfile = () => {
 								<Button
 									variant='outline-secondary'
 									id='button-addon2'
-									onClick={handleVerificationSubmit}
+									onClick={handleReferenceNumberSubmit}
 								>
 									Submit for verification
 								</Button>

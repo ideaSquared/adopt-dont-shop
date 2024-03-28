@@ -225,6 +225,87 @@ router.post(
 );
 
 /**
+ * Route handler for updating existing rescue organization records of types "Charity" or "Company".
+ * Validates the request body against the rescueJoiSchema and checks the uniqueness of the reference number (if changed).
+ * On successful validation and uniqueness check (if applicable), updates the document in the Rescue collection with the provided ID.
+ * Returns a 200 status code with a success message and the updated document data on success.
+ * On failure, including validation errors, non-unique reference number, or document not found, returns a 400 or 404 status code with an error message.
+ */
+router.put(
+	'/:rescueId/:type(charity|company)/validate',
+	authenticateToken,
+	async (req, res) => {
+		const { rescueId, type } = req.params; // Get rescueId and type from URL parameters
+		const { referenceNumber } = req.body; // Correctly get referenceNumber from the request body
+		const capitalizedType = capitalizeFirstChar(type);
+
+		try {
+			const existingRescue = await Rescue.findById(rescueId);
+			if (!existingRescue) {
+				logger.warn(`Rescue with ID ${rescueId} not found.`);
+				return res.status(404).send({
+					message: 'Rescue not found',
+				});
+			}
+
+			// Check for unique reference number if it's been provided and is different from the existing one
+			if (
+				referenceNumber &&
+				referenceNumber !== existingRescue.referenceNumber
+			) {
+				const isUnique = await rescueService.isReferenceNumberUnique(
+					referenceNumber
+				);
+				if (!isUnique) {
+					logger.warn(
+						`Rescue with reference number ${referenceNumber} already exists.`
+					);
+					return res.status(400).send({
+						message: 'A rescue with the given reference number already exists',
+					});
+				}
+			}
+			// Type-specific validation
+			if (type.toLowerCase() === 'charity') {
+				const isValidCharity = await fetchAndValidateCharity(referenceNumber);
+				if (isValidCharity) {
+					existingRescue.referenceNumberVerified = true;
+					logger.info(`Charity validated with ${referenceNumber}`);
+				} else {
+					existingRescue.referenceNumberVerified = false;
+					logger.info(`Charity unable to be validated with ${referenceNumber}`);
+				}
+			} else if (type.toLowerCase() === 'company') {
+				const isValidCompany = await fetchAndValidateCompany(referenceNumber);
+				if (isValidCompany) {
+					existingRescue.referenceNumberVerified = true;
+					logger.info(`Company validated with ${referenceNumber}`);
+				} else {
+					existingRescue.referenceNumberVerified = false;
+					logger.info(`Company unable to be validated with ${referenceNumber}`);
+				}
+			}
+
+			await existingRescue.save();
+			logger.info(`${capitalizedType} rescue updated successfully.`);
+			res.status(200).send({
+				message: `${capitalizedType} rescue updated successfully`,
+				data: existingRescue,
+			});
+		} catch (error) {
+			Sentry.captureException(error);
+			logger.error(
+				`Failed to update ${capitalizedType} rescue: ` + error.message
+			);
+			res.status(400).send({
+				message: `Failed to update ${capitalizedType} rescue`,
+				error: error.message,
+			});
+		}
+	}
+);
+
+/**
  * Route handler for updating the information of a specific rescue organization identified by its ID.
  * It authenticates the user token, extracts the rescue ID and updates from the request, and checks user permissions.
  * On successful permission check and validation, updates the specified fields of the document.

@@ -1,5 +1,11 @@
 import axios from 'axios';
+import Sentry from '@sentry/node'; // Sentry for error tracking
+import LoggerUtil from '../utils/Logger.js'; // Custom logger utility
+
 import verifyCompanyIsValid from './verifyCompanyIsValid.js'; // Adjust the import path as needed
+
+// Instantiate a logger for this module, assuming LoggerUtil is correctly set up to handle this.
+const logger = new LoggerUtil('utils/verify-company').getLogger();
 
 /**
  * Fetches and validates company information from the UK's Companies House API.
@@ -14,6 +20,9 @@ async function fetchAndValidateCompany(companyNumber) {
 	const apiKey = process.env.COMPANIES_HOUSE_API_KEY;
 
 	if (!apiKey) {
+		logger.error(
+			'COMPANIES_HOUSE_API_KEY is not defined in environment variables.'
+		);
 		throw new Error(
 			'COMPANIES_HOUSE_API_KEY is not defined in environment variables.'
 		);
@@ -22,7 +31,12 @@ async function fetchAndValidateCompany(companyNumber) {
 	const encodedApiKey = Buffer.from(`${apiKey}:`).toString('base64');
 	const authHeader = `Basic ${encodedApiKey}`;
 
+	console.log(fullURL);
+
 	try {
+		logger.info(
+			`Fetching company details for company number: ${companyNumber}`
+		);
 		const response = await axios.get(fullURL, {
 			headers: { Authorization: authHeader },
 		});
@@ -30,18 +44,23 @@ async function fetchAndValidateCompany(companyNumber) {
 		const isValid = verifyCompanyIsValid(response.data);
 
 		if (!isValid) {
-			throw new Error(
+			logger.warn(
 				`Company ${companyNumber} does not meet validation criteria.`
 			);
+			return false;
 		}
 
+		logger.info(
+			`Successfully fetched and verified company details for company number: ${companyNumber}`
+		);
 		return {
 			data: response.data,
 			message: 'Successfully fetched and verified company details',
 		};
 	} catch (error) {
-		// Re-throw the error to be handled by the caller
-		throw error;
+		logger.error(`Error in fetching/validating company: ${error.message}`);
+		Sentry.captureException(error); // Report the error to Sentry
+		return false;
 	}
 }
 
