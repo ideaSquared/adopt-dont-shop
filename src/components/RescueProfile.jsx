@@ -12,6 +12,8 @@ import {
 } from 'react-bootstrap';
 import axios from 'axios';
 import AlertComponent from './AlertComponent';
+import { useRescueRedirect } from './hooks/useRescueRedirect';
+import { useAuth } from './AuthContext';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
@@ -31,10 +33,15 @@ const RescueProfile = () => {
 		email: '',
 		password: '',
 	});
+	const { isRescue } = useAuth();
+
+	useRescueRedirect();
 
 	useEffect(() => {
-		fetchRescueProfile();
-	}, []);
+		if (isRescue) {
+			fetchRescueProfile();
+		}
+	}, [isRescue]);
 
 	const fetchRescueProfile = async () => {
 		try {
@@ -45,6 +52,10 @@ const RescueProfile = () => {
 					withCredentials: true,
 				}
 			);
+
+			if (!response.ok) {
+				navigate('/');
+			}
 
 			setRescueProfile({
 				...response.data,

@@ -2,14 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Container, Table, Modal, Form } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext';
 import PaginationControls from './PaginationControls';
 import StatusBadge from './StatusBadge';
+import { useAdminRedirect } from './hooks/useAdminRedirect';
+import { useAuth } from './AuthContext';
 
 axios.defaults.withCredentials = true;
 
 const Conversations = () => {
+	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	useAdminRedirect(); // This will handle the redirection logic
 	const [conversations, setConversations] = useState([]);
 	const [filteredConversations, setFilteredConversations] = useState([]);
 	const [messages, setMessages] = useState([]);
@@ -20,16 +22,12 @@ const Conversations = () => {
 	const [filterStatus, setFilterStatus] = useState('');
 	const [showModal, setShowModal] = useState(false);
 	const [selectedConversation, setSelectedConversation] = useState(null);
-	const navigate = useNavigate();
-	const { isAdmin } = useAuth();
 
 	useEffect(() => {
-		if (!isAdmin) {
-			navigate('/');
-			return;
+		if (isAdmin) {
+			fetchConversations();
 		}
-		fetchConversations();
-	}, [isAdmin, navigate, filterStatus, searchTerm]);
+	}, [isAdmin, filterStatus, searchTerm]);
 
 	const deleteConversation = async (id) => {
 		// Confirmation dialog

@@ -43,7 +43,7 @@ const CustomNavbar = () => {
 							</>
 						) : (
 							<>
-								<LinkContainer to='/change-details'>
+								<LinkContainer to='/my-profile'>
 									<Button variant='secondary' className='mx-2'>
 										My Profile
 									</Button>

@@ -16,7 +16,7 @@ import AdminConversation from './components/AdminConversations';
 import LoginForm from './components/UserLoginForm';
 import ForgotPasswordForm from './components/UserForgotPasswordForm';
 import ResetPasswordForm from './components/UserResetPasswordForm';
-import ChangeDetailsForm from './components/UserChangeDetailsForm';
+import UserMyProfile from './components/UserMyProfile';
 
 import CreateAccountForm from './components/CreateAccountForm';
 import PetActionSelection from './components/CreateAccountPetActionSelection';
@@ -39,7 +39,7 @@ function App() {
 				<Route path='/create-account' element={<CreateAccountForm />} />
 				<Route path='/forgot-password' element={<ForgotPasswordForm />} />
 				<Route path='/reset-password' element={<ResetPasswordForm />} />
-				<Route path='/change-details' element={<ChangeDetailsForm />} />
+				<Route path='/my-profile' element={<UserMyProfile />} />
 				<Route path='/admin' element={<AdminDashboard />} />
 				<Route path='/admin/users' element={<AdminUsers />} />
 				<Route path='/admin/pets' element={<AdminPets />} />

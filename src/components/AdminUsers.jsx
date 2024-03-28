@@ -2,31 +2,30 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Table, Container, Badge, Form } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext';
 import PaginationControls from './PaginationControls';
 import StatusBadge from './StatusBadge';
+import { useAdminRedirect } from './hooks/useAdminRedirect';
+import { useAuth } from './AuthContext';
 
 axios.defaults.withCredentials = true;
 
 const Users = () => {
+	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	useAdminRedirect(); // This will handle the redirection logic
 	const [users, setUsers] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [usersPerPage] = useState(10); // Define how many users per page
-	const navigate = useNavigate();
-	const { isAdmin } = useAuth();
 	const [searchTerm, setSearchTerm] = useState('');
 	const [filterFlags, setFilterFlags] = useState({
 		forceReset: false,
 		admin: false,
 	});
 
+	useAdminRedirect();
 	useEffect(() => {
-		if (!isAdmin) {
-			navigate('/');
-			return;
+		if (isAdmin) {
+			fetchUsers();
 		}
-		fetchUsers();
 	}, [isAdmin]); // navigate is stable, no need to include in deps
 
 	const fetchUsers = async () => {

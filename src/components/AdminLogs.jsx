@@ -1,30 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Badge, Dropdown, Table, Container } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext';
 import PaginationControls from './PaginationControls';
 import StatusBadge from './StatusBadge';
+import { useAdminRedirect } from './hooks/useAdminRedirect';
+import { useAuth } from './AuthContext';
 
 // Configure axios defaults just once, possibly outside of the component or in a separate file
 axios.defaults.withCredentials = true;
 
 const Logs = () => {
+	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	useAdminRedirect(); // This will handle the redirection logic
 	const [logs, setLogs] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [logsPerPage] = useState(10); // If not changing, no setter needed
 	const [filter, setFilter] = useState('all');
 	const [serviceFilter, setServiceFilter] = useState('all');
-	const navigate = useNavigate();
-	const { isAdmin } = useAuth();
 
 	useEffect(() => {
-		if (!isAdmin) {
-			navigate('/');
-			return;
+		if (isAdmin) {
+			fetchLogs();
 		}
-		fetchLogs();
-	}, [isAdmin]); // Removed navigate from dependency array, as it's unlikely to change
+	}, [isAdmin]);
 
 	const fetchLogs = async () => {
 		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/logs`;

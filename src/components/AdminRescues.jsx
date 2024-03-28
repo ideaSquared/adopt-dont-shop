@@ -1,35 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Container, Table, Form, Modal } from 'react-bootstrap';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import { useLocation } from 'react-router-dom';
 import PaginationControls from './PaginationControls';
+import { useAdminRedirect } from './hooks/useAdminRedirect';
+import { useAuth } from './AuthContext';
 
 axios.defaults.withCredentials = true;
 
 const Rescues = () => {
+	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	useAdminRedirect(); // This will handle the redirection logic
 	const [rescues, setRescues] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [rescuesPerPage] = useState(10); // Define how many rescues per page
 	const [filterType, setFilterType] = useState('');
 	const [searchName, setSearchName] = useState('');
 	const [searchEmail, setSearchEmail] = useState('');
-	const navigate = useNavigate();
-	const { isAdmin } = useAuth();
 	const location = useLocation();
 
 	const [showModal, setShowModal] = useState(false);
 	const [selectedRescueDetails, setSelectedRescueDetails] = useState(null);
 
 	useEffect(() => {
-		if (!isAdmin) {
-			navigate('/');
-			return;
+		if (isAdmin) {
+			const params = new URLSearchParams(location.search);
+			const searchNameParam = params.get('searchName');
+			if (searchNameParam) setSearchName(searchNameParam);
+			fetchRescues();
 		}
-		const params = new URLSearchParams(location.search);
-		const searchNameParam = params.get('searchName');
-		if (searchNameParam) setSearchName(searchNameParam);
-		fetchRescues();
 	}, [isAdmin, location.search]);
 
 	const fetchRescues = async () => {

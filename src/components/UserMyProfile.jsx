@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import AlertComponent from './AlertComponent';
-import { useNavigate } from 'react-router-dom';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
+import { useLoginRedirect } from './hooks/useLoginRedirect';
 
-const ChangeDetailsForm = () => {
+const UserMyProfile = () => {
 	const [formData, setFormData] = useState({
 		email: '',
 		password: '',
@@ -12,7 +12,7 @@ const ChangeDetailsForm = () => {
 	});
 	const [alert, setAlert] = useState({ message: null, type: null });
 	const token = localStorage.getItem('token');
-	const navigate = useNavigate();
+	useLoginRedirect();
 
 	// Function to fetch current user details and pre-fill the form
 	useEffect(() => {
@@ -153,4 +153,4 @@ const ChangeDetailsForm = () => {
 	);
 };
 
-export default ChangeDetailsForm;
+export default UserMyProfile;

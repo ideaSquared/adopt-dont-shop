@@ -8,18 +8,19 @@ import {
 	Modal,
 	Pagination,
 } from 'react-bootstrap';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import { Link } from 'react-router-dom';
 import PaginationControls from './PaginationControls';
+import { useAdminRedirect } from './hooks/useAdminRedirect';
+import { useAuth } from './AuthContext';
 
 axios.defaults.withCredentials = true;
 
 const Pets = () => {
+	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	useAdminRedirect(); // This will handle the redirection logic
 	const [pets, setPets] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [petsPerPage] = useState(10); // Define how many pets per page
-	const navigate = useNavigate();
-	const { isAdmin } = useAuth();
 
 	const [searchName, setSearchName] = useState('');
 	const [filterType, setFilterType] = useState('');
@@ -28,11 +29,9 @@ const Pets = () => {
 	const [selectedPetDetails, setSelectedPetDetails] = useState(null);
 
 	useEffect(() => {
-		if (!isAdmin) {
-			navigate('/');
-			return;
+		if (isAdmin) {
+			fetchPets();
 		}
-		fetchPets();
 	}, [isAdmin]);
 
 	const fetchPets = async () => {
