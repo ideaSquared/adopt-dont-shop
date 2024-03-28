@@ -7,6 +7,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const [isAdmin, setIsAdmin] = useState(false); // Added isAdmin state
+	const [isRescue, setIsRescue] = useState(false);
 
 	useEffect(() => {
 		const checkLoginStatus = async () => {
@@ -30,7 +31,25 @@ export const AuthProvider = ({ children }) => {
 			}
 		};
 
+		const checkRescueRoute = async () => {
+			try {
+				const response = await axios.get(
+					`${import.meta.env.VITE_API_BASE_URL}/auth/my-rescue`,
+					{ withCredentials: true }
+				);
+				if (response.status === 200) {
+					setIsRescue(true);
+				} else {
+					setIsRescue(false);
+				}
+			} catch (error) {
+				console.error('Error checking rescue route:', error);
+				setIsRescue(false);
+			}
+		};
+
 		checkLoginStatus();
+		checkRescueRoute();
 	}, []);
 
 	const login = async (email, password) => {
@@ -42,6 +61,7 @@ export const AuthProvider = ({ children }) => {
 			);
 			setIsLoggedIn(true);
 			setIsAdmin(response.data.isAdmin); // Directly update isAdmin based on the response
+			localStorage.setItem('userId', response.data.userId);
 		} catch (error) {
 			console.error('Login attempt failed:', error);
 			setIsLoggedIn(false);
@@ -83,6 +103,7 @@ export const AuthProvider = ({ children }) => {
 	const contextValue = {
 		isLoggedIn,
 		isAdmin, // Make isAdmin available in the context
+		isRescue,
 		login,
 		logout,
 	};

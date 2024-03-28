@@ -5,7 +5,7 @@ import { Navbar, Nav, Button, Container } from 'react-bootstrap';
 import { useAuth } from './AuthContext';
 
 const CustomNavbar = () => {
-	const { isLoggedIn, logout, isAdmin } = useAuth(); // Assuming isAdmin is part of your auth context
+	const { isLoggedIn, logout, isAdmin, isRescue } = useAuth(); // Assuming isAdmin is part of your auth context
 
 	return (
 		<Navbar bg='light' expand='lg' className='bg-body-tertiary rounded'>
@@ -50,6 +50,15 @@ const CustomNavbar = () => {
 									<LinkContainer to='/admin'>
 										<Button variant='warning' className='mx-2'>
 											Admin
+										</Button>
+									</LinkContainer>
+								)}
+								{isRescue && (
+									<LinkContainer to='/rescue-profile'>
+										<Button variant='info' className='mx-2'>
+											{' '}
+											{/* Adjust the variant as needed */}
+											Rescue Profile
 										</Button>
 									</LinkContainer>
 								)}
