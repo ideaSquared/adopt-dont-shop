@@ -1,6 +1,7 @@
 // Import dependencies for routing, database access, and utility functions.
 import express from 'express';
 import Rescue from '../models/Rescue.js'; // Mongoose model for Rescue documents.
+import User from '../models/User.js';
 import rescueService from '../services/rescueService.js'; // Service layer for additional business logic.
 import { capitalizeFirstChar } from '../utils/stringManipulation.js'; // Utility for string manipulation.
 
@@ -364,16 +365,18 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 /**
- * Route handler for adding a new staff member to a rescue organization or updating an existing staff member's permissions.
- * It authenticates the user token, validates the user's permissions to edit staff details, and either updates or adds the staff member based on the request body.
- * Returns a success message and the updated staff list on successful addition or update.
- * On failure, including permission errors or database errors, returns an appropriate error message and status code.
+ * Adds a new staff member to a specified rescue organization.
+ * - Authentication: Requires a user token.
+ * - Authorization: Validates that the requesting user has the 'add_staff' permission.
+ * - Operation: Adds a staff member using the provided email in the request body, after checking for existing staff to prevent duplicates.
+ * - Success Response: Returns a message with the success status and the updated list of staff members.
+ * - Error Handling: Responds with an appropriate error message and status code for permission issues, duplicates, or other database errors.
  */
 
-router.put('/:rescueId/staff', authenticateToken, async (req, res) => {
-	const { rescueId } = req.params; // ID of the rescue organization
-	const { userId, permissions } = req.body; // Staff member details
-	const editorUserId = req.user?.userId; // ID of the user making the request
+router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
+	const { rescueId } = req.params;
+	const { email, permissions, firstName, password } = req.body; // Now using email to find/add the user
+	const editorUserId = req.user?.userId;
 
 	try {
 		const rescue = await Rescue.findById(rescueId);
@@ -395,26 +398,49 @@ router.put('/:rescueId/staff', authenticateToken, async (req, res) => {
 			return res.status(403).send({ message: 'No permission to edit staff' });
 		}
 
-		const staffIndex = rescue.staff.findIndex((staff) =>
-			staff.userId.equals(userId)
-		);
-		if (staffIndex > -1) {
-			rescue.staff[staffIndex].permissions = permissions;
-		} else {
-			rescue.staff.push({ userId, permissions, verifiedByRescue: false });
+		// Find the user by email
+		let user = await User.findOne({ email: email });
+		if (!user) {
+			// Optional: Create a new user if one doesn't exist
+			// Remove this part if you don't want to create users here
+			user = new User({
+				firstName,
+				email,
+				password,
+			});
+			await user.save();
 		}
 
+		// Check if the user is already a staff member to prevent duplicates
+		const isStaffMember = rescue.staff.some((staff) =>
+			staff.userId.equals(user._id)
+		);
+		if (isStaffMember) {
+			return res.status(409).send({ message: 'Staff member already exists' });
+		}
+
+		// Add new staff member
+		rescue.staff.push({
+			userId: user._id,
+			permissions,
+			verifiedByRescue: false,
+		});
 		await rescue.save();
-		logger.info(`Staff updated successfully for rescue ID: ${rescueId}`);
-		res.send({ message: 'Staff updated successfully', data: rescue.staff });
+		logger.info(
+			`New staff member added successfully for rescue ID: ${rescueId}`
+		);
+		res.send({
+			message: 'New staff member added successfully',
+			data: rescue.staff,
+		});
 	} catch (error) {
 		Sentry.captureException(error);
 		logger.error(
-			`Error updating staff for rescue ID: ${rescueId}: ${error.message}`
+			`Error adding new staff for rescue ID: ${rescueId}: ${error.message}`
 		);
 		res
 			.status(500)
-			.send({ message: 'Failed to update staff', error: error.message });
+			.send({ message: 'Failed to add new staff', error: error.message });
 	}
 });
 

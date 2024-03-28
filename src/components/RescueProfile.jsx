@@ -3,13 +3,12 @@ import {
 	Container,
 	Form,
 	Button,
-	ListGroup,
-	Card,
 	Badge,
 	Table,
 	InputGroup,
 	Row,
 	Col,
+	Modal,
 } from 'react-bootstrap';
 import axios from 'axios';
 import AlertComponent from './AlertComponent';
@@ -26,6 +25,12 @@ const RescueProfile = () => {
 	});
 	const userId = localStorage.getItem('userId');
 	const [alertInfo, setAlertInfo] = useState({ type: '', message: '' });
+	const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+	const [newStaff, setNewStaff] = useState({
+		firstName: '',
+		email: '',
+		password: '',
+	});
 
 	useEffect(() => {
 		fetchRescueProfile();
@@ -78,9 +83,6 @@ const RescueProfile = () => {
 			};
 		});
 
-		console.log(staffId);
-		console.log(rescueProfile);
-
 		// Prepare the data for updating the backend
 		const updatedPermissions = rescueProfile.staff.find(
 			(s) => s.userId._id === staffId
@@ -107,7 +109,7 @@ const RescueProfile = () => {
 					withCredentials: true,
 				}
 			);
-			console.log('Permissions updated successfully:', response.data);
+			// console.log('Permissions updated successfully:', response.data);
 			// Optionally, you could fetch the updated rescue profile here to ensure the UI is fully in sync with the backend
 			fetchRescueProfile();
 		} catch (error) {
@@ -189,7 +191,7 @@ const RescueProfile = () => {
 				updates,
 				{ withCredentials: true }
 			);
-			console.log('Rescue profile updated successfully:', response.data);
+			// console.log('Rescue profile updated successfully:', response.data);
 			// Optionally, refresh the local data to reflect the update
 			fetchRescueProfile();
 		} catch (error) {
@@ -250,6 +252,30 @@ const RescueProfile = () => {
 				message:
 					'Error submitting reference number for verification. Please try again later.',
 			});
+		}
+	};
+
+	const handleAddStaff = async () => {
+		try {
+			const response = await axios.post(
+				`${import.meta.env.VITE_API_BASE_URL}/rescue/${rescueProfile.id}/staff`,
+				{
+					firstName: newStaff.firstName,
+					email: newStaff.email,
+					password: newStaff.password,
+				},
+				{
+					withCredentials: true,
+				}
+			);
+			// console.log('Staff added successfully:', response.data);
+			setShowAddStaffModal(false); // Close the modal on success
+			fetchRescueProfile(); // Refresh the staff list
+		} catch (error) {
+			console.error(
+				'Error adding new staff member:',
+				error.response?.data || error.message
+			);
 		}
 	};
 
@@ -365,6 +391,14 @@ const RescueProfile = () => {
 			<hr />
 
 			<h2>Staff Members</h2>
+			<Button
+				variant='primary'
+				className='mb-3'
+				onClick={() => setShowAddStaffModal(true)}
+			>
+				Add Staff
+			</Button>
+
 			<Table striped bordered hover>
 				<thead>
 					<tr>
@@ -372,8 +406,7 @@ const RescueProfile = () => {
 						{uniquePermissions.map((permission, index) => (
 							<th key={index}>{permission}</th>
 						))}
-						<th>Actions</th>{' '}
-						{/* This header accommodates both verify and remove actions */}
+						<th>Actions</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -381,22 +414,20 @@ const RescueProfile = () => {
 						<tr key={staff.userId._id}>
 							<td>{staff.userId.email}</td>
 							{uniquePermissions.map((permission) => (
-								<>
-									<td key={permission}>
-										<Form.Check
-											type='checkbox'
-											checked={staff.permissions.includes(permission)}
-											onChange={(e) =>
-												handlePermissionChange(
-													staff.userId._id,
-													permission,
-													e.target.checked
-												)
-											}
-											disabled={staff.userId._id === userId} // Disable if this staff is the current user
-										/>
-									</td>
-								</>
+								<td key={`${staff.userId._id}-${permission}`}>
+									<Form.Check
+										type='checkbox'
+										checked={staff.permissions.includes(permission)}
+										onChange={(e) =>
+											handlePermissionChange(
+												staff.userId._id,
+												permission,
+												e.target.checked
+											)
+										}
+										disabled={staff.userId._id === userId} // Disable if this staff is the current user
+									/>
+								</td>
 							))}
 
 							<td>
@@ -425,6 +456,66 @@ const RescueProfile = () => {
 					))}
 				</tbody>
 			</Table>
+			<Modal
+				show={showAddStaffModal}
+				onHide={() => setShowAddStaffModal(false)}
+			>
+				<Modal.Header closeButton>
+					<Modal.Title>Add New Staff Member</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>
+					<AlertComponent
+						type={'info'}
+						message={'This will create a new user who will need to login'}
+					/>
+					<Form>
+						<Form.Group className='mb-3'>
+							<Form.Label>First name</Form.Label>
+							<Form.Control
+								type='text'
+								placeholder='Enter first name'
+								value={newStaff.firstName}
+								onChange={(e) =>
+									setNewStaff({ ...newStaff, firstName: e.target.value })
+								}
+							/>
+						</Form.Group>
+						<Form.Group className='mb-3'>
+							<Form.Label>Email address</Form.Label>
+							<Form.Control
+								type='email'
+								placeholder='Enter email'
+								value={newStaff.email}
+								onChange={(e) =>
+									setNewStaff({ ...newStaff, email: e.target.value })
+								}
+							/>
+						</Form.Group>
+						<Form.Group className='mb-3'>
+							<Form.Label>Password</Form.Label>
+							<Form.Control
+								type='password'
+								placeholder='Password'
+								value={newStaff.password}
+								onChange={(e) =>
+									setNewStaff({ ...newStaff, password: e.target.value })
+								}
+							/>
+						</Form.Group>
+					</Form>
+				</Modal.Body>
+				<Modal.Footer>
+					<Button
+						variant='secondary'
+						onClick={() => setShowAddStaffModal(false)}
+					>
+						Close
+					</Button>
+					<Button variant='primary' onClick={handleAddStaff}>
+						Add staff
+					</Button>
+				</Modal.Footer>
+			</Modal>
 		</Container>
 	);
 };
