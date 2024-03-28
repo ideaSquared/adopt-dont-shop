@@ -3,9 +3,11 @@ import React from 'react';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Navbar, Nav, Button, Container } from 'react-bootstrap';
 import { useAuth } from './AuthContext';
+import { useLogout } from './hooks/useLogout'; // Adjust the path as necessary
 
 const CustomNavbar = () => {
 	const { isLoggedIn, logout, isAdmin, isRescue } = useAuth(); // Assuming isAdmin is part of your auth context
+	const handleLogout = useLogout();
 
 	return (
 		<Navbar bg='light' expand='lg' className='bg-body-tertiary rounded'>
@@ -62,7 +64,11 @@ const CustomNavbar = () => {
 										</Button>
 									</LinkContainer>
 								)}
-								<Button onClick={logout} variant='primary' className='mx-2'>
+								<Button
+									onClick={handleLogout}
+									variant='primary'
+									className='mx-2'
+								>
 									Logout
 								</Button>
 							</>
