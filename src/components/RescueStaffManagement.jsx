@@ -221,11 +221,31 @@ const RescueStaffManagement = ({
 			<Table striped bordered hover>
 				<thead>
 					<tr>
-						<th>Staff email</th>
-						{uniquePermissions.map((permission, index) => (
-							<th key={index}>{permission}</th>
-						))}
-						<th>Actions</th>
+						<th rowspan='2'>Staff Email</th>
+						<th colspan='3'>Rescue Operations</th>
+						<th colspan='5'>Staff Management</th>
+						<th colspan='4'>Pet Management</th>
+						<th colspan='2'>Communications</th>
+						<th rowspan='2'>Actions</th>
+					</tr>
+					<tr>
+						<th>View Rescue Info</th>
+						<th>Edit Rescue Info</th>
+						<th>Delete Rescue Info</th>
+
+						<th>View Staff</th>
+						<th>Add Staff</th>
+						<th>Edit Staff</th>
+						<th>Verify Staff</th>
+						<th>Delete Staff</th>
+
+						<th>View Pet</th>
+						<th>Add Pet</th>
+						<th>Edit Pet</th>
+						<th>Delete Pet</th>
+
+						<th>Create Messages</th>
+						<th>Read Messages</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -244,7 +264,7 @@ const RescueStaffManagement = ({
 												e.target.checked
 											)
 										}
-										disabled={staff.userId._id === userId || !canEditStaff} // Disable if this staff is the current user
+										disabled={staff.userId._id === userId || !canEditStaff}
 									/>
 								</td>
 							))}
@@ -275,6 +295,7 @@ const RescueStaffManagement = ({
 					))}
 				</tbody>
 			</Table>
+
 			<PaginationControls
 				currentPage={currentPage}
 				totalPages={totalPages}
