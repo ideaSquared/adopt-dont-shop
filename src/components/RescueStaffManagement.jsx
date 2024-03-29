@@ -2,31 +2,210 @@ import React, { useState } from 'react';
 import { Table, Button, Modal, Tabs, Tab, Form } from 'react-bootstrap';
 import PaginationControls from './PaginationControls';
 import AlertComponent from './AlertComponent';
+import axios from 'axios';
 
 const RescueStaffManagement = ({
 	rescueProfile,
-	currentPage,
-	totalPages,
+	setRescueProfile,
+	fetchRescueProfile,
 	canAddStaff,
 	canEditStaff,
 	canVerifyStaff,
 	canDeleteStaff,
-	showAddStaffModal,
-	setShowAddStaffModal,
 	uniquePermissions,
-	setCurrentPage,
-	newStaff,
-	setNewStaff,
-	setExistingStaffEmail,
-	handleAddNewStaff,
-	handleRemoveStaff,
-	handleVerifyStaff,
-	handlePermissionChange,
-	existingStaffEmail,
-	handleAddExistingUserToStaff,
 	userId,
 }) => {
 	const [tabState, setTabState] = useState('');
+
+	// NEW
+	const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+	const [newStaff, setNewStaff] = useState({
+		firstName: '',
+		email: '',
+		password: '',
+	});
+	const [existingStaffEmail, setExistingStaffEmail] = useState('');
+
+	const [currentPage, setCurrentPage] = useState(1);
+	const [staffPerPage] = useState(10);
+
+	const indexOfLastStaff = currentPage * staffPerPage;
+	const indexOfFirstStaff = indexOfLastStaff - staffPerPage;
+	const currentStaff = rescueProfile.staff.slice(
+		indexOfFirstStaff,
+		indexOfLastStaff
+	);
+	const totalPages = Math.ceil(rescueProfile.staff.length / staffPerPage);
+
+	const verifyStaffMember = async (rescueId, staffId) => {
+		try {
+			const response = await axios.put(
+				`${
+					import.meta.env.VITE_API_BASE_URL
+				}/rescue/${rescueId}/staff/${staffId}/verify`,
+				{}, // PUT request does not need a body for this operation
+				{ withCredentials: true }
+			);
+
+			// Reload or update the rescue profile to reflect the changes
+			fetchRescueProfile();
+		} catch (error) {
+			console.error(
+				'Error verifying staff member:',
+				error.response?.data || error.message
+			);
+		}
+	};
+
+	const removeStaffMember = async (rescueId, staffId) => {
+		const isConfirmed = window.confirm(
+			'Are you sure you want to delete this staff member?'
+		);
+		if (!isConfirmed) {
+			return; // Stop the function if the user cancels the action
+		}
+
+		try {
+			const response = await axios.delete(
+				`${
+					import.meta.env.VITE_API_BASE_URL
+				}/rescue/${rescueId}/staff/${staffId}`,
+				{ withCredentials: true }
+			);
+			// Reload or update the rescue profile to reflect the changes
+			fetchRescueProfile();
+		} catch (error) {
+			console.error(
+				'Error removing staff member:',
+				error.response?.data || error.message
+			);
+		}
+	};
+
+	const handleAddStaff = async (staffInfo) => {
+		try {
+			// Construct the payload based on the provided staff information
+			const payload =
+				staffInfo.firstName && staffInfo.password
+					? {
+							// Adding a new staff member
+							firstName: staffInfo.firstName,
+							email: staffInfo.email,
+							password: staffInfo.password,
+					  }
+					: {
+							// Adding an existing user as staff
+							email: staffInfo.email,
+					  };
+
+			// API call to add a staff member (new or existing)
+			const response = await axios.post(
+				`${import.meta.env.VITE_API_BASE_URL}/rescue/${rescueProfile.id}/staff`,
+				payload,
+				{
+					withCredentials: true,
+				}
+			);
+
+			// Actions upon successful addition
+			setShowAddStaffModal(false); // Close the modal
+			fetchRescueProfile(); // Refresh the staff list
+
+			// Reset state based on the type of addition
+			if (payload.firstName) {
+				setNewStaff({ firstName: '', email: '', password: '' }); // Reset for new user
+			} else {
+				setExistingStaffEmail(''); // Reset for existing user
+			}
+		} catch (error) {
+			console.error(
+				'Error adding staff member:',
+				error.response?.data || error.message
+			);
+		}
+	};
+
+	// Function to handle adding a new staff member
+	const handleAddNewStaff = () => {
+		const staffInfo = { ...newStaff }; // Copy newStaff state
+		handleAddStaff(staffInfo); // Pass the new staff info to the generic handler
+		setNewStaff({ firstName: '', email: '', password: '' }); // Reset new staff form
+	};
+
+	// Function to handle adding an existing staff member
+	const handleAddExistingUserToStaff = () => {
+		handleAddStaff({ email: existingStaffEmail }); // Call with only the email for existing user
+	};
+
+	// Updated handleRemoveStaff to use the new API call
+	const handleRemoveStaff = (staffId) => {
+		removeStaffMember(rescueProfile.id, staffId);
+	};
+
+	// Assuming each staff member's verification status can be toggled with a button in your UI
+	const handleVerifyStaff = (staffId) => {
+		verifyStaffMember(rescueProfile.id, staffId);
+	};
+
+	const handlePermissionChange = async (staffId, permission, isChecked) => {
+		// Update local state first for immediate feedback
+		setRescueProfile((prevState) => {
+			const updatedStaff = prevState.staff.map((staff) => {
+				if (staff.userId === staffId) {
+					const updatedPermissions = isChecked
+						? [...staff.permissions, permission]
+						: staff.permissions.filter((p) => p !== permission);
+
+					return {
+						...staff,
+						permissions: updatedPermissions,
+					};
+				}
+				return staff;
+			});
+
+			return {
+				...prevState,
+				staff: updatedStaff,
+			};
+		});
+
+		// Prepare the data for updating the backend
+		const updatedPermissions = rescueProfile.staff.find(
+			(s) => s.userId._id === staffId
+		).permissions;
+		if (isChecked && !updatedPermissions.includes(permission)) {
+			updatedPermissions.push(permission);
+		} else if (!isChecked) {
+			const index = updatedPermissions.indexOf(permission);
+			if (index > -1) {
+				updatedPermissions.splice(index, 1); // Remove permission if unchecked
+			}
+		}
+
+		// Send an update request to the backend
+		try {
+			const response = await axios.put(
+				`${import.meta.env.VITE_API_BASE_URL}/rescue/${
+					rescueProfile.id
+				}/staff/${staffId}/permissions`,
+				{
+					permissions: updatedPermissions,
+				},
+				{
+					withCredentials: true,
+				}
+			);
+			// console.log('Permissions updated successfully:', response.data);
+			// Optionally, you could fetch the updated rescue profile here to ensure the UI is fully in sync with the backend
+			fetchRescueProfile();
+		} catch (error) {
+			console.error(
+				'Error updating staff permissions:',
+				error.response?.data || error.message
+			);
+		}
+	};
 
 	return (
 		<>
