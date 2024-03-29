@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal, Form, Table } from 'react-bootstrap';
 import axios from 'axios';
+import PaginationControls from './PaginationControls';
 
 const RescuePetManagement = ({ rescueId }) => {
 	const [pets, setPets] = useState([]);
 	const [showPetModal, setShowPetModal] = useState(false);
 	const [editingPet, setEditingPet] = useState({}); // Use an empty object as the default state
 	const [isEditMode, setIsEditMode] = useState(false);
+
+	const [currentPage, setCurrentPage] = useState(1);
+	const [petsPerPage] = useState(10);
 
 	// Base URL for your API
 	const apiUrl = import.meta.env.VITE_API_BASE_URL; // Adjust accordingly
@@ -148,39 +152,55 @@ const RescuePetManagement = ({ rescueId }) => {
 		setIsEditMode(false);
 	};
 
+	// Pagination Logic
+	const indexOfLastPet = currentPage * petsPerPage;
+	const indexOfFirstPet = indexOfLastPet - petsPerPage;
+	const currentPets = pets.slice(indexOfFirstPet, indexOfLastPet);
+	const totalPages = Math.ceil(pets.length / petsPerPage);
+
 	return (
 		<div>
-			<Button onClick={() => handleAddPet()}>Add Pet</Button>
+			<h2>Pets</h2>
+			<Button onClick={() => handleAddPet()} className='mb-3'>
+				Add Pet
+			</Button>
 			<Table striped bordered hover>
 				<thead>
 					<tr>
 						<th>Name</th>
 						<th>Type</th>
+						<th>Status</th>
 						<th>Age</th>
 						<th>Actions</th>
 					</tr>
 				</thead>
 				<tbody>
-					{pets.map((pet) => (
+					{currentPets.map((pet) => (
 						<tr key={pet._id}>
 							<td>{pet.petName}</td>
 							<td>{pet.type}</td>
+							<td>{pet.status}</td>
 							<td>{pet.age}</td>
 							<td>
 								<Button variant='info' onClick={() => openEditModal(pet)}>
-									Edit
+									Edit pet
 								</Button>{' '}
 								<Button
 									variant='danger'
 									onClick={() => handlePetDelete(pet._id)}
 								>
-									Delete
+									Remove pet
 								</Button>
 							</td>
 						</tr>
 					))}
 				</tbody>
 			</Table>
+			<PaginationControls
+				currentPage={currentPage}
+				totalPages={totalPages}
+				onChangePage={setCurrentPage}
+			/>
 			<Modal show={showPetModal} onHide={() => setShowPetModal(false)}>
 				<Modal.Header closeButton>
 					<Modal.Title>{isEditMode ? 'Edit Pet' : 'Add Pet'}</Modal.Title>
@@ -222,7 +242,7 @@ const RescuePetManagement = ({ rescueId }) => {
 						<Form.Group className='mb-3'>
 							<Form.Label>Age</Form.Label>
 							<Form.Control
-								type='text'
+								type='integer'
 								placeholder="Enter pet's age"
 								name='age'
 								value={editingPet.age || ''}
@@ -232,12 +252,17 @@ const RescuePetManagement = ({ rescueId }) => {
 						<Form.Group className='mb-3'>
 							<Form.Label>Gender</Form.Label>
 							<Form.Control
-								type='text'
-								placeholder="Enter pet's gender"
+								as='select'
 								name='gender'
 								value={editingPet.gender || ''}
 								onChange={handlePetChange}
-							/>
+							>
+								<option value=''>Select gender...</option>
+								<option value='Male'>Male</option>
+								<option value='Female'>Female</option>
+								<option value='Other'>Other</option>
+								<option value='Unknown'>Unknown</option>
+							</Form.Control>
 						</Form.Group>
 						<Form.Group className='mb-3'>
 							<Form.Label>Status</Form.Label>

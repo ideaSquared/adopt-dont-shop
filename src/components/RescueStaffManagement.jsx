@@ -208,7 +208,7 @@ const RescueStaffManagement = ({
 	};
 
 	return (
-		<>
+		<div>
 			<h2>Staff members</h2>
 			<Button
 				variant='primary'
@@ -229,7 +229,7 @@ const RescueStaffManagement = ({
 					</tr>
 				</thead>
 				<tbody>
-					{rescueProfile.staff.map((staff) => (
+					{currentStaff.map((staff) => (
 						<tr key={staff.userId._id}>
 							<td>{staff.userId.email}</td>
 							{uniquePermissions.map((permission) => (
@@ -262,9 +262,7 @@ const RescueStaffManagement = ({
 									>
 										Verify staff
 									</Button>
-								)}
-							</td>
-							<td>
+								)}{' '}
 								<Button
 									variant='danger'
 									onClick={() => handleRemoveStaff(staff.userId._id)}
@@ -383,7 +381,7 @@ const RescueStaffManagement = ({
 					</Button>
 				</Modal.Footer>
 			</Modal>
-		</>
+		</div>
 	);
 };
 
