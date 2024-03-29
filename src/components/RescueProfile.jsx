@@ -204,7 +204,6 @@ const RescueProfile = () => {
 	};
 
 	const handleReferenceNumberSubmit = async () => {
-		alert('Test');
 		if (!rescueProfile.referenceNumber) {
 			setAlertInfo({
 				type: 'danger',
@@ -326,6 +325,7 @@ const RescueProfile = () => {
 				handleRescueInfoChange={handleRescueInfoChange}
 				handleReferenceNumberSubmit={handleReferenceNumberSubmit}
 				canEditRescueInfo={canEditRescueInfo}
+				saveUpdates={saveUpdates}
 			/>
 
 			<hr />

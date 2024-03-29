@@ -6,6 +6,7 @@ const RescueProfileForm = ({
 	handleRescueInfoChange,
 	handleReferenceNumberSubmit,
 	canEditRescueInfo,
+	saveUpdates,
 }) => {
 	return (
 		<Form>
@@ -69,7 +70,7 @@ const RescueProfileForm = ({
 			<Button
 				variant='primary'
 				className='mt-3'
-				onClick={() => {}}
+				onClick={saveUpdates}
 				disabled={!canEditRescueInfo}
 			>
 				Save changes
