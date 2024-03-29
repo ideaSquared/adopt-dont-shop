@@ -16,6 +16,7 @@ import axios from 'axios';
 import AlertComponent from './AlertComponent';
 import { useRescueRedirect } from './hooks/useRescueRedirect';
 import { useAuth } from './AuthContext';
+import PaginationControls from './PaginationControls';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
@@ -36,6 +37,10 @@ const RescueProfile = () => {
 		password: '',
 	});
 	const { isRescue } = useAuth();
+
+	const [staff, setStaff] = useState([]);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [staffPerPage] = useState(10);
 
 	useRescueRedirect();
 
@@ -303,6 +308,14 @@ const RescueProfile = () => {
 		updateRescueProfile(rescueProfile.id, rescueProfile);
 	};
 
+	const indexOfLastStaff = currentPage * staffPerPage;
+	const indexOfFirstStaff = indexOfLastStaff - staffPerPage;
+	const currentPets = rescueProfile.staff.slice(
+		indexOfFirstStaff,
+		indexOfLastStaff
+	);
+	const totalPages = Math.ceil(rescueProfile.staff.length / staffPerPage);
+
 	return (
 		<Container fluid>
 			<h1>
@@ -465,6 +478,11 @@ const RescueProfile = () => {
 					))}
 				</tbody>
 			</Table>
+			<PaginationControls
+				currentPage={currentPage}
+				totalPages={totalPages}
+				onChangePage={setCurrentPage}
+			/>
 			<Modal
 				show={showAddStaffModal}
 				onHide={() => setShowAddStaffModal(false)}
