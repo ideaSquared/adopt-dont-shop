@@ -36,7 +36,7 @@ const RescueProfile = () => {
 		email: '',
 		password: '',
 	});
-	const { isRescue } = useAuth();
+	const { isRescue, userPermissions } = useAuth();
 
 	const [staff, setStaff] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -308,6 +308,9 @@ const RescueProfile = () => {
 		updateRescueProfile(rescueProfile.id, rescueProfile);
 	};
 
+	// Check if user has the 'edit_rescue_info' permission
+	const canEditRescueInfo = userPermissions.includes('edit_rescue_info');
+
 	const indexOfLastStaff = currentPage * staffPerPage;
 	const indexOfFirstStaff = indexOfLastStaff - staffPerPage;
 	const currentPets = rescueProfile.staff.slice(
@@ -352,6 +355,7 @@ const RescueProfile = () => {
 								name='rescueName'
 								value={rescueProfile.rescueName}
 								onChange={handleRescueInfoChange}
+								disabled={!canEditRescueInfo}
 							/>
 						</Form.Group>
 					</Col>
@@ -381,11 +385,13 @@ const RescueProfile = () => {
 									name='referenceNumber'
 									value={rescueProfile.referenceNumber || ''}
 									onChange={handleRescueInfoChange}
+									disabled={!canEditRescueInfo}
 								/>
 								<Button
 									variant='outline-secondary'
 									id='button-addon2'
 									onClick={handleReferenceNumberSubmit}
+									disabled={!canEditRescueInfo}
 								>
 									Submit for verification
 								</Button>
@@ -402,11 +408,17 @@ const RescueProfile = () => {
 						name='rescueAddress'
 						value={rescueProfile.rescueAddress || ''}
 						onChange={handleRescueInfoChange}
+						disabled={!canEditRescueInfo}
 					/>
 				</Form.Group>
 			</Form>
 
-			<Button variant='primary' className='mt-3' onClick={saveUpdates}>
+			<Button
+				variant='primary'
+				className='mt-3'
+				onClick={saveUpdates}
+				disabled={!canEditRescueInfo}
+			>
 				Save Changes
 			</Button>
 
@@ -417,6 +429,7 @@ const RescueProfile = () => {
 				variant='primary'
 				className='mb-3'
 				onClick={() => setShowAddStaffModal(true)}
+				disabled={!canEditRescueInfo}
 			>
 				Add Staff
 			</Button>
@@ -447,7 +460,7 @@ const RescueProfile = () => {
 												e.target.checked
 											)
 										}
-										disabled={staff.userId._id === userId} // Disable if this staff is the current user
+										disabled={staff.userId._id === userId || !canEditRescueInfo} // Disable if this staff is the current user
 									/>
 								</td>
 							))}
@@ -461,6 +474,7 @@ const RescueProfile = () => {
 									<Button
 										variant='warning'
 										onClick={() => handleVerifyStaff(staff.userId._id)}
+										disabled={!canEditRescueInfo}
 									>
 										Verify Staff
 									</Button>
@@ -470,6 +484,7 @@ const RescueProfile = () => {
 								<Button
 									variant='danger'
 									onClick={() => handleRemoveStaff(staff.userId._id)}
+									disabled={!canEditRescueInfo}
 								>
 									Remove Staff
 								</Button>

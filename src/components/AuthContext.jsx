@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const [isAdmin, setIsAdmin] = useState(false); // Added isAdmin state
 	const [isRescue, setIsRescue] = useState(false);
+	const [userPermissions, setUserPermissions] = useState([]);
 
 	useEffect(() => {
 		checkLoginStatus();
@@ -25,12 +26,14 @@ export const AuthProvider = ({ children }) => {
 			);
 			setIsLoggedIn(response.data.isLoggedIn);
 			setIsAdmin(response.data.isAdmin || false);
+			setUserPermissions(response.data.permissions || []);
 		} catch (error) {
 			// Handle 401 Unauthorized specifically
 			if (error.response && error.response.status === 401) {
 				console.error('User not logged in');
 				setIsLoggedIn(false);
 				setIsAdmin(false);
+				setUserPermissions([]);
 			} else {
 				// Handle other errors
 				console.error('Error checking login status:', error);
@@ -45,8 +48,10 @@ export const AuthProvider = ({ children }) => {
 				{ withCredentials: true }
 			);
 			if (response.status === 200) {
+				setUserPermissions(response.data.permissions || []);
 				setIsRescue(true);
 			} else {
+				setUserPermissions([]);
 				setIsRescue(false);
 			}
 		} catch (error) {
@@ -100,6 +105,7 @@ export const AuthProvider = ({ children }) => {
 			setIsLoggedIn(false);
 			setIsAdmin(false);
 			setIsRescue(false);
+			setUserPermissions([]); // Clear permissions on logout
 		} catch (error) {
 			console.error('Logout failed:', error);
 		}
@@ -109,6 +115,7 @@ export const AuthProvider = ({ children }) => {
 		isLoggedIn,
 		isAdmin, // Make isAdmin available in the context
 		isRescue,
+		userPermissions,
 		login,
 		logout,
 	};
