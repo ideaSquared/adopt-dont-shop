@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import {
+	Badge,
+	Button,
+	Col,
 	Container,
 	Form,
-	Button,
-	Badge,
-	Table,
 	InputGroup,
-	Row,
-	Col,
 	Modal,
+	Row,
+	Table,
 	Tabs,
 	Tab,
 } from 'react-bootstrap';
 import axios from 'axios';
 import AlertComponent from './AlertComponent';
-import { useRescueRedirect } from './hooks/useRescueRedirect';
 import { useAuth } from './AuthContext';
-import PaginationControls from './PaginationControls';
+import { useRescueRedirect } from './hooks/useRescueRedirect';
+import RescueProfileForm from './RescueProfileForm';
+import RescueProfileHeader from './RescueProfileHeader';
+import RescueStaffManagement from './RescueStaffManagement';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
@@ -48,24 +50,20 @@ const RescueProfile = () => {
 		if (isRescue) {
 			fetchRescueProfile();
 		}
-	}, []);
+	}, [isRescue]);
 
 	const fetchRescueProfile = async () => {
 		try {
-			// Assuming this URL is where you get your rescue profile data
 			const response = await axios.get(
 				`${import.meta.env.VITE_API_BASE_URL}/auth/my-rescue`,
 				{
 					withCredentials: true,
 				}
 			);
-
-			setRescueProfile({
-				...response.data,
-				staff: response.data.staff || [],
-			});
+			setRescueProfile(response.data);
 		} catch (error) {
 			console.error('Error fetching rescue profile:', error);
+			// Implement user feedback
 		}
 	};
 
@@ -315,21 +313,7 @@ const RescueProfile = () => {
 
 	return (
 		<Container fluid>
-			<h1>
-				Rescue profile{' '}
-				<span style={{ verticalAlign: 'top' }}>
-					<Badge
-						bg={rescueProfile.referenceNumberVerified ? 'success' : 'danger'}
-						style={{ fontSize: '16px' }}
-					>
-						{rescueProfile.referenceNumberVerified ? 'Verified' : 'Un-verified'}
-					</Badge>
-				</span>{' '}
-				<span style={{ verticalAlign: 'top' }} bg='light'>
-					<Badge style={{ fontSize: '16px' }}>{rescueProfile.id}</Badge>
-				</span>
-			</h1>
-
+			<RescueProfileHeader rescueProfile={rescueProfile} />
 			{alertInfo.message && (
 				<AlertComponent
 					type={alertInfo.type}
@@ -337,254 +321,39 @@ const RescueProfile = () => {
 					onClose={() => setAlertInfo({ type: '', message: '' })}
 				/>
 			)}
-
-			<Form>
-				<Row>
-					{/* Rescue Name */}
-					<Col md={4}>
-						<Form.Group className='mb-3'>
-							<Form.Label>Rescue name</Form.Label>
-							<Form.Control
-								type='text'
-								name='rescueName'
-								value={rescueProfile.rescueName}
-								onChange={handleRescueInfoChange}
-								disabled={!canEditRescueInfo}
-							/>
-						</Form.Group>
-					</Col>
-
-					{/* Rescue Type */}
-					<Col md={4}>
-						<Form.Group className='mb-3'>
-							<Form.Label>Rescue type</Form.Label>
-							<Form.Control
-								type='text'
-								name='rescueType'
-								value={rescueProfile.rescueType}
-								disabled={true}
-							/>
-						</Form.Group>
-					</Col>
-
-					{/* Reference Number */}
-					<Col md={4}>
-						<Form.Group className='mb-3'>
-							<Form.Label>Reference number</Form.Label>
-							<InputGroup>
-								<Form.Control
-									type='text'
-									placeholder='Enter reference number'
-									aria-label='Reference Number'
-									name='referenceNumber'
-									value={rescueProfile.referenceNumber || ''}
-									onChange={handleRescueInfoChange}
-									disabled={!canEditRescueInfo}
-								/>
-								<Button
-									variant='outline-secondary'
-									id='button-addon2'
-									onClick={handleReferenceNumberSubmit}
-									disabled={!canEditRescueInfo}
-								>
-									Submit for verification
-								</Button>
-							</InputGroup>
-						</Form.Group>
-					</Col>
-				</Row>
-
-				{/* Rescue Address - As it's own section for clarity and spacing */}
-				<Form.Group className='mb-3'>
-					<Form.Label>Rescue address</Form.Label>
-					<Form.Control
-						type='text'
-						name='rescueAddress'
-						value={rescueProfile.rescueAddress || ''}
-						onChange={handleRescueInfoChange}
-						disabled={!canEditRescueInfo}
-					/>
-				</Form.Group>
-			</Form>
-
-			<Button
-				variant='primary'
-				className='mt-3'
-				onClick={saveUpdates}
-				disabled={!canEditRescueInfo}
-			>
-				Save changes
-			</Button>
+			<RescueProfileForm
+				rescueProfile={rescueProfile}
+				handleRescueInfoChange={handleRescueInfoChange}
+				handleReferenceNumberSubmit={handleReferenceNumberSubmit}
+				canEditRescueInfo={canEditRescueInfo}
+			/>
 
 			<hr />
 
-			{canViewStaff ? (
-				<div>
-					<h2>Staff members</h2>
-					<Button
-						variant='primary'
-						className='mb-3'
-						onClick={() => setShowAddStaffModal(true)}
-						disabled={!canAddStaff}
-					>
-						Add staff
-					</Button>
-					<Table striped bordered hover>
-						<thead>
-							<tr>
-								<th>Staff email</th>
-								{uniquePermissions.map((permission, index) => (
-									<th key={index}>{permission}</th>
-								))}
-								<th>Actions</th>
-							</tr>
-						</thead>
-						<tbody>
-							{rescueProfile.staff.map((staff) => (
-								<tr key={staff.userId._id}>
-									<td>{staff.userId.email}</td>
-									{uniquePermissions.map((permission) => (
-										<td key={`${staff.userId._id}-${permission}`}>
-											<Form.Check
-												type='checkbox'
-												checked={staff.permissions.includes(permission)}
-												onChange={(e) =>
-													handlePermissionChange(
-														staff.userId._id,
-														permission,
-														e.target.checked
-													)
-												}
-												disabled={staff.userId._id === userId || !canEditStaff} // Disable if this staff is the current user
-											/>
-										</td>
-									))}
-
-									<td>
-										{staff.verifiedByRescue ? (
-											<Button variant='info' disabled={true}>
-												Verified
-											</Button>
-										) : (
-											<Button
-												variant='warning'
-												onClick={() => handleVerifyStaff(staff.userId._id)}
-												disabled={!canVerifyStaff}
-											>
-												Verify staff
-											</Button>
-										)}
-									</td>
-									<td>
-										<Button
-											variant='danger'
-											onClick={() => handleRemoveStaff(staff.userId._id)}
-											disabled={!canDeleteStaff}
-										>
-											Remove staff
-										</Button>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</Table>
-					<PaginationControls
+			{canViewStaff && (
+				<>
+					<RescueStaffManagement
+						rescueProfile={rescueProfile}
 						currentPage={currentPage}
 						totalPages={totalPages}
-						onChangePage={setCurrentPage}
+						canAddStaff={canAddStaff}
+						canEditStaff={canEditStaff}
+						canVerifyStaff={canVerifyStaff}
+						canDeleteStaff={canDeleteStaff}
+						showAddStaffModal={showAddStaffModal}
+						setShowAddStaffModal={setShowAddStaffModal}
+						uniquePermissions={uniquePermissions}
+						setCurrentPage={setCurrentPage}
+						newStaff={newStaff}
+						setNewStaff={setNewStaff}
+						handleAddStaff={handleAddStaff}
+						handleRemoveStaff={handleRemoveStaff}
+						handleVerifyStaff={handleVerifyStaff}
+						handlePermissionChange={handlePermissionChange}
+						userId={userId}
 					/>
-					<Modal
-						show={showAddStaffModal}
-						onHide={() => setShowAddStaffModal(false)}
-					>
-						<Modal.Header closeButton>
-							<Modal.Title>Add New Staff Member</Modal.Title>
-						</Modal.Header>
-						<Modal.Body>
-							<Tabs defaultActiveKey='newUser' id='addUserTab'>
-								<Tab eventKey='newUser' title='Add a New User'>
-									<AlertComponent
-										type={'info'}
-										message={
-											'This will create a new user who will need to login'
-										}
-										hideCloseButton={true}
-									/>
-									<Form>
-										<Form.Group className='mb-3'>
-											<Form.Label>First name</Form.Label>
-											<Form.Control
-												type='text'
-												placeholder='Enter first name'
-												value={newStaff.firstName}
-												onChange={(e) =>
-													setNewStaff({
-														...newStaff,
-														firstName: e.target.value,
-													})
-												}
-											/>
-										</Form.Group>
-										<Form.Group className='mb-3'>
-											<Form.Label>Email address</Form.Label>
-											<Form.Control
-												type='email'
-												placeholder='Enter email'
-												value={newStaff.email}
-												onChange={(e) =>
-													setNewStaff({ ...newStaff, email: e.target.value })
-												}
-											/>
-										</Form.Group>
-										<Form.Group className='mb-3'>
-											<Form.Label>Password</Form.Label>
-											<Form.Control
-												type='password'
-												placeholder='Password'
-												value={newStaff.password}
-												onChange={(e) =>
-													setNewStaff({ ...newStaff, password: e.target.value })
-												}
-											/>
-										</Form.Group>
-									</Form>
-								</Tab>
-								<Tab eventKey='existingUser' title='Add an Existing User'>
-									<AlertComponent
-										type={'info'}
-										message={'This will add an already signed up user as staff'}
-										hideCloseButton={true}
-									/>
-									<Form>
-										<Form.Group className='mb-3'>
-											<Form.Label>Email address</Form.Label>
-											<Form.Control
-												type='email'
-												placeholder='Enter existing user email'
-											/>
-										</Form.Group>
-									</Form>
-								</Tab>
-							</Tabs>
-						</Modal.Body>
-						<Modal.Footer>
-							<Button
-								variant='secondary'
-								onClick={() => setShowAddStaffModal(false)}
-							>
-								Close
-							</Button>
-							<Button
-								variant='primary'
-								onClick={handleAddStaff}
-								disabled={!canAddStaff}
-							>
-								Add staff
-							</Button>
-						</Modal.Footer>
-					</Modal>
-				</div>
-			) : null}
+				</>
+			)}
 		</Container>
 	);
 };
