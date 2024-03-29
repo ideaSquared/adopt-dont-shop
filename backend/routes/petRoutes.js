@@ -11,6 +11,7 @@ import {
 
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
+import { generateObjectId } from '../utils/generateObjectId.js';
 const logger = new LoggerUtil('pet-service').getLogger();
 
 const router = express.Router();
@@ -90,8 +91,9 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
 	try {
 		const { id } = req.params;
+		const objectIdId = generateObjectId(id);
 		logger.info(`Fetching pet with ID: ${id}`);
-		const pet = await Pet.findById(id);
+		const pet = await Pet.findById(objectIdId);
 		if (!pet) {
 			logger.warn(`Pet not found with ID: ${id}`);
 			return res.status(404).send({ message: 'Pet not found' });
@@ -119,7 +121,8 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 	try {
 		const { ownerId } = req.params;
 		logger.info(`Fetching pets for ownerId: ${ownerId}`);
-		const pets = await Pet.find({ ownerId: ownerId });
+		const objectIdOwner = generateObjectId(ownerId);
+		const pets = await Pet.find({ ownerId: objectIdOwner });
 		if (pets.length === 0) {
 			logger.warn(`No pets found for ownerId: ${ownerId}`);
 			return res.status(404).send({ message: 'No pets found for this owner' });

@@ -103,7 +103,7 @@ const petJoiSchema = Joi.object({
 	shortDescription: Joi.string().required(),
 	longDescription: Joi.string().required(),
 	age: Joi.number().required(),
-	gender: Joi.string().required().valid('Male', 'Female', 'Other'), // Adjust valid options as needed
+	gender: Joi.string().required().valid('Male', 'Female', 'Other', 'Unknown'), // Adjust valid options as needed
 	status: Joi.string().required(), // You might want to validate against specific status options
 	type: Joi.string().required(),
 	images: Joi.array().items(Joi.string()), // Validate as an array of strings (URLs)

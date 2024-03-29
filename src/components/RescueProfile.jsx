@@ -19,6 +19,7 @@ import { useRescueRedirect } from './hooks/useRescueRedirect';
 import RescueProfileForm from './RescueProfileForm';
 import RescueProfileHeader from './RescueProfileHeader';
 import RescueStaffManagement from './RescueStaffManagement';
+import RescuePetManagement from './RescuePetsManagement';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
@@ -64,7 +65,6 @@ const RescueProfile = () => {
 			setRescueProfile(response.data);
 		} catch (error) {
 			console.error('Error fetching rescue profile:', error);
-			// Implement user feedback
 		}
 	};
 
@@ -256,28 +256,6 @@ const RescueProfile = () => {
 		}
 	};
 
-	// const handleAddStaff = async () => {
-	// 	try {
-	// 		const response = await axios.post(
-	// 			`${import.meta.env.VITE_API_BASE_URL}/rescue/${rescueProfile.id}/staff`,
-	// 			{
-	// 				firstName: newStaff.firstName,
-	// 				email: newStaff.email,
-	// 				password: newStaff.password,
-	// 			},
-
-	// 		// console.log('Staff added successfully:', response.data);
-	// 		setShowAddStaffModal(false); // Close the modal on success
-	// 		setNewStaff({ firstName: '', email: '', password: '' });
-	// 		fetchRescueProfile(); // Refresh the staff list
-	// 	} catch (error) {
-	// 		console.error(
-	// 			'Error adding new staff member:',
-	// 			error.response?.data || error.message
-	// 		);
-	// 	}
-	// };
-
 	const handleAddStaff = async (staffInfo) => {
 		try {
 			// Construct the payload based on the provided staff information
@@ -358,7 +336,7 @@ const RescueProfile = () => {
 
 	const indexOfLastStaff = currentPage * staffPerPage;
 	const indexOfFirstStaff = indexOfLastStaff - staffPerPage;
-	const currentPets = rescueProfile.staff.slice(
+	const currentStaff = rescueProfile.staff.slice(
 		indexOfFirstStaff,
 		indexOfLastStaff
 	);
@@ -383,6 +361,8 @@ const RescueProfile = () => {
 			/>
 
 			<hr />
+
+			<RescuePetManagement rescueId={rescueProfile.id} />
 
 			{canViewStaff && (
 				<>
