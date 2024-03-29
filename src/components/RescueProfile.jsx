@@ -40,6 +40,7 @@ const RescueProfile = () => {
 		email: '',
 		password: '',
 	});
+	const [existingStaffEmail, setExistingStaffEmail] = useState('');
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const [staffPerPage] = useState(10);
@@ -255,28 +256,81 @@ const RescueProfile = () => {
 		}
 	};
 
-	const handleAddStaff = async () => {
+	// const handleAddStaff = async () => {
+	// 	try {
+	// 		const response = await axios.post(
+	// 			`${import.meta.env.VITE_API_BASE_URL}/rescue/${rescueProfile.id}/staff`,
+	// 			{
+	// 				firstName: newStaff.firstName,
+	// 				email: newStaff.email,
+	// 				password: newStaff.password,
+	// 			},
+
+	// 		// console.log('Staff added successfully:', response.data);
+	// 		setShowAddStaffModal(false); // Close the modal on success
+	// 		setNewStaff({ firstName: '', email: '', password: '' });
+	// 		fetchRescueProfile(); // Refresh the staff list
+	// 	} catch (error) {
+	// 		console.error(
+	// 			'Error adding new staff member:',
+	// 			error.response?.data || error.message
+	// 		);
+	// 	}
+	// };
+
+	const handleAddStaff = async (staffInfo) => {
 		try {
+			// Construct the payload based on the provided staff information
+			const payload =
+				staffInfo.firstName && staffInfo.password
+					? {
+							// Adding a new staff member
+							firstName: staffInfo.firstName,
+							email: staffInfo.email,
+							password: staffInfo.password,
+					  }
+					: {
+							// Adding an existing user as staff
+							email: staffInfo.email,
+					  };
+
+			// API call to add a staff member (new or existing)
 			const response = await axios.post(
 				`${import.meta.env.VITE_API_BASE_URL}/rescue/${rescueProfile.id}/staff`,
-				{
-					firstName: newStaff.firstName,
-					email: newStaff.email,
-					password: newStaff.password,
-				},
+				payload,
 				{
 					withCredentials: true,
 				}
 			);
-			// console.log('Staff added successfully:', response.data);
-			setShowAddStaffModal(false); // Close the modal on success
+
+			// Actions upon successful addition
+			setShowAddStaffModal(false); // Close the modal
 			fetchRescueProfile(); // Refresh the staff list
+
+			// Reset state based on the type of addition
+			if (payload.firstName) {
+				setNewStaff({ firstName: '', email: '', password: '' }); // Reset for new user
+			} else {
+				setExistingStaffEmail(''); // Reset for existing user
+			}
 		} catch (error) {
 			console.error(
-				'Error adding new staff member:',
+				'Error adding staff member:',
 				error.response?.data || error.message
 			);
 		}
+	};
+
+	// Function to handle adding a new staff member
+	const handleAddNewStaff = () => {
+		const staffInfo = { ...newStaff }; // Copy newStaff state
+		handleAddStaff(staffInfo); // Pass the new staff info to the generic handler
+		setNewStaff({ firstName: '', email: '', password: '' }); // Reset new staff form
+	};
+
+	// Function to handle adding an existing staff member
+	const handleAddExistingUserToStaff = () => {
+		handleAddStaff({ email: existingStaffEmail }); // Call with only the email for existing user
 	};
 
 	// Updated handleRemoveStaff to use the new API call
@@ -346,11 +400,14 @@ const RescueProfile = () => {
 						setCurrentPage={setCurrentPage}
 						newStaff={newStaff}
 						setNewStaff={setNewStaff}
-						handleAddStaff={handleAddStaff}
+						setExistingStaffEmail={setExistingStaffEmail}
 						handleRemoveStaff={handleRemoveStaff}
 						handleVerifyStaff={handleVerifyStaff}
 						handlePermissionChange={handlePermissionChange}
 						userId={userId}
+						existingStaffEmail={existingStaffEmail}
+						handleAddExistingUserToStaff={handleAddExistingUserToStaff}
+						handleAddNewStaff={handleAddNewStaff}
 					/>
 				</>
 			)}

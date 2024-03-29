@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Table, Button, Modal, Tabs, Tab, Form } from 'react-bootstrap';
 import PaginationControls from './PaginationControls';
 import AlertComponent from './AlertComponent';
@@ -17,12 +17,17 @@ const RescueStaffManagement = ({
 	setCurrentPage,
 	newStaff,
 	setNewStaff,
-	handleAddStaff,
+	setExistingStaffEmail,
+	handleAddNewStaff,
 	handleRemoveStaff,
 	handleVerifyStaff,
 	handlePermissionChange,
+	existingStaffEmail,
+	handleAddExistingUserToStaff,
 	userId,
 }) => {
+	const [tabState, setTabState] = useState('');
+
 	return (
 		<>
 			<h2>Staff members</h2>
@@ -106,7 +111,11 @@ const RescueStaffManagement = ({
 					<Modal.Title>Add New Staff Member</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-					<Tabs defaultActiveKey='newUser' id='addUserTab'>
+					<Tabs
+						defaultActiveKey='newUser'
+						id='addUserTab'
+						onSelect={(key) => setTabState(key)}
+					>
 						<Tab eventKey='newUser' title='Add a New User'>
 							<AlertComponent
 								type={'info'}
@@ -164,6 +173,8 @@ const RescueStaffManagement = ({
 									<Form.Control
 										type='email'
 										placeholder='Enter existing user email'
+										value={existingStaffEmail}
+										onChange={(e) => setExistingStaffEmail(e.target.value)}
 									/>
 								</Form.Group>
 							</Form>
@@ -179,7 +190,14 @@ const RescueStaffManagement = ({
 					</Button>
 					<Button
 						variant='primary'
-						onClick={handleAddStaff}
+						onClick={() => {
+							// Assuming you have a way to determine which tab is active, e.g., using a state
+							if (tabState === 'newUser') {
+								handleAddNewStaff(); // Call function to add new staff
+							} else if (tabState === 'existingUser') {
+								handleAddExistingUserToStaff(); // Call function to add existing staff
+							}
+						}}
 						disabled={!canAddStaff}
 					>
 						Add staff
