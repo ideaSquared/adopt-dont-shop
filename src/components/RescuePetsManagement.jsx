@@ -113,6 +113,13 @@ const RescuePetManagement = ({ rescueId }) => {
 	};
 
 	const handlePetDelete = async (petId) => {
+		const isConfirmed = window.confirm(
+			'Are you sure you want to delete this pet?'
+		);
+		if (!isConfirmed) {
+			return; // Stop the function if the user cancels the action
+		}
+
 		try {
 			await axios.delete(`${apiUrl}/pets/${petId}`, {
 				withCredentials: true,
