@@ -31,13 +31,14 @@ const RescuePetManagement = ({
 		field: '',
 		direction: '',
 	});
+	const [searchTerm, setSearchTerm] = useState(''); // Add this line
 
 	// Base URL for your API
 	const apiUrl = import.meta.env.VITE_API_BASE_URL; // Adjust accordingly
 
 	useEffect(() => {
 		fetchPets();
-	}, [rescueId]);
+	}, [rescueId, searchTerm]);
 
 	const fetchPets = async () => {
 		try {
@@ -182,7 +183,10 @@ const RescuePetManagement = ({
 		.filter(
 			(pet) =>
 				(filterType ? pet.type === filterType : true) &&
-				(filterStatus ? pet.status === filterStatus : true)
+				(filterStatus ? pet.status === filterStatus : true) &&
+				(searchTerm
+					? pet.petName.toLowerCase().includes(searchTerm.toLowerCase())
+					: true) // Add this line
 		)
 		.sort((a, b) => {
 			if (sortCriteria.field) {
@@ -205,7 +209,15 @@ const RescuePetManagement = ({
 			<h2>Pets</h2>
 
 			<Container>
-				<Row className='align-items-center'>
+				<Row className='align-items-end mb-3'>
+					<Col>
+						<Form.Control
+							type='text'
+							placeholder='Search pets by name...'
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+						/>
+					</Col>
 					<Col>
 						<Form.Label>Type Filter:</Form.Label>
 						<Form.Select
