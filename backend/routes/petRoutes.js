@@ -130,6 +130,7 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 		logger.info(
 			`Successfully fetched pets for ownerId: ${ownerId}. Count: ${pets.length}`
 		);
+		console.log('RES: ', pets);
 		res.json(pets);
 	} catch (error) {
 		logger.error(

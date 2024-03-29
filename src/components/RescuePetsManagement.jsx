@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Modal, Form, Table, Row, Col } from 'react-bootstrap';
+import {
+	Button,
+	Modal,
+	Form,
+	Table,
+	Row,
+	Col,
+	Container,
+} from 'react-bootstrap';
 import axios from 'axios';
 import PaginationControls from './PaginationControls';
 
@@ -16,6 +24,13 @@ const RescuePetManagement = ({
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const [petsPerPage] = useState(10);
+
+	const [filterType, setFilterType] = useState('');
+	const [filterStatus, setFilterStatus] = useState('');
+	const [sortCriteria, setSortCriteria] = useState({
+		field: '',
+		direction: '',
+	});
 
 	// Base URL for your API
 	const apiUrl = import.meta.env.VITE_API_BASE_URL; // Adjust accordingly
@@ -163,16 +178,100 @@ const RescuePetManagement = ({
 	const currentPets = pets.slice(indexOfFirstPet, indexOfLastPet);
 	const totalPages = Math.ceil(pets.length / petsPerPage);
 
+	const filteredAndSortedPets = currentPets
+		.filter(
+			(pet) =>
+				(filterType ? pet.type === filterType : true) &&
+				(filterStatus ? pet.status === filterStatus : true)
+		)
+		.sort((a, b) => {
+			if (sortCriteria.field) {
+				if (sortCriteria.direction === 'asc') {
+					return a[sortCriteria.field] > b[sortCriteria.field] ? 1 : -1;
+				} else {
+					return a[sortCriteria.field] < b[sortCriteria.field] ? 1 : -1;
+				}
+			}
+			return 0; // No sorting
+		});
+
+	console.log(pets);
+
+	const uniqueTypes = [...new Set(currentPets.map((pet) => pet.type))];
+	const uniqueStatuses = [...new Set(currentPets.map((pet) => pet.status))];
+
 	return (
 		<div>
 			<h2>Pets</h2>
-			<Button
-				onClick={() => handleAddPet()}
-				className='mb-3'
-				disabled={!canEditPet}
-			>
-				Add Pet
-			</Button>
+
+			<Container>
+				<Row className='align-items-center'>
+					<Col>
+						<Form.Label>Type Filter:</Form.Label>
+						<Form.Select
+							aria-label='Type Filter'
+							value={filterType}
+							onChange={(e) => setFilterType(e.target.value)}
+						>
+							<option value=''>All</option>
+							{uniqueTypes.map((type, index) => (
+								<option key={index} value={type}>
+									{type}
+								</option>
+							))}
+						</Form.Select>
+					</Col>
+
+					<Col>
+						<Form.Label>Status Filter:</Form.Label>
+						<Form.Select
+							aria-label='Status Filter'
+							value={filterStatus}
+							onChange={(e) => setFilterStatus(e.target.value)}
+						>
+							<option value=''>All</option>
+							{uniqueStatuses.map((status, index) => (
+								<option key={index} value={status}>
+									{status}
+								</option>
+							))}
+						</Form.Select>
+					</Col>
+
+					<Col>
+						<Form.Label>Sort By:</Form.Label>
+						<Form.Select
+							aria-label='Sort By'
+							onChange={(e) => setSortCriteria(JSON.parse(e.target.value))}
+						>
+							<option value={JSON.stringify({ field: '', direction: '' })}>
+								None
+							</option>
+							<option
+								value={JSON.stringify({ field: 'age', direction: 'asc' })}
+							>
+								Age Ascending
+							</option>
+							<option
+								value={JSON.stringify({ field: 'age', direction: 'desc' })}
+							>
+								Age Descending
+							</option>
+							{/* Add other sorting criteria as needed */}
+						</Form.Select>
+					</Col>
+
+					<Col>
+						<Button
+							variant='primary'
+							onClick={() => handleAddPet()}
+							disabled={!canEditPet}
+						>
+							Add Pet
+						</Button>
+					</Col>
+				</Row>
+			</Container>
 			<Table striped bordered hover>
 				<thead>
 					<tr>
@@ -184,7 +283,7 @@ const RescuePetManagement = ({
 					</tr>
 				</thead>
 				<tbody>
-					{currentPets.map((pet) => (
+					{filteredAndSortedPets.map((pet) => (
 						<tr key={pet._id}>
 							<td>{pet.petName}</td>
 							<td>{pet.type}</td>

@@ -234,12 +234,12 @@ const RescueStaffManagement = ({
 			<Table striped bordered hover>
 				<thead>
 					<tr>
-						<th rowspan='2'>Staff Email</th>
-						<th colspan='3'>Rescue Operations</th>
-						<th colspan='5'>Staff Management</th>
-						<th colspan='4'>Pet Management</th>
-						<th colspan='2'>Communications</th>
-						<th rowspan='2'>Actions</th>
+						<th rowSpan='2'>Staff Email</th>
+						<th colSpan='3'>Rescue Operations</th>
+						<th colSpan='5'>Staff Management</th>
+						<th colSpan='4'>Pet Management</th>
+						<th colSpan='2'>Communications</th>
+						<th rowSpan='2'>Actions</th>
 					</tr>
 					<tr>
 						<th>View Rescue Info</th>
