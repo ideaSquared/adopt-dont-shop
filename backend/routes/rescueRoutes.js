@@ -18,6 +18,7 @@ import fetchAndValidateCharity from '../utils/verifyCharity.js';
 import fetchAndValidateCompany from '../utils/verifyCompany.js';
 
 import { generateObjectId } from '../utils/generateObjectId.js';
+import bcrypt from 'bcryptjs';
 
 // Instantiate a logger for this module.
 const logger = new LoggerUtil('rescue-route').getLogger();
@@ -406,7 +407,7 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 			user = new User({
 				firstName,
 				email,
-				hashedPassword,
+				password: hashedPassword,
 			});
 			await user.save();
 		}
