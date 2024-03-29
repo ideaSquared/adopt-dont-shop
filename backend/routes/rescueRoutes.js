@@ -402,11 +402,11 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 		let user = await User.findOne({ email: email });
 		if (!user) {
 			// Optional: Create a new user if one doesn't exist
-			// Remove this part if you don't want to create users here
+			const hashedPassword = await bcrypt.hash(password, 12);
 			user = new User({
 				firstName,
 				email,
-				password,
+				hashedPassword,
 			});
 			await user.save();
 		}
