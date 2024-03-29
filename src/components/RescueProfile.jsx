@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container } from 'react-bootstrap';
+import { Container, Row, Col, Nav } from 'react-bootstrap';
 import axios from 'axios';
 import AlertComponent from './AlertComponent';
 import { useAuth } from './AuthContext';
@@ -8,6 +8,7 @@ import RescueProfileForm from './RescueProfileForm';
 import RescueProfileHeader from './RescueProfileHeader';
 import RescueStaffManagement from './RescueStaffManagement';
 import RescuePetManagement from './RescuePetsManagement';
+import RescueNoPermissions from './RescueNoPermissions';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
@@ -23,6 +24,7 @@ const RescueProfile = () => {
 	const userId = localStorage.getItem('userId');
 
 	const [alertInfo, setAlertInfo] = useState({ type: '', message: '' });
+	const [activeSection, setActiveSection] = useState('profile');
 
 	useRescueRedirect();
 
@@ -147,53 +149,172 @@ const RescueProfile = () => {
 	const canEditPet = userPermissions.includes('edit_pet');
 	const canDeletePet = userPermissions.includes('delete_pet');
 
+	const renderSection = () => {
+		switch (activeSection) {
+			case 'profile':
+				if (canViewRescueInfo) {
+					return (
+						<>
+							<RescueProfileHeader rescueProfile={rescueProfile} />
+							<RescueProfileForm
+								rescueProfile={rescueProfile}
+								handleRescueInfoChange={handleRescueInfoChange}
+								handleReferenceNumberSubmit={handleReferenceNumberSubmit}
+								canEditRescueInfo={canEditRescueInfo}
+								saveUpdates={saveUpdates}
+							/>
+						</>
+					);
+				} else {
+					return <RescueNoPermissions rescueProfile={rescueProfile} />;
+				}
+			case 'pets':
+				if (canViewPet) {
+					return (
+						<RescuePetManagement
+							rescueId={rescueProfile.id}
+							canAddPet={canAddPet}
+							canEditPet={canEditPet}
+							canDeletePet={canDeletePet}
+						/>
+					);
+				} else {
+					return <RescueNoPermissions rescueProfile={rescueProfile} />;
+				}
+			case 'staff':
+				if (canViewStaff) {
+					return (
+						<RescueStaffManagement
+							rescueProfile={rescueProfile}
+							setRescueProfile={setRescueProfile}
+							fetchRescueProfile={fetchRescueProfile}
+							canAddStaff={canAddStaff}
+							canEditStaff={canEditStaff}
+							canVerifyStaff={canVerifyStaff}
+							canDeleteStaff={canDeleteStaff}
+							uniquePermissions={uniquePermissions}
+							userId={userId}
+						/>
+					);
+				} else {
+					return <RescueNoPermissions rescueProfile={rescueProfile} />;
+				}
+			default:
+				return <RescueNoPermissions rescueProfile={rescueProfile} />;
+		}
+	};
+
 	return (
 		<Container fluid>
-			{canViewRescueInfo && (
-				<RescueProfileHeader rescueProfile={rescueProfile} />
-			)}
-
-			{alertInfo.message && (
-				<AlertComponent
-					type={alertInfo.type}
-					message={alertInfo.message}
-					onClose={() => setAlertInfo({ type: '', message: '' })}
-				/>
-			)}
-			<RescueProfileForm
-				rescueProfile={rescueProfile}
-				handleRescueInfoChange={handleRescueInfoChange}
-				handleReferenceNumberSubmit={handleReferenceNumberSubmit}
-				canEditRescueInfo={canEditRescueInfo}
-				saveUpdates={saveUpdates}
-			/>
-
-			<hr />
-
-			{canViewPet && (
-				<RescuePetManagement
-					rescueId={rescueProfile.id}
-					canAddPet={canAddPet}
-					canEditPet={canEditPet}
-					canDeletePet={canDeletePet}
-				/>
-			)}
-
-			{canViewStaff && (
-				<RescueStaffManagement
-					rescueProfile={rescueProfile}
-					setRescueProfile={setRescueProfile}
-					fetchRescueProfile={fetchRescueProfile}
-					canAddStaff={canAddStaff}
-					canEditStaff={canEditStaff}
-					canVerifyStaff={canVerifyStaff}
-					canDeleteStaff={canDeleteStaff}
-					uniquePermissions={uniquePermissions}
-					userId={userId}
-				/>
-			)}
+			<Row>
+				<Col
+					xs={12}
+					md={2}
+					lg={1}
+					className='bg-light'
+					style={{ height: '100vh' }}
+				>
+					<Nav className='flex-column' onSelect={setActiveSection}>
+						<Nav.Link eventKey='profile' href='#profile'>
+							Rescue Profile
+						</Nav.Link>
+						<Nav.Link eventKey='pets' href='#pets'>
+							Pet Management
+						</Nav.Link>
+						<Nav.Link eventKey='staff' href='#staff'>
+							Staff Management
+						</Nav.Link>
+					</Nav>
+				</Col>
+				<Col xs={12} md={10} lg={11}>
+					{alertInfo.message && (
+						<AlertComponent
+							type={alertInfo.type}
+							message={alertInfo.message}
+							onClose={() => setAlertInfo({ type: '', message: '' })}
+						/>
+					)}
+					{renderSection()}
+				</Col>
+			</Row>
 		</Container>
 	);
+
+	// return (
+	// 	<Container fluid>
+	// 		<Row>
+	// 			<Col
+	// 				xs={12}
+	// 				md={3}
+	// 				lg={2}
+	// 				className='bg-light'
+	// 				style={{ height: '100vh' }}
+	// 			>
+	// 				<Nav className='flex-column' onSelect={setActiveSection}>
+	// 					<Nav.Link eventKey='profile' href='#profile'>
+	// 						Rescue Profile
+	// 					</Nav.Link>
+	// 					<Nav.Link eventKey='pets' href='#pets'>
+	// 						Pet Management
+	// 					</Nav.Link>
+	// 					<Nav.Link eventKey='staff' href='#staff'>
+	// 						Staff Management
+	// 					</Nav.Link>
+	// 					{/* Add more links as needed */}
+	// 				</Nav>
+	// 			</Col>
+	// 			<Col xs={12} md={9} lg={10}>
+	// 				<div id='profile'>
+	// 					{canViewRescueInfo && (
+	// 						<RescueProfileHeader rescueProfile={rescueProfile} />
+	// 					)}
+
+	// 					{alertInfo.message && (
+	// 						<AlertComponent
+	// 							type={alertInfo.type}
+	// 							message={alertInfo.message}
+	// 							onClose={() => setAlertInfo({ type: '', message: '' })}
+	// 						/>
+	// 					)}
+	// 					<RescueProfileForm
+	// 						rescueProfile={rescueProfile}
+	// 						handleRescueInfoChange={handleRescueInfoChange}
+	// 						handleReferenceNumberSubmit={handleReferenceNumberSubmit}
+	// 						canEditRescueInfo={canEditRescueInfo}
+	// 						saveUpdates={saveUpdates}
+	// 					/>
+	// 				</div>
+	// 				<hr />
+	// 				<div id='pets'>
+	// 					{canViewPet && (
+	// 						<RescuePetManagement
+	// 							rescueId={rescueProfile.id}
+	// 							canAddPet={canAddPet}
+	// 							canEditPet={canEditPet}
+	// 							canDeletePet={canDeletePet}
+	// 						/>
+	// 					)}
+	// 				</div>
+	// 				<div id='staff'>
+	// 					{canViewStaff && (
+	// 						<RescueStaffManagement
+	// 							rescueProfile={rescueProfile}
+	// 							setRescueProfile={setRescueProfile}
+	// 							fetchRescueProfile={fetchRescueProfile}
+	// 							canAddStaff={canAddStaff}
+	// 							canEditStaff={canEditStaff}
+	// 							canVerifyStaff={canVerifyStaff}
+	// 							canDeleteStaff={canDeleteStaff}
+	// 							uniquePermissions={uniquePermissions}
+	// 							userId={userId}
+	// 						/>
+	// 					)}
+	// 				</div>
+	// 				{/* Add more sections as needed */}
+	// 			</Col>
+	// 		</Row>
+	// 	</Container>
+	// );
 };
 
 export default RescueProfile;
