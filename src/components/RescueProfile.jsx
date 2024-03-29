@@ -299,10 +299,10 @@ const RescueProfile = () => {
 
 	// Check for permissions
 	const canEditRescueInfo = userPermissions.includes('edit_rescue_info');
-	// const canAddStaff = userPermissions.includes('add_staff');
-	// const canEditStaff = userPermissions.includes('edit_staff');
-	// const canVerifyStaff = userPermissions.includes('verify_staff');
-	// const canRemoveStaff = userPermissions.includes('remove_staff');
+	const canAddStaff = userPermissions.includes('add_staff');
+	const canEditStaff = userPermissions.includes('edit_staff');
+	const canVerifyStaff = userPermissions.includes('verify_staff');
+	const canDeleteStaff = userPermissions.includes('delete_staff');
 
 	const indexOfLastStaff = currentPage * staffPerPage;
 	const indexOfFirstStaff = indexOfLastStaff - staffPerPage;
@@ -422,7 +422,7 @@ const RescueProfile = () => {
 				variant='primary'
 				className='mb-3'
 				onClick={() => setShowAddStaffModal(true)}
-				disabled={!canEditRescueInfo}
+				disabled={!canAddStaff}
 			>
 				Add Staff
 			</Button>
@@ -453,7 +453,7 @@ const RescueProfile = () => {
 												e.target.checked
 											)
 										}
-										disabled={staff.userId._id === userId || !canEditRescueInfo} // Disable if this staff is the current user
+										disabled={staff.userId._id === userId || !canEditStaff} // Disable if this staff is the current user
 									/>
 								</td>
 							))}
@@ -467,7 +467,7 @@ const RescueProfile = () => {
 									<Button
 										variant='warning'
 										onClick={() => handleVerifyStaff(staff.userId._id)}
-										disabled={!canEditRescueInfo}
+										disabled={!canVerifyStaff}
 									>
 										Verify Staff
 									</Button>
@@ -477,7 +477,7 @@ const RescueProfile = () => {
 								<Button
 									variant='danger'
 									onClick={() => handleRemoveStaff(staff.userId._id)}
-									disabled={!canEditRescueInfo}
+									disabled={!canDeleteStaff}
 								>
 									Remove Staff
 								</Button>
@@ -567,7 +567,11 @@ const RescueProfile = () => {
 					>
 						Close
 					</Button>
-					<Button variant='primary' onClick={handleAddStaff}>
+					<Button
+						variant='primary'
+						onClick={handleAddStaff}
+						disabled={!canAddStaff}
+					>
 						Add staff
 					</Button>
 				</Modal.Footer>

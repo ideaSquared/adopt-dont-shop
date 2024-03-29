@@ -20,12 +20,19 @@ const rescueStaffSchema = new Schema({
 	permissions: {
 		type: [String],
 		enum: [
-			'edit_rescue_info', // Permission to edit basic information about the rescue.
-			'add_pet', // Permission to add new pets to the rescue's profile.
-			'delete_pet', // Permission to remove pets from the rescue's profile.
-			'edit_pet', // Permission to edit details of the rescue's pets.
-			'see_messages', // Permission to view messages sent to the rescue.
-			'send_messages', // Permission to send messages on behalf of the rescue.
+			'edit_rescue_info',
+			'view_rescue',
+			'delete_rescue',
+			'add_staff',
+			'edit_staff',
+			'verify_staff',
+			'delete_staff',
+			'view_staff',
+			'add_pet',
+			'edit_pet',
+			'delete_pet',
+			'create_messages',
+			'read_messages',
 		],
 	},
 	// A Boolean indicating whether the staff member has been verified by the rescue organization.
