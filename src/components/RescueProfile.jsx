@@ -153,6 +153,10 @@ const RescueProfile = () => {
 	const canEditStaff = userPermissions.includes('edit_staff');
 	const canVerifyStaff = userPermissions.includes('verify_staff');
 	const canDeleteStaff = userPermissions.includes('delete_staff');
+	const canViewPet = userPermissions.includes('view_pet');
+	const canAddPet = userPermissions.includes('add_pet');
+	const canEditPet = userPermissions.includes('edit_pet');
+	const canDeletePet = userPermissions.includes('delete_pet');
 
 	return (
 		<Container fluid>
@@ -174,22 +178,20 @@ const RescueProfile = () => {
 
 			<hr />
 
-			<RescuePetManagement rescueId={rescueProfile.id} />
+			{canViewPet && <RescuePetManagement rescueId={rescueProfile.id} />}
 
 			{canViewStaff && (
-				<>
-					<RescueStaffManagement
-						rescueProfile={rescueProfile}
-						setRescueProfile={setRescueProfile}
-						fetchRescueProfile={fetchRescueProfile}
-						canAddStaff={canAddStaff}
-						canEditStaff={canEditStaff}
-						canVerifyStaff={canVerifyStaff}
-						canDeleteStaff={canDeleteStaff}
-						uniquePermissions={uniquePermissions}
-						userId={userId}
-					/>
-				</>
+				<RescueStaffManagement
+					rescueProfile={rescueProfile}
+					setRescueProfile={setRescueProfile}
+					fetchRescueProfile={fetchRescueProfile}
+					canAddStaff={canAddStaff}
+					canEditStaff={canEditStaff}
+					canVerifyStaff={canVerifyStaff}
+					canDeleteStaff={canDeleteStaff}
+					uniquePermissions={uniquePermissions}
+					userId={userId}
+				/>
 			)}
 		</Container>
 	);
