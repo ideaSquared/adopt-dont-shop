@@ -28,6 +28,7 @@ const rescueStaffSchema = new Schema({
 			'verify_staff',
 			'delete_staff',
 			'view_staff',
+			'view_pet',
 			'add_pet',
 			'edit_pet',
 			'delete_pet',
