@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext';
 import { useLogout } from './hooks/useLogout'; // Adjust the path as necessary
 
 const CustomNavbar = () => {
-	const { isLoggedIn, logout, isAdmin, isRescue } = useAuth(); // Assuming isAdmin is part of your auth context
+	const { isLoggedIn, isAdmin, isRescue } = useAuth();
 	const handleLogout = useLogout();
 
 	return (
@@ -25,7 +25,6 @@ const CustomNavbar = () => {
 						<LinkContainer to='/'>
 							<Nav.Link>Home</Nav.Link>
 						</LinkContainer>
-						{/* Optionally include other NavLinks here */}
 					</Nav>
 					<div className='d-flex'>
 						{!isLoggedIn ? (
@@ -58,8 +57,6 @@ const CustomNavbar = () => {
 								{isRescue && (
 									<LinkContainer to='/rescue-profile'>
 										<Button variant='info' className='mx-2'>
-											{' '}
-											{/* Adjust the variant as needed */}
 											Rescue Profile
 										</Button>
 									</LinkContainer>

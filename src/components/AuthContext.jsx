@@ -98,7 +98,8 @@ export const AuthProvider = ({ children }) => {
 				{ withCredentials: true }
 			);
 			setIsLoggedIn(false);
-			setIsAdmin(false); // Reset isAdmin on logout
+			setIsAdmin(false);
+			setIsRescue(false);
 		} catch (error) {
 			console.error('Logout failed:', error);
 		}
