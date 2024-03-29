@@ -316,7 +316,7 @@ const RescueProfile = () => {
 	return (
 		<Container fluid>
 			<h1>
-				Rescue Profile{' '}
+				Rescue profile{' '}
 				<span style={{ verticalAlign: 'top' }}>
 					<Badge
 						bg={rescueProfile.referenceNumberVerified ? 'success' : 'danger'}
@@ -343,7 +343,7 @@ const RescueProfile = () => {
 					{/* Rescue Name */}
 					<Col md={4}>
 						<Form.Group className='mb-3'>
-							<Form.Label>Rescue Name</Form.Label>
+							<Form.Label>Rescue name</Form.Label>
 							<Form.Control
 								type='text'
 								name='rescueName'
@@ -357,7 +357,7 @@ const RescueProfile = () => {
 					{/* Rescue Type */}
 					<Col md={4}>
 						<Form.Group className='mb-3'>
-							<Form.Label>Rescue Type</Form.Label>
+							<Form.Label>Rescue type</Form.Label>
 							<Form.Control
 								type='text'
 								name='rescueType'
@@ -370,7 +370,7 @@ const RescueProfile = () => {
 					{/* Reference Number */}
 					<Col md={4}>
 						<Form.Group className='mb-3'>
-							<Form.Label>Reference Number</Form.Label>
+							<Form.Label>Reference number</Form.Label>
 							<InputGroup>
 								<Form.Control
 									type='text'
@@ -396,7 +396,7 @@ const RescueProfile = () => {
 
 				{/* Rescue Address - As it's own section for clarity and spacing */}
 				<Form.Group className='mb-3'>
-					<Form.Label>Rescue Address</Form.Label>
+					<Form.Label>Rescue address</Form.Label>
 					<Form.Control
 						type='text'
 						name='rescueAddress'
@@ -413,26 +413,26 @@ const RescueProfile = () => {
 				onClick={saveUpdates}
 				disabled={!canEditRescueInfo}
 			>
-				Save Changes
+				Save changes
 			</Button>
 
 			<hr />
 
 			{canViewStaff ? (
 				<div>
-					<h2>Staff Members</h2>
+					<h2>Staff members</h2>
 					<Button
 						variant='primary'
 						className='mb-3'
 						onClick={() => setShowAddStaffModal(true)}
 						disabled={!canAddStaff}
 					>
-						Add Staff
+						Add staff
 					</Button>
 					<Table striped bordered hover>
 						<thead>
 							<tr>
-								<th>Staff Email</th>
+								<th>Staff email</th>
 								{uniquePermissions.map((permission, index) => (
 									<th key={index}>{permission}</th>
 								))}
@@ -471,7 +471,7 @@ const RescueProfile = () => {
 												onClick={() => handleVerifyStaff(staff.userId._id)}
 												disabled={!canVerifyStaff}
 											>
-												Verify Staff
+												Verify staff
 											</Button>
 										)}
 									</td>
@@ -481,7 +481,7 @@ const RescueProfile = () => {
 											onClick={() => handleRemoveStaff(staff.userId._id)}
 											disabled={!canDeleteStaff}
 										>
-											Remove Staff
+											Remove staff
 										</Button>
 									</td>
 								</tr>
