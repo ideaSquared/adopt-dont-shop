@@ -9,6 +9,8 @@ import {
 	Row,
 	Col,
 	Modal,
+	Tabs,
+	Tab,
 } from 'react-bootstrap';
 import axios from 'axios';
 import AlertComponent from './AlertComponent';
@@ -471,45 +473,64 @@ const RescueProfile = () => {
 					<Modal.Title>Add New Staff Member</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-					<AlertComponent
-						type={'info'}
-						message={'This will create a new user who will need to login'}
-					/>
-					<Form>
-						<Form.Group className='mb-3'>
-							<Form.Label>First name</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder='Enter first name'
-								value={newStaff.firstName}
-								onChange={(e) =>
-									setNewStaff({ ...newStaff, firstName: e.target.value })
-								}
+					<Tabs defaultActiveKey='newUser' id='addUserTab'>
+						<Tab eventKey='newUser' title='Add a New User'>
+							<AlertComponent
+								type={'info'}
+								message={'This will create a new user who will need to login'}
 							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Email address</Form.Label>
-							<Form.Control
-								type='email'
-								placeholder='Enter email'
-								value={newStaff.email}
-								onChange={(e) =>
-									setNewStaff({ ...newStaff, email: e.target.value })
-								}
+							<Form>
+								<Form.Group className='mb-3'>
+									<Form.Label>First name</Form.Label>
+									<Form.Control
+										type='text'
+										placeholder='Enter first name'
+										value={newStaff.firstName}
+										onChange={(e) =>
+											setNewStaff({ ...newStaff, firstName: e.target.value })
+										}
+									/>
+								</Form.Group>
+								<Form.Group className='mb-3'>
+									<Form.Label>Email address</Form.Label>
+									<Form.Control
+										type='email'
+										placeholder='Enter email'
+										value={newStaff.email}
+										onChange={(e) =>
+											setNewStaff({ ...newStaff, email: e.target.value })
+										}
+									/>
+								</Form.Group>
+								<Form.Group className='mb-3'>
+									<Form.Label>Password</Form.Label>
+									<Form.Control
+										type='password'
+										placeholder='Password'
+										value={newStaff.password}
+										onChange={(e) =>
+											setNewStaff({ ...newStaff, password: e.target.value })
+										}
+									/>
+								</Form.Group>
+							</Form>
+						</Tab>
+						<Tab eventKey='existingUser' title='Add an Existing User'>
+							<AlertComponent
+								type={'info'}
+								message={'This will add an already signed up user as staff'}
 							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Password</Form.Label>
-							<Form.Control
-								type='password'
-								placeholder='Password'
-								value={newStaff.password}
-								onChange={(e) =>
-									setNewStaff({ ...newStaff, password: e.target.value })
-								}
-							/>
-						</Form.Group>
-					</Form>
+							<Form>
+								<Form.Group className='mb-3'>
+									<Form.Label>Email address</Form.Label>
+									<Form.Control
+										type='email'
+										placeholder='Enter existing user email'
+									/>
+								</Form.Group>
+							</Form>
+						</Tab>
+					</Tabs>
 				</Modal.Body>
 				<Modal.Footer>
 					<Button
