@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ChangeDetailsForm from '../UserChangeDetailsForm';
+import UserMyProfile from '../UserMyProfile';
 
 // Mocking modules
 vi.mock('react-router-dom', () => ({

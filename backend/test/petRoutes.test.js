@@ -247,17 +247,20 @@ describe('Pet Creation Routes', function () {
 				expect(response.body.message).to.equal('No pets found for this owner');
 			});
 
-			it('should return a 400 status if the ownerId is not a valid ObjectId', async function () {
-				const invalidOwnerId = '123'; // Simulating an invalid ObjectId
-				const response = await request(app)
-					.get(`/api/pets/owner/${invalidOwnerId}`)
-					.set('Cookie', cookie) // Assuming authentication is required
-					.expect(500); // Expecting the request to result in a "bad request" status
+			/* 
+			!!! DEPRECIATED - This code will turn every input into an ObjectId now so test is
+			 */
+			// it('should return a 400 status if the ownerId is not a valid ObjectId', async function () {
+			// 	const invalidOwnerId = '123'; // Simulating an invalid ObjectId
+			// 	const response = await request(app)
+			// 		.get(`/api/pets/owner/${invalidOwnerId}`)
+			// 		.set('Cookie', cookie) // Assuming authentication is required
+			// 		.expect(500); // Expecting the request to result in a "bad request" status
 
-				expect(response.body.message).to.include(
-					'Failed to fetch pets for this owner'
-				);
-			});
+			// 	expect(response.body.message).to.include(
+			// 		'Failed to fetch pets for this owner'
+			// 	);
+			// });
 		});
 	});
 
