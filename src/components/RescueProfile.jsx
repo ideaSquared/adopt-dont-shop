@@ -478,6 +478,7 @@ const RescueProfile = () => {
 							<AlertComponent
 								type={'info'}
 								message={'This will create a new user who will need to login'}
+								hideCloseButton={true}
 							/>
 							<Form>
 								<Form.Group className='mb-3'>
@@ -519,6 +520,7 @@ const RescueProfile = () => {
 							<AlertComponent
 								type={'info'}
 								message={'This will add an already signed up user as staff'}
+								hideCloseButton={true}
 							/>
 							<Form>
 								<Form.Group className='mb-3'>
