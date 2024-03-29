@@ -25,7 +25,19 @@ const petSchema = new mongoose.Schema({
 	// The gender of the pet. This field is required and could be values like 'Male', 'Female', etc.
 	gender: { type: String, required: true },
 	// The current status of the pet (e.g., available for adoption, fostered, etc.). This field is required to manage the pet's adoption status.
-	status: { type: String, required: true },
+	status: {
+		type: [String],
+		enum: [
+			'Available',
+			'Reserved',
+			'Adoption Pending',
+			'Adopted',
+			'Draft',
+			'Quarantine',
+			'On Hold',
+			'Not Available for Adoption',
+		],
+	},
 	type: { type: String, required: true },
 	// An array of image URLs for the pet. This allows for multiple images per pet but is not required.
 	images: [{ type: String }],

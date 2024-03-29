@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Modal, Form, Table } from 'react-bootstrap';
+import { Button, Modal, Form, Table, Row, Col } from 'react-bootstrap';
 import axios from 'axios';
 import PaginationControls from './PaginationControls';
 
@@ -221,151 +221,212 @@ const RescuePetManagement = ({
 				</Modal.Header>
 				<Modal.Body>
 					<Form onSubmit={handlePetSubmit}>
-						<Form.Group className='mb-3'>
-							<Form.Label>Name</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder='Enter pet name'
-								name='petName'
-								value={editingPet.petName || ''}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Short Description</Form.Label>
-							<Form.Control
-								as='textarea'
-								rows={2}
-								placeholder='Enter a short description'
-								name='shortDescription'
-								value={editingPet.shortDescription || ''}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Long Description</Form.Label>
-							<Form.Control
-								as='textarea'
-								rows={3}
-								placeholder='Enter a detailed description'
-								name='longDescription'
-								value={editingPet.longDescription || ''}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Age</Form.Label>
-							<Form.Control
-								type='integer'
-								placeholder="Enter pet's age"
-								name='age'
-								value={editingPet.age || ''}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Gender</Form.Label>
-							<Form.Control
-								as='select'
-								name='gender'
-								value={editingPet.gender || ''}
-								onChange={handlePetChange}
-							>
-								<option value=''>Select gender...</option>
-								<option value='Male'>Male</option>
-								<option value='Female'>Female</option>
-								<option value='Other'>Other</option>
-								<option value='Unknown'>Unknown</option>
-							</Form.Control>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Status</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder="Enter pet's status"
-								name='status'
-								value={editingPet.status || ''}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Type</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder="Enter pet's type"
-								name='type'
-								value={editingPet.type || ''}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						{/* Handling nested characteristics */}
-						<Form.Group className='mb-3'>
-							<Form.Label>Size</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder="Enter pet's size"
-								name='characteristics.common.size'
-								value={editingPet.characteristics?.common?.size || ''}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Temperament</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder="Enter pet's temperament"
-								name='characteristics.common.temperament'
-								value={editingPet.characteristics?.common?.temperament || ''}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Vaccination Status</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder="Enter pet's vaccination status"
-								name='characteristics.common.vaccination_status'
-								value={
-									editingPet.characteristics?.common?.vaccination_status || ''
-								}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						{/* Handling specific characteristics */}
-						<Form.Group className='mb-3'>
-							<Form.Label>Breed</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder="Enter pet's breed"
-								name='characteristics.specific.breed'
-								value={editingPet.characteristics?.specific?.breed || ''}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Activity Level</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder="Enter pet's activity level"
-								name='characteristics.specific.activity_level'
-								value={
-									editingPet.characteristics?.specific?.activity_level || ''
-								}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
-						<Form.Group className='mb-3'>
-							<Form.Label>Intelligence Level</Form.Label>
-							<Form.Control
-								type='text'
-								placeholder="Enter pet's intelligence level"
-								name='characteristics.specific.intelligence_level'
-								value={
-									editingPet.characteristics?.specific?.intelligence_level || ''
-								}
-								onChange={handlePetChange}
-							/>
-						</Form.Group>
+						{/* <!-- Basic Information Row --> */}
+						<Row className='mb-3'>
+							<Col xs={12} md={6}>
+								<Form.Group>
+									<Form.Label>Name</Form.Label>
+									<Form.Control
+										type='text'
+										placeholder='Enter pet name'
+										name='petName'
+										value={editingPet.petName || ''}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+							<Col xs={12} md={6}>
+								<Form.Group>
+									<Form.Label>Age</Form.Label>
+									<Form.Control
+										type='integer'
+										placeholder="Enter pet's age"
+										name='age'
+										value={editingPet.age || ''}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+						</Row>
+
+						<Row className='mb-3'>
+							<Col xs={12} md={4}>
+								<Form.Group>
+									<Form.Label>Gender</Form.Label>
+									<Form.Control
+										as='select'
+										name='gender'
+										value={editingPet.gender || ''}
+										onChange={handlePetChange}
+									>
+										<option value=''>Select gender...</option>
+										<option value='Male'>Male</option>
+										<option value='Female'>Female</option>
+										<option value='Other'>Other</option>
+										<option value='Unknown'>Unknown</option>
+									</Form.Control>
+								</Form.Group>
+							</Col>
+							<Col xs={12} md={4}>
+								<Form.Group>
+									<Form.Label>Status</Form.Label>
+									<Form.Control
+										as='select'
+										name='status'
+										value={editingPet.status || ''}
+										onChange={handlePetChange}
+									>
+										<option value=''>Select pet's status</option>
+										<option value='Available'>Available</option>
+										<option value='Reserved'>Reserved</option>
+										<option value='Adoption Pending'>Adoption Pending</option>
+										<option value='Adopted'>Adopted</option>
+										<option value='Draft'>Draft</option>
+										<option value='Quarantine'>Quarantine</option>
+										<option value='On Hold'>On Hold</option>
+										<option value='Not Available for Adoption'>
+											Not Available for Adoption
+										</option>
+									</Form.Control>
+								</Form.Group>
+							</Col>
+							<Col xs={12} md={4}>
+								<Form.Group>
+									<Form.Label>Type</Form.Label>
+									<Form.Control
+										type='text'
+										placeholder="Enter pet's type"
+										name='type'
+										value={editingPet.type || ''}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+						</Row>
+
+						{/* {<!-- Descriptions Row -->} */}
+						<Row className='mb-3'>
+							<Col xs={12}>
+								<Form.Group>
+									<Form.Label>Short Description</Form.Label>
+									<Form.Control
+										as='textarea'
+										rows={2}
+										placeholder='Enter a short description'
+										name='shortDescription'
+										value={editingPet.shortDescription || ''}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+						</Row>
+
+						<Row className='mb-3'>
+							<Col xs={12}>
+								<Form.Group>
+									<Form.Label>Long Description</Form.Label>
+									<Form.Control
+										as='textarea'
+										rows={3}
+										placeholder='Enter a detailed description'
+										name='longDescription'
+										value={editingPet.longDescription || ''}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+						</Row>
+
+						{/* { <!-- Characteristics -->} */}
+						{/* {<!-- Common Characteristics Row -->} */}
+						<Row className='mb-3'>
+							<Col xs={12} md={4}>
+								<Form.Group>
+									<Form.Label>Size</Form.Label>
+									<Form.Control
+										type='text'
+										placeholder="Enter pet's size"
+										name='characteristics.common.size'
+										value={editingPet.characteristics?.common?.size || ''}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+							<Col xs={12} md={4}>
+								<Form.Group>
+									<Form.Label>Temperament</Form.Label>
+									<Form.Control
+										type='text'
+										placeholder="Enter pet's temperament"
+										name='characteristics.common.temperament'
+										value={
+											editingPet.characteristics?.common?.temperament || ''
+										}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+							<Col xs={12} md={4}>
+								<Form.Group>
+									<Form.Label>Vaccination Status</Form.Label>
+									<Form.Control
+										type='text'
+										placeholder="Enter pet's vaccination status"
+										name='characteristics.common.vaccination_status'
+										value={
+											editingPet.characteristics?.common?.vaccination_status ||
+											''
+										}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+						</Row>
+
+						{/* {<!-- Specific Characteristics Row -->} */}
+						<Row className='mb-3'>
+							<Col xs={12} md={4}>
+								<Form.Group>
+									<Form.Label>Breed</Form.Label>
+									<Form.Control
+										type='text'
+										placeholder="Enter pet's breed"
+										name='characteristics.specific.breed'
+										value={editingPet.characteristics?.specific?.breed || ''}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+							<Col xs={12} md={4}>
+								<Form.Group>
+									<Form.Label>Activity Level</Form.Label>
+									<Form.Control
+										type='text'
+										placeholder="Enter pet's activity level"
+										name='characteristics.specific.activity_level'
+										value={
+											editingPet.characteristics?.specific?.activity_level || ''
+										}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+							<Col xs={12} md={4}>
+								<Form.Group>
+									<Form.Label>Intelligence Level</Form.Label>
+									<Form.Control
+										type='text'
+										placeholder="Enter pet's intelligence level"
+										name='characteristics.specific.intelligence_level'
+										value={
+											editingPet.characteristics?.specific
+												?.intelligence_level || ''
+										}
+										onChange={handlePetChange}
+									/>
+								</Form.Group>
+							</Col>
+						</Row>
 						<Button variant='secondary' onClick={() => setShowPetModal(false)}>
 							Close
 						</Button>
