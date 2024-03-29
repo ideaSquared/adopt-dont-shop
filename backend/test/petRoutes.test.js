@@ -161,6 +161,104 @@ describe('Pet Creation Routes', function () {
 				expect(response.body.data).to.include(updatedPetData);
 			});
 		});
+
+		describe('GET /api/pets/owner/:ownerId', function () {
+			let ownerIdWithPets, ownerIdWithoutPets;
+
+			before(async () => {
+				ownerIdWithPets = generateObjectId();
+				ownerIdWithoutPets = generateObjectId();
+
+				await Pet.create([
+					{
+						petName: 'Rex',
+						ownerId: ownerIdWithPets,
+						age: 4,
+						shortDescription: 'Friendly and energetic dog',
+						longDescription:
+							'Rex is a very friendly and energetic dog that loves to play and run around.',
+						gender: 'Male',
+						status: 'Available',
+						type: 'Dog',
+						characteristics: {
+							common: {
+								size: 'Medium',
+								temperament: 'Friendly',
+								vaccination_status: 'Up-to-date',
+							},
+							specific: {
+								breed: 'Golden Retriever',
+								intelligence_level: 'High',
+								activity_level: 'High',
+							},
+						},
+					},
+					{
+						petName: 'Meow',
+						ownerId: ownerIdWithPets,
+						age: 4,
+						shortDescription: 'Curious and playful cat',
+						longDescription:
+							'Meow meow meow, always curious and loves to explore.',
+						gender: 'Male',
+						status: 'Available',
+						type: 'Cat',
+						characteristics: {
+							common: {
+								size: 'Medium',
+								temperament: 'Playful',
+								vaccination_status: 'Up-to-date',
+							},
+							specific: {
+								breed: 'Siamese',
+								intelligence_level: 'High',
+								activity_level: 'Moderate',
+							},
+						},
+					},
+				]);
+			});
+
+			after(async () => {
+				// Cleanup the test pets created for ownerIdWithPets.
+				await Pet.deleteMany({ ownerId: ownerIdWithPets });
+			});
+
+			it('should return all pets for a given ownerId with pets', async function () {
+				const response = await request(app)
+					.get(`/api/pets/owner/${ownerIdWithPets}`)
+					.set('Cookie', cookie) // Assuming authentication is required
+					.expect(200); // Expecting the request to be successful
+
+				// expect(response.body.message).to.equal('Pets fetched successfully');
+				expect(response.body).to.be.an('array');
+				expect(response.body.length).to.be.greaterThan(0);
+				response.body.forEach((pet) => {
+					expect(pet.ownerId).to.equal(ownerIdWithPets.toString());
+				});
+			});
+
+			it('should return a 404 status if no pets are found for a given ownerId', async function () {
+				const response = await request(app)
+					.get(`/api/pets/owner/${ownerIdWithoutPets}`)
+					.set('Cookie', cookie) // Assuming authentication is required
+					.expect(404); // Expecting the request to result in a "not found" status
+
+				expect(response.body.message).to.equal('No pets found for this owner');
+			});
+
+			it('should return a 400 status if the ownerId is not a valid ObjectId', async function () {
+				const invalidOwnerId = '123'; // Simulating an invalid ObjectId
+				const response = await request(app)
+					.get(`/api/pets/owner/${invalidOwnerId}`)
+					.set('Cookie', cookie) // Assuming authentication is required
+					.expect(500); // Expecting the request to result in a "bad request" status
+
+				expect(response.body.message).to.include(
+					'Failed to fetch pets for this owner'
+				);
+			});
+		});
 	});
 
 	context('as non-staff of the rescue', function () {

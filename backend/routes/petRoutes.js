@@ -114,6 +114,33 @@ router.get('/:id', authenticateToken, async (req, res) => {
 	}
 });
 
+// Get all pet records by ownerId
+router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
+	try {
+		const { ownerId } = req.params;
+		logger.info(`Fetching pets for ownerId: ${ownerId}`);
+		const pets = await Pet.find({ ownerId: ownerId });
+		if (pets.length === 0) {
+			logger.warn(`No pets found for ownerId: ${ownerId}`);
+			return res.status(404).send({ message: 'No pets found for this owner' });
+		}
+		logger.info(
+			`Successfully fetched pets for ownerId: ${ownerId}. Count: ${pets.length}`
+		);
+		res.json(pets);
+	} catch (error) {
+		logger.error(
+			`Failed to fetch pets for ownerId: ${req.params.ownerId}: ${error.message}`,
+			{ error }
+		);
+		Sentry.captureException(error);
+		res.status(500).send({
+			message: 'Failed to fetch pets for this owner',
+			error: error.message,
+		});
+	}
+});
+
 // Update a pet record by ID
 router.put(
 	'/:id',
