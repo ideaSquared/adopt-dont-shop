@@ -210,7 +210,7 @@ const RescuePetManagement = ({
 
 			<Container>
 				<Row className='align-items-end mb-3'>
-					<Col>
+					<Col sm={6} md={12}>
 						<Form.Control
 							type='text'
 							placeholder='Search pets by name...'
@@ -218,7 +218,7 @@ const RescuePetManagement = ({
 							onChange={(e) => setSearchTerm(e.target.value)}
 						/>
 					</Col>
-					<Col>
+					<Col sm={6} md={3}>
 						<Form.Label>Type Filter:</Form.Label>
 						<Form.Select
 							aria-label='Type Filter'
@@ -234,7 +234,7 @@ const RescuePetManagement = ({
 						</Form.Select>
 					</Col>
 
-					<Col>
+					<Col sm={6} md={3}>
 						<Form.Label>Status Filter:</Form.Label>
 						<Form.Select
 							aria-label='Status Filter'
@@ -250,7 +250,7 @@ const RescuePetManagement = ({
 						</Form.Select>
 					</Col>
 
-					<Col>
+					<Col sm={6} md={3}>
 						<Form.Label>Sort By:</Form.Label>
 						<Form.Select
 							aria-label='Sort By'
@@ -273,18 +273,19 @@ const RescuePetManagement = ({
 						</Form.Select>
 					</Col>
 
-					<Col>
+					<Col md={3}>
 						<Button
 							variant='primary'
 							onClick={() => handleAddPet()}
 							disabled={!canEditPet}
+							className='w-100'
 						>
 							Add Pet
 						</Button>
 					</Col>
 				</Row>
 			</Container>
-			<Table striped bordered hover>
+			<Table striped bordered hover responsive>
 				<thead>
 					<tr>
 						<th>Name</th>

@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Nav } from 'react-bootstrap';
+import {
+	Container,
+	Row,
+	Col,
+	Nav,
+	Navbar,
+	Offcanvas,
+	Form,
+	Button,
+} from 'react-bootstrap';
 import axios from 'axios';
 import AlertComponent from './AlertComponent';
 import { useAuth } from './AuthContext';
@@ -25,6 +34,7 @@ const RescueProfile = () => {
 
 	const [alertInfo, setAlertInfo] = useState({ type: '', message: '' });
 	const [activeSection, setActiveSection] = useState('profile');
+	const [showSidebar, setShowSidebar] = useState(false);
 
 	useRescueRedirect();
 
@@ -205,116 +215,93 @@ const RescueProfile = () => {
 	};
 
 	return (
-		<Container fluid>
-			<Row>
-				<Col
-					xs={12}
-					md={2}
-					lg={1}
-					className='bg-light'
-					style={{ height: '100vh' }}
-				>
-					<Nav className='flex-column' onSelect={setActiveSection}>
-						<Nav.Link eventKey='profile' href='#profile'>
-							Rescue Profile
-						</Nav.Link>
-						<Nav.Link eventKey='pets' href='#pets'>
-							Pet Management
-						</Nav.Link>
-						<Nav.Link eventKey='staff' href='#staff'>
-							Staff Management
-						</Nav.Link>
-					</Nav>
-				</Col>
-				<Col xs={12} md={10} lg={11}>
-					{alertInfo.message && (
-						<AlertComponent
-							type={alertInfo.type}
-							message={alertInfo.message}
-							onClose={() => setAlertInfo({ type: '', message: '' })}
-						/>
-					)}
-					{renderSection()}
-				</Col>
-			</Row>
-		</Container>
+		<>
+			<Navbar
+				bg='dark'
+				variant='dark'
+				expand={false}
+				className='sticky-top flex-md-nowrap p-0 shadow d-md-none'
+			>
+				<Container fluid>
+					<Navbar.Brand href='#' className='col-md-3 col-lg-2 me-0 px-3 '>
+						{rescueProfile.rescueName}
+					</Navbar.Brand>
+					<Button
+						variant='dark'
+						onClick={() => setShowSidebar(true)}
+						className='me-2'
+					>
+						<span>Menu</span>
+					</Button>
+				</Container>
+			</Navbar>
+
+			<Container fluid>
+				<Row>
+					<Col
+						md={3}
+						lg={2}
+						className='d-none d-md-block bg-light p-0'
+						style={{ height: '100vh' }}
+					>
+						<Nav
+							className='flex-column'
+							variant='pills'
+							activeKey={activeSection}
+							onSelect={(selectedKey) => setActiveSection(selectedKey)}
+						>
+							<Nav.Item>
+								<Nav.Link eventKey='profile'>Rescue Profile</Nav.Link>
+							</Nav.Item>
+							<Nav.Item>
+								<Nav.Link eventKey='pets'>Pet Management</Nav.Link>
+							</Nav.Item>
+							<Nav.Item>
+								<Nav.Link eventKey='staff'>Staff Management</Nav.Link>
+							</Nav.Item>
+						</Nav>
+					</Col>
+					<Offcanvas
+						show={showSidebar}
+						onHide={() => setShowSidebar(false)}
+						placement='start'
+					>
+						<Offcanvas.Header closeButton>
+							<Offcanvas.Title>Menu</Offcanvas.Title>
+						</Offcanvas.Header>
+						<Offcanvas.Body>
+							<Nav
+								className='flex-column'
+								variant='pills'
+								activeKey={activeSection}
+								onSelect={(selectedKey) => setActiveSection(selectedKey)}
+							>
+								<Nav.Item>
+									<Nav.Link eventKey='profile'>Rescue Profile</Nav.Link>
+								</Nav.Item>
+								<Nav.Item>
+									<Nav.Link eventKey='pets'>Pet Management</Nav.Link>
+								</Nav.Item>
+								<Nav.Item>
+									<Nav.Link eventKey='staff'>Staff Management</Nav.Link>
+								</Nav.Item>
+							</Nav>
+						</Offcanvas.Body>
+					</Offcanvas>
+					<Col xs={12} md={9} lg={10}>
+						{alertInfo.message && (
+							<AlertComponent
+								type={alertInfo.type}
+								message={alertInfo.message}
+								onClose={() => setAlertInfo({ type: '', message: '' })}
+							/>
+						)}
+						<div>{renderSection()}</div>
+					</Col>
+				</Row>
+			</Container>
+		</>
 	);
-
-	// return (
-	// 	<Container fluid>
-	// 		<Row>
-	// 			<Col
-	// 				xs={12}
-	// 				md={3}
-	// 				lg={2}
-	// 				className='bg-light'
-	// 				style={{ height: '100vh' }}
-	// 			>
-	// 				<Nav className='flex-column' onSelect={setActiveSection}>
-	// 					<Nav.Link eventKey='profile' href='#profile'>
-	// 						Rescue Profile
-	// 					</Nav.Link>
-	// 					<Nav.Link eventKey='pets' href='#pets'>
-	// 						Pet Management
-	// 					</Nav.Link>
-	// 					<Nav.Link eventKey='staff' href='#staff'>
-	// 						Staff Management
-	// 					</Nav.Link>
-	// 					{/* Add more links as needed */}
-	// 				</Nav>
-	// 			</Col>
-	// 			<Col xs={12} md={9} lg={10}>
-	// 				<div id='profile'>
-	// 					{canViewRescueInfo && (
-	// 						<RescueProfileHeader rescueProfile={rescueProfile} />
-	// 					)}
-
-	// 					{alertInfo.message && (
-	// 						<AlertComponent
-	// 							type={alertInfo.type}
-	// 							message={alertInfo.message}
-	// 							onClose={() => setAlertInfo({ type: '', message: '' })}
-	// 						/>
-	// 					)}
-	// 					<RescueProfileForm
-	// 						rescueProfile={rescueProfile}
-	// 						handleRescueInfoChange={handleRescueInfoChange}
-	// 						handleReferenceNumberSubmit={handleReferenceNumberSubmit}
-	// 						canEditRescueInfo={canEditRescueInfo}
-	// 						saveUpdates={saveUpdates}
-	// 					/>
-	// 				</div>
-	// 				<hr />
-	// 				<div id='pets'>
-	// 					{canViewPet && (
-	// 						<RescuePetManagement
-	// 							rescueId={rescueProfile.id}
-	// 							canAddPet={canAddPet}
-	// 							canEditPet={canEditPet}
-	// 							canDeletePet={canDeletePet}
-	// 						/>
-	// 					)}
-	// 				</div>
-	// 				<div id='staff'>
-	// 					{canViewStaff && (
-	// 						<RescueStaffManagement
-	// 							rescueProfile={rescueProfile}
-	// 							setRescueProfile={setRescueProfile}
-	// 							fetchRescueProfile={fetchRescueProfile}
-	// 							canAddStaff={canAddStaff}
-	// 							canEditStaff={canEditStaff}
-	// 							canVerifyStaff={canVerifyStaff}
-	// 							canDeleteStaff={canDeleteStaff}
-	// 							uniquePermissions={uniquePermissions}
-	// 							userId={userId}
-	// 						/>
-	// 					)}
-	// 				</div>
-	// 				{/* Add more sections as needed */}
-	// 			</Col>
-	// 		</Row>
-	// 	</Container>
-	// );
 };
 
 export default RescueProfile;

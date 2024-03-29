@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { Table, Button, Modal, Tabs, Tab, Form } from 'react-bootstrap';
+import {
+	Table,
+	Button,
+	Modal,
+	Tabs,
+	Tab,
+	Form,
+	Container,
+	Row,
+	Col,
+} from 'react-bootstrap';
 import PaginationControls from './PaginationControls';
 import AlertComponent from './AlertComponent';
 import axios from 'axios';
@@ -220,18 +230,88 @@ const RescueStaffManagement = ({
 		communications: ['create_messages', 'view_messages'],
 	};
 
+	const [searchTerm, setSearchTerm] = useState('');
+	const [filterPermissions, setFilterPermissions] = useState([]);
+
+	// Example filter logic applied to your currentStaff calculation
+	const filteredStaff = rescueProfile.staff.filter(
+		(staff) =>
+			staff.userId.email.toLowerCase().includes(searchTerm.toLowerCase()) &&
+			filterPermissions.every((permission) =>
+				staff.permissions.includes(permission)
+			)
+	);
+
 	return (
 		<div>
 			<h2>Staff members</h2>
-			<Button
-				variant='primary'
-				className='mb-3'
-				onClick={() => setShowAddStaffModal(true)}
-				disabled={!canAddStaff}
-			>
-				Add staff
-			</Button>
-			<Table striped bordered hover>
+			<Container>
+				<Row className='align-items-end mb-3'>
+					<Col sm={6} md={12}>
+						<Form.Control
+							type='text'
+							placeholder='Search staff by name or email...'
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+						/>
+					</Col>
+					<Col sm={6} md={3}>
+						<Form.Label>Sort By:</Form.Label>
+						<Form.Select
+							aria-label='Sort By'
+							onChange={(e) => setSortCriteria(JSON.parse(e.target.value))}
+						>
+							<option value={JSON.stringify({ field: '', direction: '' })}>
+								None
+							</option>
+							<option
+								value={JSON.stringify({ field: 'name', direction: 'asc' })}
+							>
+								Name Ascending
+							</option>
+							<option
+								value={JSON.stringify({ field: 'name', direction: 'desc' })}
+							>
+								Name Descending
+							</option>
+							{/* Add other sorting criteria as needed */}
+						</Form.Select>
+					</Col>
+					<Col sm={6} md={3}>
+						<Form.Group>
+							<Form.Label>Permissions Filter:</Form.Label>
+							<Form.Select
+								aria-label='Permissions Filter'
+								value={filterPermissions}
+								onChange={(e) => {
+									const selectedOptions = Array.from(
+										e.target.selectedOptions,
+										(option) => option.value
+									);
+									setFilterPermissions(selectedOptions);
+								}}
+							>
+								{uniquePermissions.map((permission, index) => (
+									<option key={index} value={permission}>
+										{permission}
+									</option>
+								))}
+							</Form.Select>
+						</Form.Group>
+					</Col>
+					<Col md={3}>
+						<Button
+							variant='primary'
+							onClick={() => setShowAddStaffModal(true)}
+							disabled={!canAddStaff}
+							className='w-100'
+						>
+							Add Staff
+						</Button>
+					</Col>
+				</Row>
+			</Container>
+			<Table striped bordered hover responsive>
 				<thead>
 					<tr>
 						<th rowSpan='2'>Staff Email</th>
@@ -262,7 +342,7 @@ const RescueStaffManagement = ({
 					</tr>
 				</thead>
 				<tbody>
-					{currentStaff.map((staff) => (
+					{filteredStaff.map((staff) => (
 						<tr key={staff.userId._id}>
 							<td>{staff.userId.email}</td>
 
