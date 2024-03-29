@@ -410,6 +410,49 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		}
 	});
 
+	router.get('/permissions', authenticateToken, async (req, res) => {
+		const userId = req.user.userId; // Extract userId from the token
+		logger.info(`Fetching permissions for userId: ${userId}`); // Log the operation
+
+		try {
+			// Query the Rescue collection to find a document where this user is listed as staff
+			// and directly project the staff member's permissions to optimize the query.
+			const rescue = await Rescue.findOne(
+				{ 'staff.userId': userId },
+				{ 'staff.$': 1 }
+			);
+			if (!rescue) {
+				logger.warn(
+					`User ${userId} is not a staff member of any rescue organization`
+				);
+				return res.status(404).json({
+					message: 'User is not a staff member of any rescue organization.',
+				});
+			}
+
+			// Extract the permissions from the staff member's data
+			const userStaffInfo = rescue.staff.find(
+				(staff) => staff.userId.toString() === userId
+			);
+			if (!userStaffInfo) {
+				return res
+					.status(404)
+					.json({ message: 'Staff member information not found.' });
+			}
+
+			const permissions = userStaffInfo.permissions || [];
+
+			logger.info(`Permissions fetched successfully for userId: ${userId}`);
+			res.status(200).json({ permissions });
+		} catch (error) {
+			logger.error(
+				`Error fetching permissions for userId: ${userId}: ${error.message}`
+			); // Log any exceptions
+			Sentry.captureException(error);
+			res.status(500).json({ message: 'Failed to fetch permissions.' });
+		}
+	});
+
 	// Return the configured router.
 	return router;
 }

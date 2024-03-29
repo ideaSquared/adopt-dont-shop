@@ -1,15 +1,12 @@
-// AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
-	const [isAdmin, setIsAdmin] = useState(false); // Added isAdmin state
-	const [isRescue, setIsRescue] = useState(false);
+	const [isAdmin, setIsAdmin] = useState(false);
 	const [userPermissions, setUserPermissions] = useState([]);
+	const [isRescue, setIsRescue] = useState(false);
 
 	useEffect(() => {
 		checkLoginStatus();
@@ -26,18 +23,27 @@ export const AuthProvider = ({ children }) => {
 			);
 			setIsLoggedIn(response.data.isLoggedIn);
 			setIsAdmin(response.data.isAdmin || false);
+			if (response.data.isLoggedIn) {
+				fetchPermissions(); // Fetch permissions if the user is logged in
+			}
+		} catch (error) {
+			console.error('Error checking login status:', error);
+			setIsLoggedIn(false);
+			setIsAdmin(false);
+			setUserPermissions([]);
+		}
+	};
+
+	const fetchPermissions = async () => {
+		try {
+			const response = await axios.get(
+				`${import.meta.env.VITE_API_BASE_URL}/auth/permissions`,
+				{ withCredentials: true }
+			);
 			setUserPermissions(response.data.permissions || []);
 		} catch (error) {
-			// Handle 401 Unauthorized specifically
-			if (error.response && error.response.status === 401) {
-				console.error('User not logged in');
-				setIsLoggedIn(false);
-				setIsAdmin(false);
-				setUserPermissions([]);
-			} else {
-				// Handle other errors
-				console.error('Error checking login status:', error);
-			}
+			console.error('Error fetching user permissions:', error);
+			setUserPermissions([]);
 		}
 	};
 
@@ -48,7 +54,6 @@ export const AuthProvider = ({ children }) => {
 				{ withCredentials: true }
 			);
 			if (response.status === 200) {
-				setUserPermissions(response.data.permissions || []);
 				setIsRescue(true);
 			} else {
 				setUserPermissions([]);
@@ -69,29 +74,14 @@ export const AuthProvider = ({ children }) => {
 			);
 			setIsLoggedIn(true);
 			setIsAdmin(response.data.isAdmin); // Directly update isAdmin based on the response
-			checkRescueRoute();
-			localStorage.setItem('userId', response.data.userId);
+			fetchPermissions(); // Fetch permissions upon successful login
 		} catch (error) {
 			console.error('Login attempt failed:', error);
 			setIsLoggedIn(false);
 			setIsAdmin(false); // Ensure consistency in state
-
-			// Check if the error is due to an Axios response (i.e., a response that falls outside the range of 2xx)
-			if (error.response) {
-				// The request was made and the server responded with a status code that falls out of the range of 2xx
-				const errorMessage =
-					error.response.data.message ||
-					'An unexpected error occurred during login.';
-				throw new Error(errorMessage);
-			} else if (error.request) {
-				// The request was made but no response was received
-				throw new Error(
-					'The login request was made but no response was received'
-				);
-			} else {
-				// Something happened in setting up the request that triggered an Error
-				throw new Error('An error occurred while setting up the login request');
-			}
+			throw new Error(
+				error.response?.data.message || 'An error occurred during login.'
+			);
 		}
 	};
 
@@ -104,7 +94,6 @@ export const AuthProvider = ({ children }) => {
 			);
 			setIsLoggedIn(false);
 			setIsAdmin(false);
-			setIsRescue(false);
 			setUserPermissions([]); // Clear permissions on logout
 		} catch (error) {
 			console.error('Logout failed:', error);
@@ -113,7 +102,7 @@ export const AuthProvider = ({ children }) => {
 
 	const contextValue = {
 		isLoggedIn,
-		isAdmin, // Make isAdmin available in the context
+		isAdmin,
 		isRescue,
 		userPermissions,
 		login,

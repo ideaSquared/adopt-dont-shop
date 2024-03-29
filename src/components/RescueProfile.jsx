@@ -28,7 +28,9 @@ const RescueProfile = () => {
 		referenceNumber: '',
 		referenceNumberVerified: false,
 	});
+	const { userPermissions, isRescue } = useAuth();
 	const userId = localStorage.getItem('userId');
+
 	const [alertInfo, setAlertInfo] = useState({ type: '', message: '' });
 	const [showAddStaffModal, setShowAddStaffModal] = useState(false);
 	const [newStaff, setNewStaff] = useState({
@@ -36,9 +38,7 @@ const RescueProfile = () => {
 		email: '',
 		password: '',
 	});
-	const { isRescue, userPermissions } = useAuth();
 
-	const [staff, setStaff] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [staffPerPage] = useState(10);
 
@@ -48,7 +48,7 @@ const RescueProfile = () => {
 		if (isRescue) {
 			fetchRescueProfile();
 		}
-	}, [isRescue]);
+	}, []);
 
 	const fetchRescueProfile = async () => {
 		try {
@@ -139,17 +139,6 @@ const RescueProfile = () => {
 		setRescueProfile((prev) => ({
 			...prev,
 			[name]: value,
-		}));
-	};
-
-	const handleVerificationSubmit = (userId, verifiedByRescue) => {
-		setRescueProfile((prev) => ({
-			...prev,
-			staff: prev.staff.map((staffMember) =>
-				staffMember.userId._id === userId
-					? { ...staffMember, verifiedByRescue: verifiedByRescue }
-					: staffMember
-			),
 		}));
 	};
 
@@ -308,8 +297,12 @@ const RescueProfile = () => {
 		updateRescueProfile(rescueProfile.id, rescueProfile);
 	};
 
-	// Check if user has the 'edit_rescue_info' permission
+	// Check for permissions
 	const canEditRescueInfo = userPermissions.includes('edit_rescue_info');
+	// const canAddStaff = userPermissions.includes('add_staff');
+	// const canEditStaff = userPermissions.includes('edit_staff');
+	// const canVerifyStaff = userPermissions.includes('verify_staff');
+	// const canRemoveStaff = userPermissions.includes('remove_staff');
 
 	const indexOfLastStaff = currentPage * staffPerPage;
 	const indexOfFirstStaff = indexOfLastStaff - staffPerPage;
