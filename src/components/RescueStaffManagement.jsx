@@ -207,6 +207,19 @@ const RescueStaffManagement = ({
 		}
 	};
 
+	const permissionCategories = {
+		rescueOperations: ['view_rescue_info', 'edit_rescue_info', 'delete_rescue'],
+		staffManagement: [
+			'view_staff',
+			'add_staff',
+			'edit_staff',
+			'verify_staff',
+			'delete_staff',
+		],
+		petManagement: ['view_pet', 'add_pet', 'edit_pet', 'delete_pet'],
+		communications: ['create_messages', 'view_messages'],
+	};
+
 	return (
 		<div>
 			<h2>Staff members</h2>
@@ -231,7 +244,7 @@ const RescueStaffManagement = ({
 					<tr>
 						<th>View Rescue Info</th>
 						<th>Edit Rescue Info</th>
-						<th>Delete Rescue Info</th>
+						<th>Delete Rescue</th>
 
 						<th>View Staff</th>
 						<th>Add Staff</th>
@@ -252,22 +265,25 @@ const RescueStaffManagement = ({
 					{currentStaff.map((staff) => (
 						<tr key={staff.userId._id}>
 							<td>{staff.userId.email}</td>
-							{uniquePermissions.map((permission) => (
-								<td key={`${staff.userId._id}-${permission}`}>
-									<Form.Check
-										type='checkbox'
-										checked={staff.permissions.includes(permission)}
-										onChange={(e) =>
-											handlePermissionChange(
-												staff.userId._id,
-												permission,
-												e.target.checked
-											)
-										}
-										disabled={staff.userId._id === userId || !canEditStaff}
-									/>
-								</td>
-							))}
+
+							{Object.keys(permissionCategories).map((category) =>
+								permissionCategories[category].map((permission) => (
+									<td key={`${staff.userId._id}-${permission}`}>
+										<Form.Check
+											type='checkbox'
+											checked={staff.permissions.includes(permission)}
+											onChange={(e) =>
+												handlePermissionChange(
+													staff.userId._id,
+													permission,
+													e.target.checked
+												)
+											}
+											disabled={staff.userId._id === userId || !canEditStaff}
+										/>
+									</td>
+								))
+							)}
 
 							<td>
 								{staff.verifiedByRescue ? (

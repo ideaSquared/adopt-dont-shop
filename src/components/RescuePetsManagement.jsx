@@ -3,7 +3,12 @@ import { Button, Modal, Form, Table } from 'react-bootstrap';
 import axios from 'axios';
 import PaginationControls from './PaginationControls';
 
-const RescuePetManagement = ({ rescueId }) => {
+const RescuePetManagement = ({
+	rescueId,
+	canAddPet,
+	canEditPet,
+	canDeletePet,
+}) => {
 	const [pets, setPets] = useState([]);
 	const [showPetModal, setShowPetModal] = useState(false);
 	const [editingPet, setEditingPet] = useState({}); // Use an empty object as the default state
@@ -161,7 +166,11 @@ const RescuePetManagement = ({ rescueId }) => {
 	return (
 		<div>
 			<h2>Pets</h2>
-			<Button onClick={() => handleAddPet()} className='mb-3'>
+			<Button
+				onClick={() => handleAddPet()}
+				className='mb-3'
+				disabled={!canEditPet}
+			>
 				Add Pet
 			</Button>
 			<Table striped bordered hover>
@@ -182,12 +191,17 @@ const RescuePetManagement = ({ rescueId }) => {
 							<td>{pet.status}</td>
 							<td>{pet.age}</td>
 							<td>
-								<Button variant='info' onClick={() => openEditModal(pet)}>
+								<Button
+									variant='info'
+									onClick={() => openEditModal(pet)}
+									disabled={!canEditPet}
+								>
 									Edit pet
 								</Button>{' '}
 								<Button
 									variant='danger'
 									onClick={() => handlePetDelete(pet._id)}
+									disabled={!canDeletePet}
 								>
 									Remove pet
 								</Button>
@@ -355,7 +369,11 @@ const RescuePetManagement = ({ rescueId }) => {
 						<Button variant='secondary' onClick={() => setShowPetModal(false)}>
 							Close
 						</Button>
-						<Button variant='primary' type='submit'>
+						<Button
+							variant='primary'
+							type='submit'
+							disabled={!canAddPet || !canEditPet}
+						>
 							Save Changes
 						</Button>
 					</Form>

@@ -21,7 +21,7 @@ const rescueStaffSchema = new Schema({
 		type: [String],
 		enum: [
 			'edit_rescue_info',
-			'view_rescue',
+			'view_rescue_info',
 			'delete_rescue',
 			'add_staff',
 			'edit_staff',
@@ -33,7 +33,7 @@ const rescueStaffSchema = new Schema({
 			'edit_pet',
 			'delete_pet',
 			'create_messages',
-			'read_messages',
+			'view_messages',
 		],
 	},
 	// A Boolean indicating whether the staff member has been verified by the rescue organization.

@@ -5,7 +5,7 @@ const RescueProfileHeader = ({ rescueProfile }) => {
 	return (
 		<div>
 			<h1>
-				Rescue profile{' '}
+				{rescueProfile.rescueName}{' '}
 				<span style={{ verticalAlign: 'top' }}>
 					<Badge
 						bg={rescueProfile.referenceNumberVerified ? 'success' : 'danger'}

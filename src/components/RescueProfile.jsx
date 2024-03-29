@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-	Badge,
-	Button,
-	Col,
-	Container,
-	Form,
-	InputGroup,
-	Modal,
-	Row,
-	Table,
-	Tabs,
-	Tab,
-} from 'react-bootstrap';
+import { Container } from 'react-bootstrap';
 import axios from 'axios';
 import AlertComponent from './AlertComponent';
 import { useAuth } from './AuthContext';
@@ -147,6 +135,7 @@ const RescueProfile = () => {
 	};
 
 	// Check for permissions
+	const canViewRescueInfo = userPermissions.includes('view_rescue_info');
 	const canEditRescueInfo = userPermissions.includes('edit_rescue_info');
 	const canViewStaff = userPermissions.includes('view_staff');
 	const canAddStaff = userPermissions.includes('add_staff');
@@ -160,7 +149,10 @@ const RescueProfile = () => {
 
 	return (
 		<Container fluid>
-			<RescueProfileHeader rescueProfile={rescueProfile} />
+			{canViewRescueInfo && (
+				<RescueProfileHeader rescueProfile={rescueProfile} />
+			)}
+
 			{alertInfo.message && (
 				<AlertComponent
 					type={alertInfo.type}
@@ -178,7 +170,14 @@ const RescueProfile = () => {
 
 			<hr />
 
-			{canViewPet && <RescuePetManagement rescueId={rescueProfile.id} />}
+			{canViewPet && (
+				<RescuePetManagement
+					rescueId={rescueProfile.id}
+					canAddPet={canAddPet}
+					canEditPet={canEditPet}
+					canDeletePet={canDeletePet}
+				/>
+			)}
 
 			{canViewStaff && (
 				<RescueStaffManagement
