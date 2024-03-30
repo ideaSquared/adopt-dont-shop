@@ -331,25 +331,44 @@ router.put(
 	'/messages/read/:conversationId',
 	authenticateToken,
 	async (req, res) => {
-		const { userId } = req.user; // Assuming user ID is attached to the request via middleware
+		const { userId } = req.user;
 		const { conversationId } = req.params;
 
 		try {
-			// Mark all unread messages as read
+			console.log(
+				`Attempting to mark messages as read for conversationId: ${conversationId} by userId: ${userId}`
+			);
+
+			// Step 1: Count unread messages for the user in this conversation
+			const unreadCount = await Message.countDocuments({
+				conversationId,
+				senderId: { $ne: userId },
+				status: 'sent',
+			});
+
+			console.log(`Unread messages to mark as read: ${unreadCount}`);
+
+			// Step 2: Mark the unread messages as read
 			const result = await Message.updateMany(
 				{ conversationId, senderId: { $ne: userId }, status: 'sent' },
 				{ $set: { status: 'read', readAt: new Date() } }
 			);
 
-			// Update unread message count in conversation
-			await Conversation.findByIdAndUpdate(conversationId, {
-				$inc: { unreadMessages: -result.nModified },
-			});
+			console.log(`Messages updated, nModified: ${result.nModified}`);
 
-			res.status(200).json({ message: 'Messages marked as read' });
+			// Step 3: Update the conversation's unreadMessages count
+			if (unreadCount > 0) {
+				await Conversation.findByIdAndUpdate(conversationId, {
+					$inc: { unreadMessages: -unreadCount },
+				});
+			}
+
+			res.status(200).json({
+				message: 'Messages marked as read',
+				updated: result.nModified,
+			});
 		} catch (error) {
-			logger.error(`Error marking messages as read: ${error.message}`);
-			Sentry.captureException(error);
+			console.error(`Error marking messages as read: ${error}`);
 			res.status(500).json({ message: error.message });
 		}
 	}

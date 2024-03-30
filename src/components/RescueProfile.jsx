@@ -18,6 +18,7 @@ import RescueProfileHeader from './RescueProfileHeader';
 import RescueStaffManagement from './RescueStaffManagement';
 import RescuePetManagement from './RescuePetsManagement';
 import RescueNoPermissions from './RescueNoPermissions';
+import UserConversations from './UserConversations';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
@@ -158,6 +159,7 @@ const RescueProfile = () => {
 	const canAddPet = userPermissions.includes('add_pet');
 	const canEditPet = userPermissions.includes('edit_pet');
 	const canDeletePet = userPermissions.includes('delete_pet');
+	const canViewMessages = userPermissions.includes('view_messages');
 
 	const renderSection = () => {
 		switch (activeSection) {
@@ -209,6 +211,10 @@ const RescueProfile = () => {
 				} else {
 					return <RescueNoPermissions rescueProfile={rescueProfile} />;
 				}
+			case 'messages':
+				if (canViewMessages) {
+					return <UserConversations userType='Rescue' />;
+				}
 			default:
 				return <RescueNoPermissions rescueProfile={rescueProfile} />;
 		}
@@ -259,6 +265,9 @@ const RescueProfile = () => {
 							<Nav.Item>
 								<Nav.Link eventKey='staff'>Staff Management</Nav.Link>
 							</Nav.Item>
+							<Nav.Item>
+								<Nav.Link eventKey='messages'>Messages</Nav.Link>
+							</Nav.Item>
 						</Nav>
 					</Col>
 					<Offcanvas
@@ -284,6 +293,9 @@ const RescueProfile = () => {
 								</Nav.Item>
 								<Nav.Item>
 									<Nav.Link eventKey='staff'>Staff Management</Nav.Link>
+								</Nav.Item>
+								<Nav.Item>
+									<Nav.Link eventKey='messages'>Messages</Nav.Link>
 								</Nav.Item>
 							</Nav>
 						</Offcanvas.Body>

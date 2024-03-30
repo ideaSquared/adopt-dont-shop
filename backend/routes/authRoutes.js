@@ -188,6 +188,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 
 			// Prepare the data to be returned
 			const userDetails = {
+				userId: user._id,
 				email: user.email,
 				firstName: user.firstName,
 			};
