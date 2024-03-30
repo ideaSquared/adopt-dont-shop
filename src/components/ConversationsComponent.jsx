@@ -8,6 +8,7 @@ const ConversationsComponent = ({
 	onConversationSelect,
 	selectedConversation,
 }) => {
+	const userId = localStorage.getItem('userId');
 	const formatIsoDateString = (isoDateString) => {
 		if (!isoDateString) return 'Date not available';
 		const date = new Date(isoDateString);
@@ -72,12 +73,14 @@ const ConversationsComponent = ({
 							<div className='small'>{conversation.lastMessage}</div>
 						</div>
 						<div className='text-nowrap'>
-							<div className='mb-2'>
-								<span className='badge bg-secondary rounded-pill'>
-									{conversation.unreadMessages || 0}
-								</span>{' '}
-								{/* Badge for unread messages */}
-							</div>
+							{conversation.lastMessageBy !== userId &&
+								conversation.unreadMessages > 0 && (
+									<div className='mb-2'>
+										<span className='badge bg-secondary rounded-pill'>
+											{conversation.unreadMessages}
+										</span>
+									</div>
+								)}
 							<small>
 								{conversation.lastMessageAt
 									? formatIsoDateString(conversation.lastMessageAt)

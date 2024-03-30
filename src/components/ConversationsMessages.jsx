@@ -98,7 +98,7 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 								className='text-muted text-end'
 								style={{ fontSize: '0.8em' }}
 							>
-								{new Date(msg.sentAt).toLocaleTimeString()}
+								{new Date(msg.sentAt).toLocaleTimeString()} {msg.status}
 							</Card.Text>
 						</Card.Body>
 					</Card>

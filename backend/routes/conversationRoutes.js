@@ -326,6 +326,35 @@ router.get('/messages/:conversationId', authenticateToken, async (req, res) => {
 	}
 });
 
+// Update route for reading messages in a conversation
+router.put(
+	'/messages/read/:conversationId',
+	authenticateToken,
+	async (req, res) => {
+		const { userId } = req.user; // Assuming user ID is attached to the request via middleware
+		const { conversationId } = req.params;
+
+		try {
+			// Mark all unread messages as read
+			const result = await Message.updateMany(
+				{ conversationId, senderId: { $ne: userId }, status: 'sent' },
+				{ $set: { status: 'read', readAt: new Date() } }
+			);
+
+			// Update unread message count in conversation
+			await Conversation.findByIdAndUpdate(conversationId, {
+				$inc: { unreadMessages: -result.nModified },
+			});
+
+			res.status(200).json({ message: 'Messages marked as read' });
+		} catch (error) {
+			logger.error(`Error marking messages as read: ${error.message}`);
+			Sentry.captureException(error);
+			res.status(500).json({ message: error.message });
+		}
+	}
+);
+
 // Updating or deleting messages can follow a similar pattern, with additional checks
 // to ensure that the user performing the action is the message sender.
 

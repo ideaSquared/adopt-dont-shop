@@ -46,9 +46,22 @@ const RescueConversations = () => {
 		fetchRescueId();
 	}, [refreshConversations]);
 
-	const handleConversationSelect = (conversation) => {
+	const handleConversationSelect = async (conversation) => {
 		setSelectedConversation(conversation);
-		triggerConversationRefresh();
+
+		// Call backend to mark messages as read
+		try {
+			await axios.put(
+				`${import.meta.env.VITE_API_BASE_URL}/conversations/messages/read/${
+					conversation._id
+				}`,
+				{},
+				{ withCredentials: true }
+			);
+			triggerConversationRefresh(); // Refresh to reflect the changes in UI
+		} catch (error) {
+			console.error('Error marking messages as read:', error);
+		}
 	};
 
 	return (
