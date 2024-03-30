@@ -13,7 +13,6 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 	const [messages, setMessages] = useState([]);
 	const [message, setMessage] = useState('');
 	const userId = localStorage.getItem('userId');
-	console.log('UID ', userId);
 
 	useEffect(() => {
 		if (conversation) {
@@ -26,7 +25,6 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 						{ withCredentials: true }
 					);
 					setMessages(response.data);
-					console.log(response.data);
 				} catch (error) {
 					console.error('Error fetching messages:', error);
 				}
