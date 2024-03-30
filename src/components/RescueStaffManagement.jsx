@@ -230,8 +230,26 @@ const RescueStaffManagement = ({
 		communications: ['create_messages', 'view_messages'],
 	};
 
+	const permissionNames = {
+		view_rescue_info: 'View Rescue Information',
+		edit_rescue_info: 'Edit Rescue Information',
+		delete_rescue: 'Delete Rescue',
+		view_staff: 'View Staff',
+		add_staff: 'Add Staff',
+		edit_staff: 'Edit Staff Information',
+		verify_staff: 'Verify Staff',
+		delete_staff: 'Delete Staff',
+		view_pet: 'View Pet',
+		add_pet: 'Add Pet',
+		edit_pet: 'Edit Pet Information',
+		delete_pet: 'Delete Pet',
+		create_messages: 'Create Messages',
+		view_messages: 'View Messages',
+	};
+
 	const [searchTerm, setSearchTerm] = useState('');
 	const [filterPermissions, setFilterPermissions] = useState([]);
+	const [filterVerified, setFilterVerified] = useState(false); // Initially set to false to show all staff members
 
 	// Example filter logic applied to your currentStaff calculation
 	const filteredStaff = rescueProfile.staff.filter(
@@ -239,7 +257,8 @@ const RescueStaffManagement = ({
 			staff.userId.email.toLowerCase().includes(searchTerm.toLowerCase()) &&
 			filterPermissions.every((permission) =>
 				staff.permissions.includes(permission)
-			)
+			) &&
+			(filterVerified ? staff.verifiedByRescue : true)
 	);
 
 	return (
@@ -291,14 +310,31 @@ const RescueStaffManagement = ({
 									setFilterPermissions(selectedOptions);
 								}}
 							>
-								{uniquePermissions.map((permission, index) => (
-									<option key={index} value={permission}>
-										{permission}
-									</option>
-								))}
+								{Object.keys(permissionCategories).map((category) =>
+									permissionCategories[category].map((permission, index) => (
+										<option key={index} value={permission}>
+											{permissionNames[permission] || 'Unknown Permission'}{' '}
+										</option>
+									))
+								)}
 							</Form.Select>
 						</Form.Group>
 					</Col>
+					<Col sm={6} md={3}>
+						<Form.Group>
+							<Form.Label>Verified Toggle:</Form.Label>
+							<div>
+								<Form.Check
+									type='switch'
+									id='verifiedToggle'
+									label='Show Only Verified'
+									checked={filterVerified} // This state should be a boolean indicating if the filter is active
+									onChange={(e) => setFilterVerified(e.target.checked)} // Handler to update the state
+								/>
+							</div>
+						</Form.Group>
+					</Col>
+
 					<Col md={3}>
 						<Button
 							variant='primary'
