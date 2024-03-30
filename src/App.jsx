@@ -26,6 +26,7 @@ import CompanyForm from './components/CreateAccountCompanyForm';
 import ContactUs from './components/ContactUs';
 
 import RescueProfile from './components/RescueProfile';
+import UserMessaging from './components/UserMessaging';
 
 function App() {
 	const [count, setCount] = useState(0);
@@ -52,6 +53,7 @@ function App() {
 				<Route path='/company-form' element={<CompanyForm />} />
 				<Route path='/contact-us' element={<ContactUs />} />
 				<Route path='/rescue-profile' element={<RescueProfile />} />
+				<Route path='/messages' element={<UserMessaging />} />
 			</Routes>
 		</Router>
 	);

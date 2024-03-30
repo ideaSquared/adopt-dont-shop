@@ -1,7 +1,7 @@
 // Navbar.jsx
 import React from 'react';
 import { LinkContainer } from 'react-router-bootstrap';
-import { Navbar, Nav, Button, Container } from 'react-bootstrap';
+import { Navbar, Nav, Button, Container, Dropdown } from 'react-bootstrap';
 import { useAuth } from './AuthContext';
 import { useLogout } from './hooks/useLogout'; // Adjust the path as necessary
 
@@ -42,32 +42,36 @@ const CustomNavbar = () => {
 							</>
 						) : (
 							<>
-								<LinkContainer to='/my-profile'>
-									<Button variant='secondary' className='mx-2'>
-										My Profile
+								<LinkContainer to='/messages'>
+									<Button variant='primary' className='mx-2'>
+										Messages
 									</Button>
 								</LinkContainer>
-								{isAdmin && (
-									<LinkContainer to='/admin'>
-										<Button variant='warning' className='mx-2'>
-											Admin
-										</Button>
-									</LinkContainer>
-								)}
-								{userPermissions && (
-									<LinkContainer to='/rescue-profile'>
-										<Button variant='info' className='mx-2'>
-											Rescue Profile
-										</Button>
-									</LinkContainer>
-								)}
-								<Button
-									onClick={handleLogout}
-									variant='primary'
-									className='mx-2'
-								>
-									Logout
-								</Button>
+								<Dropdown className='mx-2' align={{ lg: 'end ' }}>
+									<Dropdown.Toggle variant='secondary' id='dropdown-settings'>
+										Settings
+									</Dropdown.Toggle>
+
+									<Dropdown.Menu>
+										<LinkContainer to='/my-profile'>
+											<Dropdown.Item>My Profile</Dropdown.Item>
+										</LinkContainer>
+
+										{isAdmin && (
+											<LinkContainer to='/admin'>
+												<Dropdown.Item>Admin</Dropdown.Item>
+											</LinkContainer>
+										)}
+
+										{userPermissions && (
+											<LinkContainer to='/rescue-profile'>
+												<Dropdown.Item>Rescue Profile</Dropdown.Item>
+											</LinkContainer>
+										)}
+
+										<Dropdown.Item onClick={handleLogout}>Logout</Dropdown.Item>
+									</Dropdown.Menu>
+								</Dropdown>
 							</>
 						)}
 					</div>
