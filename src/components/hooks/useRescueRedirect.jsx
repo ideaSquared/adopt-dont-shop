@@ -8,6 +8,7 @@ export const useRescueRedirect = () => {
 	const { isRescue } = useAuth();
 
 	useEffect(() => {
+		console.log('RES: ', isRescue);
 		if (!isRescue) {
 			navigate('/'); // Redirect non-logged-in users to home
 		}

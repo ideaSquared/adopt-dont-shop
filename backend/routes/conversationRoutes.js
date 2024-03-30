@@ -4,6 +4,7 @@ import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import Sentry from '@sentry/node'; // Error tracking utility.
 import authenticateToken from '../middleware/authenticateToken.js';
+import Rescue from '../models/Rescue.js';
 
 import LoggerUtil from '../utils/Logger.js'; // Logging utility.
 import {
@@ -96,30 +97,41 @@ router.post(
 	}
 );
 
+// TODO: Check the tests work for this
 // Get all conversations for a user
-router.get('/', authenticateToken, checkParticipant, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
 	try {
-		// Adjusted to match conversations where the user is a participant
-		const conversations = await Conversation.find({
-			'participants.participantId': req.user.userId,
-		});
-		logger.info('Fetched all conversations for user');
-		res.json(conversations);
-	} catch (error) {
-		logger.error(`Error fetching conversations: ${error.message}`);
-		Sentry.captureException(error);
-		res.status(500).json({ message: error.message });
-	}
-});
+		let rescue;
+		let query = {};
 
-router.get('/rescue', authenticateToken, async (req, res) => {
-	try {
-		// Adjusted to find conversations where the user is a participant as part of a Rescue
-		const conversations = await Conversation.find({
-			'participants.participantId': req.user.userId,
-			'participants.participantType': 'Rescue',
-		});
-		logger.info('Fetched all conversations for user as part of a Rescue');
+		// Check if the request is specifically for 'Rescue' conversations
+		if (req.query.type === 'Rescue') {
+			// Assuming you have a method to find the rescue organization by a staff member's userId
+			rescue = await Rescue.findOne({ 'staff.userId': req.user.userId });
+			if (!rescue) {
+				return res
+					.status(404)
+					.json({ message: 'Rescue organization not found for the user.' });
+			}
+
+			// Use the rescue organization's ID as the participantId in the query
+			query = {
+				'participants.participantId': rescue._id,
+				'participants.participantType': 'Rescue',
+			};
+		} else {
+			// For non-'Rescue' types, use the user's ID as the participantId
+			query = {
+				'participants.participantId': req.user.userId,
+			};
+		}
+
+		const conversations = await Conversation.find(query);
+		const logMessage =
+			req.query.type === 'Rescue'
+				? `Fetched all conversations for rescue organization with ID ${rescue._id}`
+				: 'Fetched all conversations for user';
+		logger.info(logMessage);
 		res.json(conversations);
 	} catch (error) {
 		logger.error(`Error fetching conversations: ${error.message}`);

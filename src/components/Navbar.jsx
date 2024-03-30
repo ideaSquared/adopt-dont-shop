@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext';
 import { useLogout } from './hooks/useLogout'; // Adjust the path as necessary
 
 const CustomNavbar = () => {
-	const { isLoggedIn, isAdmin, userPermissions } = useAuth();
+	const { isLoggedIn, isAdmin, userPermissions, isRescue } = useAuth();
 	const handleLogout = useLogout();
 
 	return (
@@ -42,9 +42,14 @@ const CustomNavbar = () => {
 							</>
 						) : (
 							<>
-								<LinkContainer to='/messages'>
+								<LinkContainer to='/adopter-conversations'>
 									<Button variant='primary' className='mx-2'>
-										Messages
+										Adopter Messages
+									</Button>
+								</LinkContainer>
+								<LinkContainer to='/rescue-conversations'>
+									<Button variant='primary' className='mx-2'>
+										Rescue Messages
 									</Button>
 								</LinkContainer>
 								<Dropdown className='mx-2' align={{ lg: 'end ' }}>
@@ -63,7 +68,7 @@ const CustomNavbar = () => {
 											</LinkContainer>
 										)}
 
-										{userPermissions && (
+										{isRescue && (
 											<LinkContainer to='/rescue-profile'>
 												<Dropdown.Item>Rescue Profile</Dropdown.Item>
 											</LinkContainer>
