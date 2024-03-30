@@ -273,7 +273,16 @@ describe('Admin Routes', function () {
 		it('should delete a conversation successfully', async function () {
 			// Simulate adding a conversation to test deletion.
 			const conversationToDelete = await Conversation.create({
-				participants: [generateObjectId(), generateObjectId()], // Use actual ObjectId instances or strings that are valid ObjectIds
+				participants: [
+					{
+						participantId: generateObjectId(),
+						participantType: 'User',
+					},
+					{
+						participantId: generateObjectId(),
+						participantType: 'User',
+					},
+				], // Use actual ObjectId instances or strings that are valid ObjectIds
 				messagesCount: 1,
 				unreadMessages: 0,
 				status: 'active',
