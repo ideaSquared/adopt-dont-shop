@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Form, Button, ListGroup } from 'react-bootstrap';
+import {
+	Container,
+	Form,
+	Button,
+	Card,
+	Badge,
+	InputGroup,
+} from 'react-bootstrap';
 
 const MessagesComponent = ({ conversation, onMessageSent }) => {
 	const [messages, setMessages] = useState([]);
 	const [message, setMessage] = useState('');
 	const userId = localStorage.getItem('userId');
+	console.log('UID ', userId);
 
 	useEffect(() => {
 		if (conversation) {
@@ -18,6 +26,7 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 						{ withCredentials: true }
 					);
 					setMessages(response.data);
+					console.log(response.data);
 				} catch (error) {
 					console.error('Error fetching messages:', error);
 				}
@@ -57,24 +66,49 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 	}
 
 	return (
-		<Container>
-			<ListGroup variant='flush'>
+		<Container fluid className='d-flex flex-column vh-100 p-0'>
+			<div className='overflow-auto' style={{ flex: 1 }}>
 				{messages.map((msg, index) => (
-					<ListGroup.Item key={index}>{msg.messageText}</ListGroup.Item>
+					<Card
+						className={`mb-2 ${
+							msg.senderId === userId ? 'bg-light' : 'bg-secondary text-white'
+						}`}
+						style={{
+							maxWidth: '75%',
+							marginLeft: msg.senderId === userId ? 'auto' : '0',
+						}}
+						key={index}
+					>
+						<Card.Body>
+							{msg.senderId !== userId && (
+								<div className='text-end' style={{ fontSize: '0.9em' }}>
+									<Badge bg='info'>{msg.senderName}</Badge>
+								</div>
+							)}
+							<Card.Text>{msg.messageText}</Card.Text>
+							<Card.Text
+								className='text-muted'
+								style={{ fontSize: '0.8em', textAlign: 'right' }}
+							>
+								{new Date(msg.sentAt).toLocaleTimeString()}
+							</Card.Text>
+						</Card.Body>
+					</Card>
 				))}
-			</ListGroup>
-			<Form>
-				<Form.Group className='mb-3' controlId='messageInput'>
+			</div>
+			<Form className='mt-auto p-3'>
+				<InputGroup className='mb-3'>
 					<Form.Control
 						type='text'
 						placeholder='Enter message'
 						value={message}
 						onChange={(e) => setMessage(e.target.value)}
+						className='form-control-lg'
 					/>
-				</Form.Group>
-				<Button variant='primary' onClick={handleSend}>
-					Send
-				</Button>
+					<Button variant='primary' onClick={handleSend}>
+						Send
+					</Button>
+				</InputGroup>
 			</Form>
 		</Container>
 	);

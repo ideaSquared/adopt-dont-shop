@@ -291,11 +291,34 @@ router.get('/messages/:conversationId', authenticateToken, async (req, res) => {
 	try {
 		const messages = await Message.find({
 			conversationId: req.params.conversationId,
+		}).populate({
+			path: 'senderId', // Assuming senderId is a reference to the User model
+			select: 'firstName _id', // Fetch the firstName field along with the _id
 		});
+
 		logger.info(
 			`Fetched all messages for conversation ID: ${req.params.conversationId}`
 		);
-		res.json(messages);
+
+		const modifiedMessages = messages.map((message) => {
+			const messageObj = message.toObject();
+
+			// Modify the messageObj to include senderName and keep senderId
+			if (messageObj.senderId) {
+				// Include senderName for ease of display
+				messageObj.senderName = messageObj.senderId.firstName;
+				// Keep senderId in the response
+				messageObj.senderId = messageObj.senderId._id; // This ensures senderId is just the ID, not the populated object
+			} else {
+				// Handle the case where senderId could not be populated
+				messageObj.senderName = 'Unknown Sender';
+				messageObj.senderId = null; // Explicitly set senderId to null if not available
+			}
+
+			return messageObj;
+		});
+
+		res.json(modifiedMessages);
 	} catch (error) {
 		logger.error(`Error fetching messages for conversation: ${error.message}`);
 		Sentry.captureException(error);
