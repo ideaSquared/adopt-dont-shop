@@ -54,6 +54,7 @@ export const AuthProvider = ({ children }) => {
 				{ withCredentials: true }
 			);
 			setIsRescue(response.status === 200);
+			fetchPermissions();
 		} catch (error) {
 			console.error('Error checking rescue route:', error);
 			setIsRescue(false);
