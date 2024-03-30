@@ -47,11 +47,14 @@ const CustomNavbar = () => {
 										Adopter Messages
 									</Button>
 								</LinkContainer>
-								<LinkContainer to='/rescue-conversations'>
-									<Button variant='primary' className='mx-2'>
-										Rescue Messages
-									</Button>
-								</LinkContainer>
+								{isRescue && (
+									<LinkContainer to='/rescue-conversations'>
+										<Button variant='primary' className='mx-2'>
+											Rescue Messages
+										</Button>
+									</LinkContainer>
+								)}
+
 								<Dropdown className='mx-2' align={{ lg: 'end ' }}>
 									<Dropdown.Toggle variant='secondary' id='dropdown-settings'>
 										Settings

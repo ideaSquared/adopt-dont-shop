@@ -23,8 +23,8 @@ export const AuthProvider = ({ children }) => {
 			);
 			setIsLoggedIn(response.data.isLoggedIn);
 			setIsAdmin(response.data.isAdmin || false);
-			if (response.data.isLoggedIn) {
-				fetchPermissions(); // Fetch permissions if the user is logged in
+			if (isLoggedIn) {
+				await Promise.all([fetchPermissions(), checkRescueRoute()]);
 			}
 		} catch (error) {
 			console.error('Error checking login status:', error);
@@ -53,12 +53,7 @@ export const AuthProvider = ({ children }) => {
 				`${import.meta.env.VITE_API_BASE_URL}/auth/my-rescue`,
 				{ withCredentials: true }
 			);
-			if (response.status === 200) {
-				setIsRescue(true);
-			} else {
-				setUserPermissions([]);
-				setIsRescue(false);
-			}
+			setIsRescue(response.status === 200);
 		} catch (error) {
 			console.error('Error checking rescue route:', error);
 			setIsRescue(false);
@@ -73,12 +68,14 @@ export const AuthProvider = ({ children }) => {
 				{ withCredentials: true }
 			);
 			setIsLoggedIn(true);
-			setIsAdmin(response.data.isAdmin); // Directly update isAdmin based on the response
-			fetchPermissions(); // Fetch permissions upon successful login
+			setIsAdmin(response.data.isAdmin);
+
+			// Fetch permissions and check rescue route upon successful login
+			await Promise.all([fetchPermissions(), checkRescueRoute()]);
 		} catch (error) {
 			console.error('Login attempt failed:', error);
 			setIsLoggedIn(false);
-			setIsAdmin(false); // Ensure consistency in state
+			setIsAdmin(false);
 			throw new Error(
 				error.response?.data.message || 'An error occurred during login.'
 			);
@@ -94,7 +91,8 @@ export const AuthProvider = ({ children }) => {
 			);
 			setIsLoggedIn(false);
 			setIsAdmin(false);
-			setUserPermissions([]); // Clear permissions on logout
+			setUserPermissions([]);
+			setIsRescue(false);
 		} catch (error) {
 			console.error('Logout failed:', error);
 		}
