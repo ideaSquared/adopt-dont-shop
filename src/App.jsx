@@ -26,7 +26,6 @@ import CompanyForm from './components/CreateAccountCompanyForm';
 import ContactUs from './components/ContactUs';
 
 import RescueProfile from './components/RescueProfile';
-import UserMessaging from './components/UserMessaging';
 import RescueConversations from './components/RescueConversations';
 import AdopterConversations from './components/AdopterConversations';
 

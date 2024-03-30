@@ -224,29 +224,59 @@ router.delete('/:conversationId', authenticateToken, async (req, res) => {
 router.post(
 	'/messages/:conversationId',
 	authenticateToken,
-	checkParticipant,
 	validateRequest(messageSchema),
 	async (req, res) => {
 		const { messageText } = req.body;
 		const conversationId = req.params.conversationId;
 		const userId = req.user.userId;
+		const currentDateTime = new Date();
 
 		if (!messageText) {
 			return res.status(400).json({ message: 'Message text is required' });
 		}
 
 		try {
+			// Create a new message document in the database.
 			const newMessage = await Message.create({
 				conversationId,
 				senderId: userId,
 				messageText,
-				sentAt: new Date(),
+				sentAt: currentDateTime,
 				status: 'sent',
 			});
 
+			// Log the successful creation of a new message.
 			logger.info(
 				`New message created in conversation ID: ${conversationId} by user ID: ${userId}`
 			);
+
+			// Update the corresponding conversation document.
+			const updatedConversation = await Conversation.findByIdAndUpdate(
+				conversationId,
+				{
+					$set: {
+						lastMessage: messageText,
+						lastMessageAt: currentDateTime,
+						lastMessageBy: userId,
+					},
+					$inc: {
+						unreadMessages: 1,
+						messagesCount: 1,
+					},
+				},
+				{ new: true } // Return the updated document.
+			);
+
+			logger.info(
+				`Conversation updated in conversation ID: ${conversationId} by user ID: ${userId}`
+			);
+
+			// Check if the conversation update was successful.
+			if (!updatedConversation) {
+				return res.status(404).json({ message: 'Conversation not found' });
+			}
+
+			// Respond with the newly created message.
 			res.status(201).json(newMessage);
 		} catch (error) {
 			logger.error(`Error creating message in conversation: ${error.message}`);
@@ -257,29 +287,21 @@ router.post(
 );
 
 // Get all messages in a conversation
-router.get(
-	'/messages/:conversationId',
-	authenticateToken,
-	checkParticipant,
-	validateRequest(messageSchema),
-	async (req, res) => {
-		try {
-			const messages = await Message.find({
-				conversationId: req.params.conversationId,
-			});
-			logger.info(
-				`Fetched all messages for conversation ID: ${req.params.conversationId}`
-			);
-			res.json(messages);
-		} catch (error) {
-			logger.error(
-				`Error fetching messages for conversation: ${error.message}`
-			);
-			Sentry.captureException(error);
-			res.status(500).json({ message: error.message });
-		}
+router.get('/messages/:conversationId', authenticateToken, async (req, res) => {
+	try {
+		const messages = await Message.find({
+			conversationId: req.params.conversationId,
+		});
+		logger.info(
+			`Fetched all messages for conversation ID: ${req.params.conversationId}`
+		);
+		res.json(messages);
+	} catch (error) {
+		logger.error(`Error fetching messages for conversation: ${error.message}`);
+		Sentry.captureException(error);
+		res.status(500).json({ message: error.message });
 	}
-);
+});
 
 // Updating or deleting messages can follow a similar pattern, with additional checks
 // to ensure that the user performing the action is the message sender.
