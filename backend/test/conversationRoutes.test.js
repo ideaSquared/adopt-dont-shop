@@ -40,8 +40,16 @@ describe('Conversation Routes', function () {
 
 	describe('POST /api/conversations', () => {
 		it('should create a new conversation', async () => {
-			const mockParticipants = [mockUserId, '65f1fa3badeb2ca9f053f7f9'];
-			const mockSubject = 'Test Conversation';
+			const mockParticipantReferences = [
+				{
+					participantId: mockUserId,
+					participantType: 'User',
+				},
+				{
+					participantId: '65f1fa3badeb2ca9f053f7f9',
+					participantType: 'User',
+				},
+			];
 			const mockStartedBy = mockUserId; // Assuming mockUserId is defined and valid
 			const mockStartedAt = new Date();
 			const mockStatus = 'active';
@@ -52,8 +60,7 @@ describe('Conversation Routes', function () {
 			const mockLastMessageAt = new Date();
 
 			conversationMock.expects('create').resolves({
-				participants: mockParticipants,
-				subject: mockSubject,
+				participants: mockParticipantReferences,
 				startedBy: mockStartedBy,
 				startedAt: mockStartedAt,
 				status: mockStatus,
@@ -68,8 +75,7 @@ describe('Conversation Routes', function () {
 				.post('/api/conversations')
 				.set('Cookie', cookie) // Use the simulated auth cookie for authentication
 				.send({
-					participants: mockParticipants,
-					subject: mockSubject,
+					participants: mockParticipantReferences,
 					// Include all required fields based on the updated route logic
 					startedBy: mockStartedBy,
 					startedAt: mockStartedAt,
@@ -99,7 +105,6 @@ describe('Conversation Routes', function () {
 
 			conversationMock.expects('create').resolves({
 				participants: invalidParticipants,
-				subject: mockSubject,
 				startedBy: mockStartedBy,
 				startedAt: mockStartedAt,
 				status: mockStatus,
@@ -115,7 +120,6 @@ describe('Conversation Routes', function () {
 				.set('Cookie', cookie) // Use the simulated auth cookie for authentication
 				.send({
 					participants: invalidParticipants,
-					subject: mockSubject,
 					// Include all required fields based on the updated route logic
 					startedBy: mockStartedBy,
 					startedAt: mockStartedAt,
@@ -145,7 +149,7 @@ describe('Conversation Routes', function () {
 				.twice() // Expect the call twice
 				.resolves({
 					_id: mockConversationId,
-					subject: 'Existing Conversation',
+					lastMessage: 'Existing Conversation',
 					participants: [mockUserId.toString(), generateObjectId().toString()],
 				});
 
@@ -166,7 +170,7 @@ describe('Conversation Routes', function () {
 				.withArgs(mockConversationId)
 				.resolves({
 					_id: mockConversationId,
-					subject: 'Existing Conversation',
+					lastMessage: 'Existing Conversation',
 					participants: [generateObjectId(), generateObjectId()],
 				});
 
@@ -189,6 +193,72 @@ describe('Conversation Routes', function () {
 		});
 	});
 
+	describe('GET /api/conversations/rescue', () => {
+		it('should fetch all conversations for a user as part of a Rescue', async () => {
+			const mockStartedAt = new Date('2024-03-30T10:33:54.995Z');
+			const mockStatus = 'active';
+			const mockUnreadMessages = 0;
+			const mockMessagesCount = 1;
+			const mockLastMessage = ''; // Assuming empty string for initial lastMessage
+			const mockLastMessageBy = mockUserId;
+			const mockLastMessageAt = new Date('2024-03-30T10:33:54.995Z');
+
+			const mockConversations = [
+				{
+					participants: [
+						{ participantId: mockUserId, participantType: 'Rescue' },
+						{
+							participantId: '65f1fa3badeb2ca9f053f7f9',
+							participantType: 'User',
+						},
+					],
+					startedBy: mockUserId,
+					startedAt: mockStartedAt.toDateString(),
+					status: mockStatus,
+					unreadMessages: mockUnreadMessages,
+					messagesCount: mockMessagesCount,
+					lastMessage: mockLastMessage,
+					lastMessageAt: mockLastMessageAt.toDateString(),
+					lastMessageBy: mockLastMessageBy,
+				},
+			];
+
+			conversationMock
+				.expects('find')
+				.withArgs({
+					'participants.participantId': mockUserId,
+					'participants.participantType': 'Rescue',
+				})
+				.resolves(mockConversations);
+
+			const response = await request(app)
+				.get('/api/conversations/rescue')
+				.set('Cookie', cookie);
+
+			expect(response.status).to.equal(200);
+			expect(response.body).to.deep.equal(mockConversations);
+			conversationMock.verify();
+		});
+
+		it('should return 500 if there is a server error', async () => {
+			conversationMock
+				.expects('find')
+				.withArgs({
+					'participants.participantId': mockUserId,
+					'participants.participantType': 'Rescue',
+				})
+				.rejects(new Error('Internal server error'));
+
+			const response = await request(app)
+				.get('/api/conversations/rescue')
+				.set('Cookie', cookie);
+
+			expect(response.status).to.equal(500);
+			expect(response.body.message).to.contain('Internal server error');
+			conversationMock.verify();
+		});
+	});
+
 	describe('PUT /api/conversations/:conversationId', () => {
 		it('should update a conversation successfully', async () => {
 			const mockConversationId = generateObjectId().toString();
@@ -201,29 +271,31 @@ describe('Conversation Routes', function () {
 				.resolves({
 					_id: mockConversationId,
 					participants: mockParticipants,
-					subject: 'Original Conversation Subject',
+					lastMessage: 'Original Conversation Subject',
 				});
 
 			conversationMock
 				.expects('findByIdAndUpdate')
 				.withArgs(
 					mockConversationId,
-					{ $set: { participants: mockParticipants, subject: mockSubject } },
+					{
+						$set: { participants: mockParticipants, lastMessage: mockSubject },
+					},
 					{ new: true }
 				)
 				.resolves({
 					_id: mockConversationId,
 					participants: mockParticipants,
-					subject: mockSubject,
+					lastMessage: mockSubject,
 				});
 
 			const response = await request(app)
 				.put(`/api/conversations/${mockConversationId}`)
 				.set('Cookie', cookie)
-				.send({ participants: mockParticipants, subject: mockSubject });
+				.send({ participants: mockParticipants, lastMessage: mockSubject });
 
 			expect(response.status).to.equal(200);
-			expect(response.body.subject).to.equal(mockSubject);
+			expect(response.body.lastMessage).to.equal(mockSubject);
 			conversationMock.verify();
 		});
 
@@ -251,7 +323,7 @@ describe('Conversation Routes', function () {
 			const response = await request(app)
 				.put(`/api/conversations/${nonExistentConversationId}`)
 				.set('Cookie', cookie)
-				.send({ participants: [mockUserId], subject: 'Should Fail' });
+				.send({ participants: [mockUserId], lastMessage: 'Should Fail' });
 
 			expect(response.status).to.equal(404);
 			conversationMock.verify();
@@ -268,14 +340,16 @@ describe('Conversation Routes', function () {
 				.resolves({
 					_id: mockConversationId,
 					participants: mockParticipants,
-					subject: 'Original Conversation Subject',
+					lastMessage: 'Original Conversation Subject',
 				});
 
 			conversationMock
 				.expects('findByIdAndUpdate')
 				.withArgs(
 					mockConversationId,
-					{ $set: { participants: mockParticipants, subject: mockSubject } },
+					{
+						$set: { participants: mockParticipants, lastMessage: mockSubject },
+					},
 					{ new: true }
 				)
 				.rejects(new Error('Internal server error'));
@@ -283,7 +357,7 @@ describe('Conversation Routes', function () {
 			const response = await request(app)
 				.put(`/api/conversations/${mockConversationId}`)
 				.set('Cookie', cookie)
-				.send({ participants: mockParticipants, subject: mockSubject });
+				.send({ participants: mockParticipants, lastMessage: mockSubject });
 
 			expect(response.status).to.equal(500);
 			expect(response.body.message).to.contain('Internal server error');
@@ -307,7 +381,7 @@ describe('Conversation Routes', function () {
 				.twice() // Expect the call twice
 				.resolves({
 					_id: mockConversationId,
-					subject: 'Existing Conversation',
+					lastMessage: 'Existing Conversation',
 					participants: [mockSenderId, generateObjectId()],
 				});
 
@@ -343,7 +417,7 @@ describe('Conversation Routes', function () {
 				.withArgs(mockConversationId)
 				.resolves({
 					_id: mockConversationId,
-					subject: 'Existing Conversation',
+					lastMessage: 'Existing Conversation',
 					participants: [generateObjectId(), generateObjectId()],
 				});
 

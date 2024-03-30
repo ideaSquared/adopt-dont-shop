@@ -4,6 +4,19 @@ import mongoose from 'mongoose';
 // Destructure Schema from mongoose to avoid repeating mongoose.Schema.
 const { Schema } = mongoose;
 
+const participantReferenceSchema = new Schema({
+	participantId: {
+		type: Schema.Types.ObjectId,
+		required: true,
+		refPath: 'participants.participantType',
+	},
+	participantType: {
+		type: String,
+		required: true,
+		enum: ['User', 'Rescue'],
+	},
+});
+
 /**
  * Schema definition for the Conversation model.
  *
@@ -13,12 +26,7 @@ const { Schema } = mongoose;
  */
 const conversationSchema = new mongoose.Schema({
 	// Array of participant references. Each participant is referenced by their ObjectId in the User collection.
-	participants: [
-		{
-			type: mongoose.Schema.Types.ObjectId,
-			ref: 'User', // This should match the name you've given your User model
-		},
-	],
+	participants: [participantReferenceSchema],
 	// Reference to the User who started the conversation. It is required for every conversation document.
 	startedBy: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
 	// Timestamp indicating when the conversation was started. It is required for every conversation document.
@@ -30,7 +38,7 @@ const conversationSchema = new mongoose.Schema({
 	// Reference to the User who sent the last message. It is required to identify the author of the last message quickly.
 	lastMessageBy: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
 	// An optional subject for the conversation. Useful for giving context or a brief about the conversation's purpose.
-	subject: { type: String },
+	pet: { type: Schema.Types.ObjectId, ref: 'Pet' },
 	// The status of the conversation, restricted to either 'active' or 'closed'. Helps in managing conversation lifecycle.
 	status: { type: String, required: true, enum: ['active', 'closed'] },
 	// Count of unread messages in the conversation, required to notify participants of new messages since they last checked.
