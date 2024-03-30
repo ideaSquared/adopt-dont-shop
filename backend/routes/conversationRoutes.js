@@ -64,7 +64,7 @@ router.post(
 	authenticateToken,
 	validateRequest(conversationSchema),
 	async (req, res) => {
-		const { participants, subject } = req.body;
+		const { participants } = req.body;
 		if (
 			!participants ||
 			!Array.isArray(participants) ||
@@ -79,7 +79,6 @@ router.post(
 				participants,
 				startedBy: req.user.userId,
 				startedAt: new Date(),
-				subject,
 				status: 'active',
 				unreadMessages: 0,
 				messagesCount: 1,
@@ -171,7 +170,7 @@ router.put(
 	checkParticipant,
 	validateRequest(updateConversationSchema), // Use the update schema here
 	async (req, res) => {
-		const { participants, subject, lastMessage, lastMessageAt, lastMessageBy } =
+		const { participants, lastMessage, lastMessageAt, lastMessageBy } =
 			req.body;
 		const conversationId = req.params.conversationId;
 
@@ -179,7 +178,6 @@ router.put(
 			// Construct the update object based on provided fields
 			const updatePayload = {};
 			if (participants !== undefined) updatePayload.participants = participants;
-			if (subject !== undefined) updatePayload.subject = subject;
 			if (lastMessage !== undefined) updatePayload.lastMessage = lastMessage;
 			if (lastMessageAt !== undefined)
 				updatePayload.lastMessageAt = lastMessageAt;
