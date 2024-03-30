@@ -106,7 +106,6 @@ router.get('/', authenticateToken, async (req, res) => {
 
 		// Check if the request is specifically for 'Rescue' conversations
 		if (req.query.type === 'Rescue') {
-			// Assuming you have a method to find the rescue organization by a staff member's userId
 			rescue = await Rescue.findOne({ 'staff.userId': req.user.userId });
 			if (!rescue) {
 				return res
@@ -114,19 +113,24 @@ router.get('/', authenticateToken, async (req, res) => {
 					.json({ message: 'Rescue organization not found for the user.' });
 			}
 
-			// Use the rescue organization's ID as the participantId in the query
 			query = {
 				'participants.participantId': rescue._id,
 				'participants.participantType': 'Rescue',
 			};
 		} else {
-			// For non-'Rescue' types, use the user's ID as the participantId
 			query = {
 				'participants.participantId': req.user.userId,
+				'participants.participantType': 'User',
 			};
 		}
 
-		const conversations = await Conversation.find(query);
+		const conversations = await Conversation.find(query)
+			.populate({
+				path: 'participants.participantId',
+				select: 'rescueName firstName -_id', // assuming you want names and excluding _id in selection
+			})
+			.exec();
+
 		const logMessage =
 			req.query.type === 'Rescue'
 				? `Fetched all conversations for rescue organization with ID ${rescue._id}`
