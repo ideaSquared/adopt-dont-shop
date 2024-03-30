@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ConversationsComponent from './ConversationsComponent';
-import MessagesComponent from './MessagesComponent'; // Ensure you have this component created
+import MessagesComponent from './ConversationsMessages';
 import { Container, Row, Col } from 'react-bootstrap';
 
 const RescueConversations = () => {

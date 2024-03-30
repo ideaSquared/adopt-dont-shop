@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -10,9 +11,6 @@ export const AuthProvider = ({ children }) => {
 
 	useEffect(() => {
 		checkLoginStatus();
-		if (checkLoginStatus()) {
-			checkRescueRoute();
-		}
 	}, []);
 
 	const checkLoginStatus = async () => {
@@ -23,7 +21,8 @@ export const AuthProvider = ({ children }) => {
 			);
 			setIsLoggedIn(response.data.isLoggedIn);
 			setIsAdmin(response.data.isAdmin || false);
-			if (isLoggedIn) {
+			localStorage.setItem('userId', response.data.userId);
+			if (response.data.isLoggedIn) {
 				await Promise.all([fetchPermissions(), checkRescueRoute()]);
 			}
 		} catch (error) {
@@ -54,7 +53,6 @@ export const AuthProvider = ({ children }) => {
 				{ withCredentials: true }
 			);
 			setIsRescue(response.status === 200);
-			fetchPermissions();
 		} catch (error) {
 			console.error('Error checking rescue route:', error);
 			setIsRescue(false);
@@ -70,13 +68,12 @@ export const AuthProvider = ({ children }) => {
 			);
 			setIsLoggedIn(true);
 			setIsAdmin(response.data.isAdmin);
-
-			// Fetch permissions and check rescue route upon successful login
 			await Promise.all([fetchPermissions(), checkRescueRoute()]);
 		} catch (error) {
 			console.error('Login attempt failed:', error);
 			setIsLoggedIn(false);
 			setIsAdmin(false);
+			// Consider updating the UI with this error
 			throw new Error(
 				error.response?.data.message || 'An error occurred during login.'
 			);
@@ -96,6 +93,7 @@ export const AuthProvider = ({ children }) => {
 			setIsRescue(false);
 		} catch (error) {
 			console.error('Logout failed:', error);
+			// Optionally, update the UI to inform the user of the logout failure
 		}
 	};
 
