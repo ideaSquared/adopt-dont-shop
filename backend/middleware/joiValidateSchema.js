@@ -148,24 +148,21 @@ const conversationSchema = Joi.object({
 	lastMessage: Joi.string().allow('', null),
 	lastMessageAt: Joi.date().allow(null),
 	lastMessageBy: Joi.string().required(),
-	subject: Joi.string().allow('', null),
 	status: Joi.string().valid('active', 'closed').required(),
 	unreadMessages: Joi.number().integer().min(0).required(),
 	messagesCount: Joi.number().integer().min(0).required(),
 });
 
-const updateConversationSchema = Joi.object({
-	participants: Joi.array().items(Joi.string()).min(2).optional().messages({
-		'array.base': `"participants" should be an array`,
-		'array.min': `"participants" should have at least 2 participants`,
-	}),
-	subject: Joi.string().allow('', null).optional(),
-	// For updates, these fields remain optional as they might not change with every update
-	lastMessage: Joi.string().allow('', null).optional(),
-	lastMessageAt: Joi.date().allow(null).optional(),
-	lastMessageBy: Joi.string().optional(),
-	// Do not allow updating fields like startedBy, startedAt, status, unreadMessages, and messagesCount as these are typically managed internally
-}).min(1); // Ensure at least one field is provided for an update
+const createConversationSchema = Joi.object({
+	participants: Joi.array()
+		.items(participantReferenceValidationSchema)
+		.min(2)
+		.required()
+		.messages({
+			'array.base': `"participants" should be an array`,
+			'array.min': `"participants" should have at least 2 participants`,
+		}),
+});
 
 const messageSchema = Joi.object({
 	conversationId: Joi.string().required(),
@@ -243,7 +240,7 @@ export {
 	rescueStaffJoiSchema,
 	petJoiSchema,
 	conversationSchema,
-	updateConversationSchema,
+	createConversationSchema,
 	messageSchema,
 	ratingSchema,
 	validateRequest,

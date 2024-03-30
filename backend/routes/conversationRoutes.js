@@ -9,9 +9,8 @@ import Rescue from '../models/Rescue.js';
 import LoggerUtil from '../utils/Logger.js'; // Logging utility.
 import {
 	validateRequest,
-	conversationSchema,
-	updateConversationSchema,
 	messageSchema,
+	createConversationSchema,
 } from '../middleware/joiValidateSchema.js';
 const logger = new LoggerUtil('conversation-service').getLogger();
 
@@ -62,7 +61,7 @@ async function checkParticipant(req, res, next) {
 router.post(
 	'/',
 	authenticateToken,
-	validateRequest(conversationSchema),
+	validateRequest(createConversationSchema),
 	async (req, res) => {
 		const { participants } = req.body;
 		if (
@@ -163,46 +162,40 @@ router.get(
 	}
 );
 
+// !!! DEPRECIATED: We only update the conversation internally through other routes, so no need to maintain this.
 // Update a conversation (e.g., add a new participant)
-router.put(
-	'/:conversationId',
-	authenticateToken,
-	checkParticipant,
-	validateRequest(updateConversationSchema), // Use the update schema here
-	async (req, res) => {
-		const { participants, lastMessage, lastMessageAt, lastMessageBy } =
-			req.body;
-		const conversationId = req.params.conversationId;
+// router.put('/:conversationId', authenticateToken, async (req, res) => {
+// 	const { participants, lastMessage, lastMessageAt, lastMessageBy } = req.body;
+// 	const conversationId = req.params.conversationId;
 
-		try {
-			// Construct the update object based on provided fields
-			const updatePayload = {};
-			if (participants !== undefined) updatePayload.participants = participants;
-			if (lastMessage !== undefined) updatePayload.lastMessage = lastMessage;
-			if (lastMessageAt !== undefined)
-				updatePayload.lastMessageAt = lastMessageAt;
-			if (lastMessageBy !== undefined)
-				updatePayload.lastMessageBy = lastMessageBy;
+// 	try {
+// 		// Construct the update object based on provided fields
+// 		const updatePayload = {};
+// 		if (participants !== undefined) updatePayload.participants = participants;
+// 		if (lastMessage !== undefined) updatePayload.lastMessage = lastMessage;
+// 		if (lastMessageAt !== undefined)
+// 			updatePayload.lastMessageAt = lastMessageAt;
+// 		if (lastMessageBy !== undefined)
+// 			updatePayload.lastMessageBy = lastMessageBy;
 
-			const updatedConversation = await Conversation.findByIdAndUpdate(
-				conversationId,
-				{ $set: updatePayload },
-				{ new: true }
-			);
+// 		const updatedConversation = await Conversation.findByIdAndUpdate(
+// 			conversationId,
+// 			{ $set: updatePayload },
+// 			{ new: true }
+// 		);
 
-			if (!updatedConversation) {
-				return res.status(404).json({ message: 'Conversation not found' });
-			}
+// 		if (!updatedConversation) {
+// 			return res.status(404).json({ message: 'Conversation not found' });
+// 		}
 
-			logger.info(`Updated conversation with ID: ${updatedConversation._id}`);
-			res.json(updatedConversation);
-		} catch (error) {
-			logger.error(`Error updating conversation: ${error.message}`);
-			Sentry.captureException(error);
-			res.status(500).json({ message: error.message });
-		}
-	}
-);
+// 		logger.info(`Updated conversation with ID: ${updatedConversation._id}`);
+// 		res.json(updatedConversation);
+// 	} catch (error) {
+// 		logger.error(`Error updating conversation: ${error.message}`);
+// 		Sentry.captureException(error);
+// 		res.status(500).json({ message: error.message });
+// 	}
+// });
 
 // Delete a conversation
 router.delete('/:conversationId', authenticateToken, async (req, res) => {
