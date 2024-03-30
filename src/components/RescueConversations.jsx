@@ -48,26 +48,32 @@ const RescueConversations = () => {
 
 	const handleConversationSelect = (conversation) => {
 		setSelectedConversation(conversation);
+		triggerConversationRefresh();
 	};
 
 	return (
-		<Container fluid>
-			<Row>
-				<Col md={4}>
+		<Container fluid className='h-100 p-0'>
+			<Row className='h-100 g-0'>
+				<Col xs={12} md={3} className='h-100'>
+					{/* Sidebar for Conversations */}
 					<ConversationsComponent
 						conversations={conversations}
 						title='Rescue'
 						onConversationSelect={handleConversationSelect}
+						selectedConversation={selectedConversation}
 					/>
 				</Col>
-				<Col md={8}>
+				<Col xs={12} md={9} className='h-100'>
+					{/* Main Content Area */}
 					{selectedConversation ? (
 						<MessagesComponent
 							conversation={selectedConversation}
 							onMessageSent={triggerConversationRefresh}
 						/>
 					) : (
-						<div>Select a conversation to view messages.</div>
+						<div className='d-flex justify-content-center align-items-center h-100'>
+							Select a conversation to view messages.
+						</div>
 					)}
 				</Col>
 			</Row>

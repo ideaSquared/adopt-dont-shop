@@ -34,7 +34,8 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 		}
 	}, [conversation]);
 
-	const handleSend = async () => {
+	const handleSend = async (event) => {
+		event.preventDefault(); // Prevent the default form submission behavior
 		if (!message.trim()) return; // Prevent sending empty messages
 
 		try {
@@ -51,9 +52,13 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 				},
 				{ withCredentials: true }
 			);
+
 			setMessages([...messages, response.data]);
 			setMessage(''); // Clear the input after sending
 			onMessageSent(); // Trigger refresh of conversations list
+
+			// Place navigation or page reloading logic here if needed,
+			// after the request has successfully completed.
 		} catch (error) {
 			console.error('Error sending message:', error);
 		}
@@ -64,7 +69,8 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 	}
 
 	return (
-		<Container fluid className='d-flex flex-column vh-100 p-0'>
+		<Container fluid className='d-flex flex-column vh-100 p-2'>
+			{/* Message display area */}
 			<div className='overflow-auto' style={{ flex: 1 }}>
 				{messages.map((msg, index) => (
 					<Card
@@ -73,20 +79,24 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 						}`}
 						style={{
 							maxWidth: '75%',
-							marginLeft: msg.senderId === userId ? 'auto' : '0',
+							marginLeft: msg.senderId === userId ? 'auto' : undefined,
+							marginRight: msg.senderId === userId ? undefined : 'auto',
 						}}
 						key={index}
 					>
 						<Card.Body>
 							{msg.senderId !== userId && (
-								<div className='text-end' style={{ fontSize: '0.9em' }}>
+								<div
+									className='text-muted text-end'
+									style={{ fontSize: '0.9em' }}
+								>
 									<Badge bg='info'>{msg.senderName}</Badge>
 								</div>
 							)}
 							<Card.Text>{msg.messageText}</Card.Text>
 							<Card.Text
-								className='text-muted'
-								style={{ fontSize: '0.8em', textAlign: 'right' }}
+								className='text-muted text-end'
+								style={{ fontSize: '0.8em' }}
 							>
 								{new Date(msg.sentAt).toLocaleTimeString()}
 							</Card.Text>
@@ -94,16 +104,18 @@ const MessagesComponent = ({ conversation, onMessageSent }) => {
 					</Card>
 				))}
 			</div>
-			<Form className='mt-auto p-3'>
+
+			{/* Message input area */}
+			<Form className='mt-auto p-3' onSubmit={handleSend}>
 				<InputGroup className='mb-3'>
 					<Form.Control
-						type='text'
+						as='textarea'
 						placeholder='Enter message'
 						value={message}
 						onChange={(e) => setMessage(e.target.value)}
-						className='form-control-lg'
+						style={{ resize: 'none' }} // Prevent resizing the textarea
 					/>
-					<Button variant='primary' onClick={handleSend}>
+					<Button variant='primary' type='submit'>
 						Send
 					</Button>
 				</InputGroup>

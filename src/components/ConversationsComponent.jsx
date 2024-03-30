@@ -1,11 +1,12 @@
 // Conversations.js
 import React from 'react';
-import { ListGroup, Container, Row, Col } from 'react-bootstrap';
+import { ListGroup, Card } from 'react-bootstrap';
 
 const ConversationsComponent = ({
 	conversations,
 	title,
 	onConversationSelect,
+	selectedConversation,
 }) => {
 	const formatIsoDateString = (isoDateString) => {
 		if (!isoDateString) return 'Date not available';
@@ -38,50 +39,55 @@ const ConversationsComponent = ({
 	});
 
 	return (
-		<div
-			className='d-flex flex-column align-items-stretch flex-shrink-0 bg-body-tertiary'
-			style={{ width: '380px' }}
-		>
-			<Container className='p-3 border-bottom'>
-				<Row className='align-items-center'>
-					<Col>
-						<span className='fs-5 fw-semibold'>Messages</span>
-					</Col>
-				</Row>
-			</Container>
-			<ListGroup className='list-group-flush border-bottom scrollarea'>
+		<Card className='flex-grow-1' style={{ overflowY: 'auto' }}>
+			<Card.Header className='bg-dark text-white'>
+				<span className='fs-5 fw-semibold'>Messages</span>
+			</Card.Header>
+			<ListGroup variant='flush'>
 				{sortedConversations.map((conversation) => (
 					<ListGroup.Item
 						action
 						key={conversation._id}
-						onClick={() => onConversationSelect(conversation)} // Add this line
-						className={`py-3 lh-sm ${
-							conversation.status === 'active' ? 'bg-info' : 'bg-secondary'
+						onClick={() => {
+							if (conversation.status !== 'closed') {
+								onConversationSelect(conversation);
+							}
+						}}
+						className={`d-flex align-items-center justify-content-between ${
+							conversation._id === selectedConversation?._id
+								? 'bg-primary text-white' // Change color if selected
+								: conversation.status === 'closed'
+								? 'bg-secondary text-muted' // Different style for closed conversations
+								: ''
 						}`}
-						aria-current={conversation.status === 'active' ? 'true' : undefined}
+						style={{
+							cursor: conversation.status === 'closed' ? 'default' : 'pointer',
+							opacity: conversation.status === 'closed' ? 0.6 : 1,
+						}}
 					>
-						<div className='d-flex w-100 justify-content-between'>
-							<small className='text-muted'>
+						<div className='flex-grow-1'>
+							<div className='fw-bold'>
 								{getParticipantNames(conversation.participants)}
-							</small>
-							<small
-								className={
-									conversation.status === 'active' ? '' : 'text-body-secondary'
-								}
-							>
+							</div>
+							<div className='small'>{conversation.lastMessage}</div>
+						</div>
+						<div className='text-nowrap'>
+							<div className='mb-2'>
+								<span className='badge bg-secondary rounded-pill'>
+									{conversation.unreadMessages || 0}
+								</span>{' '}
+								{/* Badge for unread messages */}
+							</div>
+							<small>
 								{conversation.lastMessageAt
 									? formatIsoDateString(conversation.lastMessageAt)
 									: 'Date not available'}
 							</small>
 						</div>
-						<div className='d-flex w-100 align-items-center justify-content-between'>
-							<strong className='mb-1'>{conversation.lastMessage}</strong>
-						</div>
-						<div className='col-10 mb-1 small'>{conversation.content}</div>
 					</ListGroup.Item>
 				))}
 			</ListGroup>
-		</div>
+		</Card>
 	);
 };
 
