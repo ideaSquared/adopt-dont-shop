@@ -98,7 +98,7 @@ const UserConversations = ({
 				`${import.meta.env.VITE_API_BASE_URL}/conversations/messages/read/${
 					conversation._id
 				}`,
-				{},
+				{ userType },
 				{ withCredentials: true }
 			);
 			triggerConversationRefresh(); // Refresh to reflect the changes in UI

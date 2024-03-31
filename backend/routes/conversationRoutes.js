@@ -328,7 +328,8 @@ router.put(
 	'/messages/read/:conversationId',
 	authenticateToken,
 	async (req, res) => {
-		const { userId } = req.user;
+		const { userId } = req.user; // Assuming userType is added to req.user
+		const { userType } = req.body;
 		const { conversationId } = req.params;
 
 		try {
@@ -336,24 +337,38 @@ router.put(
 				`Attempting to mark messages as read for conversationId: ${conversationId} by userId: ${userId}`
 			);
 
-			// Step 1: Count unread messages for the user in this conversation
-			const unreadCount = await Message.countDocuments({
+			let query = {
 				conversationId,
-				senderId: { $ne: userId },
 				status: 'sent',
-			});
+			};
+
+			if (userType === 'User') {
+				query.senderId = { $ne: userId };
+			} else if (userType === 'Rescue') {
+				// Fetch participants to identify users
+				const conversation = await Conversation.findById(conversationId);
+				const userParticipants = conversation.participants
+					.filter((p) => p.participantType === 'User')
+					.map((p) => p.participantId);
+
+				query.senderId = { $in: userParticipants };
+			} else {
+				return res.status(400).json({ message: 'Invalid user type' });
+			}
+
+			// Count unread messages based on the query
+			const unreadCount = await Message.countDocuments(query);
 
 			logger.info(`Unread messages to mark as read: ${unreadCount}`);
 
-			// Step 2: Mark the unread messages as read
-			const result = await Message.updateMany(
-				{ conversationId, senderId: { $ne: userId }, status: 'sent' },
-				{ $set: { status: 'read', readAt: new Date() } }
-			);
+			// Mark the unread messages as read
+			const result = await Message.updateMany(query, {
+				$set: { status: 'read', readAt: new Date() },
+			});
 
 			logger.info(`Messages updated, modified: ${result.nModified}`);
 
-			// Step 3: Update the conversation's unreadMessages count
+			// Update the conversation's unreadMessages count
 			if (unreadCount > 0) {
 				await Conversation.findByIdAndUpdate(conversationId, {
 					$inc: { unreadMessages: -unreadCount },
