@@ -21,11 +21,16 @@ const ratingSchema = new mongoose.Schema({
 		refPath: 'onModel', // Determines the model to use for the reference based on the value of the `onModel` field.
 	},
 	// The type of the target being rated. This field supports the system's flexibility by allowing different kinds of rating targets.
-	targetType: { type: String, required: true, enum: ['pet', 'user'] },
+	targetType: { type: String, required: true, enum: ['Pet', 'User'] },
 	// The source of the rating, indicating whether the rating was given by a rescue organization or another user.
-	ratingSource: { type: String, required: true, enum: ['rescue', 'user'] },
+	ratingSource: { type: String, required: true, enum: ['Rescue', 'User'] },
 	// The type of the rating. Defaults to 'like' but can be extended to support various types of ratings.
-	ratingType: { type: String, required: true, default: 'like' },
+	ratingType: {
+		type: String,
+		required: true,
+		default: 'like',
+		enum: ['like', 'love', 'dislike'],
+	},
 	// This field specifies the model on which the `targetId` is referencing, allowing for dynamic references.
 	onModel: {
 		type: String,

@@ -3,11 +3,12 @@ import { Button, Card } from 'react-bootstrap';
 import SwipeItem from './SwipeItem';
 import axios from 'axios';
 
-const SwipeContainer = () => {
+const SwipeContainer = ({ ratingSource, onModel }) => {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [pets, setPets] = useState([]);
 	const [isLoading, setIsLoading] = useState(true); // Assume loading initially
 	const [error, setError] = useState(null);
+	const userId = localStorage.getItem('userId');
 
 	useEffect(() => {
 		const fetchPets = async () => {
@@ -33,8 +34,37 @@ const SwipeContainer = () => {
 		fetchPets();
 	}, []); // Dependency array is empty, meaning this effect runs once on component mount
 
+	const postRating = async (targetId, ratingType) => {
+		try {
+			const response = await axios.post(
+				`${import.meta.env.VITE_API_BASE_URL}/ratings`,
+				{
+					userId: userId,
+					targetType: 'Pet', // This might remain constant or change based on your app's logic
+					targetId: targetId,
+					ratingType: ratingType, // "Like", "Love", or "Dislike"
+					ratingSource: ratingSource, // Use the prop
+					onModel: onModel, // Use the prop
+				},
+				{
+					withCredentials: true,
+				}
+			);
+			console.log('Rating posted successfully', response.data);
+			// Handle success scenario
+		} catch (error) {
+			console.error('Failed to post rating', error.message);
+			// Handle error scenario
+		}
+	};
+
 	const handleSwipe = (direction) => {
 		console.log(`Swiped ${direction} on ${pets[currentIndex]._id}`);
+		// Mapping swipe direction to rating type
+		const ratingType = direction === 'left' ? 'dislike' : 'like';
+		postRating(pets[currentIndex]._id, ratingType);
+
+		// Move to the next pet, if available
 		if (currentIndex < pets.length - 1) {
 			setCurrentIndex((prevIndex) => prevIndex + 1);
 		}
@@ -44,6 +74,7 @@ const SwipeContainer = () => {
 		console.log(`${action} on ${pets[currentIndex]._id}`);
 		if (currentIndex < pets.length - 1) {
 			setCurrentIndex((prevIndex) => prevIndex + 1);
+			postRating(pets[currentIndex]._id, action); // Ensure to update this part
 		}
 	};
 
@@ -75,7 +106,7 @@ const SwipeContainer = () => {
 			<Card.Footer className='d-flex justify-content-around align-items-center'>
 				<Button
 					variant='danger'
-					onClick={() => handleButtonClick('Dislike')}
+					onClick={() => handleButtonClick('dislike')}
 					className='rounded-circle mx-1'
 					style={{ width: '100px', height: '100px', padding: '0' }}
 				>
@@ -83,7 +114,7 @@ const SwipeContainer = () => {
 				</Button>
 				<Button
 					variant='info'
-					onClick={() => handleButtonClick('Love')}
+					onClick={() => handleButtonClick('love')}
 					className='rounded-circle mx-1'
 					style={{ width: '100px', height: '100px', padding: '0' }}
 				>
@@ -91,7 +122,7 @@ const SwipeContainer = () => {
 				</Button>
 				<Button
 					variant='success'
-					onClick={() => handleButtonClick('Like')}
+					onClick={() => handleButtonClick('like')}
 					className='rounded-circle mx-1'
 					style={{ width: '100px', height: '100px', padding: '0' }}
 				>

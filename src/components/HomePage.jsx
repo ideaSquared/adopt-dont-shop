@@ -4,7 +4,7 @@ import SwipeContainer from './SwipeContainer';
 const HomePage = () => {
 	return (
 		<div className='centered-container'>
-			<SwipeContainer />
+			<SwipeContainer ratingSource='User' onModel='Pet' />
 		</div>
 	);
 };
