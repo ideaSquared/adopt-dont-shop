@@ -10,6 +10,7 @@ import authenticateToken from '../middleware/authenticateToken.js'; // Middlewar
 import checkAdmin from '../middleware/checkAdmin.js'; // Middleware to check if the authenticated user is an admin.
 import nodemailer from 'nodemailer'; // Imported but not used in this snippet. Potentially for sending emails (e.g., password reset instructions).
 import { validateRequest } from '../middleware/joiValidateSchema.js'; // For validating request bodies against Joi schemas.
+import mongoose from 'mongoose';
 
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
@@ -124,24 +125,26 @@ router.get(
 	checkAdmin,
 	async (req, res) => {
 		try {
-			// Use the .populate method to include details from the referenced User collection.
-			// The path 'participants' corresponds to the field in the Conversation schema that holds the references.
-			// The select option is used to specify that only the 'email' field of the participants should be included.
+			// Fetch all conversations without filtering by participantId or participantType
 			const conversations = await Conversation.find({})
 				.populate({
-					path: 'participants',
-					select: 'email', // Assuming you want to fetch the email of participants
+					path: 'participants.participantId',
+					select: 'email rescueName -_id', // assuming you want names and excluding _id in selection
 				})
+				// Populate the startedBy field
 				.populate({
-					path: 'lastMessageBy', // Make sure this matches the field name in your Conversation schema
-					select: 'email',
+					path: 'startedBy',
+					select: 'email -_id', // Selects email, excluding _id
 				})
+				// Populate the lastMessageBy field
 				.populate({
-					path: 'startedBy', // Make sure this matches the field name in your Conversation schema
-					select: 'email',
-				});
+					path: 'lastMessageBy',
+					select: 'email -_id', // Selects email, excluding _id
+				})
+				.exec();
 
-			logger.info('Fetched all conversations.');
+			// Log message indicating all conversations have been fetched
+			logger.info('Fetched all conversations');
 			res.json(conversations);
 		} catch (error) {
 			logger.error(`Error fetching conversations: ${error.message}`);

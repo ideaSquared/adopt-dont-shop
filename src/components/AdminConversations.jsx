@@ -64,9 +64,6 @@ const Conversations = () => {
 					// Check for search term in subject or participants' emails
 					const searchTermMatch =
 						!searchTerm ||
-						conversation.subject
-							.toLowerCase()
-							.includes(searchTerm.toLowerCase()) ||
 						conversation.participants.some((participant) =>
 							participant.email.toLowerCase().includes(searchTerm.toLowerCase())
 						);
@@ -134,7 +131,7 @@ const Conversations = () => {
 					<Form>
 						<Form.Control
 							type='text'
-							placeholder='Search by subject or participant'
+							placeholder='Search by participant'
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
 							className='mb-3'
@@ -154,7 +151,6 @@ const Conversations = () => {
 				<Table striped bordered hover>
 					<thead>
 						<tr>
-							<th>Subject</th>
 							<th>Participants</th>
 							<th>Last Message</th>
 							<th>Last Message At</th>
@@ -169,16 +165,19 @@ const Conversations = () => {
 								onClick={() => handleShowDetails(conversation)}
 								style={{ cursor: 'pointer' }}
 							>
-								<td>{conversation.subject}</td>
 								<td>
 									{conversation.participants.map((participant, index) => (
-										<>
+										<React.Fragment key={index}>
 											<StatusBadge
 												type='conversation'
-												value={participant.email}
+												value={
+													participant.participantId.email ||
+													participant.participantId.rescueName ||
+													'Unknown'
+												}
 												caps={false}
 											/>{' '}
-										</>
+										</React.Fragment>
 									))}
 								</td>
 								<td>{conversation.lastMessage}</td>
@@ -186,7 +185,7 @@ const Conversations = () => {
 								<td>
 									<StatusBadge
 										type='conversation'
-										value={conversation.status}
+										value={conversation.status || ''}
 									/>
 								</td>
 								<td>
@@ -220,18 +219,19 @@ const Conversations = () => {
 					{selectedConversation ? (
 						<>
 							<p>
-								<strong>Subject:</strong> {selectedConversation.subject}
-							</p>
-							<p>
 								<strong>Participants:</strong>{' '}
 								{selectedConversation.participants.map((participant, index) => (
-									<>
+									<React.Fragment key={index}>
 										<StatusBadge
 											type='conversation'
-											value={participant.email}
+											value={
+												participant.participantId.email ||
+												participant.participantId.rescueName ||
+												'Unknown'
+											}
 											caps={false}
 										/>{' '}
-									</>
+									</React.Fragment>
 								))}
 							</p>
 							<p>
@@ -273,16 +273,16 @@ const Conversations = () => {
 								<thead>
 									<tr>
 										<th>Text</th>
-										<th>Sent At</th>
 										<th>Status</th>
+										<th>Sent At</th>
 									</tr>
 								</thead>
 								<tbody>
 									{messages.map((message) => (
 										<tr key={message._id}>
 											<td>{message.messageText}</td>
-											<td>{new Date(message.sentAt).toLocaleString()}</td>
 											<td>{message.status}</td>
+											<td>{new Date(message.sentAt).toLocaleString()}</td>
 										</tr>
 									))}
 								</tbody>
