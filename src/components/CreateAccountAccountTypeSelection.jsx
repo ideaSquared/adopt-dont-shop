@@ -39,7 +39,7 @@ const AccountTypeSelection = () => {
 			const data = await response.json();
 			if (response.ok) {
 				// Handle success, maybe navigate to a success page or display a success message
-				console.log('Rescue created successfully', data);
+				// console.log('Rescue created successfully', data);
 				navigate('/login');
 			} else {
 				// Handle server-side validation errors or other issues

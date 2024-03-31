@@ -31,8 +31,6 @@ async function fetchAndValidateCompany(companyNumber) {
 	const encodedApiKey = Buffer.from(`${apiKey}:`).toString('base64');
 	const authHeader = `Basic ${encodedApiKey}`;
 
-	console.log(fullURL);
-
 	try {
 		logger.info(
 			`Fetching company details for company number: ${companyNumber}`

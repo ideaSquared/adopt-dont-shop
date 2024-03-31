@@ -108,7 +108,7 @@ const RescuePetManagement = ({
 
 	const handlePetSubmit = async (event) => {
 		event.preventDefault();
-		console.log('Submitting:', editingPet);
+		// console.log('Submitting:', editingPet);
 		// Assuming your API expects the pet data in the same structure as editingPet
 		const petData = {
 			...editingPet,

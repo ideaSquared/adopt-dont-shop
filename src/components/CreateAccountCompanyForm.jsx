@@ -19,7 +19,7 @@ const CharityForm = () => {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		// Submit formData to your backend
-		console.log(formData);
+		// console.log(formData);
 		// Assuming '/api/rescue' is your endpoint for creating a rescue
 		// Adjust navigation or add more logic as needed
 		navigate('/success-page');

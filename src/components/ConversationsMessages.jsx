@@ -75,8 +75,6 @@ const MessagesComponent = ({
 		return <div>Select a conversation to view messages.</div>;
 	}
 
-	console.log('TYPE: ', userType);
-
 	return (
 		<Container fluid className='d-flex flex-column vh-100 p-2'>
 			{/* Message display area */}

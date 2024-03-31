@@ -69,7 +69,7 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 			return; // Exit the function to prevent further actions
 		}
 
-		console.log(`Swiped ${direction} on ${pets[currentIndex]._id}`);
+		// console.log(`Swiped ${direction} on ${pets[currentIndex]._id}`);
 		const ratingType = direction === 'left' ? 'dislike' : 'like';
 		postRating(pets[currentIndex]._id, ratingType);
 		setCurrentIndex((prevIndex) => prevIndex + 1);
@@ -81,7 +81,7 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 			return; // Exit the function to prevent further actions
 		}
 
-		console.log(`${action} on ${pets[currentIndex]._id}`);
+		// console.log(`${action} on ${pets[currentIndex]._id}`);
 		postRating(pets[currentIndex]._id, action);
 		setCurrentIndex((prevIndex) => prevIndex + 1);
 	};

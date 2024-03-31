@@ -27,8 +27,6 @@ router.post(
 			// Determine which model to use based on the targetType
 			let TargetModel;
 
-			console.log(req.body);
-
 			switch (targetType) {
 				case 'Pet':
 					TargetModel = Pet; // Assuming Pet model is imported
