@@ -139,7 +139,9 @@ const UserConversations = ({
 						<MessagesComponent
 							conversation={selectedConversation}
 							onMessageSent={triggerConversationRefresh}
+							userType={userType}
 							canCreateMessages={canCreateMessages}
+							listOfStaffIds={listOfStaffIds}
 						/>
 					) : (
 						<div

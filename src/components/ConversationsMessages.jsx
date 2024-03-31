@@ -14,6 +14,7 @@ const MessagesComponent = ({
 	onMessageSent,
 	userType,
 	canCreateMessages,
+	listOfStaffIds,
 }) => {
 	const [messages, setMessages] = useState([]);
 	const [message, setMessage] = useState('');
@@ -74,6 +75,8 @@ const MessagesComponent = ({
 		return <div>Select a conversation to view messages.</div>;
 	}
 
+	console.log('TYPE: ', userType);
+
 	return (
 		<Container fluid className='d-flex flex-column vh-100 p-2'>
 			{/* Message display area */}
@@ -81,12 +84,24 @@ const MessagesComponent = ({
 				{messages.map((msg, index) => (
 					<Card
 						className={`mb-2 ${
-							msg.senderId === userId ? 'bg-light' : 'bg-secondary text-white'
+							(userType === 'User' && msg.senderId === userId) ||
+							(userType === 'Rescue' && listOfStaffIds.includes(msg.senderId))
+								? 'bg-light'
+								: 'bg-secondary text-white'
 						}`}
 						style={{
 							maxWidth: '75%',
-							marginLeft: msg.senderId === userId ? 'auto' : undefined,
-							marginRight: msg.senderId === userId ? undefined : 'auto',
+							marginLeft:
+								(userType === 'User' && msg.senderId === userId) ||
+								(userType === 'Rescue' && listOfStaffIds.includes(msg.senderId))
+									? 'auto'
+									: undefined,
+							marginRight:
+								(userType === 'User' && msg.senderId !== userId) ||
+								(userType === 'Rescue' &&
+									!listOfStaffIds.includes(msg.senderId))
+									? 'auto'
+									: undefined,
 						}}
 						key={index}
 					>
