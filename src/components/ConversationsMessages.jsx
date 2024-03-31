@@ -9,7 +9,12 @@ import {
 	InputGroup,
 } from 'react-bootstrap';
 
-const MessagesComponent = ({ conversation, onMessageSent, userType }) => {
+const MessagesComponent = ({
+	conversation,
+	onMessageSent,
+	userType,
+	canCreateMessages,
+}) => {
 	const [messages, setMessages] = useState([]);
 	const [message, setMessage] = useState('');
 	const userId = localStorage.getItem('userId');
@@ -54,6 +59,7 @@ const MessagesComponent = ({ conversation, onMessageSent, userType }) => {
 			);
 
 			setMessages([...messages, response.data]);
+
 			setMessage(''); // Clear the input after sending
 			onMessageSent(); // Trigger refresh of conversations list
 
@@ -114,8 +120,9 @@ const MessagesComponent = ({ conversation, onMessageSent, userType }) => {
 						value={message}
 						onChange={(e) => setMessage(e.target.value)}
 						style={{ resize: 'none' }} // Prevent resizing the textarea
+						disabled={!canCreateMessages} // Disable the input if canCreateMessages is false
 					/>
-					<Button variant='primary' type='submit'>
+					<Button variant='primary' type='submit' disabled={!canCreateMessages}>
 						Send
 					</Button>
 				</InputGroup>

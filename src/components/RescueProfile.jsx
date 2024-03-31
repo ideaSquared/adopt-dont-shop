@@ -160,6 +160,7 @@ const RescueProfile = () => {
 	const canEditPet = userPermissions.includes('edit_pet');
 	const canDeletePet = userPermissions.includes('delete_pet');
 	const canViewMessages = userPermissions.includes('view_messages');
+	const canCreateMessages = userPermissions.includes('create_messages');
 
 	const renderSection = () => {
 		switch (activeSection) {
@@ -213,7 +214,13 @@ const RescueProfile = () => {
 				}
 			case 'messages':
 				if (canViewMessages) {
-					return <UserConversations userType='Rescue' />;
+					return (
+						<UserConversations
+							userType='Rescue'
+							canCreateMessages={canCreateMessages}
+							canReadMessages={canViewMessages}
+						/>
+					);
 				}
 			default:
 				return <RescueNoPermissions rescueProfile={rescueProfile} />;

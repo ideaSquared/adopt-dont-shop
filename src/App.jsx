@@ -59,7 +59,13 @@ function App() {
 				/>
 				<Route
 					path='adopter-conversations'
-					element={<UserConversations userType='User' />}
+					element={
+						<UserConversations
+							userType='User'
+							canCreateMessages={true}
+							canReadMessages={true}
+						/>
+					}
 				/>
 			</Routes>
 		</Router>

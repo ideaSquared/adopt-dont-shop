@@ -4,7 +4,11 @@ import ConversationsComponent from './ConversationsComponent';
 import MessagesComponent from './ConversationsMessages';
 import { Container, Row, Col } from 'react-bootstrap';
 
-const UserConversations = ({ userType }) => {
+const UserConversations = ({
+	userType,
+	canCreateMessages,
+	canReadMessages,
+}) => {
 	const [conversations, setConversations] = useState([]);
 	const [userId, setUserId] = useState(null);
 	const [selectedConversation, setSelectedConversation] = useState(null);
@@ -96,6 +100,10 @@ const UserConversations = ({ userType }) => {
 		}
 	};
 
+	if (!canReadMessages) {
+		return <div>You do not have permission to view this page.</div>;
+	}
+
 	return (
 		<Container fluid className={`${userType === 'Rescue' ? 'h-100 p-0' : ''}`}>
 			<Row className={`${userType === 'Rescue' ? 'h-100 g-0' : ''}`}>
@@ -123,6 +131,7 @@ const UserConversations = ({ userType }) => {
 						<MessagesComponent
 							conversation={selectedConversation}
 							onMessageSent={triggerConversationRefresh}
+							canCreateMessages={canCreateMessages}
 						/>
 					) : (
 						<div
