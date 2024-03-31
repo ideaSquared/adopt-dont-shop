@@ -9,7 +9,7 @@ export const useLoginRedirect = () => {
 
 	useEffect(() => {
 		if (!isLoggedIn) {
-			navigate('/'); // Redirect non-logged-in users to home
+			navigate('/login'); // Redirect non-logged-in users to home
 		}
 	}, [isLoggedIn, navigate]);
 };

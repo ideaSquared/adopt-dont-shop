@@ -3,6 +3,7 @@ import { Button, Card } from 'react-bootstrap';
 import SwipeItem from './SwipeItem';
 import useFetchUnratedPets from './hooks/useFetchUnratedPets'; // Custom hook for fetching pets
 import { postRating } from './services/ratingsService'; // Service layer for API calls
+import { useLoginRedirect } from './hooks/useLoginRedirect';
 
 const SwipeContainer = ({ ratingSource, onModel }) => {
 	const [currentIndex, setCurrentIndex] = useState(0);
@@ -24,6 +25,7 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 	const handleButtonClick = (action) =>
 		handleSwipe(action === 'dislike' ? 'left' : 'right');
 
+	useLoginRedirect();
 	if (isLoading)
 		return (
 			<Card>
