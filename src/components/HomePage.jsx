@@ -1,12 +1,7 @@
 import React from 'react';
-import SwipeContainer from './SwipeContainer';
 
 const HomePage = () => {
-	return (
-		<div className='centered-container'>
-			<SwipeContainer ratingSource='User' onModel='Pet' />
-		</div>
-	);
+	return <h1>Home</h1>;
 };
 
 export default HomePage;

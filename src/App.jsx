@@ -27,6 +27,7 @@ import ContactUs from './components/ContactUs';
 
 import RescueProfile from './components/RescueProfile';
 import UserConversations from './components/UserConversations';
+import UserSwiper from './components/UserSwiper';
 
 function App() {
 	const [count, setCount] = useState(0);
@@ -58,7 +59,7 @@ function App() {
 					element={<UserConversations userType='Rescue' />}
 				/>
 				<Route
-					path='adopter-conversations'
+					path='/adopter-conversations'
 					element={
 						<UserConversations
 							userType='User'
@@ -67,6 +68,7 @@ function App() {
 						/>
 					}
 				/>
+				<Route path='/swipe' element={<UserSwiper />} />
 			</Routes>
 		</Router>
 	);
