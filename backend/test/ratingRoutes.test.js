@@ -9,7 +9,7 @@ import User from '../models/User.js';
 import Pet from '../models/Pet.js';
 import { generateObjectId } from '../utils/generateObjectId.js'; // Utility function to generate valid MongoDB ObjectIds
 
-describe.only('Rating Routes', function () {
+describe('Rating Routes', function () {
 	let userId, targetUserId, invalidUserId, cookie, petId;
 
 	before(async () => {
