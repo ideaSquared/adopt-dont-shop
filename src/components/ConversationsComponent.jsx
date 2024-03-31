@@ -69,12 +69,14 @@ const ConversationsComponent = ({
 							opacity: conversation.status === 'closed' ? 0.6 : 1,
 						}}
 					>
-						<div className='flex-grow-1'>
-							<div className='fw-bold'>
+						<div className='flex-grow-1 text-truncate'>
+							<div className='fw-bold text-truncate'>
 								{getParticipantNames(conversation.participants)} for{' '}
 								{conversation.petId.petName}
 							</div>
-							<div className='small'>{conversation.lastMessage}</div>
+							<div className='small text-truncate'>
+								{conversation.lastMessage}
+							</div>
 						</div>
 						<div className='text-nowrap'>
 							{conversation.lastMessageBy !== userId &&

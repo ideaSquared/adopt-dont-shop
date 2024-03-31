@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {
-	Container,
-	Form,
-	Button,
-	Card,
-	Badge,
-	InputGroup,
-} from 'react-bootstrap';
+import { Container } from 'react-bootstrap';
+import MessagesPetDisplay from './ConversationsMessagesPetDisplay';
+import MessageList from './ConversationsMessageList';
+import MessageInput from './ConversationsMessageInput';
 
 const MessagesComponent = ({
 	conversation,
@@ -17,22 +13,29 @@ const MessagesComponent = ({
 	listOfStaffIds,
 }) => {
 	const [messages, setMessages] = useState([]);
+	const [petData, setPetData] = useState(null);
 	const [message, setMessage] = useState('');
 	const userId = localStorage.getItem('userId');
+	const [isExpanded, setIsExpanded] = useState(false);
 
 	useEffect(() => {
 		if (conversation) {
 			const fetchMessages = async () => {
+				const messagesUrl = `${
+					import.meta.env.VITE_API_BASE_URL
+				}/conversations/messages/${conversation._id}`;
+				const petDataUrl = `${import.meta.env.VITE_API_BASE_URL}/pets/${
+					conversation.petId._id
+				}`;
 				try {
-					const response = await axios.get(
-						`${import.meta.env.VITE_API_BASE_URL}/conversations/messages/${
-							conversation._id
-						}`,
-						{ withCredentials: true }
-					);
-					setMessages(response.data);
+					const [messagesResponse, petDataResponse] = await Promise.all([
+						axios.get(messagesUrl, { withCredentials: true }),
+						axios.get(petDataUrl, { withCredentials: true }),
+					]);
+					setMessages(messagesResponse.data);
+					setPetData(petDataResponse.data.data);
 				} catch (error) {
-					console.error('Error fetching messages:', error);
+					console.error('Error fetching data:', error);
 				}
 			};
 
@@ -41,8 +44,8 @@ const MessagesComponent = ({
 	}, [conversation]);
 
 	const handleSend = async (event) => {
-		event.preventDefault(); // Prevent the default form submission behavior
-		if (!message.trim()) return; // Prevent sending empty messages
+		event.preventDefault();
+		if (!message.trim()) return;
 
 		try {
 			const response = await axios.post(
@@ -58,14 +61,9 @@ const MessagesComponent = ({
 				},
 				{ withCredentials: true }
 			);
-
 			setMessages([...messages, response.data]);
-
-			setMessage(''); // Clear the input after sending
-			onMessageSent(); // Trigger refresh of conversations list
-
-			// Place navigation or page reloading logic here if needed,
-			// after the request has successfully completed.
+			setMessage('');
+			onMessageSent();
 		} catch (error) {
 			console.error('Error sending message:', error);
 		}
@@ -77,73 +75,23 @@ const MessagesComponent = ({
 
 	return (
 		<Container fluid className='d-flex flex-column vh-100 p-2'>
-			{/* Message display area */}
-			<div className='overflow-auto' style={{ flex: 1 }}>
-				{messages.map((msg, index) => (
-					<Card
-						className={`mb-2 ${
-							(userType === 'User' && msg.senderId === userId) ||
-							(userType === 'Rescue' && listOfStaffIds.includes(msg.senderId))
-								? 'bg-light'
-								: 'bg-secondary text-white'
-						}`}
-						style={{
-							maxWidth: '75%',
-							marginLeft:
-								(userType === 'User' && msg.senderId === userId) ||
-								(userType === 'Rescue' && listOfStaffIds.includes(msg.senderId))
-									? 'auto'
-									: undefined,
-							marginRight:
-								(userType === 'User' && msg.senderId !== userId) ||
-								(userType === 'Rescue' &&
-									!listOfStaffIds.includes(msg.senderId))
-									? 'auto'
-									: undefined,
-						}}
-						key={index}
-					>
-						<Card.Body>
-							{msg.senderId !== userId && (
-								<div
-									className='text-muted text-end'
-									style={{ fontSize: '0.9em' }}
-								>
-									<Badge bg='info'>{msg.senderName}</Badge>
-								</div>
-							)}
-							<div
-								style={{ whiteSpace: 'pre-wrap' }} // This CSS property preserves white spaces and line breaks
-							>
-								{msg.messageText}
-							</div>
-							<Card.Text
-								className='text-muted text-end'
-								style={{ fontSize: '0.8em' }}
-							>
-								{new Date(msg.sentAt).toLocaleTimeString()} {msg.status}
-							</Card.Text>
-						</Card.Body>
-					</Card>
-				))}
-			</div>
-
-			{/* Message input area */}
-			<Form className='mt-auto p-3' onSubmit={handleSend}>
-				<InputGroup className='mb-3'>
-					<Form.Control
-						as='textarea'
-						placeholder='Enter message'
-						value={message}
-						onChange={(e) => setMessage(e.target.value)}
-						style={{ resize: 'none' }} // Prevent resizing the textarea
-						disabled={!canCreateMessages} // Disable the input if canCreateMessages is false
-					/>
-					<Button variant='primary' type='submit' disabled={!canCreateMessages}>
-						Send
-					</Button>
-				</InputGroup>
-			</Form>
+			<MessagesPetDisplay
+				petData={petData}
+				isExpanded={isExpanded}
+				toggleHeight={() => setIsExpanded(!isExpanded)}
+			/>
+			<MessageList
+				messages={messages}
+				userId={userId}
+				userType={userType}
+				listOfStaffIds={listOfStaffIds}
+			/>
+			<MessageInput
+				message={message}
+				setMessage={setMessage}
+				canCreateMessages={canCreateMessages}
+				handleSend={handleSend}
+			/>
 		</Container>
 	);
 };

@@ -101,7 +101,7 @@ router.post(
 	}
 );
 
-// TODO: Check the tests work for this
+// TODO: Tests + do we need to call for images or can we do this on another API call?
 // Get all conversations for a user
 router.get('/', authenticateToken, async (req, res) => {
 	try {
@@ -135,11 +135,13 @@ router.get('/', authenticateToken, async (req, res) => {
 			})
 			.populate({
 				path: 'petId',
-				select: 'petName',
+				select: 'petName shortDescription images',
+				populate: {
+					path: 'images', // Path to the images array to populate each referenced document
+					select: 'url description -_id', // Example fields you might want from each image, adjust as needed
+				},
 			})
 			.exec();
-
-		console.log(conversations);
 
 		const logMessage =
 			req.query.type === 'Rescue'
