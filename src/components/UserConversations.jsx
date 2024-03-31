@@ -3,6 +3,7 @@ import axios from 'axios';
 import ConversationsComponent from './ConversationsComponent';
 import MessagesComponent from './ConversationsMessages';
 import { Container, Row, Col } from 'react-bootstrap';
+import { useLoginRedirect } from './hooks/useLoginRedirect';
 
 const UserConversations = ({
 	userType,
@@ -14,6 +15,7 @@ const UserConversations = ({
 	const [selectedConversation, setSelectedConversation] = useState(null);
 	const [refreshConversations, setRefreshConversations] = useState(false);
 	const [listOfStaffIds, setStaffIDs] = useState([]);
+	useLoginRedirect();
 
 	// setUserId(localStorage.getItem('userId'));
 
