@@ -1,5 +1,4 @@
-// Conversations.js
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ListGroup, Card } from 'react-bootstrap';
 
 const ConversationsComponent = ({
@@ -8,8 +7,12 @@ const ConversationsComponent = ({
 	onConversationSelect,
 	selectedConversation,
 	userType,
+	listOfStaffIds,
 }) => {
 	const userId = localStorage.getItem('userId');
+
+	useEffect(() => {}, [conversations, userType]);
+
 	const formatIsoDateString = (isoDateString) => {
 		if (!isoDateString) return 'Date not available';
 		const date = new Date(isoDateString);
@@ -33,17 +36,16 @@ const ConversationsComponent = ({
 			.join(', ');
 	};
 
-	// Sort conversations by lastMessageAt date in descending order
 	const sortedConversations = conversations.sort((a, b) => {
 		const dateA = new Date(a.lastMessageAt);
 		const dateB = new Date(b.lastMessageAt);
-		return dateB - dateA; // For descending order
+		return dateB - dateA;
 	});
 
 	return (
 		<Card className='flex-grow-1' style={{ overflowY: 'auto' }}>
 			<Card.Header className='bg-dark text-white'>
-				<span className='fs-5 fw-semibold'>Messages</span>
+				<span className='fs-5 fw-semibold'>{title}</span>
 			</Card.Header>
 			<ListGroup variant='flush'>
 				{sortedConversations.map((conversation) => (
@@ -57,9 +59,9 @@ const ConversationsComponent = ({
 						}}
 						className={`d-flex align-items-center justify-content-between ${
 							conversation._id === selectedConversation?._id
-								? 'bg-primary text-white' // Change color if selected
+								? 'bg-primary text-white'
 								: conversation.status === 'closed'
-								? 'bg-secondary text-muted' // Different style for closed conversations
+								? 'bg-secondary text-muted'
 								: ''
 						}`}
 						style={{
@@ -75,6 +77,7 @@ const ConversationsComponent = ({
 						</div>
 						<div className='text-nowrap'>
 							{conversation.lastMessageBy !== userId &&
+								!listOfStaffIds.includes(conversation.lastMessageBy) &&
 								conversation.unreadMessages > 0 && (
 									<div className='mb-2'>
 										<span className='badge bg-secondary rounded-pill'>
@@ -82,11 +85,7 @@ const ConversationsComponent = ({
 										</span>
 									</div>
 								)}
-							<small>
-								{conversation.lastMessageAt
-									? formatIsoDateString(conversation.lastMessageAt)
-									: 'Date not available'}
-							</small>
+							<small>{formatIsoDateString(conversation.lastMessageAt)}</small>
 						</div>
 					</ListGroup.Item>
 				))}

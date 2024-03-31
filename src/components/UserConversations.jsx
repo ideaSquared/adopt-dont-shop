@@ -13,6 +13,7 @@ const UserConversations = ({
 	const [userId, setUserId] = useState(null);
 	const [selectedConversation, setSelectedConversation] = useState(null);
 	const [refreshConversations, setRefreshConversations] = useState(false);
+	const [listOfStaffIds, setStaffIDs] = useState([]);
 
 	// setUserId(localStorage.getItem('userId'));
 
@@ -42,6 +43,11 @@ const UserConversations = ({
 					userType === 'Rescue' ? response.data : await response.json();
 				if (response.ok || response.status === 200) {
 					const idKey = userType === 'Rescue' ? 'id' : 'userId';
+					if (userType === 'Rescue') {
+						const ids = data.staff.map((staffMember) => staffMember.userId._id);
+						setStaffIDs(ids);
+					}
+
 					setUserId(data[idKey]);
 					fetchConversations(data[idKey]);
 				} else {
@@ -54,7 +60,6 @@ const UserConversations = ({
 				);
 			}
 		};
-
 		const fetchConversations = async (id) => {
 			try {
 				const conversationsResponse = await axios.get(
@@ -119,6 +124,7 @@ const UserConversations = ({
 						onConversationSelect={handleConversationSelect}
 						selectedConversation={selectedConversation}
 						userType={userType}
+						listOfStaffIds={listOfStaffIds}
 					/>
 				</Col>
 				<Col
