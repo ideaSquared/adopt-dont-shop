@@ -95,6 +95,69 @@ router.get('/target/:targetId', authenticateToken, async (req, res) => {
 	}
 });
 
+router.get('/find-ratings/:rescueId', authenticateToken, async (req, res) => {
+	try {
+		const { rescueId } = req.params;
+		const rescueIdObjectId = generateObjectId(rescueId);
+		logger.info(
+			`Fetching likes and loves for all pets with ownerId: ${rescueId}`
+		);
+
+		const ratings = await Pet.aggregate([
+			{ $match: { ownerId: rescueIdObjectId } },
+			{
+				$lookup: {
+					from: 'ratings', // the collection to join
+					localField: '_id', // field from the pets collection
+					foreignField: 'targetId', // field from the ratings collection
+					as: 'petRatings', // output array with joined documents
+				},
+			},
+			{ $unwind: '$petRatings' }, // Deconstructs the petRatings array
+			{
+				$lookup: {
+					from: 'users', // Join with users collection
+					localField: 'petRatings.userId', // Assuming the ratings have a userId
+					foreignField: '_id', // Assuming _id is used in users collection
+					as: 'ratingUser',
+				},
+			},
+			{
+				$unwind: '$ratingUser', // Deconstructs the ratingUser array
+			},
+			{
+				$project: {
+					_id: 1, // Exclude pet ID from the final output
+					petName: 1, // Assuming you have a petName field
+					ratingType: '$petRatings.ratingType', // Assuming the structure of ratings includes likes
+					userFirstName: '$ratingUser.firstName', // Assuming the structure of users includes firstName
+					userId: '$ratingUser._id',
+				},
+			},
+		]);
+
+		if (!ratings.length) {
+			logger.warn(`No ratings found for pets with ownerId: ${rescueId}`);
+			return res.status(404).send({ message: 'No ratings found' });
+		}
+
+		logger.info(
+			`Successfully fetched likes and loves for pets with ownerId: ${rescueId}.`
+		);
+		res.json(ratings);
+	} catch (error) {
+		logger.error(
+			`Failed to fetch ratings for pets with ownerId: ${rescueId}: ${error.message}`,
+			{ error }
+		);
+		Sentry.captureException(error);
+		res.status(500).send({
+			message: 'Failed to fetch ratings',
+			error: error.message,
+		});
+	}
+});
+
 router.get('/find-unrated', authenticateToken, async (req, res) => {
 	try {
 		const userId = req.user.userId; // Assuming user ID is attached to the request by the authentication middleware

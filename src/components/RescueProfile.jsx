@@ -17,6 +17,7 @@ import RescueProfileForm from './RescueProfileForm';
 import RescueProfileHeader from './RescueProfileHeader';
 import RescueStaffManagement from './RescueStaffManagement';
 import RescuePetManagement from './RescuePetsManagement';
+import RescueAdopterManagement from './RescueAdopterManagement';
 import RescueNoPermissions from './RescueNoPermissions';
 import UserConversations from './UserConversations';
 
@@ -222,6 +223,10 @@ const RescueProfile = () => {
 						/>
 					);
 				}
+			case 'adopter':
+				if (canViewMessages) {
+					return <RescueAdopterManagement rescueProfile={rescueProfile} />;
+				}
 			default:
 				return <RescueNoPermissions rescueProfile={rescueProfile} />;
 		}
@@ -273,6 +278,9 @@ const RescueProfile = () => {
 								<Nav.Link eventKey='staff'>Staff Management</Nav.Link>
 							</Nav.Item>
 							<Nav.Item>
+								<Nav.Link eventKey='adopter'>Adopter Management</Nav.Link>
+							</Nav.Item>
+							<Nav.Item>
 								<Nav.Link eventKey='messages'>Messages</Nav.Link>
 							</Nav.Item>
 						</Nav>
@@ -300,6 +308,9 @@ const RescueProfile = () => {
 								</Nav.Item>
 								<Nav.Item>
 									<Nav.Link eventKey='staff'>Staff Management</Nav.Link>
+								</Nav.Item>
+								<Nav.Item>
+									<Nav.Link eventKey='adopter'>Adopter Management</Nav.Link>
 								</Nav.Item>
 								<Nav.Item>
 									<Nav.Link eventKey='messages'>Messages</Nav.Link>
