@@ -98,3 +98,51 @@ Distributed under the MIT License. See `LICENSE` for more information.
 Alex Jenkinson - alexjenkinson@ideasquared.co.uk
 
 Project Link: [https://github.com/yourusername/pet-adoption-react](https://github.com/yourusername/pet-adoption-react)
+
+TODO:
+src/
+|-- components/ # Shared or generic UI components
+| |-- common/
+| | |-- AlertComponent.jsx
+| | |-- PaginationControls.jsx
+| | |-- StatusBadge.jsx
+| |-- layout/
+| | |-- Navbar.jsx
+| | |-- SwipeContainer.jsx
+| |-- forms/
+| | |-- CreateAccountForm.jsx
+| | |-- LoginForm.jsx
+| | |-- ResetPasswordForm.jsx
+| | |-- UserForgotPasswordForm.jsx
+| | |-- UserLoginForm.jsx
+| | |-- UserResetPasswordForm.jsx
+|-- hooks/ # Custom hooks
+|-- services/ # Services for handling API calls and other external interactions
+|-- views/ # Components and logic related to specific views or pages
+| |-- admin/
+| | |-- AdminConversations.jsx
+| | |-- AdminDashboard.jsx
+| | |-- AdminLogs.jsx
+| | |-- AdminPets.jsx
+| | |-- AdminRescues.jsx
+| | |-- AdminUsers.jsx
+| |-- rescue/
+| | |-- RescueAdopterManagement.jsx
+| | |-- RescueNoPermissions.jsx
+| | |-- RescuePetsManagement.jsx
+| | |-- RescueProfile.jsx
+| | |-- RescueProfileForm.jsx
+| | |-- RescueStaffManagement.jsx
+| |-- user/
+| | |-- UserConversations.jsx
+| | |-- UserProfile.jsx
+| | |-- UserSwiper.jsx
+|-- contexts/ # Contexts like AuthContext
+| |-- AuthContext.jsx
+|-- utils/ # Utility functions and constants
+|-- app/
+| |-- App.jsx # Main App component
+| |-- App.css
+|-- index.js # Entry point for React app
+|-- index.css
+|-- setupTests.js # If you're using create-react-app, setup for tests
