@@ -326,7 +326,7 @@ router.put(
 		const { conversationId } = req.params;
 
 		try {
-			console.log(
+			logger.info(
 				`Attempting to mark messages as read for conversationId: ${conversationId} by userId: ${userId}`
 			);
 
@@ -337,7 +337,7 @@ router.put(
 				status: 'sent',
 			});
 
-			console.log(`Unread messages to mark as read: ${unreadCount}`);
+			logger.info(`Unread messages to mark as read: ${unreadCount}`);
 
 			// Step 2: Mark the unread messages as read
 			const result = await Message.updateMany(
@@ -345,7 +345,7 @@ router.put(
 				{ $set: { status: 'read', readAt: new Date() } }
 			);
 
-			console.log(`Messages updated, nModified: ${result.nModified}`);
+			logger.info(`Messages updated, modified: ${result.nModified}`);
 
 			// Step 3: Update the conversation's unreadMessages count
 			if (unreadCount > 0) {
@@ -359,7 +359,8 @@ router.put(
 				updated: result.nModified,
 			});
 		} catch (error) {
-			console.error(`Error marking messages as read: ${error}`);
+			logger.error(`Error marking messages as read: ${error}`);
+			Sentry.captureException(error);
 			res.status(500).json({ message: error.message });
 		}
 	}
