@@ -1,6 +1,6 @@
-// LoggerUtil.js
 import winston from 'winston';
 import morgan from 'morgan';
+import chalk from 'chalk'; // Import chalk
 
 class LoggerUtil {
 	constructor(serviceName = 'user-service') {
@@ -27,7 +27,26 @@ class LoggerUtil {
 		if (process.env.NODE_ENV !== 'production') {
 			this.logger.add(
 				new winston.transports.Console({
-					format: winston.format.simple(),
+					format: winston.format.combine(
+						winston.format.printf((info) => {
+							const { level, message, timestamp } = info;
+							let colorizedLevel;
+							switch (level) {
+								case 'info':
+									colorizedLevel = chalk.blue(level);
+									break;
+								case 'warn':
+									colorizedLevel = chalk.yellow(level);
+									break;
+								case 'error':
+									colorizedLevel = chalk.red(level);
+									break;
+								default:
+									colorizedLevel = level; // No color
+							}
+							return `${timestamp} ${colorizedLevel}: ${message}`;
+						})
+					),
 				})
 			);
 		}
