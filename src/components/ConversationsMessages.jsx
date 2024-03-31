@@ -99,7 +99,11 @@ const MessagesComponent = ({
 									<Badge bg='info'>{msg.senderName}</Badge>
 								</div>
 							)}
-							<Card.Text>{msg.messageText}</Card.Text>
+							<div
+								style={{ whiteSpace: 'pre-wrap' }} // This CSS property preserves white spaces and line breaks
+							>
+								{msg.messageText}
+							</div>
 							<Card.Text
 								className='text-muted text-end'
 								style={{ fontSize: '0.8em' }}
