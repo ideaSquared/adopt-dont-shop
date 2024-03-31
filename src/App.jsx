@@ -26,8 +26,7 @@ import CompanyForm from './components/CreateAccountCompanyForm';
 import ContactUs from './components/ContactUs';
 
 import RescueProfile from './components/RescueProfile';
-import RescueConversations from './components/RescueConversations';
-import AdopterConversations from './components/AdopterConversations';
+import UserConversations from './components/UserConversations';
 
 function App() {
 	const [count, setCount] = useState(0);
@@ -54,10 +53,13 @@ function App() {
 				<Route path='/company-form' element={<CompanyForm />} />
 				<Route path='/contact-us' element={<ContactUs />} />
 				<Route path='/rescue-profile' element={<RescueProfile />} />
-				<Route path='/rescue-conversations' element={<RescueConversations />} />
+				<Route
+					path='/rescue-conversations'
+					element={<UserConversations userType='Rescue' />}
+				/>
 				<Route
 					path='adopter-conversations'
-					element={<AdopterConversations />}
+					element={<UserConversations userType='User' />}
 				/>
 			</Routes>
 		</Router>

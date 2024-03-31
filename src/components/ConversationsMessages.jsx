@@ -9,7 +9,7 @@ import {
 	InputGroup,
 } from 'react-bootstrap';
 
-const MessagesComponent = ({ conversation, onMessageSent }) => {
+const MessagesComponent = ({ conversation, onMessageSent, userType }) => {
 	const [messages, setMessages] = useState([]);
 	const [message, setMessage] = useState('');
 	const userId = localStorage.getItem('userId');

@@ -110,6 +110,7 @@ const UserConversations = ({ userType }) => {
 						title={userType}
 						onConversationSelect={handleConversationSelect}
 						selectedConversation={selectedConversation}
+						userType={userType}
 					/>
 				</Col>
 				<Col

@@ -7,6 +7,7 @@ const ConversationsComponent = ({
 	title,
 	onConversationSelect,
 	selectedConversation,
+	userType,
 }) => {
 	const userId = localStorage.getItem('userId');
 	const formatIsoDateString = (isoDateString) => {
@@ -24,7 +25,7 @@ const ConversationsComponent = ({
 
 	const getParticipantNames = (participants) => {
 		return participants
-			.filter((p) => p.participantId && p.participantType !== title)
+			.filter((p) => p.participantId && p.participantType != userType)
 			.map(
 				(p) =>
 					p.participantId?.rescueName || p.participantId?.firstName || 'Unknown'
