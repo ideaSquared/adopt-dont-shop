@@ -5,6 +5,7 @@ import Message from '../models/Message.js';
 import Sentry from '@sentry/node'; // Error tracking utility.
 import authenticateToken from '../middleware/authenticateToken.js';
 import Rescue from '../models/Rescue.js';
+import { generateObjectId } from '../utils/generateObjectId.js';
 
 import LoggerUtil from '../utils/Logger.js'; // Logging utility.
 import {
@@ -63,7 +64,7 @@ router.post(
 	authenticateToken,
 	validateRequest(createConversationSchema),
 	async (req, res) => {
-		const { participants } = req.body;
+		const { participants, pet } = req.body;
 		if (
 			!participants ||
 			!Array.isArray(participants) ||
@@ -80,11 +81,14 @@ router.post(
 				startedAt: new Date(),
 				status: 'active',
 				unreadMessages: 0,
-				messagesCount: 1,
+				messagesCount: 0,
 				lastMessage: '',
 				lastMessageAt: new Date(),
 				lastMessageBy: req.user.userId,
 			});
+			if (pet) {
+				conversationData.pet = generateObjectId(pet); // Assuming `pet` is the ObjectId of the pet
+			}
 			logger.info(`New conversation created with ID: ${newConversation._id}`);
 			res.status(201).json(newConversation);
 		} catch (error) {

@@ -127,8 +127,9 @@ router.get('/find-ratings/:rescueId', authenticateToken, async (req, res) => {
 			},
 			{
 				$project: {
-					_id: 1, // Exclude pet ID from the final output
+					_id: '$petRatings._id', // Exclude pet ID from the final output
 					petName: 1, // Assuming you have a petName field
+					petId: '$petRatings.targetId',
 					ratingType: '$petRatings.ratingType', // Assuming the structure of ratings includes likes
 					userFirstName: '$ratingUser.firstName', // Assuming the structure of users includes firstName
 					userId: '$ratingUser._id',

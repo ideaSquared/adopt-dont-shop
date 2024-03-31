@@ -39,6 +39,29 @@ const RescueAdopterManagement = ({ rescueProfile }) => {
 		);
 	});
 
+	const createConversation = async (petId, userId) => {
+		// Assuming `userId` is the ID of the user you want to start a conversation with
+		// and `rescueProfile.id` is the current rescue's ID.
+		const participants = [
+			{ participantId: rescueProfile.id, participantType: 'Rescue' },
+			{ participantId: userId, participantType: 'User' },
+		];
+		const pet = petId;
+
+		try {
+			const response = await axios.post(
+				`${import.meta.env.VITE_API_BASE_URL}/conversations`,
+				{ participants, pet },
+				{ withCredentials: true }
+			);
+			console.log('Conversation created:', response.data);
+			// Here you might want to do something with the response, like showing a success message
+		} catch (error) {
+			console.error('Failed to create conversation:', error);
+			// Handle error, e.g., by showing an error message to the user
+		}
+	};
+
 	return (
 		<Container>
 			<h2>Pet Ratings</h2>
@@ -77,7 +100,11 @@ const RescueAdopterManagement = ({ rescueProfile }) => {
 							<td>{rating.userFirstName}</td>
 							<td>{rating.ratingType}</td>
 							<td>
-								<Button onClick={() => startConversation(rating.id)}>
+								<Button
+									onClick={() =>
+										createConversation(rating.petId, rating.userId)
+									}
+								>
 									Start Conversation
 								</Button>
 							</td>
