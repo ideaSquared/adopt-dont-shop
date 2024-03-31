@@ -133,7 +133,13 @@ router.get('/', authenticateToken, async (req, res) => {
 				path: 'participants.participantId',
 				select: 'rescueName firstName -_id', // assuming you want names and excluding _id in selection
 			})
+			.populate({
+				path: 'petId',
+				select: 'petName',
+			})
 			.exec();
+
+		console.log(conversations);
 
 		const logMessage =
 			req.query.type === 'Rescue'

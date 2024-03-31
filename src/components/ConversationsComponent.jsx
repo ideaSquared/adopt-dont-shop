@@ -71,7 +71,8 @@ const ConversationsComponent = ({
 					>
 						<div className='flex-grow-1'>
 							<div className='fw-bold'>
-								{getParticipantNames(conversation.participants)}
+								{getParticipantNames(conversation.participants)} for{' '}
+								{conversation.petId.petName}
 							</div>
 							<div className='small'>{conversation.lastMessage}</div>
 						</div>
