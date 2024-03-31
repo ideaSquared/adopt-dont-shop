@@ -9,29 +9,34 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 	const [isLoading, setIsLoading] = useState(true); // Assume loading initially
 	const [error, setError] = useState(null);
 	const userId = localStorage.getItem('userId');
+	const [noUnratedPets, setnoUnratedPets] = useState(false);
 
 	useEffect(() => {
-		const fetchPets = async () => {
+		const fetchUnratedPets = async () => {
 			setIsLoading(true); // Ensure loading state is set at the beginning
 			try {
-				// Axios automatically handles the response to JSON
+				// Update the URL to match the new route for unrated pets
 				const response = await axios.get(
-					`${import.meta.env.VITE_API_BASE_URL}/pets/`,
+					`${import.meta.env.VITE_API_BASE_URL}/ratings/find-unrated`, // Updated route
 					{
 						withCredentials: true,
 					}
 				);
-				// No need to call .json() as Axios does that automatically
-				setPets(response.data.data); // Adjust according to your API response structure
+				setPets(response.data); // Adjust according to your actual API response structure
 			} catch (error) {
-				// Use error.message for a more user-friendly error message
-				setError(error.message);
+				if (error.response && error.response.status === 404) {
+					// Specifically handle the 404 status, indicating no unrated pets were found
+					setnoUnratedPets(true);
+				} else {
+					// Handle other errors
+					setError(error.message || 'An unexpected error occurred');
+				}
 			} finally {
-				setIsLoading(false);
+				setIsLoading(false); // Ensure to reset loading state irrespective of outcome
 			}
 		};
 
-		fetchPets();
+		fetchUnratedPets();
 	}, []); // Dependency array is empty, meaning this effect runs once on component mount
 
 	const postRating = async (targetId, ratingType) => {
@@ -50,7 +55,7 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 					withCredentials: true,
 				}
 			);
-			console.log('Rating posted successfully', response.data);
+			// console.log('Rating posted successfully', response.data);
 			// Handle success scenario
 		} catch (error) {
 			console.error('Failed to post rating', error.message);
@@ -59,23 +64,26 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 	};
 
 	const handleSwipe = (direction) => {
+		if (currentIndex >= pets.length - 1) {
+			setnoUnratedPets(true);
+			return; // Exit the function to prevent further actions
+		}
+
 		console.log(`Swiped ${direction} on ${pets[currentIndex]._id}`);
-		// Mapping swipe direction to rating type
 		const ratingType = direction === 'left' ? 'dislike' : 'like';
 		postRating(pets[currentIndex]._id, ratingType);
-
-		// Move to the next pet, if available
-		if (currentIndex < pets.length - 1) {
-			setCurrentIndex((prevIndex) => prevIndex + 1);
-		}
+		setCurrentIndex((prevIndex) => prevIndex + 1);
 	};
 
 	const handleButtonClick = (action) => {
-		console.log(`${action} on ${pets[currentIndex]._id}`);
-		if (currentIndex < pets.length - 1) {
-			setCurrentIndex((prevIndex) => prevIndex + 1);
-			postRating(pets[currentIndex]._id, action); // Ensure to update this part
+		if (currentIndex >= pets.length) {
+			setnoUnratedPets(true);
+			return; // Exit the function to prevent further actions
 		}
+
+		console.log(`${action} on ${pets[currentIndex]._id}`);
+		postRating(pets[currentIndex]._id, action);
+		setCurrentIndex((prevIndex) => prevIndex + 1);
 	};
 
 	if (isLoading) {
@@ -90,6 +98,16 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 		return (
 			<Card>
 				<Card.Body>Error: {error}</Card.Body>
+			</Card>
+		);
+	}
+
+	if (noUnratedPets) {
+		return (
+			<Card>
+				<Card.Body>
+					Sorry! There are no more pets for you to rate at this moment.
+				</Card.Body>
 			</Card>
 		);
 	}
@@ -109,6 +127,7 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 					onClick={() => handleButtonClick('dislike')}
 					className='rounded-circle mx-1'
 					style={{ width: '100px', height: '100px', padding: '0' }}
+					disabled={currentIndex >= pets.length} // Disable button
 				>
 					Dislike
 				</Button>
@@ -117,6 +136,7 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 					onClick={() => handleButtonClick('love')}
 					className='rounded-circle mx-1'
 					style={{ width: '100px', height: '100px', padding: '0' }}
+					disabled={currentIndex >= pets.length} // Disable button
 				>
 					Love
 				</Button>
@@ -125,6 +145,7 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 					onClick={() => handleButtonClick('like')}
 					className='rounded-circle mx-1'
 					style={{ width: '100px', height: '100px', padding: '0' }}
+					disabled={currentIndex >= pets.length} // Disable button
 				>
 					Like
 				</Button>

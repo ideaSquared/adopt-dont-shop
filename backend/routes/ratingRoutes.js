@@ -9,6 +9,7 @@ import {
 } from '../middleware/joiValidateSchema.js'; // Assuming you have a validation schema for ratings
 import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
+import { generateObjectId } from '../utils/generateObjectId.js';
 
 const logger = new LoggerUtil('rating-service').getLogger();
 const router = express.Router();
@@ -91,6 +92,104 @@ router.get('/target/:targetId', authenticateToken, async (req, res) => {
 		Sentry.captureException(error);
 		res.status(500).send({
 			message: 'Failed to fetch ratings',
+			error: error.message,
+		});
+	}
+});
+
+router.get('/find-unrated', authenticateToken, async (req, res) => {
+	try {
+		const userId = req.user.userId; // Assuming user ID is attached to the request by the authentication middleware
+
+		const objectUserId = generateObjectId(userId);
+
+		logger.info(`Fetching unrated pets for user ID: ${userId}`);
+
+		// Use aggregation to find all Pet IDs that the userId has rated
+		const ratedPetsIds = await Rating.aggregate([
+			{
+				$match: {
+					userId: objectUserId,
+					targetType: 'Pet',
+					ratingSource: 'User',
+				},
+			},
+			{ $group: { _id: '$targetId' } },
+		]).exec();
+
+		// Extract just the IDs for querying
+		const ratedIds = ratedPetsIds.map((doc) => doc._id);
+
+		// logger.info(`Rated Pets Found: ${ratedIds.length}`);
+
+		// Find all pets that have not been rated by this userId
+		const unratedPets = await Pet.find({ _id: { $nin: ratedIds } });
+
+		// Log all unrated pets found
+		// logger.info(`Unrated Pets Found: ${unratedPets.length}`);
+
+		if (unratedPets.length === 0) {
+			return res.status(404).send({ message: 'No unrated pets found' });
+		}
+
+		res.json(unratedPets);
+	} catch (error) {
+		logger.error(
+			`Error fetching unrated pets for user ID: ${userId}: ${error.message}`,
+			{ error }
+		);
+		Sentry.captureException(error);
+		res.status(500).send({
+			message: 'An error occurred',
+			error: error.message,
+		});
+	}
+});
+
+router.get('/find-rated', authenticateToken, async (req, res) => {
+	try {
+		const userId = req.user.userId; // Assuming user ID is attached to the request by the authentication middleware
+
+		const objectUserId = generateObjectId(userId);
+
+		logger.info(`Fetching rated pets for user ID: ${userId}`);
+
+		// Use aggregation to find all Pet IDs that the userId has rated
+		const ratedPetsIds = await Rating.aggregate([
+			{
+				$match: {
+					userId: objectUserId,
+					targetType: 'Pet',
+					ratingSource: 'User',
+				},
+			},
+			{ $group: { _id: '$targetId' } },
+		]).exec();
+
+		// Extract just the IDs for querying
+		const ratedIds = ratedPetsIds.map((doc) => doc._id);
+
+		// logger.info(`Rated Pets IDs Found: ${ratedIds.length}`);
+
+		// Find all pets that have been rated by this userId
+		const ratedPets = await Pet.find({ _id: { $in: ratedIds } });
+
+		// Log all rated pets found
+		// logger.info(`Rated Pets Found: ${ratedPets.length}`);
+
+		if (ratedPets.length === 0) {
+			return res.status(404).send({ message: 'No rated pets found' });
+		}
+
+		res.json(ratedPets);
+	} catch (error) {
+		logger.error(
+			`Error fetching rated pets for user ID: ${userId}: ${error.message}`,
+			{ error }
+		);
+		Sentry.captureException(error);
+		res.status(500).send({
+			message: 'An error occurred',
 			error: error.message,
 		});
 	}
