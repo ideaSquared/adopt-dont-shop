@@ -26,21 +26,23 @@ dotenv.config();
 const app = express();
 app.use(LoggerUtil.httpLogger());
 
-Sentry.init({
-	dsn: process.env.SENTRY_DSN,
-	integrations: [
-		// enable HTTP calls tracing
-		new Sentry.Integrations.Http({ tracing: true }),
-		// enable Express.js middleware tracing
-		new Sentry.Integrations.Express({ app }),
-		nodeProfilingIntegration(),
-	],
-	// Performance Monitoring
-	tracesSampleRate: 1.0, //  Capture 100% of the transactions
-	// Set sampling rate for profiling - this is relative to tracesSampleRate
-	profilesSampleRate: 1.0,
-	environment: process.env.SENTRY_ENVIRONMENT, // Set the environment
-});
+if (process.env.SENTRY_ENABLED) {
+	Sentry.init({
+		dsn: process.env.SENTRY_DSN,
+		integrations: [
+			// enable HTTP calls tracing
+			new Sentry.Integrations.Http({ tracing: true }),
+			// enable Express.js middleware tracing
+			new Sentry.Integrations.Express({ app }),
+			nodeProfilingIntegration(),
+		],
+		// Performance Monitoring
+		tracesSampleRate: 1.0, //  Capture 100% of the transactions
+		// Set sampling rate for profiling - this is relative to tracesSampleRate
+		profilesSampleRate: 1.0,
+		environment: process.env.SENTRY_ENVIRONMENT, // Set the environment
+	});
+}
 
 // Since __dirname is not available in ES module scope, we define it manually
 const __filename = fileURLToPath(import.meta.url);
