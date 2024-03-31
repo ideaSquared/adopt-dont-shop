@@ -162,6 +162,7 @@ const createConversationSchema = Joi.object({
 			'array.base': `"participants" should be an array`,
 			'array.min': `"participants" should have at least 2 participants`,
 		}),
+	petId: Joi.string().optional(), // Change this line accordingly
 });
 
 const messageSchema = Joi.object({

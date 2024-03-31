@@ -32,7 +32,7 @@ const RescueAdopterManagement = ({ rescueProfile }) => {
 	const filteredRatings = ratings.filter((rating) => {
 		return (
 			rating.ratingType != 'dislike' &&
-			(filterCriteria ? rating.criteria === filterCriteria : true) &&
+			(filterCriteria ? rating.ratingType === filterCriteria : true) &&
 			(searchTerm
 				? rating.petName.toLowerCase().includes(searchTerm.toLowerCase())
 				: true)
@@ -46,13 +46,18 @@ const RescueAdopterManagement = ({ rescueProfile }) => {
 			{ participantId: rescueProfile.id, participantType: 'Rescue' },
 			{ participantId: userId, participantType: 'User' },
 		];
-		const pet = petId;
 
 		try {
+			console.log({ participants, petId }); // Ensure this logs the expected values
 			const response = await axios.post(
 				`${import.meta.env.VITE_API_BASE_URL}/conversations`,
-				{ participants, pet },
-				{ withCredentials: true }
+				{ participants, petId },
+				{
+					withCredentials: true,
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				}
 			);
 			console.log('Conversation created:', response.data);
 			// Here you might want to do something with the response, like showing a success message
@@ -80,7 +85,8 @@ const RescueAdopterManagement = ({ rescueProfile }) => {
 						onChange={(e) => setFilterCriteria(e.target.value)}
 					>
 						<option value=''>All Criteria</option>
-						{/* Populate this with actual filter options based on your ratings data */}
+						<option value='like'>Like</option>
+						<option value='love'>Love</option>
 					</Form.Select>
 				</Col>
 			</Row>

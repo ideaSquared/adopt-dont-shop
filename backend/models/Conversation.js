@@ -38,7 +38,7 @@ const conversationSchema = new mongoose.Schema({
 	// Reference to the User who sent the last message. It is required to identify the author of the last message quickly.
 	lastMessageBy: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
 	// An optional subject for the conversation. Useful for giving context or a brief about the conversation's purpose.
-	pet: { type: Schema.Types.ObjectId, ref: 'Pet' },
+	petId: { type: Schema.Types.ObjectId, ref: 'Pet' },
 	// The status of the conversation, restricted to either 'active' or 'closed'. Helps in managing conversation lifecycle.
 	status: { type: String, required: true, enum: ['active', 'closed'] },
 	// Count of unread messages in the conversation, required to notify participants of new messages since they last checked.
