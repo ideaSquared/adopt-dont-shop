@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Button } from 'react-bootstrap'; // assuming you have react-bootstrap installed
+import { Container, Row, Col, Button, Image } from 'react-bootstrap'; // assuming you have react-bootstrap installed
 
 const HomePage = () => {
 	return (
@@ -10,6 +10,7 @@ const HomePage = () => {
 				className='hero bg-primary text-white text-center py-5 mb-4'
 			>
 				<Col>
+					<Image src='./adoptdontshoplogo.svg' fluid className='w-25' />
 					<h1>Welcome to Adopt Don't Shop</h1>
 					<p>Find your new best friend. Adopt a pet today!</p>
 					<Link to='/swipe'>
