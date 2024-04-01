@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Form, Button, Alert, Container } from 'react-bootstrap';
 import AlertComponent from './AlertComponent';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext'; // Import useAuth hook
 
 const LoginForm = () => {
@@ -10,6 +10,10 @@ const LoginForm = () => {
 	const [alert, setAlert] = useState({ message: null, type: null });
 	const navigate = useNavigate(); // Initialize useNavigate
 	const { login } = useAuth();
+	// Use useLocation hook to access query parameters
+	const location = useLocation();
+	const queryParams = new URLSearchParams(location.search);
+	const rescue = queryParams.get('rescue');
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -25,7 +29,13 @@ const LoginForm = () => {
 			await login(formData.email, formData.password); // Use login method from context
 			setAlert({ message: 'Login successful!', type: 'success' });
 			setFormData({ email: '', password: '' }); // Clear form data
-			navigate('/'); // Redirect to home after successful login
+
+			// Conditional navigation based on 'rescue' query parameter
+			if (rescue === 'true') {
+				navigate('/select-account-type');
+			} else {
+				navigate('/'); // Redirect to home after successful login
+			}
 		} catch (error) {
 			// Assuming login method provides an error with a message property
 			const errorMessage =

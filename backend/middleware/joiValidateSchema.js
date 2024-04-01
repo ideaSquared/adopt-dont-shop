@@ -73,11 +73,19 @@ const rescueStaffJoiSchema = Joi.object({
 	permissions: Joi.array().items(
 		Joi.string().valid(
 			'edit_rescue_info',
+			'view_rescue_info',
+			'delete_rescue',
+			'add_staff',
+			'edit_staff',
+			'verify_staff',
+			'delete_staff',
+			'view_staff',
+			'view_pet',
 			'add_pet',
-			'delete_pet',
 			'edit_pet',
-			'see_messages',
-			'send_messages'
+			'delete_pet',
+			'create_messages',
+			'view_messages'
 		)
 	),
 	verifiedByRescue: Joi.boolean(),

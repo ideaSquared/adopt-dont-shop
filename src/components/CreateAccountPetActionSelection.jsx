@@ -10,7 +10,7 @@ const PetActionSelection = () => {
 		// Perform any logic based on the selection or navigate to different pages
 		// console.log(`Selected action: ${action}`);
 		// Example navigation, adjust according to your app's routes
-		navigate(action === 'adopt' ? '/' : '/select-account-type');
+		navigate(action === 'adopt' ? '/swipe' : '/login?rescue=true');
 	};
 
 	return (

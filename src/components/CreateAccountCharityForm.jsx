@@ -30,15 +30,26 @@ const CharityForm = () => {
 						userId: userId, // Assuming this is how you've stored/fetched the userId
 						permissions: [
 							'edit_rescue_info',
+							'view_rescue_info',
+							'delete_rescue',
+							'add_staff',
+							'edit_staff',
+							'verify_staff',
+							'delete_staff',
+							'view_staff',
+							'view_pet',
 							'add_pet',
 							'edit_pet',
 							'delete_pet',
-							'send_messages',
+							'create_messages',
+							'view_messages',
 						],
 						verifiedByRescue: true,
 					},
 				],
 			};
+
+			console.log(JSON.stringify(requestBody));
 
 			// Conditionally add referenceNumber if it's filled in
 			if (formData.referenceNumber.trim()) {
@@ -48,6 +59,7 @@ const CharityForm = () => {
 			const response = await fetch(
 				`${import.meta.env.VITE_API_BASE_URL}/rescue/charity`,
 				{
+					credentials: 'include',
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -60,7 +72,7 @@ const CharityForm = () => {
 			if (response.ok) {
 				// Handle success, maybe navigate to a success page or display a success message
 				console.log('Rescue created successfully', data);
-				navigate('/login');
+				navigate('/rescue-profile');
 			} else {
 				// Handle server-side validation errors or other issues
 				console.error('Failed to create rescue', data.message);
