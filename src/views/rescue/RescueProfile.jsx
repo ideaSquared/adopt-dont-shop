@@ -10,16 +10,16 @@ import {
 	Button,
 } from 'react-bootstrap';
 import axios from 'axios';
-import AlertComponent from './AlertComponent';
-import { useAuth } from './AuthContext';
-import { useRescueRedirect } from './hooks/useRescueRedirect';
+import AlertComponent from '../../components/common/AlertComponent';
+import { useAuth } from '../../contexts/AuthContext';
+import { useRescueRedirect } from '../../hooks/useRescueRedirect';
 import RescueProfileForm from './RescueProfileForm';
 import RescueProfileHeader from './RescueProfileHeader';
 import RescueStaffManagement from './RescueStaffManagement';
 import RescuePetManagement from './RescuePetsManagement';
 import RescueAdopterManagement from './RescueAdopterManagement';
 import RescueNoPermissions from './RescueNoPermissions';
-import UserConversations from './UserConversations';
+import UserConversations from '../user/UserConversations';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({

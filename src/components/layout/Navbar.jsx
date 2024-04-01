@@ -2,8 +2,8 @@
 import React from 'react';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Navbar, Nav, Button, Container, Dropdown } from 'react-bootstrap';
-import { useAuth } from './AuthContext';
-import { useLogout } from './hooks/useLogout'; // Adjust the path as necessary
+import { useAuth } from '../../contexts/AuthContext';
+import { useLogout } from '../../hooks/useLogout';
 
 const CustomNavbar = () => {
 	const { isLoggedIn, isAdmin, userPermissions, isRescue } = useAuth();

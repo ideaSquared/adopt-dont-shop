@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import ConversationsComponent from './ConversationsComponent';
-import MessagesComponent from './ConversationsMessages';
+import ConversationsComponent from './conversations/ConversationsComponent';
+import MessagesComponent from './conversations/ConversationsMessages';
 import { Container, Row, Col } from 'react-bootstrap';
-import { useLoginRedirect } from './hooks/useLoginRedirect';
+import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 
 const UserConversations = ({
 	userType,

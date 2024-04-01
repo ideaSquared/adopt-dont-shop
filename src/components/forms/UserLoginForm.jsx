@@ -1,9 +1,9 @@
 // LoginForm.jsx
 import React, { useState } from 'react';
 import { Form, Button, Alert, Container } from 'react-bootstrap';
-import AlertComponent from './AlertComponent';
+import AlertComponent from '../common/AlertComponent';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { useAuth } from './AuthContext'; // Import useAuth hook
+import { useAuth } from '../../contexts/AuthContext'; // Import useAuth hook
 
 const LoginForm = () => {
 	const [formData, setFormData] = useState({ email: '', password: '' });

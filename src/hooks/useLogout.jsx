@@ -1,6 +1,6 @@
 // hooks/useLogout.js
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useLogout = () => {
 	const navigate = useNavigate();

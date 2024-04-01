@@ -9,9 +9,9 @@ import {
 	Pagination,
 } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import PaginationControls from './PaginationControls';
-import { useAdminRedirect } from './hooks/useAdminRedirect';
-import { useAuth } from './AuthContext';
+import PaginationControls from '../../components/common/PaginationControls';
+import { useAdminRedirect } from '../../hooks/useAdminRedirect';
+import { useAuth } from '../../contexts/AuthContext';
 
 axios.defaults.withCredentials = true;
 

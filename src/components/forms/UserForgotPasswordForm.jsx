@@ -1,6 +1,6 @@
 // ForgotPasswordForm.js
 import React, { useState } from 'react';
-import AlertComponent from './AlertComponent';
+import AlertComponent from '../common/AlertComponent';
 import { useNavigate } from 'react-router-dom';
 import { Container } from 'react-bootstrap';
 

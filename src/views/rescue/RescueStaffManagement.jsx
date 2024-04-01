@@ -10,8 +10,8 @@ import {
 	Row,
 	Col,
 } from 'react-bootstrap';
-import PaginationControls from './PaginationControls';
-import AlertComponent from './AlertComponent';
+import PaginationControls from '../../components/common/PaginationControls';
+import AlertComponent from '../../components/common/AlertComponent';
 import axios from 'axios';
 
 const RescueStaffManagement = ({

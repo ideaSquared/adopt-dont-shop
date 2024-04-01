@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Badge, Dropdown, Table, Container } from 'react-bootstrap';
-import PaginationControls from './PaginationControls';
-import StatusBadge from './StatusBadge';
-import { useAdminRedirect } from './hooks/useAdminRedirect';
-import { useAuth } from './AuthContext';
-
+import PaginationControls from '../../components/common/PaginationControls';
+import StatusBadge from '../../components/common/StatusBadge';
+import { useAdminRedirect } from '../../hooks/useAdminRedirect';
+import { useAuth } from '../../contexts/AuthContext';
 // Configure axios defaults just once, possibly outside of the component or in a separate file
 axios.defaults.withCredentials = true;
 

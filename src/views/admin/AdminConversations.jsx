@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Container, Table, Modal, Form } from 'react-bootstrap';
-import PaginationControls from './PaginationControls';
-import StatusBadge from './StatusBadge';
-import { useAdminRedirect } from './hooks/useAdminRedirect';
-import { useAuth } from './AuthContext';
+import PaginationControls from '../../components/common/PaginationControls';
+import StatusBadge from '../../components/common/StatusBadge';
+import { useAdminRedirect } from '../../hooks/useAdminRedirect';
+import { useAuth } from '../../contexts/AuthContext';
 
 axios.defaults.withCredentials = true;
 

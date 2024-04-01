@@ -9,7 +9,7 @@ import {
 	Container,
 } from 'react-bootstrap';
 import axios from 'axios';
-import PaginationControls from './PaginationControls';
+import PaginationControls from '../../components/common/PaginationControls';
 
 const RescuePetManagement = ({
 	rescueId,

@@ -1,7 +1,7 @@
 // ResetPasswordForm.js
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'; // Make sure you're using react-router-dom
-import AlertComponent from './AlertComponent';
+import AlertComponent from '../common/AlertComponent';
 import { useNavigate } from 'react-router-dom';
 import { Container } from 'react-bootstrap';
 

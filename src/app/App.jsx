@@ -1,37 +1,33 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
 import './App.css';
-import CustomNavbar from './components/Navbar';
-import HomePage from './components/HomePage';
+import CustomNavbar from '../components/layout/Navbar';
+import HomePage from '../views/HomePage';
 
-import AdminDashboard from './components/AdminDashboard';
-import AdminUsers from './components/AdminUsers';
-import AdminPets from './components/AdminPets';
-import AdminRescues from './components/AdminRescues';
-import AdminLogs from './components/AdminLogs';
-import AdminConversation from './components/AdminConversations';
+import AdminDashboard from '../views/admin/AdminDashboard';
+import AdminUsers from '../views/admin/AdminUsers';
+import AdminPets from '../views/admin/AdminPets';
+import AdminRescues from '../views/admin/AdminRescues';
+import AdminLogs from '../views/admin/AdminLogs';
+import AdminConversation from '../views/admin/AdminConversations';
 
-import LoginForm from './components/UserLoginForm';
-import ForgotPasswordForm from './components/UserForgotPasswordForm';
-import ResetPasswordForm from './components/UserResetPasswordForm';
-import UserMyProfile from './components/UserMyProfile';
+import LoginForm from '../components/forms/UserLoginForm';
+import ForgotPasswordForm from '../components/forms/UserForgotPasswordForm';
+import ResetPasswordForm from '../components/forms/UserResetPasswordForm';
+import UserMyProfile from '../views/user/UserMyProfile';
 
-import CreateAccountForm from './components/CreateAccountForm';
-import PetActionSelection from './components/CreateAccountPetActionSelection';
-import AccountTypeSelection from './components/CreateAccountAccountTypeSelection';
-import CharityForm from './components/CreateAccountCharityForm';
-import CompanyForm from './components/CreateAccountCompanyForm';
-import ContactUs from './components/ContactUs';
+import CreateAccountForm from '../components/forms/CreateAccountForm';
+import PetActionSelection from '../components/forms/CreateAccountPetActionSelection';
+import AccountTypeSelection from '../components/forms/CreateAccountAccountTypeSelection';
+import CharityForm from '../components/forms/CreateAccountCharityForm';
+import CompanyForm from '../components/forms/CreateAccountCompanyForm';
+import ContactUs from '../components/forms/CreateAccountContactUs';
 
-import RescueProfile from './components/RescueProfile';
-import UserConversations from './components/UserConversations';
-import UserSwiper from './components/UserSwiper';
+import RescueProfile from '../views/rescue/RescueProfile';
+import UserConversations from '../views/user/UserConversations';
+import UserSwiper from '../views/user/UserSwiper';
 
 function App() {
-	const [count, setCount] = useState(0);
-
 	return (
 		<Router>
 			<CustomNavbar />

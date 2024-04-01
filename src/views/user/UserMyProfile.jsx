@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import AlertComponent from './AlertComponent';
+import AlertComponent from '../../components/common/AlertComponent';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
-import { useLoginRedirect } from './hooks/useLoginRedirect';
+import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 
 const UserMyProfile = () => {
 	const [formData, setFormData] = useState({
