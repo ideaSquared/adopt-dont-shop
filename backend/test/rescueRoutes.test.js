@@ -47,7 +47,7 @@ describe('Rescue Routes', function () {
 			.callsFake((token, secret, callback) => {
 				callback(null, {
 					userId: 'mockUserId',
-					permissions: ['edit_rescue_info'],
+					permissions: ['edit_rescue_info', 'add_pet', 'edit_pet'],
 					isAdmin: false,
 				});
 			});
@@ -180,14 +180,7 @@ describe('Rescue Routes', function () {
 				staff: [
 					{
 						userId: mockObjectId,
-						permissions: [
-							'edit_rescue_info',
-							'add_pet',
-							'delete_pet',
-							'edit_pet',
-							'see_messages',
-							'send_messages',
-						],
+						permissions: ['edit_rescue_info', 'add_pet'],
 						verifiedByRescue: true,
 					},
 				],
@@ -247,14 +240,7 @@ describe('Rescue Routes', function () {
 				staff: [
 					{
 						userId: 'user123',
-						permissions: [
-							'edit_rescue_info',
-							'add_pet',
-							'delete_pet',
-							'edit_pet',
-							'see_messages',
-							'send_messages',
-						],
+						permissions: ['edit_rescue_info', 'add_pet'],
 						verifiedByRescue: true,
 					},
 				],
@@ -277,12 +263,7 @@ describe('Rescue Routes', function () {
 				staff: [
 					{
 						userId: mockObjectId,
-						permissions: [
-							'edit_rescue_info',
-							'add_pet',
-							'delete_pet',
-							'edit_pet',
-						],
+						permissions: ['edit_rescue_info', 'add_pet'],
 						verifiedByRescue: true,
 					},
 				],
@@ -331,14 +312,7 @@ describe('Rescue Routes', function () {
 				staff: [
 					{
 						userId: mockObjectId,
-						permissions: [
-							'edit_rescue_info',
-							'add_pet',
-							'delete_pet',
-							'edit_pet',
-							'see_messages',
-							'send_messages',
-						],
+						permissions: ['edit_rescue_info', 'add_pet'],
 						verifiedByRescue: true,
 					},
 				],
@@ -372,12 +346,7 @@ describe('Rescue Routes', function () {
 				staff: [
 					{
 						userId: mockObjectId,
-						permissions: [
-							'edit_rescue_info',
-							'add_pet',
-							'delete_pet',
-							'edit_pet',
-						],
+						permissions: ['edit_rescue_info', 'add_pet'],
 						verifiedByRescue: true,
 					},
 				],
@@ -422,8 +391,6 @@ describe('Rescue Routes', function () {
 							'add_pet',
 							'delete_pet',
 							'edit_pet',
-							'see_messages',
-							'send_messages',
 						],
 						verifiedByRescue: true,
 					},
@@ -505,8 +472,6 @@ describe('Rescue Routes', function () {
 							'add_pet',
 							'delete_pet',
 							'edit_pet',
-							'see_messages',
-							'send_messages',
 						],
 						verifiedByRescue: true,
 					},
@@ -1213,7 +1178,7 @@ describe('Rescue Routes', function () {
 		});
 	});
 
-	describe('PUT /api/rescue/:rescueId/:type(charity|company)/validate', () => {
+	describe('PUT /api/rescue/:rescueId/:type(charity|company)/validate', function () {
 		this.timeout(10000);
 
 		const types = ['charity', 'company'];

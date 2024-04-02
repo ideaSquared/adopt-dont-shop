@@ -209,8 +209,6 @@ router.post(
 				}
 			}
 
-			console.log(req.body);
-
 			const newRescue = await Rescue.create(req.body);
 			logger.info(`${type} rescue created successfully.`);
 			res.status(201).send({
