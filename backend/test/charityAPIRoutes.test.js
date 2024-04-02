@@ -13,10 +13,8 @@ describe('Charity Register API tests', () => {
 	let originalApiKey;
 
 	// Use environment variables or hardcoded values for testing
-	const validCharityRegisterNumber =
-		process.env.VALID_CHARITY_REGISTER_NUMBER || '203644'; // Example valid number
-	const invalidCharityRegisterNumber =
-		process.env.INVALID_CHARITY_REGISTER_NUMBER || '654321'; // Example invalid but existent number
+	const validCharityRegisterNumber = '1190812' || '203644'; // Example valid number
+	const invalidCharityRegisterNumber = '1109139' || '654321'; // Example invalid but existent number
 	const nonExistentCharityRegisterNumber = '0000000'; // Assumed non-existent for testing
 
 	before(() => {

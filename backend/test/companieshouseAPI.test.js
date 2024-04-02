@@ -13,8 +13,8 @@ describe('Company House API tests', () => {
 	let originalApiKey;
 
 	// Define company numbers for testing
-	const validCompanyHouseNumber = process.env.VALID_COMPANY_HOUSE_NUMBER;
-	const invalidCompanyHouseNumber = process.env.INVALID_COMPANY_HOUSE_NUMBER;
+	const validCompanyHouseNumber = '05045773';
+	const invalidCompanyHouseNumber = '08530268';
 	const nonExistentCompanyHouseNumber = '00000000'; // Assumed to be invalid for testing
 
 	before(() => {

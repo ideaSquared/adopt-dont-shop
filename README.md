@@ -45,10 +45,6 @@ The Pet Adoption Platform is a full-stack web application designed to facilitate
    SECRET_KEY=your_jwt_secret
    CHARITY_COMMISSION_API_KEY=your_charity_commission_api_key
    COMPANIES_HOUSE_API_KEY=your_company_house_api_key
-   VALID_COMPANY_HOUSE_NUMBER=a_valid_company_house_number
-   INVALID_COMPANY_HOUSE_NUMBER=an_invalid_company_house_number
-   VALID_CHARITY_REGISTER_NUMBER=a_valid_charity_reference_number
-   INVALID_CHARITY_REGISTER_NUMBER=an_invalid_charity_reference_number
    SENTRY_DSN=your_sentry_dsn
    SENTRY_ENVIRONMENT=local/production
    MAIL_HOST=your_mail_host

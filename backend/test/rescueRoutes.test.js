@@ -258,7 +258,7 @@ describe('Rescue Routes', function () {
 				rescueType: 'Charity',
 				rescueName: 'Test Charity',
 				rescueAddress: '123 Charity Lane',
-				referenceNumber: process.env.VALID_CHARITY_REGISTER_NUMBER,
+				referenceNumber: '1190812',
 				userId: mockObjectId,
 				staff: [
 					{
@@ -341,7 +341,7 @@ describe('Rescue Routes', function () {
 				rescueType: 'Charity',
 				rescueName: 'Test Charity',
 				rescueAddress: '123 Charity Lane',
-				referenceNumber: process.env.INVALID_CHARITY_REGISTER_NUMBER,
+				referenceNumber: '1109139',
 				userId: mockObjectId,
 				staff: [
 					{
