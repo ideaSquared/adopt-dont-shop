@@ -12,6 +12,7 @@ import AdminLogs from '../views/admin/AdminLogs';
 import AdminConversation from '../views/admin/AdminConversations';
 
 import LoginForm from '../components/forms/UserLoginForm';
+import EmailVerification from '../views/user/UserVerifyEmail';
 import ForgotPasswordForm from '../components/forms/UserForgotPasswordForm';
 import ResetPasswordForm from '../components/forms/UserResetPasswordForm';
 import UserMyProfile from '../views/user/UserMyProfile';
@@ -65,6 +66,7 @@ function App() {
 					}
 				/>
 				<Route path='/swipe' element={<UserSwiper />} />
+				<Route path='/verify-email' element={<EmailVerification />} />
 			</Routes>
 		</Router>
 	);

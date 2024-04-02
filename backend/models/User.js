@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema({
 	email: { type: String, required: true, unique: true },
 	// The user's password. This is required for authentication purposes.
 	password: { type: String, required: true },
+	emailVerified: { type: Boolean, default: false },
+	verificationToken: String,
 	// A token used for resetting the user's password. This field is optional and only populated when a user initiates a password reset.
 	resetToken: String,
 	// The expiration date for the password reset token. This is optional and used in conjunction with the resetToken to manage password resets securely.

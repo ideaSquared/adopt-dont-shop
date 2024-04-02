@@ -14,6 +14,7 @@ const LoginForm = () => {
 	const location = useLocation();
 	const queryParams = new URLSearchParams(location.search);
 	const rescue = queryParams.get('rescue');
+	const [isEmailVerified, setIsEmailVerified] = useState(true);
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -47,6 +48,13 @@ const LoginForm = () => {
 	return (
 		<Container>
 			<>
+				{!isEmailVerified && (
+					<AlertComponent
+						type='warning'
+						message='Your email is not verified. Please check your inbox for the verification email.'
+						onClose={() => setAlert({ message: null, type: null })}
+					/>
+				)}
 				{alert.message && (
 					<AlertComponent
 						type={alert.type}

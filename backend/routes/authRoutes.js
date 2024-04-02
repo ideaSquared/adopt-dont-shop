@@ -24,6 +24,8 @@ import LoggerUtil from '../utils/Logger.js';
 
 // TEMP
 import mongoose from 'mongoose';
+import { generateResetToken } from '../utils/tokenGenerator.js';
+import { sendEmailVerificationEmail } from '../services/emailService.js';
 
 export default function createAuthRoutes({ tokenGenerator, emailService }) {
 	const router = express.Router();
@@ -51,12 +53,24 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				}
 				// Hash the password and create a new user.
 				const hashedPassword = await bcrypt.hash(password, 12);
+				const verificationToken = await generateResetToken(); // Token generation
+
 				const user = await User.create({
 					email,
 					password: hashedPassword,
 					firstName,
+					emailVerified: false,
+					verificationToken,
 				});
 				logger.info(`New user registered: ${user._id}`);
+
+				const FRONTEND_BASE_URL =
+					process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+				const verificationURL = `${FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
+
+				await sendEmailVerificationEmail(email, verificationURL);
+				logger.info(`Verification email sent to: ${email}`);
+
 				res.status(201).json({ message: 'User created!', userId: user._id });
 			} catch (error) {
 				logger.error(`Error creating user: ${error}`);
@@ -65,6 +79,32 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			}
 		}
 	);
+
+	router.get('/verify-email', async (req, res) => {
+		const { token } = req.query;
+		const logger = new LoggerUtil('auth-service').getLogger();
+		try {
+			const user = await User.findOne({
+				verificationToken: token,
+				emailVerified: false,
+			});
+			if (!user) {
+				logger.warn(`Invalid or expired email verification token: ${token}`);
+				return res.status(400).json({ message: 'Invalid or expired token' });
+			}
+
+			user.emailVerified = true;
+			user.verificationToken = undefined; // Clear the verification token
+			await user.save();
+
+			logger.info(`Email verified for user: ${user._id}`);
+			res.status(200).json({ message: 'Email verified successfully' });
+		} catch (error) {
+			logger.error(`Error verifying email: ${error}`);
+			Sentry.captureException(error);
+			res.status(500).json({ message: 'Email verification failed.' });
+		}
+	});
 
 	/**
 	 * Route handler for user login. Validates the request body against the loginSchema,
@@ -76,12 +116,29 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 	router.post('/login', validateRequest(loginSchema), async (req, res) => {
 		const { email, password } = req.body;
 		try {
-			// Check if user exists and password is correct.
+			// Check if the user exists
 			const user = await User.findOne({ email });
-			if (!user || !(await bcrypt.compare(password, user.password))) {
+			if (!user) {
+				logger.info(`Login attempt failed: No user found with email ${email}`);
+				return res.status(401).json({
+					message: 'Email does not exist or password is not correct.',
+				});
+			}
+
+			// Check if the password is correct
+			if (!(await bcrypt.compare(password, user.password))) {
 				logger.info(`Login attempt failed: Invalid credentials for ${email}`);
 				return res.status(401).json({
 					message: 'Email does not exist or password is not correct.',
+				});
+			}
+
+			// Check if the user's email is verified
+			if (!user.emailVerified) {
+				logger.info(`Login attempt failed: Email not verified for ${email}`);
+				return res.status(403).json({
+					message:
+						'Email is not verified. Please verify your email before logging in.',
 				});
 			}
 
@@ -94,7 +151,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				});
 			}
 
-			// Generate a token and send it as a HttpOnly cookie.
+			// Generate a token and send it as a HttpOnly cookie
 			const token = jwt.sign(
 				{ userId: user._id, isAdmin: user.isAdmin },
 				process.env.SECRET_KEY,
