@@ -144,129 +144,125 @@ router.get('/:id', authenticateToken, async (req, res) => {
  * - 400: Validation or process failure, returns error message.
  */
 
-router.post(
-	'/:type(individual|charity|company)',
-	authenticateToken,
-	async (req, res) => {
-		let { type } = req.params;
-		const { email, password, firstName, ...rescueData } = req.body;
-		type = capitalizeFirstChar(type);
+router.post('/:type(individual|charity|company)', async (req, res) => {
+	let { type } = req.params;
+	const { email, password, firstName, ...rescueData } = req.body;
+	type = capitalizeFirstChar(type);
 
-		try {
-			// Logging for debugging
-			logger.debug(`Creating rescue of type: ${type} with email: ${email}`);
+	try {
+		// Logging for debugging
+		logger.debug(`Creating rescue of type: ${type} with email: ${email}`);
 
-			if (!password) {
-				logger.error('Password is undefined.');
-				return res.status(400).send({ message: 'Password is required.' });
-			}
+		if (!password) {
+			logger.error('Password is undefined.');
+			return res.status(400).send({ message: 'Password is required.' });
+		}
 
-			// Check if user already exists
-			const existingUser = await User.findOne({ email });
-			if (existingUser) {
-				logger.warn(`Error existing user: ${email}`);
-				return res.status(409).json({
-					message: 'User already exists - please try login or reset password',
+		// Check if user already exists
+		const existingUser = await User.findOne({ email });
+		if (existingUser) {
+			logger.warn(`Error existing user: ${email}`);
+			return res.status(409).json({
+				message: 'User already exists - please try login or reset password',
+			});
+		}
+
+		// Hash the password and generate verification token
+		const hashedPassword = await bcrypt.hash(password, 12);
+		const verificationToken = await generateResetToken();
+		// Create the user
+		const user = await User.create({
+			email,
+			password: hashedPassword,
+			firstName,
+			emailVerified: false,
+			verificationToken,
+		});
+		logger.info(`New user registered: ${user._id}`);
+
+		// Send verification email
+		const FRONTEND_BASE_URL =
+			process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+		const verificationURL = `${FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
+		await sendEmailVerificationEmail(email, verificationURL);
+		logger.info(`Verification email sent to: ${email}`);
+
+		let referenceNumberVerified = false;
+		// Additional steps for "Charity" or "Company"
+		if (type !== 'Individual' && rescueData.referenceNumber) {
+			const isUnique = await rescueService.isReferenceNumberUnique(
+				rescueData.referenceNumber
+			);
+			if (!isUnique) {
+				logger.warn(
+					`Rescue with reference number ${rescueData.referenceNumber} already exists.`
+				);
+				return res.status(400).send({
+					message: 'A rescue with the given reference number already exists',
 				});
 			}
 
-			// Hash the password and generate verification token
-			const hashedPassword = await bcrypt.hash(password, 12);
-			const verificationToken = await generateResetToken();
-			// Create the user
-			const user = await User.create({
-				email,
-				password: hashedPassword,
-				firstName,
-				emailVerified: false,
-				verificationToken,
-			});
-			logger.info(`New user registered: ${user._id}`);
-
-			// Send verification email
-			const FRONTEND_BASE_URL =
-				process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-			const verificationURL = `${FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
-			await sendEmailVerificationEmail(email, verificationURL);
-			logger.info(`Verification email sent to: ${email}`);
-
-			let referenceNumberVerified = false;
-			// Additional steps for "Charity" or "Company"
-			if (type !== 'Individual' && rescueData.referenceNumber) {
-				const isUnique = await rescueService.isReferenceNumberUnique(
+			if (type === 'Charity') {
+				referenceNumberVerified = await fetchAndValidateCharity(
 					rescueData.referenceNumber
 				);
-				if (!isUnique) {
-					logger.warn(
-						`Rescue with reference number ${rescueData.referenceNumber} already exists.`
-					);
-					return res.status(400).send({
-						message: 'A rescue with the given reference number already exists',
-					});
-				}
-
-				if (type === 'Charity') {
-					referenceNumberVerified = await fetchAndValidateCharity(
-						rescueData.referenceNumber
-					);
-				} else if (type === 'Company') {
-					referenceNumberVerified = await fetchAndValidateCompany(
-						rescueData.referenceNumber
-					);
-				}
-				logger.info(
-					`${type} reference number ${rescueData.referenceNumber} validation result: ${referenceNumberVerified}`
+			} else if (type === 'Company') {
+				referenceNumberVerified = await fetchAndValidateCompany(
+					rescueData.referenceNumber
 				);
 			}
-
-			// Set the referenceNumberVerified for "Charity" and "Company", not affecting "Individual"
-			if (type !== 'Individual') {
-				rescueData.referenceNumberVerified = referenceNumberVerified;
-			}
-
-			// Add the new user's ID to the staff array
-			const staffMember = {
-				userId: user._id,
-				permissions: [
-					'edit_rescue_info',
-					'view_rescue_info',
-					'delete_rescue',
-					'add_staff',
-					'edit_staff',
-					'verify_staff',
-					'delete_staff',
-					'view_staff',
-					'view_pet',
-					'add_pet',
-					'edit_pet',
-					'delete_pet',
-					'create_messages',
-					'view_messages',
-				], // Specify permissions
-				verifiedByRescue: true,
-			};
-			if (!rescueData.staff) {
-				rescueData.staff = [];
-			}
-			rescueData.staff.push(staffMember);
-
-			// Create the rescue
-			const newRescue = await Rescue.create(rescueData);
-			logger.info(`${type} rescue created successfully.`);
-			res.status(201).send({
-				message: `${type} rescue created successfully`,
-				data: newRescue,
-			});
-		} catch (error) {
-			Sentry.captureException(error);
-			logger.error(`Failed to create ${type} rescue: ` + error.message);
-			res.status(400).send({
-				message: `Failed to create ${type} rescue`,
-				error: error.message,
-			});
+			logger.info(
+				`${type} reference number ${rescueData.referenceNumber} validation result: ${referenceNumberVerified}`
+			);
 		}
+
+		// Set the referenceNumberVerified for "Charity" and "Company", not affecting "Individual"
+		if (type !== 'Individual') {
+			rescueData.referenceNumberVerified = referenceNumberVerified;
+		}
+
+		// Add the new user's ID to the staff array
+		const staffMember = {
+			userId: user._id,
+			permissions: [
+				'edit_rescue_info',
+				'view_rescue_info',
+				'delete_rescue',
+				'add_staff',
+				'edit_staff',
+				'verify_staff',
+				'delete_staff',
+				'view_staff',
+				'view_pet',
+				'add_pet',
+				'edit_pet',
+				'delete_pet',
+				'create_messages',
+				'view_messages',
+			], // Specify permissions
+			verifiedByRescue: true,
+		};
+		if (!rescueData.staff) {
+			rescueData.staff = [];
+		}
+		rescueData.staff.push(staffMember);
+
+		// Create the rescue
+		const newRescue = await Rescue.create(rescueData);
+		logger.info(`${type} rescue created successfully.`);
+		res.status(201).send({
+			message: `${type} rescue created successfully`,
+			data: newRescue,
+		});
+	} catch (error) {
+		Sentry.captureException(error);
+		logger.error(`Failed to create ${type} rescue: ` + error.message);
+		res.status(400).send({
+			message: `Failed to create ${type} rescue`,
+			error: error.message,
+		});
 	}
-);
+});
 
 /**
  * Route handler for updating existing rescue organization records of types "Charity" or "Company".
