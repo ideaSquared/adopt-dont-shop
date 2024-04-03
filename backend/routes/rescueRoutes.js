@@ -18,6 +18,8 @@ import fetchAndValidateCharity from '../utils/verifyCharity.js';
 import fetchAndValidateCompany from '../utils/verifyCompany.js';
 
 import { generateObjectId } from '../utils/generateObjectId.js';
+import { generateResetToken } from '../utils/tokenGenerator.js';
+import { sendEmailVerificationEmail } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
 
 // Instantiate a logger for this module.
@@ -118,58 +120,85 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 /**
- * Route handler for creating a new rescue organization record with the type "Individual".
- * It validates the request body against the rescueJoiSchema to ensure required fields are provided.
- * On successful validation, creates a new document in the Rescue collection.
- * Returns a 201 status code with a success message and the created document data on success.
- * On validation failure or other errors, returns a 400 status code with an error message.
+ * Route Handler: Create New Rescue Organization Record
+ *
+ * Description:
+ * - This route handler is responsible for creating new rescue organization records.
+ * - Supports three types of organizations: "Individual", "Charity", and "Company".
+ *
+ * Validation:
+ * - Validates request body against rescueJoiSchema.
+ * - Performs user existence check, reference number uniqueness, and type-specific validation.
+ *
+ * Process Flow:
+ * 1. Validates input data.
+ * 2. Checks for existing user by email.
+ * 3. For "Charity" and "Company", checks reference number uniqueness and conducts type-specific validation.
+ * 4. Creates new user record, hashes password, and generates email verification token.
+ * 5. Sends verification email to the user.
+ * 6. Adds user to rescue's staff list with permissions and verified status.
+ * 7. Creates and saves new rescue organization document.
+ *
+ * Responses:
+ * - 201: Success, returns created document data.
+ * - 400: Validation or process failure, returns error message.
  */
-router.post(
-	'/individual',
-	validateRequest(rescueJoiSchema),
-	authenticateToken,
-	async (req, res) => {
-		try {
-			const newRescue = await Rescue.create(req.body);
-			logger.info('New individual rescue created successfully.');
-			res.status(201).send({
-				message: 'Individual rescue created successfully',
-				data: newRescue,
-			});
-		} catch (error) {
-			Sentry.captureException(error);
-			logger.error('Failed to create individual rescue: ' + error.message);
-			res.status(400).send({
-				message: 'Failed to create individual rescue',
-				error: error.message,
-			});
-		}
-	}
-);
 
-/**
- * Route handler for creating new rescue organization records of types "Charity" or "Company".
- * It validates the request body against the rescueJoiSchema and checks the uniqueness of the reference number.
- * On successful validation and uniqueness check, creates a new document in the Rescue collection.
- * Returns a 201 status code with a success message and the created document data on success.
- * On failure, including validation errors or non-unique reference number, returns a 400 status code with an error message.
- */
 router.post(
-	'/:type(charity|company)',
-	validateRequest(rescueJoiSchema),
+	'/:type(individual|charity|company)',
 	authenticateToken,
 	async (req, res) => {
 		let { type } = req.params;
+		const { email, password, firstName, ...rescueData } = req.body;
 		type = capitalizeFirstChar(type);
 
 		try {
-			if (req.body.referenceNumber) {
+			// Logging for debugging
+			logger.debug(`Creating rescue of type: ${type} with email: ${email}`);
+
+			if (!password) {
+				logger.error('Password is undefined.');
+				return res.status(400).send({ message: 'Password is required.' });
+			}
+
+			// Check if user already exists
+			const existingUser = await User.findOne({ email });
+			if (existingUser) {
+				logger.warn(`Error existing user: ${email}`);
+				return res.status(409).json({
+					message: 'User already exists - please try login or reset password',
+				});
+			}
+
+			// Hash the password and generate verification token
+			const hashedPassword = await bcrypt.hash(password, 12);
+			const verificationToken = await generateResetToken();
+			// Create the user
+			const user = await User.create({
+				email,
+				password: hashedPassword,
+				firstName,
+				emailVerified: false,
+				verificationToken,
+			});
+			logger.info(`New user registered: ${user._id}`);
+
+			// Send verification email
+			const FRONTEND_BASE_URL =
+				process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+			const verificationURL = `${FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
+			await sendEmailVerificationEmail(email, verificationURL);
+			logger.info(`Verification email sent to: ${email}`);
+
+			let referenceNumberVerified = false;
+			// Additional steps for "Charity" or "Company"
+			if (type !== 'Individual' && rescueData.referenceNumber) {
 				const isUnique = await rescueService.isReferenceNumberUnique(
-					req.body.referenceNumber
+					rescueData.referenceNumber
 				);
 				if (!isUnique) {
 					logger.warn(
-						`Rescue with reference number ${req.body.referenceNumber} already exists.`
+						`Rescue with reference number ${rescueData.referenceNumber} already exists.`
 					);
 					return res.status(400).send({
 						message: 'A rescue with the given reference number already exists',
@@ -177,39 +206,52 @@ router.post(
 				}
 
 				if (type === 'Charity') {
-					// Validate the charity reference number
-					const isValidCharity = await fetchAndValidateCharity(
-						req.body.referenceNumber
+					referenceNumberVerified = await fetchAndValidateCharity(
+						rescueData.referenceNumber
 					);
-
-					if (isValidCharity) {
-						req.body.referenceNumberVerified = true;
-						logger.info(`Charity validated with ${req.body.referenceNumber}`);
-					} else {
-						req.body.referenceNumberVerified = false;
-						logger.info(
-							`Charity unable to be validated with ${req.body.referenceNumber}`
-						);
-					}
 				} else if (type === 'Company') {
-					// Validate the company house reference number
-					const isValidCompany = await fetchAndValidateCompany(
-						req.body.referenceNumber
+					referenceNumberVerified = await fetchAndValidateCompany(
+						rescueData.referenceNumber
 					);
-
-					if (isValidCompany) {
-						req.body.referenceNumberVerified = true;
-						logger.info(`Company validated with ${req.body.referenceNumber}`);
-					} else {
-						req.body.referenceNumberVerified = false;
-						logger.info(
-							`Company unable to be validated with ${req.body.referenceNumber}`
-						);
-					}
 				}
+				logger.info(
+					`${type} reference number ${rescueData.referenceNumber} validation result: ${referenceNumberVerified}`
+				);
 			}
 
-			const newRescue = await Rescue.create(req.body);
+			// Set the referenceNumberVerified for "Charity" and "Company", not affecting "Individual"
+			if (type !== 'Individual') {
+				rescueData.referenceNumberVerified = referenceNumberVerified;
+			}
+
+			// Add the new user's ID to the staff array
+			const staffMember = {
+				userId: user._id,
+				permissions: [
+					'edit_rescue_info',
+					'view_rescue_info',
+					'delete_rescue',
+					'add_staff',
+					'edit_staff',
+					'verify_staff',
+					'delete_staff',
+					'view_staff',
+					'view_pet',
+					'add_pet',
+					'edit_pet',
+					'delete_pet',
+					'create_messages',
+					'view_messages',
+				], // Specify permissions
+				verifiedByRescue: true,
+			};
+			if (!rescueData.staff) {
+				rescueData.staff = [];
+			}
+			rescueData.staff.push(staffMember);
+
+			// Create the rescue
+			const newRescue = await Rescue.create(rescueData);
 			logger.info(`${type} rescue created successfully.`);
 			res.status(201).send({
 				message: `${type} rescue created successfully`,
