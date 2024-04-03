@@ -1,12 +1,7 @@
 import React from 'react';
 import { Form, Button } from 'react-bootstrap';
 
-const CreateAccountForm = ({
-	onFirstNameChange,
-	onEmailChange,
-	onPasswordChange,
-	onLogin,
-}) => {
+const LoginForm = ({ onEmailChange, onPasswordChange, onLogin }) => {
 	return (
 		<Form
 			onSubmit={(e) => {
@@ -14,15 +9,6 @@ const CreateAccountForm = ({
 				onLogin();
 			}}
 		>
-			<Form.Group className='mb-3' controlId='email'>
-				<Form.Label>First name</Form.Label>
-				<Form.Control
-					type='type'
-					name='firstName'
-					onChange={(e) => onFirstNameChange(e.target.value)}
-					placeholder='Enter first name'
-				/>
-			</Form.Group>
 			<Form.Group className='mb-3' controlId='email'>
 				<Form.Label>Email address</Form.Label>
 				<Form.Control
@@ -42,11 +28,11 @@ const CreateAccountForm = ({
 				/>
 			</Form.Group>
 			<Button variant='primary' type='submit'>
-				Create Account
+				Login
 			</Button>
-			<a href='/create-rescue-account'>Are you a rescue?</a>
+			<a href='/forgot-password'>Forgot password?</a>
 		</Form>
 	);
 };
 
-export default CreateAccountForm;
+export default LoginForm;

@@ -1,40 +1,33 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios'; // or your preferred way of making HTTP requests
+import { useAuth } from '../../contexts/AuthContext'; // Adjust the path as necessary
 
 const EmailVerification = () => {
 	const navigate = useNavigate();
 	const location = useLocation();
+	const { verifyEmail } = useAuth(); // Destructure the verifyEmail function from useAuth
 
 	useEffect(() => {
-		const verifyEmail = async () => {
-			const params = new URLSearchParams(location.search);
-			const token = params.get('token');
+		const params = new URLSearchParams(location.search);
+		const token = params.get('token');
 
-			if (!token) {
-				navigate('/'); // Redirect to home if no token is present
-				return;
-			}
+		if (!token) {
+			navigate('/'); // Redirect to home if no token is present
+			return;
+		}
 
-			try {
-				// Adjust the URL to your backend endpoint
-				await axios.get(
-					`${
-						import.meta.env.VITE_API_BASE_URL
-					}/auth/verify-email?token=${token}`
-				);
-				// Handle success, perhaps set a success message or directly log the user in
+		const verify = async () => {
+			const result = await verifyEmail(token);
+			if (result.success) {
 				navigate('/login', { state: { emailVerified: true } });
-			} catch (error) {
-				// Handle error, could navigate with an error message or show it on the current page
+			} else {
 				navigate('/login', { state: { emailVerified: false } });
 			}
 		};
 
-		verifyEmail();
-	}, [location, navigate]);
+		verify();
+	}, [location, navigate, verifyEmail]); // Include verifyEmail in the dependency array
 
-	// Render a loading message or spinner while the verification is in progress
 	return <div>Verifying your email...</div>;
 };
 

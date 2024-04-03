@@ -199,8 +199,6 @@ const RescuePetManagement = ({
 			return 0; // No sorting
 		});
 
-	console.log(pets);
-
 	const uniqueTypes = [...new Set(currentPets.map((pet) => pet.type))];
 	const uniqueStatuses = [...new Set(currentPets.map((pet) => pet.status))];
 

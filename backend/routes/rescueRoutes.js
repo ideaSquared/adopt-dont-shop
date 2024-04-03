@@ -247,6 +247,8 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 		}
 		rescueData.staff.push(staffMember);
 
+		rescueData.rescueType = type;
+
 		// Create the rescue
 		const newRescue = await Rescue.create(rescueData);
 		logger.info(`${type} rescue created successfully.`);
