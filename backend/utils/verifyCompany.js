@@ -51,10 +51,7 @@ async function fetchAndValidateCompany(companyNumber) {
 		logger.info(
 			`Successfully fetched and verified company details for company number: ${companyNumber}`
 		);
-		return {
-			data: response.data,
-			message: 'Successfully fetched and verified company details',
-		};
+		return isValid;
 	} catch (error) {
 		logger.error(`Error in fetching/validating company: ${error.message}`);
 		Sentry.captureException(error); // Report the error to Sentry
