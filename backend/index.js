@@ -58,13 +58,14 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
-// The request handler must be the first middleware on the app
-app.use(Sentry.Handlers.requestHandler());
-// TracingHandler creates a trace for every incoming request
-app.use(Sentry.Handlers.tracingHandler());
-// The error handler must be registered before any other error middleware and after all controllers
-app.use(Sentry.Handlers.errorHandler());
-
+if (process.env.SENTRY_ENABLED) {
+	// The request handler must be the first middleware on the app
+	app.use(Sentry.Handlers.requestHandler());
+	// TracingHandler creates a trace for every incoming request
+	app.use(Sentry.Handlers.tracingHandler());
+	// The error handler must be registered before any other error middleware and after all controllers
+	app.use(Sentry.Handlers.errorHandler());
+}
 // Create routes
 const authRoutes = createAuthRoutes({
 	generateResetToken,
