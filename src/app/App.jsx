@@ -12,10 +12,10 @@ import AdminLogs from '../views/admin/AdminLogs';
 import AdminConversation from '../views/admin/AdminConversations';
 
 // import LoginForm from '../components/forms/UserLoginForm';
-import EmailVerification from '../views/user/UserVerifyEmail';
+import EmailVerification from '../views/user/VerifyEmailPage';
 // import ForgotPasswordForm from '../components/forms/UserForgotPasswordForm';
 // import ResetPasswordForm from '../components/forms/UserResetPasswordForm';
-import UserMyProfile from '../views/user/UserMyProfile';
+import UserProfilePage from '../views/user/UserProfilePage';
 
 // import CreateAccountForm from '../components/forms/CreateAccountForm';
 // import PetActionSelection from '../components/forms/CreateAccountPetActionSelection';
@@ -31,7 +31,7 @@ import CreateAccountPage from '../views/user/CreateAccountPage';
 import CreateRescueAccountPage from '../views/user/CreateRescueAccountPage';
 
 import RescueProfile from '../views/rescue/RescueProfile';
-import UserConversations from '../views/user/UserConversations';
+import Conversations from '../views/user/Conversations';
 import UserSwiper from '../views/user/UserSwiper';
 
 function App() {
@@ -48,7 +48,7 @@ function App() {
 				/>
 				<Route path='/forgot-password' element={<ForgotPasswordPage />} />
 				<Route path='/reset-password' element={<ResetPasswordPage />} />
-				<Route path='/my-profile' element={<UserMyProfile />} />
+				<Route path='/my-profile' element={<UserProfilePage />} />
 				<Route path='/admin' element={<AdminDashboard />} />
 				<Route path='/admin/users' element={<AdminUsers />} />
 				<Route path='/admin/pets' element={<AdminPets />} />
@@ -63,12 +63,12 @@ function App() {
 				<Route path='/rescue-profile' element={<RescueProfile />} />
 				<Route
 					path='/rescue-conversations'
-					element={<UserConversations userType='Rescue' />}
+					element={<Conversations userType='Rescue' />}
 				/>
 				<Route
 					path='/adopter-conversations'
 					element={
-						<UserConversations
+						<Conversations
 							userType='User'
 							canCreateMessages={true}
 							canReadMessages={true}

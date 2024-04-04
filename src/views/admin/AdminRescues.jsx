@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 axios.defaults.withCredentials = true;
 
 const Rescues = () => {
-	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	const { authState } = useAuth(); // Extract isAdmin from your AuthContext
 	useAdminRedirect(); // This will handle the redirection logic
 	const [rescues, setRescues] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -23,13 +23,13 @@ const Rescues = () => {
 	const [selectedRescueDetails, setSelectedRescueDetails] = useState(null);
 
 	useEffect(() => {
-		if (isAdmin) {
+		if (authState.isAdmin) {
 			const params = new URLSearchParams(location.search);
 			const searchNameParam = params.get('searchName');
 			if (searchNameParam) setSearchName(searchNameParam);
 			fetchRescues();
 		}
-	}, [isAdmin, location.search]);
+	}, [authState.isAdmin, location.search]);
 
 	const fetchRescues = async () => {
 		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/rescues`;

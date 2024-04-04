@@ -10,7 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 axios.defaults.withCredentials = true;
 
 const Users = () => {
-	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	const { authState } = useAuth(); // Extract isAdmin from your AuthContext
 	useAdminRedirect(); // This will handle the redirection logic
 	const [users, setUsers] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -23,10 +23,10 @@ const Users = () => {
 
 	useAdminRedirect();
 	useEffect(() => {
-		if (isAdmin) {
+		if (authState.isAdmin) {
 			fetchUsers();
 		}
-	}, [isAdmin]); // navigate is stable, no need to include in deps
+	}, [authState.isAdmin]); // navigate is stable, no need to include in deps
 
 	const fetchUsers = async () => {
 		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/users`;

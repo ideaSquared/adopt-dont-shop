@@ -5,11 +5,11 @@ import { useEffect } from 'react';
 
 export const useLoginRedirect = () => {
 	const navigate = useNavigate();
-	const { isLoggedIn } = useAuth();
+	const { authState } = useAuth();
 
 	useEffect(() => {
-		if (!isLoggedIn) {
+		if (!authState.isLoggedIn) {
 			navigate('/login'); // Redirect non-logged-in users to home
 		}
-	}, [isLoggedIn, navigate]);
+	}, [authState.isLoggedIn, navigate]);
 };

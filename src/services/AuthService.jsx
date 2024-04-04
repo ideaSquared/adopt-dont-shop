@@ -4,19 +4,61 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const AuthService = {
 	login: async (email, password) => {
-		return axios.post(
-			`${API_BASE_URL}/auth/login`,
-			{ email, password },
-			{ withCredentials: true }
-		);
+		try {
+			// Correctly await the Axios call to ensure we have a response to work with.
+			const response = await axios.post(
+				`${API_BASE_URL}/auth/login`,
+				{ email, password },
+				{ withCredentials: true }
+			);
+
+			// Assuming Axios throws for non-2xx statuses, this line might not execute for such responses,
+			// so we handle non-2xx statuses in the catch block below.
+			return response;
+		} catch (error) {
+			// Log the error for debugging purposes.
+			console.error(
+				'Error logging in user',
+				error.response ? error.response.data : error
+			);
+
+			// console.log(error);
+
+			// if (
+			// 	error.response.status === 401 &&
+			// 	error.response.data.message ===
+			// 		'Email does not exist or password is not correct.'
+			// ){
+			// 	verifyEmail();
+			// }
+			// Handle or rethrow the error as needed. This could be a place to standardize error responses
+			// or extract meaningful error messages for the UI.
+			// Ensure to return or throw something meaningful here to avoid unhandled promise rejections.
+			throw new Error(
+				error.response?.data.message || 'An error occurred during login.'
+			);
+		}
 	},
 
 	logout: async () => {
-		return axios.post(
-			`${API_BASE_URL}/auth/logout`,
-			{},
-			{ withCredentials: true }
-		);
+		try {
+			// Execute the POST request using axios
+			const response = axios.post(
+				`${API_BASE_URL}/auth/logout`,
+				{},
+				{ withCredentials: true }
+			);
+			// Return the response data or any other relevant information from the response
+			return response;
+		} catch (error) {
+			// Handle any errors that occur during the API request
+			console.error(
+				'Error logging user out',
+				error.response ? error.response.data : error.message
+			);
+
+			return error;
+		}
 	},
 
 	checkLoginStatus: async () => {
@@ -36,29 +78,93 @@ const AuthService = {
 	},
 
 	verifyEmail: async (token) => {
-		return axios.get(`${API_BASE_URL}/auth/verify-email?token=${token}`);
+		try {
+			// Execute the POST request using axios
+			const response = axios.get(
+				`${API_BASE_URL}/auth/verify-email?token=${token}`
+			);
+
+			// Return the response data or any other relevant information from the response
+			return response;
+		} catch (error) {
+			// Handle any errors that occur during the API request
+			console.error(
+				'Error verifying email',
+				error.response ? error.response.data : error.message
+			);
+
+			return error;
+		}
 	},
 
 	resetPassword: async (token, newPassword) => {
-		return axios.post(
-			`${API_BASE_URL}/auth/reset-password`,
-			{ token, newPassword },
-			{ withCredentials: true }
-		);
+		try {
+			// Execute the POST request using axios
+			const response = axios.post(
+				`${API_BASE_URL}/auth/reset-password`,
+				{ token, newPassword },
+				{ withCredentials: true }
+			);
+
+			// Return the response data or any other relevant information from the response
+			return response;
+		} catch (error) {
+			// Handle any errors that occur during the API request
+			console.error(
+				'Error sending forgot password email:',
+				error.response ? error.response.data : error.message
+			);
+
+			return error;
+		}
 	},
 
 	sendForgotPasswordEmail: async (email) => {
-		return axios.post(
-			`${API_BASE_URL}/auth/forgot-password`,
-			{ email },
-			{ withCredentials: true }
-		);
+		try {
+			// Execute the POST request using axios
+			const response = axios.post(
+				`${API_BASE_URL}/auth/forgot-password`,
+				{ email },
+				{ withCredentials: true }
+			);
+
+			// Return the response data or any other relevant information from the response
+			return response;
+		} catch (error) {
+			// Handle any errors that occur during the API request
+			console.error(
+				'Error sending forgot password email:',
+				error.response ? error.response.data : error.message
+			);
+
+			return error;
+		}
 	},
 
-	createAccountUser: async (userData) => {
-		return axios.post(`${API_BASE_URL}/auth/register`, userData, {
-			withCredentials: true,
-		});
+	createAccountUser: async (firstName, email, password) => {
+		const userData = {
+			firstName,
+			email,
+			password,
+		};
+
+		try {
+			// Execute the POST request using axios
+			const response = axios.post(`${API_BASE_URL}/auth/register`, userData, {
+				withCredentials: true,
+			});
+
+			// Return the response data or any other relevant information from the response
+			return response;
+		} catch (error) {
+			// Handle any errors that occur during the API request
+			console.error(
+				'Error creating user account:',
+				error.response ? error.response.data : error.message
+			);
+
+			return error;
+		}
 	},
 
 	createAccountRescue: async (

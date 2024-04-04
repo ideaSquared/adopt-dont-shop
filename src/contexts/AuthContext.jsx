@@ -9,62 +9,106 @@ export const AuthProvider = ({ children }) => {
 };
 
 const useProvideAuth = () => {
-	const [isLoggedIn, setIsLoggedIn] = useState(false);
-	const [isAdmin, setIsAdmin] = useState(false);
-	const [userPermissions, setUserPermissions] = useState([]);
-	const [isRescue, setIsRescue] = useState(false);
+	const [authState, setAuthState] = useState({
+		userId: '',
+		isLoggedIn: false,
+		isAdmin: false,
+		isRescue: false,
+		userPermissions: [],
+	});
 
 	useEffect(() => {
-		checkLoginStatus();
+		checkIsLoggedIn();
 	}, []);
 
-	const checkLoginStatus = async () => {
-		try {
-			const response = await AuthService.checkLoginStatus();
-			setIsLoggedIn(response.data.isLoggedIn);
-			setIsAdmin(response.data.isAdmin || false);
-			localStorage.setItem('userId', response.data.userId);
-			if (response.data.isLoggedIn) {
-				await Promise.all([fetchPermissions(), checkRescueRoute()]);
-			}
-		} catch (error) {
-			console.error('Error checking login status:', error);
-			setIsLoggedIn(false);
-			setIsAdmin(false);
-			setUserPermissions([]);
-		}
-	};
+	const checkIsLoggedIn = () => authState.isLoggedIn;
+
+	// const checkLoginStatus = async () => {
+	// 	try {
+	// 		console.log(authState);
+	// 		const response = await AuthService.checkLoginStatus();
+	// 		setAuthState((prevState) => ({
+	// 			...prevState,
+	// 			isLoggedIn: response.data.isLoggedIn,
+	// 			isAdmin: response.data.isAdmin || false,
+	// 			userId: response.data.userId,
+	// 		}));
+	// 		if (response.data.isLoggedIn) {
+	// 			await Promise.all([fetchPermissions(), checkRescueRoute()]);
+	// 		}
+	// 	} catch (error) {
+	// 		console.error('Error checking login status:', error);
+	// 		setAuthState((prevState) => ({
+	// 			...prevState,
+	// 			isLoggedIn: false,
+	// 			isAdmin: false,
+	// 			userId: '',
+	// 			userPermissions: [],
+	// 		}));
+	// 	}
+	// };
 
 	const fetchPermissions = async () => {
 		try {
 			const response = await AuthService.fetchPermissions();
-			setUserPermissions(response.data.permissions || []);
+			setAuthState((prevState) => ({
+				...prevState,
+				userPermissions: response.data.permissions || [],
+			}));
 		} catch (error) {
 			console.error('Error fetching user permissions:', error);
-			setUserPermissions([]);
+			setAuthState((prevState) => ({
+				...prevState,
+				userPermissions: [],
+			}));
 		}
 	};
 
 	const checkRescueRoute = async () => {
 		try {
 			const response = await AuthService.checkRescueRoute();
-			setIsRescue(response.status === 200);
+			setAuthState((prevState) => ({
+				...prevState,
+				isRescue: response.status === 200,
+			}));
+			fetchPermissions();
 		} catch (error) {
 			console.error('Error checking rescue route:', error);
-			setIsRescue(false);
+			setAuthState((prevState) => ({
+				...prevState,
+				isRescue: false,
+			}));
 		}
 	};
 
 	const login = async (email, password) => {
 		try {
 			const response = await AuthService.login(email, password);
-			setIsLoggedIn(true);
-			setIsAdmin(response.data.isAdmin);
-			await Promise.all([fetchPermissions(), checkRescueRoute()]);
+
+			console.log('RESPONSE: ', response);
+
+			if (response.status === 200) {
+				setAuthState((prevState) => {
+					const newState = {
+						...prevState,
+						isLoggedIn: true,
+						isAdmin: response.data.isAdmin,
+						userId: response.data.userId,
+					};
+
+					return newState;
+				});
+				checkRescueRoute();
+			} else {
+				return false;
+			}
 		} catch (error) {
 			console.error('Login attempt failed:', error);
-			setIsLoggedIn(false);
-			setIsAdmin(false);
+			setAuthState((prevState) => ({
+				...prevState,
+				isLoggedIn: false,
+				isAdmin: false,
+			}));
 			throw new Error(
 				error.response?.data.message || 'An error occurred during login.'
 			);
@@ -74,10 +118,12 @@ const useProvideAuth = () => {
 	const logout = async () => {
 		try {
 			await AuthService.logout();
-			setIsLoggedIn(false);
-			setIsAdmin(false);
-			setUserPermissions([]);
-			setIsRescue(false);
+			setAuthState({
+				isLoggedIn: false,
+				isAdmin: false,
+				userPermissions: [],
+				isRescue: false,
+			});
 		} catch (error) {
 			console.error('Logout failed:', error);
 		}
@@ -124,10 +170,14 @@ const useProvideAuth = () => {
 		}
 	};
 
-	const registerUser = async (userData) => {
+	const createUser = async (firstName, email, password) => {
 		try {
-			const response = await AuthService.registerUser(userData);
-			localStorage.setItem('userId', response.data.userId); // Assuming response includes userId
+			const response = await AuthService.createAccountUser(
+				firstName,
+				email,
+				password
+			);
+
 			return {
 				success: true,
 				message: 'Registration successful!',
@@ -144,7 +194,10 @@ const useProvideAuth = () => {
 
 	const createRescue = async (rescueType, rescueData) => {
 		try {
-			const response = await AuthService.createRescue(rescueType, rescueData);
+			const response = await AuthService.createAccountRescue(
+				rescueType,
+				rescueData
+			);
 			return { success: true, message: 'Rescue created successfully.' };
 		} catch (error) {
 			console.error('Error creating rescue:', error);
@@ -156,16 +209,13 @@ const useProvideAuth = () => {
 	};
 
 	return {
-		isLoggedIn,
-		isAdmin,
-		isRescue,
-		userPermissions,
+		authState,
 		login,
 		logout,
 		verifyEmail,
 		resetPassword,
 		sendForgotPasswordEmail,
-		registerUser,
+		createUser,
 		createRescue,
 	};
 };

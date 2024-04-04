@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import ForgotPasswordForm from '../../components/forms/ForgotPasswordForm';
-import AuthService from '../../services/AuthService';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const ForgotPasswordPage = () => {
 	const [email, setEmail] = useState('');
 	const navigate = useNavigate(); // Initialize useNavigate
+	const { sendForgotPasswordEmail } = useAuth();
 
 	const handleForgotPassword = async () => {
 		try {
-			const response = await AuthService.sendForgotPasswordEmail(email);
+			await sendForgotPasswordEmail(email);
 			console.log('Login successful', response.data);
 			// Proceed to redirect the user or save the login state
 			navigate('/');

@@ -5,11 +5,11 @@ import { useEffect } from 'react';
 
 export const useRescueRedirect = () => {
 	const navigate = useNavigate();
-	const { isRescue } = useAuth();
+	const { authState } = useAuth();
 
 	useEffect(() => {
-		if (!isRescue) {
+		if (!authState.isRescue) {
 			navigate('/'); // Redirect non-logged-in users to home
 		}
-	}, [isRescue, navigate]);
+	}, [authState.isRescue, navigate]);
 };

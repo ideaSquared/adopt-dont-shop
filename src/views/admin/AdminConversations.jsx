@@ -10,7 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 axios.defaults.withCredentials = true;
 
 const Conversations = () => {
-	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	const { authState } = useAuth(); // Extract isAdmin from your AuthContext
 	useAdminRedirect(); // This will handle the redirection logic
 	const [conversations, setConversations] = useState([]);
 	const [filteredConversations, setFilteredConversations] = useState([]);
@@ -24,10 +24,10 @@ const Conversations = () => {
 	const [selectedConversation, setSelectedConversation] = useState(null);
 
 	useEffect(() => {
-		if (isAdmin) {
+		if (authState.isAdmin) {
 			fetchConversations();
 		}
-	}, [isAdmin, filterStatus, searchTerm]);
+	}, [authState.isAdmin, filterStatus, searchTerm]);
 
 	const deleteConversation = async (id) => {
 		// Confirmation dialog

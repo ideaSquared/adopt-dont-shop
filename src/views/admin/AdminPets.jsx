@@ -16,7 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
 axios.defaults.withCredentials = true;
 
 const Pets = () => {
-	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	const { authState } = useAuth(); // Extract isAdmin from your AuthContext
 	useAdminRedirect(); // This will handle the redirection logic
 	const [pets, setPets] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -29,10 +29,10 @@ const Pets = () => {
 	const [selectedPetDetails, setSelectedPetDetails] = useState(null);
 
 	useEffect(() => {
-		if (isAdmin) {
+		if (authState.isAdmin) {
 			fetchPets();
 		}
-	}, [isAdmin]);
+	}, [authState.isAdmin]);
 
 	const fetchPets = async () => {
 		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/pets`;

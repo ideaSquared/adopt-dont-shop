@@ -5,13 +5,13 @@ const CreateAccountForm = ({
 	onFirstNameChange,
 	onEmailChange,
 	onPasswordChange,
-	onLogin,
+	onCreateAccount,
 }) => {
 	return (
 		<Form
 			onSubmit={(e) => {
 				e.preventDefault();
-				onLogin();
+				onCreateAccount();
 			}}
 		>
 			<Form.Group className='mb-3' controlId='email'>

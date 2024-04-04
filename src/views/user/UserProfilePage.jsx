@@ -3,7 +3,7 @@ import AlertComponent from '../../components/common/AlertComponent';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 
-const UserMyProfile = () => {
+const UserProfilePage = () => {
 	const [formData, setFormData] = useState({
 		email: '',
 		password: '',
@@ -153,4 +153,4 @@ const UserMyProfile = () => {
 	);
 };
 
-export default UserMyProfile;
+export default UserProfilePage;

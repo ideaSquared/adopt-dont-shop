@@ -19,7 +19,7 @@ import RescueStaffManagement from './RescueStaffManagement';
 import RescuePetManagement from './RescuePetsManagement';
 import RescueAdopterManagement from './RescueAdopterManagement';
 import RescueNoPermissions from './RescueNoPermissions';
-import UserConversations from '../user/UserConversations';
+import Conversations from '../user/Conversations';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
@@ -31,7 +31,7 @@ const RescueProfile = () => {
 		referenceNumber: '',
 		referenceNumberVerified: false,
 	});
-	const { userPermissions, isRescue } = useAuth();
+	const { authState } = useAuth();
 	const userId = localStorage.getItem('userId');
 
 	const [alertInfo, setAlertInfo] = useState({ type: '', message: '' });
@@ -41,10 +41,10 @@ const RescueProfile = () => {
 	useRescueRedirect();
 
 	useEffect(() => {
-		if (isRescue) {
+		if (authState.isRescue) {
 			fetchRescueProfile();
 		}
-	}, [isRescue]);
+	}, [authState.isRescue]);
 
 	const fetchRescueProfile = async () => {
 		try {
@@ -149,19 +149,22 @@ const RescueProfile = () => {
 	};
 
 	// Check for permissions
-	const canViewRescueInfo = userPermissions.includes('view_rescue_info');
-	const canEditRescueInfo = userPermissions.includes('edit_rescue_info');
-	const canViewStaff = userPermissions.includes('view_staff');
-	const canAddStaff = userPermissions.includes('add_staff');
-	const canEditStaff = userPermissions.includes('edit_staff');
-	const canVerifyStaff = userPermissions.includes('verify_staff');
-	const canDeleteStaff = userPermissions.includes('delete_staff');
-	const canViewPet = userPermissions.includes('view_pet');
-	const canAddPet = userPermissions.includes('add_pet');
-	const canEditPet = userPermissions.includes('edit_pet');
-	const canDeletePet = userPermissions.includes('delete_pet');
-	const canViewMessages = userPermissions.includes('view_messages');
-	const canCreateMessages = userPermissions.includes('create_messages');
+	const canViewRescueInfo =
+		authState.userPermissions.includes('view_rescue_info');
+	const canEditRescueInfo =
+		authState.userPermissions.includes('edit_rescue_info');
+	const canViewStaff = authState.userPermissions.includes('view_staff');
+	const canAddStaff = authState.userPermissions.includes('add_staff');
+	const canEditStaff = authState.userPermissions.includes('edit_staff');
+	const canVerifyStaff = authState.userPermissions.includes('verify_staff');
+	const canDeleteStaff = authState.userPermissions.includes('delete_staff');
+	const canViewPet = authState.userPermissions.includes('view_pet');
+	const canAddPet = authState.userPermissions.includes('add_pet');
+	const canEditPet = authState.userPermissions.includes('edit_pet');
+	const canDeletePet = authState.userPermissions.includes('delete_pet');
+	const canViewMessages = authState.userPermissions.includes('view_messages');
+	const canCreateMessages =
+		authState.userPermissions.includes('create_messages');
 
 	const renderSection = () => {
 		switch (activeSection) {
@@ -216,7 +219,7 @@ const RescueProfile = () => {
 			case 'messages':
 				if (canViewMessages) {
 					return (
-						<UserConversations
+						<Conversations
 							userType='Rescue'
 							canCreateMessages={canCreateMessages}
 							canReadMessages={canViewMessages}

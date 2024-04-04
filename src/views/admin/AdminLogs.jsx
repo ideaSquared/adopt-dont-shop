@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 axios.defaults.withCredentials = true;
 
 const Logs = () => {
-	const { isAdmin } = useAuth(); // Extract isAdmin from your AuthContext
+	const { authState } = useAuth(); // Extract isAdmin from your AuthContext
 	useAdminRedirect(); // This will handle the redirection logic
 	const [logs, setLogs] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -18,10 +18,10 @@ const Logs = () => {
 	const [serviceFilter, setServiceFilter] = useState('all');
 
 	useEffect(() => {
-		if (isAdmin) {
+		if (authState.isAdmin) {
 			fetchLogs();
 		}
-	}, [isAdmin]);
+	}, [authState.isAdmin]);
 
 	const fetchLogs = async () => {
 		const endpoint = `${import.meta.env.VITE_API_BASE_URL}/logs`;

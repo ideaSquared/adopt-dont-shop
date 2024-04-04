@@ -2,16 +2,18 @@ import React, { useState, useEffect } from 'react';
 import ResetPasswordForm from '../../components/forms/ResetPasswordForm';
 import AuthService from '../../services/AuthService';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const ResetPasswordPage = () => {
 	const [password, setPassword] = useState('');
 	const [confirmPassword, setConfirmPassword] = useState('');
 	const navigate = useNavigate();
 	const location = useLocation();
+	const { resetPassword } = useAuth();
 
 	const handleResetPassword = async () => {
 		try {
-			const response = await AuthService.resetPassword(token, password);
+			await resetPassword(token, password);
 			console.log('Login successful', response.data);
 			// Proceed to redirect the user or save the login state
 			navigate('/');

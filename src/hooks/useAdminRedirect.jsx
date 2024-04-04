@@ -5,17 +5,17 @@ import { useEffect } from 'react';
 
 export const useAdminRedirect = () => {
 	const navigate = useNavigate();
-	const { isAdmin, isLoggedIn } = useAuth();
+	const { authState } = useAuth();
 
 	useEffect(() => {
-		if (!isAdmin) {
+		if (!authState.isAdmin) {
 			navigate('/'); // Redirect non-admin users to home
 		}
-	}, [isAdmin, navigate]);
+	}, [authState.isAdmin, navigate]);
 
 	useEffect(() => {
-		if (!isLoggedIn) {
+		if (!authState.isLoggedIn) {
 			navigate('/'); // Redirect non-logged-in users to home
 		}
-	}, [isLoggedIn, navigate]);
+	}, [authState.isLoggedIn, navigate]);
 };

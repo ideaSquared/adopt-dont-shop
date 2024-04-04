@@ -6,8 +6,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
 
 const CustomNavbar = () => {
-	const { isLoggedIn, isAdmin, userPermissions, isRescue } = useAuth();
+	const { authState } = useAuth();
 	const handleLogout = useLogout();
+
+	console.log(authState);
 
 	return (
 		<Navbar bg='light' expand='lg' className='bg-body-tertiary rounded'>
@@ -27,7 +29,7 @@ const CustomNavbar = () => {
 						</LinkContainer>
 					</Nav>
 					<div className='d-flex'>
-						{!isLoggedIn ? (
+						{!authState.isLoggedIn ? (
 							<>
 								<LinkContainer to='/login'>
 									<Button variant='primary' className='mx-2'>
@@ -58,13 +60,13 @@ const CustomNavbar = () => {
 											<Dropdown.Item>My Profile</Dropdown.Item>
 										</LinkContainer>
 
-										{isAdmin && (
+										{authState.isAdmin && (
 											<LinkContainer to='/admin'>
 												<Dropdown.Item>Admin</Dropdown.Item>
 											</LinkContainer>
 										)}
 
-										{isRescue && (
+										{authState.isRescue && (
 											<LinkContainer to='/rescue-profile'>
 												<Dropdown.Item>Rescue Profile</Dropdown.Item>
 											</LinkContainer>

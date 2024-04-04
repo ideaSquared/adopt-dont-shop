@@ -5,11 +5,7 @@ import MessagesComponent from './conversations/ConversationsMessages';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 
-const UserConversations = ({
-	userType,
-	canCreateMessages,
-	canReadMessages,
-}) => {
+const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 	const [conversations, setConversations] = useState([]);
 	const [userId, setUserId] = useState(null);
 	const [selectedConversation, setSelectedConversation] = useState(null);
@@ -158,4 +154,4 @@ const UserConversations = ({
 	);
 };
 
-export default UserConversations;
+export default Conversations;
