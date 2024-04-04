@@ -192,6 +192,7 @@ describe('Auth Routes', function () {
 					_id: 'userId',
 					email: 'login@example.com',
 					password: hashedPassword,
+					emailVerified: true,
 				});
 
 			const res = await request(app)
