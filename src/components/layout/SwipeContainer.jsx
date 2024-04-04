@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Card } from 'react-bootstrap';
 import SwipeItem from '../../views/swipe/SwipeItem';
 import useFetchUnratedPets from '../../hooks/useFetchUnratedPets'; // Custom hook for fetching pets
-import { postRating } from '../../services/ratingsService'; // Service layer for API calls
+import { postRating } from '../../services/RatingService'; // Service layer for API calls
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 
 const SwipeContainer = ({ ratingSource, onModel }) => {
