@@ -174,7 +174,7 @@ describe('Rescue Routes', function () {
 		});
 	});
 
-	describe.only('POST /api/rescue/:type', function () {
+	describe('POST /api/rescue/:type', function () {
 		this.timeout(5000); // Adjust based on the needs of your tests
 
 		let saveStub, isUniqueStub;
