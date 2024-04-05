@@ -145,45 +145,48 @@ const StaffManagement = ({
 	return (
 		<div>
 			<h2>Staff Members</h2>
-			<Container>
-				<GenericFilterForm
-					filters={[
-						{
-							type: 'text',
-							label: 'Name or Email',
-							placeholder: 'Search by name or email',
-							value: filterCriteria.nameEmail, // Corrected reference
-							onChange: handleFilterChange('nameEmail'),
-							md: 4,
-						},
-						{
-							type: 'select',
-							label: 'Permissions',
-							value: filterCriteria.permissions, // Corrected reference
-							onChange: handleFilterChange('permissions'),
-							options: [
-								{ value: 'all', label: 'All' },
-								...uniquePermissions.map((perm) => ({
-									value: perm,
-									label: perm,
-								})),
-							],
-							md: 4,
-						},
-						{
-							type: 'switch',
-							id: 'verified-switch',
-							label: 'Verified Only',
-							checked: filterCriteria.verified, // Corrected reference
-							onChange: handleFilterChange('verified'),
-						},
-					]}
-				/>
 
-				<Button variant='primary' onClick={() => setShowAddStaffModal(true)}>
-					Add Staff
-				</Button>
-			</Container>
+			<GenericFilterForm
+				filters={[
+					{
+						type: 'text',
+						// label: 'Name or Email',
+						placeholder: 'Search by name or email',
+						value: filterCriteria.nameEmail, // Corrected reference
+						onChange: handleFilterChange('nameEmail'),
+						md: 3,
+					},
+					{
+						type: 'select',
+						// label: 'Permissions:',
+						value: filterCriteria.permissions, // Corrected reference
+						onChange: handleFilterChange('permissions'),
+						options: [
+							{ value: 'all', label: 'Filter by all permissions' },
+							...uniquePermissions.map((perm) => ({
+								value: perm,
+								label: perm,
+							})),
+						],
+						md: 3,
+					},
+					{
+						type: 'switch',
+						id: 'verified-switch',
+						label: 'Verified Only',
+						checked: filterCriteria.verified, // Corrected reference
+						onChange: handleFilterChange('verified'),
+						md: 3,
+					},
+					{
+						type: 'button', // Add a new type for button
+						label: 'Add Staff',
+						onClick: () => setShowAddStaffModal(true),
+						md: 3, // The remaining space for the button
+					},
+				]}
+			/>
+
 			<AddStaffModal
 				show={showAddStaffModal}
 				handleClose={() => setShowAddStaffModal(false)}

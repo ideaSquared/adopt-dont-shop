@@ -43,13 +43,13 @@ const AdopterManagement = ({ rescueId }) => {
 	};
 
 	return (
-		<Container>
+		<div>
 			<h2>Pet Ratings</h2>
 			<GenericFilterForm
 				filters={[
 					{
 						type: 'text',
-						label: 'Search by name',
+						// label: 'Search by name',
 						placeholder: 'Search by pet name or user first name...',
 						value: searchTerm,
 						onChange: (e) => setSearchTerm(e.target.value),
@@ -57,11 +57,11 @@ const AdopterManagement = ({ rescueId }) => {
 					},
 					{
 						type: 'select',
-						label: 'Filter Criteria',
+						// label: 'Filter Criteria',
 						value: filterCriteria,
 						onChange: (e) => setFilterCriteria(e.target.value),
 						options: [
-							{ label: 'All Criteria', value: '' },
+							{ label: 'Filter by all criteria', value: '' },
 							{ label: 'Like', value: 'like' },
 							{ label: 'Love', value: 'love' },
 						],
@@ -74,7 +74,7 @@ const AdopterManagement = ({ rescueId }) => {
 				filteredRatings={filteredRatings}
 				onCreateConversation={handleCreateConversation}
 			/>
-		</Container>
+		</div>
 	);
 };
 

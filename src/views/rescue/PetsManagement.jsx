@@ -117,47 +117,53 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 	};
 
 	return (
-		<Container>
+		<div>
 			<h2>Pets</h2>
 			<GenericFilterForm
 				filters={[
 					{
-						label: 'Pet Name',
+						// label: 'Pet Name',
 						type: 'text',
 						value: searchTerm,
 						onChange: (e) => setSearchTerm(e.target.value),
 						placeholder: 'Search by pet name...',
-						md: 6,
+						md: 3, // Adjusted to fit the button
 					},
 					{
-						label: 'Pet Type',
+						// label: 'Pet Type',
 						type: 'select',
 						value: searchType,
 						onChange: (e) => setSearchType(e.target.value),
 						options: [
-							{ value: '', label: 'All Types' },
+							{ value: '', label: 'All pet types' },
 							...uniqueTypes.map((type) => ({ value: type, label: type })),
 						],
-						md: 6,
+						md: 3, // Adjusted to fit the button
 					},
 					{
-						label: 'Pet Status',
+						// label: 'Pet Status',
 						type: 'select',
 						value: searchStatus,
 						onChange: (e) => setSearchStatus(e.target.value),
 						options: [
-							{ value: '', label: 'All Statuses' },
+							{ value: '', label: 'Filter by all statuses' },
 							...uniqueStatuses.map((status) => ({
 								value: status,
 								label: status,
 							})),
 						],
-						md: 6,
+						md: 3, // Adjusted to fit the button
+					},
+					{
+						type: 'button',
+						label: 'Add Pet',
+						onClick: handleAddPetClick,
+						disabled: !canAddPet,
+						md: 3, // Space allocated for the button
 					},
 				]}
-				// canAdd={canAddPet}
-				// onAddClick={handleAddPetClick}
 			/>
+
 			<PetTable
 				pets={filteredPets}
 				currentPage={currentPage}
@@ -172,9 +178,6 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 				totalPages={Math.ceil(filteredPets.length / 10)} // Assuming 10 pets per page
 				onChangePage={setCurrentPage}
 			/>
-			<Button onClick={handleAddPetClick} disabled={!canAddPet}>
-				Add Pet
-			</Button>
 
 			<PetModalForm
 				show={showPetModal}
@@ -184,7 +187,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 				isEditMode={isEditMode}
 				handlePetChange={handlePetChange}
 			/>
-		</Container>
+		</div>
 	);
 };
 
