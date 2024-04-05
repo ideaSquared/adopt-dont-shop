@@ -172,6 +172,26 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		}
 	});
 
+	router.get('/validate-session', authenticateToken, async (req, res) => {
+		// Assuming you have a middleware that sets req.user if the token is valid
+		if (!req.user) {
+			return res.status(401).json({ message: 'Invalid or expired token.' });
+		}
+
+		// Fetch additional user details if necessary
+		const userDetails = await User.findById(req.user.userId).select(
+			'-password'
+		);
+		if (!userDetails) {
+			return res.status(404).json({ message: 'User not found.' });
+		}
+
+		res.status(200).json({
+			userId: userDetails._id,
+			isAdmin: userDetails.isAdmin,
+		});
+	});
+
 	/**
 	 * Route handler for updating user details. Requires authentication.
 	 * Validates the request body against the updateDetailsSchema, allows the authenticated user to update their own details like email, password, and firstName.

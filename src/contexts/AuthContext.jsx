@@ -18,10 +18,38 @@ const useProvideAuth = () => {
 	});
 
 	useEffect(() => {
-		checkIsLoggedIn();
-	}, []);
+		const validateSession = async () => {
+			try {
+				const response = await fetch('/api/auth/validate-session', {
+					credentials: 'include',
+				});
+				const data = await response.json();
+				if (response.ok) {
+					setAuthState({
+						...authState,
+						isLoggedIn: true,
+						userId: data.userId,
+						isAdmin: data.isAdmin,
+					});
+					checkRescueRoute();
+				} else {
+					// Handle session invalid or expired
+					console.log(data.message);
+					setAuthState({
+						userId: '',
+						isLoggedIn: false,
+						isAdmin: false,
+						isRescue: false,
+						userPermissions: [],
+					}); // Reset to initial state or handle accordingly
+				}
+			} catch (error) {
+				console.error('Error validating session:', error);
+			}
+		};
 
-	const checkIsLoggedIn = () => authState.isLoggedIn;
+		validateSession();
+	}, []);
 
 	// const checkLoginStatus = async () => {
 	// 	try {

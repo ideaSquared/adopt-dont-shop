@@ -13,11 +13,17 @@ import axios from 'axios';
 import AlertComponent from '../../components/common/AlertComponent';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRescueRedirect } from '../../hooks/useRescueRedirect';
-import RescueProfileForm from './RescueProfileForm';
+import RescueProfileForm from '../../components/forms/RescueProfileForm';
 import RescueProfileHeader from './RescueProfileHeader';
-import RescueStaffManagement from './RescueStaffManagement';
-import RescuePetManagement from './RescuePetsManagement';
-import RescueAdopterManagement from './RescueAdopterManagement';
+// import RescueStaffManagement from './RescueStaffManagement';
+// import RescuePetManagement from '../../../_archive/RescuePetsManagement';
+// import RescueAdopterManagement from './RescueAdopterManagement';
+
+import AdopterManagement from './AdopterManagement';
+import PetManagement from './PetsManagement';
+import StaffManagement from './StaffManagement';
+import RescueService from '../../services/RescueService';
+
 import RescueNoPermissions from './RescueNoPermissions';
 import Conversations from '../user/Conversations';
 
@@ -41,29 +47,22 @@ const RescueProfile = () => {
 	useRescueRedirect();
 
 	useEffect(() => {
+		const initFetch = async () => {
+			try {
+				const profileData = await RescueService.fetchRescueProfile();
+				setRescueProfile(profileData);
+			} catch (error) {
+				setAlertInfo({
+					type: 'danger',
+					message: 'Failed to load rescue profile. Please try again later.',
+				});
+			}
+		};
+
 		if (authState.isRescue) {
-			fetchRescueProfile();
+			initFetch();
 		}
 	}, [authState.isRescue]);
-
-	const fetchRescueProfile = async () => {
-		try {
-			const response = await axios.get(
-				`${import.meta.env.VITE_API_BASE_URL}/auth/my-rescue`,
-				{
-					withCredentials: true,
-				}
-			);
-			setRescueProfile(response.data);
-		} catch (error) {
-			console.error('Error fetching rescue profile:', error);
-		}
-	};
-
-	// Calculate unique permissions for table headers
-	const uniquePermissions = Array.from(
-		new Set(rescueProfile.staff.flatMap((staff) => staff.permissions))
-	);
 
 	const handleRescueInfoChange = (e) => {
 		const { name, value } = e.target;
@@ -73,21 +72,19 @@ const RescueProfile = () => {
 		}));
 	};
 
-	const updateRescueProfile = async (rescueId, updates) => {
+	const saveUpdates = async () => {
 		try {
-			const response = await axios.put(
-				`${import.meta.env.VITE_API_BASE_URL}/rescue/${rescueId}`,
-				updates,
-				{ withCredentials: true }
-			);
-			// console.log('Rescue profile updated successfully:', response.data);
-			// Optionally, refresh the local data to reflect the update
-			fetchRescueProfile();
+			await RescueService.updateRescueProfile(rescueProfile.id, rescueProfile);
+			setAlertInfo({
+				type: 'success',
+				message: 'Rescue profile updated successfully.',
+			});
+			// Optionally, fetch the updated profile here if not done automatically after update
 		} catch (error) {
-			console.error(
-				'Error updating rescue profile:',
-				error.response?.data || error.message
-			);
+			setAlertInfo({
+				type: 'danger',
+				message: 'Failed to update rescue profile. Please try again later.',
+			});
 		}
 	};
 
@@ -101,51 +98,35 @@ const RescueProfile = () => {
 		}
 
 		try {
-			// Adjust the URL and request method according to your actual backend endpoint and its requirements
-			const response = await axios.put(
-				`${import.meta.env.VITE_API_BASE_URL}/rescue/${
-					rescueProfile.id
-				}/${rescueProfile.rescueType.toLowerCase()}/validate`,
-				{ referenceNumber: rescueProfile.referenceNumber.trim() }, // Or send as query params as per your API
-				{ withCredentials: true }
-			);
-
-			if (response.data.data.referenceNumberVerified) {
+			const verificationResult =
+				await RescueService.submitReferenceNumberForVerification(
+					rescueProfile.id,
+					rescueProfile.rescueType,
+					rescueProfile.referenceNumber
+				);
+			// Update local state based on verificationResult
+			if (verificationResult.referenceNumberVerified) {
 				setAlertInfo({
 					type: 'success',
 					message: 'Reference number verified successfully.',
 				});
-				setRescueProfile((prev) => ({
-					...prev,
-					referenceNumberVerified: true,
-				}));
 			} else {
 				setAlertInfo({
 					type: 'danger',
 					message: 'Failed to verify reference number.',
 				});
-				setRescueProfile((prev) => ({
-					...prev,
-					referenceNumberVerified: false,
-				}));
 			}
-			fetchRescueProfile();
+
+			// Refresh the profile to get updated verification status
+			const profileData = await RescueService.fetchRescueProfile();
+			setRescueProfile(profileData);
 		} catch (error) {
-			console.error(
-				'Error submitting reference number for verification:',
-				error
-			);
 			setAlertInfo({
 				type: 'danger',
 				message:
 					'Error submitting reference number for verification. Please try again later.',
 			});
 		}
-	};
-
-	const saveUpdates = () => {
-		// Assuming `rescueProfile` contains the updated rescue profile data
-		updateRescueProfile(rescueProfile.id, rescueProfile);
 	};
 
 	// Check for permissions
@@ -188,7 +169,7 @@ const RescueProfile = () => {
 			case 'pets':
 				if (canViewPet) {
 					return (
-						<RescuePetManagement
+						<PetManagement
 							rescueId={rescueProfile.id}
 							canAddPet={canAddPet}
 							canEditPet={canEditPet}
@@ -201,15 +182,14 @@ const RescueProfile = () => {
 			case 'staff':
 				if (canViewStaff) {
 					return (
-						<RescueStaffManagement
+						<StaffManagement
 							rescueProfile={rescueProfile}
 							setRescueProfile={setRescueProfile}
-							fetchRescueProfile={fetchRescueProfile}
+							// fetchRescueProfile={fetchRescueProfile}
 							canAddStaff={canAddStaff}
 							canEditStaff={canEditStaff}
 							canVerifyStaff={canVerifyStaff}
 							canDeleteStaff={canDeleteStaff}
-							uniquePermissions={uniquePermissions}
 							userId={userId}
 						/>
 					);
@@ -228,7 +208,7 @@ const RescueProfile = () => {
 				}
 			case 'adopter':
 				if (canViewMessages) {
-					return <RescueAdopterManagement rescueProfile={rescueProfile} />;
+					return <AdopterManagement rescueId={rescueProfile.id} />;
 				}
 			default:
 				return <RescueNoPermissions rescueProfile={rescueProfile} />;
