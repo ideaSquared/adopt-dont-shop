@@ -4,10 +4,13 @@ import SwipeItem from '../../views/swipe/SwipeItem';
 import useFetchUnratedPets from '../../hooks/useFetchUnratedPets'; // Custom hook for fetching pets
 import { postRating } from '../../services/RatingService'; // Service layer for API calls
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SwipeContainer = ({ ratingSource, onModel }) => {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const { pets, isLoading, error, noUnratedPets } = useFetchUnratedPets();
+	const { authState } = useAuth();
+	const userId = authState.userId;
 
 	const handleSwipe = async (direction) => {
 		if (currentIndex < pets.length) {
@@ -16,7 +19,8 @@ const SwipeContainer = ({ ratingSource, onModel }) => {
 				pets[currentIndex]._id,
 				ratingType,
 				ratingSource,
-				onModel
+				onModel,
+				userId
 			);
 			setCurrentIndex(currentIndex + 1);
 		}

@@ -4,6 +4,7 @@ import { Container } from 'react-bootstrap';
 import MessagesPetDisplay from './ConversationsMessagesPetDisplay';
 import MessageList from './ConversationsMessageList';
 import MessageInput from './ConversationsMessageInput';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const MessagesComponent = ({
 	conversation,
@@ -15,7 +16,8 @@ const MessagesComponent = ({
 	const [messages, setMessages] = useState([]);
 	const [petData, setPetData] = useState(null);
 	const [message, setMessage] = useState('');
-	const userId = localStorage.getItem('userId');
+	const { authState } = useAuth();
+	const userId = authState.userId;
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	useEffect(() => {

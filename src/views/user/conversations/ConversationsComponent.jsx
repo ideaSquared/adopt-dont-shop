@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ListGroup, Card } from 'react-bootstrap';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const ConversationsComponent = ({
 	conversations,
@@ -9,7 +10,8 @@ const ConversationsComponent = ({
 	userType,
 	listOfStaffIds,
 }) => {
-	const userId = localStorage.getItem('userId');
+	const { authState } = useAuth();
+	const userId = authState.userId;
 
 	useEffect(() => {}, [conversations, userType]);
 

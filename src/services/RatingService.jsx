@@ -4,13 +4,14 @@ export const postRating = async (
 	targetId,
 	ratingType,
 	ratingSource,
-	onModel
+	onModel,
+	userId
 ) => {
 	try {
 		const response = await axios.post(
 			`${import.meta.env.VITE_API_BASE_URL}/ratings`,
 			{
-				userId: localStorage.getItem('userId'), // Assuming the user ID is stored in localStorage
+				userId: userId,
 				targetType: 'Pet', // Assuming the target type is always 'Pet'
 				targetId: targetId,
 				ratingType: ratingType, // 'like', 'dislike', or 'love'

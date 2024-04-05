@@ -38,7 +38,7 @@ const RescueProfile = () => {
 		referenceNumberVerified: false,
 	});
 	const { authState } = useAuth();
-	const userId = localStorage.getItem('userId');
+	const userId = authState.userId;
 
 	const [alertInfo, setAlertInfo] = useState({ type: '', message: '' });
 	const [activeSection, setActiveSection] = useState('profile');

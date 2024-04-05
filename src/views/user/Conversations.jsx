@@ -13,8 +13,6 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 	const [listOfStaffIds, setStaffIDs] = useState([]);
 	useLoginRedirect();
 
-	// setUserId(localStorage.getItem('userId'));
-
 	const triggerConversationRefresh = () => {
 		setRefreshConversations((prevState) => !prevState);
 	};
