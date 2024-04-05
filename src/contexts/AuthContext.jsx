@@ -18,37 +18,32 @@ const useProvideAuth = () => {
 	});
 
 	useEffect(() => {
-		const validateSession = async () => {
+		const verifyAuth = async () => {
 			try {
-				const response = await fetch('/api/auth/validate-session', {
-					credentials: 'include',
-				});
-				const data = await response.json();
-				if (response.ok) {
+				const response = await AuthService.checkLoginStatus(); // Adjust based on your actual service call
+				if (response.status === 200) {
+					// Update auth state based on response
 					setAuthState({
-						...authState,
 						isLoggedIn: true,
-						userId: data.userId,
-						isAdmin: data.isAdmin,
+						userId: response.data.userId,
+						isAdmin: response.data.isAdmin,
+						// Add any other state you need
 					});
 					checkRescueRoute();
-				} else {
-					// Handle session invalid or expired
-					console.log(data.message);
-					setAuthState({
-						userId: '',
-						isLoggedIn: false,
-						isAdmin: false,
-						isRescue: false,
-						userPermissions: [],
-					}); // Reset to initial state or handle accordingly
 				}
 			} catch (error) {
-				console.error('Error validating session:', error);
+				console.error('Could not verify auth:', error);
+				// Handle error, potentially resetting the auth state
+				setAuthState({
+					isLoggedIn: false,
+					userId: '',
+					isAdmin: false,
+					// Reset other state as needed
+				});
 			}
 		};
 
-		validateSession();
+		verifyAuth();
 	}, []);
 
 	// const checkLoginStatus = async () => {
