@@ -30,7 +30,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		if (rescueId) {
 			fetchPets(rescueId)
 				.then((pets) => {
-					console.log(pets); // Check the structure of the fetched pet objects.
+					// console.log(pets); // Check the structure of the fetched pet objects.
 					setAllPets(pets);
 					setFilteredPets(pets); // Initially, all pets are shown
 				})
@@ -49,6 +49,15 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		);
 		setFilteredPets(filtered);
 	}, [allPets, searchTerm, searchType, searchStatus]); // Add searchStatus to the dependency array
+
+	const refreshPets = () => {
+		fetchPets(rescueId)
+			.then((pets) => {
+				setAllPets(pets);
+				setFilteredPets(pets); // Apply any active filters if necessary
+			})
+			.catch(console.error);
+	};
 
 	const openEditModal = (pet) => {
 		setEditingPet(pet);
@@ -104,7 +113,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		event.preventDefault();
 		await createOrUpdatePet(editingPet, isEditMode)
 			.then(() => {
-				fetchPets(rescueId).then(setPets).catch(console.error);
+				fetchPets(rescueId).then(setAllPets).catch(console.error);
 				closeModal();
 			})
 			.catch(console.error);
@@ -112,7 +121,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 
 	const handlePetDelete = async (petId) => {
 		await deletePet(petId)
-			.then(() => fetchPets(rescueId).then(setPets).catch(console.error))
+			.then(() => fetchPets(rescueId).then(setAllPets).catch(console.error))
 			.catch(console.error);
 	};
 
@@ -186,6 +195,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 				petDetails={editingPet}
 				isEditMode={isEditMode}
 				handlePetChange={handlePetChange}
+				refreshPets={refreshPets}
 			/>
 		</div>
 	);

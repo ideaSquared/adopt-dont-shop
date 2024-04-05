@@ -8,7 +8,18 @@ const PetModalForm = ({
 	petDetails,
 	isEditMode,
 	handlePetChange,
+	refreshPets,
 }) => {
+	const handlePetSubmit = async (event) => {
+		event.preventDefault();
+		await createOrUpdatePet(editingPet, isEditMode)
+			.then(() => {
+				props.refreshPets(); // Call the passed callback function to refresh pets
+				handleClose();
+			})
+			.catch(console.error);
+	};
+
 	return (
 		<Modal show={show} onHide={handleClose}>
 			<Form onSubmit={handleFormSubmit}>
@@ -220,7 +231,7 @@ const PetModalForm = ({
 					</Row>
 				</Modal.Body>
 				<Modal.Footer>
-					<Button variant='secondary' onClick={handleClose}>
+					<Button variant='secondary' onClick={handlePetSubmit}>
 						Close
 					</Button>
 					<Button variant='primary' type='submit'>
