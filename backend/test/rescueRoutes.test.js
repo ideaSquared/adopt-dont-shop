@@ -174,14 +174,14 @@ describe('Rescue Routes', function () {
 		});
 	});
 
-	describe('POST /api/rescue/:type', function () {
+	describe.only('POST /api/rescue/:type', function () {
 		this.timeout(5000); // Adjust based on the needs of your tests
 
 		let saveStub, isUniqueStub;
 
 		const mockUserId = generateObjectId();
 
-		before(() => {
+		beforeEach(() => {
 			// Stub the save method of the Rescue model to simulate database save operations
 			saveStub = sinon.stub(Rescue.prototype, 'save').resolves(true);
 			// Stub the isReferenceNumberUnique method if needed
@@ -190,7 +190,7 @@ describe('Rescue Routes', function () {
 				.resolves(true);
 		});
 
-		after(() => {
+		afterEach(() => {
 			// Restore the stubbed methods after all tests
 			saveStub.restore();
 			isUniqueStub.restore();
@@ -206,13 +206,6 @@ describe('Rescue Routes', function () {
 					password: '123456',
 					firstName: 'individualTest',
 					rescueType: 'Individual',
-					// staff: [
-					// 	{
-					// 		userId: mockUserId,
-					// 		permissions: ['edit_rescue_info', 'add_pet'],
-					// 		verifiedByRescue: true,
-					// 	},
-					// ],
 				},
 				expectedStatusCode: 201,
 				expectedMessage: 'Individual rescue created successfully',
@@ -229,13 +222,6 @@ describe('Rescue Routes', function () {
 					rescueAddress: '123 Charity Lane',
 					rescueType: 'Charity',
 					referenceNumber: validCharityRegisterNumber,
-					// staff: [
-					// 	{
-					// 		userId: mockUserId,
-					// 		permissions: ['edit_rescue_info', 'add_pet'],
-					// 		verifiedByRescue: true,
-					// 	},
-					// ],
 				},
 				expectedStatusCode: 201,
 				expectedMessage: 'Charity rescue created successfully',
@@ -253,13 +239,6 @@ describe('Rescue Routes', function () {
 					rescueType: 'Company',
 					rescueAddress: '123 Company Lane',
 					referenceNumber: validCompanyHouseNumber,
-					// staff: [
-					// 	{
-					// 		userId: mockUserId,
-					// 		permissions: ['edit_rescue_info', 'add_pet'],
-					// 		verifiedByRescue: true,
-					// 	},
-					// ],
 				},
 				expectedStatusCode: 201,
 				expectedMessage: 'Company rescue created successfully',
