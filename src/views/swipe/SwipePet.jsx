@@ -1,6 +1,8 @@
 import React from 'react';
 import { Container, Row, Col, Card, Badge, Carousel } from 'react-bootstrap';
 
+const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
+
 const SwipePet = ({ item }) => {
 	return (
 		<Container className='mt-4'>
@@ -24,7 +26,7 @@ const PetCarousel = ({ images }) => (
 					<Carousel.Item key={index}>
 						<img
 							className='d-block w-100'
-							src={img}
+							src={fileUploadsPath + img}
 							alt={`Slide ${index + 1}`}
 						/>
 					</Carousel.Item>

@@ -12,9 +12,12 @@ import {
 import SwipePet from './SwipePet';
 import Swipeable from './Swipeable';
 
+const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
+
 const SwipeItem = ({ item, onSwipe }) => {
 	const fallbackImage =
 		'https://dummyimage.com/600x400/000/fff&text=I%27m+sure+they%27re+pretty!';
+
 	const [show, setShow] = useState(false);
 
 	const handleClose = () => setShow(false);
@@ -51,7 +54,7 @@ const ItemCarousel = ({ images, fallbackImage }) => (
 				<Carousel.Item key={index}>
 					<img
 						className='d-block w-100'
-						src={image}
+						src={fileUploadsPath + image}
 						alt={`Slide ${index + 1}`}
 					/>
 				</Carousel.Item>

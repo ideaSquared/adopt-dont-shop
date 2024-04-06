@@ -3,6 +3,7 @@ import { Card, Badge, Button, Carousel } from 'react-bootstrap';
 
 const MessagesPetDisplay = ({ petData, isExpanded, toggleHeight }) => {
 	if (!petData) return null;
+	const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 
 	return (
 		<Card
@@ -23,7 +24,7 @@ const MessagesPetDisplay = ({ petData, isExpanded, toggleHeight }) => {
 							<Carousel.Item key={index}>
 								<img
 									className='d-block w-100'
-									src={image}
+									src={fileUploadsPath + image}
 									alt={`Slide ${index}`}
 									style={{
 										objectFit: 'cover',
