@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Modal, Button, Form, Row, Col, Image } from 'react-bootstrap';
+import {
+	Modal,
+	Button,
+	Form,
+	Row,
+	Col,
+	Image,
+	Card,
+	Container,
+} from 'react-bootstrap';
 import {
 	uploadPetImages,
 	getPetById,
@@ -30,7 +39,7 @@ const PetModalForm = ({
 		if (files.length > 0) {
 			try {
 				await uploadPetImages(petDetails._id, files);
-				await refreshPetDetails(); // This assumes refreshPetDetails properly updates petDetails including images
+				await refreshPetDetails();
 			} catch (error) {
 				console.error('Error uploading files:', error);
 			}
@@ -71,38 +80,43 @@ const PetModalForm = ({
 	};
 
 	const renderPetImages = () => {
+		if (!petDetails?.images?.length) {
+			return <p>No images available.</p>;
+		}
+
 		return (
-			petDetails?.images?.map((image, index) => (
-				<div
-					key={index}
-					style={{
-						position: 'relative',
-						display: 'inline-block',
-						marginRight: '8px',
-					}}
-				>
-					<Image src={fileUploadsPath + image} thumbnail />
-					<Button
-						onClick={() => handleRemoveImage(index)}
-						style={{
-							position: 'absolute',
-							top: '0',
-							right: '0',
-							backgroundColor: 'red',
-							color: 'white',
-							border: 'none',
-							borderRadius: '50%',
-							cursor: 'pointer',
-							padding: '0 6px',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-						}}
-					>
-						X
-					</Button>
-				</div>
-			)) || <p>No images available.</p>
+			<Container>
+				<Row xs={1} md={2} lg={4} className='g-4'>
+					{petDetails.images.map((image, index) => (
+						<Col key={index}>
+							<Card className='position-relative'>
+								<Card.Img variant='top' src={fileUploadsPath + image} />
+								<Button
+									onClick={() => handleRemoveImage(index)}
+									variant='danger'
+									className='position-absolute'
+									style={{
+										top: '0.5rem', // Adjust these values as needed
+										right: '0.5rem', // Adjust these values as needed
+										border: 'none',
+										borderRadius: '50%',
+										padding: '0.25rem 0.5rem', // Adjust padding to change size
+										fontSize: '1rem', // Adjust font size as needed
+										lineHeight: 1,
+										width: '30px', // Adjust width and height to change button size
+										height: '30px',
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+									}}
+								>
+									&times;{' '}
+								</Button>
+							</Card>
+						</Col>
+					))}
+				</Row>
+			</Container>
 		);
 	};
 
