@@ -13,6 +13,7 @@ import rescueService from '../services/rescueService.js';
 import app from '../index.js';
 import { generateObjectId } from '../utils/generateObjectId.js';
 import { capitalizeFirstChar } from '../utils/stringManipulation.js';
+import nodemailer from 'nodemailer';
 
 const mockObjectId = '65f1fa2aadeb2ca9f053f7f8';
 
@@ -174,10 +175,10 @@ describe('Rescue Routes', function () {
 		});
 	});
 
-	describe.only('POST /api/rescue/:type', function () {
+	describe('POST /api/rescue/:type', function () {
 		this.timeout(5000); // Adjust based on the needs of your tests
 
-		let saveStub, isUniqueStub;
+		let saveStub, isUniqueStub, emailServiceMock;
 
 		const mockUserId = generateObjectId();
 
@@ -188,6 +189,26 @@ describe('Rescue Routes', function () {
 			isUniqueStub = sinon
 				.stub(rescueService, 'isReferenceNumberUnique')
 				.resolves(true);
+
+			// Mock nodemailer's transport creation to simulate email sending without actual network requests.
+			sinon.stub(nodemailer, 'createTransport').returns({
+				sendMail: (mailOptions, callback) => {
+					// Simulate asynchronous email sending success.
+					if (callback && typeof callback === 'function') {
+						callback(null, { messageId: 'mockMessageId' });
+					} else {
+						return Promise.resolve({ messageId: 'mockMessageId' });
+					}
+				},
+			});
+
+			emailServiceMock = {
+				sendEmailVerificationEmail: sinon.stub().resolves({
+					messageId: 'mockMessageId',
+				}),
+			};
+
+			app.set('emailService', emailServiceMock);
 		});
 
 		afterEach(() => {
