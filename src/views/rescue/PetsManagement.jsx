@@ -71,7 +71,10 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		setEditingPet({ ownerId: rescueId }); // Assuming `ownerId` is necessary for a new pet
 	};
 
-	const closeModal = () => setShowPetModal(false);
+	const closeModal = () => {
+		setShowPetModal(false);
+		setEditingPet({});
+	};
 
 	const handlePetChange = (e) => {
 		const { name, value } = e.target;
