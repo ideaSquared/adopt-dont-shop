@@ -3,6 +3,13 @@ import Pet from '../models/Pet.js'; // Assuming your Pet model is in the models 
 import Rescue from '../models/Rescue.js'; // Assuming your Rescue model is in the models directory
 import mongoose from 'mongoose';
 import authenticateToken from '../middleware/authenticateToken.js';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+import fs from 'fs';
 
 import {
 	validateRequest,
@@ -231,5 +238,74 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 		});
 	}
 });
+
+const uploadsDir = path.join(__dirname, '../uploads');
+
+if (!fs.existsSync(uploadsDir)) {
+	fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+	destination: function (req, file, cb) {
+		cb(null, 'uploads/'); // Make sure this path exists and is writable
+	},
+	filename: function (req, file, cb) {
+		const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+		// Adjust the filename format here
+		cb(null, 'image-' + uniqueSuffix + '-' + file.originalname);
+	},
+});
+
+const upload = multer({ storage: storage });
+
+// Endpoint to upload pet images
+router.post(
+	'/:id/images',
+	authenticateToken,
+	upload.array('images', 5),
+	async (req, res) => {
+		const { id } = req.params; // Pet ID
+		const userId = req.user?.userId;
+
+		try {
+			const pet = await Pet.findById(id);
+			if (!pet) {
+				return res.status(404).send({ message: 'Pet not found' });
+			}
+
+			// Check permission logic here, as in your other routes
+			const hasPermission = await checkPermission(userId, 'edit_pet');
+			if (!hasPermission) {
+				logger.warn(
+					`User ${userId} lacks permission to edit pet with ID: ${id}`
+				);
+				return res
+					.status(403)
+					.send({ message: 'Insufficient permissions to edit pet' });
+			}
+
+			// Assuming you want to save the file paths to the pet document
+			const updatedPet = await Pet.findByIdAndUpdate(
+				id,
+				{ $push: { images: req.files.map((file) => file.filename) } },
+				{ new: true }
+			);
+
+			res.status(200).send({
+				message: 'Images uploaded successfully',
+				data: updatedPet,
+			});
+		} catch (error) {
+			logger.error(
+				`Failed to upload images for pet with ID: ${id}: ${error.message}`,
+				{ error }
+			);
+			Sentry.captureException(error);
+			res
+				.status(500)
+				.send({ message: 'Failed to upload images', error: error.message });
+		}
+	}
+);
 
 export default router;

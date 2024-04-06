@@ -83,6 +83,9 @@ app.use('/api/ratings', ratingRoutes);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the 'uploads' directory
+// All uploads are accessed without the /api
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 if (process.env.NODE_ENV !== 'production') {
 	app.get('/debug-sentry', function mainHandler(req, res) {

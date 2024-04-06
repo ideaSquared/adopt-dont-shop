@@ -8,6 +8,7 @@ import {
 	fetchPets,
 	createOrUpdatePet,
 	deletePet,
+	getPetById,
 } from '../../services/PetService';
 
 const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
@@ -25,6 +26,8 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 
 	const uniqueTypes = [...new Set(allPets.map((pet) => pet.type))];
 	const uniqueStatuses = [...new Set(allPets.map((pet) => pet.status))];
+	const [isLoadingPetDetails, setIsLoadingPetDetails] = useState(false);
+	const [editError, setEditError] = useState(null);
 
 	useEffect(() => {
 		if (rescueId) {
@@ -50,6 +53,10 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		setFilteredPets(filtered);
 	}, [allPets, searchTerm, searchType, searchStatus]); // Add searchStatus to the dependency array
 
+	useEffect(() => {
+		refreshPets(); // Call refreshPets directly
+	}, [rescueId]);
+
 	const refreshPets = () => {
 		fetchPets(rescueId)
 			.then((pets) => {
@@ -59,16 +66,37 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 			.catch(console.error);
 	};
 
-	const openEditModal = (pet) => {
-		setEditingPet(pet);
+	const openEditModal = async (pet) => {
+		if (!pet || !pet._id) {
+			console.error('Pet or Pet ID is undefined');
+			setEditError('Failed to load pet details. Please try again.');
+			return; // Exit the function if pet is undefined
+		}
+
+		setEditingPet(pet); // Use the initial pet details
 		setIsEditMode(true);
 		setShowPetModal(true);
+		setIsLoadingPetDetails(true); // Indicate loading start
+		setEditError(null); // Reset any previous errors
+
+		try {
+			const testPet = await getPetById(pet._id);
+			console.log(testPet);
+			setEditingPet(testPet.data); // Update with fetched details
+		} catch (error) {
+			console.error('Failed to fetch pet details:', error);
+			setEditError(
+				'Failed to load the latest pet details. Editing with available data.'
+			);
+		} finally {
+			setIsLoadingPetDetails(false); // Loading complete
+		}
 	};
 
 	const handleAddPetClick = () => {
 		setShowPetModal(true);
 		setIsEditMode(false);
-		setEditingPet({ ownerId: rescueId }); // Assuming `ownerId` is necessary for a new pet
+		setEditingPet({ ownerId: rescueId });
 	};
 
 	const closeModal = () => {
@@ -112,15 +140,15 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		current[levels[levels.length - 1]] = value;
 	}
 
-	const handlePetSubmit = async (event) => {
-		event.preventDefault();
-		await createOrUpdatePet(editingPet, isEditMode)
-			.then(() => {
-				fetchPets(rescueId).then(setAllPets).catch(console.error);
-				closeModal();
-			})
-			.catch(console.error);
-	};
+	// const handlePetSubmit = async (event) => {
+	// 	event.preventDefault();
+	// 	await createOrUpdatePet(editingPet, isEditMode)
+	// 		.then(() => {
+	// 			fetchPets(rescueId).then(setAllPets).catch(console.error);
+	// 			closeModal();
+	// 		})
+	// 		.catch(console.error);
+	// };
 
 	const handlePetDelete = async (petId) => {
 		await deletePet(petId)
@@ -194,11 +222,12 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 			<PetModalForm
 				show={showPetModal}
 				handleClose={closeModal}
-				handleFormSubmit={handlePetSubmit}
 				petDetails={editingPet}
+				setPetDetails={setEditingPet}
 				isEditMode={isEditMode}
 				handlePetChange={handlePetChange}
 				refreshPets={refreshPets}
+				createOrUpdatePet={createOrUpdatePet}
 			/>
 		</div>
 	);
