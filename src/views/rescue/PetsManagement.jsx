@@ -23,6 +23,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 	const [searchTerm, setSearchTerm] = useState('');
 	const [searchType, setSearchType] = useState('');
 	const [searchStatus, setSearchStatus] = useState('');
+	const [filterByImages, setFilterByImages] = useState(false); // false means no filter applied, true means only show pets with images
 
 	const uniqueTypes = [...new Set(allPets.map((pet) => pet.type))];
 	const uniqueStatuses = [...new Set(allPets.map((pet) => pet.status))];
@@ -48,10 +49,11 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 					? pet.petName.toLowerCase().includes(searchTerm.toLowerCase())
 					: true) &&
 				(searchType ? pet.type === searchType : true) &&
-				(searchStatus ? pet.status === searchStatus : true) // Implement status filtering here
+				(searchStatus ? pet.status === searchStatus : true) &&
+				(!filterByImages || (pet.images && pet.images.length > 0))
 		);
 		setFilteredPets(filtered);
-	}, [allPets, searchTerm, searchType, searchStatus]); // Add searchStatus to the dependency array
+	}, [allPets, searchTerm, searchType, searchStatus, filterByImages]);
 
 	useEffect(() => {
 		refreshPets(); // Call refreshPets directly
@@ -192,14 +194,21 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 								label: status,
 							})),
 						],
-						md: 3, // Adjusted to fit the button
+						md: 2, // Adjusted to fit the button
+					},
+					{
+						type: 'switch',
+						label: 'Has Images',
+						checked: filterByImages,
+						onChange: () => setFilterByImages(!filterByImages), // Toggle the filterByImages state
+						md: 2,
 					},
 					{
 						type: 'button',
 						label: 'Add Pet',
 						onClick: handleAddPetClick,
 						disabled: !canAddPet,
-						md: 3, // Space allocated for the button
+						md: 2, // Space allocated for the button
 					},
 				]}
 			/>
