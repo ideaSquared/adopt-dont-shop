@@ -89,6 +89,54 @@ const RescueService = {
 			throw error; // Rethrow the error for the caller to handle
 		}
 	},
+
+	fetchAdminRescues: async () => {
+		try {
+			const response = await axios.get(`${API_BASE_URL}/admin/rescues`, {
+				withCredentials: true,
+			});
+			return response.data;
+		} catch (error) {
+			console.error('Failed to fetch rescues for admin:', error);
+			throw error;
+		}
+	},
+
+	deleteAdminRescue: async (rescueId) => {
+		try {
+			await axios.delete(`${API_BASE_URL}/admin/rescues/${rescueId}`, {
+				withCredentials: true,
+			});
+		} catch (error) {
+			console.error('Failed to delete rescue:', error);
+			throw error;
+		}
+	},
+
+	fetchAdminRescueDetails: async (rescueId) => {
+		try {
+			const response = await axios.get(
+				`${API_BASE_URL}/admin/rescues/${rescueId}`,
+				{ withCredentials: true }
+			);
+			return response.data;
+		} catch (error) {
+			console.error('Failed to fetch rescue details:', error);
+			throw error;
+		}
+	},
+
+	deleteStaffFromAdminRescue: async (rescueId, staffId) => {
+		try {
+			await axios.delete(
+				`${API_BASE_URL}/admin/rescues/${rescueId}/staff/${staffId}`,
+				{ withCredentials: true }
+			);
+		} catch (error) {
+			console.error('Failed to delete staff member:', error);
+			throw error;
+		}
+	},
 };
 
 export default RescueService;

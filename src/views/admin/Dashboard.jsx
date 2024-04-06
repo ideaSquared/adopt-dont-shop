@@ -26,7 +26,6 @@ const AdminDashboard = () => {
 				<Col xs={12} md={8}>
 					<Row className='g-2'>
 						{' '}
-						{/* Add a gap between buttons */}
 						<Col>
 							<Button
 								onClick={() => redirectTo('/admin/users')}

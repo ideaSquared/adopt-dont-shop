@@ -298,7 +298,7 @@ router.get('/messages/:conversationId', authenticateToken, async (req, res) => {
 			conversationId: req.params.conversationId,
 		}).populate({
 			path: 'senderId', // Assuming senderId is a reference to the User model
-			select: 'firstName _id', // Fetch the firstName field along with the _id
+			select: 'rescueName firstName -_id', // Fetch the firstName field along with the _id
 		});
 
 		logger.info(

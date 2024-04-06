@@ -4,12 +4,12 @@ import './App.css';
 import CustomNavbar from '../components/layout/Navbar';
 import HomePage from '../views/HomePage';
 
-import AdminDashboard from '../views/admin/AdminDashboard';
-import AdminUsers from '../views/admin/AdminUsers';
-import AdminPets from '../views/admin/AdminPets';
-import AdminRescues from '../views/admin/AdminRescues';
-import AdminLogs from '../views/admin/AdminLogs';
-import AdminConversation from '../views/admin/AdminConversations';
+import AdminDashboard from '../views/admin/Dashboard';
+import AdminUsers from '../views/admin/Users';
+import AdminPets from '../views/admin/Pets';
+import AdminRescues from '../views/admin/Rescues';
+import AdminLogs from '../views/admin/Logs';
+import AdminConversation from '../views/admin/Conversations';
 
 // import LoginForm from '../components/forms/UserLoginForm';
 import EmailVerification from '../views/user/VerifyEmailPage';

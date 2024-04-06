@@ -54,6 +54,7 @@ const GenericFilterForm = ({ filters, onAddClick, canAdd }) => {
 								<Form.Check
 									type='switch'
 									id={filter.id}
+									name={filter.name}
 									label={filter.label}
 									checked={filter.checked}
 									onChange={filter.onChange}
