@@ -1,5 +1,5 @@
 import React from 'react';
-import SwipeContainer from '../../components/layout/SwipeContainer';
+import SwipeContainer from '../swipe/SwipeContainer';
 
 const UserSwiper = () => {
 	return <SwipeContainer ratingSource='User' onModel='Pet' />;
