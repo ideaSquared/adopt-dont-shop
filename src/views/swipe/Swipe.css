@@ -1,11 +1,9 @@
 .swipe-screen {
     height: 100vh;
-    /* Viewport Height */
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
-    /* Prevents the card from touching the edges */
 }
 
 .swipe-card {
@@ -15,22 +13,18 @@
     background-size: cover;
     background-position: center;
     position: relative;
-    /* Add dimensions if you want to fix the size */
     width: 50vw;
-    /* Example width */
-    height: 50vh;
-    /* Adjust based on content or fixed height */
+    height: 75vh;
 }
 
 .swipe-overlay {
-    background: rgba(0, 0, 0, 0.5);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.5);
     color: white;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
     padding: 20px;
-    /* Padding inside the card */
 }
 
 .action-buttons .btn {
@@ -46,4 +40,52 @@
     display: flex;
     justify-content: space-around;
     padding: 10px;
+}
+
+.navigation-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-750%);
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+}
+
+.navigation-button.prev {
+    left: 10px;
+}
+
+.navigation-button.next {
+    right: 10px;
+}
+
+.navigation-button:hover {
+    background: rgba(255, 255, 255, 1);
+    cursor: pointer;
+}
+
+/* Responsive adjustments */
+.swipe-card.detailed-view {
+    overflow-y: auto;
+    /* Enables vertical scrolling if content overflows */
+    max-height: 90vh;
+    /* Limits the card's height to avoid taking up the whole viewport */
+    width: auto;
+    /* Adjust based on your design */
+    margin: 20px;
+    /* Provides some space around the card */
+    padding: 20px;
+    /* Adds padding inside the card for aesthetics */
+}
+
+@media (max-width: 768px) {
+    .swipe-card {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    .navigation-button.prev,
+    .navigation-button.next {
+        top: 50%;
+        transform: translateY(-900%);
+    }
 }

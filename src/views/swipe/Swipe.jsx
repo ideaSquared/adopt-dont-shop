@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Container, Card, Button, Badge } from 'react-bootstrap';
 import './Swipe.css'; // Make sure to update this file with new styles.
 
 const Swipe = ({ item }) => {
+	const [viewDetails, setViewDetails] = useState(false);
+	const toggleViewDetails = () => setViewDetails(!viewDetails);
 	const images = item.images;
 	const basePath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 	const fallbackImage = 'https://placehold.it/500';
