@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Card, Button, Badge, Carousel } from 'react-bootstrap';
+import { Card, Button, Badge } from 'react-bootstrap';
+import { HandThumbsDown, HeartFill, HandThumbsUp } from 'react-bootstrap-icons';
 
 const SwipeLanding = ({ item }) => {
 	const [viewDetails, setViewDetails] = useState(false);
@@ -79,13 +80,13 @@ const SwipeLanding = ({ item }) => {
 								variant='outline-danger'
 								className='rounded-circle dislike'
 							>
-								Dislike
+								<HandThumbsDown /> Dislike
 							</Button>
 							<Button variant='outline-primary' className='rounded-circle love'>
-								Love
+								<HeartFill /> Love
 							</Button>
 							<Button variant='outline-success' className='rounded-circle like'>
-								Like
+								<HandThumbsUp /> Like
 							</Button>
 						</div>
 					</Card.Body>

@@ -9,7 +9,7 @@
 .swipe-card {
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 2px 8px 16px rgba(0, 0, 0, 0.4);
     background-size: cover;
     background-position: center;
     position: relative;
@@ -28,8 +28,8 @@
 }
 
 .action-buttons .btn {
-    width: 75px;
-    height: 75px;
+    width: 74px;
+    height: 74px;
 }
 
 .badge-container {
