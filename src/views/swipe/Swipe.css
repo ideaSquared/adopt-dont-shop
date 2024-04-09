@@ -1,0 +1,49 @@
+.swipe-screen {
+    height: 100vh;
+    /* Viewport Height */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    /* Prevents the card from touching the edges */
+}
+
+.swipe-card {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    /* Add dimensions if you want to fix the size */
+    width: 50vw;
+    /* Example width */
+    height: 50vh;
+    /* Adjust based on content or fixed height */
+}
+
+.swipe-overlay {
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    /* Padding inside the card */
+}
+
+.action-buttons .btn {
+    width: 75px;
+    height: 75px;
+}
+
+.badge-container {
+    padding: 10px;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+}
