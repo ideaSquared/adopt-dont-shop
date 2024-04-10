@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
-import {
-	Modal,
-	Button,
-	Form,
-	Row,
-	Col,
-	Image,
-	Card,
-	Container,
-} from 'react-bootstrap';
-import PetService from '../../services/PetService'; // Adjust the import path as necessary
+import { Modal, Button, Form, Row, Col, Image } from 'react-bootstrap';
+import PetService from '../../services/PetService';
 
 const PetModalForm = ({
 	show,
@@ -17,17 +8,22 @@ const PetModalForm = ({
 	petDetails,
 	setPetDetails,
 	isEditMode,
-	handlePetChange,
 	refreshPets,
 }) => {
 	const [selectedFiles, setSelectedFiles] = useState([]);
 	const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState(null);
-	const [imagesError, setImagesError] = useState(null);
 
-	const handleFileChange = (event) => {
-		setSelectedFiles(Array.from(event.target.files));
+	const handleFileChange = async (event) => {
+		const files = Array.from(event.target.files);
+
+		try {
+			await PetService.uploadPetImages(petDetails._id, files);
+			await refreshPetDetails(); // This assumes refreshPetDetails properly updates petDetails including images
+		} catch (error) {
+			console.error('Error uploading files:', error);
+		}
 	};
 
 	const handleSubmit = async (event) => {
@@ -36,27 +32,31 @@ const PetModalForm = ({
 		setError(null);
 
 		try {
-			const savedPet = await PetService.createOrUpdatePet(
+			// Use the createOrUpdatePet service method for both creating and updating pets
+			const response = await PetService.createOrUpdatePet(
 				petDetails,
 				isEditMode
 			);
 
+			// Assuming the response includes the saved pet details, adjust as needed
+			const savedPet = response.data;
+
 			if (selectedFiles.length > 0) {
-				await PetService.uploadPetImages(savedPet._id, selectedFiles); // Assuming savedPet._id gives the correct ID
+				await PetService.uploadPetImages(savedPet._id, selectedFiles);
 			}
 
-			refreshPets();
-			handleClose();
+			refreshPets(); // Trigger parent component to refresh the pet list
+			handleClose(); // Close the modal form
 		} catch (error) {
 			console.error('Error submitting pet details:', error);
-			setError(error.message);
+			setError('Failed to submit pet details.');
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
-	const renderImagePreviews = () =>
-		selectedFiles.length > 0 ? (
+	const renderImagePreviews = () => {
+		return selectedFiles.length > 0 ? (
 			selectedFiles.map((file, index) => (
 				<div key={index} className='image-preview'>
 					<Image
@@ -70,24 +70,41 @@ const PetModalForm = ({
 		) : (
 			<p>No files selected for upload.</p>
 		);
+	};
 
 	const renderPetImages = () => {
-		if (!petDetails?.images?.length) {
-			return <p>No images available.</p>;
-		}
-
 		return (
-			<Container>
-				<Row xs={1} md={2} lg={4} className='g-4'>
-					{petDetails.images.map((image, index) => (
-						<Col key={index}>
-							<Card>
-								<Card.Img variant='top' src={fileUploadsPath + image} />
-							</Card>
-						</Col>
-					))}
-				</Row>
-			</Container>
+			petDetails?.images?.map((image, index) => (
+				<div
+					key={index}
+					style={{
+						position: 'relative',
+						display: 'inline-block',
+						marginRight: '8px',
+					}}
+				>
+					<Image src={fileUploadsPath + image} thumbnail />
+					<Button
+						onClick={() => handleRemoveImage(index)}
+						style={{
+							position: 'absolute',
+							top: '0',
+							right: '0',
+							backgroundColor: 'red',
+							color: 'white',
+							border: 'none',
+							borderRadius: '50%',
+							cursor: 'pointer',
+							padding: '0 6px',
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+						}}
+					>
+						X
+					</Button>
+				</div>
+			)) || <p>No images available.</p>
 		);
 	};
 
@@ -96,7 +113,7 @@ const PetModalForm = ({
 		setError(null);
 		try {
 			const updatedPetDetails = await PetService.getPetById(petDetails?._id);
-			setPetDetails(updatedPetDetails);
+			setPetDetails(updatedPetDetails.data);
 		} catch (error) {
 			console.error('Error fetching updated pet details:', error);
 			setError('Failed to load updated pet details.');
@@ -105,20 +122,25 @@ const PetModalForm = ({
 		}
 	};
 
-	// Updated handleRemoveImage method to use PetService
 	const handleRemoveImage = async (index) => {
+		// Create a new array without the image at the given index
 		const updatedImages = petDetails.images.filter((_, idx) => idx !== index);
+
+		// Update petDetails with the new images array
 		const updatedPetDetails = { ...petDetails, images: updatedImages };
 
-		setIsLoading(true);
-		setError(null);
-
 		try {
-			await PetService.createOrUpdatePet(updatedPetDetails, true);
-			refreshPetDetails(); // Assuming this method fetches and updates the pet details in the component's state
+			setIsLoading(true);
+			// Assuming createOrUpdatePet updates the pet and returns the updated pet details
+			const updatedPet = await PetService.createOrUpdatePet(
+				updatedPetDetails,
+				true
+			);
+			setPetDetails(updatedPet.data); // Update your state with the returned updated pet details
+			// Optionally refresh the pets list if needed
+			refreshPetDetails();
 		} catch (error) {
 			console.error('Error updating pet details:', error);
-			setError('Failed to update pet details.');
 		} finally {
 			setIsLoading(false);
 		}
@@ -126,7 +148,7 @@ const PetModalForm = ({
 
 	return (
 		<Modal show={show} onHide={handleClose}>
-			<Form onSubmit={handlePetChange}>
+			<Form onSubmit={handleSubmit}>
 				<Modal.Header closeButton>
 					<Modal.Title>{isEditMode ? 'Edit Pet' : 'Add Pet'}</Modal.Title>
 				</Modal.Header>
@@ -135,8 +157,6 @@ const PetModalForm = ({
 					{error && <div className='text-danger'>{error}</div>}
 					{!isLoading && !error && (
 						<>
-							{/* Images Row */}
-
 							<Row className='mb-3'>
 								<Col xs={12}>
 									<Form.Group>
@@ -146,13 +166,11 @@ const PetModalForm = ({
 											{isLoading && <p>Loading images...</p>}
 
 											{/* Display an error message if there was an issue fetching the images */}
-											{imagesError && (
-												<p className='text-danger'>{imagesError}</p>
-											)}
+											{error && <p className='text-danger'>{imagesError}</p>}
 
 											{/* Once loading is complete and if there's no error, check for images */}
 											{!isLoading &&
-												!imagesError &&
+												!error &&
 												(petDetails?.images?.length > 0 ? (
 													renderPetImages()
 												) : (
@@ -173,11 +191,18 @@ const PetModalForm = ({
 											onChange={handleFileChange}
 										/>
 									</Form.Group>
-									{selectedFiles.length > 0 && (
-										<div className='image-previews'>
-											{renderImagePreviews()}
-										</div>
-									)}
+									{/* <div className='image-previews'>
+										{selectedFiles.map((file, index) => (
+											<div key={index} className='image-preview'>
+												<Image
+													src={URL.createObjectURL(file)}
+													alt='preview'
+													className='w-100'
+													fluid
+												/>
+											</div>
+										))}
+									</div> */}
 								</Col>
 							</Row>
 							<Row className='mb-3'>
@@ -189,7 +214,12 @@ const PetModalForm = ({
 											placeholder='Enter pet name'
 											name='petName'
 											value={petDetails?.petName || ''}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({
+													...petDetails,
+													petName: e.target.value,
+												})
+											}
 										/>
 									</Form.Group>
 								</Col>
@@ -197,16 +227,17 @@ const PetModalForm = ({
 									<Form.Group>
 										<Form.Label>Age</Form.Label>
 										<Form.Control
-											type='integer'
+											type='number'
 											placeholder="Enter pet's age"
 											name='age'
 											value={petDetails?.age || ''}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({ ...petDetails, age: e.target.value })
+											}
 										/>
 									</Form.Group>
 								</Col>
 							</Row>
-
 							<Row className='mb-3'>
 								<Col xs={12} md={4}>
 									<Form.Group>
@@ -215,7 +246,9 @@ const PetModalForm = ({
 											as='select'
 											name='gender'
 											value={petDetails?.gender || ''}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({ ...petDetails, gender: e.target.value })
+											}
 										>
 											<option value=''>Select gender...</option>
 											<option value='Male'>Male</option>
@@ -232,7 +265,9 @@ const PetModalForm = ({
 											as='select'
 											name='status'
 											value={petDetails?.status || ''}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({ ...petDetails, status: e.target.value })
+											}
 										>
 											<option value=''>Select pet's status</option>
 											<option value='Available'>Available</option>
@@ -256,13 +291,13 @@ const PetModalForm = ({
 											placeholder="Enter pet's type"
 											name='type'
 											value={petDetails?.type || ''}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({ ...petDetails, type: e.target.value })
+											}
 										/>
 									</Form.Group>
 								</Col>
 							</Row>
-
-							{/* {<!-- Descriptions Row -->} */}
 							<Row className='mb-3'>
 								<Col xs={12}>
 									<Form.Group>
@@ -273,12 +308,16 @@ const PetModalForm = ({
 											placeholder='Enter a short description'
 											name='shortDescription'
 											value={petDetails?.shortDescription || ''}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({
+													...petDetails,
+													shortDescription: e.target.value,
+												})
+											}
 										/>
 									</Form.Group>
 								</Col>
 							</Row>
-
 							<Row className='mb-3'>
 								<Col xs={12}>
 									<Form.Group>
@@ -289,14 +328,16 @@ const PetModalForm = ({
 											placeholder='Enter a detailed description'
 											name='longDescription'
 											value={petDetails?.longDescription || ''}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({
+													...petDetails,
+													longDescription: e.target.value,
+												})
+											}
 										/>
 									</Form.Group>
 								</Col>
 							</Row>
-
-							{/* { <!-- Characteristics -->} */}
-							{/* {<!-- Common Characteristics Row -->} */}
 							<Row className='mb-3'>
 								<Col xs={12} md={4}>
 									<Form.Group>
@@ -304,9 +345,20 @@ const PetModalForm = ({
 										<Form.Control
 											type='text'
 											placeholder="Enter pet's size"
-											name='characteristics.common.size'
+											name='size'
 											value={petDetails?.characteristics?.common?.size || ''}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({
+													...petDetails,
+													characteristics: {
+														...petDetails.characteristics,
+														common: {
+															...petDetails.characteristics.common,
+															size: e.target.value,
+														},
+													},
+												})
+											}
 										/>
 									</Form.Group>
 								</Col>
@@ -316,11 +368,22 @@ const PetModalForm = ({
 										<Form.Control
 											type='text'
 											placeholder="Enter pet's temperament"
-											name='characteristics.common.temperament'
+											name='temperament'
 											value={
 												petDetails?.characteristics?.common?.temperament || ''
 											}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({
+													...petDetails,
+													characteristics: {
+														...petDetails.characteristics,
+														common: {
+															...petDetails.characteristics.common,
+															temperament: e.target.value,
+														},
+													},
+												})
+											}
 										/>
 									</Form.Group>
 								</Col>
@@ -330,62 +393,28 @@ const PetModalForm = ({
 										<Form.Control
 											type='text'
 											placeholder="Enter pet's vaccination status"
-											name='characteristics.common.vaccination_status'
+											name='vaccinationStatus'
 											value={
 												petDetails?.characteristics?.common
 													?.vaccination_status || ''
 											}
-											onChange={handlePetChange}
+											onChange={(e) =>
+												setPetDetails({
+													...petDetails,
+													characteristics: {
+														...petDetails.characteristics,
+														common: {
+															...petDetails.characteristics.common,
+															vaccination_status: e.target.value,
+														},
+													},
+												})
+											}
 										/>
 									</Form.Group>
 								</Col>
 							</Row>
-
-							{/* {<!-- Specific Characteristics Row -->} */}
-							<Row className='mb-3'>
-								<Col xs={12} md={4}>
-									<Form.Group>
-										<Form.Label>Breed</Form.Label>
-										<Form.Control
-											type='text'
-											placeholder="Enter pet's breed"
-											name='characteristics.specific.breed'
-											value={petDetails?.characteristics?.specific?.breed || ''}
-											onChange={handlePetChange}
-										/>
-									</Form.Group>
-								</Col>
-								<Col xs={12} md={4}>
-									<Form.Group>
-										<Form.Label>Activity Level</Form.Label>
-										<Form.Control
-											type='text'
-											placeholder="Enter pet's activity level"
-											name='characteristics.specific.activity_level'
-											value={
-												petDetails?.characteristics?.specific?.activity_level ||
-												''
-											}
-											onChange={handlePetChange}
-										/>
-									</Form.Group>
-								</Col>
-								<Col xs={12} md={4}>
-									<Form.Group>
-										<Form.Label>Intelligence Level</Form.Label>
-										<Form.Control
-											type='text'
-											placeholder="Enter pet's intelligence level"
-											name='characteristics.specific.intelligence_level'
-											value={
-												petDetails?.characteristics?.specific
-													?.intelligence_level || ''
-											}
-											onChange={handlePetChange}
-										/>
-									</Form.Group>
-								</Col>
-							</Row>
+							{/* Add more form groups as needed based on your pet model's requirements */}
 						</>
 					)}
 				</Modal.Body>

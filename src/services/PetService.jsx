@@ -23,7 +23,6 @@ const PetService = {
 			const response = await axios.get(`${API_BASE_URL}/admin/pets`, {
 				withCredentials: true,
 			});
-			console.log(response.data);
 			return response.data;
 		} catch (error) {
 			console.error('Failed to fetch pets:', error);

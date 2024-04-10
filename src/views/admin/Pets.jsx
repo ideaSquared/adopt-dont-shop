@@ -79,7 +79,7 @@ const Pets = () => {
 		}
 	};
 
-	const handleCloseModal = () => {
+	const handleCloseModal = async () => {
 		setShowModal(false);
 		setSelectedPet(null);
 	};
@@ -160,6 +160,7 @@ const Pets = () => {
 					show={showModal}
 					handleClose={handleCloseModal}
 					petDetails={selectedPet}
+					setPetDetails={setSelectedPet}
 					isEditMode={isEditMode}
 					refreshPets={fetchAllPets}
 				/>
