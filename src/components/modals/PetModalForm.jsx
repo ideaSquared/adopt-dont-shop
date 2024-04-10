@@ -9,11 +9,7 @@ import {
 	Card,
 	Container,
 } from 'react-bootstrap';
-import {
-	uploadPetImages,
-	getPetById,
-	createOrUpdatePet,
-} from '../../services/PetService';
+import PetService from '../../services/PetService'; // Adjust the import path as necessary
 
 const PetModalForm = ({
 	show,
@@ -23,47 +19,44 @@ const PetModalForm = ({
 	isEditMode,
 	handlePetChange,
 	refreshPets,
-	createOrUpdatePet,
 }) => {
-	// State for managing selected files
 	const [selectedFiles, setSelectedFiles] = useState([]);
 	const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState(null);
-	const [isLoadingImages, setIsLoadingImages] = useState(false);
 	const [imagesError, setImagesError] = useState(null);
 
-	// Function to handle file input change
-	const handleFileChange = async (event) => {
-		const files = Array.from(event.target.files);
-		if (files.length > 0) {
-			try {
-				await uploadPetImages(petDetails._id, files);
-				await refreshPetDetails();
-			} catch (error) {
-				console.error('Error uploading files:', error);
-			}
-		}
+	const handleFileChange = (event) => {
+		setSelectedFiles(Array.from(event.target.files));
 	};
 
-	// Combined submit handler
 	const handleSubmit = async (event) => {
 		event.preventDefault();
+		setIsLoading(true);
+		setError(null);
+
 		try {
-			const savedPet = await createOrUpdatePet(petDetails, isEditMode);
+			const savedPet = await PetService.createOrUpdatePet(
+				petDetails,
+				isEditMode
+			);
 
 			if (selectedFiles.length > 0) {
-				await uploadPetImages(savedPet.data.data._id, selectedFiles);
+				await PetService.uploadPetImages(savedPet._id, selectedFiles); // Assuming savedPet._id gives the correct ID
 			}
+
 			refreshPets();
 			handleClose();
 		} catch (error) {
 			console.error('Error submitting pet details:', error);
+			setError(error.message);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
-	const renderImagePreviews = () => {
-		return selectedFiles.length > 0 ? (
+	const renderImagePreviews = () =>
+		selectedFiles.length > 0 ? (
 			selectedFiles.map((file, index) => (
 				<div key={index} className='image-preview'>
 					<Image
@@ -77,7 +70,6 @@ const PetModalForm = ({
 		) : (
 			<p>No files selected for upload.</p>
 		);
-	};
 
 	const renderPetImages = () => {
 		if (!petDetails?.images?.length) {
@@ -89,29 +81,8 @@ const PetModalForm = ({
 				<Row xs={1} md={2} lg={4} className='g-4'>
 					{petDetails.images.map((image, index) => (
 						<Col key={index}>
-							<Card className='position-relative'>
+							<Card>
 								<Card.Img variant='top' src={fileUploadsPath + image} />
-								<Button
-									onClick={() => handleRemoveImage(index)}
-									variant='danger'
-									className='position-absolute'
-									style={{
-										top: '0.5rem', // Adjust these values as needed
-										right: '0.5rem', // Adjust these values as needed
-										border: 'none',
-										borderRadius: '50%',
-										padding: '0.25rem 0.5rem', // Adjust padding to change size
-										fontSize: '1rem', // Adjust font size as needed
-										lineHeight: 1,
-										width: '30px', // Adjust width and height to change button size
-										height: '30px',
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-									}}
-								>
-									&times;{' '}
-								</Button>
 							</Card>
 						</Col>
 					))}
@@ -124,8 +95,8 @@ const PetModalForm = ({
 		setIsLoading(true);
 		setError(null);
 		try {
-			const updatedPetDetails = await getPetById(petDetails?._id);
-			setPetDetails(updatedPetDetails.data);
+			const updatedPetDetails = await PetService.getPetById(petDetails?._id);
+			setPetDetails(updatedPetDetails);
 		} catch (error) {
 			console.error('Error fetching updated pet details:', error);
 			setError('Failed to load updated pet details.');
@@ -134,22 +105,20 @@ const PetModalForm = ({
 		}
 	};
 
+	// Updated handleRemoveImage method to use PetService
 	const handleRemoveImage = async (index) => {
-		// Create a new array without the image at the given index
 		const updatedImages = petDetails.images.filter((_, idx) => idx !== index);
-
-		// Update petDetails with the new images array
 		const updatedPetDetails = { ...petDetails, images: updatedImages };
 
+		setIsLoading(true);
+		setError(null);
+
 		try {
-			setIsLoading(true);
-			// Assuming createOrUpdatePet updates the pet and returns the updated pet details
-			const updatedPet = await createOrUpdatePet(updatedPetDetails, true);
-			setPetDetails(updatedPet.data); // Update your state with the returned updated pet details
-			// Optionally refresh the pets list if needed
-			refreshPetDetails();
+			await PetService.createOrUpdatePet(updatedPetDetails, true);
+			refreshPetDetails(); // Assuming this method fetches and updates the pet details in the component's state
 		} catch (error) {
 			console.error('Error updating pet details:', error);
+			setError('Failed to update pet details.');
 		} finally {
 			setIsLoading(false);
 		}
@@ -174,7 +143,7 @@ const PetModalForm = ({
 										<Form.Label>Pet Images</Form.Label>
 										<div className='pet-images-container'>
 											{/* Display a loading indicator when images are being fetched */}
-											{isLoadingImages && <p>Loading images...</p>}
+											{isLoading && <p>Loading images...</p>}
 
 											{/* Display an error message if there was an issue fetching the images */}
 											{imagesError && (
@@ -182,7 +151,7 @@ const PetModalForm = ({
 											)}
 
 											{/* Once loading is complete and if there's no error, check for images */}
-											{!isLoadingImages &&
+											{!isLoading &&
 												!imagesError &&
 												(petDetails?.images?.length > 0 ? (
 													renderPetImages()

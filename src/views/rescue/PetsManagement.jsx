@@ -4,12 +4,7 @@ import PaginationControls from '../../components/common/PaginationControls';
 import PetTable from '../../components/tables/PetsTable';
 import PetModalForm from '../../components/modals/PetModalForm';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';
-import {
-	fetchPets,
-	createOrUpdatePet,
-	deletePet,
-	getPetById,
-} from '../../services/PetService';
+import PetService from '../../services/PetService';
 
 const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 	const [allPets, setAllPets] = useState([]);
@@ -32,7 +27,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 
 	useEffect(() => {
 		if (rescueId) {
-			fetchPets(rescueId)
+			PetService.fetchPets(rescueId)
 				.then((pets) => {
 					// console.log(pets); // Check the structure of the fetched pet objects.
 					setAllPets(pets);
@@ -60,7 +55,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 	}, [rescueId]);
 
 	const refreshPets = () => {
-		fetchPets(rescueId)
+		PetService.fetchPets(rescueId)
 			.then((pets) => {
 				setAllPets(pets);
 				setFilteredPets(pets); // Apply any active filters if necessary
@@ -82,7 +77,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		setEditError(null); // Reset any previous errors
 
 		try {
-			const testPet = await getPetById(pet._id);
+			const testPet = await PetService.getPetById(pet._id);
 			console.log(testPet);
 			setEditingPet(testPet.data); // Update with fetched details
 		} catch (error) {
@@ -153,8 +148,10 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 	// };
 
 	const handlePetDelete = async (petId) => {
-		await deletePet(petId)
-			.then(() => fetchPets(rescueId).then(setAllPets).catch(console.error))
+		await PetService.deletePet(petId)
+			.then(() =>
+				PetService.fetchPets(rescueId).then(setAllPets).catch(console.error)
+			)
 			.catch(console.error);
 	};
 
@@ -236,7 +233,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 				isEditMode={isEditMode}
 				handlePetChange={handlePetChange}
 				refreshPets={refreshPets}
-				createOrUpdatePet={createOrUpdatePet}
+				createOrUpdatePet={PetService.createOrUpdatePet}
 			/>
 		</div>
 	);

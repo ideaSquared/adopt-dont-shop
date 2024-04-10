@@ -1,48 +1,95 @@
 import axios from 'axios';
 
-const apiUrl = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-export const fetchPets = async (rescueId) => {
-	const response = await axios.get(`${apiUrl}/pets/owner/${rescueId}`, {
-		withCredentials: true,
-	});
-	return response.data;
+const PetService = {
+	fetchPets: async (rescueId) => {
+		try {
+			const response = await axios.get(
+				`${API_BASE_URL}/pets/owner/${rescueId}`,
+				{
+					withCredentials: true,
+				}
+			);
+			return response.data;
+		} catch (error) {
+			console.error('Failed to fetch pets:', error);
+			throw error;
+		}
+	},
+
+	fetchAllPets: async () => {
+		try {
+			const response = await axios.get(`${API_BASE_URL}/pets`, {
+				withCredentials: true,
+			});
+			return response.data.data;
+		} catch (error) {
+			console.error('Failed to fetch pets:', error);
+			throw error;
+		}
+	},
+
+	getPetById: async (petId) => {
+		try {
+			const response = await axios.get(`${API_BASE_URL}/pets/${petId}`);
+			return response.data;
+		} catch (error) {
+			console.error('Error fetching pet by ID:', error);
+			throw error;
+		}
+	},
+
+	createOrUpdatePet: async (pet, isEditMode) => {
+		try {
+			const response = isEditMode
+				? await axios.put(`${API_BASE_URL}/pets/${pet._id}`, pet, {
+						withCredentials: true,
+				  })
+				: await axios.post(`${API_BASE_URL}/pets`, pet, {
+						withCredentials: true,
+				  });
+			return response.data;
+		} catch (error) {
+			console.error('Error creating or updating pet:', error);
+			throw error;
+		}
+	},
+
+	deletePet: async (petId) => {
+		try {
+			await axios.delete(`${API_BASE_URL}/pets/${petId}`, {
+				withCredentials: true,
+			});
+		} catch (error) {
+			console.error('Failed to delete pet:', error);
+			throw error;
+		}
+	},
+
+	uploadPetImages: async (petId, images) => {
+		try {
+			const formData = new FormData();
+			images.forEach((image) => {
+				formData.append('images', image);
+			});
+
+			const response = await axios.post(
+				`${API_BASE_URL}/pets/${petId}/images`,
+				formData,
+				{
+					withCredentials: true,
+					headers: {
+						'Content-Type': 'multipart/form-data',
+					},
+				}
+			);
+			return response.data;
+		} catch (error) {
+			console.error('Failed to upload pet images:', error);
+			throw error;
+		}
+	},
 };
 
-export const getPetById = async (petId) => {
-	try {
-		const response = await axios.get(`${apiUrl}/pets/${petId}`);
-		return response.data; // Assuming the API returns the pet details directly
-	} catch (error) {
-		console.error('Error fetching pet by ID:', error);
-		throw error; // Rethrow or handle as needed
-	}
-};
-
-export const createOrUpdatePet = async (pet, isEditMode) => {
-	if (isEditMode) {
-		return axios.put(`${apiUrl}/pets/${pet._id}`, pet, {
-			withCredentials: true,
-		});
-	} else {
-		return axios.post(`${apiUrl}/pets`, pet, { withCredentials: true });
-	}
-};
-
-export const deletePet = async (petId) => {
-	return axios.delete(`${apiUrl}/pets/${petId}`, { withCredentials: true });
-};
-
-export const uploadPetImages = async (petId, images) => {
-	const formData = new FormData();
-	images.forEach((image) => {
-		formData.append('images', image);
-	});
-
-	return axios.post(`${apiUrl}/pets/${petId}/images`, formData, {
-		withCredentials: true,
-		headers: {
-			'Content-Type': 'multipart/form-data',
-		},
-	});
-};
+export default PetService;
