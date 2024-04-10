@@ -153,6 +153,7 @@ const Pets = () => {
 				currentPage={currentPage}
 				totalPages={totalPages}
 				onChangePage={setCurrentPage}
+				isAdmin={true} // Pass true if the user is an admin, derived from your auth logic
 			/>
 			{showModal && (
 				<PetModalForm

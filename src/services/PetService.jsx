@@ -20,10 +20,11 @@ const PetService = {
 
 	fetchAllPets: async () => {
 		try {
-			const response = await axios.get(`${API_BASE_URL}/pets`, {
+			const response = await axios.get(`${API_BASE_URL}/admin/pets`, {
 				withCredentials: true,
 			});
-			return response.data.data;
+			console.log(response.data);
+			return response.data;
 		} catch (error) {
 			console.error('Failed to fetch pets:', error);
 			throw error;

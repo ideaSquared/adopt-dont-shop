@@ -11,17 +11,15 @@ const PetTable = ({
 	currentPage,
 	totalPages,
 	onChangePage,
+	isAdmin,
 }) => {
 	const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 
 	const renderPetImage = (images) => {
 		if (!images || images.length === 0) {
-			// Optionally, you could use a placeholder image URL here
-			return 'No Image'; // Or return a default image like <Image src="path/to/default-image.jpg" alt="Default" fluid />
+			return 'No Image';
 		}
-		// const randomIndex = Math.floor(Math.random() * images.length);
 		const imageUrl = fileUploadsPath + images[0];
-		// Use the Image component with fluid prop for responsive images
 		return <Image src={imageUrl} alt='Image of pet on the same row' fluid />;
 	};
 
@@ -34,6 +32,8 @@ const PetTable = ({
 						<th>Name</th>
 						<th>Type</th>
 						<th>Status</th>
+						{isAdmin && <th>Owner Info</th>}{' '}
+						{/* Conditionally render this column */}
 						<th>Age</th>
 						<th>Actions</th>
 					</tr>
@@ -42,12 +42,14 @@ const PetTable = ({
 					{pets.map((pet) => (
 						<tr key={pet._id}>
 							<td style={{ maxWidth: '120px', overflow: 'hidden' }}>
-								{renderPetImage(pet.images)}
+								{renderPetImage(pet.images || pet.petDetails.images)}
 							</td>
-							<td>{pet.petName}</td>
-							<td>{pet.type}</td>
-							<td>{pet.status}</td>
-							<td>{pet.age}</td>
+							<td>{pet.petName || pet.petDetails.petName}</td>
+							<td>{pet.type || pet.petDetails.type}</td>
+							<td>{pet.status || pet.petDetails.status}</td>
+							{isAdmin && <td>{pet.ownerInfo}</td>}{' '}
+							{/* Conditionally render this cell */}
+							<td>{pet.age || pet.petDetails.age}</td>
 							<td>
 								<Button
 									variant='info'
