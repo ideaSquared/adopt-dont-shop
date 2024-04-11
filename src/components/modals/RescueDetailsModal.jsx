@@ -45,7 +45,7 @@ const RescueDetailsModal = ({
 			<Modal.Footer>
 				<Button variant='secondary' onClick={handleClose}>
 					{' '}
-					// Use handleClose to close the modal Close
+					Close
 				</Button>
 			</Modal.Footer>
 		</Modal>
