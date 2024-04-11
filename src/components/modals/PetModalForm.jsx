@@ -123,24 +123,24 @@ const PetModalForm = ({
 	};
 
 	const handleRemoveImage = async (index) => {
-		// Create a new array without the image at the given index
-		const updatedImages = petDetails.images.filter((_, idx) => idx !== index);
-
-		// Update petDetails with the new images array
-		const updatedPetDetails = { ...petDetails, images: updatedImages };
+		// Extract the filename of the image to be deleted
+		const imageToDelete = petDetails.images[index];
 
 		try {
 			setIsLoading(true);
-			// Assuming createOrUpdatePet updates the pet and returns the updated pet details
-			const updatedPet = await PetService.createOrUpdatePet(
-				updatedPetDetails,
-				true
-			);
-			setPetDetails(updatedPet.data); // Update your state with the returned updated pet details
-			// Optionally refresh the pets list if needed
-			refreshPetDetails();
+
+			// First, call the service to delete the image file and update the database
+			await PetService.deletePetImages(petDetails._id, [imageToDelete]);
+
+			// Then, update the local state to reflect the change immediately for a better user experience
+			const updatedImages = petDetails.images.filter((_, idx) => idx !== index);
+			const updatedPetDetails = { ...petDetails, images: updatedImages };
+			setPetDetails(updatedPetDetails);
+
+			// Optionally, refresh the pet details to ensure the UI is in sync with the backend
+			await refreshPetDetails();
 		} catch (error) {
-			console.error('Error updating pet details:', error);
+			console.error('Error deleting pet image:', error);
 		} finally {
 			setIsLoading(false);
 		}

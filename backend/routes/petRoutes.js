@@ -308,4 +308,69 @@ router.post(
 	}
 );
 
+// Endpoint to delete pet images
+router.delete('/:id/images', authenticateToken, async (req, res) => {
+	const { id } = req.params; // Pet ID
+	const userId = req.user?.userId;
+	const { imagesToDelete } = req.body; // Array of filenames of images to delete
+
+	if (!imagesToDelete || imagesToDelete.length === 0) {
+		return res
+			.status(400)
+			.send({ message: 'No images specified for deletion' });
+	}
+
+	try {
+		const pet = await Pet.findById(id);
+		if (!pet) {
+			return res.status(404).send({ message: 'Pet not found' });
+		}
+
+		// Check permission
+		const hasPermission = await checkPermission(userId, 'edit_pet');
+		if (!hasPermission) {
+			logger.warn(`User ${userId} lacks permission to edit pet with ID: ${id}`);
+			return res
+				.status(403)
+				.send({ message: 'Insufficient permissions to edit pet' });
+		}
+
+		// Filter out the images that are not found in the pet document
+		const imagesToRemove = pet.images.filter((image) =>
+			imagesToDelete.includes(image)
+		);
+
+		// Remove images from filesystem
+		imagesToRemove.forEach((image) => {
+			const imagePath = path.join(__dirname, '../uploads', image);
+			if (fs.existsSync(imagePath)) {
+				fs.unlinkSync(imagePath);
+			}
+		});
+
+		// Update the pet document by removing the images
+		const updatedPet = await Pet.findByIdAndUpdate(
+			id,
+			{ $pull: { images: { $in: imagesToRemove } } },
+			{ new: true }
+		);
+
+		logger.info(`Successfully delete image for pet: ${id} by ${userId}`);
+
+		res.status(200).send({
+			message: 'Images deleted successfully',
+			data: updatedPet,
+		});
+	} catch (error) {
+		logger.error(
+			`Failed to delete images for pet with ID: ${id}: ${error.message}`,
+			{ error }
+		);
+		Sentry.captureException(error);
+		res
+			.status(500)
+			.send({ message: 'Failed to delete images', error: error.message });
+	}
+});
+
 export default router;

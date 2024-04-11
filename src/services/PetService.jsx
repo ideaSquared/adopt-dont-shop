@@ -90,6 +90,22 @@ const PetService = {
 			throw error;
 		}
 	},
+
+	deletePetImages: async (petId, imagesToDelete) => {
+		try {
+			const response = await axios.delete(
+				`${API_BASE_URL}/pets/${petId}/images`,
+				{
+					data: { imagesToDelete }, // Axios expects the request payload in a data property for DELETE requests
+					withCredentials: true,
+				}
+			);
+			return response.data;
+		} catch (error) {
+			console.error('Failed to delete pet images:', error);
+			throw error;
+		}
+	},
 };
 
 export default PetService;
