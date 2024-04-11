@@ -6,7 +6,7 @@ import LogsTable from '../../components/tables/LogsTable';
 import { LogsService } from '../../services/LogService';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';
 
-const AdminLogs = () => {
+const Logs = () => {
 	const [logs, setLogs] = useState([]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [logsPerPage] = useState(10);
@@ -83,4 +83,4 @@ const AdminLogs = () => {
 	);
 };
 
-export default AdminLogs;
+export default Logs;

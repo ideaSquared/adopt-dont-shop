@@ -49,39 +49,42 @@ const rescueStaffSchema = new Schema({
  * This schema represents rescue organizations, including their name, address, type, and staff members,
  * as well as a reference number for additional verification or identification purposes.
  */
-const rescueSchema = new Schema({
-	// The name of the rescue organization. This field is not strictly required.
-	rescueName: {
-		type: String,
-		required: false,
+const rescueSchema = new Schema(
+	{
+		// The name of the rescue organization. This field is not strictly required.
+		rescueName: {
+			type: String,
+			required: false,
+		},
+		// The address of the rescue organization. This field is also not strictly required.
+		rescueAddress: {
+			type: String,
+			required: false,
+		},
+		// The type of rescue organization, which is required and must be one of the predefined values.
+		rescueType: {
+			type: String,
+			enum: ['Individual', 'Charity', 'Company'], // Restricts the type of the rescue to specific categories.
+			required: true,
+		},
+		// An optional reference number for the rescue organization. This could be used for verification or registration purposes.
+		referenceNumber: {
+			type: String,
+			required: false,
+		},
+		// A Boolean indicating whether the rescue's reference number has been verified.
+		referenceNumberVerified: {
+			type: Boolean,
+			default: false, // Defaults to false until the number is verified.
+		},
+		// An array of staff members associated with the rescue, defined by the rescueStaffSchema.
+		staff: {
+			type: [rescueStaffSchema], // Allows for multiple staff members to be associated with a single rescue.
+			default: [], // Defaults to an empty array if no staff members are specified.
+		},
 	},
-	// The address of the rescue organization. This field is also not strictly required.
-	rescueAddress: {
-		type: String,
-		required: false,
-	},
-	// The type of rescue organization, which is required and must be one of the predefined values.
-	rescueType: {
-		type: String,
-		enum: ['Individual', 'Charity', 'Company'], // Restricts the type of the rescue to specific categories.
-		required: true,
-	},
-	// An optional reference number for the rescue organization. This could be used for verification or registration purposes.
-	referenceNumber: {
-		type: String,
-		required: false,
-	},
-	// A Boolean indicating whether the rescue's reference number has been verified.
-	referenceNumberVerified: {
-		type: Boolean,
-		default: false, // Defaults to false until the number is verified.
-	},
-	// An array of staff members associated with the rescue, defined by the rescueStaffSchema.
-	staff: {
-		type: [rescueStaffSchema], // Allows for multiple staff members to be associated with a single rescue.
-		default: [], // Defaults to an empty array if no staff members are specified.
-	},
-});
+	{ timestamps: true }
+);
 
 // Export the Rescue model, making it available for CRUD operations and queries.
 // This model will interact with the 'rescues' collection in MongoDB.

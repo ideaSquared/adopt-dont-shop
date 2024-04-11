@@ -8,7 +8,7 @@ import GenericFilterForm from '../../components/forms/GenericFilterForm';
 import ConversationsTable from '../../components/tables/ConversationsTable';
 import ConversationDetailsModal from '../../components/modals/ConversationDetailsModal';
 
-const AdminConversations = () => {
+const Conversations = () => {
 	useAdminRedirect();
 
 	const [conversations, setConversations] = useState([]);
@@ -138,4 +138,4 @@ const AdminConversations = () => {
 	);
 };
 
-export default AdminConversations;
+export default Conversations;

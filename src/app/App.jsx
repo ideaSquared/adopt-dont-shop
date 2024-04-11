@@ -4,12 +4,13 @@ import './App.css';
 import CustomNavbar from '../components/layout/Navbar';
 import HomePage from '../views/HomePage';
 
-import AdminDashboard from '../views/admin/Dashboard';
-import AdminUsers from '../views/admin/Users';
-import AdminPets from '../views/admin/Pets';
-import AdminRescues from '../views/admin/Rescues';
-import AdminLogs from '../views/admin/Logs';
-import AdminConversation from '../views/admin/Conversations';
+// import Dashboard from '../views/admin/Dashboard';
+// import AdminDashboard from '../views/admin/Dashboard';
+// import AdminUsers from '../views/admin/Users';
+// import AdminPets from '../views/admin/Pets';
+// import AdminRescues from '../views/admin/Rescues';
+// import AdminLogs from '../views/admin/Logs';
+// import AdminConversation from '../views/admin/Conversations';
 
 // import LoginForm from '../components/forms/UserLoginForm';
 import EmailVerification from '../views/user/VerifyEmailPage';
@@ -33,6 +34,7 @@ import CreateRescueAccountPage from '../views/user/CreateRescueAccountPage';
 import RescueProfile from '../views/rescue/RescueProfile';
 import Conversations from '../views/user/Conversations';
 import UserSwiper from '../views/user/UserSwiper';
+import AdminLanding from '../views/admin/Landing';
 
 function App() {
 	return (
@@ -49,12 +51,12 @@ function App() {
 				<Route path='/forgot-password' element={<ForgotPasswordPage />} />
 				<Route path='/reset-password' element={<ResetPasswordPage />} />
 				<Route path='/my-profile' element={<UserProfilePage />} />
-				<Route path='/admin' element={<AdminDashboard />} />
-				<Route path='/admin/users' element={<AdminUsers />} />
+				<Route path='/admin' element={<AdminLanding />} />
+				{/* <Route path='/admin/users' element={<AdminUsers />} />
 				<Route path='/admin/pets' element={<AdminPets />} />
 				<Route path='/admin/rescues' element={<AdminRescues />} />
 				<Route path='/admin/logs' element={<AdminLogs />} />
-				<Route path='/admin/conversations' element={<AdminConversation />} />
+				<Route path='/admin/conversations' element={<AdminConversation />} /> */}
 				{/* <Route path='/select-action' element={<PetActionSelection />} /> */}
 				{/* <Route path='/select-account-type' element={<AccountTypeSelection />} /> */}
 				{/* <Route path='/charity-form' element={<CharityForm />} /> */}

@@ -6,6 +6,7 @@ import Conversation from '../models/Conversation.js';
 import Rescue from '../models/Rescue.js';
 import Pet from '../models/Pet.js';
 import Message from '../models/Message.js';
+import Rating from '../models/Rating.js';
 import authenticateToken from '../middleware/authenticateToken.js'; // Middleware to check if the request is authenticated.
 import checkAdmin from '../middleware/checkAdmin.js'; // Middleware to check if the authenticated user is an admin.
 import nodemailer from 'nodemailer'; // Imported but not used in this snippet. Potentially for sending emails (e.g., password reset instructions).
@@ -512,6 +513,129 @@ router.delete(
 		}
 	}
 );
+
+// Endpoint to get statistics
+router.get('/stats', async (req, res) => {
+	try {
+		const fromDate = new Date(req.query.from);
+		const toDate = new Date(req.query.to);
+
+		const groupByWeek = {
+			$group: {
+				_id: { $isoWeek: '$createdAt' },
+				count: { $sum: 1 },
+			},
+		};
+
+		const project = {
+			$project: {
+				_id: 0,
+				week: '$_id',
+				count: 1,
+			},
+		};
+
+		const sort = {
+			$sort: { week: 1 },
+		};
+
+		const userStats = await User.aggregate([
+			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
+			groupByWeek,
+			project,
+			sort,
+		]);
+		const rescueStats = await Rescue.aggregate([
+			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
+			groupByWeek,
+			project,
+			sort,
+		]);
+		const petStats = await Pet.aggregate([
+			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
+			groupByWeek,
+			project,
+			sort,
+		]);
+		const conversationStats = await Conversation.aggregate([
+			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
+			groupByWeek,
+			project,
+			sort,
+		]);
+		const messageStats = await Message.aggregate([
+			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
+			groupByWeek,
+			project,
+			sort,
+		]);
+		const ratingStats = await Rating.aggregate([
+			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
+			groupByWeek,
+			project,
+			sort,
+		]);
+
+		res.json({
+			userStats,
+			rescueStats,
+			petStats,
+			conversationStats,
+			messageStats,
+			ratingStats,
+		});
+	} catch (error) {
+		console.error('Error fetching stats:', error);
+		res.status(500).json({ message: error.message });
+	}
+});
+
+// Temporary endpoint to update createdAt and updatedAt fields randomly
+// NOTE: Doesn't work for createdAt - but does update updatedAt
+// router.post(
+// 	'/update-timestamps',
+// 	authenticateToken,
+// 	checkAdmin,
+// 	async (req, res) => {
+// 		if (process.env.NODE_ENV !== 'development') {
+// 			return res.status(403).json({
+// 				message:
+// 					'Forbidden: This operation is not allowed in the production environment.',
+// 			});
+// 		}
+
+// 		const collections = [User, Conversation, Rescue, Pet, Message, Rating];
+// 		const now = new Date();
+
+// 		try {
+// 			for (const collection of collections) {
+// 				const docs = await collection.find({});
+// 				await Promise.all(
+// 					docs.map((doc) => {
+// 						const createdAt =
+// 							doc.createdAt ||
+// 							new Date(now.getTime() - Math.random() * 12096e5); // Set random createdAt if not present
+// 						return collection.updateOne(
+// 							{ _id: doc._id },
+// 							{
+// 								$setOnInsert: { createdAt },
+// 								$set: { updatedAt: now },
+// 							},
+// 							{ upsert: true } // This is crucial if the document didn't originally have createdAt
+// 						);
+// 					})
+// 				);
+// 			}
+// 			res.json({
+// 				message: 'Timestamps updated successfully for all documents.',
+// 			});
+// 		} catch (error) {
+// 			logger.error(`Failed to update timestamps: ${error.message}`);
+// 			Sentry.captureException(error);
+// 			res.status(500).json({ message: 'Failed to update timestamps.' });
+// 		}
+// 	}
+// );
 
 // Export the router to make these routes available to the rest of the application.
 export default router;

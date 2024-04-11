@@ -6,7 +6,7 @@ import UserService from '../../services/UserService';
 import { useAdminRedirect } from '../../hooks/useAdminRedirect';
 import { useAuth } from '../../contexts/AuthContext';
 
-const AdminUsers = () => {
+const Users = () => {
 	const { authState } = useAuth();
 	useAdminRedirect();
 	const [users, setUsers] = useState([]);
@@ -140,4 +140,4 @@ const AdminUsers = () => {
 	);
 };
 
-export default AdminUsers;
+export default Users;
