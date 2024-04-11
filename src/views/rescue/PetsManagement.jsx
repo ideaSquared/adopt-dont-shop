@@ -78,7 +78,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 
 		try {
 			const testPet = await PetService.getPetById(pet._id);
-			console.log(testPet);
+			// console.log(testPet);
 			setEditingPet(testPet.data); // Update with fetched details
 		} catch (error) {
 			console.error('Failed to fetch pet details:', error);

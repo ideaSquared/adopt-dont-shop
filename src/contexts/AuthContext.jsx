@@ -108,7 +108,7 @@ const useProvideAuth = () => {
 		try {
 			const response = await AuthService.login(email, password);
 
-			console.log('RESPONSE: ', response);
+			// console.log('RESPONSE: ', response);
 
 			if (response.status === 200) {
 				setAuthState((prevState) => {

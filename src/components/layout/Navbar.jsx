@@ -9,7 +9,7 @@ const CustomNavbar = () => {
 	const { authState } = useAuth();
 	const handleLogout = useLogout();
 
-	console.log(authState);
+	// console.log(authState);
 
 	return (
 		<Navbar bg='light' expand='lg' className='bg-body-tertiary rounded'>

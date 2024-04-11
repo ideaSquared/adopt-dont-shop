@@ -90,7 +90,7 @@ const Users = () => {
 	const handleFilterFlagChange = (e) => {
 		const { name, checked } = e.target;
 
-		console.log('FILTER ', name, checked);
+		// console.log('FILTER ', name, checked);
 
 		setFilterFlags((prevFlags) => ({
 			...prevFlags,
