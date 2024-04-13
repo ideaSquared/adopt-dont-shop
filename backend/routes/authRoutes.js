@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'; // For hashing passwords.
 import jwt from 'jsonwebtoken'; // For creating JSON Web Tokens.
 import User from '../models/User.js'; // User model for interacting with the database.
 import Rescue from '../models/Rescue.js';
+import { pool } from '../dbConnection.js';
 // Middleware for authentication and admin checks.
 import authenticateToken from '../middleware/authenticateToken.js';
 import checkAdmin from '../middleware/checkAdmin.js';
@@ -44,25 +45,33 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			const { email, password, firstName } = req.body;
 			try {
 				// Check if user already exists.
-				const existingUser = await User.findOne({ email });
-				if (existingUser) {
+				const existingUserQuery = 'SELECT user_id FROM users WHERE email = $1';
+				const existingUser = await pool.query(existingUserQuery, [email]);
+				if (existingUser.rowCount > 0) {
 					logger.warn(`Error existing user: ${email}`);
 					return res.status(409).json({
 						message: 'User already exists - please try login or reset password',
 					});
 				}
+
 				// Hash the password and create a new user.
 				const hashedPassword = await bcrypt.hash(password, 12);
 				const verificationToken = await generateResetToken(); // Token generation
 
-				const user = await User.create({
+				const insertUserQuery = `
+        INSERT INTO users (email, password, first_name, email_verified, verification_token)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING user_id;
+      `;
+				const newUser = await pool.query(insertUserQuery, [
 					email,
-					password: hashedPassword,
+					hashedPassword,
 					firstName,
-					emailVerified: false,
+					false,
 					verificationToken,
-				});
-				logger.info(`New user registered: ${user._id}`);
+				]);
+				const userId = newUser.rows[0].user_id;
+				logger.info(`New user registered: ${userId}`);
 
 				const FRONTEND_BASE_URL =
 					process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
@@ -71,7 +80,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				await sendEmailVerificationEmail(email, verificationURL);
 				logger.info(`Verification email sent to: ${email}`);
 
-				res.status(201).json({ message: 'User created!', userId: user._id });
+				res.status(201).json({ message: 'User created!', userId });
 			} catch (error) {
 				logger.error(`Error creating user: ${error}`);
 				Sentry.captureException(error);
@@ -84,20 +93,20 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		const { token } = req.query;
 		const logger = new LoggerUtil('auth-service').getLogger();
 		try {
-			const user = await User.findOne({
-				verificationToken: token,
-				emailVerified: false,
-			});
-			if (!user) {
+			const userQuery =
+				'SELECT * FROM users WHERE verification_token = $1 AND email_verified = FALSE';
+			const userResult = await pool.query(userQuery, [token]);
+			if (userResult.rowCount === 0) {
 				logger.warn(`Invalid or expired email verification token: ${token}`);
 				return res.status(400).json({ message: 'Invalid or expired token' });
 			}
 
-			user.emailVerified = true;
-			user.verificationToken = undefined; // Clear the verification token
-			await user.save();
+			const user = userResult.rows[0];
+			const updateUserQuery =
+				'UPDATE users SET email_verified = TRUE, verification_token = NULL WHERE user_id = $1';
+			await pool.query(updateUserQuery, [user.user_id]);
 
-			logger.info(`Email verified for user: ${user._id}`);
+			logger.info(`Email verified for user: ${user.user_id}`);
 			res.status(200).json({ message: 'Email verified successfully' });
 		} catch (error) {
 			logger.error(`Error verifying email: ${error}`);
@@ -117,14 +126,16 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		const { email, password } = req.body;
 		try {
 			// Check if the user exists
-			const user = await User.findOne({ email });
-			if (!user) {
+			const userQuery = 'SELECT * FROM users WHERE email = $1';
+			const userResult = await pool.query(userQuery, [email]);
+			if (userResult.rowCount === 0) {
 				logger.info(`Login attempt failed: No user found with email ${email}`);
 				return res.status(401).json({
 					message: 'Email does not exist or password is not correct.',
 				});
 			}
 
+			const user = userResult.rows[0];
 			// Check if the password is correct
 			if (!(await bcrypt.compare(password, user.password))) {
 				logger.info(`Login attempt failed: Invalid credentials for ${email}`);
@@ -134,7 +145,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			}
 
 			// Check if the user's email is verified
-			if (!user.emailVerified) {
+			if (!user.email_verified) {
 				logger.info(`Login attempt failed: Email not verified for ${email}`);
 				return res.status(403).json({
 					message:
@@ -142,7 +153,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				});
 			}
 
-			if (user.resetTokenForceFlag) {
+			if (user.reset_token_force_flag) {
 				logger.warn(`Reset password required for: ${email}`);
 				await handlePasswordReset(user);
 				return res.status(403).json({
@@ -153,18 +164,18 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 
 			// Generate a token and send it as a HttpOnly cookie
 			const token = jwt.sign(
-				{ userId: user._id, isAdmin: user.isAdmin },
+				{ userId: user.user_id, isAdmin: user.is_admin },
 				process.env.SECRET_KEY,
 				{ expiresIn: '1h' }
 			);
-			logger.info(`User logged in: ${user._id}`);
+			logger.info(`User logged in: ${user.user_id}`);
 			res.cookie('token', token, {
 				httpOnly: true,
 				secure: process.env.NODE_ENV === 'production',
 				sameSite: 'strict',
 				maxAge: 3600000,
 			});
-			res.status(200).json({ userId: user._id, isAdmin: user.isAdmin });
+			res.status(200).json({ userId: user.user_id, isAdmin: user.is_admin });
 		} catch (error) {
 			logger.error(`Error logging in user: ${error}`);
 			Sentry.captureException(error);
@@ -179,16 +190,19 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		}
 
 		// Fetch additional user details if necessary
-		const userDetails = await User.findById(req.user.userId).select(
-			'-password'
-		);
-		if (!userDetails) {
+		const userDetailsQuery =
+			'SELECT user_id, is_admin FROM users WHERE user_id = $1';
+		const userDetailsResult = await pool.query(userDetailsQuery, [
+			req.user.userId,
+		]);
+		if (userDetailsResult.rowCount === 0) {
 			return res.status(404).json({ message: 'User not found.' });
 		}
 
+		const userDetails = userDetailsResult.rows[0];
 		res.status(200).json({
-			userId: userDetails._id,
-			isAdmin: userDetails.isAdmin,
+			userId: userDetails.user_id,
+			isAdmin: userDetails.is_admin,
 		});
 	});
 
@@ -209,28 +223,43 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			logger.info(`Updating user details for userId: ${userId}`); // Log the start of the process
 
 			try {
-				const user = await User.findById(userId);
-				if (!user) {
+				const userQuery = 'SELECT * FROM users WHERE user_id = $1';
+				const userResult = await pool.query(userQuery, [userId]);
+				if (userResult.rowCount === 0) {
 					logger.warn(`User not found for userId: ${userId}`); // Log when user is not found
 					return res.status(404).json({ message: 'User not found.' });
 				}
 
 				// Log the fields that are being updated
 				let fieldsUpdated = [];
+				const updates = [];
+				const updateValues = [];
 				if (firstName) {
-					user.firstName = firstName;
+					updates.push('first_name = $' + (updates.length + 2));
+					updateValues.push(firstName);
 					fieldsUpdated.push('firstName');
 				}
 				if (email) {
-					user.email = email;
+					updates.push('email = $' + (updates.length + 2));
+					updateValues.push(email);
 					fieldsUpdated.push('email');
 				}
 				if (password) {
 					const hashedPassword = await bcrypt.hash(password, 12);
-					user.password = hashedPassword;
+					updates.push('password = $' + (updates.length + 2));
+					updateValues.push(hashedPassword);
 					fieldsUpdated.push('password');
 				}
-				await user.save();
+
+				if (updates.length > 0) {
+					const updateUserQuery = `
+          UPDATE users
+          SET ${updates.join(', ')}
+          WHERE user_id = $1
+          RETURNING *;
+        `;
+					await pool.query(updateUserQuery, [userId, ...updateValues]);
+				}
 
 				// Log successful update, including which fields were updated
 				logger.info(
@@ -257,17 +286,20 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		logger.info(`Fetching user details for userId: ${userId}`); // Log the start of the process
 
 		try {
-			const user = await User.findById(userId).select('-password'); // Exclude password from the result
-			if (!user) {
+			const userQuery =
+				'SELECT user_id, email, first_name FROM users WHERE user_id = $1';
+			const userResult = await pool.query(userQuery, [userId]);
+			if (userResult.rowCount === 0) {
 				logger.warn(`User not found for userId: ${userId}`); // Log when user is not found
 				return res.status(404).json({ message: 'User not found.' });
 			}
 
+			const user = userResult.rows[0];
 			// Prepare the data to be returned
 			const userDetails = {
-				userId: user._id,
+				userId: user.user_id,
 				email: user.email,
-				firstName: user.firstName,
+				firstName: user.first_name,
 			};
 
 			logger.info(`User details fetched successfully for userId: ${userId}`);
@@ -298,14 +330,16 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			logger.info(`Password reset requested for email: ${email}`); // Log the initiation of a password reset request
 
 			try {
-				const user = await User.findOne({ email });
-				if (!user) {
+				const userQuery = 'SELECT * FROM users WHERE email = $1';
+				const userResult = await pool.query(userQuery, [email]);
+				if (userResult.rowCount === 0) {
 					logger.warn(
 						`Password reset failed: User not found for email: ${email}`
 					); // Log when user is not found
 					return res.status(404).json({ message: 'User not found.' });
 				}
 
+				const user = userResult.rows[0];
 				await handlePasswordReset(user);
 
 				res.status(200).json({
@@ -339,12 +373,13 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			logger.info(`Password reset process initiated with token: ${token}`);
 
 			try {
-				const user = await User.findOne({
-					resetToken: token,
-					resetTokenExpiration: { $gt: Date.now() },
-				});
+				const userQuery = `
+        SELECT * FROM users 
+        WHERE reset_token = $1 AND reset_token_expiration > NOW()
+      `;
+				const userResult = await pool.query(userQuery, [token]);
 
-				if (!user) {
+				if (userResult.rowCount === 0) {
 					// Log when the token is invalid or has expired
 					logger.warn(
 						`Password reset failed: Token is invalid or has expired. Token: ${token}`
@@ -354,18 +389,19 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 						.json({ message: 'Token is invalid or has expired.' });
 				}
 
+				const user = userResult.rows[0];
+
 				// Hash new password and update user document
 				const hashedPassword = await bcrypt.hash(newPassword, 12);
-				user.password = hashedPassword;
-				user.resetToken = undefined;
-				user.resetTokenExpiration = undefined;
-				if (user.resetTokenForceFlag) {
-					user.resetTokenForceFlag = undefined;
-				}
-				await user.save();
+				const updateQuery = `
+        UPDATE users 
+        SET password = $1, reset_token = NULL, reset_token_expiration = NULL, reset_token_force_flag = NULL
+        WHERE user_id = $2
+      `;
+				await pool.query(updateQuery, [hashedPassword, user.user_id]);
 
 				// Log successful password reset
-				logger.info(`Password successfully reset for user: ${user._id}`);
+				logger.info(`Password successfully reset for user: ${user.user_id}`);
 				res.status(200).json({ message: 'Password has been reset.' });
 			} catch (error) {
 				// Log any exceptions that occur during the password reset process
@@ -400,7 +436,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 
 	/**
 	 * Route handler for checking the user's authentication status. Requires authentication.
-	 * Verifies the user's authentication and returns their login status, user ID, and admin status.
+	 * Verifies the user's authentication and returns their login status, user user_id, and admin status.
 	 * Responds with a 200 status code and the authentication status.
 	 * On failure, such as if the user is not found, responds with an appropriate error message and status code.
 	 */
@@ -412,8 +448,9 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				`Checking authentication status for userId: ${req.user.userId}`
 			);
 
-			const user = await User.findById(req.user.userId);
-			if (!user) {
+			const userQuery = 'SELECT is_admin FROM users WHERE user_id = $1';
+			const userResult = await pool.query(userQuery, [req.user.userId]);
+			if (userResult.rowCount === 0) {
 				// Log if the user is not found
 				logger.warn(
 					`User not found during authentication status check for userId: ${req.user.userId}`
@@ -421,10 +458,12 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				return res.status(404).json({ message: 'User not found.' });
 			}
 
+			const user = userResult.rows[0];
+
 			res.status(200).json({
 				isLoggedIn: true,
 				userId: req.user.userId,
-				isAdmin: user.isAdmin,
+				isAdmin: user.is_admin,
 			});
 
 			// Log the successful authentication status check
@@ -449,11 +488,15 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		try {
 			// Find a rescue where the user is listed as a staff member
 			// Ensure your Rescue schema includes an array of staff objects with a userId field
-			const rescue = await Rescue.findOne({ 'staff.userId': userId }).populate({
-				path: 'staff.userId', // Path to the field you want to populate.
-				select: 'email', // Field(s) you want from the populated documents, in this case, just the email.
-			});
-			if (!rescue) {
+			const rescueQuery = `
+            SELECT r.*, u.email AS staff_email
+            FROM rescues r
+            JOIN rescue_staff rs ON rs.rescue_id = r.user_id
+            JOIN users u ON u.user_id = rs.user_id
+            WHERE rs.user_id = $1
+        `;
+			const rescueResult = await pool.query(rescueQuery, [userId]);
+			if (rescueResult.rowCount === 0) {
 				logger.warn(
 					`User ${userId} is not a staff member of any rescue organization`
 				);
@@ -462,17 +505,22 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				});
 			}
 
+			const rescue = rescueResult.rows[0];
+
 			logger.info(
 				`Rescue organization fetched successfully for user ${userId}`
 			);
 			const responseData = {
-				id: rescue.id,
-				rescueName: rescue.rescueName,
-				rescueAddress: rescue.rescueAddress,
-				rescueType: rescue.rescueType,
-				referenceNumber: rescue.referenceNumber,
-				referenceNumberVerified: rescue.referenceNumberVerified,
-				staff: rescue.staff, // Consider filtering or restructuring this data based on your needs
+				user_id: rescue.rescue_id,
+				rescueName: rescue.rescue_name,
+				rescueAddress: rescue.rescue_address,
+				rescueType: rescue.rescue_type,
+				referenceNumber: rescue.reference_number,
+				referenceNumberVerified: rescue.reference_number_verified,
+				staff: rescueResult.rows.map((row) => ({
+					userId: userId,
+					email: row.staff_email,
+				})), // Consider filtering or restructuring this data based on your needs
 			};
 
 			res.json(responseData);
@@ -493,13 +541,16 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		logger.info(`Fetching permissions for userId: ${userId}`); // Log the operation
 
 		try {
-			// Query the Rescue collection to find a document where this user is listed as staff
+			// Query the database to find a document where this user is listed as staff
 			// and directly project the staff member's permissions to optimize the query.
-			const rescue = await Rescue.findOne(
-				{ 'staff.userId': userId },
-				{ 'staff.$': 1 }
-			);
-			if (!rescue) {
+			const permissionsQuery = `
+            SELECT s.permissions
+            FROM rescues r
+            JOIN rescue_staff s ON r.rescue_id = s.rescue_id
+            WHERE s.user_id = $1
+        `;
+			const permissionsResult = await pool.query(permissionsQuery, [userId]);
+			if (permissionsResult.rowCount === 0) {
 				logger.warn(
 					`User ${userId} is not a staff member of any rescue organization`
 				);
@@ -508,17 +559,8 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				});
 			}
 
-			// Extract the permissions from the staff member's data
-			const userStaffInfo = rescue.staff.find(
-				(staff) => staff.userId.toString() === userId
-			);
-			if (!userStaffInfo) {
-				return res
-					.status(404)
-					.json({ message: 'Staff member information not found.' });
-			}
-
-			const permissions = userStaffInfo.permissions || [];
+			// Assuming that permissions are stored in a JSONB or array format in PostgreSQL
+			const permissions = permissionsResult.rows.map((row) => row.permissions);
 
 			logger.info(`Permissions fetched successfully for userId: ${userId}`);
 			res.status(200).json({ permissions });

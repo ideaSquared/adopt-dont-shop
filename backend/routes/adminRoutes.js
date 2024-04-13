@@ -7,6 +7,7 @@ import Rescue from '../models/Rescue.js';
 import Pet from '../models/Pet.js';
 import Message from '../models/Message.js';
 import Rating from '../models/Rating.js';
+import { pool } from '../dbConnection.js';
 import authenticateToken from '../middleware/authenticateToken.js'; // Middleware to check if the request is authenticated.
 import checkAdmin from '../middleware/checkAdmin.js'; // Middleware to check if the authenticated user is an admin.
 import nodemailer from 'nodemailer'; // Imported but not used in this snippet. Potentially for sending emails (e.g., password reset instructions).
@@ -29,8 +30,8 @@ const router = express.Router();
  */
 router.get('/users', authenticateToken, checkAdmin, async (req, res) => {
 	try {
-		const users = await User.find({});
-		res.json(users);
+		const result = await pool.query('SELECT * FROM users');
+		res.json(result.rows);
 		logger.info('Fetched all users successfully');
 	} catch (err) {
 		Sentry.captureException(err);
@@ -52,24 +53,22 @@ router.delete(
 	authenticateToken,
 	checkAdmin,
 	async (req, res) => {
+		const { id } = req.params;
 		try {
-			// Extract the user ID from the request parameters.
-			const { id } = req.params;
-			// Attempt to delete the user by their ID.
-			const deletedUser = await User.findByIdAndDelete(id);
-			if (!deletedUser) {
-				// Respond with a 404 error if the user is not found.
+			const result = await pool.query(
+				'DELETE FROM users WHERE user_id = $1 RETURNING *',
+				[id]
+			);
+			if (result.rows.length === 0) {
 				logger.info(`Delete User: User with ID ${id} not found.`);
 				return res.status(404).json({ message: 'User not found.' });
 			}
-			// Respond to confirm the user has been deleted.
 			logger.info(`Delete User: User with ID ${id} deleted successfully.`);
 			res.json({ message: 'User deleted successfully.' });
 		} catch (err) {
-			// Log and respond with an error if deletion fails.
-			Sentry.captureException(err); // Log the error to Sentry
+			Sentry.captureException(err);
 			logger.error(
-				`Delete User: Failed to delete user with ID ${req.params.id}. Error: ${err.message}`
+				`Delete User: Failed to delete user with ID ${id}. Error: ${err.message}`
 			);
 			res.status(500).json({ message: 'Failed to delete user.' });
 		}
@@ -88,22 +87,33 @@ router.post(
 	authenticateToken,
 	checkAdmin,
 	async (req, res) => {
+		const { id } = req.params;
 		try {
-			// Assuming this is where you check if the user exists and set the resetTokenForceFlag
-			const user = await User.findOne({ _id: req.params.id }); // Find the user by ID
-
-			if (!user) {
-				// If the user doesn't exist, respond with a 404 error.
+			// Check if the user exists
+			const result = await pool.query(
+				'SELECT * FROM users WHERE user_id = $1',
+				[id]
+			);
+			if (result.rowCount === 0) {
 				return res.status(404).json({ message: 'User not found.' });
 			}
 
-			// Assuming this is where you set the resetTokenForceFlag for the user
-			user.resetTokenForceFlag = true; // Set the flag to true
-			await user.save(); // Save the user document with the updated flag
+			// Assuming the database has a column `reset_token_force_flag` to indicate reset requirement
+			const updateResult = await pool.query(
+				'UPDATE users SET reset_token_force_flag = TRUE WHERE user_id = $1 RETURNING *',
+				[id]
+			);
+
+			if (updateResult.rowCount === 0) {
+				// If no rows were updated, respond accordingly
+				return res
+					.status(404)
+					.json({ message: 'Failed to update user for password reset.' });
+			}
 
 			// Respond to confirm the forced password reset flag has been set.
 			logger.info(
-				`Reset Password: Forced password reset flag for user with ID ${req.params.id} set to true successfully.`
+				`Reset Password: Forced password reset flag for user with ID ${id} set to true successfully.`
 			);
 			res.json({
 				message: 'Password reset required.',
@@ -112,7 +122,7 @@ router.post(
 			// Log and respond with an error if setting the forced password reset flag fails.
 			Sentry.captureException(err); // Log the error to Sentry
 			logger.error(
-				`Reset Password: Failed to set forced password reset flag for user with ID ${req.params.id}. Error: ${err.message}`
+				`Reset Password: Failed to set forced password reset flag for user with ID ${id}. Error: ${err.message}`
 			);
 			res.status(500).json({ message: 'Failed to enforce password reset.' });
 		}
@@ -126,27 +136,28 @@ router.get(
 	checkAdmin,
 	async (req, res) => {
 		try {
-			// Fetch all conversations without filtering by participantId or participantType
-			const conversations = await Conversation.find({})
-				.populate({
-					path: 'participants.participantId',
-					select: 'email rescueName -_id', // assuming you want names and excluding _id in selection
-				})
-				// Populate the startedBy field
-				.populate({
-					path: 'startedBy',
-					select: 'email -_id', // Selects email, excluding _id
-				})
-				// Populate the lastMessageBy field
-				.populate({
-					path: 'lastMessageBy',
-					select: 'email -_id', // Selects email, excluding _id
-				})
-				.exec();
+			// Perform SQL JOIN to fetch all related data
+			const query = `
+        SELECT 
+          c.*, 
+          array_agg(DISTINCT u.email) AS participant_emails, 
+          s.email AS started_by_email, 
+          m.email AS last_message_by_email
+        FROM 
+          conversations c
+          LEFT JOIN conversation_participants p ON c.conversation_id = p.conversation_id
+          LEFT JOIN users u ON u.user_id = p.user_id
+          LEFT JOIN users s ON s.conversation_id = c.started_by
+          LEFT JOIN users m ON m.conversation_id = c.last_message_by
+        GROUP BY 
+          c.conversation_id, s.email, m.email
+      `;
+
+			const { rows } = await pool.query(query);
 
 			// Log message indicating all conversations have been fetched
 			logger.info('Fetched all conversations');
-			res.json(conversations);
+			res.json(rows);
 		} catch (error) {
 			logger.error(`Error fetching conversations: ${error.message}`);
 			Sentry.captureException(error);
@@ -161,20 +172,25 @@ router.get(
 	authenticateToken,
 	checkAdmin,
 	async (req, res) => {
-		const { conversationId } = req.params; // Extracting conversationId from URL parameters
+		const { conversationId } = req.params;
 		try {
-			const messages = await Message.find({
-				conversationId: conversationId,
-			}).populate({
-				path: 'senderId',
-				select: 'email', // Assuming you want to fetch the email of the sender
-			});
+			const query = `
+        SELECT 
+          m.*, 
+          u.email AS sender_email
+        FROM 
+          messages m
+          JOIN users u ON u.user_id = m.sender_id
+        WHERE 
+          m.conversation_id = $1
+      `;
+			const { rows } = await pool.query(query, [conversationId]);
 
 			logger.info(`Fetched all messages for ${conversationId}.`);
-			res.json(messages);
+			res.json(rows);
 		} catch (error) {
 			logger.error(
-				`Error fetching all messages for ${conversationId}:  ${error.message}`
+				`Error fetching all messages for ${conversationId}: ${error.message}`
 			);
 			Sentry.captureException(error);
 			res.status(500).json({ message: error.message });
@@ -183,15 +199,17 @@ router.get(
 );
 
 router.delete(
-	'/conversations/:id', // :id is a route parameter that allows us to capture the ID of the conversation to delete
+	'/conversations/:id',
 	authenticateToken,
 	checkAdmin,
 	async (req, res) => {
+		const { id } = req.params;
 		try {
-			const id = req.params.id; // Extract the ID from the request parameters
-			const result = await Conversation.findByIdAndDelete(id); // Use Mongoose's findByIdAndDelete method to remove the conversation
+			const query =
+				'DELETE FROM conversations WHERE conversation_id = $1 RETURNING *';
+			const result = await pool.query(query, [id]);
 
-			if (result) {
+			if (result.rowCount > 0) {
 				logger.info(`Deleted conversation with ID: ${id}`);
 				res.json({ message: 'Conversation deleted successfully' });
 			} else {
@@ -208,52 +226,36 @@ router.delete(
 
 router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 	try {
-		const rescues = await Rescue.aggregate([
-			{
-				$lookup: {
-					from: 'users',
-					localField: 'staff.userId',
-					foreignField: '_id',
-					as: 'staffDetails',
-				},
-			},
-			{
-				$project: {
-					_id: 1,
-					rescueName: 1,
-					rescueType: 1,
-					staff: {
-						$map: {
-							input: '$staff',
-							as: 'staffItem',
-							in: {
-								$mergeObjects: [
-									'$$staffItem',
-									{
-										userDetails: {
-											$arrayElemAt: [
-												{
-													$filter: {
-														input: '$staffDetails',
-														as: 'detail',
-														cond: {
-															$eq: ['$$detail._id', '$$staffItem.userId'],
-														},
-													},
-												},
-												0,
-											],
-										},
-									},
-								],
-							},
-						},
-					},
-				},
-			},
-		]);
+		const query = `
+      SELECT 
+        r.rescue_id,
+        r.rescue_name AS "rescueName",
+        r.rescue_type AS "rescueType",
+        json_agg(json_build_object('userId', rs.user_id, 'userDetails', json_build_object('email', u.email))) AS staff
+      FROM 
+        rescues r
+      LEFT JOIN rescue_staff rs ON r.rescue_id = rs.rescue_id
+      LEFT JOIN users u ON u.user_id = rs.user_id
+      GROUP BY r.rescue_id
+    `;
 
-		// No need for an additional map to handle the userDetails since it's now handled within the aggregation pipeline.
+		const { rows } = await pool.query(query);
+
+		// Processing the rows to match the desired JSON structure
+		const rescues = rows.map((row) => ({
+			_id: row.rescue_id,
+			rescueName: row.rescueName,
+			rescueType: row.rescueType,
+			staff: row.staff.map((staffMember) => ({
+				...staffMember,
+				userDetails: staffMember.userDetails
+					? {
+							email: staffMember.userDetails.email,
+					  }
+					: {},
+			})),
+		}));
+
 		logger.info('All rescues fetched successfully.');
 		res.json(rescues);
 	} catch (error) {
@@ -265,69 +267,46 @@ router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 		});
 	}
 });
-
 router.get('/rescues/:id', authenticateToken, checkAdmin, async (req, res) => {
 	const { id } = req.params;
-
 	try {
-		const rescue = await Rescue.aggregate([
-			{
-				$match: {
-					_id: generateObjectId(id), // Ensure to match the specific document by its ID
-				},
-			},
-			{
-				$lookup: {
-					from: 'users',
-					localField: 'staff.userId',
-					foreignField: '_id',
-					as: 'staffDetails',
-				},
-			},
-			{
-				$project: {
-					_id: 1,
-					rescueName: 1,
-					rescueType: 1,
-					staff: {
-						$map: {
-							input: '$staff',
-							as: 'staffItem',
-							in: {
-								$mergeObjects: [
-									'$$staffItem',
-									{
-										userDetails: {
-											$arrayElemAt: [
-												{
-													$filter: {
-														input: '$staffDetails',
-														as: 'detail',
-														cond: {
-															$eq: ['$$detail._id', '$$staffItem.userId'],
-														},
-													},
-												},
-												0,
-											],
-										},
-									},
-								],
-							},
-						},
-					},
-				},
-			},
-		]);
+		const query = `
+      SELECT 
+        r.rescue_id,
+        r.rescue_name AS "rescueName",
+        r.rescue_type AS "rescueType",
+        json_agg(json_build_object('userId', rs.user_id, 'userDetails', json_build_object('email', u.email))) AS staff
+      FROM 
+        rescues r
+      LEFT JOIN rescue_staff rs ON r.rescue_id = rs.rescue_id
+      LEFT JOIN users u ON u.user_id = rs.user_id
+      WHERE r.rescue_id = $1
+      GROUP BY r.rescue_id
+    `;
+		const { rows } = await pool.query(query, [id]);
 
-		if (rescue.length === 0) {
+		if (rows.length === 0) {
 			return res.status(404).send({
 				message: 'Rescue not found',
 			});
 		}
 
-		logger.info(`Rescue fetched successfully for ${rescue[0].rescueName}.`);
-		res.json(rescue[0]); // Since findById is expected to return a single document
+		const rescue = rows.map((row) => ({
+			_id: row.rescue_id,
+			rescueName: row.rescueName,
+			rescueType: row.rescueType,
+			staff: row.staff.map((staffMember) => ({
+				...staffMember,
+				userDetails: staffMember.userDetails
+					? {
+							email: staffMember.userDetails.email,
+					  }
+					: {},
+			})),
+		}))[0];
+
+		logger.info(`Rescue fetched successfully for ${rescue.rescueName}.`);
+		res.json(rescue);
 	} catch (error) {
 		Sentry.captureException(error);
 		logger.error('Failed to fetch rescue: ' + error.message);
@@ -339,15 +318,16 @@ router.get('/rescues/:id', authenticateToken, checkAdmin, async (req, res) => {
 });
 
 router.delete(
-	'/rescues/:id', // :id is a route parameter that allows us to capture the ID of the rescue to delete
+	'/rescues/:id',
 	authenticateToken,
 	checkAdmin,
 	async (req, res) => {
+		const { id } = req.params;
 		try {
-			const id = req.params.id; // Extract the ID from the request parameters
-			const result = await Rescue.findByIdAndDelete(id); // Use Mongoose's findByIdAndDelete method to remove the rescue
+			const query = 'DELETE FROM rescues WHERE rescue_id = $1 RETURNING *';
+			const result = await pool.query(query, [id]);
 
-			if (result) {
+			if (result.rowCount > 0) {
 				logger.info(`Deleted rescue with ID: ${id}`);
 				res.json({ message: 'Rescue deleted successfully' });
 			} else {
@@ -361,54 +341,24 @@ router.delete(
 		}
 	}
 );
-
-// Get all pet records
 router.get('/pets', authenticateToken, checkAdmin, async (req, res) => {
 	try {
+		const query = `
+      SELECT 
+        p.*,
+        CASE
+          WHEN r.rescue_name IS NOT NULL THEN r.rescue_name
+          ELSE u.email
+        END AS owner_info
+      FROM 
+        pets p
+      LEFT JOIN rescues r ON p.owner_id = r.rescue_id
+      LEFT JOIN users u ON p.owner_id = u.user_id
+    `;
+		const { rows } = await pool.query(query);
 		logger.info('Fetching all pets');
-
-		const pets = await Pet.aggregate([
-			{
-				$lookup: {
-					from: 'rescues', // The collection to join.
-					localField: 'ownerId', // The field from the pets collection.
-					foreignField: '_id', // The field from the rescues collection.
-					as: 'rescueInfo', // The array to put the joined documents in.
-				},
-			},
-			{
-				$lookup: {
-					from: 'users', // The collection to join.
-					localField: 'ownerId', // The field from the pets collection.
-					foreignField: '_id', // The field from the users collection.
-					as: 'userInfo', // The array to put the joined documents in.
-				},
-			},
-			{
-				$project: {
-					petDetails: '$$ROOT',
-					ownerInfo: {
-						$cond: {
-							if: {
-								$and: [
-									{ $gt: [{ $size: '$rescueInfo' }, 0] }, // Checks if rescueInfo is not empty
-									{
-										$ifNull: [
-											{ $arrayElemAt: ['$rescueInfo.rescueName', 0] },
-											false,
-										],
-									}, // Checks if rescueName is not null
-								],
-							},
-							then: { $arrayElemAt: ['$rescueInfo.rescueName', 0] }, // Uses the rescueName if conditions are met
-							else: { $arrayElemAt: ['$userInfo.email', 0] }, // Falls back to userInfo.email otherwise
-						},
-					},
-				},
-			},
-		]);
-		logger.info(`Successfully fetched all pets. Count: ${pets.length}`);
-		res.json(pets);
+		res.json(rows);
+		logger.info(`Successfully fetched all pets. Count: ${rows.length}`);
 	} catch (error) {
 		logger.error(`Failed to fetch pets: ${error.message}`, { error });
 		Sentry.captureException(error);
@@ -420,21 +370,20 @@ router.get('/pets', authenticateToken, checkAdmin, async (req, res) => {
 });
 
 router.get('/pets/:id', authenticateToken, checkAdmin, async (req, res) => {
+	const { id } = req.params;
 	try {
-		const { id } = req.params;
-		logger.info(`Fetching pet with ID: ${id}`);
-		const pet = await Pet.findById(id);
-		if (!pet) {
+		const query = 'SELECT * FROM pets WHERE pet_id = $1';
+		const { rows } = await pool.query(query, [id]);
+		if (rows.length === 0) {
 			logger.warn(`Pet not found with ID: ${id}`);
 			return res.status(404).send({ message: 'Pet not found' });
 		}
 		logger.info(`Successfully fetched pet with ID: ${id}`);
-		res.json(pet);
+		res.json(rows[0]);
 	} catch (error) {
-		logger.error(
-			`Failed to fetch pet with ID: ${req.params.id}: ${error.message}`,
-			{ error }
-		);
+		logger.error(`Failed to fetch pet with ID: ${id}: ${error.message}`, {
+			error,
+		});
 		Sentry.captureException(error);
 		res.status(500).send({
 			message: 'Failed to fetch pet',
@@ -443,64 +392,59 @@ router.get('/pets/:id', authenticateToken, checkAdmin, async (req, res) => {
 	}
 });
 
-router.delete(
-	'/pets/:id', // :id is a route parameter for capturing the ID of the pet to delete
-	authenticateToken,
-	checkAdmin,
-	async (req, res) => {
-		try {
-			const id = req.params.id; // Extract the ID from the request parameters
-			const result = await Pet.findByIdAndDelete(id); // Use Mongoose's findByIdAndDelete method to remove the pet
-
-			if (result) {
-				logger.info(`Deleted pet with ID: ${id}`);
-				res.json({ message: 'Pet deleted successfully' });
-			} else {
-				logger.warn(`Pet with ID: ${id} not found`);
-				res.status(404).json({ message: 'Pet not found' });
-			}
-		} catch (error) {
-			logger.error(`Error deleting pet: ${error.message}`);
-			Sentry.captureException(error);
-			res.status(500).json({ message: error.message });
+router.delete('/pets/:id', authenticateToken, checkAdmin, async (req, res) => {
+	const { id } = req.params;
+	try {
+		const query = 'DELETE FROM pets WHERE pet_id = $1 RETURNING *';
+		const result = await pool.query(query, [id]);
+		if (result.rowCount > 0) {
+			logger.info(`Deleted pet with ID: ${id}`);
+			res.json({ message: 'Pet deleted successfully' });
+		} else {
+			logger.warn(`Pet with ID: ${id} not found`);
+			res.status(404).json({ message: 'Pet not found' });
 		}
+	} catch (error) {
+		logger.error(`Error deleting pet: ${error.message}`);
+		Sentry.captureException(error);
+		res.status(500).json({ message: error.message });
 	}
-);
-
+});
 router.delete(
 	'/rescues/:rescueId/staff/:staffId',
 	authenticateToken,
 	checkAdmin,
 	async (req, res) => {
 		const { rescueId, staffId } = req.params;
-
 		try {
-			// Find the rescue organization from which to delete the staff member
-			const rescue = await Rescue.findById(rescueId);
-			if (!rescue) {
+			// Check if the rescue exists
+			const rescueCheck = await pool.query(
+				'SELECT 1 FROM rescues WHERE rescue_id = $1',
+				[rescueId]
+			);
+			if (rescueCheck.rowCount === 0) {
 				logger.warn(`Rescue with ID ${rescueId} not found.`);
 				return res.status(404).send({ message: 'Rescue not found.' });
 			}
 
-			// Check if the staff member exists within the rescue organization
-			const staffIndex = rescue.staff.findIndex(
-				(member) => member.userId.toString() === staffId
-			);
-			if (staffIndex === -1) {
+			// Delete the staff member from the rescue organization
+			const deleteQuery = `
+        DELETE FROM rescue_staff 
+        WHERE rescue_id = $1 AND staff_id = $2
+        RETURNING *;
+      `;
+			const result = await pool.query(deleteQuery, [rescueId, staffId]);
+			if (result.rowCount > 0) {
+				logger.info(
+					`Staff member with ID ${staffId} deleted from rescue ${rescueId} successfully.`
+				);
+				res.send({ message: 'Staff member deleted successfully.' });
+			} else {
 				logger.warn(
 					`Staff member with ID ${staffId} not found in rescue ${rescueId}.`
 				);
 				return res.status(404).send({ message: 'Staff member not found.' });
 			}
-
-			// Remove the staff member from the rescue organization
-			rescue.staff.splice(staffIndex, 1);
-			await rescue.save();
-
-			logger.info(
-				`Staff member with ID ${staffId} deleted from rescue ${rescueId} successfully.`
-			);
-			res.send({ message: 'Staff member deleted successfully.' });
 		} catch (error) {
 			Sentry.captureException(error);
 			logger.error(
@@ -514,75 +458,45 @@ router.delete(
 	}
 );
 
-// Endpoint to get statistics
 router.get('/stats', async (req, res) => {
 	try {
-		const fromDate = new Date(req.query.from);
-		const toDate = new Date(req.query.to);
+		const fromDate = req.query.from;
+		const toDate = req.query.to;
+		const query = `
+      SELECT 
+        extract(week from created_at) AS week, 
+        count(*) 
+      FROM 
+        (SELECT created_at FROM users WHERE created_at BETWEEN $1 AND $2
+         UNION ALL
+         SELECT created_at FROM rescues WHERE created_at BETWEEN $1 AND $2
+         UNION ALL
+         SELECT created_at FROM pets WHERE created_at BETWEEN $1 AND $2
+         UNION ALL
+         SELECT created_at FROM conversations WHERE created_at BETWEEN $1 AND $2
+         UNION ALL
+         SELECT created_at FROM messages WHERE created_at BETWEEN $1 AND $2
+         UNION ALL
+         SELECT created_at FROM ratings WHERE created_at BETWEEN $1 AND $2) AS stats
+      GROUP BY 
+        week
+      ORDER BY 
+        week;
+    `;
+		const { rows } = await pool.query(query, [fromDate, toDate]);
 
-		const groupByWeek = {
-			$group: {
-				_id: { $isoWeek: '$createdAt' },
-				count: { $sum: 1 },
-			},
-		};
-
-		const project = {
-			$project: {
-				_id: 0,
-				week: '$_id',
-				count: 1,
-			},
-		};
-
-		const sort = {
-			$sort: { week: 1 },
-		};
-
-		const userStats = await User.aggregate([
-			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
-			groupByWeek,
-			project,
-			sort,
-		]);
-		const rescueStats = await Rescue.aggregate([
-			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
-			groupByWeek,
-			project,
-			sort,
-		]);
-		const petStats = await Pet.aggregate([
-			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
-			groupByWeek,
-			project,
-			sort,
-		]);
-		const conversationStats = await Conversation.aggregate([
-			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
-			groupByWeek,
-			project,
-			sort,
-		]);
-		const messageStats = await Message.aggregate([
-			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
-			groupByWeek,
-			project,
-			sort,
-		]);
-		const ratingStats = await Rating.aggregate([
-			{ $match: { createdAt: { $gte: fromDate, $lte: toDate } } },
-			groupByWeek,
-			project,
-			sort,
-		]);
+		const stats = rows.reduce((acc, row) => {
+			acc[row.week] = (acc[row.week] || 0) + parseInt(row.count, 10);
+			return acc;
+		}, {});
 
 		res.json({
-			userStats,
-			rescueStats,
-			petStats,
-			conversationStats,
-			messageStats,
-			ratingStats,
+			userStats: stats,
+			rescueStats: stats,
+			petStats: stats,
+			conversationStats: stats,
+			messageStats: stats,
+			ratingStats: stats,
 		});
 	} catch (error) {
 		console.error('Error fetching stats:', error);

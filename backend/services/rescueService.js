@@ -1,4 +1,4 @@
-import Rescue from '../models/Rescue.js'; // Adjust the path to your actual model file
+import { pool } from '../dbConnection.js';
 
 /**
  * Asynchronously checks the uniqueness of a reference number within the Rescue collection.
@@ -23,12 +23,21 @@ import Rescue from '../models/Rescue.js'; // Adjust the path to your actual mode
  */
 
 const isReferenceNumberUnique = async (referenceNumber) => {
-	const existingDocument = await Rescue.findOne({
-		referenceNumber,
-	}).exec();
-	return !existingDocument;
-};
+	try {
+		// Query the PostgreSQL database to check if the reference number exists
+		const result = await pool.query(
+			'SELECT * FROM rescues WHERE reference_number = $1',
+			[referenceNumber]
+		);
 
+		// If no rows are returned, the reference number is unique
+		return result.rows.length === 0;
+	} catch (error) {
+		// Handle any errors
+		console.error('Error checking reference number uniqueness:', error);
+		return false;
+	}
+};
 const rescueService = {
 	isReferenceNumberUnique,
 };

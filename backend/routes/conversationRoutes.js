@@ -2,6 +2,7 @@ import express from 'express';
 // Import the Conversation and Message models you defined earlier.
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
+import { pool } from '../dbConnection.js';
 import Sentry from '@sentry/node'; // Error tracking utility.
 import authenticateToken from '../middleware/authenticateToken.js';
 import Rescue from '../models/Rescue.js';
@@ -24,18 +25,27 @@ async function checkParticipant(req, res, next) {
 	const conversationId = req.params.conversationId;
 
 	try {
-		const conversation = await Conversation.findById(conversationId);
-		if (!conversation) {
+		const conversationQuery = `
+            SELECT * FROM conversations WHERE conversation_id = $1
+        `;
+		const conversationResult = await pool.query(conversationQuery, [
+			conversationId,
+		]);
+		if (conversationResult.rowCount === 0) {
 			logger.warn(`Conversation not found for ID: ${conversationId}`);
 			return res.status(404).json({ message: 'Conversation not found' });
 		}
 
 		// Check if the user is a participant of the conversation
-		const isParticipant = conversation.participants.some(
-			(participant) => participant.toString() === userId.toString()
-		);
-
-		if (!isParticipant) {
+		const participantQuery = `
+            SELECT 1 FROM participants 
+            WHERE conversation_id = $1 AND user_id = $2
+        `;
+		const participantResult = await pool.query(participantQuery, [
+			conversationId,
+			userId,
+		]);
+		if (participantResult.rowCount === 0) {
 			logger.warn(
 				`User ${userId} is not a participant in conversation ${conversationId}`
 			);
@@ -78,21 +88,62 @@ router.post(
 		}
 
 		try {
-			const newConversation = await Conversation.create({
-				participants,
-				startedBy: req.user.userId,
-				startedAt: new Date(),
-				status: 'active',
-				unreadMessages: 0,
-				messagesCount: 0,
-				petId: petId,
-				lastMessage: '',
-				lastMessageAt: new Date(),
-				lastMessageBy: req.user.userId,
-			});
+			const client = await pool.connect(); // Start a database transaction
+			try {
+				await client.query('BEGIN');
 
-			logger.info(`New conversation created with ID: ${newConversation._id}`);
-			res.status(201).json(newConversation);
+				const newConversationQuery = `
+                    INSERT INTO conversations (started_by, started_at, status, unread_messages, messages_count, pet_id, last_message, last_message_at, last_message_by)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    RETURNING conversation_id;
+                `;
+				const values = [
+					req.user.userId,
+					new Date(),
+					'active',
+					0,
+					0,
+					petId,
+					'',
+					new Date(),
+					req.user.userId,
+				];
+				const newConversationResult = await client.query(
+					newConversationQuery,
+					values
+				);
+				const conversationId = newConversationResult.rows[0].conversation_id;
+
+				const participantValues = participants.map((userId) => [
+					conversationId,
+					userId,
+				]);
+				const participantQuery = format(
+					`
+                    INSERT INTO participants (conversation_id, user_id)
+                    VALUES %L
+                `,
+					participantValues
+				);
+				await client.query(participantQuery); // Batch insert participants
+
+				await client.query('COMMIT');
+
+				logger.info(`New conversation created with ID: ${conversationId}`);
+				res.status(201).json({
+					id: conversationId,
+					startedBy: req.user.userId,
+					participants,
+					startedAt: values[1],
+					status: values[2],
+					petId,
+				});
+			} catch (error) {
+				await client.query('ROLLBACK');
+				throw error;
+			} finally {
+				client.release();
+			}
 		} catch (error) {
 			logger.error(`Error creating conversation: ${error.message}`);
 			Sentry.captureException(error);
@@ -105,47 +156,48 @@ router.post(
 // Get all conversations for a user
 router.get('/', authenticateToken, async (req, res) => {
 	try {
-		let rescue;
-		let query = {};
+		let rescueId;
+		let query;
 
 		// Check if the request is specifically for 'Rescue' conversations
 		if (req.query.type === 'Rescue') {
-			rescue = await Rescue.findOne({ 'staff.userId': req.user.userId });
-			if (!rescue) {
+			const rescueQuery = `
+                SELECT rescue_id FROM rescues 
+                JOIN rescue_staff ON rescues.rescue_id = rescue_staff.rescue_id
+                WHERE rescue_staff.user_id = $1
+            `;
+			const rescueResult = await pool.query(rescueQuery, [req.user.userId]);
+			if (rescueResult.rowCount === 0) {
 				return res
 					.status(404)
 					.json({ message: 'Rescue organization not found for the user.' });
 			}
+			rescueId = rescueResult.rows[0].rescue_id;
 
-			query = {
-				'participants.participantId': rescue._id,
-				'participants.participantType': 'Rescue',
-			};
+			query = `
+                SELECT * FROM conversations
+                JOIN participants ON conversations.conversation_id = participants.conversation_id
+                WHERE participants.participant_id = $1 AND participants.participant_type = 'Rescue'
+            `;
 		} else {
-			query = {
-				'participants.participantId': req.user.userId,
-				'participants.participantType': 'User',
-			};
+			query = `
+                SELECT * FROM conversations
+                JOIN participants ON conversations.conversation_id = participants.conversation_id
+                WHERE participants.participant_id = $1 AND participants.participant_type = 'User'
+            `;
 		}
 
-		const conversations = await Conversation.find(query)
-			.populate({
-				path: 'participants.participantId',
-				select: 'rescueName firstName -_id', // assuming you want names and excluding _id in selection
-			})
-			.populate({
-				path: 'petId',
-				select: 'petName shortDescription images',
-				populate: {
-					path: 'images', // Path to the images array to populate each referenced document
-					select: 'url description -_id', // Example fields you might want from each image, adjust as needed
-				},
-			})
-			.exec();
+		const conversationsResult = await pool.query(query, [
+			rescueId || req.user.userId,
+		]);
+		const conversations = conversationsResult.rows;
+
+		// Additional data fetching for participants and pets if required can be added here
+		// This part will need manual data assembly in application logic if deep population is required as in Mongoose
 
 		const logMessage =
 			req.query.type === 'Rescue'
-				? `Fetched all conversations for rescue organization with ID ${rescue._id}`
+				? `Fetched all conversations for rescue organization with ID ${rescueId}`
 				: 'Fetched all conversations for user';
 		logger.info(logMessage);
 		res.json(conversations);
@@ -163,11 +215,17 @@ router.get(
 	checkParticipant,
 	async (req, res) => {
 		try {
-			const conversationId = req.params.conversationId; // This should be a string from the URL params.
-			const conversation = await Conversation.findById(conversationId); // Assuming findById can handle string input directly.
+			const conversationId = req.params.conversationId;
+			const query = 'SELECT * FROM conversations WHERE conversation_id = $1';
+			const result = await pool.query(query, [conversationId]);
+			if (result.rowCount === 0) {
+				logger.error(`Conversation not found with ID: ${conversationId}`);
+				return res.status(404).json({ message: 'Conversation not found' });
+			}
+			const conversation = result.rows[0];
 
-			logger.info(`Fetched conversation with ID: ${conversation._id}`);
-			res.json(conversation); // Send the conversation as a response
+			logger.info(`Fetched conversation with ID: ${conversationId}`);
+			res.json(conversation);
 		} catch (error) {
 			logger.error(`Error fetching specific conversation: ${error.message}`);
 			Sentry.captureException(error);
@@ -214,8 +272,16 @@ router.get(
 // Delete a conversation
 router.delete('/:conversationId', authenticateToken, async (req, res) => {
 	try {
-		await Conversation.findByIdAndDelete(req.params.conversationId);
-		logger.info(`Deleted conversation with ID: ${req.params.conversationId}`);
+		const conversationId = req.params.conversationId;
+		const deleteQuery = 'DELETE FROM conversations WHERE conversation_id = $1';
+		const result = await pool.query(deleteQuery, [conversationId]);
+		if (result.rowCount === 0) {
+			logger.warn(
+				`No conversation found with ID: ${conversationId} to delete.`
+			);
+			return res.status(404).json({ message: 'Conversation not found' });
+		}
+		logger.info(`Deleted conversation with ID: ${conversationId}`);
 		res.status(204).end();
 	} catch (error) {
 		logger.error(`Error deleting conversation: ${error.message}`);
@@ -241,48 +307,73 @@ router.post(
 		}
 
 		try {
-			// Create a new message document in the database.
-			const newMessage = await Message.create({
-				conversationId,
-				senderId: userId,
-				messageText,
-				sentAt: currentDateTime,
-				status: 'sent',
-			});
+			// Start a transaction for message creation and conversation update
+			const client = await pool.connect();
+			try {
+				await client.query('BEGIN');
 
-			// Log the successful creation of a new message.
-			logger.info(
-				`New message created in conversation ID: ${conversationId} by user ID: ${userId}`
-			);
+				// Create a new message document in the database.
+				const newMessageQuery = `
+                    INSERT INTO messages (conversation_id, sender_id, message_text, sent_at, status)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING *;
+                `;
+				const messageValues = [
+					conversationId,
+					userId,
+					messageText,
+					currentDateTime,
+					'sent',
+				];
+				const newMessageResult = await client.query(
+					newMessageQuery,
+					messageValues
+				);
+				const newMessage = newMessageResult.rows[0];
 
-			// Update the corresponding conversation document.
-			const updatedConversation = await Conversation.findByIdAndUpdate(
-				conversationId,
-				{
-					$set: {
-						lastMessage: messageText,
-						lastMessageAt: currentDateTime,
-						lastMessageBy: userId,
-					},
-					$inc: {
-						unreadMessages: 1,
-						messagesCount: 1,
-					},
-				},
-				{ new: true } // Return the updated document.
-			);
+				// Log the successful creation of a new message.
+				logger.info(
+					`New message created in conversation ID: ${conversationId} by user ID: ${userId}`
+				);
 
-			logger.info(
-				`Conversation updated in conversation ID: ${conversationId} by user ID: ${userId}`
-			);
+				// Update the corresponding conversation document.
+				const updateConversationQuery = `
+                    UPDATE conversations
+                    SET last_message = $1, last_message_at = $2, last_message_by = $3, 
+                        unread_messages = unread_messages + 1, messages_count = messages_count + 1
+                    WHERE conversation_id = $4
+                    RETURNING *;
+                `;
+				const updateValues = [
+					messageText,
+					currentDateTime,
+					userId,
+					conversationId,
+				];
+				const updatedConversationResult = await client.query(
+					updateConversationQuery,
+					updateValues
+				);
 
-			// Check if the conversation update was successful.
-			if (!updatedConversation) {
-				return res.status(404).json({ message: 'Conversation not found' });
+				if (updatedConversationResult.rowCount === 0) {
+					await client.query('ROLLBACK');
+					return res.status(404).json({ message: 'Conversation not found' });
+				}
+
+				// Log the successful update of the conversation.
+				logger.info(
+					`Conversation updated in conversation ID: ${conversationId} by user ID: ${userId}`
+				);
+
+				await client.query('COMMIT');
+				// Respond with the newly created message.
+				res.status(201).json(newMessage);
+			} catch (error) {
+				await client.query('ROLLBACK');
+				throw error;
+			} finally {
+				client.release();
 			}
-
-			// Respond with the newly created message.
-			res.status(201).json(newMessage);
 		} catch (error) {
 			logger.error(`Error creating message in conversation: ${error.message}`);
 			Sentry.captureException(error);
@@ -294,34 +385,31 @@ router.post(
 // Get all messages in a conversation
 router.get('/messages/:conversationId', authenticateToken, async (req, res) => {
 	try {
-		const messages = await Message.find({
-			conversationId: req.params.conversationId,
-		}).populate({
-			path: 'senderId', // Assuming senderId is a reference to the User model
-			select: 'rescueName firstName -_id', // Fetch the firstName field along with the _id
-		});
+		const conversationId = req.params.conversationId;
 
-		logger.info(
-			`Fetched all messages for conversation ID: ${req.params.conversationId}`
-		);
+		// Assuming you have a join table or a way to identify messages and senders,
+		// This query will fetch messages and join them with the user's details (rescueName, firstName)
+		const messagesQuery = `
+            SELECT 
+                m.*, 
+                u.first_name AS sender_name,
+                u.user_id AS sender_id
+            FROM 
+                messages m
+            JOIN 
+                users u ON m.sender_id = u.user_id
+            WHERE 
+                m.conversation_id = $1;
+        `;
+		const messagesResult = await pool.query(messagesQuery, [conversationId]);
 
-		const modifiedMessages = messages.map((message) => {
-			const messageObj = message.toObject();
+		logger.info(`Fetched all messages for conversation ID: ${conversationId}`);
 
-			// Modify the messageObj to include senderName and keep senderId
-			if (messageObj.senderId) {
-				// Include senderName for ease of display
-				messageObj.senderName = messageObj.senderId.firstName;
-				// Keep senderId in the response
-				messageObj.senderId = messageObj.senderId._id; // This ensures senderId is just the ID, not the populated object
-			} else {
-				// Handle the case where senderId could not be populated
-				messageObj.senderName = 'Unknown Sender';
-				messageObj.senderId = null; // Explicitly set senderId to null if not available
-			}
-
-			return messageObj;
-		});
+		const modifiedMessages = messagesResult.rows.map((message) => ({
+			...message,
+			senderName: message.sender_name || 'Unknown Sender',
+			senderId: message.sender_id || null,
+		}));
 
 		res.json(modifiedMessages);
 	} catch (error) {
@@ -336,56 +424,62 @@ router.put(
 	'/messages/read/:conversationId',
 	authenticateToken,
 	async (req, res) => {
-		const { userId } = req.user; // Assuming userType is added to req.user
+		const userId = req.user.userId; // Assuming userId is added to req.user
 		const { userType } = req.body;
-		const { conversationId } = req.params;
+		const conversationId = req.params.conversationId;
 
 		try {
 			logger.info(
 				`Attempting to mark messages as read for conversationId: ${conversationId} by userId: ${userId}`
 			);
 
-			let query = {
-				conversationId,
-				status: 'sent',
-			};
+			let query = `
+                UPDATE messages 
+                SET status = 'read', read_at = NOW()
+                WHERE conversation_id = $1 AND status = 'sent'
+            `;
 
 			if (userType === 'User') {
-				query.senderId = { $ne: userId };
+				query += ` AND sender_id != $2`;
 			} else if (userType === 'Rescue') {
 				// Fetch participants to identify users
-				const conversation = await Conversation.findById(conversationId);
-				const userParticipants = conversation.participants
-					.filter((p) => p.participantType === 'User')
-					.map((p) => p.participantId);
+				const participantQuery = `
+                    SELECT user_id FROM participants
+                    WHERE conversation_id = $1 AND participant_type = 'User'
+                `;
+				const participantsResult = await pool.query(participantQuery, [
+					conversationId,
+				]);
+				const userParticipants = participantsResult.rows.map(
+					(row) => row.user_id
+				);
 
-				query.senderId = { $in: userParticipants };
+				query += ` AND sender_id = ANY($2)`;
 			} else {
 				return res.status(400).json({ message: 'Invalid user type' });
 			}
 
-			// Count unread messages based on the query
-			const unreadCount = await Message.countDocuments(query);
+			const result = await pool.query(query, [
+				conversationId,
+				userType === 'User' ? userId : userParticipants,
+			]);
 
-			logger.info(`Unread messages to mark as read: ${unreadCount}`);
-
-			// Mark the unread messages as read
-			const result = await Message.updateMany(query, {
-				$set: { status: 'read', readAt: new Date() },
-			});
-
-			logger.info(`Messages updated, modified: ${result.nModified}`);
+			logger.info(`Messages updated, modified: ${result.rowCount}`);
 
 			// Update the conversation's unreadMessages count
-			if (unreadCount > 0) {
-				await Conversation.findByIdAndUpdate(conversationId, {
-					$inc: { unreadMessages: -unreadCount },
-				});
-			}
+			const updateConversationQuery = `
+                UPDATE conversations
+                SET unread_messages = unread_messages - $2
+                WHERE id = $1
+            `;
+			await pool.query(updateConversationQuery, [
+				conversationId,
+				result.rowCount,
+			]);
 
 			res.status(200).json({
 				message: 'Messages marked as read',
-				updated: result.nModified,
+				updated: result.rowCount,
 			});
 		} catch (error) {
 			logger.error(`Error marking messages as read: ${error}`);
