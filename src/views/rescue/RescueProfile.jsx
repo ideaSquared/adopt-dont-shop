@@ -130,22 +130,26 @@ const RescueProfile = () => {
 	};
 
 	// Check for permissions
+	// TODO: Stop it being an array of an array
 	const canViewRescueInfo =
-		authState.userPermissions.includes('view_rescue_info');
+		authState.userPermissions[0].includes('view_rescue_info');
 	const canEditRescueInfo =
-		authState.userPermissions.includes('edit_rescue_info');
-	const canViewStaff = authState.userPermissions.includes('view_staff');
-	const canAddStaff = authState.userPermissions.includes('add_staff');
-	const canEditStaff = authState.userPermissions.includes('edit_staff');
-	const canVerifyStaff = authState.userPermissions.includes('verify_staff');
-	const canDeleteStaff = authState.userPermissions.includes('delete_staff');
-	const canViewPet = authState.userPermissions.includes('view_pet');
-	const canAddPet = authState.userPermissions.includes('add_pet');
-	const canEditPet = authState.userPermissions.includes('edit_pet');
-	const canDeletePet = authState.userPermissions.includes('delete_pet');
-	const canViewMessages = authState.userPermissions.includes('view_messages');
+		authState.userPermissions[0].includes('edit_rescue_info');
+	const canDeleteRescue =
+		authState.userPermissions[0].includes('delete_rescue');
+	const canViewStaff = authState.userPermissions[0].includes('view_staff');
+	const canAddStaff = authState.userPermissions[0].includes('add_staff');
+	const canEditStaff = authState.userPermissions[0].includes('edit_staff');
+	const canVerifyStaff = authState.userPermissions[0].includes('verify_staff');
+	const canDeleteStaff = authState.userPermissions[0].includes('delete_staff');
+	const canViewPet = authState.userPermissions[0].includes('view_pet');
+	const canAddPet = authState.userPermissions[0].includes('add_pet');
+	const canEditPet = authState.userPermissions[0].includes('edit_pet');
+	const canDeletePet = authState.userPermissions[0].includes('delete_pet');
+	const canViewMessages =
+		authState.userPermissions[0].includes('view_messages');
 	const canCreateMessages =
-		authState.userPermissions.includes('create_messages');
+		authState.userPermissions[0].includes('create_messages');
 
 	const renderSection = () => {
 		switch (activeSection) {
