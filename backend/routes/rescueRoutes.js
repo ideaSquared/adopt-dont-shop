@@ -252,8 +252,8 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
                 RETURNING *
             `,
 			values: [
-				rescueData.name,
-				rescueData.address,
+				rescueData.rescueName,
+				rescueData.rescueAddress,
 				type,
 				rescueData.referenceNumber,
 				referenceNumberVerified,
@@ -266,17 +266,33 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 		// Insert into staff_members
 		const staffMemberQuery = {
 			text: `
-                INSERT INTO staff_members (user_id, verified_by_rescue, permissions, rescue_id)
-                VALUES ($1, $2, $3, $4)
-                RETURNING *
-            `,
+        INSERT INTO staff_members (user_id, verified_by_rescue, permissions, rescue_id)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+    `,
 			values: [
-				user.user_id, // user_id from the new user record
-				true, // Assuming verification by rescue is automatic
-				rescueData.permissions, // Permissions provided in the request
-				newRescue.rescue_id, // rescue_id from the new rescue record
+				user.user_id,
+				true,
+				[
+					'edit_rescue_info',
+					'view_rescue_info',
+					'delete_rescue',
+					'add_staff',
+					'edit_staff',
+					'verify_staff',
+					'delete_staff',
+					'view_staff',
+					'view_pet',
+					'add_pet',
+					'edit_pet',
+					'delete_pet',
+					'create_messages',
+					'view_messages',
+				],
+				newRescue.rescue_id,
 			],
 		};
+
 		const staffMemberResult = await pool.query(staffMemberQuery);
 		const staffMember = staffMemberResult.rows[0];
 		logger.info(
