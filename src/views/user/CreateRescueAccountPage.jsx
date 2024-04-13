@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import CreateRescueAccountForm from '../../components/forms/CreateRescueAccountForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import AuthService from '../../services/AuthService';
 
 const CreateRescueAccountPage = () => {
 	const [firstName, setFirstName] = useState('');
@@ -11,11 +12,10 @@ const CreateRescueAccountPage = () => {
 	const [rescueName, setRescueName] = useState('');
 	const [rescueAddress, setRescueAddress] = useState('');
 	const navigate = useNavigate(); // Initialize useNavigate
-	const { createRescue } = useAuth();
 
 	const handleCreateRescueAccount = async () => {
 		try {
-			await createRescue(
+			const response = await AuthService.createAccountRescue(
 				firstName,
 				email,
 				password,
