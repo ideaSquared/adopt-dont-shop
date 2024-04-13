@@ -74,7 +74,10 @@ const RescueProfile = () => {
 
 	const saveUpdates = async () => {
 		try {
-			await RescueService.updateRescueProfile(rescueProfile.id, rescueProfile);
+			await RescueService.updateRescueProfile(
+				rescueProfile.rescue_id,
+				rescueProfile
+			);
 			setAlertInfo({
 				type: 'success',
 				message: 'Rescue profile updated successfully.',
@@ -100,7 +103,7 @@ const RescueProfile = () => {
 		try {
 			const verificationResult =
 				await RescueService.submitReferenceNumberForVerification(
-					rescueProfile.id,
+					rescueProfile.rescue_id,
 					rescueProfile.rescueType,
 					rescueProfile.referenceNumber
 				);
@@ -132,24 +135,24 @@ const RescueProfile = () => {
 	// Check for permissions
 	// TODO: Stop it being an array of an array
 	const canViewRescueInfo =
-		authState.userPermissions[0].includes('view_rescue_info');
+		authState.userPermissions.includes('view_rescue_info');
 	const canEditRescueInfo =
-		authState.userPermissions[0].includes('edit_rescue_info');
-	const canDeleteRescue =
-		authState.userPermissions[0].includes('delete_rescue');
-	const canViewStaff = authState.userPermissions[0].includes('view_staff');
-	const canAddStaff = authState.userPermissions[0].includes('add_staff');
-	const canEditStaff = authState.userPermissions[0].includes('edit_staff');
-	const canVerifyStaff = authState.userPermissions[0].includes('verify_staff');
-	const canDeleteStaff = authState.userPermissions[0].includes('delete_staff');
-	const canViewPet = authState.userPermissions[0].includes('view_pet');
-	const canAddPet = authState.userPermissions[0].includes('add_pet');
-	const canEditPet = authState.userPermissions[0].includes('edit_pet');
-	const canDeletePet = authState.userPermissions[0].includes('delete_pet');
-	const canViewMessages =
-		authState.userPermissions[0].includes('view_messages');
+		authState.userPermissions.includes('edit_rescue_info');
+	const canDeleteRescue = authState.userPermissions.includes('delete_rescue');
+	const canViewStaff = authState.userPermissions.includes('view_staff');
+	const canAddStaff = authState.userPermissions.includes('add_staff');
+	const canEditStaff = authState.userPermissions.includes('edit_staff');
+	const canVerifyStaff = authState.userPermissions.includes('verify_staff');
+	const canDeleteStaff = authState.userPermissions.includes('delete_staff');
+	const canViewPet = authState.userPermissions.includes('view_pet');
+	const canAddPet = authState.userPermissions.includes('add_pet');
+	const canEditPet = authState.userPermissions.includes('edit_pet');
+	const canDeletePet = authState.userPermissions.includes('delete_pet');
+	const canViewMessages = authState.userPermissions.includes('view_messages');
 	const canCreateMessages =
-		authState.userPermissions[0].includes('create_messages');
+		authState.userPermissions.includes('create_messages');
+
+	console.log(rescueProfile);
 
 	const renderSection = () => {
 		switch (activeSection) {
@@ -174,7 +177,7 @@ const RescueProfile = () => {
 				if (canViewPet) {
 					return (
 						<PetManagement
-							rescueId={rescueProfile.id}
+							rescueId={rescueProfile.rescue_id}
 							canAddPet={canAddPet}
 							canEditPet={canEditPet}
 							canDeletePet={canDeletePet}
@@ -189,7 +192,6 @@ const RescueProfile = () => {
 						<StaffManagement
 							rescueProfile={rescueProfile}
 							setRescueProfile={setRescueProfile}
-							// fetchRescueProfile={fetchRescueProfile}
 							canAddStaff={canAddStaff}
 							canEditStaff={canEditStaff}
 							canVerifyStaff={canVerifyStaff}
@@ -212,7 +214,7 @@ const RescueProfile = () => {
 				}
 			case 'adopter':
 				if (canViewMessages) {
-					return <AdopterManagement rescueId={rescueProfile.id} />;
+					return <AdopterManagement rescueId={rescueProfile.rescue_id} />;
 				}
 			default:
 				return <RescueNoPermissions rescueProfile={rescueProfile} />;

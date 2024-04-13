@@ -35,9 +35,15 @@ const removeStaffMember = async (rescueId, staffId) => {
 
 const addStaffMember = async (rescueId, staffInfo) => {
 	try {
-		await axios.post(`${API_BASE_URL}/rescue/${rescueId}/staff`, staffInfo, {
-			withCredentials: true,
-		});
+		const response = await axios.post(
+			`${API_BASE_URL}/rescue/${rescueId}/staff`,
+			staffInfo,
+			{
+				withCredentials: true,
+			}
+		);
+
+		return response.data.data;
 	} catch (error) {
 		console.error(
 			'Error adding staff member:',

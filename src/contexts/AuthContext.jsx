@@ -74,6 +74,7 @@ const useProvideAuth = () => {
 	const fetchPermissions = async () => {
 		try {
 			const response = await AuthService.fetchPermissions();
+			console.log(response.data.permissions);
 			setAuthState((prevState) => ({
 				...prevState,
 				userPermissions: response.data.permissions || [],

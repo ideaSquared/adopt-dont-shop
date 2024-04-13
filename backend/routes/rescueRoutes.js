@@ -295,9 +295,7 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 
 		const staffMemberResult = await pool.query(staffMemberQuery);
 		const staffMember = staffMemberResult.rows[0];
-		logger.info(
-			`Staff member created successfully: ${staffMember.staff_member_id}`
-		);
+		logger.info(`Staff member created successfully: ${staffMember.user_id}`);
 
 		res.status(201).send({
 			message: `${type} rescue and staff member created successfully`,
@@ -539,17 +537,27 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 		}
 
 		const addStaffQuery = {
-			text: 'INSERT INTO staff_members (rescue_id, user_id, permissions, verified_by_rescue, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
+			text: 'INSERT INTO staff_members (rescue_id, user_id, permissions, verified_by_rescue, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING permissions, user_id, verified_by_rescue',
 			values: [rescueId, user.user_id, permissions, false],
 		};
-		await pool.query(addStaffQuery);
+
+		const addedStaffResult = await pool.query(addStaffQuery);
+		const addedStaffRow = addedStaffResult.rows[0];
+
+		const addedStaff = {
+			userId: addedStaffRow.user_id,
+			permissions: addedStaffRow.permissions,
+			verifiedByRescue: addedStaffRow.verified_by_rescue,
+			email: user.email, // Assuming 'email' is fetched or created earlier as part of user object
+		};
 
 		logger.info(
 			`New staff member added successfully for rescue ID: ${rescueId}`
 		);
+
 		res.send({
 			message: 'New staff member added successfully',
-			data: rescue.staff,
+			data: addedStaff,
 		});
 	} catch (error) {
 		Sentry.captureException(error);
@@ -602,7 +610,7 @@ router.put(
 			}
 
 			const updateStaffPermissionsQuery = {
-				text: 'UPDATE staff_members SET permissions = $1, updated_at = NOW() WHERE rescue_id = $2 AND staff_member_id = $3 RETURNING *',
+				text: 'UPDATE staff_members SET permissions = $1, updated_at = NOW() WHERE rescue_id = $2 AND user_id = $3 RETURNING *',
 				values: [permissions, rescueId, staffId],
 			};
 			const updatedStaffResult = await pool.query(updateStaffPermissionsQuery);
@@ -660,7 +668,7 @@ router.put(
 
 			// Verify staff member exists in the staff_members table and the current user has permission to verify
 			const staffMemberQuery = {
-				text: 'SELECT * FROM staff_members WHERE rescue_id = $1 AND staff_member_id = $2',
+				text: 'SELECT * FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
 				values: [rescueId, staffId],
 			};
 			const staffMemberResult = await pool.query(staffMemberQuery);
@@ -692,7 +700,7 @@ router.put(
 
 			// Verify the staff member
 			const verifyStaffQuery = {
-				text: 'UPDATE staff_members SET verified_by_rescue = true, updated_at = NOW() WHERE rescue_id = $1 AND staff_member_id = $2',
+				text: 'UPDATE staff_members SET verified_by_rescue = true, updated_at = NOW() WHERE rescue_id = $1 AND user_id = $2',
 				values: [rescueId, staffId],
 			};
 			await pool.query(verifyStaffQuery);
@@ -758,7 +766,7 @@ router.delete(
 
 			// Perform the deletion of the staff member
 			const deleteStaffQuery = {
-				text: 'DELETE FROM staff_members WHERE rescue_id = $1 AND staff_member_id = $2',
+				text: 'DELETE FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
 				values: [rescueId, staffId],
 			};
 			await pool.query(deleteStaffQuery);

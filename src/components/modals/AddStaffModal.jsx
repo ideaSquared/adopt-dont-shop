@@ -6,7 +6,7 @@ import { StaffService } from '../../services/StaffService';
 const AddStaffModal = ({
 	show,
 	handleClose,
-	// fetchRescueProfile,
+	setRescueProfile,
 	rescueId,
 	canAddStaff,
 }) => {
@@ -30,18 +30,22 @@ const AddStaffModal = ({
 			existingStaffEmail,
 		});
 		try {
+			let addedStaff;
 			if (tabKey === 'newUser') {
 				console.log('Adding new staff member', newStaff);
-				await StaffService.addStaffMember(rescueId, newStaff);
+				addedStaff = await StaffService.addStaffMember(rescueId, newStaff);
 			} else {
 				console.log('Adding existing staff member', existingStaffEmail);
-				await StaffService.addStaffMember(rescueId, {
+				addedStaff = await StaffService.addStaffMember(rescueId, {
 					email: existingStaffEmail,
 				});
 			}
 
 			console.log('Staff member added successfully');
-			// fetchRescueProfile();
+			setRescueProfile((prevState) => ({
+				...prevState,
+				staff: [...prevState.staff, addedStaff],
+			}));
 			resetForms();
 			handleClose();
 		} catch (error) {

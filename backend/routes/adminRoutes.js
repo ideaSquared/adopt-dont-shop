@@ -422,7 +422,7 @@ router.delete(
 			// Delete the staff member from the rescue organization
 			const deleteQuery = `
                 DELETE FROM staff_members 
-                WHERE rescue_id = $1 AND staff_member_id = $2
+                WHERE rescue_id = $1 AND user_id = $2
                 RETURNING *;
             `;
 			const result = await pool.query(deleteQuery, [rescueId, staffId]);

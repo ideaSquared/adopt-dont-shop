@@ -486,14 +486,18 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		logger.info(`Fetching rescue organization for user ${userId}`);
 
 		try {
-			// Find a rescue where the user is listed as a staff member
-			// Ensure your Rescue schema includes an array of staff objects with a userId field
+			// Updated query to include permissions from the staff_members table
 			const rescueQuery = `
-            SELECT r.*, u.email AS staff_email
+            SELECT r.*, u.email AS staff_email, sm.permissions, sm.verified_by_rescue, u.user_id
 			FROM rescues r
-			JOIN staff_members sm ON sm.rescue_id = r.rescue_id 
-			JOIN users u ON u.user_id = sm.user_id              
-			WHERE sm.user_id = $1                               
+			JOIN staff_members sm ON sm.rescue_id = r.rescue_id
+			JOIN users u ON u.user_id = sm.user_id
+			WHERE r.rescue_id IN (
+				SELECT rescue_id
+				FROM staff_members
+				WHERE user_id = $1
+			)
+
         `;
 			const rescueResult = await pool.query(rescueQuery, [userId]);
 			if (rescueResult.rowCount === 0) {
@@ -511,17 +515,21 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				`Rescue organization fetched successfully for user ${userId}`
 			);
 			const responseData = {
-				user_id: rescue.rescue_id,
+				rescue_id: rescue.rescue_id,
 				rescueName: rescue.rescue_name,
 				rescueAddress: rescue.rescue_address,
 				rescueType: rescue.rescue_type,
 				referenceNumber: rescue.reference_number,
 				referenceNumberVerified: rescue.reference_number_verified,
 				staff: rescueResult.rows.map((row) => ({
-					userId: userId,
+					userId: row.user_id,
 					email: row.staff_email,
-				})), // Consider filtering or restructuring this data based on your needs
+					permissions: row.permissions, // Adding permissions to the response
+					verifiedByRescue: row.verified_by_rescue,
+				})),
 			};
+
+			// console.log(rescueResult.rows);
 
 			res.json(responseData);
 		} catch (error) {
@@ -541,12 +549,10 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		logger.info(`Fetching permissions for userId: ${userId}`); // Log the operation
 
 		try {
-			// Query the database to find a document where this user is listed as staff
-			// and directly project the staff member's permissions to optimize the query.
+			// Query the database to find permissions for this user in the staff_members table
 			const permissionsQuery = `
             SELECT s.permissions
-            FROM rescues r
-            JOIN staff_members s ON r.rescue_id = s.rescue_id
+            FROM staff_members s
             WHERE s.user_id = $1
         `;
 			const permissionsResult = await pool.query(permissionsQuery, [userId]);
@@ -559,8 +565,8 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				});
 			}
 
-			// Assuming that permissions are stored in a JSONB or array format in PostgreSQL
-			const permissions = permissionsResult.rows.map((row) => row.permissions);
+			// Extracting the permissions array from the first row (assuming one entry per user)
+			const permissions = permissionsResult.rows[0].permissions;
 
 			logger.info(`Permissions fetched successfully for userId: ${userId}`);
 			res.status(200).json({ permissions });
