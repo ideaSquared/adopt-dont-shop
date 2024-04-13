@@ -52,7 +52,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		const filtered = allPets.filter(
 			(pet) =>
 				(searchTerm
-					? pet.petName.toLowerCase().includes(searchTerm.toLowerCase())
+					? pet.name.toLowerCase().includes(searchTerm.toLowerCase())
 					: true) &&
 				(searchType ? pet.type === searchType : true) &&
 				(searchStatus ? pet.status === searchStatus : true) &&
@@ -75,7 +75,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 	};
 
 	const openEditModal = async (pet) => {
-		if (!pet || !pet._id) {
+		if (!pet || !pet.pet_id) {
 			console.error('Pet or Pet ID is undefined');
 			setEditError('Failed to load pet details. Please try again.');
 			return; // Exit the function if pet is undefined
@@ -88,7 +88,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		setEditError(null); // Reset any previous errors
 
 		try {
-			const testPet = await PetService.getPetById(pet._id);
+			const testPet = await PetService.getPetById(pet.pet_id);
 			// console.log(testPet);
 			setEditingPet(testPet.data); // Update with fetched details
 		} catch (error) {

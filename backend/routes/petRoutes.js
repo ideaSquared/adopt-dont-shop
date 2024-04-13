@@ -24,7 +24,6 @@ const logger = new LoggerUtil('pet-service').getLogger();
 
 const router = express.Router();
 
-// Helper function to check permissions
 const checkPermission = async (userId, permissionRequired) => {
 	if (!userId) {
 		throw new Error('No userId provided');
@@ -33,25 +32,21 @@ const checkPermission = async (userId, permissionRequired) => {
 	try {
 		const client = await pool.connect();
 
-		// Query to fetch rescues where the user is a staff member
+		// Query to fetch staff member permissions
 		const queryText = `
-            SELECT * 
-            FROM rescue 
-            WHERE EXISTS (
-                SELECT 1 
-                FROM jsonb_array_elements(rescue.staff) AS staff 
-                WHERE staff->>'userId' = $1
-                AND staff->'permissions' @> JSON_BUILD_ARRAY($2)
-            );
+            SELECT permissions 
+            FROM staff_members 
+            WHERE user_id = $1;
         `;
-		const { rows } = await client.query(queryText, [
-			userId,
-			permissionRequired,
-		]);
+		const { rows } = await client.query(queryText, [userId]);
 		client.release(); // Release the client back to the pool
 
-		// Check if the user has the required permission in any of the rescues
-		return rows.length > 0;
+		// Check if the user has the required permission
+		const hasPermission = rows.some((row) =>
+			row.permissions.includes(permissionRequired)
+		);
+
+		return hasPermission;
 	} catch (error) {
 		console.error('Error checking permission:', error);
 		throw error;
@@ -77,23 +72,41 @@ router.post(
 					.send({ message: 'Insufficient permissions to add pet' });
 			}
 
+			console.log(req.body);
+
 			const insertPetQuery = `
-                INSERT INTO pets (name, type, age, breed, description, owner_id)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO pets (name, owner_id, short_description, long_description, age, gender, status, type, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
                 RETURNING pet_id;
             `;
-			const { name, type, age, breed, description } = req.body;
+			const {
+				name,
+				short_description,
+				long_description,
+				age,
+				ownerId,
+				gender,
+				status,
+				type,
+			} = req.body;
+			// Assuming breed is not required as it's not in the schema
+			// Assuming 'description' in req.body is intended as 'long_description'
+			// 'created_at' and 'updated_at' will be set to the current time
 			const newPetResult = await pool.query(insertPetQuery, [
 				name,
-				type,
+				ownerId,
+				short_description,
+				long_description,
 				age,
-				breed,
-				description,
-				userId,
+				gender,
+				status,
+				type,
 			]);
 			const newPetId = newPetResult.rows[0].pet_id;
 
-			logger.info(`New pet created with ID: ${newPetId} by User ${userId}`);
+			logger.info(
+				`New pet created with ID: ${newPetId} by User ${userId} for Rescue ${ownerId}`
+			);
 			res.status(201).send({
 				message: 'Pet created successfully',
 				data: { id: newPetId, ...req.body },
@@ -191,10 +204,6 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 	}
 });
 
-/*
-REFACTORED TO
-*/
-// Update a pet record by ID
 router.put('/:id', authenticateToken, async (req, res) => {
 	const userId = req.user?.userId;
 	const { id } = req.params;
@@ -210,27 +219,55 @@ router.put('/:id', authenticateToken, async (req, res) => {
 				.send({ message: 'Insufficient permissions to edit pet' });
 		}
 
-		// Construct the SQL query
-		const query = {
-			text: 'UPDATE pets SET pet_data = $1 WHERE pet_id = $2 RETURNING *',
-			values: [req.body, id],
-		};
+		// Start constructing the SQL update statement
+		let updateSet = [];
+		let values = [];
+		let index = 1;
 
-		// Execute the query
-		const result = await pool.query(query);
-
-		// Check if the pet was updated successfully
-		if (result.rowCount === 0) {
-			logger.warn(`Pet not found with ID: ${id} for update operation`);
-			return res.status(404).send({ message: 'Pet not found' });
+		// Dynamically create the set part of the query based on the passed data
+		// Make sure to exclude 'updated_at' from the body if it exists
+		for (const key in req.body) {
+			if (
+				req.body.hasOwnProperty(key) &&
+				key !== 'pet_id' &&
+				key !== 'owner_id' &&
+				key !== 'created_at' &&
+				key !== 'archived' &&
+				key !== 'updated_at' // Exclude the updated_at field
+			) {
+				updateSet.push(`${key} = $${index}`);
+				values.push(req.body[key]);
+				index++;
+			}
 		}
 
-		const pet = result.rows[0];
-		logger.info(`Pet with ID: ${id} updated successfully by User ${userId}`);
-		res.status(200).send({
-			message: 'Pet updated successfully',
-			data: pet,
-		});
+		if (values.length === 0) {
+			logger.warn(`No updatable fields provided for pet with ID: ${id}`);
+			return res.status(400).send({ message: 'No updatable fields provided' });
+		}
+
+		values.push(id); // For the WHERE condition
+
+		// Execute the update only if there's something to update
+		if (updateSet.length > 0) {
+			const queryText = `UPDATE pets SET ${updateSet.join(
+				', '
+			)}, updated_at = NOW() WHERE pet_id = $${index} RETURNING *`; // Ensure updated_at is only set here
+			const result = await pool.query(queryText, values);
+
+			// Check if the pet was updated successfully
+			if (result.rowCount === 0) {
+				logger.warn(`Pet not found with ID: ${id} for update operation`);
+				return res.status(404).send({ message: 'Pet not found' });
+			}
+
+			const pet = result.rows[0];
+			logger.info(`Pet with ID: ${id} updated successfully by User ${userId}`);
+			res.status(200).send({
+				message: 'Pet updated successfully',
+				data: pet,
+			});
+		}
 	} catch (error) {
 		logger.error(`Failed to update pet with ID: ${id}: ${error.message}`, {
 			error,
@@ -323,6 +360,16 @@ router.post(
 		const userId = req.user?.userId;
 
 		try {
+			const hasPermission = await checkPermission(userId, 'edit_pet');
+			if (!hasPermission) {
+				logger.warn(
+					`User ${userId} lacks permission to upload images for pet with ID: ${id}`
+				);
+				return res.status(403).send({
+					message: 'Insufficient permissions to upload images for pet',
+				});
+			}
+
 			const petQuery = {
 				text: 'SELECT * FROM pets WHERE pet_id = $1',
 				values: [id],
@@ -334,24 +381,6 @@ router.post(
 				return res.status(404).send({ message: 'Pet not found' });
 			}
 
-			// Check permission logic here, as in your other routes
-			const permissionQuery = {
-				text: 'SELECT * FROM permissions WHERE user_id = $1 AND action = $2',
-				values: [userId, 'edit_pet'],
-			};
-			const permissionResult = await pool.query(permissionQuery);
-			const hasPermission = permissionResult.rowCount > 0;
-
-			if (!hasPermission) {
-				logger.warn(
-					`User ${userId} lacks permission to edit pet with ID: ${id}`
-				);
-				return res
-					.status(403)
-					.send({ message: 'Insufficient permissions to edit pet' });
-			}
-
-			// Assuming you want to save the file paths to the pet document
 			const updatedImages = req.files.map((file) => file.filename);
 			const updatePetQuery = {
 				text: 'UPDATE pets SET images = array_cat(images, $1) WHERE pet_id = $2 RETURNING *',
@@ -390,6 +419,16 @@ router.delete('/:id/images', authenticateToken, async (req, res) => {
 	}
 
 	try {
+		const hasPermission = await checkPermission(userId, 'edit_pet');
+		if (!hasPermission) {
+			logger.warn(
+				`User ${userId} lacks permission to delete images for pet with ID: ${id}`
+			);
+			return res
+				.status(403)
+				.send({ message: 'Insufficient permissions to delete images for pet' });
+		}
+
 		const petQuery = {
 			text: 'SELECT * FROM pets WHERE pet_id = $1',
 			values: [id],
@@ -401,22 +440,6 @@ router.delete('/:id/images', authenticateToken, async (req, res) => {
 			return res.status(404).send({ message: 'Pet not found' });
 		}
 
-		// Check permission
-		const permissionQuery = {
-			text: 'SELECT * FROM permissions WHERE user_id = $1 AND action = $2',
-			values: [userId, 'edit_pet'],
-		};
-		const permissionResult = await pool.query(permissionQuery);
-		const hasPermission = permissionResult.rowCount > 0;
-
-		if (!hasPermission) {
-			logger.warn(`User ${userId} lacks permission to edit pet with ID: ${id}`);
-			return res
-				.status(403)
-				.send({ message: 'Insufficient permissions to edit pet' });
-		}
-
-		// Remove images from the pet document
 		const updatedImages = pet.images.filter(
 			(image) => !imagesToDelete.includes(image)
 		);
@@ -427,7 +450,9 @@ router.delete('/:id/images', authenticateToken, async (req, res) => {
 		const updatedPetResult = await pool.query(updatePetQuery);
 		const updatedPet = updatedPetResult.rows[0];
 
-		logger.info(`Successfully delete image for pet: ${id} by ${userId}`);
+		logger.info(
+			`Images deleted successfully for pet: ${id} by user: ${userId}`
+		);
 
 		res.status(200).send({
 			message: 'Images deleted successfully',

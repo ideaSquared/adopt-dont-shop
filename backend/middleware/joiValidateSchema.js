@@ -106,10 +106,10 @@ const rescueJoiSchema = Joi.object({
 
 // Joi schema for adding/updating pet details
 const petJoiSchema = Joi.object({
-	petName: Joi.string().required(),
-	ownerId: Joi.string().required().min(1), // Assuming you'll pass the ObjectId as a string
-	shortDescription: Joi.string().required(),
-	longDescription: Joi.string().required(),
+	name: Joi.string().required(),
+	ownerId: Joi.number().required().min(1), // Assuming you'll pass the ObjectId as a string
+	short_description: Joi.string().required(),
+	long_description: Joi.string().required(),
 	age: Joi.number().required(),
 	gender: Joi.string().required().valid('Male', 'Female', 'Other', 'Unknown'), // Adjust valid options as needed
 	status: Joi.string().required(), // You might want to validate against specific status options

@@ -152,8 +152,6 @@ const RescueProfile = () => {
 	const canCreateMessages =
 		authState.userPermissions.includes('create_messages');
 
-	console.log(rescueProfile);
-
 	const renderSection = () => {
 		switch (activeSection) {
 			case 'profile':

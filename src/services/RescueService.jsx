@@ -4,6 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const RescueService = {
 	fetchRatings: async (rescueId) => {
+		console.log('RESCUE SERVICE ID: ', rescueId);
 		try {
 			const response = await axios.get(
 				`${API_BASE_URL}/ratings/find-ratings/${rescueId}`,

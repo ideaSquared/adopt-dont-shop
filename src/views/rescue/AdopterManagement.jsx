@@ -26,7 +26,7 @@ const AdopterManagement = ({ rescueId }) => {
 		const filtered = ratings.filter(
 			(rating) =>
 				(searchTerm
-					? rating.petName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+					? rating.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 					  rating.userFirstName
 							.toLowerCase()
 							.includes(searchTerm.toLowerCase())

@@ -115,16 +115,20 @@ router.get('/target/:targetId', authenticateToken, async (req, res) => {
 		});
 	}
 });
+
 router.get('/find-ratings/:rescueId', authenticateToken, async (req, res) => {
 	try {
+		logger.info(`Params: ${JSON.stringify(req.params)}`);
 		const { rescueId } = req.params;
+		logger.info(`Using rescueId: ${rescueId}`);
+
 		logger.info(
 			`Fetching likes and loves for all pets with ownerId: ${rescueId}`
 		);
 
 		const query = {
 			text: `
-				SELECT r.rating_id, p.petName, r.target_id AS petId, r.rating_type AS ratingType, u.firstName AS userFirstName, r.user_id AS userId
+				SELECT r.rating_id, p.name, r.target_id AS petId, r.rating_type AS ratingType, u.firstName AS userFirstName, r.user_id AS userId
 				FROM pets p
 				JOIN ratings r ON p.pet_id = r.target_id AND r.target_type = 'Pet'
 				JOIN users u ON r.user_id = u.user_id

@@ -41,9 +41,11 @@ const PetService = {
 	},
 
 	createOrUpdatePet: async (pet, isEditMode) => {
+		console.log(pet);
+
 		try {
 			const response = isEditMode
-				? await axios.put(`${API_BASE_URL}/pets/${pet._id}`, pet, {
+				? await axios.put(`${API_BASE_URL}/pets/${pet.pet_id}`, pet, {
 						withCredentials: true,
 				  })
 				: await axios.post(`${API_BASE_URL}/pets`, pet, {

@@ -34,7 +34,7 @@ const Pets = () => {
 		const filtered = pets.filter(
 			(pet) =>
 				(searchTerm
-					? pet.petName.toLowerCase().includes(searchTerm.toLowerCase())
+					? pet.name.toLowerCase().includes(searchTerm.toLowerCase())
 					: true) &&
 				(searchType ? pet.type === searchType : true) &&
 				(searchStatus ? pet.status === searchStatus : true) &&
@@ -69,9 +69,14 @@ const Pets = () => {
 			'Are you sure you want to delete this pet?'
 		);
 		if (!isConfirmed) return;
+
 		try {
 			await PetService.deletePet(id);
-			fetchAllPets(); // Refresh the list after deletion
+			// Filter out the deleted pet from the current pet list
+			setPets((prevPets) => prevPets.filter((pet) => pet.pet_id !== id));
+			setFilteredPets((prevPets) =>
+				prevPets.filter((pet) => pet.pet_id !== id)
+			);
 		} catch {
 			alert('Failed to delete pet.');
 		}

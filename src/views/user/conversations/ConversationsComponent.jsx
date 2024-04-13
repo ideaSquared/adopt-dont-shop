@@ -74,7 +74,7 @@ const ConversationsComponent = ({
 						<div className='flex-grow-1 text-truncate'>
 							<div className='fw-bold text-truncate'>
 								{getParticipantNames(conversation.participants)} for{' '}
-								{conversation.petId.petName}
+								{conversation.petId.name}
 							</div>
 							<div className='small text-truncate'>
 								{conversation.lastMessage}

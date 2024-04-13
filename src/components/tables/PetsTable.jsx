@@ -44,16 +44,16 @@ const PetTable = ({
 				</thead>
 				<tbody>
 					{pets.map((pet) => (
-						<tr key={pet._id}>
+						<tr key={pet.pet_id}>
 							<td style={{ maxWidth: '120px', overflow: 'hidden' }}>
-								{renderPetImage(pet.images || pet.petDetails.images)}
+								{renderPetImage(pet.images || '')}
 							</td>
-							<td>{pet.petName || pet.petDetails.petName}</td>
-							<td>{pet.type || pet.petDetails.type}</td>
-							<td>{pet.status || pet.petDetails.status}</td>
+							<td>{pet.name || ''}</td>
+							<td>{pet.type || ''}</td>
+							<td>{pet.status || ''}</td>
 							{isAdmin && <td>{pet.ownerInfo}</td>}{' '}
 							{/* Conditionally render this cell */}
-							<td>{pet.age || pet.petDetails.age}</td>
+							<td>{pet.age || ''}</td>
 							<td>
 								<Button
 									variant='info'
@@ -64,7 +64,7 @@ const PetTable = ({
 								</Button>{' '}
 								<Button
 									variant='danger'
-									onClick={() => onDeletePet(pet._id)}
+									onClick={() => onDeletePet(pet.pet_id)}
 									disabled={!canDeletePet}
 								>
 									Delete

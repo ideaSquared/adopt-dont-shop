@@ -21,7 +21,7 @@ const Swipe = ({ item }) => {
 			>
 				<Card.Body className='swipe-overlay d-flex flex-column'>
 					<div className='d-flex justify-content-between'>
-						<Card.Title>{item.petName}</Card.Title>
+						<Card.Title>{item.name}</Card.Title>
 						<div className='badge-container d-flex align-items-start'>
 							<Badge bg='secondary'>Age: {item.age}</Badge>{' '}
 							<Badge bg='info'>{item.gender}</Badge>{' '}
@@ -30,7 +30,7 @@ const Swipe = ({ item }) => {
 							</Badge>
 						</div>
 					</div>
-					<Card.Text>{item.shortDescription}</Card.Text>
+					<Card.Text>{item.short_description}</Card.Text>
 					<div className='action-buttons mt-auto'>
 						<Button variant='outline-danger' className='rounded-circle dislike'>
 							Dislike

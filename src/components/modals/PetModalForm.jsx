@@ -19,7 +19,7 @@ const PetModalForm = ({
 		const files = Array.from(event.target.files);
 
 		try {
-			await PetService.uploadPetImages(petDetails._id, files);
+			await PetService.uploadPetImages(petDetails.pet_id, files);
 			await refreshPetDetails(); // This assumes refreshPetDetails properly updates petDetails including images
 		} catch (error) {
 			console.error('Error uploading files:', error);
@@ -30,7 +30,6 @@ const PetModalForm = ({
 		event.preventDefault();
 		setIsLoading(true);
 		setError(null);
-
 		try {
 			// Use the createOrUpdatePet service method for both creating and updating pets
 			const response = await PetService.createOrUpdatePet(
@@ -42,7 +41,7 @@ const PetModalForm = ({
 			const savedPet = response.data;
 
 			if (selectedFiles.length > 0) {
-				await PetService.uploadPetImages(savedPet._id, selectedFiles);
+				await PetService.uploadPetImages(savedPet.pet_id, selectedFiles);
 			}
 
 			refreshPets(); // Trigger parent component to refresh the pet list
@@ -112,7 +111,7 @@ const PetModalForm = ({
 		setIsLoading(true);
 		setError(null);
 		try {
-			const updatedPetDetails = await PetService.getPetById(petDetails?._id);
+			const updatedPetDetails = await PetService.getPetById(petDetails?.pet_id);
 			setPetDetails(updatedPetDetails.data);
 		} catch (error) {
 			console.error('Error fetching updated pet details:', error);
@@ -130,7 +129,7 @@ const PetModalForm = ({
 			setIsLoading(true);
 
 			// First, call the service to delete the image file and update the database
-			await PetService.deletePetImages(petDetails._id, [imageToDelete]);
+			await PetService.deletePetImages(petDetails.pet_id, [imageToDelete]);
 
 			// Then, update the local state to reflect the change immediately for a better user experience
 			const updatedImages = petDetails.images.filter((_, idx) => idx !== index);
@@ -212,12 +211,12 @@ const PetModalForm = ({
 										<Form.Control
 											type='text'
 											placeholder='Enter pet name'
-											name='petName'
-											value={petDetails?.petName || ''}
+											name='name'
+											value={petDetails?.name || ''}
 											onChange={(e) =>
 												setPetDetails({
 													...petDetails,
-													petName: e.target.value,
+													name: e.target.value,
 												})
 											}
 										/>
@@ -306,12 +305,12 @@ const PetModalForm = ({
 											as='textarea'
 											rows={2}
 											placeholder='Enter a short description'
-											name='shortDescription'
-											value={petDetails?.shortDescription || ''}
+											name='short_description'
+											value={petDetails?.short_description || ''}
 											onChange={(e) =>
 												setPetDetails({
 													...petDetails,
-													shortDescription: e.target.value,
+													short_description: e.target.value,
 												})
 											}
 										/>
@@ -326,12 +325,12 @@ const PetModalForm = ({
 											as='textarea'
 											rows={3}
 											placeholder='Enter a detailed description'
-											name='longDescription'
-											value={petDetails?.longDescription || ''}
+											name='long_description'
+											value={petDetails?.long_description || ''}
 											onChange={(e) =>
 												setPetDetails({
 													...petDetails,
-													longDescription: e.target.value,
+													long_description: e.target.value,
 												})
 											}
 										/>
