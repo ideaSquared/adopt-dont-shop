@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Table, Image } from 'react-bootstrap';
 import PaginationControls from '../common/PaginationControls';
 
@@ -8,11 +8,10 @@ const PetTable = ({
 	onDeletePet,
 	canEditPet,
 	canDeletePet,
-	currentPage,
-	totalPages,
-	onChangePage,
 	isAdmin,
 }) => {
+	const [currentPage, setCurrentPage] = useState(1);
+	const [petsPerPage] = useState(10);
 	const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 
 	const renderPetImage = (images) => {
@@ -22,6 +21,11 @@ const PetTable = ({
 		const imageUrl = fileUploadsPath + images[0];
 		return <Image src={imageUrl} alt='Image of pet on the same row' fluid />;
 	};
+
+	const indexOfLastPet = currentPage * petsPerPage;
+	const indexOfFirstPet = indexOfLastPet - petsPerPage;
+	const currentPets = pets.slice(indexOfFirstPet, indexOfLastPet);
+	const totalPages = Math.ceil(pets.length / petsPerPage);
 
 	return (
 		<div>
@@ -73,7 +77,7 @@ const PetTable = ({
 			<PaginationControls
 				currentPage={currentPage}
 				totalPages={totalPages}
-				onChangePage={onChangePage}
+				onChangePage={setCurrentPage}
 			/>
 		</div>
 	);

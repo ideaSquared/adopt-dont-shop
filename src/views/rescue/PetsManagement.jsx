@@ -33,7 +33,18 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 					setAllPets(pets);
 					setFilteredPets(pets); // Initially, all pets are shown
 				})
-				.catch(console.error);
+				.catch((error) => {
+					if (error.response && error.response.status === 404) {
+						// Log the error message if needed
+						console.log('No pets found for this owner');
+						// Optionally clear the pets lists if no pets are found
+						setAllPets([]);
+						setFilteredPets([]);
+					} else {
+						// Handle other types of errors or log them
+						console.error(error);
+					}
+				});
 		}
 	}, [rescueId]);
 
@@ -218,11 +229,6 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 				canDeletePet={canDeletePet}
 				onEditPet={openEditModal}
 				onDeletePet={handlePetDelete}
-			/>
-			<PaginationControls
-				currentPage={currentPage}
-				totalPages={Math.ceil(filteredPets.length / 10)} // Assuming 10 pets per page
-				onChangePage={setCurrentPage}
 			/>
 
 			<PetModalForm
