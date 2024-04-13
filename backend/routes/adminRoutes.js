@@ -223,21 +223,20 @@ router.delete(
 		}
 	}
 );
-
 router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 	try {
 		const query = `
-      SELECT 
-        r.rescue_id,
-        r.rescue_name AS "rescueName",
-        r.rescue_type AS "rescueType",
-        json_agg(json_build_object('userId', rs.user_id, 'userDetails', json_build_object('email', u.email))) AS staff
-      FROM 
-        rescues r
-      LEFT JOIN rescue_staff rs ON r.rescue_id = rs.rescue_id
-      LEFT JOIN users u ON u.user_id = rs.user_id
-      GROUP BY r.rescue_id
-    `;
+            SELECT 
+                r.rescue_id,
+                r.rescue_name AS "rescueName",
+                r.rescue_type AS "rescueType",
+                json_agg(json_build_object('userId', s.user_id, 'userDetails', json_build_object('email', u.email))) AS staff
+            FROM 
+                rescues r
+            LEFT JOIN staff_members s ON r.rescue_id = s.rescue_id
+            LEFT JOIN users u ON u.user_id = s.user_id
+            GROUP BY r.rescue_id
+        `;
 
 		const { rows } = await pool.query(query);
 
@@ -247,12 +246,8 @@ router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 			rescueName: row.rescueName,
 			rescueType: row.rescueType,
 			staff: row.staff.map((staffMember) => ({
-				...staffMember,
-				userDetails: staffMember.userDetails
-					? {
-							email: staffMember.userDetails.email,
-					  }
-					: {},
+				userId: staffMember.userId,
+				userDetails: staffMember.userDetails || {},
 			})),
 		}));
 
@@ -271,18 +266,18 @@ router.get('/rescues/:id', authenticateToken, checkAdmin, async (req, res) => {
 	const { id } = req.params;
 	try {
 		const query = `
-      SELECT 
-        r.rescue_id,
-        r.rescue_name AS "rescueName",
-        r.rescue_type AS "rescueType",
-        json_agg(json_build_object('userId', rs.user_id, 'userDetails', json_build_object('email', u.email))) AS staff
-      FROM 
-        rescues r
-      LEFT JOIN rescue_staff rs ON r.rescue_id = rs.rescue_id
-      LEFT JOIN users u ON u.user_id = rs.user_id
-      WHERE r.rescue_id = $1
-      GROUP BY r.rescue_id
-    `;
+            SELECT 
+                r.rescue_id,
+                r.rescue_name AS "rescueName",
+                r.rescue_type AS "rescueType",
+                json_agg(json_build_object('userId', s.user_id, 'userDetails', json_build_object('email', u.email))) FILTER (WHERE s.user_id IS NOT NULL) AS staff
+            FROM 
+                rescues r
+            LEFT JOIN staff_members s ON r.rescue_id = s.rescue_id
+            LEFT JOIN users u ON u.user_id = s.user_id
+            WHERE r.rescue_id = $1
+            GROUP BY r.rescue_id
+        `;
 		const { rows } = await pool.query(query, [id]);
 
 		if (rows.length === 0) {
@@ -291,17 +286,14 @@ router.get('/rescues/:id', authenticateToken, checkAdmin, async (req, res) => {
 			});
 		}
 
+		// Extract the rescue information from the first row, if it exists
 		const rescue = rows.map((row) => ({
 			_id: row.rescue_id,
 			rescueName: row.rescueName,
 			rescueType: row.rescueType,
 			staff: row.staff.map((staffMember) => ({
-				...staffMember,
-				userDetails: staffMember.userDetails
-					? {
-							email: staffMember.userDetails.email,
-					  }
-					: {},
+				userId: staffMember.userId,
+				userDetails: staffMember.userDetails || {},
 			})),
 		}))[0];
 
@@ -429,10 +421,10 @@ router.delete(
 
 			// Delete the staff member from the rescue organization
 			const deleteQuery = `
-        DELETE FROM rescue_staff 
-        WHERE rescue_id = $1 AND staff_id = $2
-        RETURNING *;
-      `;
+                DELETE FROM staff_members 
+                WHERE rescue_id = $1 AND staff_member_id = $2
+                RETURNING *;
+            `;
 			const result = await pool.query(deleteQuery, [rescueId, staffId]);
 			if (result.rowCount > 0) {
 				logger.info(

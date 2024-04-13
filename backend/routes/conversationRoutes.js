@@ -163,8 +163,8 @@ router.get('/', authenticateToken, async (req, res) => {
 		if (req.query.type === 'Rescue') {
 			const rescueQuery = `
                 SELECT rescue_id FROM rescues 
-                JOIN rescue_staff ON rescues.rescue_id = rescue_staff.rescue_id
-                WHERE rescue_staff.user_id = $1
+                JOIN staff_members ON rescues.rescue_id = staff_members.rescue_id
+                WHERE staff_members.user_id = $1
             `;
 			const rescueResult = await pool.query(rescueQuery, [req.user.userId]);
 			if (rescueResult.rowCount === 0) {

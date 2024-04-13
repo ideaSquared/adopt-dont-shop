@@ -491,7 +491,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			const rescueQuery = `
             SELECT r.*, u.email AS staff_email
             FROM rescues r
-            JOIN rescue_staff rs ON rs.rescue_id = r.user_id
+            JOIN staff_members rs ON rs.rescue_id = r.user_id
             JOIN users u ON u.user_id = rs.user_id
             WHERE rs.user_id = $1
         `;
@@ -546,7 +546,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			const permissionsQuery = `
             SELECT s.permissions
             FROM rescues r
-            JOIN rescue_staff s ON r.rescue_id = s.rescue_id
+            JOIN staff_members s ON r.rescue_id = s.rescue_id
             WHERE s.user_id = $1
         `;
 			const permissionsResult = await pool.query(permissionsQuery, [userId]);

@@ -176,14 +176,12 @@ router.get('/:id', authenticateToken, async (req, res) => {
  * - 201: Success, returns created document data.
  * - 400: Validation or process failure, returns error message.
  */
-
 router.post('/:type(individual|charity|company)', async (req, res) => {
 	let { type } = req.params;
 	const { email, password, firstName, ...rescueData } = req.body;
 	type = capitalizeFirstChar(type);
 
 	try {
-		// Logging for debugging
 		logger.debug(`Creating rescue of type: ${type} with email: ${email}`);
 
 		if (!password) {
@@ -191,53 +189,46 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 			return res.status(400).send({ message: 'Password is required.' });
 		}
 
-		// Check if user already exists
 		const existingUserQuery = {
 			text: 'SELECT * FROM users WHERE email = $1',
 			values: [email],
 		};
 		const existingUserResult = await pool.query(existingUserQuery);
-		const existingUser = existingUserResult.rows[0];
-		if (existingUser) {
-			logger.warn(`Error existing user: ${email}`);
-			return res.status(409).json({
+		if (existingUserResult.rows.length > 0) {
+			logger.warn(`User already exists: ${email}`);
+			return res.status(409).send({
 				message: 'User already exists - please try login or reset password',
 			});
 		}
 
-		// Hash the password and generate verification token
 		const hashedPassword = await bcrypt.hash(password, 12);
 		const verificationToken = await generateResetToken();
-		// Create the user
+
 		const newUserQuery = {
 			text: `
-				INSERT INTO users (email, password, first_name, email_verified, verification_token)
-				VALUES ($1, $2, $3, $4, $5)
-				RETURNING *
-			`,
+                INSERT INTO users (email, password, first_name, email_verified, verification_token)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+            `,
 			values: [email, hashedPassword, firstName, false, verificationToken],
 		};
 		const newUserResult = await pool.query(newUserQuery);
 		const user = newUserResult.rows[0];
 		logger.info(`New user registered: ${user.user_id}`);
 
-		// Send verification email
-		const FRONTEND_BASE_URL =
-			process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-		const verificationURL = `${FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
+		const verificationURL = `${
+			process.env.FRONTEND_BASE_URL || 'http://localhost:5173'
+		}/verify-email?token=${verificationToken}`;
 		await sendEmailVerificationEmail(email, verificationURL);
-		logger.info(`Verification email sent to: ${email}`);
 
 		let referenceNumberVerified = false;
-		// Additional steps for "Charity" or "Company"
 		if (type !== 'Individual' && rescueData.referenceNumber) {
 			const isUniqueQuery = {
 				text: 'SELECT * FROM rescues WHERE reference_number = $1',
 				values: [rescueData.referenceNumber],
 			};
 			const isUniqueResult = await pool.query(isUniqueQuery);
-			const isUnique = isUniqueResult.rows.length === 0;
-			if (!isUnique) {
+			if (isUniqueResult.rows.length > 0) {
 				logger.warn(
 					`Rescue with reference number ${rescueData.referenceNumber} already exists.`
 				);
@@ -246,73 +237,32 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 				});
 			}
 
-			if (type === 'Charity') {
-				referenceNumberVerified = await fetchAndValidateCharity(
-					rescueData.referenceNumber
-				);
-			} else if (type === 'Company') {
-				referenceNumberVerified = await fetchAndValidateCompany(
-					rescueData.referenceNumber
-				);
-			}
-			logger.info(
-				`${type} reference number ${rescueData.referenceNumber} validation result: ${referenceNumberVerified}`
-			);
+			referenceNumberVerified =
+				type === 'Charity'
+					? await fetchAndValidateCharity(rescueData.referenceNumber)
+					: type === 'Company'
+					? await fetchAndValidateCompany(rescueData.referenceNumber)
+					: false;
 		}
 
-		// Set the referenceNumberVerified for "Charity" and "Company", not affecting "Individual"
-		if (type !== 'Individual') {
-			rescueData.referenceNumberVerified = referenceNumberVerified;
-		}
-
-		// Add the new user's ID to the staff array
-		const staffMember = {
-			userId: user.user_id,
-			permissions: [
-				'edit_rescue_info',
-				'view_rescue_info',
-				'delete_rescue',
-				'add_staff',
-				'edit_staff',
-				'verify_staff',
-				'delete_staff',
-				'view_staff',
-				'view_pet',
-				'add_pet',
-				'edit_pet',
-				'delete_pet',
-				'create_messages',
-				'view_messages',
-			], // Specify permissions
-			verifiedByRescue: true,
-		};
-		if (!rescueData.staff) {
-			rescueData.staff = [];
-		}
-		rescueData.staff.push(staffMember);
-
-		rescueData.rescueType = type;
-
-		// Create the rescue
 		const newRescueQuery = {
 			text: `
-				INSERT INTO rescues (name, address, phone_number, rescue_type, reference_number, reference_number_verified, staff)
-				VALUES ($1, $2, $3, $4, $5, $6, $7)
-				RETURNING *
-			`,
+                INSERT INTO rescues (rescue_name, rescue_address, rescue_type, reference_number, reference_number_verified)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+            `,
 			values: [
 				rescueData.name,
 				rescueData.address,
-				rescueData.phoneNumber,
-				rescueData.rescueType,
+				type, // Assuming rescue_type is a valid column in your rescues table
 				rescueData.referenceNumber,
-				rescueData.referenceNumberVerified,
-				JSON.stringify(rescueData.staff),
+				referenceNumberVerified,
 			],
 		};
 		const newRescueResult = await pool.query(newRescueQuery);
 		const newRescue = newRescueResult.rows[0];
 		logger.info(`${type} rescue created successfully.`);
+
 		res.status(201).send({
 			message: `${type} rescue created successfully`,
 			data: newRescue,
@@ -445,11 +395,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
 		}
 
 		const editorPermissionQuery = {
-			text: "SELECT * FROM rescue_staff WHERE rescue_id = $1 AND user_id = $2 AND 'edit_rescue_info' = ANY(permissions)",
+			text: 'SELECT permissions FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
 			values: [id, editorUserId],
 		};
 		const editorPermissionResult = await pool.query(editorPermissionQuery);
-		const hasPermission = editorPermissionResult.rows.length > 0;
+		const hasPermission = editorPermissionResult.rows.some((row) =>
+			row.permissions.includes('edit_rescue_info')
+		);
 
 		if (!hasPermission) {
 			logger.warn(
@@ -457,16 +409,18 @@ router.put('/:id', authenticateToken, async (req, res) => {
 			);
 			return res
 				.status(403)
-				.send({ message: 'No permission to edit this rescue' }); // Adjusted message to match test expectation
+				.send({ message: 'No permission to edit this rescue' });
 		}
 
+		// Update logic needs to directly apply each field change to the database
+		const fieldsToUpdate = {};
 		Object.keys(updates).forEach((key) => {
-			rescue[key] = updates[key];
+			fieldsToUpdate[key] = updates[key];
 		});
 
 		const updateQuery = {
 			text: 'UPDATE rescues SET data = $1 WHERE rescue_id = $2 RETURNING *',
-			values: [JSON.stringify(rescue), id],
+			values: [JSON.stringify(fieldsToUpdate), id],
 		};
 		const updatedRescueResult = await pool.query(updateQuery);
 		const updatedRescue = updatedRescueResult.rows[0];
@@ -490,7 +444,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
  * - Success Response: Returns a message with the success status and the updated list of staff members.
  * - Error Handling: Responds with an appropriate error message and status code for permission issues, duplicates, or other database errors.
  */
-
 router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 	const { rescueId } = req.params;
 	const { email, permissions, firstName, password } = req.body;
@@ -509,7 +462,7 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 		}
 
 		const editorPermissionQuery = {
-			text: "SELECT * FROM rescue_staff WHERE rescue_id = $1 AND user_id = $2 AND 'edit_rescue_info' = ANY(permissions)",
+			text: "SELECT * FROM staff_members WHERE rescue_id = $1 AND user_id = $2 AND 'edit_rescue_info' = ANY(permissions)",
 			values: [rescueId, editorUserId],
 		};
 		const editorPermissionResult = await pool.query(editorPermissionQuery);
@@ -517,9 +470,9 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 
 		if (!hasPermission) {
 			logger.warn(
-				`User ${editorUserId} attempted to edit staff without permission.`
+				`User ${editorUserId} attempted to add staff without permission.`
 			);
-			return res.status(403).send({ message: 'No permission to edit staff' });
+			return res.status(403).send({ message: 'No permission to add staff' });
 		}
 
 		let userQuery = {
@@ -540,7 +493,7 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 		}
 
 		const isStaffMemberQuery = {
-			text: 'SELECT * FROM rescue_staff WHERE rescue_id = $1 AND user_id = $2',
+			text: 'SELECT * FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
 			values: [rescueId, user.user_id],
 		};
 		const isStaffMemberResult = await pool.query(isStaffMemberQuery);
@@ -550,7 +503,7 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 		}
 
 		const addStaffQuery = {
-			text: 'INSERT INTO rescue_staff (rescue_id, user_id, permissions, verified_by_rescue) VALUES ($1, $2, $3, $4) RETURNING *',
+			text: 'INSERT INTO staff_members (rescue_id, user_id, permissions, verified_by_rescue, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
 			values: [rescueId, user.user_id, permissions, false],
 		};
 		await pool.query(addStaffQuery);
@@ -572,6 +525,7 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 			.send({ message: 'Failed to add new staff', error: error.message });
 	}
 });
+
 router.put(
 	'/:rescueId/staff/:staffId/permissions',
 	authenticateToken,
@@ -594,11 +548,13 @@ router.put(
 			}
 
 			const editorPermissionQuery = {
-				text: "SELECT * FROM rescue_staff WHERE rescue_id = $1 AND user_id = $2 AND 'edit_rescue_info' = ANY(permissions)",
+				text: 'SELECT permissions FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
 				values: [rescueId, editorUserId],
 			};
 			const editorPermissionResult = await pool.query(editorPermissionQuery);
-			const hasPermission = editorPermissionResult.rows.length > 0;
+			const hasPermission = editorPermissionResult.rows.some((row) =>
+				row.permissions.includes('edit_rescue_info')
+			);
 
 			if (!hasPermission) {
 				logger.warn(
@@ -609,29 +565,24 @@ router.put(
 					.send({ message: 'No permission to edit permissions' });
 			}
 
-			const staffIndex = rescue.staff.findIndex(
-				(staff) => staff.user_id === staffId
-			);
-			if (staffIndex > -1) {
-				const updateStaffPermissionsQuery = {
-					text: 'UPDATE rescue_staff SET permissions = $1 WHERE rescue_id = $2 AND user_id = $3 RETURNING *',
-					values: [permissions, rescueId, staffId],
-				};
-				const updatedStaffResult = await pool.query(
-					updateStaffPermissionsQuery
-				);
-				const updatedStaff = updatedStaffResult.rows[0];
+			const updateStaffPermissionsQuery = {
+				text: 'UPDATE staff_members SET permissions = $1, updated_at = NOW() WHERE rescue_id = $2 AND staff_member_id = $3 RETURNING *',
+				values: [permissions, rescueId, staffId],
+			};
+			const updatedStaffResult = await pool.query(updateStaffPermissionsQuery);
+			const updatedStaff = updatedStaffResult.rows[0];
 
-				logger.info(
-					`Permissions updated successfully for staff ID: ${staffId} in rescue ID: ${rescueId}`
-				);
-				return res.send({
-					message: 'Permissions updated successfully',
-					data: updatedStaff,
-				});
-			} else {
+			if (!updatedStaff) {
 				return res.status(404).send({ message: 'Staff member not found' });
 			}
+
+			logger.info(
+				`Permissions updated successfully for staff ID: ${staffId} in rescue ID: ${rescueId}`
+			);
+			return res.send({
+				message: 'Permissions updated successfully',
+				data: updatedStaff,
+			});
 		} catch (error) {
 			Sentry.captureException(error);
 			logger.error(
@@ -650,8 +601,7 @@ router.put(
  * It authenticates the user token, checks if the authenticated user has permission to verify staff, and then updates the staff member's verified status.
  * Returns a success message on successful verification.
  * On failure, including lack of permission, staff member not found, or database errors, returns an appropriate error message and status code.
- */
-router.put(
+ */ router.put(
 	'/:rescueId/staff/:staffId/verify',
 	authenticateToken,
 	async (req, res) => {
@@ -659,36 +609,41 @@ router.put(
 		const userId = req.user.userId;
 
 		try {
+			// Verify the existence of the rescue
 			const rescueQuery = {
 				text: 'SELECT * FROM rescues WHERE rescue_id = $1',
 				values: [rescueId],
 			};
 			const rescueResult = await pool.query(rescueQuery);
-			const rescue = rescueResult.rows[0];
-
-			if (!rescue) {
+			if (rescueResult.rows.length === 0) {
 				logger.warn(
 					`Rescue not found with ID: ${rescueId} during staff verification`
 				);
 				return res.status(404).json({ message: 'Rescue not found' });
 			}
 
-			const staffMember = rescue.staff.find(
-				(member) => member.user_id === staffId
-			);
-			if (!staffMember) {
+			// Verify staff member exists in the staff_members table and the current user has permission to verify
+			const staffMemberQuery = {
+				text: 'SELECT * FROM staff_members WHERE rescue_id = $1 AND staff_member_id = $2',
+				values: [rescueId, staffId],
+			};
+			const staffMemberResult = await pool.query(staffMemberQuery);
+			if (staffMemberResult.rows.length === 0) {
 				logger.warn(
 					`Staff member not found with ID: ${staffId} for verification`
 				);
 				return res.status(404).json({ message: 'Staff member not found' });
 			}
 
-			const editorPermissionQuery = {
-				text: "SELECT * FROM rescue_staff WHERE rescue_id = $1 AND user_id = $2 AND 'edit_rescue_info' = ANY(permissions)",
+			// Check if the user has the 'edit_rescue_info' permission to verify staff
+			const permissionQuery = {
+				text: 'SELECT permissions FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
 				values: [rescueId, userId],
 			};
-			const editorPermissionResult = await pool.query(editorPermissionQuery);
-			const hasPermission = editorPermissionResult.rows.length > 0;
+			const permissionResult = await pool.query(permissionQuery);
+			const hasPermission = permissionResult.rows.some((row) =>
+				row.permissions.includes('edit_rescue_info')
+			);
 
 			if (!hasPermission) {
 				logger.warn(
@@ -699,8 +654,9 @@ router.put(
 					.json({ message: 'No permission to verify staff' });
 			}
 
+			// Verify the staff member
 			const verifyStaffQuery = {
-				text: 'UPDATE rescue_staff SET verified_by_rescue = true WHERE rescue_id = $1 AND user_id = $2',
+				text: 'UPDATE staff_members SET verified_by_rescue = true, updated_at = NOW() WHERE rescue_id = $1 AND staff_member_id = $2',
 				values: [rescueId, staffId],
 			};
 			await pool.query(verifyStaffQuery);
@@ -728,24 +684,26 @@ router.delete(
 		const editorUserId = req.user?.userId; // ID of the user making the request
 
 		try {
+			// Verify the existence of the rescue
 			const rescueQuery = {
 				text: 'SELECT * FROM rescues WHERE rescue_id = $1',
 				values: [rescueId],
 			};
 			const rescueResult = await pool.query(rescueQuery);
-			const rescue = rescueResult.rows[0];
-
-			if (!rescue) {
+			if (rescueResult.rows.length === 0) {
 				logger.warn(`Rescue not found with ID: ${rescueId}`);
 				return res.status(404).send({ message: 'Rescue not found' });
 			}
 
+			// Check if the user has permission to delete staff members
 			const editorPermissionQuery = {
-				text: "SELECT * FROM rescue_staff WHERE rescue_id = $1 AND user_id = $2 AND 'edit_rescue_info' = ANY(permissions)",
+				text: 'SELECT permissions FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
 				values: [rescueId, editorUserId],
 			};
 			const editorPermissionResult = await pool.query(editorPermissionQuery);
-			const hasPermission = editorPermissionResult.rows.length > 0;
+			const hasPermission = editorPermissionResult.rows.some((row) =>
+				row.permissions.includes('edit_rescue_info')
+			);
 
 			if (!hasPermission) {
 				logger.warn(
@@ -756,14 +714,15 @@ router.delete(
 					.send({ message: 'No permission to delete staff' });
 			}
 
-			// Prevent user from deleting their own user record.
+			// Prevent user from deleting their own user record
 			if (staffId === editorUserId) {
 				logger.warn(`User ${editorUserId} attempted to delete their own user.`);
 				return res.status(403).send({ message: 'Cannot delete your own user' });
 			}
 
+			// Perform the deletion of the staff member
 			const deleteStaffQuery = {
-				text: 'DELETE FROM rescue_staff WHERE rescue_id = $1 AND user_id = $2',
+				text: 'DELETE FROM staff_members WHERE rescue_id = $1 AND staff_member_id = $2',
 				values: [rescueId, staffId],
 			};
 			await pool.query(deleteStaffQuery);
