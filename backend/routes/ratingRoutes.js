@@ -54,7 +54,10 @@ router.post(
 
 			// If the target exists, proceed to create the rating
 			const insertRatingQuery = {
-				text: `INSERT INTO ratings (target_type, target_id, rating, created_by) VALUES ($1, $2, $3, $4) RETURNING *`,
+				text: `INSERT INTO ratings (target_type, target_id, rating, created_by) 
+VALUES ($1, $2, $3, $4) 
+RETURNING *
+`,
 				values: [targetType, targetId, req.body.rating, userId],
 			};
 			const insertedRatingResult = await pool.query(insertRatingQuery);
@@ -121,11 +124,12 @@ router.get('/find-ratings/:rescueId', authenticateToken, async (req, res) => {
 
 		const query = {
 			text: `
-				SELECT r._id, p.petName, r.target_id AS petId, r.rating_type AS ratingType, u.firstName AS userFirstName, r.user_id AS userId
+				SELECT r.rating_id, p.petName, r.target_id AS petId, r.rating_type AS ratingType, u.firstName AS userFirstName, r.user_id AS userId
 				FROM pets p
-				JOIN ratings r ON p._id = r.target_id
-				JOIN users u ON r.user_id = u._id
+				JOIN ratings r ON p.pet_id = r.target_id AND r.target_type = 'Pet'
+				JOIN users u ON r.user_id = u.user_id
 				WHERE p.owner_id = $1
+
 			`,
 			values: [rescueId],
 		};
@@ -164,12 +168,13 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 		const query = {
 			text: `
 				SELECT *
-				FROM pets
-				WHERE _id NOT IN (
-					SELECT target_id
-					FROM ratings
-					WHERE user_id = $1 AND target_type = 'Pet' AND rating_source = 'User'
-				)
+FROM pets
+WHERE pet_id NOT IN (
+    SELECT target_id
+    FROM ratings
+    WHERE user_id = $1 AND target_type = 'Pet' AND rating_source = 'User'
+)
+
 			`,
 			values: [userId],
 		};
@@ -203,12 +208,13 @@ router.get('/find-rated', authenticateToken, async (req, res) => {
 		const query = {
 			text: `
 				SELECT p.*
-				FROM pets p
-				WHERE p._id IN (
-					SELECT r.target_id
-					FROM ratings r
-					WHERE r.user_id = $1 AND r.target_type = 'Pet' AND r.rating_source = 'User'
-				)
+FROM pets p
+WHERE p.pet_id IN (
+    SELECT r.target_id
+    FROM ratings r
+    WHERE r.user_id = $1 AND r.target_type = 'Pet' AND r.rating_source = 'User'
+)
+
 			`,
 			values: [userId],
 		};

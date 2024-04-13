@@ -254,7 +254,7 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 			values: [
 				rescueData.name,
 				rescueData.address,
-				type, // Assuming rescue_type is a valid column in your rescues table
+				type,
 				rescueData.referenceNumber,
 				referenceNumberVerified,
 			],
@@ -263,14 +263,34 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 		const newRescue = newRescueResult.rows[0];
 		logger.info(`${type} rescue created successfully.`);
 
+		// Insert into staff_members
+		const staffMemberQuery = {
+			text: `
+                INSERT INTO staff_members (user_id, verified_by_rescue, permissions, rescue_id)
+                VALUES ($1, $2, $3, $4)
+                RETURNING *
+            `,
+			values: [
+				user.user_id, // user_id from the new user record
+				true, // Assuming verification by rescue is automatic
+				rescueData.permissions, // Permissions provided in the request
+				newRescue.rescue_id, // rescue_id from the new rescue record
+			],
+		};
+		const staffMemberResult = await pool.query(staffMemberQuery);
+		const staffMember = staffMemberResult.rows[0];
+		logger.info(
+			`Staff member created successfully: ${staffMember.staff_member_id}`
+		);
+
 		res.status(201).send({
-			message: `${type} rescue created successfully`,
-			data: newRescue,
+			message: `${type} rescue and staff member created successfully`,
+			data: { user, newRescue, staffMember },
 		});
 	} catch (error) {
 		Sentry.captureException(error);
 		logger.error(`Failed to create ${type} rescue: ` + error.message);
-		res.status(400).send({
+		res.status(500).send({
 			message: `Failed to create ${type} rescue`,
 			error: error.message,
 		});

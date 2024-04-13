@@ -490,10 +490,10 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			// Ensure your Rescue schema includes an array of staff objects with a userId field
 			const rescueQuery = `
             SELECT r.*, u.email AS staff_email
-            FROM rescues r
-            JOIN staff_members rs ON rs.rescue_id = r.user_id
-            JOIN users u ON u.user_id = rs.user_id
-            WHERE rs.user_id = $1
+			FROM rescues r
+			JOIN staff_members sm ON sm.rescue_id = r.rescue_id 
+			JOIN users u ON u.user_id = sm.user_id              
+			WHERE sm.user_id = $1                               
         `;
 			const rescueResult = await pool.query(rescueQuery, [userId]);
 			if (rescueResult.rowCount === 0) {
