@@ -38,11 +38,13 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 				const data =
 					userType === 'Rescue' ? response.data : await response.json();
 				if (response.ok || response.status === 200) {
-					const idKey = userType === 'Rescue' ? 'id' : 'userId';
+					const idKey = userType === 'Rescue' ? 'rescue_id' : 'userId';
 					if (userType === 'Rescue') {
-						const ids = data.staff.map((staffMember) => staffMember.userId._id);
+						const ids = data.staff.map((staffMember) => staffMember.userId);
 						setStaffIDs(ids);
 					}
+
+					console.log(userType);
 
 					setUserId(data[idKey]);
 					fetchConversations(data[idKey]);

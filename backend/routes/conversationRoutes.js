@@ -164,55 +164,47 @@ router.post('/', authenticateToken, async (req, res) => {
 // Get all conversations for a user
 router.get('/', authenticateToken, async (req, res) => {
 	try {
-		let rescueId;
 		let query;
+		let queryParams = [parseInt(req.query.participantId)]; // Parse participantId to ensure it's a number
 
 		// Check if the request is specifically for 'Rescue' conversations
 		if (req.query.type === 'Rescue') {
-			const rescueQuery = `
-                SELECT rescue_id FROM rescues 
-                JOIN staff_members ON rescues.rescue_id = staff_members.rescue_id
-                WHERE staff_members.user_id = $1
-            `;
-			const rescueResult = await pool.query(rescueQuery, [req.user.userId]);
-			if (rescueResult.rowCount === 0) {
-				return res
-					.status(404)
-					.json({ message: 'Rescue organization not found for the user.' });
-			}
-			rescueId = rescueResult.rows[0].rescue_id;
-
 			query = `
-                SELECT * FROM conversations
-                JOIN participants ON conversations.conversation_id = participants.conversation_id
-                WHERE participants.participant_id = $1 AND participants.participant_type = 'Rescue'
+                SELECT conversations.*, participants.participant_id, participants.participant_type, users.first_name, rescues.rescue_name FROM conversations
+				JOIN participants ON conversations.conversation_id = participants.conversation_id
+				LEFT JOIN users ON participants.participant_id = users.user_id
+				JOIN rescues ON participants.rescue_id = rescues.rescue_id
+				WHERE participants.rescue_id = $1 AND participants.participant_type = 'Rescue'
             `;
+			// console.log('RESCUE CONVERSATIONS');
 		} else {
 			query = `
-                SELECT * FROM conversations
-                JOIN participants ON conversations.conversation_id = participants.conversation_id
-                WHERE participants.participant_id = $1 AND participants.participant_type = 'User'
+                SELECT conversations.*, participants.participant_id, participants.participant_type, users.first_name, rescues.rescue_name FROM conversations
+				JOIN participants ON conversations.conversation_id = participants.conversation_id
+				JOIN users ON participants.participant_id = users.user_id
+				LEFT JOIN rescues ON participants.rescue_id = rescues.rescue_id
+				WHERE participants.user_id = $1 AND participants.participant_type = 'User'
             `;
+			queryParams = [req.user.userId];
+			// console.log('USER CONVERSATIONS');
 		}
 
-		const conversationsResult = await pool.query(query, [
-			rescueId || req.user.userId,
-		]);
+		const conversationsResult = await pool.query(query, queryParams);
 		const conversations = conversationsResult.rows;
-
-		// Additional data fetching for participants and pets if required can be added here
-		// This part will need manual data assembly in application logic if deep population is required as in Mongoose
 
 		const logMessage =
 			req.query.type === 'Rescue'
-				? `Fetched all conversations for rescue organization with ID ${rescueId}`
-				: 'Fetched all conversations for user';
+				? `Fetched all conversations for rescue organization with ID ${queryParams[0]}`
+				: `Fetched all conversations for user with ID ${queryParams[0]}`;
 		logger.info(logMessage);
+		// console.log('CONVERS', conversationsResult);
 		res.json(conversations);
 	} catch (error) {
 		logger.error(`Error fetching conversations: ${error.message}`);
 		Sentry.captureException(error);
-		res.status(500).json({ message: error.message });
+		res
+			.status(500)
+			.json({ message: 'An error occurred while fetching conversations.' });
 	}
 });
 

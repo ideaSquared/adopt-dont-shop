@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { ListGroup, Card } from 'react-bootstrap';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -8,7 +8,6 @@ const ConversationsComponent = ({
 	onConversationSelect,
 	selectedConversation,
 	userType,
-	listOfStaffIds,
 }) => {
 	const { authState } = useAuth();
 	const userId = authState.userId;
@@ -28,14 +27,8 @@ const ConversationsComponent = ({
 		}).format(date);
 	};
 
-	const getParticipantNames = (participants) => {
-		return participants
-			.filter((p) => p.participantId && p.participantType != userType)
-			.map(
-				(p) =>
-					p.participantId?.rescueName || p.participantId?.firstName || 'Unknown'
-			)
-			.join(', ');
+	const getParticipantName = (conversation) => {
+		return conversation.first_name || conversation.rescue_name || 'Unknown';
 	};
 
 	const sortedConversations = conversations.sort((a, b) => {
@@ -53,14 +46,15 @@ const ConversationsComponent = ({
 				{sortedConversations.map((conversation) => (
 					<ListGroup.Item
 						action
-						key={conversation._id}
+						key={conversation.conversation_id}
 						onClick={() => {
 							if (conversation.status !== 'closed') {
 								onConversationSelect(conversation);
 							}
 						}}
 						className={`d-flex align-items-center justify-content-between ${
-							conversation._id === selectedConversation?._id
+							conversation.conversation_id ===
+							selectedConversation?.conversation_id
 								? 'bg-primary text-white'
 								: conversation.status === 'closed'
 								? 'bg-secondary text-muted'
@@ -73,16 +67,14 @@ const ConversationsComponent = ({
 					>
 						<div className='flex-grow-1 text-truncate'>
 							<div className='fw-bold text-truncate'>
-								{getParticipantNames(conversation.participants)} for{' '}
-								{conversation.petId.name}
+								{getParticipantName(conversation)} for {conversation.pet_id}
 							</div>
 							<div className='small text-truncate'>
-								{conversation.lastMessage}
+								{conversation.last_message}
 							</div>
 						</div>
 						<div className='text-nowrap'>
 							{conversation.lastMessageBy !== userId &&
-								!listOfStaffIds.includes(conversation.lastMessageBy) &&
 								conversation.unreadMessages > 0 && (
 									<div className='mb-2'>
 										<span className='badge bg-secondary rounded-pill'>
