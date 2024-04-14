@@ -16,8 +16,8 @@ const RatingsTable = ({ filteredRatings, onCreateConversation }) => {
 				{filteredRatings.map((rating) => (
 					<tr key={rating.id}>
 						<td>{rating.name}</td>
-						<td>{rating.userFirstName}</td>
-						<td>{rating.ratingType}</td>
+						<td>{rating.userfirstname}</td>
+						<td>{rating.ratingtype}</td>
 						<td>
 							<Button
 								onClick={() =>

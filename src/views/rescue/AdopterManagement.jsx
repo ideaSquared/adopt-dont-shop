@@ -21,6 +21,8 @@ const AdopterManagement = ({ rescueId }) => {
 		}
 	}, [rescueId]);
 
+	console.log(ratings);
+
 	useEffect(() => {
 		// Filter logic
 		const filtered = ratings.filter(
