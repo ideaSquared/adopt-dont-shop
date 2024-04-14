@@ -107,7 +107,7 @@ const rescueJoiSchema = Joi.object({
 // Joi schema for adding/updating pet details
 const petJoiSchema = Joi.object({
 	name: Joi.string().required(),
-	ownerId: Joi.number().required().min(1), // Assuming you'll pass the ObjectId as a string
+	ownerId: Joi.number().required().min(1),
 	short_description: Joi.string().required(),
 	long_description: Joi.string().required(),
 	age: Joi.number().required(),
@@ -193,8 +193,8 @@ const messageSchema = Joi.object({
 });
 
 const ratingSchema = Joi.object({
-	userId: Joi.string().required(), // Assuming userId is sent as a string
-	petId: Joi.string().required(), // Renamed targetId to petId for clarity
+	userId: Joi.number().required(), // Assuming userId is sent as a string
+	petId: Joi.number().required(), // Renamed targetId to petId for clarity
 	ratingType: Joi.string().required().valid('like', 'love', 'dislike'),
 });
 

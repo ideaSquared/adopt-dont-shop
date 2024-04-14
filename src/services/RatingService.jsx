@@ -1,31 +1,22 @@
 import axios from 'axios';
 
-export const postRating = async (
-	targetId,
-	ratingType,
-	ratingSource,
-	onModel,
-	userId
-) => {
+export const postRating = async (petId, ratingType, userId) => {
+	const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/ratings`;
 	try {
 		const response = await axios.post(
-			`${import.meta.env.VITE_API_BASE_URL}/ratings`,
+			apiUrl,
 			{
-				userId: userId,
-				targetType: 'Pet', // Assuming the target type is always 'Pet'
-				targetId: targetId,
-				ratingType: ratingType, // 'like', 'dislike', or 'love'
-				ratingSource: ratingSource,
-				onModel: onModel,
+				userId,
+				targetType: 'Pet',
+				petId,
+				ratingType,
 			},
 			{
 				withCredentials: true,
 			}
 		);
-		// Return the response data or a success message if needed
 		return response.data;
 	} catch (error) {
-		// Optionally, handle errors or re-throw them to be handled by the caller
-		throw new Error(error.message || 'Failed to post rating');
+		throw new Error(error.response?.data?.message || 'Failed to post rating');
 	}
 };
