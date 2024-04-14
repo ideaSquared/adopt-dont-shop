@@ -76,7 +76,7 @@ router.get('/filter', authenticateToken, async (req, res) => {
 	const { type } = req.query;
 
 	try {
-		if (!type || !['Individual', 'Charity', 'Company'].includes(type)) {
+		if (!type || !['individual', 'charity', 'company'].includes(type)) {
 			logger.warn('Invalid or missing type query parameter for rescue filter.');
 			return res.status(400).send({
 				message: 'Invalid or missing type query parameter',
@@ -238,9 +238,9 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 			}
 
 			referenceNumberVerified =
-				type === 'Charity'
+				type.toLowerCase() === 'charity'
 					? await fetchAndValidateCharity(rescueData.referenceNumber)
-					: type === 'Company'
+					: type === 'company'
 					? await fetchAndValidateCompany(rescueData.referenceNumber)
 					: false;
 		}

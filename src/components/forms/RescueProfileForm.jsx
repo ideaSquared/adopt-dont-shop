@@ -45,9 +45,9 @@ const RescueProfileForm = ({
 							onChange={handleRescueInfoChange}
 							disabled={!canEditRescueInfo}
 						>
-							<option value='Individual'>Individual</option>
-							<option value='Charity'>Charity</option>
-							<option value='Company'>Company</option>
+							<option value='individual'>Individual</option>
+							<option value='charity'>Charity</option>
+							<option value='company'>Company</option>
 						</Form.Control>
 					</Form.Group>
 				</Col>

@@ -108,9 +108,9 @@ const Rescues = () => {
 			onChange: (e) => setFilterType(e.target.value), // Function to update the filter value
 			options: [
 				{ value: '', label: 'All Types' }, // The options for the select dropdown
-				{ value: 'Individual', label: 'Individual' },
-				{ value: 'Charity', label: 'Charity' },
-				{ value: 'Company', label: 'Company' },
+				{ value: 'individual', label: 'Individual' },
+				{ value: 'charity', label: 'Charity' },
+				{ value: 'company', label: 'Company' },
 			],
 			md: 4, // Assuming you want this to take up 4 columns in a grid layout
 		},
