@@ -1,57 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Button, Container, Alert, Spinner } from 'react-bootstrap';
+// Dashboard.js
+import React, { useState } from 'react';
+import { Container, Alert, Spinner } from 'react-bootstrap';
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
+import useStats from '../../hooks/useStats'; // Make sure the path is correct
 
 const Dashboard = () => {
-	const [stats, setStats] = useState({
-		userStats: [],
-		rescueStats: [],
-		petStats: [],
-		conversationStats: [],
-		messageStats: [],
-		ratingStats: [],
-	});
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState('');
+	const { stats, loading, error } = useStats();
 	const [updateMsg, setUpdateMsg] = useState('');
 
-	useEffect(() => {
-		fetchStats();
-	}, []);
+	if (loading) {
+		return (
+			<Container>
+				<Spinner animation='border' role='status'>
+					<span className='visually-hidden'>Loading...</span>
+				</Spinner>
+			</Container>
+		);
+	}
 
-	const fetchStats = async () => {
-		setLoading(true);
-		try {
-			const response = await axios.get(
-				`${
-					import.meta.env.VITE_API_BASE_URL
-				}/admin/stats?from=2024-01-01&to=2024-12-31`
-			);
-
-			setStats(response.data);
-		} catch (error) {
-			console.error('Error fetching stats', error);
-			setError('Failed to fetch statistics');
-		}
-		setLoading(false);
-	};
+	if (error || !stats) {
+		return (
+			<Container>
+				<Alert variant='danger'>{error || 'No statistics available'}</Alert>
+			</Container>
+		);
+	}
 
 	// Collect all weeks present in any stat category
 	const allWeeks = new Set();
-	Object.values(stats).forEach((statList) => {
-		statList.forEach((stat) => allWeeks.add(stat.week));
+	Object.entries(stats).forEach(([key, statList]) => {
+		if (Array.isArray(statList)) {
+			statList.forEach((stat) => allWeeks.add(stat.week));
+		} else {
+			console.error(`Expected an array for ${key}, but received:`, statList);
+		}
 	});
 
 	const sortedWeeks = Array.from(allWeeks).sort((a, b) => a - b);
 
 	const data = {
-		labels: sortedWeeks.map((week) => `Week ${week}`), // Create labels for each week in the sorted list
+		labels: sortedWeeks.map((week) => `Week ${week}`),
 		datasets: [
 			{
 				label: 'User Ratings',
 				data: sortedWeeks.map((week) => {
+					if (!stats || !stats.ratingStats) return 0;
 					const weekData = stats.ratingStats.find((stat) => stat.week === week);
 					return weekData ? weekData.count : 0;
 				}),
@@ -61,6 +55,7 @@ const Dashboard = () => {
 			{
 				label: 'Users Created',
 				data: sortedWeeks.map((week) => {
+					if (!stats || !stats.userStats) return 0;
 					const weekData = stats.userStats.find((stat) => stat.week === week);
 					return weekData ? weekData.count : 0;
 				}),
@@ -70,6 +65,7 @@ const Dashboard = () => {
 			{
 				label: 'Rescues Created',
 				data: sortedWeeks.map((week) => {
+					if (!stats || !stats.rescueStats) return 0;
 					const weekData = stats.rescueStats.find((stat) => stat.week === week);
 					return weekData ? weekData.count : 0;
 				}),
@@ -79,6 +75,7 @@ const Dashboard = () => {
 			{
 				label: 'Pets Created',
 				data: sortedWeeks.map((week) => {
+					if (!stats || !stats.petStats) return 0;
 					const weekData = stats.petStats.find((stat) => stat.week === week);
 					return weekData ? weekData.count : 0;
 				}),
@@ -88,6 +85,7 @@ const Dashboard = () => {
 			{
 				label: 'Messages Sent',
 				data: sortedWeeks.map((week) => {
+					if (!stats || !stats.messageStats) return 0;
 					const weekData = stats.messageStats.find(
 						(stat) => stat.week === week
 					);
@@ -99,6 +97,7 @@ const Dashboard = () => {
 			{
 				label: 'Conversations',
 				data: sortedWeeks.map((week) => {
+					if (!stats || !stats.conversationStats) return 0;
 					const weekData = stats.conversationStats.find(
 						(stat) => stat.week === week
 					);
@@ -113,16 +112,7 @@ const Dashboard = () => {
 	return (
 		<Container>
 			<h1>Charts</h1>
-			{error && <Alert variant='danger'>{error}</Alert>}
-			{loading ? (
-				<Spinner animation='border' role='status'>
-					<span className='visually-hidden'>Loading...</span>
-				</Spinner>
-			) : (
-				<>
-					<Line data={data} />
-				</>
-			)}
+			<Line data={data} />
 			{updateMsg && <Alert variant='info'>{updateMsg}</Alert>}
 		</Container>
 	);

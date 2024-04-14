@@ -5,17 +5,12 @@ import {
 	Form,
 	Col,
 	Row,
+	Accordion,
 	Tab,
 	Tabs,
-	Accordion,
 } from 'react-bootstrap';
 
-const RescueDetailsModal = ({
-	showModal,
-	handleClose,
-	rescueDetails,
-	onDeleteStaff,
-}) => {
+const RescueDetailsModal = ({ showModal, handleClose, rescueDetails }) => {
 	const permissionCategories = {
 		RescueOperations: ['view_rescue_info', 'edit_rescue_info', 'delete_rescue'],
 		StaffManagement: [
@@ -64,19 +59,19 @@ const RescueDetailsModal = ({
 			<Modal.Body>
 				{rescueDetails ? (
 					<Form>
-						<Form.Group controlId='rescueName'>
+						<Form.Group controlId='rescue_name'>
 							<Form.Label>Rescue name</Form.Label>
 							<Form.Control
 								type='text'
-								value={rescueDetails.rescueName}
+								value={rescueDetails.rescue_name}
 								disabled
 							/>
 						</Form.Group>
-						<Form.Group controlId='rescueType'>
+						<Form.Group controlId='rescue_type'>
 							<Form.Label>Type</Form.Label>
 							<Form.Control
 								type='text'
-								value={rescueDetails.rescueType}
+								value={rescueDetails.rescue_type}
 								disabled
 							/>
 						</Form.Group>
@@ -84,16 +79,19 @@ const RescueDetailsModal = ({
 						<hr />
 						<Accordion defaultActiveKey='0'>
 							{rescueDetails.staff.map((staffMember, index) => (
-								<Accordion.Item eventKey={index} key={staffMember._id}>
+								<Accordion.Item
+									eventKey={index.toString()}
+									key={staffMember.userId}
+								>
 									<Accordion.Header>
-										Staff details for {staffMember.userDetails.firstName}
+										Staff details for {staffMember.email}
 									</Accordion.Header>
 									<Accordion.Body>
 										<div className='d-flex justify-content-between align-items-center mb-3'>
 											<h5>Full details</h5>
 											<Button
 												variant='danger'
-												onClick={() => handleRemove(staffMember._id)}
+												onClick={() => onDeleteStaff(staffMember.userId)}
 											>
 												Remove staff member
 											</Button>
@@ -105,7 +103,7 @@ const RescueDetailsModal = ({
 											<Col sm='10'>
 												<Form.Control
 													type='email'
-													defaultValue={staffMember.userDetails.email}
+													defaultValue={staffMember.email}
 													readOnly
 												/>
 											</Col>
@@ -113,27 +111,22 @@ const RescueDetailsModal = ({
 
 										<Tabs
 											defaultActiveKey='permissions'
-											id={`staff-${staffMember._id}-tabs`}
+											id={`staff-${staffMember.userId}-tabs`}
 											className='mb-3'
 										>
 											{Object.entries(permissionCategories).map(
-												([category, permissions], catIndex) => {
-													const staffPermissionsInCategory = permissions.filter(
-														(permission) =>
-															staffHasPermission(
-																staffMember.permissions,
-																permission
-															)
-													);
-
-													return staffPermissionsInCategory.length > 0 ? (
-														<Tab
-															eventKey={category}
-															title={category.replace(/([A-Z])/g, ' $1').trim()}
-															key={category}
-														>
-															{staffPermissionsInCategory.map(
-																(permission, permIndex) => (
+												([category, permissions]) => (
+													<Tab
+														eventKey={category}
+														title={category.replace(/([A-Z])/g, ' $1').trim()}
+														key={category}
+													>
+														{permissions.map(
+															(permission, permIndex) =>
+																staffHasPermission(
+																	staffMember.permissions,
+																	permission
+																) && (
 																	<Form.Group
 																		as={Row}
 																		key={permIndex}
@@ -149,10 +142,9 @@ const RescueDetailsModal = ({
 																		</Col>
 																	</Form.Group>
 																)
-															)}
-														</Tab>
-													) : null;
-												}
+														)}
+													</Tab>
+												)
 											)}
 										</Tabs>
 									</Accordion.Body>

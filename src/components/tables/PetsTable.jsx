@@ -32,6 +32,7 @@ const PetTable = ({
 			<Table striped bordered hover>
 				<thead>
 					<tr>
+						<th>Pet ID</th>
 						<th>Image</th>
 						<th>Name</th>
 						<th>Type</th>
@@ -45,6 +46,7 @@ const PetTable = ({
 				<tbody>
 					{pets.map((pet) => (
 						<tr key={pet.pet_id}>
+							<td>{pet.pet_id}</td>
 							<td style={{ maxWidth: '120px', overflow: 'hidden' }}>
 								{renderPetImage(pet.images || '')}
 							</td>

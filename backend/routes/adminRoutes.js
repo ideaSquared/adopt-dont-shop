@@ -242,9 +242,9 @@ router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 
 		// Processing the rows to match the desired JSON structure
 		const rescues = rows.map((row) => ({
-			_id: row.rescue_id,
-			rescueName: row.rescueName,
-			rescueType: row.rescueType,
+			rescue_id: row.rescue_id,
+			rescue_name: row.rescueName,
+			rescue_type: row.rescueType,
 			staff: row.staff.map((staffMember) => ({
 				userId: staffMember.userId,
 				userDetails: staffMember.userDetails || {},
@@ -262,15 +262,22 @@ router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 		});
 	}
 });
+
 router.get('/rescues/:id', authenticateToken, checkAdmin, async (req, res) => {
 	const { id } = req.params;
 	try {
 		const query = `
             SELECT 
                 r.rescue_id,
-                r.rescue_name AS "rescueName",
-                r.rescue_type AS "rescueType",
-                json_agg(json_build_object('userId', s.user_id, 'userDetails', json_build_object('email', u.email))) FILTER (WHERE s.user_id IS NOT NULL) AS staff
+                r.rescue_name,
+                r.rescue_type,
+                json_agg(
+                    json_build_object(
+                        'userId', s.user_id,
+                        'email', u.email,
+                        'permissions', s.permissions
+                    )
+                ) FILTER (WHERE s.user_id IS NOT NULL) AS staff
             FROM 
                 rescues r
             LEFT JOIN staff_members s ON r.rescue_id = s.rescue_id
@@ -286,19 +293,15 @@ router.get('/rescues/:id', authenticateToken, checkAdmin, async (req, res) => {
 			});
 		}
 
-		// Extract the rescue information from the first row, if it exists
-		const rescue = rows.map((row) => ({
-			_id: row.rescue_id,
-			rescueName: row.rescueName,
-			rescueType: row.rescueType,
-			staff: row.staff.map((staffMember) => ({
-				userId: staffMember.userId,
-				userDetails: staffMember.userDetails || {},
-			})),
-		}))[0];
+		const rescue = rows[0]; // Simplified extraction since rows are guaranteed to have only one element per GROUP BY
 
-		logger.info(`Rescue fetched successfully for ${rescue.rescueName}.`);
-		res.json(rescue);
+		logger.info(`Rescue fetched successfully for ${rescue.rescue_name}.`);
+		res.json({
+			rescue_id: rescue.rescue_id,
+			rescue_name: rescue.rescue_name,
+			rescue_type: rescue.rescue_type,
+			staff: rescue.staff,
+		});
 	} catch (error) {
 		Sentry.captureException(error);
 		logger.error('Failed to fetch rescue: ' + error.message);

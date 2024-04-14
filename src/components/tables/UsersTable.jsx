@@ -16,6 +16,7 @@ const UsersTable = ({
 			<Table striped bordered hover>
 				<thead>
 					<tr>
+						<th>User ID</th>
 						<th>First name</th>
 						<th>Email</th>
 						<th>Flags</th>
@@ -24,24 +25,28 @@ const UsersTable = ({
 				</thead>
 				<tbody>
 					{currentUsers.map((user) => (
-						<tr key={user._id}>
-							<td>{user.firstName}</td>
+						<tr key={user.user_id}>
+							<td>{user.user_id}</td>
+							<td>{user.first_name}</td>
 							<td>{user.email}</td>
 							<td>
-								{user.resetTokenForceFlag && (
+								{user.reset_token_force_flag && (
 									<StatusBadge type='misc' value='Force Reset Flag' />
 								)}
-								{user.isAdmin && <StatusBadge type='misc' value='Admin' />}
+								{user.is_admin && <StatusBadge type='misc' value='Admin' />}
 							</td>
 							<td>
 								<Button
 									variant='warning'
-									onClick={() => onResetPassword(user._id)}
+									onClick={() => onResetPassword(user.user_id)}
 									className='me-2'
 								>
 									Reset Password
 								</Button>
-								<Button variant='danger' onClick={() => onDeleteUser(user._id)}>
+								<Button
+									variant='danger'
+									onClick={() => onDeleteUser(user.user_id)}
+								>
 									Delete
 								</Button>
 							</td>
