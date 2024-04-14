@@ -4,13 +4,13 @@ import { Form, Button } from 'react-bootstrap';
 const ResetPasswordForm = ({
 	onPasswordChange,
 	onConfirmPasswordChange,
-	onLogin,
+	onResetPassword,
 }) => {
 	return (
 		<Form
 			onSubmit={(e) => {
 				e.preventDefault();
-				onLogin();
+				onResetPassword();
 			}}
 		>
 			<Form.Group className='mb-3' controlId='password'>
