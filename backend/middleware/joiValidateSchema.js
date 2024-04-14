@@ -193,12 +193,9 @@ const messageSchema = Joi.object({
 });
 
 const ratingSchema = Joi.object({
-	userId: Joi.string().required(), // Assuming userId is sent as a string (e.g., hex value of ObjectId)
-	targetId: Joi.string().required(),
-	targetType: Joi.string().required().valid('Pet', 'User'),
-	ratingSource: Joi.string().required().valid('Rescue', 'User'),
+	userId: Joi.string().required(), // Assuming userId is sent as a string
+	petId: Joi.string().required(), // Renamed targetId to petId for clarity
 	ratingType: Joi.string().required().valid('like', 'love', 'dislike'),
-	onModel: Joi.string().required().valid('Pet', 'User'), // Make sure this matches the mongoose schema
 });
 
 /**

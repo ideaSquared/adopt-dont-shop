@@ -14,7 +14,6 @@ import { generateObjectId } from '../utils/generateObjectId.js';
 
 const logger = new LoggerUtil('rating-service').getLogger();
 const router = express.Router();
-
 // Create a new rating
 router.post(
 	'/',
@@ -23,48 +22,33 @@ router.post(
 	async (req, res) => {
 		try {
 			const userId = req.user.userId; // Assuming user ID is attached to the request by the authentication middleware
-			const { targetType, targetId } = req.body;
+			const { petId, ratingType } = req.body; // Destructure petId and ratingType from the body
 
-			// Determine which table to use based on the targetType
-			let tableName;
-
-			switch (targetType) {
-				case 'Pet':
-					tableName = 'pets'; // Assuming the table name for pets
-					break;
-				case 'User':
-					tableName = 'users'; // Assuming the table name for users
-					break;
-				default:
-					return res.status(400).send({ message: 'Invalid target type' });
-			}
-
-			// Check if the target entity exists
-			const targetQuery = {
-				text: `SELECT * FROM ${tableName} WHERE rating_id = $1`,
-				values: [targetId],
+			// Check if the Pet exists
+			const petQuery = {
+				text: `SELECT * FROM pets WHERE pet_id = $1`,
+				values: [petId],
 			};
-			const targetResult = await pool.query(targetQuery);
-			const targetExists = targetResult.rowCount > 0;
+			const petResult = await pool.query(petQuery);
+			const petExists = petResult.rowCount > 0;
 
-			if (!targetExists) {
-				logger.warn(`Unable to identify target ${targetId} by User ${userId}`);
-				return res.status(404).send({ message: 'Target not found' });
+			if (!petExists) {
+				logger.warn(`Pet not found for ID: ${petId}`);
+				return res.status(404).send({ message: 'Pet not found' });
 			}
 
-			// If the target exists, proceed to create the rating
+			// If the pet exists, proceed to create the rating
 			const insertRatingQuery = {
-				text: `INSERT INTO ratings (target_type, target_id, rating, created_by) 
-VALUES ($1, $2, $3, $4) 
-RETURNING *
-`,
-				values: [targetType, targetId, req.body.rating, userId],
+				text: `INSERT INTO ratings (user_id, pet_id, rating_type) 
+VALUES ($1, $2, $3) 
+RETURNING *`,
+				values: [userId, petId, ratingType],
 			};
 			const insertedRatingResult = await pool.query(insertRatingQuery);
 			const newRating = insertedRatingResult.rows[0];
 
 			logger.info(
-				`New rating created with ID: ${newRating.id} by User ${userId}`
+				`New rating created with ID: ${newRating.rating_id} for Pet ID: ${petId} by User ID: ${userId}`
 			);
 			res.status(201).send({
 				message: 'Rating created successfully',
@@ -128,12 +112,19 @@ router.get('/find-ratings/:rescueId', authenticateToken, async (req, res) => {
 
 		const query = {
 			text: `
-				SELECT r.rating_id, p.name, r.target_id AS petId, r.rating_type AS ratingType, u.firstName AS userFirstName, r.user_id AS userId
-				FROM pets p
-				JOIN ratings r ON p.pet_id = r.target_id AND r.target_type = 'Pet'
-				JOIN users u ON r.user_id = u.user_id
-				WHERE p.owner_id = $1
-
+				SELECT 
+					r.rating_id, 
+					p.name, 
+					r.pet_id, 
+					r.rating_type AS ratingType, 
+					u.first_name AS userFirstName, 
+					r.user_id AS userId
+				FROM 
+					pets p
+					JOIN ratings r ON p.pet_id = r.pet_id
+					JOIN users u ON r.user_id = u.user_id
+				WHERE 
+					p.owner_id = $1;
 			`,
 			values: [rescueId],
 		};
@@ -171,14 +162,16 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 
 		const query = {
 			text: `
-				SELECT *
-FROM pets
-WHERE pet_id NOT IN (
-    SELECT target_id
-    FROM ratings
-    WHERE user_id = $1 AND target_type = 'Pet' AND rating_source = 'User'
-)
-
+				SELECT 
+					*
+				FROM 
+					pets
+				WHERE 
+					pet_id NOT IN (
+						SELECT pet_id
+						FROM ratings
+						WHERE user_id = $1
+					);
 			`,
 			values: [userId],
 		};
@@ -211,14 +204,16 @@ router.get('/find-rated', authenticateToken, async (req, res) => {
 
 		const query = {
 			text: `
-				SELECT p.*
-FROM pets p
-WHERE p.pet_id IN (
-    SELECT r.target_id
-    FROM ratings r
-    WHERE r.user_id = $1 AND r.target_type = 'Pet' AND r.rating_source = 'User'
-)
-
+				SELECT 
+					*
+				FROM 
+					pets p
+				WHERE 
+					p.pet_id IN (
+						SELECT r.pet_id
+						FROM ratings r
+						WHERE r.user_id = $1
+					);
 			`,
 			values: [userId],
 		};
