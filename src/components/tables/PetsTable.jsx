@@ -36,7 +36,7 @@ const PetTable = ({
 						<th>Name</th>
 						<th>Type</th>
 						<th>Status</th>
-						{isAdmin && <th>Owner Info</th>}{' '}
+						{isAdmin && <th>Owner Info</th>}
 						{/* Conditionally render this column */}
 						<th>Age</th>
 						<th>Actions</th>
@@ -51,7 +51,7 @@ const PetTable = ({
 							<td>{pet.name || ''}</td>
 							<td>{pet.type || ''}</td>
 							<td>{pet.status || ''}</td>
-							{isAdmin && <td>{pet.ownerInfo}</td>}{' '}
+							{isAdmin && <td>{pet.ownerInfo}</td>}
 							{/* Conditionally render this cell */}
 							<td>{pet.age || ''}</td>
 							<td>
