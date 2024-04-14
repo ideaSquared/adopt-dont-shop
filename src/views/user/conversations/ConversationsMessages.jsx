@@ -34,7 +34,10 @@ const MessagesComponent = ({
 						axios.get(messagesUrl, { withCredentials: true }),
 						axios.get(petDataUrl, { withCredentials: true }),
 					]);
-					setMessages(messagesResponse.data);
+					const sortedMessages = messagesResponse.data.sort(
+						(a, b) => new Date(a.sent_at) - new Date(b.sent_at)
+					);
+					setMessages(sortedMessages);
 					setPetData(petDataResponse.data.data);
 				} catch (error) {
 					console.error('Error fetching data:', error);
@@ -74,8 +77,6 @@ const MessagesComponent = ({
 	if (!conversation) {
 		return <div>Select a conversation to view messages.</div>;
 	}
-
-	console.log(messages);
 
 	return (
 		<Container fluid className='d-flex flex-column vh-100 p-2'>

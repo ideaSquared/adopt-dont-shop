@@ -8,6 +8,7 @@ const ConversationsComponent = ({
 	onConversationSelect,
 	selectedConversation,
 	userType,
+	listOfStaffIds,
 }) => {
 	const { authState } = useAuth();
 	const userId = authState.userId;
@@ -75,6 +76,8 @@ const ConversationsComponent = ({
 						</div>
 						<div className='text-nowrap'>
 							{conversation.last_message_by !== userId &&
+								(userType === 'rescue' ||
+									!listOfStaffIds.includes(conversation.last_message_by)) &&
 								conversation.unread_messages > 0 && (
 									<div className='mb-2'>
 										<span className='badge bg-secondary rounded-pill'>
@@ -82,6 +85,7 @@ const ConversationsComponent = ({
 										</span>
 									</div>
 								)}
+
 							<small>{formatIsoDateString(conversation.last_message_at)}</small>
 						</div>
 					</ListGroup.Item>

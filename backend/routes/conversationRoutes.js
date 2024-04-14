@@ -424,57 +424,57 @@ router.put(
 	'/messages/read/:conversationId',
 	authenticateToken,
 	async (req, res) => {
-		const userId = req.user.userId; // Assuming userId is added to req.user
+		const userId = req.user.userId;
 		const { userType } = req.body;
 		const conversationId = req.params.conversationId;
-		let userParticipants;
+		let staffMemberUserIds;
 
 		try {
 			logger.info(
 				`Attempting to mark messages as read for conversationId: ${conversationId} by userId: ${userId}`
 			);
 
+			if (userType !== 'User' && userType !== 'Rescue') {
+				return res.status(400).json({ message: 'Invalid user type' });
+			}
+
 			let query = `
-                UPDATE messages 
-                SET status = 'read', read_at = NOW()
-                WHERE conversation_id = $1 AND status = 'sent'
-            `;
+            UPDATE messages 
+            SET status = 'read', read_at = NOW()
+            WHERE conversation_id = $1 AND status = 'sent'
+        `;
 
 			if (userType === 'User') {
 				query += ` AND sender_id != $2`;
 			} else if (userType === 'Rescue') {
-				// Fetch participants to identify users
-				const participantQuery = `
-                    SELECT user_id FROM participants
-                    WHERE conversation_id = $1 AND participant_type = 'User'
-                `;
-				const participantsResult = await pool.query(participantQuery, [
-					conversationId,
-				]);
-				userParticipants = participantsResult.rows.map((row) => row.user_id);
+				// Fetch user_ids of all staff members for the rescue associated with the user
+				const staffQuery = `
+                SELECT user_id FROM staff_members
+                WHERE rescue_id = (SELECT rescue_id FROM staff_members WHERE user_id = $2)
+            `;
+				const staffResult = await pool.query(staffQuery, [userId]);
+				staffMemberUserIds = staffResult.rows.map((row) => row.user_id);
 
-				query += ` AND sender_id = ANY($2)`;
-			} else {
-				return res.status(400).json({ message: 'Invalid user type' });
+				query += ` AND NOT (sender_id = ANY($3))`;
 			}
 
-			const result = await pool.query(query, [
-				conversationId,
-				userType === 'User' ? userId : userParticipants,
-			]);
+			const params = [conversationId];
+			if (userType === 'User') {
+				params.push(userId);
+			} else if (userType === 'Rescue') {
+				params.push(staffMemberUserIds);
+			}
+			const result = await pool.query(query, params);
 
 			logger.info(`Messages updated, modified: ${result.rowCount}`);
 
 			// Update the conversation's unreadMessages count
 			const updateConversationQuery = `
-                UPDATE conversations
-                SET unread_messages = unread_messages - $2
-                WHERE conversation_id = $1
-            `;
-			await pool.query(updateConversationQuery, [
-				conversationId,
-				result.rowCount,
-			]);
+            UPDATE conversations
+            SET unread_messages = 0
+            WHERE conversation_id = $1
+        `;
+			await pool.query(updateConversationQuery, [conversationId]);
 
 			res.status(200).json({
 				message: 'Messages marked as read',
