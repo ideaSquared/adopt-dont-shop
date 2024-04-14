@@ -16,6 +16,16 @@ const pool = new Pool({
 			: false,
 });
 
+// Set timezone to UTC for each new client
+pool.on('connect', async (client) => {
+	try {
+		await client.query("SET TIME ZONE 'UTC';");
+		console.log('Timezone set to UTC for this client');
+	} catch (error) {
+		console.error('Failed to set timezone to UTC', error);
+	}
+});
+
 const connectDB = async () => {
 	try {
 		await pool.connect(); // This checks if the connection is successful
