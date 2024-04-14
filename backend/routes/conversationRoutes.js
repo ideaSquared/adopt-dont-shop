@@ -181,7 +181,7 @@ router.get('/', authenticateToken, async (req, res) => {
 			query = `
                 SELECT conversations.*, participants.participant_id, participants.participant_type, users.first_name, rescues.rescue_name FROM conversations
 				JOIN participants ON conversations.conversation_id = participants.conversation_id
-				JOIN users ON participants.participant_id = users.user_id
+				JOIN users ON participants.user_id = users.user_id
 				LEFT JOIN rescues ON participants.rescue_id = rescues.rescue_id
 				WHERE participants.user_id = $1 AND participants.participant_type = 'User'
             `;
@@ -427,6 +427,7 @@ router.put(
 		const userId = req.user.userId; // Assuming userId is added to req.user
 		const { userType } = req.body;
 		const conversationId = req.params.conversationId;
+		let userParticipants;
 
 		try {
 			logger.info(
@@ -450,9 +451,7 @@ router.put(
 				const participantsResult = await pool.query(participantQuery, [
 					conversationId,
 				]);
-				const userParticipants = participantsResult.rows.map(
-					(row) => row.user_id
-				);
+				userParticipants = participantsResult.rows.map((row) => row.user_id);
 
 				query += ` AND sender_id = ANY($2)`;
 			} else {
@@ -470,7 +469,7 @@ router.put(
 			const updateConversationQuery = `
                 UPDATE conversations
                 SET unread_messages = unread_messages - $2
-                WHERE id = $1
+                WHERE conversation_id = $1
             `;
 			await pool.query(updateConversationQuery, [
 				conversationId,

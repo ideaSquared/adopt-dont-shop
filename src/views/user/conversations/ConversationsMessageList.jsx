@@ -6,8 +6,8 @@ const MessageList = ({ messages, userType, userId, listOfStaffIds }) => (
 		{messages.map((msg, index) => {
 			// Determine if the message is from the current user or a rescue member
 			const isUserMessage =
-				(userType === 'User' && msg.senderId === userId) ||
-				(userType === 'Rescue' && listOfStaffIds.includes(msg.senderId));
+				(userType === 'User' && msg.sender_id === userId) ||
+				(userType === 'Rescue' && listOfStaffIds.includes(msg.sender_id));
 
 			return (
 				<div
@@ -23,20 +23,20 @@ const MessageList = ({ messages, userType, userId, listOfStaffIds }) => (
 						style={{ minWidth: '35%', maxWidth: '75%' }}
 					>
 						<Card.Body>
-							{msg.senderId !== userId && (
+							{msg.sender_id !== userId && (
 								<div
 									className='text-muted text-end'
 									style={{ fontSize: '0.9em' }}
 								>
-									<Badge bg='info'>{msg.senderName}</Badge>
+									<Badge bg='info'>{msg.sender_name}</Badge>
 								</div>
 							)}
-							<div style={{ whiteSpace: 'pre-wrap' }}>{msg.messageText}</div>
+							<div style={{ whiteSpace: 'pre-wrap' }}>{msg.message_text}</div>
 							<Card.Text
 								className='text-muted text-end'
 								style={{ fontSize: '0.8em' }}
 							>
-								{new Date(msg.sentAt).toLocaleTimeString()} {msg.status}
+								{new Date(msg.sent_at).toLocaleTimeString()} {msg.status}
 							</Card.Text>
 						</Card.Body>
 					</Card>

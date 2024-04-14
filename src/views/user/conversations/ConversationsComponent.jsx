@@ -74,15 +74,15 @@ const ConversationsComponent = ({
 							</div>
 						</div>
 						<div className='text-nowrap'>
-							{conversation.lastMessageBy !== userId &&
-								conversation.unreadMessages > 0 && (
+							{conversation.last_message_by !== userId &&
+								conversation.unread_messages > 0 && (
 									<div className='mb-2'>
 										<span className='badge bg-secondary rounded-pill'>
-											{conversation.unreadMessages}
+											{conversation.unread_messages}
 										</span>
 									</div>
 								)}
-							<small>{formatIsoDateString(conversation.lastMessageAt)}</small>
+							<small>{formatIsoDateString(conversation.last_message_at)}</small>
 						</div>
 					</ListGroup.Item>
 				))}

@@ -44,8 +44,6 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 						setStaffIDs(ids);
 					}
 
-					console.log(userType);
-
 					setUserId(data[idKey]);
 					fetchConversations(data[idKey]);
 				} else {
@@ -92,7 +90,7 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 		try {
 			await axios.put(
 				`${import.meta.env.VITE_API_BASE_URL}/conversations/messages/read/${
-					conversation._id
+					conversation.conversation_id
 				}`,
 				{ userType },
 				{ withCredentials: true }
