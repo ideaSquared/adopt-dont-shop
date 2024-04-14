@@ -21,7 +21,7 @@ const RatingsTable = ({ filteredRatings, onCreateConversation }) => {
 						<td>
 							<Button
 								onClick={() =>
-									onCreateConversation(rating.petId, rating.userId)
+									onCreateConversation(rating.pet_id, rating.userid)
 								}
 							>
 								Start Conversation

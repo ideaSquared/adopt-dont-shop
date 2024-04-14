@@ -3,6 +3,7 @@ import express from 'express';
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import { pool } from '../dbConnection.js';
+import format from 'pg-format';
 import Sentry from '@sentry/node'; // Error tracking utility.
 import authenticateToken from '../middleware/authenticateToken.js';
 import Rescue from '../models/Rescue.js';
@@ -70,87 +71,94 @@ async function checkParticipant(req, res, next) {
 
 // CRUD Routes for Conversations
 // Create a new conversation
-router.post(
-	'/',
-	authenticateToken,
-	validateRequest(createConversationSchema),
-	async (req, res) => {
-		const { participants, petId } = req.body;
+router.post('/', authenticateToken, async (req, res) => {
+	console.log('Request body:', req.body);
 
-		if (
-			!participants ||
-			!Array.isArray(participants) ||
-			participants.length < 2
-		) {
-			// Assuming at least 2 participants are required
-			logger.warn('Invalid participants for new conversation');
-			return res.status(400).json({ message: 'Invalid participants' });
-		}
+	const { participants, petId } = req.body;
 
+	if (
+		!participants ||
+		!Array.isArray(participants) ||
+		participants.length < 2
+	) {
+		// Assuming at least 2 participants are required
+		logger.warn('Invalid participants for new conversation');
+		return res.status(400).json({ message: 'Invalid participants' });
+	}
+
+	console.log('Participants received:', participants);
+
+	try {
+		const client = await pool.connect(); // Start a database transaction
 		try {
-			const client = await pool.connect(); // Start a database transaction
-			try {
-				await client.query('BEGIN');
+			await client.query('BEGIN');
 
-				const newConversationQuery = `
+			const newConversationQuery = `
                     INSERT INTO conversations (started_by, started_at, status, unread_messages, messages_count, pet_id, last_message, last_message_at, last_message_by)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                     RETURNING conversation_id;
                 `;
-				const values = [
-					req.user.userId,
-					new Date(),
-					'active',
-					0,
-					0,
-					petId,
-					'',
-					new Date(),
-					req.user.userId,
-				];
-				const newConversationResult = await client.query(
-					newConversationQuery,
-					values
-				);
-				const conversationId = newConversationResult.rows[0].conversation_id;
+			const values = [
+				req.user.userId,
+				new Date(),
+				'active',
+				0,
+				0,
+				petId,
+				'',
+				new Date(),
+				req.user.userId,
+			];
+			const newConversationResult = await client.query(
+				newConversationQuery,
+				values
+			);
+			const conversationId = newConversationResult.rows[0].conversation_id;
 
-				const participantValues = participants.map((userId) => [
-					conversationId,
-					userId,
-				]);
-				const participantQuery = format(
-					`
-                    INSERT INTO participants (conversation_id, user_id)
-                    VALUES %L
-                `,
-					participantValues
-				);
-				await client.query(participantQuery); // Batch insert participants
+			const participantValues = participants.map((p) => {
+				if (p.participantType === 'User') {
+					return [conversationId, p.userId, null, 'User']; // Assuming p.userId is provided for User
+				} else if (p.participantType === 'Rescue') {
+					return [conversationId, null, p.rescueId, 'Rescue']; // Assuming p.rescueId is provided for Rescue
+				} else {
+					// Handle unexpected participantType
+					throw new Error('Invalid participant type');
+				}
+			});
 
-				await client.query('COMMIT');
+			// Create a format string for participant insertion
+			const participantQuery = format(
+				'INSERT INTO participants (conversation_id, user_id, rescue_id, participant_type) VALUES %L',
+				participantValues
+			);
 
-				logger.info(`New conversation created with ID: ${conversationId}`);
-				res.status(201).json({
-					id: conversationId,
-					startedBy: req.user.userId,
-					participants,
-					startedAt: values[1],
-					status: values[2],
-					petId,
-				});
-			} catch (error) {
-				await client.query('ROLLBACK');
-				throw error;
-			} finally {
-				client.release();
-			}
+			console.log(participantQuery);
+
+			await client.query(participantQuery); // Batch insert participants
+
+			await client.query('COMMIT');
+
+			logger.info(`New conversation created with ID: ${conversationId}`);
+			res.status(201).json({
+				id: conversationId,
+				startedBy: req.user.userId,
+				participants,
+				startedAt: values[1],
+				status: values[2],
+				petId,
+			});
 		} catch (error) {
-			logger.error(`Error creating conversation: ${error.message}`);
-			Sentry.captureException(error);
-			res.status(500).json({ message: error.message });
+			await client.query('ROLLBACK');
+			throw error;
+		} finally {
+			client.release();
 		}
+	} catch (error) {
+		logger.error(`Error creating conversation: ${error.message}`);
+		Sentry.captureException(error);
+		res.status(500).json({ message: error.message });
 	}
-);
+});
 
 // TODO: Tests + do we need to call for images or can we do this on another API call?
 // Get all conversations for a user

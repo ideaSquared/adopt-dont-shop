@@ -131,15 +131,15 @@ const petJoiSchema = Joi.object({
 });
 
 const participantReferenceValidationSchema = Joi.object({
-	participantId: Joi.string().required().messages({
-		'string.base': `"participantId" should be a string`,
-		'any.required': `"participantId" is a required field`,
-	}),
-	participantType: Joi.string().required().valid('User', 'Rescue').messages({
-		'string.base': `"participantType" should be a string`,
-		'any.required': `"participantType" is a required field`,
-		'any.only': `"participantType" must be one of [User, Rescue]`,
-	}),
+	// participantId: Joi.number().required().messages({
+	// 	'string.base': `"participantId" should be a string`,
+	// 	'any.required': `"participantId" is a required field`,
+	// }),
+	// participantType: Joi.number().required().valid('User', 'Rescue').messages({
+	// 	'string.base': `"participantType" should be a string`,
+	// 	'any.required': `"participantType" is a required field`,
+	// 	'any.only': `"participantType" must be one of [User, Rescue]`,
+	// }),
 });
 
 const conversationSchema = Joi.object({
@@ -170,12 +170,12 @@ const createConversationSchema = Joi.object({
 			'array.base': `"participants" should be an array`,
 			'array.min': `"participants" should have at least 2 participants`,
 		}),
-	petId: Joi.string().optional(), // Change this line accordingly
+	petId: Joi.number().optional(), // Change this line accordingly
 });
 
 const messageSchema = Joi.object({
-	conversationId: Joi.string().required(),
-	senderId: Joi.string().required(),
+	conversationId: Joi.number().required(),
+	senderId: Joi.number().required(),
 	messageText: Joi.string().required(),
 	sentAt: Joi.date().required(),
 	readAt: Joi.date().allow(null),
