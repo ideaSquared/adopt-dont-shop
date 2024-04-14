@@ -165,7 +165,7 @@ router.post('/', authenticateToken, async (req, res) => {
 router.get('/', authenticateToken, async (req, res) => {
 	try {
 		let query;
-		let queryParams = [parseInt(req.query.participantId)]; // Parse participantId to ensure it's a number
+		let queryParams = [req.query.participantId]; // Parse participantId to ensure it's a number
 
 		// Check if the request is specifically for 'Rescue' conversations
 		if (req.query.type === 'Rescue') {
