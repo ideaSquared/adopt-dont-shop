@@ -1,32 +1,26 @@
 import React, { useState } from 'react';
 import { Card, Button, Badge } from 'react-bootstrap';
 import { HandThumbsDown, HeartFill, HandThumbsUp } from 'react-bootstrap-icons';
+import './Swipe.css';
 
-const SwipeLanding = ({ item }) => {
+const SwipeLanding = ({ item, handleSwipe }) => {
 	const [viewDetails, setViewDetails] = useState(false);
-	const [currentImageIndex, setCurrentImageIndex] = useState(0);
 	const toggleViewDetails = () => setViewDetails(!viewDetails);
-	const images = item.images;
+
+	const images = item.images || [];
+	const [currentImageIndex, setCurrentImageIndex] = useState(0);
 	const basePath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 	const fallbackImage = 'https://placehold.it/500';
+	const imageSrc = images.length
+		? `${basePath}${images[currentImageIndex]}`
+		: fallbackImage;
 
-	// Function to handle next image
-	const nextImage = () => {
+	const nextImage = () =>
 		setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
-	};
-
-	// Function to handle previous image
-	const prevImage = () => {
-		setCurrentImageIndex((prevIndex) => {
-			return prevIndex - 1 < 0 ? images.length - 1 : prevIndex - 1;
-		});
-	};
-
-	// Dynamically set the image source based on the current index
-	const imageSrc =
-		images && images.length > 0
-			? `${basePath}${images[currentImageIndex]}`
-			: fallbackImage;
+	const prevImage = () =>
+		setCurrentImageIndex((prevIndex) =>
+			prevIndex - 1 < 0 ? images.length - 1 : prevIndex - 1
+		);
 
 	return (
 		<div className='d-flex align-items-center justify-content-center swipe-screen'>
@@ -53,14 +47,14 @@ const SwipeLanding = ({ item }) => {
 							</Button>
 						</div>
 						<div className='d-flex justify-content-between'>
-							<Card.Title>{item.petName}</Card.Title>
+							<Card.Title>{item.name}</Card.Title>
 							<div className='badge-container d-flex align-items-start'>
 								<Badge className='mx-1' bg='secondary'>
 									Age: {item.age}
-								</Badge>{' '}
+								</Badge>
 								<Badge className='mx-1' bg='info'>
 									{item.gender}
-								</Badge>{' '}
+								</Badge>
 								<Badge
 									className='mx-1'
 									bg={item.status === 'Adopted' ? 'success' : 'warning'}
@@ -70,8 +64,14 @@ const SwipeLanding = ({ item }) => {
 							</div>
 						</div>
 						<Card.Text>
-							{item.shortDescription}{' '}
-							<a href='#' onClick={toggleViewDetails}>
+							{item.short_description}{' '}
+							<a
+								href='#'
+								onClick={(e) => {
+									e.preventDefault();
+									toggleViewDetails();
+								}}
+							>
 								See more...
 							</a>
 						</Card.Text>
@@ -79,13 +79,22 @@ const SwipeLanding = ({ item }) => {
 							<Button
 								variant='outline-danger'
 								className='rounded-circle dislike'
+								onClick={() => handleSwipe('left')}
 							>
 								<HandThumbsDown /> Dislike
 							</Button>
-							<Button variant='outline-primary' className='rounded-circle love'>
+							<Button
+								variant='outline-primary'
+								className='rounded-circle love'
+								onClick={() => handleSwipe('love')}
+							>
 								<HeartFill /> Love
 							</Button>
-							<Button variant='outline-success' className='rounded-circle like'>
+							<Button
+								variant='outline-success'
+								className='rounded-circle like'
+								onClick={() => handleSwipe('right')}
+							>
 								<HandThumbsUp /> Like
 							</Button>
 						</div>
@@ -94,8 +103,8 @@ const SwipeLanding = ({ item }) => {
 			) : (
 				<Card className='swipe-card detailed-view'>
 					<Card.Body className='d-flex flex-column align-items-center justify-content-center'>
-						<Card.Title>{item.petName}</Card.Title>
-						<Card.Text>{item.longDescription}</Card.Text>
+						<Card.Title>{item.name}</Card.Title>
+						<Card.Text>{item.long_description}</Card.Text>
 						<Button variant='secondary' onClick={toggleViewDetails}>
 							Back
 						</Button>

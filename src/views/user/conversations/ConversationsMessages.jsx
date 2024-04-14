@@ -25,9 +25,9 @@ const MessagesComponent = ({
 			const fetchMessages = async () => {
 				const messagesUrl = `${
 					import.meta.env.VITE_API_BASE_URL
-				}/conversations/messages/${conversation._id}`;
+				}/conversations/messages/${conversation.conversation_id}`;
 				const petDataUrl = `${import.meta.env.VITE_API_BASE_URL}/pets/${
-					conversation.petId._id
+					conversation.pet_id
 				}`;
 				try {
 					const [messagesResponse, petDataResponse] = await Promise.all([
@@ -52,11 +52,11 @@ const MessagesComponent = ({
 		try {
 			const response = await axios.post(
 				`${import.meta.env.VITE_API_BASE_URL}/conversations/messages/${
-					conversation._id
+					conversation.conversation_id
 				}`,
 				{
 					messageText: message,
-					conversationId: conversation._id,
+					conversationId: conversation.conversation_id,
 					senderId: userId,
 					sentAt: new Date(),
 					status: 'sent',
@@ -74,6 +74,8 @@ const MessagesComponent = ({
 	if (!conversation) {
 		return <div>Select a conversation to view messages.</div>;
 	}
+
+	console.log(messages);
 
 	return (
 		<Container fluid className='d-flex flex-column vh-100 p-2'>

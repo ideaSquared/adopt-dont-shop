@@ -214,8 +214,8 @@ describe('Admin Routes', function () {
 				ownerId: generateObjectId(),
 				gender: 'Male',
 				status: 'Available',
-				shortDescription: 'Friendly dog',
-				longDescription: 'Very friendly and playful dog',
+				short_description: 'Friendly dog',
+				long_description: 'Very friendly and playful dog',
 				type: 'Cat',
 				age: 3,
 				characteristics: {
@@ -374,8 +374,8 @@ describe('Admin Routes', function () {
 					petName: 'Rex',
 					ownerId: generateObjectId(), // Use the generateObjectId utility to simulate a valid MongoDB ObjectId
 					age: 4,
-					shortDescription: 'Friendly and energetic dog',
-					longDescription:
+					short_description: 'Friendly and energetic dog',
+					long_description:
 						'Rex is a very friendly and energetic dog that loves to play and run around.',
 					gender: 'Male',
 					status: 'Available',
@@ -415,8 +415,8 @@ describe('Admin Routes', function () {
 					petName: 'Rex',
 					ownerId: generateObjectId(), // Use the generateObjectId utility to simulate a valid MongoDB ObjectId
 					age: 4,
-					shortDescription: 'Friendly and energetic dog',
-					longDescription:
+					short_description: 'Friendly and energetic dog',
+					long_description:
 						'Rex is a very friendly and energetic dog that loves to play and run around.',
 					gender: 'Male',
 					status: 'Available',

@@ -14,13 +14,13 @@ const { Schema } = mongoose;
 const petSchema = new mongoose.Schema(
 	{
 		// The name of the pet. This field is required for every pet document.
-		petName: { type: String, required: true },
+		name: { type: String, required: true },
 		// Reference to the Rescue entity that owns or is responsible for the pet. It is required to associate pets with a specific rescue or owner.
 		ownerId: { type: Schema.Types.ObjectId, required: true, ref: 'Rescue' },
 		// A short description of the pet. Required for providing a brief overview.
-		shortDescription: { type: String, required: true },
+		short_description: { type: String, required: true },
 		// A detailed description of the pet. Required for providing comprehensive information about the pet.
-		longDescription: { type: String, required: true },
+		long_description: { type: String, required: true },
 		// The age of the pet in years. This field is required.
 		age: { type: Number, required: true },
 		// The gender of the pet. This field is required and could be values like 'Male', 'Female', etc.

@@ -15,13 +15,13 @@ const RatingsTable = ({ filteredRatings, onCreateConversation }) => {
 			<tbody>
 				{filteredRatings.map((rating) => (
 					<tr key={rating.id}>
-						<td>{rating.petName}</td>
-						<td>{rating.userFirstName}</td>
-						<td>{rating.ratingType}</td>
+						<td>{rating.name}</td>
+						<td>{rating.userfirstname}</td>
+						<td>{rating.ratingtype}</td>
 						<td>
 							<Button
 								onClick={() =>
-									onCreateConversation(rating.petId, rating.userId)
+									onCreateConversation(rating.pet_id, rating.userid)
 								}
 							>
 								Start Conversation

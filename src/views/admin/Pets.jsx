@@ -10,8 +10,6 @@ const Pets = () => {
 	useAdminRedirect(); // Hook for admin-specific redirection logic
 	const [pets, setPets] = useState([]);
 	const [filteredPets, setFilteredPets] = useState([]);
-	const [currentPage, setCurrentPage] = useState(1);
-	const [petsPerPage] = useState(10);
 	const [showModal, setShowModal] = useState(false);
 	const [selectedPet, setSelectedPet] = useState(null);
 	const [isEditMode, setIsEditMode] = useState(false); // Track if the modal is in edit mode
@@ -36,7 +34,7 @@ const Pets = () => {
 		const filtered = pets.filter(
 			(pet) =>
 				(searchTerm
-					? pet.petName.toLowerCase().includes(searchTerm.toLowerCase())
+					? pet.name.toLowerCase().includes(searchTerm.toLowerCase())
 					: true) &&
 				(searchType ? pet.type === searchType : true) &&
 				(searchStatus ? pet.status === searchStatus : true) &&
@@ -71,9 +69,14 @@ const Pets = () => {
 			'Are you sure you want to delete this pet?'
 		);
 		if (!isConfirmed) return;
+
 		try {
 			await PetService.deletePet(id);
-			fetchAllPets(); // Refresh the list after deletion
+			// Filter out the deleted pet from the current pet list
+			setPets((prevPets) => prevPets.filter((pet) => pet.pet_id !== id));
+			setFilteredPets((prevPets) =>
+				prevPets.filter((pet) => pet.pet_id !== id)
+			);
 		} catch {
 			alert('Failed to delete pet.');
 		}
@@ -83,12 +86,6 @@ const Pets = () => {
 		setShowModal(false);
 		setSelectedPet(null);
 	};
-
-	// Pagination logic
-	const indexOfLastPet = currentPage * petsPerPage;
-	const indexOfFirstPet = indexOfLastPet - petsPerPage;
-	const currentPets = filteredPets.slice(indexOfFirstPet, indexOfLastPet);
-	const totalPages = Math.ceil(filteredPets.length / petsPerPage);
 
 	return (
 		<Container fluid>
@@ -145,14 +142,11 @@ const Pets = () => {
 				]}
 			/>
 			<PetTable
-				pets={currentPets}
+				pets={filteredPets}
 				onEditPet={handleEditPet}
 				onDeletePet={handleDeletePet}
 				canEditPet={false} // Assuming admins can edit and delete pets
 				canDeletePet={true}
-				currentPage={currentPage}
-				totalPages={totalPages}
-				onChangePage={setCurrentPage}
 				isAdmin={true} // Pass true if the user is an admin, derived from your auth logic
 			/>
 			{showModal && (

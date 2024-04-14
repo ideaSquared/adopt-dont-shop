@@ -41,9 +41,9 @@ const MessagesPetDisplay = ({ petData, isExpanded, toggleHeight }) => {
 				style={{ width: isExpanded ? 'auto' : '100%' }}
 			>
 				<div>
-					<Card.Title>{petData.petName}</Card.Title>
+					<Card.Title>{petData.name}</Card.Title>
 					<Card.Text>
-						{isExpanded ? petData.longDescription : petData.shortDescription}
+						{isExpanded ? petData.long_description : petData.short_description}
 					</Card.Text>
 					{isExpanded && (
 						<>

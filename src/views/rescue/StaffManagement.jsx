@@ -1,17 +1,15 @@
-// StaffManagement.js TODO: FIX
-import React, { useState } from 'react';
+// StaffManagement.js
+import React, { useState, useEffect } from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { StaffService } from '../../services/StaffService';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';
 import StaffTable from '../../components/tables/StaffTable';
 import PaginationControls from '../../components/common/PaginationControls';
-import AlertComponent from '../../components/common/AlertComponent';
 import AddStaffModal from '../../components/modals/AddStaffModal';
 
 const StaffManagement = ({
 	rescueProfile,
 	setRescueProfile,
-	// fetchRescueProfile,
 	canAddStaff,
 	canEditStaff,
 	canVerifyStaff,
@@ -24,21 +22,25 @@ const StaffManagement = ({
 		permissions: 'all',
 		verified: false,
 	});
-	const [permissionsUpdateFlag, setPermissionsUpdateFlag] = useState(false);
+
+	useEffect(() => {
+		// Placeholder for any potential fetchRescueProfile functionality to reload data.
+		// Uncomment and implement if needed.
+	}, []);
 
 	// Calculate unique permissions for table headers
 	const uniquePermissions = Array.from(
 		new Set(rescueProfile.staff.flatMap((staff) => staff.permissions))
 	);
 
-	// Update the filter state based on field name and value
+	// Handle changes to filter criteria
 	const handleFilterChange = (field) => (event) => {
 		const value =
 			field === 'verified' ? event.target.checked : event.target.value;
 		setFilterCriteria({ ...filterCriteria, [field]: value });
 	};
 
-	// Apply all filters to the staff list
+	// Apply filters to the staff list
 	const filteredStaff = rescueProfile.staff.filter((staff) => {
 		const nameEmailMatch = `${staff.firstName} ${staff.email}`
 			.toLowerCase()
@@ -55,40 +57,74 @@ const StaffManagement = ({
 	const staffPerPage = 10;
 	const totalPages = Math.ceil(filteredStaff.length / staffPerPage);
 
-	const [showAddModal, setShowAddModal] = useState(false);
-
-	const handleModalClose = () => setShowAddModal(false);
-	const handleModalShow = () => setShowAddModal(true);
-
+	// Verify staff member
 	const verifyStaff = async (staffId) => {
-		await StaffService.verifyStaffMember(rescueProfile.id, staffId);
-		// fetchRescueProfile();
+		if (canVerifyStaff) {
+			try {
+				const response = await StaffService.verifyStaffMember(
+					rescueProfile.rescue_id,
+					staffId
+				);
+				setRescueProfile((prevState) => ({
+					...prevState,
+					staff: prevState.staff.map((staff) =>
+						staff.userId === staffId
+							? { ...staff, verifiedByRescue: true }
+							: staff
+					),
+				}));
+			} catch (error) {
+				console.error('Failed to verify staff member', error);
+			}
+		}
 	};
 
+	// Remove staff member
 	const removeStaff = async (staffId) => {
-		await StaffService.removeStaffMember(rescueProfile.id, staffId);
-		// fetchRescueProfile();
+		if (canDeleteStaff) {
+			if (
+				!window.confirm('Are you sure you want to remove this staff member?')
+			) {
+				return;
+			}
+			try {
+				await StaffService.removeStaffMember(rescueProfile.rescue_id, staffId);
+				setRescueProfile((prevState) => ({
+					...prevState,
+					staff: prevState.staff.filter((staff) => staff.userId !== staffId),
+				}));
+			} catch (error) {
+				console.error('Failed to remove staff member', error);
+			}
+		}
 	};
 
 	const updatePermissions = async (staffId, permission, isChecked) => {
+		if (!canEditStaff) return;
+
 		// First, determine the current permissions of the staff member
 		const currentStaffMember = rescueProfile.staff.find(
-			(staff) => staff.userId._id === staffId
+			(staff) => staff.userId === staffId
 		);
 		if (!currentStaffMember) {
 			console.error('Staff member not found');
 			return;
 		}
 
+		console.log(currentStaffMember);
+
+		// Ensure permissions is an array, even if it's initially null
+		const permissionsArray = currentStaffMember.permissions || [];
+
 		// Then, update the permissions array based on the action
 		const updatedPermissions = isChecked
-			? [...currentStaffMember.permissions, permission] // Add the permission if checked
-			: currentStaffMember.permissions.filter((p) => p !== permission); // Remove the permission if unchecked
+			? [...permissionsArray, permission] // Add the permission if checked
+			: permissionsArray.filter((p) => p !== permission); // Remove the permission if unchecked
 
 		try {
 			// Assuming `updateStaffPermissions` is the function that makes the API call
 			const response = await StaffService.updateStaffPermissions(
-				rescueProfile.id,
+				rescueProfile.rescue_id,
 				staffId,
 				updatedPermissions
 			);
@@ -96,7 +132,7 @@ const StaffManagement = ({
 			// Update state with the backend response
 			setRescueProfile((prevState) => {
 				const updatedStaff = prevState.staff.map((staff) => {
-					if (staff.userId._id === staffId) {
+					if (staff.userId === staffId) {
 						// Update only the permissions part of the staff member
 						// Ensure response.data contains the updated permissions array
 						return { ...staff, permissions: response.data.permissions };
@@ -178,22 +214,25 @@ const StaffManagement = ({
 						onChange: handleFilterChange('verified'),
 						md: 3,
 					},
-					{
-						type: 'button', // Add a new type for button
+					canAddStaff && {
+						type: 'button',
 						label: 'Add Staff',
 						onClick: () => setShowAddStaffModal(true),
-						md: 3, // The remaining space for the button
+						variant: 'primary',
+						md: 3,
 					},
-				]}
+				].filter(Boolean)}
 			/>
 
-			<AddStaffModal
-				show={showAddStaffModal}
-				handleClose={() => setShowAddStaffModal(false)}
-				// fetchRescueProfile={fetchRescueProfile}
-				rescueId={rescueProfile.id}
-				canAddStaff={canAddStaff}
-			/>
+			{showAddStaffModal && (
+				<AddStaffModal
+					show={showAddStaffModal}
+					handleClose={() => setShowAddStaffModal(false)}
+					setRescueProfile={setRescueProfile}
+					rescueId={rescueProfile.rescue_id}
+					canAddStaff={canAddStaff}
+				/>
+			)}
 			<StaffTable
 				staff={filteredStaff}
 				verifyStaff={verifyStaff}

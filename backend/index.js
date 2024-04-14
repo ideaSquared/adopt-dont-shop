@@ -5,6 +5,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { pool } from './dbConnection.js'; // Import the pool from dbConnection.js
 import createAuthRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import rescueRoutes from './routes/rescueRoutes.js';

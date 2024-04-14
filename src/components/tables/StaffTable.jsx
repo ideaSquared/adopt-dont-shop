@@ -36,23 +36,27 @@ const StaffTable = ({
 			</thead>
 			<tbody>
 				{staff.map((staffMember) => (
-					<tr key={staffMember.userId._id}>
-						<td>{staffMember.userId.email}</td>
+					<tr key={staffMember.userId}>
+						<td>{staffMember.email}</td>
 						{Object.values(permissionCategories)
 							.flat()
 							.map((permission) => (
-								<td key={`${staffMember.userId._id}-${permission}`}>
+								<td key={`${staffMember.userId}-${permission}`}>
 									<Form.Check
 										type='checkbox'
-										checked={staffMember.permissions.includes(permission)}
+										checked={
+											staffMember.permissions
+												? staffMember.permissions.includes(permission)
+												: false
+										}
 										onChange={(e) =>
 											updatePermissions(
-												staffMember.userId._id,
+												staffMember.userId,
 												permission,
 												e.target.checked
 											)
 										}
-										disabled={staffMember.userId._id === userId || !canEdit}
+										disabled={staffMember.userId === userId || !canEdit}
 									/>
 								</td>
 							))}
@@ -64,7 +68,7 @@ const StaffTable = ({
 							) : (
 								<Button
 									variant='warning'
-									onClick={() => verifyStaff(staffMember.userId._id)}
+									onClick={() => verifyStaff(staffMember.userId)}
 									disabled={!canEdit}
 								>
 									Verify
@@ -72,7 +76,7 @@ const StaffTable = ({
 							)}{' '}
 							<Button
 								variant='danger'
-								onClick={() => removeStaff(staffMember.userId._id)}
+								onClick={() => removeStaff(staffMember.userId)}
 								disabled={!canEdit}
 							>
 								Remove

@@ -2,6 +2,7 @@ import express from 'express';
 import Pet from '../models/Pet.js'; // Assuming your Pet model is in the models directory
 import Rescue from '../models/Rescue.js'; // Assuming your Rescue model is in the models directory
 import mongoose from 'mongoose';
+import { pool } from '../dbConnection.js';
 import authenticateToken from '../middleware/authenticateToken.js';
 import multer from 'multer';
 import path from 'path';
@@ -23,19 +24,33 @@ const logger = new LoggerUtil('pet-service').getLogger();
 
 const router = express.Router();
 
-// Helper function to check permissions
 const checkPermission = async (userId, permissionRequired) => {
-	if (!userId) throw new Error('No userId provided');
+	if (!userId) {
+		throw new Error('No userId provided');
+	}
 
-	const rescues = await Rescue.find({ 'staff.userId': userId });
+	try {
+		const client = await pool.connect();
 
-	return rescues.some((rescue) =>
-		rescue.staff.some(
-			(staff) =>
-				staff.userId.toString() === userId.toString() &&
-				staff.permissions.includes(permissionRequired)
-		)
-	);
+		// Query to fetch staff member permissions
+		const queryText = `
+            SELECT permissions 
+            FROM staff_members 
+            WHERE user_id = $1;
+        `;
+		const { rows } = await client.query(queryText, [userId]);
+		client.release(); // Release the client back to the pool
+
+		// Check if the user has the required permission
+		const hasPermission = rows.some((row) =>
+			row.permissions.includes(permissionRequired)
+		);
+
+		return hasPermission;
+	} catch (error) {
+		console.error('Error checking permission:', error);
+		throw error;
+	}
 };
 
 // Create a new pet record
@@ -57,11 +72,44 @@ router.post(
 					.send({ message: 'Insufficient permissions to add pet' });
 			}
 
-			const newPet = await Pet.create(req.body);
-			logger.info(`New pet created with ID: ${newPet._id} by User ${userId}`);
+			console.log(req.body);
+
+			const insertPetQuery = `
+                INSERT INTO pets (name, owner_id, short_description, long_description, age, gender, status, type, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+                RETURNING pet_id;
+            `;
+			const {
+				name,
+				short_description,
+				long_description,
+				age,
+				ownerId,
+				gender,
+				status,
+				type,
+			} = req.body;
+			// Assuming breed is not required as it's not in the schema
+			// Assuming 'description' in req.body is intended as 'long_description'
+			// 'created_at' and 'updated_at' will be set to the current time
+			const newPetResult = await pool.query(insertPetQuery, [
+				name,
+				ownerId,
+				short_description,
+				long_description,
+				age,
+				gender,
+				status,
+				type,
+			]);
+			const newPetId = newPetResult.rows[0].pet_id;
+
+			logger.info(
+				`New pet created with ID: ${newPetId} by User ${userId} for Rescue ${ownerId}`
+			);
 			res.status(201).send({
 				message: 'Pet created successfully',
-				data: newPet,
+				data: { id: newPetId, ...req.body },
 			});
 		} catch (error) {
 			logger.error(`Error creating pet: ${error.message}`, { error });
@@ -78,7 +126,9 @@ router.post(
 router.get('/', authenticateToken, async (req, res) => {
 	try {
 		logger.info('Fetching all pets');
-		const pets = await Pet.find({});
+		const query = 'SELECT * FROM pets';
+		const result = await pool.query(query);
+		const pets = result.rows;
 		logger.info(`Successfully fetched all pets. Count: ${pets.length}`);
 		res.status(200).send({
 			message: 'Pets fetched successfully',
@@ -98,13 +148,14 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
 	try {
 		const { id } = req.params;
-		const objectIdId = generateObjectId(id);
 		logger.info(`Fetching pet with ID: ${id}`);
-		const pet = await Pet.findById(objectIdId);
-		if (!pet) {
+		const query = 'SELECT * FROM pets WHERE pet_id = $1';
+		const result = await pool.query(query, [id]);
+		if (result.rowCount === 0) {
 			logger.warn(`Pet not found with ID: ${id}`);
 			return res.status(404).send({ message: 'Pet not found' });
 		}
+		const pet = result.rows[0];
 		logger.info(`Successfully fetched pet with ID: ${id}`);
 		res.status(200).send({
 			message: 'Pet fetched successfully',
@@ -128,12 +179,14 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 	try {
 		const { ownerId } = req.params;
 		logger.info(`Fetching pets for ownerId: ${ownerId}`);
-		const objectIdOwner = generateObjectId(ownerId);
-		const pets = await Pet.find({ ownerId: objectIdOwner });
-		if (pets.length === 0) {
+
+		const query = 'SELECT * FROM pets WHERE owner_id = $1';
+		const result = await pool.query(query, [ownerId]);
+		if (result.rowCount === 0) {
 			logger.warn(`No pets found for ownerId: ${ownerId}`);
 			return res.status(404).send({ message: 'No pets found for this owner' });
 		}
+		const pets = result.rows;
 		logger.info(
 			`Successfully fetched pets for ownerId: ${ownerId}. Count: ${pets.length}`
 		);
@@ -151,52 +204,82 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 	}
 });
 
-// Update a pet record by ID
-router.put(
-	'/:id',
-	authenticateToken,
+router.put('/:id', authenticateToken, async (req, res) => {
+	const userId = req.user?.userId;
+	const { id } = req.params;
 
-	async (req, res) => {
-		const userId = req.user?.userId;
-		const { id } = req.params;
+	try {
+		logger.info(`User ${userId} attempting to update pet with ID: ${id}`);
+		const hasPermission = await checkPermission(userId, 'edit_pet');
 
-		try {
-			logger.info(`User ${userId} attempting to update pet with ID: ${id}`);
-			const hasPermission = await checkPermission(userId, 'edit_pet');
+		if (!hasPermission) {
+			logger.warn(`User ${userId} lacks permission to edit pet with ID: ${id}`);
+			return res
+				.status(403)
+				.send({ message: 'Insufficient permissions to edit pet' });
+		}
 
-			if (!hasPermission) {
-				logger.warn(
-					`User ${userId} lacks permission to edit pet with ID: ${id}`
-				);
-				return res
-					.status(403)
-					.send({ message: 'Insufficient permissions to edit pet' });
+		// Start constructing the SQL update statement
+		let updateSet = [];
+		let values = [];
+		let index = 1;
+
+		// Dynamically create the set part of the query based on the passed data
+		// Make sure to exclude 'updated_at' from the body if it exists
+		for (const key in req.body) {
+			if (
+				req.body.hasOwnProperty(key) &&
+				key !== 'pet_id' &&
+				key !== 'owner_id' &&
+				key !== 'created_at' &&
+				key !== 'archived' &&
+				key !== 'updated_at' // Exclude the updated_at field
+			) {
+				updateSet.push(`${key} = $${index}`);
+				values.push(req.body[key]);
+				index++;
 			}
+		}
 
-			const pet = await Pet.findByIdAndUpdate(id, req.body, { new: true });
-			if (!pet) {
+		if (values.length === 0) {
+			logger.warn(`No updatable fields provided for pet with ID: ${id}`);
+			return res.status(400).send({ message: 'No updatable fields provided' });
+		}
+
+		values.push(id); // For the WHERE condition
+
+		// Execute the update only if there's something to update
+		if (updateSet.length > 0) {
+			const queryText = `UPDATE pets SET ${updateSet.join(
+				', '
+			)}, updated_at = NOW() WHERE pet_id = $${index} RETURNING *`; // Ensure updated_at is only set here
+			const result = await pool.query(queryText, values);
+
+			// Check if the pet was updated successfully
+			if (result.rowCount === 0) {
 				logger.warn(`Pet not found with ID: ${id} for update operation`);
 				return res.status(404).send({ message: 'Pet not found' });
 			}
 
+			const pet = result.rows[0];
 			logger.info(`Pet with ID: ${id} updated successfully by User ${userId}`);
 			res.status(200).send({
 				message: 'Pet updated successfully',
 				data: pet,
 			});
-		} catch (error) {
-			logger.error(`Failed to update pet with ID: ${id}: ${error.message}`, {
-				error,
-				userId,
-			});
-			Sentry.captureException(error);
-			res.status(500).send({
-				message: 'Failed to update pet',
-				error: error.message,
-			});
 		}
+	} catch (error) {
+		logger.error(`Failed to update pet with ID: ${id}: ${error.message}`, {
+			error,
+			userId,
+		});
+		Sentry.captureException(error);
+		res.status(500).send({
+			message: 'Failed to update pet',
+			error: error.message,
+		});
 	}
-);
+});
 
 // Delete a pet record by ID
 router.delete('/:id', authenticateToken, async (req, res) => {
@@ -216,8 +299,17 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 				.send({ message: 'Insufficient permissions to delete pet' });
 		}
 
-		const pet = await Pet.findByIdAndDelete(id);
-		if (!pet) {
+		// Construct the SQL query to delete the pet
+		const query = {
+			text: 'DELETE FROM pets WHERE pet_id = $1 RETURNING *',
+			values: [id],
+		};
+
+		// Execute the query
+		const result = await pool.query(query);
+
+		// Check if the pet was deleted successfully
+		if (result.rowCount === 0) {
 			logger.warn(`Pet not found with ID: ${id} for deletion`);
 			return res.status(404).send({ message: 'Pet not found' });
 		}
@@ -268,28 +360,34 @@ router.post(
 		const userId = req.user?.userId;
 
 		try {
-			const pet = await Pet.findById(id);
+			const hasPermission = await checkPermission(userId, 'edit_pet');
+			if (!hasPermission) {
+				logger.warn(
+					`User ${userId} lacks permission to upload images for pet with ID: ${id}`
+				);
+				return res.status(403).send({
+					message: 'Insufficient permissions to upload images for pet',
+				});
+			}
+
+			const petQuery = {
+				text: 'SELECT * FROM pets WHERE pet_id = $1',
+				values: [id],
+			};
+			const petResult = await pool.query(petQuery);
+			const pet = petResult.rows[0];
+
 			if (!pet) {
 				return res.status(404).send({ message: 'Pet not found' });
 			}
 
-			// Check permission logic here, as in your other routes
-			const hasPermission = await checkPermission(userId, 'edit_pet');
-			if (!hasPermission) {
-				logger.warn(
-					`User ${userId} lacks permission to edit pet with ID: ${id}`
-				);
-				return res
-					.status(403)
-					.send({ message: 'Insufficient permissions to edit pet' });
-			}
-
-			// Assuming you want to save the file paths to the pet document
-			const updatedPet = await Pet.findByIdAndUpdate(
-				id,
-				{ $push: { images: req.files.map((file) => file.filename) } },
-				{ new: true }
-			);
+			const updatedImages = req.files.map((file) => file.filename);
+			const updatePetQuery = {
+				text: 'UPDATE pets SET images = array_cat(images, $1) WHERE pet_id = $2 RETURNING *',
+				values: [updatedImages, id],
+			};
+			const updatedPetResult = await pool.query(updatePetQuery);
+			const updatedPet = updatedPetResult.rows[0];
 
 			res.status(200).send({
 				message: 'Images uploaded successfully',
@@ -321,41 +419,40 @@ router.delete('/:id/images', authenticateToken, async (req, res) => {
 	}
 
 	try {
-		const pet = await Pet.findById(id);
+		const hasPermission = await checkPermission(userId, 'edit_pet');
+		if (!hasPermission) {
+			logger.warn(
+				`User ${userId} lacks permission to delete images for pet with ID: ${id}`
+			);
+			return res
+				.status(403)
+				.send({ message: 'Insufficient permissions to delete images for pet' });
+		}
+
+		const petQuery = {
+			text: 'SELECT * FROM pets WHERE pet_id = $1',
+			values: [id],
+		};
+		const petResult = await pool.query(petQuery);
+		const pet = petResult.rows[0];
+
 		if (!pet) {
 			return res.status(404).send({ message: 'Pet not found' });
 		}
 
-		// Check permission
-		const hasPermission = await checkPermission(userId, 'edit_pet');
-		if (!hasPermission) {
-			logger.warn(`User ${userId} lacks permission to edit pet with ID: ${id}`);
-			return res
-				.status(403)
-				.send({ message: 'Insufficient permissions to edit pet' });
-		}
-
-		// Filter out the images that are not found in the pet document
-		const imagesToRemove = pet.images.filter((image) =>
-			imagesToDelete.includes(image)
+		const updatedImages = pet.images.filter(
+			(image) => !imagesToDelete.includes(image)
 		);
+		const updatePetQuery = {
+			text: 'UPDATE pets SET images = $1 WHERE pet_id = $2 RETURNING *',
+			values: [updatedImages, id],
+		};
+		const updatedPetResult = await pool.query(updatePetQuery);
+		const updatedPet = updatedPetResult.rows[0];
 
-		// Remove images from filesystem
-		imagesToRemove.forEach((image) => {
-			const imagePath = path.join(__dirname, '../uploads', image);
-			if (fs.existsSync(imagePath)) {
-				fs.unlinkSync(imagePath);
-			}
-		});
-
-		// Update the pet document by removing the images
-		const updatedPet = await Pet.findByIdAndUpdate(
-			id,
-			{ $pull: { images: { $in: imagesToRemove } } },
-			{ new: true }
+		logger.info(
+			`Images deleted successfully for pet: ${id} by user: ${userId}`
 		);
-
-		logger.info(`Successfully delete image for pet: ${id} by ${userId}`);
 
 		res.status(200).send({
 			message: 'Images deleted successfully',

@@ -106,10 +106,10 @@ const rescueJoiSchema = Joi.object({
 
 // Joi schema for adding/updating pet details
 const petJoiSchema = Joi.object({
-	petName: Joi.string().required(),
-	ownerId: Joi.string().required().min(1), // Assuming you'll pass the ObjectId as a string
-	shortDescription: Joi.string().required(),
-	longDescription: Joi.string().required(),
+	name: Joi.string().required(),
+	ownerId: Joi.number().required().min(1),
+	short_description: Joi.string().required(),
+	long_description: Joi.string().required(),
 	age: Joi.number().required(),
 	gender: Joi.string().required().valid('Male', 'Female', 'Other', 'Unknown'), // Adjust valid options as needed
 	status: Joi.string().required(), // You might want to validate against specific status options
@@ -131,15 +131,15 @@ const petJoiSchema = Joi.object({
 });
 
 const participantReferenceValidationSchema = Joi.object({
-	participantId: Joi.string().required().messages({
-		'string.base': `"participantId" should be a string`,
-		'any.required': `"participantId" is a required field`,
-	}),
-	participantType: Joi.string().required().valid('User', 'Rescue').messages({
-		'string.base': `"participantType" should be a string`,
-		'any.required': `"participantType" is a required field`,
-		'any.only': `"participantType" must be one of [User, Rescue]`,
-	}),
+	// participantId: Joi.number().required().messages({
+	// 	'string.base': `"participantId" should be a string`,
+	// 	'any.required': `"participantId" is a required field`,
+	// }),
+	// participantType: Joi.number().required().valid('User', 'Rescue').messages({
+	// 	'string.base': `"participantType" should be a string`,
+	// 	'any.required': `"participantType" is a required field`,
+	// 	'any.only': `"participantType" must be one of [User, Rescue]`,
+	// }),
 });
 
 const conversationSchema = Joi.object({
@@ -170,12 +170,12 @@ const createConversationSchema = Joi.object({
 			'array.base': `"participants" should be an array`,
 			'array.min': `"participants" should have at least 2 participants`,
 		}),
-	petId: Joi.string().optional(), // Change this line accordingly
+	petId: Joi.number().optional(), // Change this line accordingly
 });
 
 const messageSchema = Joi.object({
-	conversationId: Joi.string().required(),
-	senderId: Joi.string().required(),
+	conversationId: Joi.number().required(),
+	senderId: Joi.number().required(),
 	messageText: Joi.string().required(),
 	sentAt: Joi.date().required(),
 	readAt: Joi.date().allow(null),
@@ -193,12 +193,9 @@ const messageSchema = Joi.object({
 });
 
 const ratingSchema = Joi.object({
-	userId: Joi.string().required(), // Assuming userId is sent as a string (e.g., hex value of ObjectId)
-	targetId: Joi.string().required(),
-	targetType: Joi.string().required().valid('Pet', 'User'),
-	ratingSource: Joi.string().required().valid('Rescue', 'User'),
+	userId: Joi.number().required(), // Assuming userId is sent as a string
+	petId: Joi.number().required(), // Renamed targetId to petId for clarity
 	ratingType: Joi.string().required().valid('like', 'love', 'dislike'),
-	onModel: Joi.string().required().valid('Pet', 'User'), // Make sure this matches the mongoose schema
 });
 
 /**

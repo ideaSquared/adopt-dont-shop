@@ -74,7 +74,10 @@ const RescueProfile = () => {
 
 	const saveUpdates = async () => {
 		try {
-			await RescueService.updateRescueProfile(rescueProfile.id, rescueProfile);
+			await RescueService.updateRescueProfile(
+				rescueProfile.rescue_id,
+				rescueProfile
+			);
 			setAlertInfo({
 				type: 'success',
 				message: 'Rescue profile updated successfully.',
@@ -100,7 +103,7 @@ const RescueProfile = () => {
 		try {
 			const verificationResult =
 				await RescueService.submitReferenceNumberForVerification(
-					rescueProfile.id,
+					rescueProfile.rescue_id,
 					rescueProfile.rescueType,
 					rescueProfile.referenceNumber
 				);
@@ -130,10 +133,12 @@ const RescueProfile = () => {
 	};
 
 	// Check for permissions
+	// TODO: Stop it being an array of an array
 	const canViewRescueInfo =
 		authState.userPermissions.includes('view_rescue_info');
 	const canEditRescueInfo =
 		authState.userPermissions.includes('edit_rescue_info');
+	const canDeleteRescue = authState.userPermissions.includes('delete_rescue');
 	const canViewStaff = authState.userPermissions.includes('view_staff');
 	const canAddStaff = authState.userPermissions.includes('add_staff');
 	const canEditStaff = authState.userPermissions.includes('edit_staff');
@@ -170,7 +175,7 @@ const RescueProfile = () => {
 				if (canViewPet) {
 					return (
 						<PetManagement
-							rescueId={rescueProfile.id}
+							rescueId={rescueProfile.rescue_id}
 							canAddPet={canAddPet}
 							canEditPet={canEditPet}
 							canDeletePet={canDeletePet}
@@ -185,7 +190,6 @@ const RescueProfile = () => {
 						<StaffManagement
 							rescueProfile={rescueProfile}
 							setRescueProfile={setRescueProfile}
-							// fetchRescueProfile={fetchRescueProfile}
 							canAddStaff={canAddStaff}
 							canEditStaff={canEditStaff}
 							canVerifyStaff={canVerifyStaff}
@@ -208,7 +212,7 @@ const RescueProfile = () => {
 				}
 			case 'adopter':
 				if (canViewMessages) {
-					return <AdopterManagement rescueId={rescueProfile.id} />;
+					return <AdopterManagement rescueId={rescueProfile.rescue_id} />;
 				}
 			default:
 				return <RescueNoPermissions rescueProfile={rescueProfile} />;

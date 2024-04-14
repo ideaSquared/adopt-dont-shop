@@ -63,8 +63,8 @@ describe('Pet Creation Routes', function () {
 					petName: 'Rex',
 					ownerId: generateObjectId(), // Use the generateObjectId utility to simulate a valid MongoDB ObjectId
 					age: 4,
-					shortDescription: 'Friendly and energetic dog',
-					longDescription:
+					short_description: 'Friendly and energetic dog',
+					long_description:
 						'Rex is a very friendly and energetic dog that loves to play and run around.',
 					gender: 'Male',
 					status: 'Available',
@@ -174,8 +174,8 @@ describe('Pet Creation Routes', function () {
 						petName: 'Rex',
 						ownerId: ownerIdWithPets,
 						age: 4,
-						shortDescription: 'Friendly and energetic dog',
-						longDescription:
+						short_description: 'Friendly and energetic dog',
+						long_description:
 							'Rex is a very friendly and energetic dog that loves to play and run around.',
 						gender: 'Male',
 						status: 'Available',
@@ -197,8 +197,8 @@ describe('Pet Creation Routes', function () {
 						petName: 'Meow',
 						ownerId: ownerIdWithPets,
 						age: 4,
-						shortDescription: 'Curious and playful cat',
-						longDescription:
+						short_description: 'Curious and playful cat',
+						long_description:
 							'Meow meow meow, always curious and loves to explore.',
 						gender: 'Male',
 						status: 'Available',
@@ -296,9 +296,9 @@ describe('Pet Creation Routes', function () {
 				const petData = {
 					petName: 'Buddy',
 					ownerId: generateObjectId(),
-					shortDescription: 'A lovely cat',
+					short_description: 'A lovely cat',
 					age: 4,
-					longDescription:
+					long_description:
 						'Buddy is a quiet and lovely indoor cat looking for a new home.',
 					gender: 'Male',
 					status: 'Available',

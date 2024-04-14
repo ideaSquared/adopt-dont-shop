@@ -33,7 +33,18 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 					setAllPets(pets);
 					setFilteredPets(pets); // Initially, all pets are shown
 				})
-				.catch(console.error);
+				.catch((error) => {
+					if (error.response && error.response.status === 404) {
+						// Log the error message if needed
+						console.log('No pets found for this owner');
+						// Optionally clear the pets lists if no pets are found
+						setAllPets([]);
+						setFilteredPets([]);
+					} else {
+						// Handle other types of errors or log them
+						console.error(error);
+					}
+				});
 		}
 	}, [rescueId]);
 
@@ -41,7 +52,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		const filtered = allPets.filter(
 			(pet) =>
 				(searchTerm
-					? pet.petName.toLowerCase().includes(searchTerm.toLowerCase())
+					? pet.name.toLowerCase().includes(searchTerm.toLowerCase())
 					: true) &&
 				(searchType ? pet.type === searchType : true) &&
 				(searchStatus ? pet.status === searchStatus : true) &&
@@ -64,7 +75,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 	};
 
 	const openEditModal = async (pet) => {
-		if (!pet || !pet._id) {
+		if (!pet || !pet.pet_id) {
 			console.error('Pet or Pet ID is undefined');
 			setEditError('Failed to load pet details. Please try again.');
 			return; // Exit the function if pet is undefined
@@ -77,7 +88,7 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 		setEditError(null); // Reset any previous errors
 
 		try {
-			const testPet = await PetService.getPetById(pet._id);
+			const testPet = await PetService.getPetById(pet.pet_id);
 			// console.log(testPet);
 			setEditingPet(testPet.data); // Update with fetched details
 		} catch (error) {
@@ -218,11 +229,6 @@ const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 				canDeletePet={canDeletePet}
 				onEditPet={openEditModal}
 				onDeletePet={handlePetDelete}
-			/>
-			<PaginationControls
-				currentPage={currentPage}
-				totalPages={Math.ceil(filteredPets.length / 10)} // Assuming 10 pets per page
-				onChangePage={setCurrentPage}
 			/>
 
 			<PetModalForm

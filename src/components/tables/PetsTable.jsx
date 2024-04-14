@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Table, Image } from 'react-bootstrap';
 import PaginationControls from '../common/PaginationControls';
 
@@ -8,11 +8,10 @@ const PetTable = ({
 	onDeletePet,
 	canEditPet,
 	canDeletePet,
-	currentPage,
-	totalPages,
-	onChangePage,
 	isAdmin,
 }) => {
+	const [currentPage, setCurrentPage] = useState(1);
+	const [petsPerPage] = useState(10);
 	const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 
 	const renderPetImage = (images) => {
@@ -23,6 +22,11 @@ const PetTable = ({
 		return <Image src={imageUrl} alt='Image of pet on the same row' fluid />;
 	};
 
+	const indexOfLastPet = currentPage * petsPerPage;
+	const indexOfFirstPet = indexOfLastPet - petsPerPage;
+	const currentPets = pets.slice(indexOfFirstPet, indexOfLastPet);
+	const totalPages = Math.ceil(pets.length / petsPerPage);
+
 	return (
 		<div>
 			<Table striped bordered hover>
@@ -32,7 +36,7 @@ const PetTable = ({
 						<th>Name</th>
 						<th>Type</th>
 						<th>Status</th>
-						{isAdmin && <th>Owner Info</th>}{' '}
+						{isAdmin && <th>Owner Info</th>}
 						{/* Conditionally render this column */}
 						<th>Age</th>
 						<th>Actions</th>
@@ -40,16 +44,16 @@ const PetTable = ({
 				</thead>
 				<tbody>
 					{pets.map((pet) => (
-						<tr key={pet._id}>
+						<tr key={pet.pet_id}>
 							<td style={{ maxWidth: '120px', overflow: 'hidden' }}>
-								{renderPetImage(pet.images || pet.petDetails.images)}
+								{renderPetImage(pet.images || '')}
 							</td>
-							<td>{pet.petName || pet.petDetails.petName}</td>
-							<td>{pet.type || pet.petDetails.type}</td>
-							<td>{pet.status || pet.petDetails.status}</td>
-							{isAdmin && <td>{pet.ownerInfo}</td>}{' '}
+							<td>{pet.name || ''}</td>
+							<td>{pet.type || ''}</td>
+							<td>{pet.status || ''}</td>
+							{isAdmin && <td>{pet.ownerInfo}</td>}
 							{/* Conditionally render this cell */}
-							<td>{pet.age || pet.petDetails.age}</td>
+							<td>{pet.age || ''}</td>
 							<td>
 								<Button
 									variant='info'
@@ -60,7 +64,7 @@ const PetTable = ({
 								</Button>{' '}
 								<Button
 									variant='danger'
-									onClick={() => onDeletePet(pet._id)}
+									onClick={() => onDeletePet(pet.pet_id)}
 									disabled={!canDeletePet}
 								>
 									Delete
@@ -73,7 +77,7 @@ const PetTable = ({
 			<PaginationControls
 				currentPage={currentPage}
 				totalPages={totalPages}
-				onChangePage={onChangePage}
+				onChangePage={setCurrentPage}
 			/>
 		</div>
 	);

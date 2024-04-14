@@ -14,7 +14,7 @@ const RescueProfileHeader = ({ rescueProfile }) => {
 					</Badge>
 				</span>{' '}
 				<span style={{ verticalAlign: 'top' }} bg='light'>
-					<Badge style={{ fontSize: '16px' }}>{rescueProfile.id}</Badge>
+					<Badge style={{ fontSize: '16px' }}>{rescueProfile.rescue_id}</Badge>
 				</span>
 			</h1>
 		</div>
