@@ -1,7 +1,4 @@
 import express from 'express';
-import Pet from '../models/Pet.js'; // Assuming your Pet model is in the models directory
-import Rescue from '../models/Rescue.js'; // Assuming your Rescue model is in the models directory
-import mongoose from 'mongoose';
 import { pool } from '../dbConnection.js';
 import authenticateToken from '../middleware/authenticateToken.js';
 import multer from 'multer';
@@ -19,7 +16,6 @@ import {
 
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
-import { generateObjectId } from '../utils/generateObjectId.js';
 const logger = new LoggerUtil('pet-service').getLogger();
 
 const router = express.Router();

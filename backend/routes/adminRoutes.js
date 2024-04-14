@@ -1,22 +1,14 @@
 // Import necessary modules from the express framework and other utilities.
 import express from 'express';
 import bcrypt from 'bcryptjs'; // For hashing passwords.
-import User from '../models/User.js'; // Import the User model for database operations.
-import Conversation from '../models/Conversation.js';
-import Rescue from '../models/Rescue.js';
-import Pet from '../models/Pet.js';
-import Message from '../models/Message.js';
-import Rating from '../models/Rating.js';
 import { pool } from '../dbConnection.js';
 import authenticateToken from '../middleware/authenticateToken.js'; // Middleware to check if the request is authenticated.
 import checkAdmin from '../middleware/checkAdmin.js'; // Middleware to check if the authenticated user is an admin.
 import nodemailer from 'nodemailer'; // Imported but not used in this snippet. Potentially for sending emails (e.g., password reset instructions).
 import { validateRequest } from '../middleware/joiValidateSchema.js'; // For validating request bodies against Joi schemas.
-import mongoose from 'mongoose';
 
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
-import { generateObjectId } from '../utils/generateObjectId.js';
 const logger = new LoggerUtil('admin-service').getLogger();
 
 // Initialize a new router instance from Express to define admin-specific routes.

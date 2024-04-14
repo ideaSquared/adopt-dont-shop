@@ -2,8 +2,6 @@
 import express from 'express'; // For routing.
 import bcrypt from 'bcryptjs'; // For hashing passwords.
 import jwt from 'jsonwebtoken'; // For creating JSON Web Tokens.
-import User from '../models/User.js'; // User model for interacting with the database.
-import Rescue from '../models/Rescue.js';
 import { pool } from '../dbConnection.js';
 // Middleware for authentication and admin checks.
 import authenticateToken from '../middleware/authenticateToken.js';
@@ -23,8 +21,6 @@ import {
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
 
-// TEMP
-import mongoose from 'mongoose';
 import { generateResetToken } from '../utils/tokenGenerator.js';
 import { sendEmailVerificationEmail } from '../services/emailService.js';
 

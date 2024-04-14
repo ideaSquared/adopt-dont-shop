@@ -1,14 +1,8 @@
 import express from 'express';
-// Import the Conversation and Message models you defined earlier.
-import Conversation from '../models/Conversation.js';
-import Message from '../models/Message.js';
 import { pool } from '../dbConnection.js';
 import format from 'pg-format';
 import Sentry from '@sentry/node'; // Error tracking utility.
 import authenticateToken from '../middleware/authenticateToken.js';
-import Rescue from '../models/Rescue.js';
-import { generateObjectId } from '../utils/generateObjectId.js';
-import Pet from '../models/Pet.js';
 
 import LoggerUtil from '../utils/Logger.js'; // Logging utility.
 import {

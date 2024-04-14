@@ -1,7 +1,4 @@
 import express from 'express';
-import Rating from '../models/Rating.js'; // Assuming your Rating model is in the models directory
-import Pet from '../models/Pet.js';
-import User from '../models/User.js';
 import { pool } from '../dbConnection.js';
 import authenticateToken from '../middleware/authenticateToken.js';
 import {
@@ -10,7 +7,6 @@ import {
 } from '../middleware/joiValidateSchema.js'; // Assuming you have a validation schema for ratings
 import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
-import { generateObjectId } from '../utils/generateObjectId.js';
 
 const logger = new LoggerUtil('rating-service').getLogger();
 const router = express.Router();

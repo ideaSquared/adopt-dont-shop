@@ -1,14 +1,10 @@
 // Import dependencies for routing, database access, and utility functions.
 import express from 'express';
-import Rescue from '../models/Rescue.js'; // Mongoose model for Rescue documents.
-import User from '../models/User.js';
-import rescueService from '../services/rescueService.js'; // Service layer for additional business logic.
 
 import { pool } from '../dbConnection.js';
 import { capitalizeFirstChar } from '../utils/stringManipulation.js'; // Utility for string manipulation.
 
 import authenticateToken from '../middleware/authenticateToken.js'; // Middleware for authenticating JWT tokens.
-import mongoose from 'mongoose'; // MongoDB object modeling tool designed to work in an asynchronous environment.
 import {
 	validateRequest,
 	rescueJoiSchema,
@@ -19,7 +15,6 @@ import LoggerUtil from '../utils/Logger.js';
 import fetchAndValidateCharity from '../utils/verifyCharity.js';
 import fetchAndValidateCompany from '../utils/verifyCompany.js';
 
-import { generateObjectId } from '../utils/generateObjectId.js';
 import { generateResetToken } from '../utils/tokenGenerator.js';
 import { sendEmailVerificationEmail } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
