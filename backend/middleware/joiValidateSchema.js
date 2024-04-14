@@ -112,7 +112,7 @@ const rescueJoiSchema = Joi.object({
 // Joi schema for adding/updating pet details
 const petJoiSchema = Joi.object({
 	name: Joi.string().required(),
-	ownerId: Joi.number().required().min(1),
+	ownerId: Joi.string().required().min(1),
 	short_description: Joi.string().required(),
 	long_description: Joi.string().required(),
 	age: Joi.number().required(),
@@ -175,12 +175,12 @@ const createConversationSchema = Joi.object({
 			'array.base': `"participants" should be an array`,
 			'array.min': `"participants" should have at least 2 participants`,
 		}),
-	petId: Joi.number().optional(), // Change this line accordingly
+	petId: Joi.string().optional(), // Change this line accordingly
 });
 
 const messageSchema = Joi.object({
-	conversationId: Joi.number().required(),
-	senderId: Joi.number().required(),
+	conversationId: Joi.string().required(),
+	senderId: Joi.string().required(),
 	messageText: Joi.string().required(),
 	sentAt: Joi.date().required(),
 	readAt: Joi.date().allow(null),
@@ -198,8 +198,8 @@ const messageSchema = Joi.object({
 });
 
 const ratingSchema = Joi.object({
-	userId: Joi.number().required(), // Assuming userId is sent as a string
-	petId: Joi.number().required(), // Renamed targetId to petId for clarity
+	userId: Joi.string().required(), // Assuming userId is sent as a string
+	petId: Joi.string().required(), // Renamed targetId to petId for clarity
 	ratingType: Joi.string().required().valid('like', 'love', 'dislike'),
 });
 
