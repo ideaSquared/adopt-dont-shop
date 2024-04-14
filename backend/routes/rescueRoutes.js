@@ -247,18 +247,35 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 
 		const newRescueQuery = {
 			text: `
-                INSERT INTO rescues (rescue_name, rescue_address, rescue_type, reference_number, reference_number_verified)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING *
-            `,
+        INSERT INTO rescues (
+            rescue_name,
+            address_line_1,
+            address_line_2,
+            city,
+            county,
+            postcode,
+            country,
+            rescue_type,
+            reference_number,
+            reference_number_verified
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *
+    `,
 			values: [
 				rescueData.rescueName,
-				rescueData.rescueAddress,
-				type,
+				rescueData.addressLine1,
+				rescueData.addressLine2,
+				rescueData.city,
+				rescueData.county,
+				rescueData.postcode,
+				rescueData.country,
+				rescueData.rescueType,
 				rescueData.referenceNumber,
-				referenceNumberVerified,
+				rescueData.referenceNumberVerified,
 			],
 		};
+
 		const newRescueResult = await pool.query(newRescueQuery);
 		const newRescue = newRescueResult.rows[0];
 		logger.info(`${type} rescue created successfully.`);
@@ -405,65 +422,65 @@ router.put(
  * Returns a success message and the updated document data on successful update.
  * On failure, including invalid ID, lack of permission, or database errors, returns an appropriate error message and status code.
  */
-
 router.put('/:id', authenticateToken, async (req, res) => {
 	const { id } = req.params;
-	const updates = req.body;
-	const editorUserId = req.user?.userId; // ID of the user making the request
+	const {
+		rescueName,
+		addressLine1,
+		addressLine2,
+		city,
+		county,
+		postcode,
+		country,
+		rescueType,
+		referenceNumber,
+		referenceNumberVerified,
+	} = req.body;
 
 	try {
-		if (!Number.isInteger(parseInt(id))) {
-			logger.warn(`Invalid rescue ID: ${id}`);
-			return res.status(400).send({ message: 'Invalid rescue ID' });
-		}
-
-		const rescueQuery = {
-			text: 'SELECT * FROM rescues WHERE rescue_id = $1',
-			values: [id],
-		};
-		const rescueResult = await pool.query(rescueQuery);
-		const rescue = rescueResult.rows[0];
-		if (!rescue) {
-			logger.warn(`Rescue with ID ${id} not found for update.`);
-			return res.status(404).send({ message: 'Rescue not found' });
-		}
-
-		const editorPermissionQuery = {
-			text: 'SELECT permissions FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
-			values: [id, editorUserId],
-		};
-		const editorPermissionResult = await pool.query(editorPermissionQuery);
-		const hasPermission = editorPermissionResult.rows.some((row) =>
-			row.permissions.includes('edit_rescue_info')
-		);
-
-		if (!hasPermission) {
-			logger.warn(
-				`User ${editorUserId} attempted to edit rescue without permission.`
-			);
-			return res
-				.status(403)
-				.send({ message: 'No permission to edit this rescue' });
-		}
-
-		// Update logic needs to directly apply each field change to the database
-		const fieldsToUpdate = {};
-		Object.keys(updates).forEach((key) => {
-			fieldsToUpdate[key] = updates[key];
-		});
-
 		const updateQuery = {
-			text: 'UPDATE rescues SET data = $1 WHERE rescue_id = $2 RETURNING *',
-			values: [JSON.stringify(fieldsToUpdate), id],
+			text: `
+                UPDATE rescues
+                SET
+                    rescue_name = $1,
+                    address_line_1 = $2,
+                    address_line_2 = $3,
+                    city = $4,
+                    county = $5,
+                    postcode = $6,
+                    country = $7,
+                    rescue_type = $8,
+                    reference_number = $9,
+                    reference_number_verified = $10
+                WHERE rescue_id = $11
+                RETURNING *;
+            `,
+			values: [
+				rescueName,
+				addressLine1,
+				addressLine2,
+				city,
+				county,
+				postcode,
+				country,
+				rescueType,
+				referenceNumber,
+				referenceNumberVerified,
+				id,
+			],
 		};
-		const updatedRescueResult = await pool.query(updateQuery);
-		const updatedRescue = updatedRescueResult.rows[0];
 
-		logger.info(`Rescue with ID ${id} updated successfully.`);
-		res.send({ message: 'Rescue updated successfully', data: updatedRescue });
+		const result = await pool.query(updateQuery);
+		if (result.rows.length) {
+			res.send({
+				message: 'Rescue updated successfully',
+				data: result.rows[0],
+			});
+		} else {
+			res.status(404).send({ message: 'Rescue not found' });
+		}
 	} catch (error) {
-		Sentry.captureException(error);
-		logger.error(`Failed to update rescue with ID ${id}: ` + error.message);
+		console.error('Failed to update rescue:', error);
 		res
 			.status(500)
 			.send({ message: 'Failed to update rescue', error: error.message });

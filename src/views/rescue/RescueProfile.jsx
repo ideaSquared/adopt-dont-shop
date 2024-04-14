@@ -33,10 +33,17 @@ const RescueProfile = () => {
 		staff: [],
 		rescueName: '',
 		rescueType: '',
-		rescueAddress: '',
+		// Update the address structure
+		addressLine1: '',
+		addressLine2: '',
+		city: '',
+		county: '',
+		postcode: '',
+		country: 'United Kingdom', // Default to UK, update accordingly if needed
 		referenceNumber: '',
 		referenceNumberVerified: false,
 	});
+
 	const { authState } = useAuth();
 	const userId = authState.userId;
 

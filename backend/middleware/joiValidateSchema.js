@@ -96,12 +96,17 @@ const rescueStaffJoiSchema = Joi.object({
  * It validates each field with specific rules and ensures that the staff array contains valid rescue staff objects.
  */
 const rescueJoiSchema = Joi.object({
-	rescueName: Joi.string().allow(''), // Allows an empty string, assuming required: false means it can be empty
-	rescueAddress: Joi.string().allow(''),
+	rescueName: Joi.string().allow(''), // Allows an empty string
+	addressLine1: Joi.string().allow(''),
+	addressLine2: Joi.string().allow(''),
+	city: Joi.string().allow(''),
+	county: Joi.string().allow(''), // County can be optional or required based on your needs
+	postcode: Joi.string().allow(''), // Add regex validation for UK postcodes if this will be UK specific
+	country: Joi.string().default('United Kingdom'), // Set a default value for the country
 	rescueType: Joi.string().valid('Individual', 'Charity', 'Company').required(),
 	referenceNumber: Joi.string().allow(''),
 	referenceNumberVerified: Joi.boolean(),
-	staff: Joi.array().items(rescueStaffJoiSchema), // Validates each staff member with the defined Joi schema
+	staff: Joi.array().items(rescueStaffJoiSchema), // Assuming rescueStaffJoiSchema is defined elsewhere
 });
 
 // Joi schema for adding/updating pet details

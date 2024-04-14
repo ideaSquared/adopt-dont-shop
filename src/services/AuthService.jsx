@@ -173,16 +173,26 @@ const AuthService = {
 		password,
 		rescueType,
 		rescueName,
-		rescueAddress
+		addressLine1,
+		addressLine2,
+		city,
+		county,
+		postcode,
+		country
 	) => {
 		// Construct the data object to be sent in the POST request body
 		const postData = {
 			firstName,
 			email,
 			password,
-			rescueName,
-			rescueAddress,
 			rescueType,
+			rescueName,
+			addressLine1,
+			addressLine2,
+			city,
+			county,
+			postcode,
+			country,
 		};
 
 		try {

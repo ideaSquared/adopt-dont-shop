@@ -10,7 +10,13 @@ const CreateRescueAccountPage = () => {
 	const [password, setPassword] = useState('');
 	const [rescueType, setRescueType] = useState('individual');
 	const [rescueName, setRescueName] = useState('');
-	const [rescueAddress, setRescueAddress] = useState('');
+	// New state hooks for the address components
+	const [addressLine1, setAddressLine1] = useState('');
+	const [addressLine2, setAddressLine2] = useState('');
+	const [city, setCity] = useState('');
+	const [county, setCounty] = useState('');
+	const [postcode, setPostcode] = useState('');
+	const [country, setCountry] = useState('United Kingdom'); // Default to UK, can be changed as needed
 	const navigate = useNavigate(); // Initialize useNavigate
 
 	const handleCreateRescueAccount = async () => {
@@ -21,13 +27,18 @@ const CreateRescueAccountPage = () => {
 				password,
 				rescueType,
 				rescueName,
-				rescueAddress
+				addressLine1,
+				addressLine2,
+				city,
+				county,
+				postcode,
+				country
 			);
-			console.log('Create user account successful', response.data);
+			console.log('Create rescue account successful', response.data);
 			// Proceed to redirect the user or save the login state
 			navigate('/');
 		} catch (error) {
-			console.error('Create user account failed', error.response.data);
+			console.error('Create rescue account failed', error.response.data);
 		}
 	};
 
@@ -39,7 +50,12 @@ const CreateRescueAccountPage = () => {
 				onPasswordChange={setPassword}
 				onRescueTypeChange={setRescueType}
 				onRescueNameChange={setRescueName}
-				onRescueAddressChange={setRescueAddress}
+				onAddressLine1Change={setAddressLine1}
+				onAddressLine2Change={setAddressLine2}
+				onCityChange={setCity}
+				onCountyChange={setCounty}
+				onPostcodeChange={setPostcode}
+				onCountryChange={setCountry}
 				onCreateRescueAccount={handleCreateRescueAccount}
 			/>
 		</div>
