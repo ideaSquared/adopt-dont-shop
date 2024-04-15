@@ -28,7 +28,15 @@ const Conversations = () => {
 	const fetchAndSetConversations = async () => {
 		try {
 			const data = await ConversationsService.fetchConversations();
-			setConversations(data);
+			// Assuming your service now includes the rescue_name and rescue_id in the response
+			setConversations(
+				data.map((conv) => ({
+					...conv,
+					rescueInfo: conv.rescue_id
+						? { name: conv.rescue_name, id: conv.rescue_id }
+						: null,
+				}))
+			);
 		} catch (error) {
 			alert(error.message);
 		}
@@ -56,7 +64,7 @@ const Conversations = () => {
 		setLoadingMessages(true);
 		try {
 			const messagesData = await ConversationsService.fetchMessages(
-				conversation._id
+				conversation.conversation_id
 			);
 			setMessages(messagesData);
 		} catch (error) {
@@ -112,6 +120,8 @@ const Conversations = () => {
 			md: 6,
 		},
 	];
+
+	console.log(conversations);
 
 	return (
 		<div>

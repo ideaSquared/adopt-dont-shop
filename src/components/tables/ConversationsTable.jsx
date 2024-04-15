@@ -16,7 +16,9 @@ const ConversationsTable = ({
 			<Table striped bordered hover>
 				<thead>
 					<tr>
+						<th>Conversation ID</th>
 						<th>Participants</th>
+						<th>Rescue</th> {/* Added column for rescue */}
 						<th>Last Message</th>
 						<th>Last Message At</th>
 						<th>Status</th>
@@ -26,27 +28,21 @@ const ConversationsTable = ({
 				<tbody>
 					{conversations.map((conversation) => (
 						<tr
-							key={conversation._id}
+							key={conversation.conversation_id} // Adjust key to match your data structure
 							style={{ cursor: 'pointer' }}
 							onClick={() => onShowDetails(conversation)}
 						>
+							<td>{conversation.conversation_id}</td>
 							<td>
-								{conversation.participants.map((participant, index) => (
-									<React.Fragment key={index}>
-										<StatusBadge
-											type='conversation'
-											value={
-												participant.participantId.email ||
-												participant.participantId.rescueName ||
-												'Unknown'
-											}
-											caps={false}
-										/>{' '}
-									</React.Fragment>
-								))}
+								{conversation.participant_emails.join(', ')}{' '}
+								{/* Assuming participant_emails is an array of email strings */}
 							</td>
-							<td>{conversation.lastMessage}</td>
-							<td>{new Date(conversation.lastMessageAt).toLocaleString()}</td>
+							<td>
+								{conversation.rescue_name || 'N/A'}{' '}
+								{/* Display the rescue name if available */}
+							</td>
+							<td>{conversation.last_message_by_email}</td>
+							<td>{new Date(conversation.updated_at).toLocaleString()}</td>
 							<td>
 								<StatusBadge
 									type='conversation'
@@ -58,7 +54,7 @@ const ConversationsTable = ({
 									variant='danger'
 									onClick={(e) => {
 										e.stopPropagation(); // Prevent triggering onShowDetails
-										onDelete(conversation._id);
+										onDelete(conversation.conversation_id); // Use the appropriate identifier
 									}}
 								>
 									Delete

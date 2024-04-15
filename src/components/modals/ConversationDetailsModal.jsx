@@ -10,7 +10,7 @@ const ConversationDetailsModal = ({
 	loadingMessages,
 }) => {
 	return (
-		<Modal show={showModal} onHide={handleClose}>
+		<Modal show={showModal} onHide={handleClose} size='lg'>
 			<Modal.Header closeButton>
 				<Modal.Title>Conversation Details</Modal.Title>
 			</Modal.Header>
@@ -19,19 +19,26 @@ const ConversationDetailsModal = ({
 					<>
 						<p>
 							<strong>Participants:</strong>{' '}
-							{conversation.participants.map((participant, index) => (
-								<React.Fragment key={index}>
+							{conversation.participant_emails
+								.filter(Boolean)
+								.map((email, index) => (
 									<StatusBadge
+										key={index}
 										type='conversation'
-										value={
-											participant.participantId.email ||
-											participant.participantId.rescueName ||
-											'Unknown'
-										}
+										value={email}
 										caps={false}
-									/>{' '}
-								</React.Fragment>
-							))}
+									/>
+								))}
+							{conversation.participant_rescues
+								.filter(Boolean)
+								.map((rescueName, index) => (
+									<StatusBadge
+										key={index}
+										type='conversation'
+										value={rescueName}
+										caps={false}
+									/>
+								))}
 						</p>
 						<p>
 							<strong>Status:</strong>{' '}
@@ -50,13 +57,18 @@ const ConversationDetailsModal = ({
 									</tr>
 								</thead>
 								<tbody>
-									{messages.map((message) => (
-										<tr key={message._id}>
-											<td>{message.messageText}</td>
-											<td>{new Date(message.sentAt).toLocaleString()}</td>
-											<td>{message.senderId.email || 'Unknown'}</td>
-										</tr>
-									))}
+									{messages
+										.sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at))
+										.map((message) => (
+											<tr key={message.message_id}>
+												<td>{message.message_id}</td>
+												<td style={{ whiteSpace: 'pre-wrap' }}>
+													{message.message_text}
+												</td>
+												<td>{new Date(message.sent_at).toLocaleString()}</td>
+												<td>{message.sender_email || 'Unknown'}</td>
+											</tr>
+										))}
 								</tbody>
 							</Table>
 						)}

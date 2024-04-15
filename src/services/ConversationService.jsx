@@ -4,6 +4,9 @@ const fetchConversations = async () => {
 	const endpoint = `${import.meta.env.VITE_API_BASE_URL}/admin/conversations`;
 	try {
 		const { data } = await axios.get(endpoint);
+
+		console.log(data);
+
 		return Array.isArray(data) ? data : [];
 	} catch (error) {
 		console.error('Failed to fetch conversations:', error);

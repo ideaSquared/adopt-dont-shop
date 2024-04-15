@@ -130,19 +130,21 @@ router.get(
 		try {
 			// Perform SQL JOIN to fetch all related data
 			const query = `
-        SELECT 
-          c.*, 
-          array_agg(DISTINCT u.email) AS participant_emails, 
-          s.email AS started_by_email, 
-          m.email AS last_message_by_email
-        FROM 
-          conversations c
-          LEFT JOIN conversation_participants p ON c.conversation_id = p.conversation_id
-          LEFT JOIN users u ON u.user_id = p.user_id
-          LEFT JOIN users s ON s.conversation_id = c.started_by
-          LEFT JOIN users m ON m.conversation_id = c.last_message_by
-        GROUP BY 
-          c.conversation_id, s.email, m.email
+        	SELECT 
+				c.*,
+				array_agg(DISTINCT CASE WHEN p.participant_type = 'User' AND u.email IS NOT NULL THEN u.email END) FILTER (WHERE u.email IS NOT NULL) AS participant_emails,
+				array_agg(DISTINCT CASE WHEN p.participant_type = 'Rescue' AND r.rescue_name IS NOT NULL THEN r.rescue_name END) FILTER (WHERE r.rescue_name IS NOT NULL) AS participant_rescues,
+				s.email AS started_by_email, 
+				m.email AS last_message_by_email
+			FROM 
+				conversations c
+				LEFT JOIN participants p ON c.conversation_id = p.conversation_id
+				LEFT JOIN users u ON u.user_id = p.user_id AND p.participant_type = 'User'
+				LEFT JOIN rescues r ON r.rescue_id = p.rescue_id AND p.participant_type = 'Rescue'
+				LEFT JOIN users s ON s.user_id = c.started_by
+				LEFT JOIN users m ON m.user_id = c.last_message_by
+			GROUP BY 
+				c.conversation_id, s.email, m.email;
       `;
 
 			const { rows } = await pool.query(query);
