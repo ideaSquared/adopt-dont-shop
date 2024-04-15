@@ -39,10 +39,14 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		validateRequest(registerSchema),
 		async (req, res) => {
 			const { email, password, firstName } = req.body;
+
 			try {
 				// Check if user already exists.
 				const existingUserQuery = 'SELECT user_id FROM users WHERE email = $1';
-				const existingUser = await pool.query(existingUserQuery, [email]);
+				const emailNormalized = email.trim().toLowerCase();
+				const existingUser = await pool.query(existingUserQuery, [
+					emailNormalized,
+				]);
 				if (existingUser.rowCount > 0) {
 					logger.warn(`Error existing user: ${email}`);
 					return res.status(409).json({
@@ -60,7 +64,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
         RETURNING user_id;
       `;
 				const newUser = await pool.query(insertUserQuery, [
-					email,
+					emailNormalized,
 					hashedPassword,
 					firstName,
 					false,
@@ -73,7 +77,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
 				const verificationURL = `${FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
 
-				await sendEmailVerificationEmail(email, verificationURL);
+				await sendEmailVerificationEmail(emailNormalized, verificationURL);
 				logger.info(`Verification email sent to: ${email}`);
 
 				res.status(201).json({ message: 'User created!', userId });
