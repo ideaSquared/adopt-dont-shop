@@ -3,8 +3,8 @@ import request from 'supertest';
 import app from '../index.js'; // Adjust the path to your Express app
 import { pool } from '../dbConnection.js'; // Adjust the path to your database pool
 import bcrypt from 'bcryptjs';
-import { generateResetToken } from '../utils/tokenGenerator';
-import { sendEmailVerificationEmail } from '../services/emailService';
+import { generateResetToken } from '../utils/tokenGenerator.js';
+import { sendEmailVerificationEmail } from '../services/emailService.js';
 import jest from 'jest';
 
 // Mock the necessary modules to isolate the testing environment
