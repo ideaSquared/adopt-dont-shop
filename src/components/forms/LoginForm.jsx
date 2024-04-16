@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form, Button } from 'react-bootstrap';
+import { Form, Button, Row, Col } from 'react-bootstrap';
 
 const LoginForm = ({ onEmailChange, onPasswordChange, onLogin }) => {
 	return (
@@ -27,10 +27,19 @@ const LoginForm = ({ onEmailChange, onPasswordChange, onLogin }) => {
 					placeholder='Password'
 				/>
 			</Form.Group>
-			<Button variant='primary' type='submit'>
-				Login
-			</Button>
-			<a href='/forgot-password'>Forgot password?</a>
+
+			<Row>
+				<Col>
+					<Button variant='primary' type='submit'>
+						Login
+					</Button>
+				</Col>
+				<Col className='d-flex justify-content-end'>
+					<a href='/forgot-password' className='align-self-center'>
+						Forgot password?
+					</a>
+				</Col>
+			</Row>
 		</Form>
 	);
 };

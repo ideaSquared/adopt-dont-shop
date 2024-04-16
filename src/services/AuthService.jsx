@@ -141,6 +141,58 @@ const AuthService = {
 		}
 	},
 
+	getUserDetails: async (token) => {
+		try {
+			const response = axios.get(`${API_BASE_URL}/auth/details`, {
+				withCredentials: true,
+			});
+			// const response = await fetch(
+			// 	`${import.meta.env.VITE_API_BASE_URL}/auth/details`,
+			// 	{
+			// 		method: 'GET',
+			// 		credentials: 'include',
+			// 		headers: {
+			// 			'Content-Type': 'application/json',
+			// 			Authorization: `Bearer ${token}`,
+			// 		},
+			// 	}
+			// );
+			// const data = await response.json();
+
+			// if (!response.ok) {
+			// 	throw new Error(data.message || 'Failed to fetch user details.');
+			// }
+			return response;
+		} catch (error) {
+			throw error;
+		}
+	},
+
+	updateUserDetails: async (formData, token) => {
+		try {
+			const response = await fetch(
+				`${import.meta.env.VITE_API_BASE_URL}/auth/details`,
+				{
+					method: 'PUT',
+					credentials: 'include',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${token}`,
+					},
+					body: JSON.stringify(formData),
+				}
+			);
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.message || 'Failed to update details.');
+			}
+			return data;
+		} catch (error) {
+			throw error;
+		}
+	},
+
 	createAccountUser: async (firstName, email, password) => {
 		const userData = {
 			firstName,

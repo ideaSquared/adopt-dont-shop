@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form, Button } from 'react-bootstrap';
+import { Form, Button, Row, Col } from 'react-bootstrap';
 
 const CreateAccountForm = ({
 	onFirstNameChange,
@@ -41,10 +41,19 @@ const CreateAccountForm = ({
 					placeholder='Password'
 				/>
 			</Form.Group>
-			<Button variant='primary' type='submit'>
-				Create Account
-			</Button>
-			<a href='/create-rescue-account'>Are you a rescue?</a>
+
+			<Row>
+				<Col>
+					<Button variant='primary' type='submit'>
+						Create Account
+					</Button>
+				</Col>
+				<Col className='d-flex justify-content-end'>
+					<a href='/create-rescue-account' className='align-self-center'>
+						Are you a rescue?
+					</a>
+				</Col>
+			</Row>
 		</Form>
 	);
 };

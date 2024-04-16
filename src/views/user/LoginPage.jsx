@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import LoginForm from '../../components/forms/LoginForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import AlertComponent from '../../components/common/AlertComponent'; // Make sure the path is correct
+
+import { Container } from 'react-bootstrap';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const navigate = useNavigate(); // Initialize useNavigate
-	const { login } = useAuth(); // Destructure the login method from useAuth
+	const [alert, setAlert] = useState({ show: false, message: '', type: '' });
+	const { login } = useAuth();
 
 	const handleLogin = async () => {
 		try {
@@ -20,17 +24,38 @@ const LoginPage = () => {
 			// Handle errors as per your AuthContext's error handling logic
 			// Assuming error message is available as error.message
 			console.error('Login failed', error.message);
+			setAlert({
+				show: true,
+				message: 'Failed to login. Please try again.',
+				type: 'danger',
+			});
 		}
 	};
 
+	const handleCloseAlert = () => {
+		setAlert({ ...alert, show: false });
+	};
+
 	return (
-		<div>
-			<LoginForm
-				onEmailChange={setEmail}
-				onPasswordChange={setPassword}
-				onLogin={handleLogin}
-			/>
-		</div>
+		<Container
+			className='d-flex justify-content-center align-items-center'
+			style={{ minHeight: '100vh' }}
+		>
+			<div className='justify-content-md-center w-50'>
+				{alert.show && (
+					<AlertComponent
+						type={alert.type}
+						message={alert.message}
+						onClose={handleCloseAlert}
+					/>
+				)}
+				<LoginForm
+					onEmailChange={setEmail}
+					onPasswordChange={setPassword}
+					onLogin={handleLogin}
+				/>
+			</div>
+		</Container>
 	);
 };
 

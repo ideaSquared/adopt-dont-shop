@@ -232,6 +232,28 @@ const useProvideAuth = () => {
 		}
 	};
 
+	const fetchUserDetails = async () => {
+		try {
+			const response = await AuthService.getUserDetails();
+
+			return response.data;
+		} catch (error) {
+			console.error('Could not fetch user details:', error);
+			setAlert({ message: error.message, type: 'danger' });
+		}
+	};
+
+	const updateUserDetails = async (formData) => {
+		try {
+			const data = await AuthService.updateUserDetails(formData);
+			setAlert({ message: 'Details updated successfully!', type: 'success' });
+			// Optionally update the authState here if needed
+		} catch (error) {
+			console.error('Failed to update user details:', error);
+			setAlert({ message: error.message, type: 'danger' });
+		}
+	};
+
 	return {
 		authState,
 		login,
@@ -241,6 +263,8 @@ const useProvideAuth = () => {
 		sendForgotPasswordEmail,
 		createUser,
 		createRescue,
+		fetchUserDetails,
+		updateUserDetails,
 	};
 };
 

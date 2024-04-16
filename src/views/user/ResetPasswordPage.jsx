@@ -3,12 +3,16 @@ import ResetPasswordForm from '../../components/forms/ResetPasswordForm';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
+import { Container } from 'react-bootstrap';
+import AlertComponent from '../../components/common/AlertComponent';
+
 const ResetPasswordPage = () => {
 	const [password, setPassword] = useState('');
 	const [confirmPassword, setConfirmPassword] = useState('');
 	const [token, setToken] = useState('');
 	const navigate = useNavigate();
 	const location = useLocation();
+	const [alert, setAlert] = useState({ show: false, message: '', type: '' });
 	const { resetPassword } = useAuth();
 
 	useEffect(() => {
@@ -32,17 +36,38 @@ const ResetPasswordPage = () => {
 			navigate('/');
 		} catch (error) {
 			console.error('Reset password failed', error.response.data);
+			setAlert({
+				show: true,
+				message: 'Failed to reset password. Please try again.',
+				type: 'danger',
+			});
 		}
 	};
 
+	const handleCloseAlert = () => {
+		setAlert({ ...alert, show: false });
+	};
+
 	return (
-		<div>
-			<ResetPasswordForm
-				onPasswordChange={setPassword}
-				onConfirmPasswordChange={setConfirmPassword}
-				onResetPassword={handleResetPassword}
-			/>
-		</div>
+		<Container
+			className='d-flex justify-content-center align-items-center'
+			style={{ minHeight: '100vh' }}
+		>
+			{alert.show && (
+				<AlertComponent
+					type={alert.type}
+					message={alert.message}
+					onClose={handleCloseAlert}
+				/>
+			)}
+			<div className='justify-content-md-center w-50'>
+				<ResetPasswordForm
+					onPasswordChange={setPassword}
+					onConfirmPasswordChange={setConfirmPassword}
+					onResetPassword={handleResetPassword}
+				/>
+			</div>
+		</Container>
 	);
 };
 
