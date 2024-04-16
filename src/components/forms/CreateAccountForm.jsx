@@ -3,6 +3,7 @@ import { Form, Button, Row, Col } from 'react-bootstrap';
 
 const CreateAccountForm = ({
 	onFirstNameChange,
+	onLastNameChange,
 	onEmailChange,
 	onPasswordChange,
 	onCreateAccount,
@@ -14,13 +15,22 @@ const CreateAccountForm = ({
 				onCreateAccount();
 			}}
 		>
-			<Form.Group className='mb-3' controlId='email'>
+			<Form.Group className='mb-3' controlId='firstName'>
 				<Form.Label>First name</Form.Label>
 				<Form.Control
 					type='type'
 					name='firstName'
 					onChange={(e) => onFirstNameChange(e.target.value)}
 					placeholder='Enter first name'
+				/>
+			</Form.Group>
+			<Form.Group className='mb-3' controlId='lastName'>
+				<Form.Label>Last name</Form.Label>
+				<Form.Control
+					type='type'
+					name='lastName'
+					onChange={(e) => onLastNameChange(e.target.value)}
+					placeholder='Enter last name'
 				/>
 			</Form.Group>
 			<Form.Group className='mb-3' controlId='email'>

@@ -15,6 +15,7 @@ const registerSchema = Joi.object({
 	password: Joi.string().min(6).trim().required(),
 	// Validate the firstName, ensuring it is a string, trimmed, has a minimum length of 3 characters, a maximum of 30 characters, and is required.
 	firstName: Joi.string().trim().min(3).max(30).required(),
+	lastName: Joi.string().trim().min(1).max(30).required(),
 });
 
 /**
@@ -36,6 +37,7 @@ const updateDetailsSchema = Joi.object({
 	email: Joi.string().email().lowercase().trim(),
 	password: Joi.string().min(6).trim().allow(null, ''),
 	firstName: Joi.string().trim().min(3).max(30),
+	lastName: Joi.string().trim().min(1).max(30).required(),
 }).min(1); // Ensure at least one field is provided for the update.
 
 /**

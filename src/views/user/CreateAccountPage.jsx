@@ -8,6 +8,7 @@ import AlertComponent from '../../components/common/AlertComponent'; // Make sur
 
 const CreateAccountPage = () => {
 	const [firstName, setFirstName] = useState('');
+	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [alert, setAlert] = useState({ show: false, message: '', type: '' });
@@ -16,7 +17,7 @@ const CreateAccountPage = () => {
 
 	const handleCreateAccount = async () => {
 		try {
-			await createUser(firstName, email, password);
+			await createUser(firstName, lastName, email, password);
 			console.log('Create user account successful');
 			// Proceed to redirect the user or save the login state
 			navigate('/');
@@ -49,6 +50,7 @@ const CreateAccountPage = () => {
 				)}
 				<CreateAccountForm
 					onFirstNameChange={setFirstName}
+					onLastNameChange={setLastName}
 					onEmailChange={setEmail}
 					onPasswordChange={setPassword}
 					onCreateAccount={handleCreateAccount}

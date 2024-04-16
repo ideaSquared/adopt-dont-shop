@@ -193,9 +193,10 @@ const AuthService = {
 		}
 	},
 
-	createAccountUser: async (firstName, email, password) => {
+	createAccountUser: async (firstName, lastName, email, password) => {
 		const userData = {
 			firstName,
+			lastName,
 			email,
 			password,
 		};
@@ -221,6 +222,7 @@ const AuthService = {
 
 	createAccountRescue: async (
 		firstName,
+		lastName,
 		email,
 		password,
 		rescueType,
@@ -235,6 +237,7 @@ const AuthService = {
 		// Construct the data object to be sent in the POST request body
 		const postData = {
 			firstName,
+			lastName,
 			email,
 			password,
 			rescueType,

@@ -3,11 +3,9 @@ import { Container } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 import AccountProfileForm from '../../components/forms/AccountProfileForm';
-import AlertComponent from '../../components/common/AlertComponent';
 
 const UserProfilePage = () => {
 	const [initialData, setInitialData] = useState({});
-	const [alert, setAlert] = useState({ message: null, type: null });
 	const { fetchUserDetails, updateUserDetails } = useAuth();
 
 	useLoginRedirect();
@@ -19,6 +17,7 @@ const UserProfilePage = () => {
 				setInitialData({
 					email: userDetails.email,
 					firstName: userDetails.firstName,
+					lastName: userDetails.lastName,
 				});
 			}
 		};
@@ -32,17 +31,9 @@ const UserProfilePage = () => {
 			style={{ minHeight: '100vh' }}
 		>
 			<div className='justify-content-md-center w-50'>
-				{alert.message && (
-					<AlertComponent
-						type={alert.type}
-						message={alert.message}
-						onClose={() => setAlert({ message: null, type: null })}
-					/>
-				)}
 				<AccountProfileForm
 					initialData={initialData}
 					updateUserDetails={updateUserDetails}
-					setAlert={setAlert}
 				/>
 			</div>
 		</Container>

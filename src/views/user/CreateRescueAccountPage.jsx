@@ -8,6 +8,7 @@ import AlertComponent from '../../components/common/AlertComponent'; // Make sur
 
 const CreateRescueAccountPage = () => {
 	const [firstName, setFirstName] = useState('');
+	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [rescueType, setRescueType] = useState('individual');
@@ -27,6 +28,7 @@ const CreateRescueAccountPage = () => {
 		try {
 			const response = await createRescue(
 				firstName,
+				lastName,
 				email,
 				password,
 				rescueType,
@@ -70,6 +72,7 @@ const CreateRescueAccountPage = () => {
 				)}
 				<CreateRescueAccountForm
 					onFirstNameChange={setFirstName}
+					onLastNameChange={setLastName}
 					onEmailChange={setEmail}
 					onPasswordChange={setPassword}
 					onRescueTypeChange={setRescueType}

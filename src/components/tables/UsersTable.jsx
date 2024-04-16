@@ -18,6 +18,7 @@ const UsersTable = ({
 					<tr>
 						<th>User ID</th>
 						<th>First name</th>
+						<th>Last name</th>
 						<th>Email</th>
 						<th>Flags</th>
 						<th>Actions</th>
@@ -28,6 +29,7 @@ const UsersTable = ({
 						<tr key={user.user_id}>
 							<td>{user.user_id}</td>
 							<td>{user.first_name}</td>
+							<td>{user.last_name}</td>
 							<td>{user.email}</td>
 							<td>
 								{user.reset_token_force_flag && (

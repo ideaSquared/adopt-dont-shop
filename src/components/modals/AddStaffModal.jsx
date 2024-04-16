@@ -13,6 +13,7 @@ const AddStaffModal = ({
 	const [tabKey, setTabKey] = useState('newUser');
 	const [newStaff, setNewStaff] = useState({
 		firstName: '',
+		lastName: '',
 		email: '',
 		password: '',
 	});
@@ -68,13 +69,24 @@ const AddStaffModal = ({
 					<Tab eventKey='newUser' title='New User'>
 						<Form>
 							<Form.Group className='mb-3'>
-								<Form.Label>First Name</Form.Label>
+								<Form.Label>First name</Form.Label>
 								<Form.Control
 									type='text'
-									placeholder='First Name'
+									placeholder='First name'
 									value={newStaff.firstName}
 									onChange={(e) =>
 										setNewStaff({ ...newStaff, firstName: e.target.value })
+									}
+								/>
+							</Form.Group>
+							<Form.Group className='mb-3'>
+								<Form.Label>Last name</Form.Label>
+								<Form.Control
+									type='text'
+									placeholder='Last name'
+									value={newStaff.lastName}
+									onChange={(e) =>
+										setNewStaff({ ...newStaff, lastName: e.target.value })
 									}
 								/>
 							</Form.Group>

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col } from 'react-bootstrap';
+import AlertComponent from '../../components/common/AlertComponent';
 
-const AccountProfileForm = ({ initialData, updateUserDetails, setAlert }) => {
+const AccountProfileForm = ({ initialData, updateUserDetails }) => {
 	const [formData, setFormData] = useState({
 		email: '',
 		password: '',
 		confirmPassword: '',
 		firstName: '',
+		lastName: '',
 	});
+	const [alert, setAlert] = useState({ message: null, type: null });
 
 	useEffect(() => {
 		setFormData({
@@ -15,6 +18,7 @@ const AccountProfileForm = ({ initialData, updateUserDetails, setAlert }) => {
 			password: '',
 			confirmPassword: '',
 			firstName: '',
+			lastName: '',
 			...initialData,
 		});
 	}, [initialData]);
@@ -31,12 +35,12 @@ const AccountProfileForm = ({ initialData, updateUserDetails, setAlert }) => {
 		e.preventDefault();
 
 		// Client-side validation for password length
-		if (formData.password !== formData.confirmPassword) {
+		if (formData.password && formData.password !== formData.confirmPassword) {
 			setAlert({ message: 'Your passwords must match.', type: 'danger' });
 			return;
 		}
 
-		if (formData.password.length < 6) {
+		if (formData.password && formData.password.length < 6) {
 			setAlert({
 				message: 'Password must be at least 6 characters long.',
 				type: 'danger',
@@ -58,56 +62,74 @@ const AccountProfileForm = ({ initialData, updateUserDetails, setAlert }) => {
 	};
 
 	return (
-		<Form onSubmit={handleSubmit}>
-			<Form.Group className='mb-3' controlId='firstName'>
-				<Form.Label>First name</Form.Label>
-				<Form.Control
-					type='text'
-					name='firstName'
-					value={formData.firstName}
-					onChange={handleChange}
+		<>
+			{alert.message && (
+				<AlertComponent
+					type={alert.type}
+					message={alert.message}
+					onClose={() => setAlert({ message: null, type: null })}
 				/>
-			</Form.Group>
+			)}
+			<Form onSubmit={handleSubmit}>
+				<Form.Group className='mb-3' controlId='firstName'>
+					<Form.Label>First name</Form.Label>
+					<Form.Control
+						type='text'
+						name='firstName'
+						value={formData.firstName}
+						onChange={handleChange}
+					/>
+				</Form.Group>
+				<Form.Group className='mb-3' controlId='lastName'>
+					<Form.Label>First name</Form.Label>
+					<Form.Control
+						type='text'
+						name='lastName'
+						value={formData.lastName}
+						onChange={handleChange}
+					/>
+				</Form.Group>
 
-			<Form.Group className='mb-3' controlId='email'>
-				<Form.Label>Email</Form.Label>
-				<Form.Control
-					type='email'
-					name='email'
-					value={formData.email}
-					onChange={handleChange}
-				/>
-			</Form.Group>
+				<Form.Group className='mb-3' controlId='email'>
+					<Form.Label>Email</Form.Label>
+					<Form.Control
+						type='email'
+						name='email'
+						value={formData.email}
+						onChange={handleChange}
+					/>
+				</Form.Group>
 
-			<Row>
-				<Col>
-					<Form.Group className='mb-3' controlId='password'>
-						<Form.Label>Password</Form.Label>
-						<Form.Control
-							type='password'
-							name='password'
-							value={formData.password}
-							onChange={handleChange}
-						/>
-					</Form.Group>
-				</Col>
-				<Col>
-					<Form.Group className='mb-3' controlId='confirmPassword'>
-						<Form.Label>Confirm password</Form.Label>
-						<Form.Control
-							type='password'
-							name='confirmPassword'
-							value={formData.confirmPassword}
-							onChange={handleChange}
-						/>
-					</Form.Group>
-				</Col>
-			</Row>
+				<Row>
+					<Col>
+						<Form.Group className='mb-3' controlId='password'>
+							<Form.Label>New password</Form.Label>
+							<Form.Control
+								type='password'
+								name='password'
+								value={formData.password}
+								onChange={handleChange}
+							/>
+						</Form.Group>
+					</Col>
+					<Col>
+						<Form.Group className='mb-3' controlId='confirmPassword'>
+							<Form.Label>Confirm new password</Form.Label>
+							<Form.Control
+								type='password'
+								name='confirmPassword'
+								value={formData.confirmPassword}
+								onChange={handleChange}
+							/>
+						</Form.Group>
+					</Col>
+				</Row>
 
-			<Button variant='primary' type='submit'>
-				Update Details
-			</Button>
-		</Form>
+				<Button variant='primary' type='submit'>
+					Update Details
+				</Button>
+			</Form>
+		</>
 	);
 };
 

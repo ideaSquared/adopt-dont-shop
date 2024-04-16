@@ -194,10 +194,11 @@ const useProvideAuth = () => {
 		}
 	};
 
-	const createUser = async (firstName, email, password) => {
+	const createUser = async (firstName, lastName, email, password) => {
 		try {
 			const response = await AuthService.createAccountUser(
 				firstName,
+				lastName,
 				email,
 				password
 			);
@@ -239,18 +240,40 @@ const useProvideAuth = () => {
 			return response.data;
 		} catch (error) {
 			console.error('Could not fetch user details:', error);
-			setAlert({ message: error.message, type: 'danger' });
+			return { message: error.message, type: 'danger' };
 		}
 	};
 
+	/**
+	 * Asynchronously updates user details using the AuthService.
+	 * This function handles the process of sending data to the server,
+	 * catching any errors, and formatting the response to a standardized
+	 * object structure that indicates success or failure.
+	 *
+	 * @param {Object} formData - The data to be sent for updating user details.
+	 * @returns {Promise<Object>} A promise that resolves to an object indicating the outcome.
+	 */
 	const updateUserDetails = async (formData) => {
 		try {
-			const data = await AuthService.updateUserDetails(formData);
-			setAlert({ message: 'Details updated successfully!', type: 'success' });
-			// Optionally update the authState here if needed
+			// Attempt to update user details through the AuthService
+			await AuthService.updateUserDetails(formData);
+
+			// Success: Return a success message with a corresponding type
+			return {
+				success: true,
+				message: 'Details updated successfully!',
+				type: 'success',
+			};
 		} catch (error) {
+			// Log the error to the console for debugging purposes
 			console.error('Failed to update user details:', error);
-			setAlert({ message: error.message, type: 'danger' });
+
+			// Error: Return an error message with a corresponding type
+			return {
+				success: false,
+				message: error.message,
+				type: 'danger',
+			};
 		}
 	};
 
