@@ -30,6 +30,7 @@
 .action-buttons .btn {
     width: 74px;
     height: 74px;
+    border: none;
 }
 
 .badge-container {
@@ -75,6 +76,37 @@
     /* Provides some space around the card */
     padding: 20px;
     /* Adds padding inside the card for aesthetics */
+}
+
+/* Specific styles for each button type based on variant */
+.dislike {
+    background-color: #dc3545;
+    /* Bootstrap danger color for dislike */
+}
+
+.dislike:hover {
+    background-color: #FA8072;
+}
+
+.love {
+    background-color: #FF1493;
+    /* Bootstrap primary color for love */
+}
+
+.love:hover {
+    background-color: #FFB6C1;
+}
+
+.like {
+    background-color: #28a745;
+    /* Bootstrap success color for like */
+}
+
+.rounded-circle svg {
+    width: 50%;
+    /* Icon takes full width of the button */
+    height: auto;
+    /* Maintain aspect ratio */
 }
 
 @media (max-width: 768px) {

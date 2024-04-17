@@ -32,13 +32,13 @@ const Swipe = ({ item }) => {
 					</div>
 					<Card.Text>{item.short_description}</Card.Text>
 					<div className='action-buttons mt-auto'>
-						<Button variant='outline-danger' className='rounded-circle dislike'>
+						<Button variant='danger' className='rounded-circle dislike'>
 							Dislike
 						</Button>
-						<Button variant='outline-primary' className='rounded-circle love'>
+						<Button variant='primary' className='rounded-circle love'>
 							Love
 						</Button>
-						<Button variant='outline-success' className='rounded-circle like'>
+						<Button variant='success' className='rounded-circle like'>
 							Like
 						</Button>
 					</div>

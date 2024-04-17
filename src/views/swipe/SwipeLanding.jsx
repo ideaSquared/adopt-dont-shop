@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Card, Button, Badge } from 'react-bootstrap';
 import { HandThumbsDown, HeartFill, HandThumbsUp } from 'react-bootstrap-icons';
 import './Swipe.css';
+import './SwipeAnimation.css';
 
 const SwipeLanding = ({ item, handleSwipe }) => {
 	const [viewDetails, setViewDetails] = useState(false);
 	const toggleViewDetails = () => setViewDetails(!viewDetails);
+	const [animationClass, setAnimationClass] = useState('');
 
 	const images = item.images || [];
 	const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -22,11 +24,32 @@ const SwipeLanding = ({ item, handleSwipe }) => {
 			prevIndex - 1 < 0 ? images.length - 1 : prevIndex - 1
 		);
 
+	const handleAction = (action) => {
+		switch (action) {
+			case 'left':
+				setAnimationClass('fly-out-left');
+				break;
+			case 'right':
+				setAnimationClass('fly-out-right');
+				break;
+			case 'love':
+				setAnimationClass('fly-out-top');
+				break;
+			default:
+				return; // No action
+		}
+
+		setTimeout(() => {
+			handleSwipe(action); // Call the handleSwipe prop with the action
+			setAnimationClass(''); // Reset animation class after it finishes
+		}, 500); // This should match the duration of the animations
+	};
+
 	return (
 		<div className='d-flex align-items-center justify-content-center swipe-screen'>
 			{!viewDetails ? (
 				<Card
-					className='swipe-card'
+					className={`swipe-card ${animationClass}`}
 					style={{ backgroundImage: `url(${imageSrc})` }}
 				>
 					<Card.Body className='swipe-overlay d-flex flex-column'>
@@ -77,25 +100,31 @@ const SwipeLanding = ({ item, handleSwipe }) => {
 						</Card.Text>
 						<div className='action-buttons mt-auto'>
 							<Button
-								variant='outline-danger'
+								variant='danger'
 								className='rounded-circle dislike'
-								onClick={() => handleSwipe('left')}
+								onClick={() => handleAction('left')}
+								aria-label='Dislike'
 							>
-								<HandThumbsDown /> Dislike
+								<HandThumbsDown />
+								<span className='visually-hidden'>Dislike</span>
 							</Button>
 							<Button
-								variant='outline-primary'
+								variant='primary'
 								className='rounded-circle love'
-								onClick={() => handleSwipe('love')}
+								onClick={() => handleAction('love')}
+								aria-label='Love'
 							>
-								<HeartFill /> Love
+								<HeartFill />
+								<span className='visually-hidden'>Love</span>
 							</Button>
 							<Button
-								variant='outline-success'
+								variant='success'
 								className='rounded-circle like'
-								onClick={() => handleSwipe('right')}
+								onClick={() => handleAction('right')}
+								aria-label='Like'
 							>
-								<HandThumbsUp /> Like
+								<HandThumbsUp />
+								<span className='visually-hidden'>Like</span>
 							</Button>
 						</div>
 					</Card.Body>
@@ -104,6 +133,7 @@ const SwipeLanding = ({ item, handleSwipe }) => {
 				<Card className='swipe-card detailed-view'>
 					<Card.Body className='d-flex flex-column align-items-center justify-content-center'>
 						<Card.Title>{item.name}</Card.Title>
+
 						<Card.Text>{item.long_description}</Card.Text>
 						<Button variant='secondary' onClick={toggleViewDetails}>
 							Back
