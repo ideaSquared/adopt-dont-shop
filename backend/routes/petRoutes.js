@@ -58,6 +58,8 @@ router.post(
 		try {
 			const userId = req.user?.userId;
 
+			// console.log(req.body);
+
 			const hasPermission = await checkPermission(userId, 'add_pet');
 			if (!hasPermission) {
 				logger.warn(
@@ -68,11 +70,9 @@ router.post(
 					.send({ message: 'Insufficient permissions to add pet' });
 			}
 
-			console.log(req.body);
-
 			const insertPetQuery = `
-                INSERT INTO pets (name, owner_id, short_description, long_description, age, gender, status, type, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+                INSERT INTO pets (name, owner_id, short_description, long_description, age, gender, status, type, vaccination_status, breed)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING pet_id;
             `;
 			const {
@@ -84,10 +84,10 @@ router.post(
 				gender,
 				status,
 				type,
+				vaccination_status,
+				breed,
 			} = req.body;
-			// Assuming breed is not required as it's not in the schema
-			// Assuming 'description' in req.body is intended as 'long_description'
-			// 'created_at' and 'updated_at' will be set to the current time
+
 			const newPetResult = await pool.query(insertPetQuery, [
 				name,
 				ownerId,
@@ -97,6 +97,8 @@ router.post(
 				gender,
 				status,
 				type,
+				vaccination_status,
+				breed,
 			]);
 			const newPetId = newPetResult.rows[0].pet_id;
 

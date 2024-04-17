@@ -122,18 +122,8 @@ const petJoiSchema = Joi.object({
 	status: Joi.string().required(), // You might want to validate against specific status options
 	type: Joi.string().required(),
 	images: Joi.array().items(Joi.string()), // Validate as an array of strings (URLs)
-	characteristics: Joi.object({
-		common: Joi.object({
-			vaccination_status: Joi.string().required(),
-			temperament: Joi.string().required(),
-			size: Joi.string().required(),
-		}),
-		specific: Joi.object({
-			breed: Joi.string().required(),
-			activity_level: Joi.string().required(),
-			intelligence_level: Joi.string().required(),
-		}),
-	}),
+	vaccination_status: Joi.string(),
+	breed: Joi.string(),
 	archived: Joi.boolean(),
 });
 
