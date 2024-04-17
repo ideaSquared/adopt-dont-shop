@@ -20,6 +20,8 @@ const UsersTable = ({
 						<th>First name</th>
 						<th>Last name</th>
 						<th>Email</th>
+						<th>City</th>
+						<th>Country</th>
 						<th>Flags</th>
 						<th>Actions</th>
 					</tr>
@@ -31,6 +33,8 @@ const UsersTable = ({
 							<td>{user.first_name}</td>
 							<td>{user.last_name}</td>
 							<td>{user.email}</td>
+							<td>{user.city || ''}</td>
+							<td>{user.country || ''}</td>
 							<td>
 								{user.reset_token_force_flag && (
 									<StatusBadge type='misc' value='Force Reset Flag' />
