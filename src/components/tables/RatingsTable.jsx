@@ -16,8 +16,17 @@ const RatingsTable = ({ filteredRatings, onCreateConversation }) => {
 				{filteredRatings.map((rating) => (
 					<tr key={rating.id}>
 						<td>{rating.name}</td>
-						<td>{rating.userfirstname}</td>
-						<td>{rating.ratingtype}</td>
+						<td>
+							{rating.adopter_first_name} {rating.adopter_last_name}
+						</td>
+						<td
+							style={{
+								backgroundColor:
+									rating.rating_type === 'love' ? '#FF1493' : '#58D68D',
+							}}
+						>
+							{rating.rating_type}
+						</td>
 						<td>
 							<Button
 								onClick={() =>

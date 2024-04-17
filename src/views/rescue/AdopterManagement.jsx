@@ -27,11 +27,14 @@ const AdopterManagement = ({ rescueId }) => {
 			(rating) =>
 				(searchTerm
 					? rating.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-					  rating.userFirstName
+					  rating.adopter_first_name
+							.toLowerCase()
+							.includes(searchTerm.toLowerCase()) ||
+					  rating.adopter_last_name
 							.toLowerCase()
 							.includes(searchTerm.toLowerCase())
 					: true) &&
-				(filterCriteria ? rating.ratingType === filterCriteria : true)
+				(filterCriteria ? rating.rating_type === filterCriteria : true)
 		);
 		setFilteredRatings(filtered);
 	}, [ratings, searchTerm, filterCriteria]); // Re-apply filters when ratings or filter criteria change
