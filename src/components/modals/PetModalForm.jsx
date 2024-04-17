@@ -182,7 +182,7 @@ const PetModalForm = ({
 							<Row className='mb-3'>
 								<Col xs={12}>
 									<Form.Group controlId='formFileMultiple' className='mb-3'>
-										<Form.Label>Upload Images</Form.Label>
+										<Form.Label>Upload images</Form.Label>
 										<Form.Control
 											type='file'
 											multiple
@@ -300,7 +300,7 @@ const PetModalForm = ({
 							<Row className='mb-3'>
 								<Col xs={12}>
 									<Form.Group>
-										<Form.Label>Short Description</Form.Label>
+										<Form.Label>Short description</Form.Label>
 										<Form.Control
 											as='textarea'
 											rows={2}
@@ -320,7 +320,7 @@ const PetModalForm = ({
 							<Row className='mb-3'>
 								<Col xs={12}>
 									<Form.Group>
-										<Form.Label>Long Description</Form.Label>
+										<Form.Label>Long description</Form.Label>
 										<Form.Control
 											as='textarea'
 											rows={3}
@@ -338,75 +338,48 @@ const PetModalForm = ({
 								</Col>
 							</Row>
 							<Row className='mb-3'>
-								<Col xs={12} md={4}>
+								<Col xs={12} md={6}>
 									<Form.Group>
-										<Form.Label>Size</Form.Label>
+										<Form.Label>Vaccination status</Form.Label>
 										<Form.Control
-											type='text'
-											placeholder="Enter pet's size"
-											name='size'
-											value={petDetails?.characteristics?.common?.size || ''}
+											as='select'
+											name='vaccination_status'
+											value={petDetails?.vaccination_status || ''}
 											onChange={(e) =>
 												setPetDetails({
 													...petDetails,
-													characteristics: {
-														...petDetails.characteristics,
-														common: {
-															...petDetails.characteristics.common,
-															size: e.target.value,
-														},
-													},
+													vaccination_status: e.target.value,
 												})
 											}
-										/>
+										>
+											<option value=''>Select vaccination status</option>
+											<option value='Fully Vaccinated'>Fully Vaccinated</option>
+											<option value='Partially Vaccinated'>
+												Partially Vaccinated
+											</option>
+											<option value='Unvaccinated'>Unvaccinated</option>
+											<option value='Booster Required'>Booster Required</option>
+											<option value='Overdue for Vaccinations'>
+												Overdue for Vaccinations
+											</option>
+											<option value='Medical Exemption'>
+												Medical Exemption
+											</option>
+										</Form.Control>
 									</Form.Group>
 								</Col>
-								<Col xs={12} md={4}>
+								<Col xs={12} md={6}>
 									<Form.Group>
-										<Form.Label>Temperament</Form.Label>
+										<Form.Label>Breed</Form.Label>
 										<Form.Control
 											type='text'
-											placeholder="Enter pet's temperament"
-											name='temperament'
-											value={
-												petDetails?.characteristics?.common?.temperament || ''
-											}
+											placeholder="Enter pet's breed"
+											name='breed'
+											value={petDetails?.breed || ''}
 											onChange={(e) =>
 												setPetDetails({
 													...petDetails,
-													characteristics: {
-														...petDetails.characteristics,
-														common: {
-															...petDetails.characteristics.common,
-															temperament: e.target.value,
-														},
-													},
-												})
-											}
-										/>
-									</Form.Group>
-								</Col>
-								<Col xs={12} md={4}>
-									<Form.Group>
-										<Form.Label>Vaccination Status</Form.Label>
-										<Form.Control
-											type='text'
-											placeholder="Enter pet's vaccination status"
-											name='vaccinationStatus'
-											value={
-												petDetails?.characteristics?.common
-													?.vaccination_status || ''
-											}
-											onChange={(e) =>
-												setPetDetails({
-													...petDetails,
-													characteristics: {
-														...petDetails.characteristics,
-														common: {
-															...petDetails.characteristics.common,
-															vaccination_status: e.target.value,
-														},
-													},
+													breed: e.target.value,
 												})
 											}
 										/>
