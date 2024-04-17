@@ -34,11 +34,11 @@ const RescueProfile = () => {
 		rescueName: '',
 		rescueType: '',
 		// Update the address structure
-		addressLine1: '',
-		addressLine2: '',
+		// addressLine1: '',
+		// addressLine2: '',
 		city: '',
-		county: '',
-		postcode: '',
+		// county: '',
+		// postcode: '',
 		country: 'United Kingdom', // Default to UK, update accordingly if needed
 		referenceNumber: '',
 		referenceNumberVerified: false,

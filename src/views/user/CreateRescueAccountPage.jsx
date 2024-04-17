@@ -14,11 +14,11 @@ const CreateRescueAccountPage = () => {
 	const [rescueType, setRescueType] = useState('individual');
 	const [rescueName, setRescueName] = useState('');
 	// New state hooks for the address components
-	const [addressLine1, setAddressLine1] = useState('');
-	const [addressLine2, setAddressLine2] = useState('');
+	// const [addressLine1, setAddressLine1] = useState('');
+	// const [addressLine2, setAddressLine2] = useState('');
 	const [city, setCity] = useState('');
-	const [county, setCounty] = useState('');
-	const [postcode, setPostcode] = useState('');
+	// const [county, setCounty] = useState('');
+	// const [postcode, setPostcode] = useState('');
 	const [country, setCountry] = useState('United Kingdom'); // Default to UK, can be changed as needed
 	const navigate = useNavigate(); // Initialize useNavigate
 	const [alert, setAlert] = useState({ show: false, message: '', type: '' });
@@ -33,11 +33,11 @@ const CreateRescueAccountPage = () => {
 				password,
 				rescueType,
 				rescueName,
-				addressLine1,
-				addressLine2,
+				// addressLine1,
+				// addressLine2,
 				city,
-				county,
-				postcode,
+				// county,
+				// postcode,
 				country
 			);
 			console.log('Create rescue account successful', response.data);

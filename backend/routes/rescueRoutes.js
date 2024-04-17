@@ -244,11 +244,7 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 			text: `
         INSERT INTO rescues (
             rescue_name,
-            address_line_1,
-            address_line_2,
             city,
-            county,
-            postcode,
             country,
             rescue_type,
             reference_number,
@@ -259,11 +255,11 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
     `,
 			values: [
 				rescueData.rescueName,
-				rescueData.addressLine1,
-				rescueData.addressLine2,
+				// rescueData.addressLine1,
+				// rescueData.addressLine2,
 				rescueData.city,
-				rescueData.county,
-				rescueData.postcode,
+				// rescueData.county,
+				// rescueData.postcode,
 				rescueData.country,
 				rescueData.rescueType,
 				rescueData.referenceNumber,
@@ -421,11 +417,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
 	const { id } = req.params;
 	const {
 		rescueName,
-		addressLine1,
-		addressLine2,
+		// addressLine1,
+		// addressLine2,
 		city,
-		county,
-		postcode,
+		// county,
+		// postcode,
 		country,
 		rescueType,
 		referenceNumber,
@@ -438,25 +434,21 @@ router.put('/:id', authenticateToken, async (req, res) => {
                 UPDATE rescues
                 SET
                     rescue_name = $1,
-                    address_line_1 = $2,
-                    address_line_2 = $3,
-                    city = $4,
-                    county = $5,
-                    postcode = $6,
-                    country = $7,
-                    rescue_type = $8,
-                    reference_number = $9,
-                    reference_number_verified = $10
-                WHERE rescue_id = $11
+                    city = $2,
+                    country = $3,
+                    rescue_type = $4,
+                    reference_number = $5,
+                    reference_number_verified = $6
+                WHERE rescue_id = $7
                 RETURNING *;
             `,
 			values: [
 				rescueName,
-				addressLine1,
-				addressLine2,
+				// addressLine1,
+				// addressLine2,
 				city,
-				county,
-				postcode,
+				// county,
+				// postcode,
 				country,
 				rescueType,
 				referenceNumber,

@@ -105,7 +105,7 @@ const CreateRescueAccountForm = ({
 				</Col>
 			</Row>
 
-			<Row>
+			{/* <Row>
 				<Col md={6}>
 					<Form.Group className='mb-3' controlId='addressLine1'>
 						<Form.Label>Address Line 1</Form.Label>
@@ -128,10 +128,10 @@ const CreateRescueAccountForm = ({
 						/>
 					</Form.Group>
 				</Col>
-			</Row>
+			</Row> */}
 
 			<Row>
-				<Col md={4}>
+				<Col md={6}>
 					<Form.Group className='mb-3' controlId='city'>
 						<Form.Label>City</Form.Label>
 						<Form.Control
@@ -142,32 +142,7 @@ const CreateRescueAccountForm = ({
 						/>
 					</Form.Group>
 				</Col>
-				<Col md={4}>
-					<Form.Group className='mb-3' controlId='county'>
-						<Form.Label>County</Form.Label>
-						<Form.Control
-							type='text'
-							name='county'
-							onChange={(e) => onCountyChange(e.target.value)}
-							placeholder='County'
-						/>
-					</Form.Group>
-				</Col>
-				<Col md={4}>
-					<Form.Group className='mb-3' controlId='postcode'>
-						<Form.Label>Postcode</Form.Label>
-						<Form.Control
-							type='text'
-							name='postcode'
-							onChange={(e) => onPostcodeChange(e.target.value)}
-							placeholder='Postcode'
-						/>
-					</Form.Group>
-				</Col>
-			</Row>
-
-			<Row>
-				<Col>
+				<Col md={6}>
 					<Form.Group className='mb-3' controlId='country'>
 						<Form.Label>Country</Form.Label>
 						<Form.Control

@@ -524,11 +524,11 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 			const responseData = {
 				rescue_id: rescue.rescue_id,
 				rescueName: rescue.rescue_name,
-				addressLine1: rescue.address_line_1, // Assuming these fields are now part of your database
-				addressLine2: rescue.address_line_2,
+				// addressLine1: rescue.address_line_1, // Assuming these fields are now part of your database
+				// addressLine2: rescue.address_line_2,
 				city: rescue.city,
-				county: rescue.county,
-				postcode: rescue.postcode,
+				// county: rescue.county,
+				// postcode: rescue.postcode,
 				country: rescue.country, // Assuming country field is added to your database
 				rescueType: rescue.rescue_type,
 				referenceNumber: rescue.reference_number,

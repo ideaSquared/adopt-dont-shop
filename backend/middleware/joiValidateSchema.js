@@ -99,11 +99,11 @@ const rescueStaffJoiSchema = Joi.object({
  */
 const rescueJoiSchema = Joi.object({
 	rescueName: Joi.string().allow(''), // Allows an empty string
-	addressLine1: Joi.string().allow(''),
-	addressLine2: Joi.string().allow(''),
+	// addressLine1: Joi.string().allow(''),
+	// addressLine2: Joi.string().allow(''),
 	city: Joi.string().allow(''),
-	county: Joi.string().allow(''), // County can be optional or required based on your needs
-	postcode: Joi.string().allow(''), // Add regex validation for UK postcodes if this will be UK specific
+	// county: Joi.string().allow(''), // County can be optional or required based on your needs
+	// postcode: Joi.string().allow(''), // Add regex validation for UK postcodes if this will be UK specific
 	country: Joi.string().default('United Kingdom'), // Set a default value for the country
 	rescueType: Joi.string().valid('Individual', 'Charity', 'Company').required(),
 	referenceNumber: Joi.string().allow(''),

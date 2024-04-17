@@ -227,11 +227,11 @@ const AuthService = {
 		password,
 		rescueType,
 		rescueName,
-		addressLine1,
-		addressLine2,
+		// addressLine1,
+		// addressLine2,
 		city,
-		county,
-		postcode,
+		// county,
+		// postcode,
 		country
 	) => {
 		// Construct the data object to be sent in the POST request body
@@ -242,11 +242,11 @@ const AuthService = {
 			password,
 			rescueType,
 			rescueName,
-			addressLine1,
-			addressLine2,
+			// addressLine1,
+			// addressLine2,
 			city,
-			county,
-			postcode,
+			// county,
+			// postcode,
 			country,
 		};
 
