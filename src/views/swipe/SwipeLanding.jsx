@@ -4,6 +4,7 @@ import { HandThumbsDown, HeartFill, HandThumbsUp } from 'react-bootstrap-icons';
 import './SwipeLayout.css';
 import './SwipeButton.css';
 import './SwipeResponsive.css';
+import './SwipeAnimation.css';
 
 const SwipeLanding = ({ item, handleSwipe }) => {
 	const [viewDetails, setViewDetails] = useState(false);
