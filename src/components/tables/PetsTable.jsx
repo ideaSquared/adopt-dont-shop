@@ -44,7 +44,7 @@ const PetTable = ({
 					</tr>
 				</thead>
 				<tbody>
-					{pets.map((pet) => (
+					{currentPets.map((pet) => (
 						<tr key={pet.pet_id}>
 							{isAdmin && <td>{pet.pet_id}</td>}
 							<td style={{ maxWidth: '120px', overflow: 'hidden' }}>
