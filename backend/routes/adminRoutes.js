@@ -224,6 +224,12 @@ router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
                 r.rescue_id,
                 r.rescue_name AS "rescueName",
                 r.rescue_type AS "rescueType",
+				r.address_line_1,
+				r.address_line_2,
+				r.city,
+				r.county,
+				r.postcode,
+				r.country,
                 json_agg(json_build_object('userId', s.user_id, 'userDetails', json_build_object('email', u.email))) AS staff
             FROM 
                 rescues r
@@ -239,6 +245,12 @@ router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 			rescue_id: row.rescue_id,
 			rescue_name: row.rescueName,
 			rescue_type: row.rescueType,
+			rescue_address_line_1: row.address_line_1,
+			rescue_address_line_2: row.address_line_2,
+			rescue_city: row.city,
+			rescue_county: row.county,
+			rescue_postcode: row.postcode,
+			rescue_country: row.country,
 			staff: row.staff.map((staffMember) => ({
 				userId: staffMember.userId,
 				userDetails: staffMember.userDetails || {},
@@ -265,6 +277,12 @@ router.get('/rescues/:id', authenticateToken, checkAdmin, async (req, res) => {
                 r.rescue_id,
                 r.rescue_name,
                 r.rescue_type,
+				r.address_line_1,
+				r.address_line_2,
+				r.city,
+				r.county,
+				r.postcode,
+				r.country,
                 json_agg(
                     json_build_object(
                         'userId', s.user_id,
@@ -294,6 +312,12 @@ router.get('/rescues/:id', authenticateToken, checkAdmin, async (req, res) => {
 			rescue_id: rescue.rescue_id,
 			rescue_name: rescue.rescue_name,
 			rescue_type: rescue.rescue_type,
+			rescue_address_line_1: rescue.address_line_1,
+			rescue_address_line_2: rescue.address_line_2,
+			rescue_city: rescue.city,
+			rescue_county: rescue.county,
+			rescue_postcode: rescue.postcode,
+			rescue_country: rescue.country,
 			staff: rescue.staff,
 		});
 	} catch (error) {

@@ -75,6 +75,28 @@ const RescueDetailsModal = ({ showModal, handleClose, rescueDetails }) => {
 								disabled
 							/>
 						</Form.Group>
+
+						<Form.Group controlId='rescue_address'>
+							<Form.Label>Rescue address</Form.Label>
+							<Form.Control
+								as='textarea'
+								rows={4}
+								value={
+									rescueDetails.rescue_address_line_1 +
+									'\n' +
+									rescueDetails.rescue_address_line_2 +
+									'\n' +
+									rescueDetails.rescue_city +
+									'\n' +
+									rescueDetails.rescue_county +
+									'\n' +
+									rescueDetails.rescue_postcode +
+									'\n' +
+									rescueDetails.rescue_country
+								}
+								disabled
+							/>
+						</Form.Group>
 						{/* EACH STAFF MEMBER */}
 						<hr />
 						<Accordion defaultActiveKey='0'>
