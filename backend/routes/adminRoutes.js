@@ -447,51 +447,94 @@ router.delete(
 	}
 );
 
-router.get('/stats', async (req, res) => {
-	try {
-		const fromDate = req.query.from;
-		const toDate = req.query.to;
-		const query = `
-      SELECT 
-        extract(week from created_at) AS week, 
-        count(*) 
-      FROM 
-        (SELECT created_at FROM users WHERE created_at BETWEEN $1 AND $2
-         UNION ALL
-         SELECT created_at FROM rescues WHERE created_at BETWEEN $1 AND $2
-         UNION ALL
-         SELECT created_at FROM pets WHERE created_at BETWEEN $1 AND $2
-         UNION ALL
-         SELECT created_at FROM conversations WHERE created_at BETWEEN $1 AND $2
-         UNION ALL
-         SELECT created_at FROM messages WHERE created_at BETWEEN $1 AND $2
-         UNION ALL
-         SELECT created_at FROM ratings WHERE created_at BETWEEN $1 AND $2) AS stats
-      GROUP BY 
-        week
-      ORDER BY 
-        week;
-    `;
-		const { rows } = await pool.query(query, [fromDate, toDate]);
+router.get(
+	'/stats-created-count',
+	authenticateToken,
+	checkAdmin,
+	async (req, res) => {
+		try {
+			const fromDate = req.query.from || '2024-01-01';
+			const toDate = req.query.to || '2024-12-31';
 
-		const stats = rows.reduce((acc, row) => {
-			acc[row.week] = (acc[row.week] || 0) + parseInt(row.count, 10);
-			return acc;
-		}, {});
+			// if (!fromDate || !toDate) {
+			// 	return res
+			// 		.status(400)
+			// 		.json({ message: 'from and to dates are required' });
+			// }
 
-		res.json({
-			userStats: stats,
-			rescueStats: stats,
-			petStats: stats,
-			conversationStats: stats,
-			messageStats: stats,
-			ratingStats: stats,
-		});
-	} catch (error) {
-		console.error('Error fetching stats:', error);
-		res.status(500).json({ message: error.message });
+			const tables = [
+				'users',
+				'rescues',
+				'pets',
+				'conversations',
+				'messages',
+				'ratings',
+			];
+			const stats = {};
+
+			for (const table of tables) {
+				const query = `
+                SELECT 
+                    extract(week from created_at) AS week, 
+                    count(*) AS count
+                FROM 
+                    ${table}
+                WHERE 
+                    created_at BETWEEN $1 AND $2
+                GROUP BY 
+                    week
+                ORDER BY 
+                    week;
+            `;
+				const { rows } = await pool.query(query, [fromDate, toDate]);
+				stats[table] = rows.map((row) => ({
+					week: parseInt(row.week, 10),
+					count: parseInt(row.count, 10),
+				}));
+			}
+
+			res.json(stats);
+		} catch (error) {
+			console.error('Error fetching stats:', error);
+			res.status(500).json({ message: error.message });
+		}
 	}
-});
+);
+
+router.get(
+	'/stats-total-count',
+	authenticateToken,
+	checkAdmin,
+	async (req, res) => {
+		try {
+			const tables = [
+				'users',
+				'rescues',
+				'pets',
+				'conversations',
+				'messages',
+				'ratings',
+			];
+			const totalCounts = {};
+
+			for (const table of tables) {
+				const query = `
+                SELECT 
+                    count(*) AS total_count
+                FROM 
+                    ${table};
+            `;
+				const { rows } = await pool.query(query);
+				totalCounts[table] = parseInt(rows[0].total_count, 10);
+			}
+
+			res.json(totalCounts);
+		} catch (error) {
+			console.error('Error fetching total counts:', error);
+			res.status(500).json({ message: error.message });
+		}
+	}
+);
 
 // Temporary endpoint to update createdAt and updatedAt fields randomly
 // NOTE: Doesn't work for createdAt - but does update updatedAt
