@@ -4,7 +4,6 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const RescueService = {
 	fetchRatings: async (rescueId) => {
-		console.log('RESCUE SERVICE ID: ', rescueId);
 		try {
 			const response = await axios.get(
 				`${API_BASE_URL}/ratings/find-ratings/${rescueId}`,
@@ -21,18 +20,11 @@ const RescueService = {
 	},
 
 	createConversation: async (rescueId, petId, userId) => {
-		console.log('SERVICE');
-		console.log(rescueId);
-		console.log(petId);
-		console.log(userId);
-
 		try {
 			const participants = [
 				{ rescueId, participantType: 'Rescue' }, // for rescue, userId should be null
 				{ userId, participantType: 'User' }, // for user, rescueId should be null
 			];
-
-			console.log(participants);
 
 			const response = await axios.post(
 				`${API_BASE_URL}/conversations`,

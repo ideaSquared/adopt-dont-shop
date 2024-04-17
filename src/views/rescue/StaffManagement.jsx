@@ -111,8 +111,6 @@ const StaffManagement = ({
 			return;
 		}
 
-		console.log(currentStaffMember);
-
 		// Ensure permissions is an array, even if it's initially null
 		const permissionsArray = currentStaffMember.permissions || [];
 

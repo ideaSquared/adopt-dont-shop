@@ -66,7 +66,7 @@ async function checkParticipant(req, res, next) {
 // CRUD Routes for Conversations
 // Create a new conversation
 router.post('/', authenticateToken, async (req, res) => {
-	console.log('Request body:', req.body);
+	// console.log('Request body:', req.body);
 
 	const { participants, petId } = req.body;
 
@@ -80,7 +80,7 @@ router.post('/', authenticateToken, async (req, res) => {
 		return res.status(400).json({ message: 'Invalid participants' });
 	}
 
-	console.log('Participants received:', participants);
+	// console.log('Participants received:', participants);
 
 	try {
 		const client = await pool.connect(); // Start a database transaction
