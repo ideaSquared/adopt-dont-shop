@@ -1,0 +1,14 @@
+/* responsive.css */
+
+@media (max-width: 768px) {
+    .swipe-card {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    .navigation-button.prev,
+    .navigation-button.next {
+        top: 50%;
+        transform: translateY(-900%);
+    }
+}

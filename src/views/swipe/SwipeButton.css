@@ -1,0 +1,64 @@
+/* buttons.css */
+
+.action-buttons .btn {
+    width: 74px;
+    height: 74px;
+    border: none;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+}
+
+.navigation-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-750%);
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+}
+
+.navigation-button.prev {
+    left: 10px;
+}
+
+.navigation-button.next {
+    right: 10px;
+}
+
+.navigation-button:hover {
+    background: rgba(255, 255, 255, 1);
+    cursor: pointer;
+}
+
+/* Specific styles for each button type based on variant */
+.dislike {
+    background-color: #dc3545;
+}
+
+.dislike:hover {
+    background-color: #FA8072;
+}
+
+.love {
+    background-color: #FF1493;
+}
+
+.love:hover {
+    background-color: #FFB6C1;
+}
+
+.like {
+    background-color: #28a745;
+}
+
+.like:hover {
+    background-color: #58D68D;
+}
+
+.rounded-circle svg {
+    width: 50%;
+    height: auto;
+}

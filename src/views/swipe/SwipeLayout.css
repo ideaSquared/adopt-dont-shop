@@ -1,0 +1,42 @@
+/* layout.css */
+
+.swipe-screen {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.swipe-card {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 2px 8px 16px rgba(0, 0, 0, 0.4);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    width: 50vw;
+    height: 75vh;
+}
+
+.swipe-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 20px;
+}
+
+.badge-container {
+    padding: 10px;
+}
+
+.swipe-card.detailed-view {
+    overflow-y: auto;
+    max-height: 90vh;
+    width: auto;
+    margin: 20px;
+    padding: 20px;
+}

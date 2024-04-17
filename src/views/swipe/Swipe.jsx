@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Container, Card, Button, Badge } from 'react-bootstrap';
-import './Swipe.css'; // Make sure to update this file with new styles.
+
+import './SwipeLayout.css';
+import './SwipeButton.css';
+import './SwipeResponsive.css';
 
 const Swipe = ({ item }) => {
 	const [viewDetails, setViewDetails] = useState(false);
