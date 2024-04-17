@@ -11,13 +11,15 @@ const CreateAccountPage = () => {
 	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
+	const [city, setCity] = useState('');
+	const [country, setCountry] = useState('');
 	const [alert, setAlert] = useState({ show: false, message: '', type: '' });
 	const navigate = useNavigate(); // Initialize useNavigate
 	const { createUser } = useAuth();
 
 	const handleCreateAccount = async () => {
 		try {
-			await createUser(firstName, lastName, email, password);
+			await createUser(firstName, lastName, email, password, city, country);
 			console.log('Create user account successful');
 			// Proceed to redirect the user or save the login state
 			navigate('/');
@@ -54,6 +56,8 @@ const CreateAccountPage = () => {
 					onEmailChange={setEmail}
 					onPasswordChange={setPassword}
 					onCreateAccount={handleCreateAccount}
+					onCityChange={setCity}
+					onCountryChange={setCountry}
 				/>
 			</div>
 		</Container>

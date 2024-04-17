@@ -38,7 +38,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		'/register',
 		validateRequest(registerSchema),
 		async (req, res) => {
-			const { email, password, firstName, lastName } = req.body;
+			const { email, password, firstName, lastName, city, country } = req.body;
 
 			try {
 				// Check if user already exists.
@@ -59,8 +59,8 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				const verificationToken = await generateResetToken(); // Token generation
 
 				const insertUserQuery = `
-        INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token, city, country)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING user_id;
       `;
 				const newUser = await pool.query(insertUserQuery, [
@@ -70,6 +70,8 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					lastName,
 					false,
 					verificationToken,
+					city,
+					country,
 				]);
 				const userId = newUser.rows[0].user_id;
 				logger.info(`New user registered: ${userId}`);
@@ -219,7 +221,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 		authenticateToken,
 		validateRequest(updateDetailsSchema),
 		async (req, res) => {
-			const { email, password, firstName, lastName } = req.body;
+			const { email, password, firstName, lastName, city, country } = req.body;
 			const userId = req.user.userId; // Extracting userId for logging purposes
 			logger.info(`Updating user details for userId: ${userId}`); // Log the start of the process
 
@@ -240,7 +242,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					updateValues.push(firstName);
 					fieldsUpdated.push('firstName');
 				}
-				if (firstName) {
+				if (lastName) {
 					updates.push('last_name = $' + (updates.length + 2));
 					updateValues.push(lastName);
 					fieldsUpdated.push('lastName');
@@ -255,6 +257,16 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					updates.push('password = $' + (updates.length + 2));
 					updateValues.push(hashedPassword);
 					fieldsUpdated.push('password');
+				}
+				if (city) {
+					updates.push('city = $' + (updates.length + 2));
+					updateValues.push(city);
+					fieldsUpdated.push('city');
+				}
+				if (country) {
+					updates.push('country = $' + (updates.length + 2));
+					updateValues.push(country);
+					fieldsUpdated.push('country');
 				}
 
 				if (updates.length > 0) {
@@ -293,7 +305,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 
 		try {
 			const userQuery =
-				'SELECT user_id, email, first_name, last_name FROM users WHERE user_id = $1';
+				'SELECT user_id, email, first_name, last_name, city, country FROM users WHERE user_id = $1';
 			const userResult = await pool.query(userQuery, [userId]);
 			if (userResult.rowCount === 0) {
 				logger.warn(`User not found for userId: ${userId}`); // Log when user is not found
@@ -307,6 +319,8 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				email: user.email,
 				firstName: user.first_name,
 				lastName: user.last_name,
+				city: user.city,
+				country: user.country,
 			};
 
 			logger.info(`User details fetched successfully for userId: ${userId}`);

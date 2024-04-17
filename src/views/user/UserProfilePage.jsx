@@ -18,6 +18,8 @@ const UserProfilePage = () => {
 					email: userDetails.email,
 					firstName: userDetails.firstName,
 					lastName: userDetails.lastName,
+					city: userDetails.city,
+					country: userDetails.country,
 				});
 			}
 		};

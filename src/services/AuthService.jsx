@@ -193,12 +193,21 @@ const AuthService = {
 		}
 	},
 
-	createAccountUser: async (firstName, lastName, email, password) => {
+	createAccountUser: async (
+		firstName,
+		lastName,
+		email,
+		password,
+		city,
+		country
+	) => {
 		const userData = {
 			firstName,
 			lastName,
 			email,
 			password,
+			city,
+			country,
 		};
 
 		try {
