@@ -8,6 +8,7 @@ import Logs from './Logs';
 import Pets from './Pets';
 import Rescues from './Rescues';
 import Users from './Users';
+import Map from './Map';
 
 const AdminLanding = () => {
 	useAdminRedirect();
@@ -29,6 +30,9 @@ const AdminLanding = () => {
 							className='w-100 my-1'
 						>
 							Dashboard
+						</Button>
+						<Button onClick={() => changeView('Map')} className='w-100 my-1'>
+							Map
 						</Button>
 						<Button onClick={() => changeView('Users')} className='w-100 my-1'>
 							Users
@@ -62,6 +66,7 @@ const AdminLanding = () => {
 					{view === 'Rescues' && <Rescues />}
 					{view === 'Logs' && <Logs />}
 					{view === 'Conversations' && <Conversations />}
+					{view === 'Map' && <Map />}
 				</Col>
 			</Row>
 		</Container>

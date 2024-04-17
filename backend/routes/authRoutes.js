@@ -17,6 +17,7 @@ import {
 	resetPasswordSchema,
 	forgotPasswordSchema,
 } from '../middleware/joiValidateSchema.js';
+import axios from 'axios';
 
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
@@ -27,6 +28,32 @@ import { sendEmailVerificationEmail } from '../services/emailService.js';
 export default function createAuthRoutes({ tokenGenerator, emailService }) {
 	const router = express.Router();
 	const logger = new LoggerUtil('auth-service').getLogger(); // Initialize logger for auth-service
+
+	const getCoordinates = async (city, country) => {
+		// Constructing the query by concatenating city and country for more accurate geocoding
+		const searchQuery = `${city}, ${country}`;
+		const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+			searchQuery
+		)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
+
+		try {
+			const response = await axios.get(url);
+
+			// Ensure that there is at least one feature in the response and it has a center property
+			if (response.data.features[0]) {
+				const coordinates = response.data.features[0].geometry.coordinates;
+				return {
+					lat: coordinates[1], // latitude
+					long: coordinates[0], // longitude
+				};
+			} else {
+				throw new Error('No valid coordinates found');
+			}
+		} catch (error) {
+			console.error('Failed to fetch coordinates:', error);
+			throw new Error('Geocoding failed');
+		}
+	};
 
 	/**
 	 * Route handler for user registration. Validates the request body against the registerSchema,
@@ -48,21 +75,27 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					emailNormalized,
 				]);
 				if (existingUser.rowCount > 0) {
-					logger.warn(`Error existing user: ${email}`);
+					logger.warn(`Existing user error: ${email}`);
 					return res.status(409).json({
 						message: 'User already exists - please try login or reset password',
 					});
 				}
 
-				// Hash the password and create a new user.
+				// Hash the password, generate verification token
 				const hashedPassword = await bcrypt.hash(password, 12);
-				const verificationToken = await generateResetToken(); // Token generation
+				const verificationToken = await generateResetToken();
+
+				// Get coordinates from city and country
+				const { lat, long } = await getCoordinates(city, country);
+				// Create the POINT value for the 'location' field
+				const locationPoint = `(${long}, ${lat})`;
 
 				const insertUserQuery = `
-        INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token, city, country)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING user_id;
-      `;
+					INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token, city, country, location)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+					RETURNING user_id;
+				`;
+
 				const newUser = await pool.query(insertUserQuery, [
 					emailNormalized,
 					hashedPassword,
@@ -72,14 +105,16 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					verificationToken,
 					city,
 					country,
+					locationPoint, // passing the formatted POINT
 				]);
+
 				const userId = newUser.rows[0].user_id;
 				logger.info(`New user registered: ${userId}`);
 
+				// Send verification email
 				const FRONTEND_BASE_URL =
 					process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
 				const verificationURL = `${FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
-
 				await sendEmailVerificationEmail(emailNormalized, verificationURL);
 				logger.info(`Verification email sent to: ${email}`);
 
@@ -269,13 +304,34 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					fieldsUpdated.push('country');
 				}
 
+				// Handle geographic coordinate updates
+				if (city || country) {
+					try {
+						const { lat, long } = await getCoordinates(city, country);
+
+						// Construct the POINT from longitude and latitude
+						const pointValue = `POINT(${long} ${lat})`;
+						updates.push(
+							`location = point($${updates.length + 2}, $${updates.length + 3})`
+						);
+						updateValues.push(long, lat); // Pass longitude and latitude separately
+
+						fieldsUpdated.push('location'); // Note that we update 'location', not 'lat' and 'long'
+					} catch (error) {
+						logger.error(`Failed to geocode new location: ${error.message}`);
+						return res.status(500).json({
+							message: 'Geocoding failed, unable to update user details.',
+						});
+					}
+				}
+
 				if (updates.length > 0) {
 					const updateUserQuery = `
-          UPDATE users
-          SET ${updates.join(', ')}
-          WHERE user_id = $1
-          RETURNING *;
-        `;
+                    UPDATE users
+                    SET ${updates.join(', ')}
+                    WHERE user_id = $1
+                    RETURNING *;
+                `;
 					await pool.query(updateUserQuery, [userId, ...updateValues]);
 				}
 

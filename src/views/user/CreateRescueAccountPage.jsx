@@ -33,13 +33,10 @@ const CreateRescueAccountPage = () => {
 				password,
 				rescueType,
 				rescueName,
-				// addressLine1,
-				// addressLine2,
 				city,
-				// county,
-				// postcode,
 				country
 			);
+
 			console.log('Create rescue account successful', response.data);
 			// Proceed to redirect the user or save the login state
 			navigate('/');
@@ -77,11 +74,11 @@ const CreateRescueAccountPage = () => {
 					onPasswordChange={setPassword}
 					onRescueTypeChange={setRescueType}
 					onRescueNameChange={setRescueName}
-					onAddressLine1Change={setAddressLine1}
-					onAddressLine2Change={setAddressLine2}
+					// onAddressLine1Change={setAddressLine1}
+					// onAddressLine2Change={setAddressLine2}
 					onCityChange={setCity}
-					onCountyChange={setCounty}
-					onPostcodeChange={setPostcode}
+					// onCountyChange={setCounty}
+					// onPostcodeChange={setPostcode}
 					onCountryChange={setCountry}
 					onCreateRescueAccount={handleCreateRescueAccount}
 				/>

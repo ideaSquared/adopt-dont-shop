@@ -217,11 +217,26 @@ const useProvideAuth = () => {
 		}
 	};
 
-	const createRescue = async (rescueType, rescueData) => {
+	const createRescue = async (
+		firstName,
+		lastName,
+		email,
+		password,
+		rescueType,
+		rescueName,
+		city,
+		country
+	) => {
 		try {
 			const response = await AuthService.createAccountRescue(
+				firstName,
+				lastName,
+				email,
+				password,
 				rescueType,
-				rescueData
+				rescueName,
+				city,
+				country
 			);
 			return { success: true, message: 'Rescue created successfully.' };
 		} catch (error) {

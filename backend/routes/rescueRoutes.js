@@ -19,11 +19,39 @@ import { generateResetToken } from '../utils/tokenGenerator.js';
 import { sendEmailVerificationEmail } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
 
+import axios from 'axios';
+
 // Instantiate a logger for this module.
 const logger = new LoggerUtil('rescue-route').getLogger();
 
 // Create a router for handling rescue-related routes.
 const router = express.Router();
+
+const getCoordinates = async (city, country) => {
+	// Constructing the query by concatenating city and country for more accurate geocoding
+	const searchQuery = `${city}, ${country}`;
+	const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+		searchQuery
+	)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
+
+	try {
+		const response = await axios.get(url);
+
+		// Ensure that there is at least one feature in the response and it has a center property
+		if (response.data.features[0]) {
+			const coordinates = response.data.features[0].geometry.coordinates;
+			return {
+				lat: coordinates[1], // latitude
+				long: coordinates[0], // longitude
+			};
+		} else {
+			throw new Error('No valid coordinates found');
+		}
+	} catch (error) {
+		console.error('Failed to fetch coordinates:', error);
+		throw new Error('Geocoding failed');
+	}
+};
 
 /**
  * Route handler for fetching all rescue organizations from the database.
@@ -199,13 +227,30 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 		const hashedPassword = await bcrypt.hash(password, 12);
 		const verificationToken = await generateResetToken();
 
+		// Get coordinates from city and country
+		const { lat, long } = await getCoordinates(
+			rescueData.city,
+			rescueData.country
+		);
+		// Create the POINT value for the 'location' field
+		const locationPoint = `(${long}, ${lat})`;
+
 		const newUserQuery = {
 			text: `
-                INSERT INTO users (email, password, first_name, email_verified, verification_token)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO users (email, password, first_name, email_verified, verification_token, city, country, location)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *
             `,
-			values: [email, hashedPassword, firstName, false, verificationToken],
+			values: [
+				email,
+				hashedPassword,
+				firstName,
+				false,
+				verificationToken,
+				rescueData.city,
+				rescueData.country,
+				locationPoint,
+			],
 		};
 		const newUserResult = await pool.query(newUserQuery);
 		const user = newUserResult.rows[0];
@@ -250,7 +295,7 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
             reference_number,
             reference_number_verified
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
     `,
 			values: [
@@ -264,6 +309,7 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 				rescueData.rescueType,
 				rescueData.referenceNumber,
 				rescueData.referenceNumberVerified,
+				rescueData.locationPoint,
 			],
 		};
 
@@ -429,6 +475,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
 	} = req.body;
 
 	try {
+		// Get coordinates from city and country
+		const { lat, long } = await getCoordinates(city, country);
+		// Create the POINT value for the 'location' field
+		const locationPoint = `POINT(${long} ${lat})`;
+
 		const updateQuery = {
 			text: `
                 UPDATE rescues
@@ -439,7 +490,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
                     rescue_type = $4,
                     reference_number = $5,
                     reference_number_verified = $6
-                WHERE rescue_id = $7
+					location = $7
+                WHERE rescue_id = $8
                 RETURNING *;
             `,
 			values: [
@@ -453,6 +505,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 				rescueType,
 				referenceNumber,
 				referenceNumberVerified,
+				locationPoint,
 				id,
 			],
 		};

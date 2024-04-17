@@ -552,6 +552,45 @@ router.get(
 	}
 );
 
+router.get(
+	'/stats-all-locations',
+	authenticateToken,
+	checkAdmin,
+	async (req, res) => {
+		try {
+			// Define the tables and the data to fetch from each
+			const tables = {
+				users: ['location', 'city', 'country'],
+				rescues: ['location', 'city', 'country'],
+			};
+
+			const locationsData = {};
+
+			for (const [table, fields] of Object.entries(tables)) {
+				// Construct SQL query to fetch city and country
+				const query = `
+                    SELECT 
+                        ${fields.join(', ')} 
+                    FROM 
+                        ${table};
+                `;
+				const { rows } = await pool.query(query);
+				// Accumulate data for each table
+				locationsData[table] = rows.map((row) => ({
+					city: row.city,
+					country: row.country,
+					location: row.location,
+				}));
+			}
+
+			res.json(locationsData);
+		} catch (error) {
+			console.error('Error fetching location data:', error);
+			res.status(500).json({ message: error.message });
+		}
+	}
+);
+
 // Temporary endpoint to update createdAt and updatedAt fields randomly
 // NOTE: Doesn't work for createdAt - but does update updatedAt
 // router.post(
