@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import Select from 'react-select';
-import { Form, Row, Col, Button } from 'react-bootstrap';
+import { Form, Row, Col, Button, Card } from 'react-bootstrap';
 
 const customStyles = {
 	option: (provided, state) => ({
@@ -180,7 +179,7 @@ const CreateRescueAccountForm = ({
 			<hr />
 
 			<Row className='text-center'>
-				<Col md={4} className='mb-3'>
+				<Col md={3} className='mb-3'>
 					<Button
 						variant={isSelected('individual') ? 'primary' : 'light'}
 						className={`d-block w-100 h-100 ${isSelected('individual')}`}
@@ -194,7 +193,7 @@ const CreateRescueAccountForm = ({
 						<p>Individual</p>
 					</Button>
 				</Col>
-				<Col md={4} className='mb-3'>
+				<Col md={3} className='mb-3'>
 					<Button
 						variant={isSelected('charity') ? 'primary' : 'light'}
 						className={`d-block w-100 h-100 ${isSelected('charity')}`}
@@ -208,7 +207,7 @@ const CreateRescueAccountForm = ({
 						<p>Charity</p>
 					</Button>
 				</Col>
-				<Col md={4} className='mb-3'>
+				<Col md={3} className='mb-3'>
 					<Button
 						variant={isSelected('company') ? 'primary' : 'light'}
 						className={`d-block w-100 h-100 ${isSelected('company')}`}
@@ -220,6 +219,20 @@ const CreateRescueAccountForm = ({
 							style={{ width: '80%', margin: '10px 0' }}
 						/>
 						<p>Company</p>
+					</Button>
+				</Col>
+				<Col md={3} className='mb-3'>
+					<Button
+						variant={isSelected('other') ? 'primary' : 'light'}
+						className={`d-block w-100 h-100 ${isSelected('other')}`}
+						onClick={() => selectRescueType('other')}
+					>
+						<img
+							src='/undraw/undraw_questions_re_1fy7.svg'
+							alt='Other'
+							style={{ width: '80%', margin: '10px 0' }}
+						/>
+						<p>Other</p>
 					</Button>
 				</Col>
 			</Row>
@@ -239,7 +252,6 @@ const CreateRescueAccountForm = ({
 					</Form.Group>
 				</Col> */}
 				<Col md={12}>
-					{/* Corrected conditional rendering based on the rescueType prop */}
 					{(rescueType === 'charity' || rescueType === 'company') && (
 						<>
 							<Form.Group className='mb-3' controlId='rescueName'>
@@ -267,6 +279,18 @@ const CreateRescueAccountForm = ({
 								</Form.Text>
 							</Form.Group>
 						</>
+					)}
+					{rescueType === 'other' && (
+						<Card className='my-4'>
+							<Card.Body>
+								<Card.Text className='text-center'>
+									<h4>
+										I'm afraid we don't currently support other types of rescues
+										- email us at help@adoptdontshop.app
+									</h4>
+								</Card.Text>
+							</Card.Body>
+						</Card>
 					)}
 				</Col>
 			</Row>
