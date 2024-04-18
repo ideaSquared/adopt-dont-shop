@@ -13,6 +13,7 @@ const CreateRescueAccountPage = () => {
 	const [password, setPassword] = useState('');
 	const [rescueType, setRescueType] = useState('individual');
 	const [rescueName, setRescueName] = useState('');
+	const [referenceNumber, setReferenceNumber] = useState('');
 	// New state hooks for the address components
 	// const [addressLine1, setAddressLine1] = useState('');
 	// const [addressLine2, setAddressLine2] = useState('');
@@ -34,7 +35,8 @@ const CreateRescueAccountPage = () => {
 				rescueType,
 				rescueName,
 				city,
-				country
+				country,
+				referenceNumber
 			);
 
 			console.log('Create rescue account successful', response.data);
@@ -81,6 +83,8 @@ const CreateRescueAccountPage = () => {
 					// onPostcodeChange={setPostcode}
 					onCountryChange={setCountry}
 					onCreateRescueAccount={handleCreateRescueAccount}
+					rescueType={rescueType}
+					onReferenceNumberChange={setReferenceNumber}
 				/>
 			</div>
 		</Container>

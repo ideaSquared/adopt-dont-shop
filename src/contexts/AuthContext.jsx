@@ -234,7 +234,8 @@ const useProvideAuth = () => {
 		rescueType,
 		rescueName,
 		city,
-		country
+		country,
+		referenceNumber
 	) => {
 		try {
 			const response = await AuthService.createAccountRescue(
@@ -245,7 +246,8 @@ const useProvideAuth = () => {
 				rescueType,
 				rescueName,
 				city,
-				country
+				country,
+				referenceNumber
 			);
 			return { success: true, message: 'Rescue created successfully.' };
 		} catch (error) {

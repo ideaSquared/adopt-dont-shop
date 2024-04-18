@@ -7,6 +7,7 @@ const CreateRescueAccountForm = ({
 	onEmailChange,
 	onPasswordChange,
 	onRescueTypeChange,
+	rescueType,
 	onRescueNameChange,
 	onAddressLine1Change,
 	onAddressLine2Change,
@@ -15,6 +16,7 @@ const CreateRescueAccountForm = ({
 	onPostcodeChange,
 	onCountryChange,
 	onCreateRescueAccount,
+	onReferenceNumberChange,
 }) => {
 	return (
 		<Form
@@ -93,15 +95,31 @@ const CreateRescueAccountForm = ({
 					</Form.Group>
 				</Col>
 				<Col md={6}>
-					<Form.Group className='mb-3' controlId='rescueName'>
-						<Form.Label>Rescue name</Form.Label>
-						<Form.Control
-							type='text'
-							name='rescueName'
-							onChange={(e) => onRescueNameChange(e.target.value)}
-							placeholder='Enter rescue name'
-						/>
-					</Form.Group>
+					{/* Corrected conditional rendering based on the rescueType prop */}
+					{(rescueType === 'charity' || rescueType === 'company') && (
+						<>
+							<Form.Group className='mb-3' controlId='rescueName'>
+								<Form.Label>Rescue name</Form.Label>
+								<Form.Control
+									type='text'
+									name='rescueName'
+									onChange={(e) => onRescueNameChange(e.target.value)}
+									placeholder='Enter rescue name'
+								/>
+							</Form.Group>
+							<Form.Group className='mb-3' controlId='referenceNumber'>
+								<Form.Label>
+									Reference number (Company House/Charity Register)
+								</Form.Label>
+								<Form.Control
+									type='text'
+									name='referenceNumber'
+									onChange={(e) => onReferenceNumberChange(e.target.value)}
+									placeholder='Enter reference number'
+								/>
+							</Form.Group>
+						</>
+					)}
 				</Col>
 			</Row>
 
