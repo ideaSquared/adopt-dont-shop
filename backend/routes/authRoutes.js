@@ -17,7 +17,6 @@ import {
 	resetPasswordSchema,
 	forgotPasswordSchema,
 } from '../middleware/joiValidateSchema.js';
-import axios from 'axios';
 
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
@@ -25,35 +24,11 @@ import LoggerUtil from '../utils/Logger.js';
 import { generateResetToken } from '../utils/tokenGenerator.js';
 import { sendEmailVerificationEmail } from '../services/emailService.js';
 
+import geoService from '../services/geoService.js';
+
 export default function createAuthRoutes({ tokenGenerator, emailService }) {
 	const router = express.Router();
 	const logger = new LoggerUtil('auth-service').getLogger(); // Initialize logger for auth-service
-
-	const getCoordinates = async (city, country) => {
-		// Constructing the query by concatenating city and country for more accurate geocoding
-		const searchQuery = `${city}, ${country}`;
-		const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-			searchQuery
-		)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`;
-
-		try {
-			const response = await axios.get(url);
-
-			// Ensure that there is at least one feature in the response and it has a center property
-			if (response.data.features[0]) {
-				const coordinates = response.data.features[0].geometry.coordinates;
-				return {
-					lat: coordinates[1], // latitude
-					long: coordinates[0], // longitude
-				};
-			} else {
-				throw new Error('No valid coordinates found');
-			}
-		} catch (error) {
-			console.error('Failed to fetch coordinates:', error);
-			throw new Error('Geocoding failed');
-		}
-	};
 
 	/**
 	 * Route handler for user registration. Validates the request body against the registerSchema,
@@ -86,15 +61,25 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				const verificationToken = await generateResetToken();
 
 				// Get coordinates from city and country
-				const { lat, long } = await getCoordinates(city, country);
-				// Create the POINT value for the 'location' field
-				const locationPoint = `(${long}, ${lat})`;
+				let locationPoint;
+				try {
+					locationPoint = await geoService.getGeocodePoint(
+						'mapbox',
+						city,
+						country
+					);
+				} catch (error) {
+					logger.error(`Geocoding failed: ${error.message}`);
+					return res.status(500).json({
+						message: 'Geocoding failed, unable to register user.',
+					});
+				}
 
 				const insertUserQuery = `
-					INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token, city, country, location)
-					VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-					RETURNING user_id;
-				`;
+				INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token, city, country, location)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+				RETURNING user_id;
+			`;
 
 				const newUser = await pool.query(insertUserQuery, [
 					emailNormalized,
@@ -105,7 +90,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					verificationToken,
 					city,
 					country,
-					locationPoint, // passing the formatted POINT
+					locationPoint,
 				]);
 
 				const userId = newUser.rows[0].user_id;
@@ -307,15 +292,13 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				// Handle geographic coordinate updates
 				if (city || country) {
 					try {
-						const { lat, long } = await getCoordinates(city, country);
-
 						// Construct the POINT from longitude and latitude
-						const pointValue = `POINT(${long} ${lat})`;
-						updates.push(
-							`location = point($${updates.length + 2}, $${updates.length + 3})`
+						const pointValue = await geoService.getGeocodePoint(
+							'mapbox',
+							city,
+							country
 						);
-						updateValues.push(long, lat); // Pass longitude and latitude separately
-
+						updates.push(`location = point${pointValue}`);
 						fieldsUpdated.push('location'); // Note that we update 'location', not 'lat' and 'long'
 					} catch (error) {
 						logger.error(`Failed to geocode new location: ${error.message}`);

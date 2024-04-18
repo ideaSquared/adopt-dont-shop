@@ -194,13 +194,22 @@ const useProvideAuth = () => {
 		}
 	};
 
-	const createUser = async (firstName, lastName, email, password) => {
+	const createUser = async (
+		firstName,
+		lastName,
+		email,
+		password,
+		city,
+		country
+	) => {
 		try {
 			const response = await AuthService.createAccountUser(
 				firstName,
 				lastName,
 				email,
-				password
+				password,
+				city,
+				country
 			);
 
 			return {

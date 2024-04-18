@@ -40,7 +40,7 @@ const CreateAccountForm = ({
 					<Form.Group className='mb-3' controlId='city'>
 						<Form.Label>City</Form.Label>
 						<Form.Control
-							type='text'
+							type='type'
 							name='city'
 							onChange={(e) => onCityChange(e.target.value)}
 						/>
