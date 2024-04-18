@@ -11,6 +11,7 @@ const CreateRescueAccountPage = () => {
 	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
+	const [confirmPassword, setConfirmPassword] = useState('');
 	const [rescueType, setRescueType] = useState('individual');
 	const [rescueName, setRescueName] = useState('');
 	const [referenceNumber, setReferenceNumber] = useState('');
@@ -74,6 +75,7 @@ const CreateRescueAccountPage = () => {
 					onLastNameChange={setLastName}
 					onEmailChange={setEmail}
 					onPasswordChange={setPassword}
+					onConfirmPasswordChange={setConfirmPassword}
 					onRescueTypeChange={setRescueType}
 					onRescueNameChange={setRescueName}
 					// onAddressLine1Change={setAddressLine1}
@@ -85,6 +87,8 @@ const CreateRescueAccountPage = () => {
 					onCreateRescueAccount={handleCreateRescueAccount}
 					rescueType={rescueType}
 					onReferenceNumberChange={setReferenceNumber}
+					password={password}
+					confirmPassword={confirmPassword}
 				/>
 			</div>
 		</Container>

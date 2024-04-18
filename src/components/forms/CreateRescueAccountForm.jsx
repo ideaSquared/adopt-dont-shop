@@ -1,11 +1,81 @@
-import React from 'react';
-import { Form, Button, Row, Col } from 'react-bootstrap';
+import React, { useState } from 'react';
+import Select from 'react-select';
+import { Form, Row, Col, Button } from 'react-bootstrap';
+
+const customStyles = {
+	option: (provided, state) => ({
+		...provided,
+		display: 'flex',
+		alignItems: 'center',
+		borderBottom: '1px dotted #ccc',
+		padding: '10px 20px',
+		color: state.isSelected ? 'black' : 'grey',
+	}),
+	control: (provided) => ({
+		...provided,
+		marginTop: '10px',
+		marginBottom: '10px',
+	}),
+	singleValue: (provided, state) => ({
+		...provided,
+		display: 'flex',
+		alignItems: 'center',
+	}),
+	placeholder: (provided) => ({
+		...provided,
+		display: 'flex',
+		alignItems: 'center',
+	}),
+};
+
+const optionWithImages = [
+	{
+		value: 'individual',
+		label: (
+			<div style={{ display: 'flex', alignItems: 'center' }}>
+				<img
+					src='/undraw/undraw_personal_file_re_5joy.svg'
+					alt='Individual'
+					style={{ width: '30px', marginRight: '10px' }}
+				/>
+				Individual seller
+			</div>
+		),
+	},
+	{
+		value: 'charity',
+		label: (
+			<div style={{ display: 'flex', alignItems: 'center' }}>
+				<img
+					src='/undraw/undraw_gifts_0ceh.svg'
+					alt='Charity'
+					style={{ width: '30px', marginRight: '10px' }}
+				/>
+				Registered charity
+			</div>
+		),
+	},
+	{
+		value: 'company',
+		label: (
+			<div style={{ display: 'flex', alignItems: 'center' }}>
+				<img
+					src='/undraw/undraw_businesswoman_re_5n6b.svg'
+					alt='Company'
+					style={{ width: '30px', marginRight: '10px' }}
+				/>
+				Registered company
+			</div>
+		),
+	},
+];
 
 const CreateRescueAccountForm = ({
 	onFirstNameChange,
 	onLastNameChange,
 	onEmailChange,
 	onPasswordChange,
+	onConfirmPasswordChange,
 	onRescueTypeChange,
 	rescueType,
 	onRescueNameChange,
@@ -17,7 +87,21 @@ const CreateRescueAccountForm = ({
 	onCountryChange,
 	onCreateRescueAccount,
 	onReferenceNumberChange,
+	password,
+	confirmPassword,
 }) => {
+	const [selectedType, setSelectedType] = useState('');
+
+	const passwordsMatch =
+		password && confirmPassword && password === confirmPassword;
+
+	const selectRescueType = (type) => {
+		setSelectedType(type);
+		onRescueTypeChange(type);
+	};
+
+	const isSelected = (type) => (selectedType === type ? 'selected' : '');
+
 	return (
 		<Form
 			onSubmit={(e) => {
@@ -26,33 +110,32 @@ const CreateRescueAccountForm = ({
 			}}
 		>
 			<Row>
-				<Col md={4}>
-					<Row>
-						<Col md={6}>
-							<Form.Group className='mb-3' controlId='firstName'>
-								<Form.Label>First name</Form.Label>
-								<Form.Control
-									type='text'
-									name='firstName'
-									onChange={(e) => onFirstNameChange(e.target.value)}
-									placeholder='Enter first name'
-								/>
-							</Form.Group>
-						</Col>
-						<Col md={6}>
-							<Form.Group className='mb-3' controlId='lastName'>
-								<Form.Label>Last name</Form.Label>
-								<Form.Control
-									type='type'
-									name='lastName'
-									onChange={(e) => onLastNameChange(e.target.value)}
-									placeholder='Enter last name'
-								/>
-							</Form.Group>
-						</Col>
-					</Row>
+				<Col md={6}>
+					<Form.Group className='mb-3' controlId='firstName'>
+						<Form.Label>First name</Form.Label>
+						<Form.Control
+							type='text'
+							name='firstName'
+							onChange={(e) => onFirstNameChange(e.target.value)}
+							placeholder='Enter first name'
+						/>
+					</Form.Group>
 				</Col>
-				<Col md={4}>
+				<Col md={6}>
+					<Form.Group className='mb-3' controlId='lastName'>
+						<Form.Label>Last name</Form.Label>
+						<Form.Control
+							type='type'
+							name='lastName'
+							onChange={(e) => onLastNameChange(e.target.value)}
+							placeholder='Enter last name'
+						/>
+					</Form.Group>
+				</Col>
+			</Row>
+
+			<Row>
+				<Col md={12}>
 					<Form.Group className='mb-3' controlId='email'>
 						<Form.Label>Email address</Form.Label>
 						<Form.Control
@@ -63,38 +146,99 @@ const CreateRescueAccountForm = ({
 						/>
 					</Form.Group>
 				</Col>
-				<Col md={4}>
+				<Col md={6}></Col>
+			</Row>
+
+			<Row>
+				<Col md={6}>
 					<Form.Group className='mb-3' controlId='password'>
 						<Form.Label>Password</Form.Label>
 						<Form.Control
 							type='password'
 							name='password'
 							onChange={(e) => onPasswordChange(e.target.value)}
-							placeholder='Password'
+							placeholder='Enter your password'
 						/>
+					</Form.Group>
+				</Col>
+				<Col md={6}>
+					<Form.Group controlId='formConfirmPassword'>
+						<Form.Label>Confirm Password</Form.Label>
+						<Form.Control
+							type='password'
+							onChange={(e) => onConfirmPasswordChange(e.target.value)}
+							placeholder='Confirm your password'
+							isInvalid={!passwordsMatch && confirmPassword}
+						/>
+						<Form.Control.Feedback type='invalid'>
+							Passwords must match.
+						</Form.Control.Feedback>
 					</Form.Group>
 				</Col>
 			</Row>
 
 			<hr />
 
+			<Row className='text-center'>
+				<Col md={4} className='mb-3'>
+					<Button
+						variant={isSelected('individual') ? 'primary' : 'light'}
+						className={`d-block w-100 h-100 ${isSelected('individual')}`}
+						onClick={() => selectRescueType('individual')}
+					>
+						<img
+							src='/undraw/undraw_personal_file_re_5joy.svg'
+							alt='Individual'
+							style={{ width: '80%', margin: '10px 0' }}
+						/>
+						<p>Individual</p>
+					</Button>
+				</Col>
+				<Col md={4} className='mb-3'>
+					<Button
+						variant={isSelected('charity') ? 'primary' : 'light'}
+						className={`d-block w-100 h-100 ${isSelected('charity')}`}
+						onClick={() => selectRescueType('charity')}
+					>
+						<img
+							src='/undraw/undraw_gifts_0ceh.svg'
+							alt='Charity'
+							style={{ width: '80%', margin: '10px 0' }}
+						/>
+						<p>Charity</p>
+					</Button>
+				</Col>
+				<Col md={4} className='mb-3'>
+					<Button
+						variant={isSelected('company') ? 'primary' : 'light'}
+						className={`d-block w-100 h-100 ${isSelected('company')}`}
+						onClick={() => selectRescueType('company')}
+					>
+						<img
+							src='/undraw/undraw_businesswoman_re_5n6b.svg'
+							alt='Company'
+							style={{ width: '80%', margin: '10px 0' }}
+						/>
+						<p>Company</p>
+					</Button>
+				</Col>
+			</Row>
+
 			<Row>
-				<Col md={6}>
+				{/* <Col md={6}>
 					<Form.Group className='mb-3' controlId='rescueType'>
 						<Form.Label>What type of rescue are you?</Form.Label>
-						<Form.Control
-							as='select'
-							name='rescueType'
-							onChange={(e) => onRescueTypeChange(e.target.value)}
-						>
-							<option value='individual'>Individual seller</option>
-							<option value='charity'>Registered charity</option>
-							<option value='company'>Registered company</option>
-							<option value='other'>Other</option>
-						</Form.Control>
+						<Select
+							options={optionWithImages}
+							onChange={handleRescueTypeChange}
+							styles={customStyles}
+							defaultValue={optionWithImages.find(
+								(option) => option.value === rescueType
+							)}
+						/>
 					</Form.Group>
-				</Col>
-				<Col md={6}>
+				</Col> */}
+				<Col md={12}>
 					{/* Corrected conditional rendering based on the rescueType prop */}
 					{(rescueType === 'charity' || rescueType === 'company') && (
 						<>
@@ -117,6 +261,10 @@ const CreateRescueAccountForm = ({
 									onChange={(e) => onReferenceNumberChange(e.target.value)}
 									placeholder='Enter reference number'
 								/>
+								<Form.Text className='text-muted'>
+									Please enter the reference number as it appears in official
+									records.
+								</Form.Text>
 							</Form.Group>
 						</>
 					)}
@@ -156,7 +304,7 @@ const CreateRescueAccountForm = ({
 							type='text'
 							name='city'
 							onChange={(e) => onCityChange(e.target.value)}
-							placeholder='City'
+							placeholder='Enter your rescues city'
 						/>
 					</Form.Group>
 				</Col>
