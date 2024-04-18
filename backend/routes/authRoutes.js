@@ -71,13 +71,10 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					});
 				}
 
-				const insertUserQuery = `
-				INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token, city, country, location)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-				RETURNING user_id;
-			`;
-
-				const newUser = await pool.query(insertUserQuery, [
+				// Construct the base SQL query and values array
+				let insertUserQuery = `
+    INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token, city, country`;
+				let valuesArray = [
 					emailNormalized,
 					hashedPassword,
 					firstName,
@@ -86,8 +83,18 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 					verificationToken,
 					city,
 					country,
-					locationPoint,
-				]);
+				];
+
+				// Conditionally add location to the SQL query and values array
+				if (locationPoint) {
+					insertUserQuery += `, location) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING user_id;`;
+					valuesArray.push(locationPoint);
+				} else {
+					insertUserQuery += `) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING user_id;`;
+				}
+
+				// Execute the query
+				const newUser = await pool.query(insertUserQuery, valuesArray);
 
 				const userId = newUser.rows[0].user_id;
 				logger.info(`New user registered: ${userId}`);
@@ -288,10 +295,19 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				// Handle geographic coordinate updates
 				if (city || country) {
 					try {
-						// Construct the POINT from longitude and latitude
+						// Get the POINT from longitude and latitude using the geocoding service
 						const pointValue = await geoService.getGeocodePoint(city, country);
-						updates.push(`location = point${pointValue}`);
-						fieldsUpdated.push('location'); // Note that we update 'location', not 'lat' and 'long'
+
+						// Check if a valid point was returned
+						if (pointValue) {
+							updates.push(`location = point${pointValue}`);
+							fieldsUpdated.push('location'); // Note that we update 'location', not 'lat' and 'long'
+						} else {
+							// Log the case when no valid point is found but do not throw error or update location
+							logger.info(
+								'No valid geocode point found, location not updated.'
+							);
+						}
 					} catch (error) {
 						logger.error(`Failed to geocode new location: ${error.message}`);
 						return res.status(500).json({

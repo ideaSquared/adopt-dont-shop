@@ -18,11 +18,11 @@ const getGeocodePoint = async (city, country) => {
 				const coordinates = response.data.features[0].geometry.coordinates;
 				return `(${coordinates[0]}, ${coordinates[1]})`;
 			} else {
-				throw new Error('No valid coordinates found');
+				return null; // Return null if no valid coordinates found
 			}
 		} catch (error) {
 			console.error('Failed to fetch coordinates:', error);
-			throw error;
+			return null; // Return null in case of error
 		}
 	} else if (service === 'google') {
 		console.log(service);
@@ -36,14 +36,15 @@ const getGeocodePoint = async (city, country) => {
 				const location = response.data.results[0].geometry.location;
 				return `(${location.lng}, ${location.lat})`;
 			} else {
-				throw new Error('No valid coordinates found or error occurred');
+				return null; // Return null if no valid coordinates found
 			}
 		} catch (error) {
 			console.error('Failed to fetch coordinates:', error);
-			throw error;
+			return null; // Return null in case of error
 		}
 	} else {
-		throw new Error('No service selected for getGeocodePoint');
+		console.error('No service selected for getGeocodePoint');
+		return null; // Return null if no service is selected
 	}
 };
 

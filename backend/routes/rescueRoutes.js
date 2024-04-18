@@ -176,7 +176,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/:type(individual|charity|company)', async (req, res) => {
 	let { type } = req.params;
 	const { email, password, firstName, lastName, ...rescueData } = req.body;
-	type = capitalizeFirstChar(type);
+	type = type.charAt(0).toUpperCase() + type.slice(1);
 
 	try {
 		logger.debug(`Creating rescue of type: ${type} with email: ${email}`);
@@ -202,10 +202,7 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 		const verificationToken = await generateResetToken();
 
 		let locationPoint;
-		// Handle geographic coordinate updates
 		if (rescueData.city || rescueData.country) {
-			// Get coordinates from city and country
-
 			try {
 				locationPoint = await geoService.getGeocodePoint(
 					rescueData.city,
@@ -219,25 +216,30 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 			}
 		}
 
-		const newUserQuery = {
-			text: `
-                INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token, city, country, location)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                RETURNING *
-            `,
-			values: [
-				email,
-				hashedPassword,
-				firstName,
-				lastName,
-				false,
-				verificationToken,
-				rescueData.city,
-				rescueData.country,
-				locationPoint,
-			],
-		};
-		const newUserResult = await pool.query(newUserQuery);
+		let newUserQueryText = `
+            INSERT INTO users (email, password, first_name, last_name, email_verified, verification_token, city, country`;
+		let newUserQueryValues = [
+			email,
+			hashedPassword,
+			firstName,
+			lastName,
+			false,
+			verificationToken,
+			rescueData.city,
+			rescueData.country,
+		];
+
+		if (locationPoint) {
+			newUserQueryText += `, location) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;`;
+			newUserQueryValues.push(locationPoint);
+		} else {
+			newUserQueryText += `) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;`;
+		}
+
+		const newUserResult = await pool.query({
+			text: newUserQueryText,
+			values: newUserQueryValues,
+		});
 		const user = newUserResult.rows[0];
 		logger.info(`New user registered: ${user.user_id}`);
 
@@ -262,50 +264,44 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 				});
 			}
 
+			// Verify the reference number for charity or company
 			referenceNumberVerified =
-				type.toLowerCase() === 'charity'
+				type === 'Charity'
 					? await fetchAndValidateCharity(rescueData.referenceNumber)
-					: type === 'company'
+					: type === 'Company'
 					? await fetchAndValidateCompany(rescueData.referenceNumber)
 					: false;
 		}
 
-		const newRescueQuery = {
-			text: `
-        INSERT INTO rescues (
-            rescue_name,
-            city,
-            country,
-            rescue_type,
-            reference_number,
-            reference_number_verified,
-            location
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING *
-    `,
-			values: [
-				rescueData.rescueName,
-				rescueData.city,
-				rescueData.country,
-				type,
-				rescueData.referenceNumber,
-				referenceNumberVerified,
-				locationPoint,
-			],
-		};
+		let newRescueQueryText = `
+            INSERT INTO rescues (rescue_name, city, country, rescue_type, reference_number, reference_number_verified`;
+		let newRescueQueryValues = [
+			rescueData.rescueName,
+			rescueData.city,
+			rescueData.country,
+			type,
+			rescueData.referenceNumber,
+			referenceNumberVerified,
+		];
 
-		const newRescueResult = await pool.query(newRescueQuery);
+		if (locationPoint) {
+			newRescueQueryText += `, location) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;`;
+			newRescueQueryValues.push(locationPoint);
+		} else {
+			newRescueQueryText += `) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
+		}
+
+		const newRescueResult = await pool.query({
+			text: newRescueQueryText,
+			values: newRescueQueryValues,
+		});
 		const newRescue = newRescueResult.rows[0];
 		logger.info(`${type} rescue created successfully.`);
 
-		// Insert into staff_members
 		const staffMemberQuery = {
 			text: `
-        INSERT INTO staff_members (user_id, verified_by_rescue, permissions, rescue_id)
-        VALUES ($1, $2, $3, $4)
-        RETURNING *
-    `,
+                INSERT INTO staff_members (user_id, verified_by_rescue, permissions, rescue_id)
+                VALUES ($1, $2, $3, $4) RETURNING *;`,
 			values: [
 				user.user_id,
 				true,
@@ -328,7 +324,6 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 				newRescue.rescue_id,
 			],
 		};
-
 		const staffMemberResult = await pool.query(staffMemberQuery);
 		const staffMember = staffMemberResult.rows[0];
 		logger.info(`Staff member created successfully: ${staffMember.user_id}`);
@@ -445,11 +440,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 	const { id } = req.params;
 	const {
 		rescueName,
-		// addressLine1,
-		// addressLine2,
 		city,
-		// county,
-		// postcode,
 		country,
 		rescueType,
 		referenceNumber,
@@ -459,45 +450,51 @@ router.put('/:id', authenticateToken, async (req, res) => {
 	try {
 		let locationPoint;
 		// Handle geographic coordinate updates
-		if (city || country) {
+		if (city && country) {
 			try {
 				const pointValue = await geoService.getGeocodePoint(city, country);
-				locationPoint = `${pointValue}`;
+				locationPoint = pointValue ? `${pointValue}` : null;
 			} catch (error) {
 				logger.error(`Failed to geocode new location: ${error.message}`);
 				return res.status(500).json({
-					message: 'Geocoding failed, unable to update user details.',
+					message: 'Geocoding failed, unable to update rescue details.',
 				});
 			}
 		}
 
-		const updateQuery = {
-			text: `
-        UPDATE rescues
-        SET
-            rescue_name = $1,
-            city = $2,
-            country = $3,
-            rescue_type = $4,
-            reference_number = $5,
-            reference_number_verified = $6,
-            location = $7
-        WHERE rescue_id = $8
-        RETURNING *;
-    `,
-			values: [
-				rescueName,
-				city,
-				country,
-				rescueType,
-				referenceNumber,
-				referenceNumberVerified,
-				locationPoint,
-				id,
-			],
-		};
+		let queryText = `
+            UPDATE rescues
+            SET
+                rescue_name = $1,
+                city = $2,
+                country = $3,
+                rescue_type = $4,
+                reference_number = $5,
+                reference_number_verified = $6
+        `;
+		let queryValues = [
+			rescueName,
+			city,
+			country,
+			rescueType,
+			referenceNumber,
+			referenceNumberVerified,
+		];
 
-		const result = await pool.query(updateQuery);
+		// If location point exists, add it to the query
+		if (locationPoint) {
+			queryText += `, location = $7 WHERE rescue_id = $8 RETURNING *;`;
+			queryValues.push(locationPoint, id);
+		} else {
+			queryText += ` WHERE rescue_id = $7 RETURNING *;`;
+			queryValues.push(id);
+		}
+
+		const result = await pool.query({
+			text: queryText,
+			values: queryValues,
+		});
+
 		if (result.rows.length) {
 			res.send({
 				message: 'Rescue updated successfully',
