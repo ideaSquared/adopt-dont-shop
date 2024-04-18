@@ -63,11 +63,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				// Get coordinates from city and country
 				let locationPoint;
 				try {
-					locationPoint = await geoService.getGeocodePoint(
-						'mapbox',
-						city,
-						country
-					);
+					locationPoint = await geoService.getGeocodePoint(city, country);
 				} catch (error) {
 					logger.error(`Geocoding failed: ${error.message}`);
 					return res.status(500).json({
@@ -293,11 +289,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				if (city || country) {
 					try {
 						// Construct the POINT from longitude and latitude
-						const pointValue = await geoService.getGeocodePoint(
-							'mapbox',
-							city,
-							country
-						);
+						const pointValue = await geoService.getGeocodePoint(city, country);
 						updates.push(`location = point${pointValue}`);
 						fieldsUpdated.push('location'); // Note that we update 'location', not 'lat' and 'long'
 					} catch (error) {

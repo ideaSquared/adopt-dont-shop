@@ -208,7 +208,6 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 
 			try {
 				locationPoint = await geoService.getGeocodePoint(
-					'mapbox',
 					rescueData.city,
 					rescueData.country
 				);
@@ -462,11 +461,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 		// Handle geographic coordinate updates
 		if (city || country) {
 			try {
-				const pointValue = await geoService.getGeocodePoint(
-					'mapbox',
-					city,
-					country
-				);
+				const pointValue = await geoService.getGeocodePoint(city, country);
 				locationPoint = `${pointValue}`;
 			} catch (error) {
 				logger.error(`Failed to geocode new location: ${error.message}`);
