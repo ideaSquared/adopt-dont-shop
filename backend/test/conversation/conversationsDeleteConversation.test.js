@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 
 const request = supertest(app);
 
-describe.only('DELETE /api/conversations/:conversationId', () => {
+describe('DELETE /api/conversations/:conversationId', () => {
 	let sandbox, cookie, userToken, checkParticipant;
 
 	beforeEach(() => {
