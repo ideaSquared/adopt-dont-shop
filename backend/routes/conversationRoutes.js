@@ -284,11 +284,6 @@ router.delete('/:conversationId', authenticateToken, async (req, res) => {
 	}
 });
 
-/*
-TODO: CONTINUE BUILDING TESTS FROM THIS SECTION ONWARDS.
-TODO: LOG/PET/RATING+BELOW
-*/
-
 // CRUD Routes for Messages within a Conversation
 // Create a new message in a conversation
 router.post(
