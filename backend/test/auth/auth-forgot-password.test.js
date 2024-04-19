@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import supertest from 'supertest';
-import { pool } from '../dbConnection.js';
-import app from '../index.js';
+import { pool } from '../../dbConnection.js';
+import app from '../../index.js';
 // import handlePasswordReset from '../utils/handleResetPassword.js'; // Default import
 
 const request = supertest(app);

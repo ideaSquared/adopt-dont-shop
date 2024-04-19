@@ -3,8 +3,8 @@ import sinon from 'sinon';
 import supertest from 'supertest';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { pool } from '../dbConnection.js';
-import app from '../index.js'; // Import your Express application
+import { pool } from '../../dbConnection.js';
+import app from '../../index.js'; // Import your Express application
 
 const request = supertest(app);
 

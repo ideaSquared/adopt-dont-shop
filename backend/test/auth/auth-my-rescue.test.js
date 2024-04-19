@@ -1,15 +1,15 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import supertest from 'supertest';
-import jwt from 'jsonwebtoken'; // For JWT token verification stubbing
-import { pool } from '../dbConnection.js';
-import app from '../index.js';
+import jwt from 'jsonwebtoken';
+import { pool } from '../../dbConnection.js';
+import app from '../../index.js';
 // import logger from '../path/to/your/logger'; // Update path as necessary
 // import Sentry from '@sentry/node';
 
 const request = supertest(app);
 
-describe('GET /api/auth/permissions', () => {
+describe('GET /api/auth/my-rescue', () => {
 	let sandbox, cookie;
 
 	beforeEach(() => {
@@ -39,47 +39,83 @@ describe('GET /api/auth/permissions', () => {
 		sandbox.restore();
 	});
 
-	it('should return user permissions if the user is a staff member', async () => {
-		// Setup mock response from database
-		const mockPermissions = ['edit_rescue', 'view_rescue'];
+	it('should fetch rescue organization details if user is a staff member', async () => {
+		// Mock DB response
+		const mockRescueData = {
+			rescue_id: 123,
+			rescue_name: 'Animal Rescue',
+			city: 'Springfield',
+			country: 'USA',
+			rescue_type: 'Wildlife',
+			reference_number: 'REF123',
+			reference_number_verified: true,
+		};
+		const mockStaffData = [
+			{
+				user_id: 1,
+				staff_email: 'staff@example.com',
+				permissions: 'admin',
+				verified_by_rescue: true,
+			},
+		];
 		pool.query.resolves({
 			rowCount: 1,
-			rows: [{ permissions: mockPermissions }],
+			rows: [
+				...mockStaffData.map((staff) => ({ ...mockRescueData, ...staff })),
+			],
 		});
 
 		const response = await request
-			.get('/api/auth/permissions')
+			.get('/api/auth/my-rescue')
 			.set('Cookie', cookie);
 
 		expect(response.status).to.equal(200);
-		expect(response.body.permissions).to.deep.equal(mockPermissions);
+		expect(response.body).to.deep.include({
+			rescue_id: mockRescueData.rescue_id,
+			rescueName: mockRescueData.rescue_name,
+			city: mockRescueData.city,
+			country: mockRescueData.country,
+			rescueType: mockRescueData.rescue_type,
+			referenceNumber: mockRescueData.reference_number,
+			referenceNumberVerified: mockRescueData.reference_number_verified,
+			staff: mockStaffData.map(
+				({ user_id, staff_email, permissions, verified_by_rescue }) => ({
+					userId: user_id,
+					email: staff_email,
+					permissions,
+					verifiedByRescue: verified_by_rescue,
+				})
+			),
+		});
 		// sinon.assert.calledWith(logger.info, sinon.match.string);
 	});
 
-	it('should return 404 if no permissions are found for the user', async () => {
+	it('should return 404 if user is not associated with any rescue organization', async () => {
 		pool.query.resolves({ rowCount: 0 });
 
 		const response = await request
-			.get('/api/auth/permissions')
+			.get('/api/auth/my-rescue')
 			.set('Cookie', cookie);
 
 		expect(response.status).to.equal(404);
 		expect(response.body.message).to.equal(
-			'User is not a staff member of any rescue organization.'
+			'User is not a staff member of any rescue organization'
 		);
 		// sinon.assert.calledWith(logger.warn, sinon.match.string);
 	});
 
-	it('should handle database errors and return 500', async () => {
+	it('should handle errors and return 500 if there is a failure in fetching data', async () => {
 		const errorMessage = 'Database error';
 		pool.query.rejects(new Error(errorMessage));
 
 		const response = await request
-			.get('/api/auth/permissions')
+			.get('/api/auth/my-rescue')
 			.set('Cookie', cookie);
 
 		expect(response.status).to.equal(500);
-		expect(response.body.message).to.equal('Failed to fetch permissions.');
+		expect(response.body.message).to.equal(
+			'An error occurred while fetching the rescue organization'
+		);
 		// sinon.assert.calledWith(logger.error, sinon.match.string);
 		// sinon.assert.calledWith(
 		// 	Sentry.captureException,

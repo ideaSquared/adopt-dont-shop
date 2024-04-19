@@ -3,10 +3,10 @@ import sinon from 'sinon';
 import supertest from 'supertest';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { pool } from '../dbConnection.js';
-import app from '../index.js'; // Import your Express application
-import geoService from '../services/geoService.js';
-import { sendEmailVerificationEmail } from '../services/emailService.js';
+import { pool } from '../../dbConnection.js';
+import app from '../../index.js'; // Import your Express application
+import geoService from '../../services/geoService.js';
+import { sendEmailVerificationEmail } from '../../services/emailService.js';
 
 const request = supertest(app);
 

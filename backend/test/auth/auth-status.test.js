@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import supertest from 'supertest';
 import jwt from 'jsonwebtoken'; // For JWT token verification stubbing
-import { pool } from '../dbConnection.js';
-import app from '../index.js';
+import { pool } from '../../dbConnection.js';
+import app from '../../index.js';
 // import logger from '../path/to/your/logger'; // Update path as necessary
 // import Sentry from '@sentry/node';
 

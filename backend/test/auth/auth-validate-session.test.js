@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import supertest from 'supertest';
 import jwt from 'jsonwebtoken'; // Import JWT to stub its methods
-import { pool } from '../dbConnection.js';
-import app from '../index.js';
+import { pool } from '../../dbConnection.js';
+import app from '../../index.js';
 
 const request = supertest(app);
 

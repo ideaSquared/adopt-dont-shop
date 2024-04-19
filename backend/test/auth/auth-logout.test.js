@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import supertest from 'supertest';
-import app from '../index.js';
+import app from '../../index.js';
 // import logger from '../utils/Logger.js';
 
 const request = supertest(app);
