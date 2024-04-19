@@ -9,7 +9,13 @@ const CreateAccountForm = ({
 	onCreateAccount,
 	onCityChange,
 	onCountryChange,
+	onConfirmPasswordChange,
+	password,
+	confirmPassword,
 }) => {
+	const passwordsMatch =
+		password && confirmPassword && password === confirmPassword;
+
 	return (
 		<Form
 			onSubmit={(e) => {
@@ -43,6 +49,7 @@ const CreateAccountForm = ({
 							type='type'
 							name='city'
 							onChange={(e) => onCityChange(e.target.value)}
+							placeholder='Enter city'
 						/>
 					</Form.Group>
 				</Col>
@@ -365,16 +372,34 @@ const CreateAccountForm = ({
 					placeholder='Enter email'
 				/>
 			</Form.Group>
-			<Form.Group className='mb-3' controlId='password'>
-				<Form.Label>Password</Form.Label>
-				<Form.Control
-					type='password'
-					name='password'
-					onChange={(e) => onPasswordChange(e.target.value)}
-					placeholder='Password'
-				/>
-			</Form.Group>
 
+			<Row>
+				<Col md={6}>
+					<Form.Group className='mb-3' controlId='password'>
+						<Form.Label>Password</Form.Label>
+						<Form.Control
+							type='password'
+							name='password'
+							onChange={(e) => onPasswordChange(e.target.value)}
+							placeholder='Enter your password'
+						/>
+					</Form.Group>
+				</Col>
+				<Col md={6}>
+					<Form.Group controlId='confirmPassword'>
+						<Form.Label>Confirm Password</Form.Label>
+						<Form.Control
+							type='password'
+							onChange={(e) => onConfirmPasswordChange(e.target.value)}
+							placeholder='Confirm your password'
+							isInvalid={!passwordsMatch && confirmPassword}
+						/>
+						<Form.Control.Feedback type='invalid'>
+							Passwords must match.
+						</Form.Control.Feedback>
+					</Form.Group>
+				</Col>
+			</Row>
 			<Row>
 				<Col>
 					<Button variant='primary' type='submit'>

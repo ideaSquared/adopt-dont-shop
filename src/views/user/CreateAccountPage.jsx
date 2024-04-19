@@ -11,6 +11,7 @@ const CreateAccountPage = () => {
 	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
+	const [confirmPassword, setConfirmPassword] = useState('');
 	const [city, setCity] = useState('');
 	const [country, setCountry] = useState('');
 	const [alert, setAlert] = useState({ show: false, message: '', type: '' });
@@ -58,6 +59,9 @@ const CreateAccountPage = () => {
 					onCreateAccount={handleCreateAccount}
 					onCityChange={setCity}
 					onCountryChange={setCountry}
+					onConfirmPasswordChange={setConfirmPassword}
+					password={password}
+					confirmPassword={confirmPassword}
 				/>
 			</div>
 		</Container>

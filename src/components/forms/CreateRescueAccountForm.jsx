@@ -161,7 +161,7 @@ const CreateRescueAccountForm = ({
 					</Form.Group>
 				</Col>
 				<Col md={6}>
-					<Form.Group controlId='formConfirmPassword'>
+					<Form.Group controlId='confirmPassword'>
 						<Form.Label>Confirm Password</Form.Label>
 						<Form.Control
 							type='password'
