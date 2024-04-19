@@ -126,8 +126,6 @@ router.post('/', authenticateToken, async (req, res) => {
 				participantValues
 			);
 
-			console.log(participantQuery);
-
 			await client.query(participantQuery); // Batch insert participants
 
 			await client.query('COMMIT');
@@ -143,6 +141,9 @@ router.post('/', authenticateToken, async (req, res) => {
 			});
 		} catch (error) {
 			await client.query('ROLLBACK');
+			logger.error(`Error during conversation creation: ${error.message}`);
+			Sentry.captureException(error);
+			res.status(500).json({ message: error.message });
 			throw error;
 		} finally {
 			client.release();
@@ -154,7 +155,6 @@ router.post('/', authenticateToken, async (req, res) => {
 	}
 });
 
-// TODO: Tests + do we need to call for images or can we do this on another API call?
 // Get all conversations for a user
 router.get('/', authenticateToken, async (req, res) => {
 	try {
@@ -276,13 +276,18 @@ router.delete('/:conversationId', authenticateToken, async (req, res) => {
 			return res.status(404).json({ message: 'Conversation not found' });
 		}
 		logger.info(`Deleted conversation with ID: ${conversationId}`);
-		res.status(204).end();
+		res.status(200).json({ message: 'Conversation deleted successfully' });
 	} catch (error) {
 		logger.error(`Error deleting conversation: ${error.message}`);
 		Sentry.captureException(error);
 		res.status(500).json({ message: error.message });
 	}
 });
+
+/*
+TODO: CONTINUE BUILDING TESTS FROM THIS SECTION ONWARDS.
+TODO: LOG/PET/RATING+BELOW
+*/
 
 // CRUD Routes for Messages within a Conversation
 // Create a new message in a conversation
