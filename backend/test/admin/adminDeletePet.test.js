@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken';
 
 const request = supertest(app);
 
-describe('DELETE /api/admin/conversations/:id', () => {
+describe('DELETE /api/admin/pets/:id', () => {
 	let sandbox, cookie, adminToken;
 
 	beforeEach(() => {
@@ -21,7 +21,7 @@ describe('DELETE /api/admin/conversations/:id', () => {
 		// sandbox.stub(Sentry, 'captureException');
 
 		// Set up JWT and cookie for an admin user
-		const secret = process.env.SECRET_KEY; // Your JWT secret should be consistent
+		const secret = process.env.SECRET_KEY; // Ensure your JWT secret is correctly configured
 		const adminPayload = { userId: 'adminUserId', isAdmin: true };
 		adminToken = jwt.sign(adminPayload, secret, { expiresIn: '1h' });
 		cookie = `token=${adminToken};`;
@@ -32,51 +32,45 @@ describe('DELETE /api/admin/conversations/:id', () => {
 		sandbox.restore();
 	});
 
-	it('should delete a conversation successfully', async () => {
+	it('should delete a specific pet by ID successfully', async () => {
 		const deletionResult = {
 			rowCount: 1,
-			rows: [{ conversation_id: '1' }],
+			rows: [{ pet_id: '1' }],
 		};
 		pool.query.resolves(deletionResult);
 
 		const response = await request
-			.delete('/api/admin/conversations/1')
+			.delete('/api/admin/pets/1')
 			.set('Cookie', cookie);
 
 		expect(response.status).to.equal(200);
-		expect(response.body.message).to.equal('Conversation deleted successfully');
-		// sinon.assert.calledWith(logger.info, 'Deleted conversation with ID: 1');
+		expect(response.body.message).to.equal('Pet deleted successfully');
+		// sinon.assert.calledWith(logger.info, 'Deleted pet with ID: 1');
 	});
 
-	it('should return 404 if the conversation does not exist', async () => {
+	it('should return 404 if the pet does not exist', async () => {
 		pool.query.resolves({ rowCount: 0 });
 
 		const response = await request
-			.delete('/api/admin/conversations/1')
+			.delete('/api/admin/pets/1')
 			.set('Cookie', cookie);
 
 		expect(response.status).to.equal(404);
-		expect(response.body.message).to.equal('Conversation not found');
-		// sinon.assert.calledWith(logger.warn, 'Conversation with ID: 1 not found');
+		expect(response.body.message).to.equal('Pet not found');
+		// sinon.assert.calledWith(logger.warn, 'Pet with ID: 1 not found');
 	});
 
-	it('should return 500 if there is an error deleting the conversation', async () => {
+	it('should return 500 if there is an error deleting the pet', async () => {
 		pool.query.rejects(new Error('Database Error'));
 
 		const response = await request
-			.delete('/api/admin/conversations/1')
+			.delete('/api/admin/pets/1')
 			.set('Cookie', cookie);
 
 		expect(response.status).to.equal(500);
 		expect(response.body.message).to.equal('Database Error');
-		// sinon.assert.calledWith(
-		// 	logger.error,
-		// 	'Error deleting conversation: Database Error'
-		// );
-		// sinon.assert.calledWith(
-		// 	Sentry.captureException,
-		// 	sinon.match.instanceOf(Error)
-		// );
+		// sinon.assert.calledWith(logger.error, 'Error deleting pet: Database Error');
+		// sinon.assert.calledWith(Sentry.captureException, sinon.match.instanceOf(Error));
 	});
 
 	it('should return 403 if user is not an admin', async () => {
@@ -88,7 +82,7 @@ describe('DELETE /api/admin/conversations/:id', () => {
 		const nonAdminCookie = `token=${nonAdminToken};`;
 
 		const response = await request
-			.delete('/api/admin/conversations/1')
+			.delete('/api/admin/pets/1')
 			.set('Cookie', nonAdminCookie);
 
 		expect(response.status).to.equal(403);

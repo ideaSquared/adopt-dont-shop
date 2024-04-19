@@ -217,6 +217,7 @@ router.delete(
 		}
 	}
 );
+
 router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 	try {
 		const query = `
@@ -346,6 +347,7 @@ router.delete(
 		}
 	}
 );
+
 router.get('/pets', authenticateToken, checkAdmin, async (req, res) => {
 	try {
 		const query = `
@@ -415,6 +417,7 @@ router.delete('/pets/:id', authenticateToken, checkAdmin, async (req, res) => {
 		res.status(500).json({ message: error.message });
 	}
 });
+
 router.delete(
 	'/rescues/:rescueId/staff/:staffId',
 	authenticateToken,
