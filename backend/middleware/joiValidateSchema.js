@@ -194,7 +194,7 @@ const messageSchema = Joi.object({
 });
 
 const ratingSchema = Joi.object({
-	userId: Joi.string().required(), // Assuming userId is sent as a string
+	// userId: Joi.string().required(), // Assuming userId is sent as a string
 	petId: Joi.string().required(), // Renamed targetId to petId for clarity
 	ratingType: Joi.string().required().valid('like', 'love', 'dislike'),
 });
