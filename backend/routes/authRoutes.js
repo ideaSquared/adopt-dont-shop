@@ -21,12 +21,12 @@ import {
 import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
 import LoggerUtil from '../utils/Logger.js';
 
-import { generateResetToken } from '../utils/tokenGenerator.js';
-import { sendEmailVerificationEmail } from '../services/emailService.js';
+import { tokenGenerators } from '../utils/tokenGenerator.js';
+import { emailService } from '../services/emailService.js';
 
 import { geoService } from '../services/geoService.js';
 
-export default function createAuthRoutes({ tokenGenerator, emailService }) {
+export default function createAuthRoutes({}) {
 	const router = express.Router();
 	const logger = new LoggerUtil('auth-service').getLogger(); // Initialize logger for auth-service
 
@@ -58,7 +58,7 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 
 				// Hash the password, generate verification token
 				const hashedPassword = await bcrypt.hash(password, 12);
-				const verificationToken = await generateResetToken();
+				const verificationToken = await tokenGenerators.generateResetToken();
 
 				// Get coordinates from city and country
 				let locationPoint;
@@ -103,7 +103,10 @@ export default function createAuthRoutes({ tokenGenerator, emailService }) {
 				const FRONTEND_BASE_URL =
 					process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
 				const verificationURL = `${FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
-				await sendEmailVerificationEmail(emailNormalized, verificationURL);
+				await emailService.sendEmailVerificationEmail(
+					emailNormalized,
+					verificationURL
+				);
 				logger.info(`Verification email sent to: ${email}`);
 
 				res.status(201).json({ message: 'User created!', userId });

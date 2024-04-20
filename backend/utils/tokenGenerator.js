@@ -33,14 +33,16 @@ import crypto from 'crypto';
  * to generate tokens that are secure against predictability and collision attacks.
  */
 
-export const generateResetToken = () => {
-	return new Promise((resolve, reject) => {
-		crypto.randomBytes(32, (err, buffer) => {
-			if (err) {
-				reject(err);
-			} else {
-				resolve(buffer.toString('hex'));
-			}
+export const tokenGenerators = {
+	async generateResetToken() {
+		return new Promise((resolve, reject) => {
+			crypto.randomBytes(32, (err, buffer) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(buffer.toString('hex'));
+				}
+			});
 		});
-	});
+	},
 };

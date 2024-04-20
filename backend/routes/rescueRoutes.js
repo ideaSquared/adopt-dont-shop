@@ -15,8 +15,8 @@ import LoggerUtil from '../utils/Logger.js';
 import fetchAndValidateCharity from '../utils/verifyCharity.js';
 import fetchAndValidateCompany from '../utils/verifyCompany.js';
 
-import { generateResetToken } from '../utils/tokenGenerator.js';
-import { sendEmailVerificationEmail } from '../services/emailService.js';
+import { tokenGenerators } from '../utils/tokenGenerator.js';
+import { emailService } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
 
 import { geoService } from '../services/geoService.js';
@@ -200,7 +200,7 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 		}
 
 		const hashedPassword = await bcrypt.hash(password, 12);
-		const verificationToken = await generateResetToken();
+		const verificationToken = await tokenGenerators.generateResetToken();
 
 		let locationPoint;
 		if (rescueData.city || rescueData.country) {
@@ -247,7 +247,7 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 		const verificationURL = `${
 			process.env.FRONTEND_BASE_URL || 'http://localhost:5173'
 		}/verify-email?token=${verificationToken}`;
-		await sendEmailVerificationEmail(email, verificationURL);
+		await emailService.sendEmailVerificationEmail(email, verificationURL);
 
 		let referenceNumberVerified = false;
 		if (type !== 'Individual' && rescueData.referenceNumber) {

@@ -6,8 +6,8 @@ import { pool } from '../../dbConnection.js'; // Adjust as necessary
 import app from '../../index.js'; // Adjust as necessary
 import jwt from 'jsonwebtoken';
 
-import { generateResetToken } from '../../utils/tokenGenerator.js';
-import { sendEmailVerificationEmail } from '../../services/emailService.js';
+import { tokenGenerators } from '../../utils/tokenGenerator.js';
+import { emailService } from '../../services/emailService.js';
 
 const request = supertest(app);
 
@@ -19,17 +19,10 @@ describe('POST /:type(individual|charity|company) endpoint', () => {
 		sandbox.stub(pool, 'query');
 		sandbox.stub(bcrypt, 'hash').resolves('hashedpassword123');
 
-		/* 
-        TODO: We should really be mocking the verification email - as this will send an email.
-        TODO: Which will cost once we've got a 
-        */
-
-		// sandbox
-		// 	.stub(generateResetToken, 'generateResetToken')
-		// 	.resolves('resetToken123');
-		// sandbox
-		// 	.stub(sendEmailVerificationEmail, 'sendEmailVerificationEmail')
-		// 	.resolves();
+		sandbox
+			.stub(tokenGenerators, 'generateResetToken')
+			.resolves('resetToken123');
+		sandbox.stub(emailService, 'sendEmailVerificationEmail').resolves();
 
 		const secret = process.env.SECRET_KEY;
 		const userPayload = { userId: 'testUserId' };
@@ -63,6 +56,8 @@ describe('POST /:type(individual|charity|company) endpoint', () => {
 			.expect(201);
 
 		expect(response.status).to.equal(201);
+		expect(tokenGenerators.generateResetToken.calledOnce).to.be.true;
+		expect(emailService.sendEmailVerificationEmail.calledOnce).to.be.true;
 		expect(response.body.message).to.include(
 			'rescue and staff member created successfully'
 		);

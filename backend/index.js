@@ -15,8 +15,8 @@ import petRoutes from './routes/petRoutes.js';
 import conversationRoutes from './routes/conversationRoutes.js';
 import logRoutes from './routes/logRoutes.js';
 import ratingRoutes from './routes/ratingRoutes.js';
-import { generateResetToken } from './utils/tokenGenerator.js';
-import { sendPasswordResetEmail } from './services/emailService.js';
+import { tokenGenerators } from './utils/tokenGenerator.js';
+import { emailService } from './services/emailService.js';
 
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
@@ -68,10 +68,7 @@ if (process.env.SENTRY_ENABLED) {
 	app.use(Sentry.Handlers.errorHandler());
 }
 // Create routes
-const authRoutes = createAuthRoutes({
-	generateResetToken,
-	sendPasswordResetEmail,
-});
+const authRoutes = createAuthRoutes({});
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/rescue', rescueRoutes);

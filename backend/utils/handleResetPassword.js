@@ -1,12 +1,12 @@
-import { generateResetToken } from './tokenGenerator.js';
-import { sendPasswordResetEmail } from '../services/emailService.js';
+import { tokenGenerators } from './tokenGenerator.js';
+import { emailService } from '../services/emailService.js';
 import LoggerUtil from '../utils/Logger.js';
 import { pool } from '../dbConnection.js';
 
 async function handlePasswordReset(user) {
 	const logger = new LoggerUtil('auth-service').getLogger();
 	const email = user.email;
-	const token = await generateResetToken();
+	const token = await tokenGenerators.generateResetToken();
 
 	// Calculate expiration time for the reset token
 	const resetTokenExpiration = new Date(); // Get the current date and time
@@ -45,7 +45,7 @@ async function handlePasswordReset(user) {
 		const resetURL = `${FRONTEND_BASE_URL}/reset-password?token=${token}`;
 
 		// Send the password reset email
-		await sendPasswordResetEmail(email, resetURL);
+		await emailService.sendPasswordResetEmail(email, resetURL);
 		logger.info(`Password reset email sent to: ${email}`);
 	} catch (error) {
 		logger.error(`Failed to reset password for ${email}: ${error.message}`);

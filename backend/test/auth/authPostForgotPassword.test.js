@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import supertest from 'supertest';
 import { pool } from '../../dbConnection.js';
 import app from '../../index.js';
-// import handlePasswordReset from '../utils/handleResetPassword.js'; // Default import
+import { emailService } from '../../services/emailService.js';
 
 const request = supertest(app);
 
@@ -13,7 +13,7 @@ describe('POST /api/auth/forgot-password', () => {
 	beforeEach(() => {
 		sandbox = sinon.createSandbox();
 		sandbox.stub(pool, 'query');
-		// sandbox.stub(handlePasswordReset); // Stub the default imported function
+		sandbox.stub(emailService, 'sendPasswordResetEmail').resolves();
 	});
 
 	afterEach(() => {
@@ -32,6 +32,7 @@ describe('POST /api/auth/forgot-password', () => {
 			.send({ email: 'user@example.com' });
 
 		expect(response.status).to.equal(200);
+		expect(emailService.sendPasswordResetEmail.calledOnce).to.be.true;
 		expect(response.body.message).to.equal(
 			'Password reset email sent. Redirecting to login page...'
 		);

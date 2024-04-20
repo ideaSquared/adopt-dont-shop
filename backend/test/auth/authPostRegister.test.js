@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import { pool } from '../../dbConnection.js';
 import app from '../../index.js'; // Import your Express application
 import { geoService } from '../../services/geoService.js';
-import { sendEmailVerificationEmail } from '../../services/emailService.js';
+import { emailService } from '../../services/emailService.js';
 
 const request = supertest(app);
 
@@ -21,8 +21,7 @@ describe('POST /api/auth/register', () => {
 		sandbox.stub(pool, 'query');
 		sandbox.stub(bcrypt, 'hash');
 		sandbox.stub(geoService, 'getGeocodePoint');
-		// When stubbing this, it looks like it isn't torn down properly and causing a "before each hook" error. It's not important to call.
-		// sandbox.stub(sendEmailVerificationEmail);
+		sandbox.stub(emailService, 'sendEmailVerificationEmail').resolves();
 	});
 
 	afterEach(() => {
@@ -67,6 +66,7 @@ describe('POST /api/auth/register', () => {
 
 		expect(response.status).to.equal(201);
 		expect(response.body.message).to.equal('User created!');
+		expect(emailService.sendEmailVerificationEmail.calledOnce).to.be.true;
 		expect(response.body.userId).to.be.a('number');
 	});
 
