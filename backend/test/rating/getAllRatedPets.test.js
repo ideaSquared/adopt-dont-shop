@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 
 const request = supertest(app);
 
-describe.only('GET /api/ratings/find-rated endpoint', () => {
+describe('GET /api/ratings/find-rated endpoint', () => {
 	let sandbox, userToken, cookie;
 
 	beforeEach(() => {
