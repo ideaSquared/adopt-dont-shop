@@ -1,74 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Row, Col, Button, Card } from 'react-bootstrap';
 
-const customStyles = {
-	option: (provided, state) => ({
-		...provided,
-		display: 'flex',
-		alignItems: 'center',
-		borderBottom: '1px dotted #ccc',
-		padding: '10px 20px',
-		color: state.isSelected ? 'black' : 'grey',
-	}),
-	control: (provided) => ({
-		...provided,
-		marginTop: '10px',
-		marginBottom: '10px',
-	}),
-	singleValue: (provided, state) => ({
-		...provided,
-		display: 'flex',
-		alignItems: 'center',
-	}),
-	placeholder: (provided) => ({
-		...provided,
-		display: 'flex',
-		alignItems: 'center',
-	}),
-};
-
-const optionWithImages = [
-	{
-		value: 'individual',
-		label: (
-			<div style={{ display: 'flex', alignItems: 'center' }}>
-				<img
-					src='/undraw/undraw_personal_file_re_5joy.svg'
-					alt='Individual'
-					style={{ width: '30px', marginRight: '10px' }}
-				/>
-				Individual seller
-			</div>
-		),
-	},
-	{
-		value: 'charity',
-		label: (
-			<div style={{ display: 'flex', alignItems: 'center' }}>
-				<img
-					src='/undraw/undraw_gifts_0ceh.svg'
-					alt='Charity'
-					style={{ width: '30px', marginRight: '10px' }}
-				/>
-				Registered charity
-			</div>
-		),
-	},
-	{
-		value: 'company',
-		label: (
-			<div style={{ display: 'flex', alignItems: 'center' }}>
-				<img
-					src='/undraw/undraw_businesswoman_re_5n6b.svg'
-					alt='Company'
-					style={{ width: '30px', marginRight: '10px' }}
-				/>
-				Registered company
-			</div>
-		),
-	},
-];
-
 const CreateRescueAccountForm = ({
 	onFirstNameChange,
 	onLastNameChange,
@@ -265,7 +197,11 @@ const CreateRescueAccountForm = ({
 							</Form.Group>
 							<Form.Group className='mb-3' controlId='referenceNumber'>
 								<Form.Label>
-									Reference number (Company House/Charity Register)
+									{selectedType === 'charity'
+										? 'Charity number'
+										: selectedType === 'company'
+										? 'Company number'
+										: 'Reference number'}
 								</Form.Label>
 								<Form.Control
 									type='text'
@@ -275,9 +211,19 @@ const CreateRescueAccountForm = ({
 								/>
 								<Form.Text className='text-muted'>
 									Please enter the reference number as it appears in official
-									records.
+									records.{' '}
+									{selectedType === 'charity' ? (
+										<a href='https://register-of-charities.charitycommission.gov.uk/charity-search/'>
+											Find it on the Charity Register.
+										</a>
+									) : selectedType === 'company' ? (
+										<a href='https://find-and-update.company-information.service.gov.uk/'>
+											Find it on Company House.
+										</a>
+									) : null}
 								</Form.Text>
 							</Form.Group>
+							{/*  */}
 						</>
 					)}
 					{rescueType === 'other' && (
