@@ -4,8 +4,7 @@ import supertest from 'supertest';
 import { pool } from '../../dbConnection.js'; // Adjust as necessary
 import app from '../../index.js'; // Adjust as necessary
 import jwt from 'jsonwebtoken';
-import { permissions } from '../../utils/permissions.js'; // Adjust the path as necessary
-
+import { permissionService } from '../../services/permissionService.js';
 const request = supertest(app);
 
 describe('PUT /:id', () => {
@@ -37,7 +36,7 @@ describe('PUT /:id', () => {
 			id: petId,
 			...updatedPet,
 		};
-		sinon.stub(permissions, 'checkPermission').resolves(true);
+		sinon.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.resolves({ rows: [mockPet], rowCount: 1 });
 
 		const response = await request
@@ -52,7 +51,7 @@ describe('PUT /:id', () => {
 
 	it('should return 403 if the user does not have permission to edit the pet', async () => {
 		const petId = 2;
-		sinon.stub(permissions, 'checkPermission').resolves(false);
+		sinon.stub(permissionService, 'checkPermission').resolves(false);
 
 		const response = await request
 			.put(`/api/pets/${petId}`)
@@ -67,7 +66,7 @@ describe('PUT /:id', () => {
 
 	it('should return 400 if no updatable fields are provided', async () => {
 		const petId = 3;
-		sinon.stub(permissions, 'checkPermission').resolves(true);
+		sinon.stub(permissionService, 'checkPermission').resolves(true);
 
 		const response = await request
 			.put(`/api/pets/${petId}`)
@@ -80,7 +79,7 @@ describe('PUT /:id', () => {
 
 	it('should handle errors appropriately when the update fails', async () => {
 		const petId = 4;
-		sinon.stub(permissions, 'checkPermission').resolves(true);
+		sinon.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.rejects(new Error('Database error'));
 
 		const response = await request

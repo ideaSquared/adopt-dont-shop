@@ -4,7 +4,7 @@ import supertest from 'supertest';
 import app from '../../index.js';
 import { pool } from '../../dbConnection.js';
 import jwt from 'jsonwebtoken';
-import { permissions } from '../../utils/permissions.js';
+import { permissionService } from '../../services/permissionService.js';
 
 const request = supertest(app);
 
@@ -30,7 +30,7 @@ describe('DELETE /api/pets/:id/images endpoint', () => {
 		const imagesToDelete = ['image1.jpg', 'image2.jpg'];
 		const existingImages = ['image1.jpg', 'image2.jpg', 'image3.jpg'];
 
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query
 			.onFirstCall()
 			.resolves({ rows: [{ images: existingImages }], rowCount: 1 });
@@ -50,7 +50,7 @@ describe('DELETE /api/pets/:id/images endpoint', () => {
 	});
 
 	it('should return 400 if no images are specified for deletion', async () => {
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		const petId = '124';
 		const response = await request
 			.delete(`/api/pets/${petId}/images`)
@@ -66,7 +66,7 @@ describe('DELETE /api/pets/:id/images endpoint', () => {
 		const petId = '125';
 		const imagesToDelete = ['image1.jpg'];
 
-		sandbox.stub(permissions, 'checkPermission').resolves(false);
+		sandbox.stub(permissionService, 'checkPermission').resolves(false);
 
 		const response = await request
 			.delete(`/api/pets/${petId}/images`)
@@ -84,7 +84,7 @@ describe('DELETE /api/pets/:id/images endpoint', () => {
 		const petId = '126';
 		const imagesToDelete = ['image1.jpg'];
 
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.onFirstCall().resolves({ rowCount: 0, rows: [] });
 
 		const response = await request
@@ -101,7 +101,7 @@ describe('DELETE /api/pets/:id/images endpoint', () => {
 		const petId = '127';
 		const imagesToDelete = ['image1.jpg'];
 
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.onFirstCall().rejects(new Error('Database connection failed'));
 
 		const response = await request

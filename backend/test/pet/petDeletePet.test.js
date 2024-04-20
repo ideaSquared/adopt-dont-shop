@@ -4,7 +4,7 @@ import supertest from 'supertest';
 import { pool } from '../../dbConnection.js';
 import app from '../../index.js';
 import jwt from 'jsonwebtoken';
-import { permissions } from '../../utils/permissions.js';
+import { permissionService } from '../../services/permissionService.js';
 
 const request = supertest(app);
 
@@ -27,7 +27,7 @@ describe('DELETE /api/pets/:id endpoint', () => {
 
 	it('should successfully delete a pet when permissions are sufficient', async () => {
 		const petId = '123';
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.resolves({ rowCount: 1 }); // Simulates successful deletion
 
 		const response = await request
@@ -40,7 +40,7 @@ describe('DELETE /api/pets/:id endpoint', () => {
 
 	it('should return 403 if the user does not have permission to delete the pet', async () => {
 		const petId = '124';
-		sandbox.stub(permissions, 'checkPermission').resolves(false);
+		sandbox.stub(permissionService, 'checkPermission').resolves(false);
 
 		const response = await request
 			.delete(`/api/pets/${petId}`)
@@ -54,7 +54,7 @@ describe('DELETE /api/pets/:id endpoint', () => {
 
 	it('should return 404 if no pet is found with the provided ID', async () => {
 		const petId = '125';
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.resolves({ rowCount: 0 }); // Simulates no pet found
 
 		const response = await request
@@ -67,7 +67,7 @@ describe('DELETE /api/pets/:id endpoint', () => {
 
 	it('should handle errors and return 500 if an exception occurs', async () => {
 		const petId = '126';
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.rejects(new Error('Internal server error')); // Simulates a server error
 
 		const response = await request

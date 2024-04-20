@@ -4,7 +4,7 @@ import authenticateToken from '../middleware/authenticateToken.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { permissions } from '../utils/permissions.js'; // Adjust the path as necessary
+import { permissionService } from '../services/permissionService.js'; // Adjust the path as necessary
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +21,7 @@ const logger = new LoggerUtil('pet-service').getLogger();
 
 const router = express.Router();
 
-// const permissions.checkPermission = async (userId, permissionRequired) => {
+// const permissionService.checkPermission = async (userId, permissionRequired) => {
 // 	if (!userId) {
 // 		throw new Error('No userId provided');
 // 	}
@@ -63,7 +63,7 @@ router.post(
 
 			// console.log('REQ BODY: ', req.body, '\n');
 
-			const hasPermission = await permissions.checkPermission(
+			const hasPermission = await permissionService.checkPermission(
 				userId,
 				'add_pet'
 			);
@@ -218,7 +218,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
 	try {
 		logger.info(`User ${userId} attempting to update pet with ID: ${id}`);
-		const hasPermission = await permissions.checkPermission(userId, 'edit_pet');
+		const hasPermission = await permissionService.checkPermission(
+			userId,
+			'edit_pet'
+		);
 
 		if (!hasPermission) {
 			logger.warn(`User ${userId} lacks permission to edit pet with ID: ${id}`);
@@ -296,7 +299,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
 	try {
 		logger.info(`User ${userId} attempting to delete pet with ID: ${id}`);
-		const hasPermission = await permissions.checkPermission(
+		const hasPermission = await permissionService.checkPermission(
 			userId,
 			'delete_pet'
 		);
@@ -371,7 +374,7 @@ router.post(
 		const userId = req.user?.userId;
 
 		try {
-			const hasPermission = await permissions.checkPermission(
+			const hasPermission = await permissionService.checkPermission(
 				userId,
 				'edit_pet'
 			);
@@ -433,7 +436,10 @@ router.delete('/:id/images', authenticateToken, async (req, res) => {
 	}
 
 	try {
-		const hasPermission = await permissions.checkPermission(userId, 'edit_pet');
+		const hasPermission = await permissionService.checkPermission(
+			userId,
+			'edit_pet'
+		);
 		if (!hasPermission) {
 			logger.warn(
 				`User ${userId} lacks permission to delete images for pet with ID: ${id}`

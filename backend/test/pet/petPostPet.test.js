@@ -4,7 +4,7 @@ import supertest from 'supertest';
 import { pool } from '../../dbConnection.js'; // Adjust as necessary
 import app from '../../index.js'; // Adjust as necessary
 import jwt from 'jsonwebtoken';
-import { permissions } from '../../utils/permissions.js'; // Adjust the path as necessary
+import { permissionService } from '../../services/permissionService.js';
 
 const request = supertest(app);
 
@@ -28,7 +28,7 @@ describe('POST /api/pets', () => {
 	});
 
 	it('should create a new pet record successfully', async () => {
-		sinon.stub(permissions, 'checkPermission').resolves(true);
+		sinon.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.resolves({
 			rows: [{ pet_id: 123 }],
 		});
@@ -57,7 +57,7 @@ describe('POST /api/pets', () => {
 	});
 
 	it('should return 403 if the user does not have permission', async () => {
-		sinon.stub(permissions, 'checkPermission').resolves(false);
+		sinon.stub(permissionService, 'checkPermission').resolves(false);
 
 		const response = await request
 			.post('/api/pets')
@@ -82,7 +82,7 @@ describe('POST /api/pets', () => {
 	});
 
 	it('should handle database errors gracefully', async () => {
-		sinon.stub(permissions, 'checkPermission').resolves(true);
+		sinon.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.rejects(new Error('Database connection failed'));
 
 		const response = await request

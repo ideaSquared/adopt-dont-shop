@@ -1,8 +1,8 @@
-// utils/checkPermissions.js
+// utils/permissions.js
 
 import { pool } from '../dbConnection.js';
 
-export const permissions = {
+export const permissionService = {
 	async checkPermission(userId, permissionRequired) {
 		if (!userId) {
 			throw new Error('No userId provided');

@@ -20,6 +20,7 @@ import { sendEmailVerificationEmail } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
 
 import { geoService } from '../services/geoService.js';
+import { permissionService } from '../services/permissionService.js'; // Import the permissions utility
 
 // Instantiate a logger for this module.
 const logger = new LoggerUtil('rescue-route').getLogger();
@@ -542,13 +543,10 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 			return res.status(404).send({ message: 'Rescue not found' });
 		}
 
-		const editorPermissionQuery = {
-			text: "SELECT * FROM staff_members WHERE rescue_id = $1 AND user_id = $2 AND 'edit_rescue_info' = ANY(permissions)",
-			values: [rescueId, editorUserId],
-		};
-		const editorPermissionResult = await pool.query(editorPermissionQuery);
-		const hasPermission = editorPermissionResult.rows.length > 0;
-
+		const hasPermission = await permissionService.checkPermission(
+			editorUserId,
+			'edit_rescue_info'
+		);
 		if (!hasPermission) {
 			logger.warn(
 				`User ${editorUserId} attempted to add staff without permission.`
@@ -580,6 +578,7 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 		const isStaffMemberResult = await pool.query(isStaffMemberQuery);
 		const isStaffMember = isStaffMemberResult.rows.length > 0;
 		if (isStaffMember) {
+			logger.warn(`Staff member already exists for rescue ID: ${rescueId}`);
 			return res.status(409).send({ message: 'Staff member already exists' });
 		}
 
@@ -638,22 +637,15 @@ router.put(
 				return res.status(404).send({ message: 'Rescue not found' });
 			}
 
-			const editorPermissionQuery = {
-				text: 'SELECT permissions FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
-				values: [rescueId, editorUserId],
-			};
-			const editorPermissionResult = await pool.query(editorPermissionQuery);
-			const hasPermission = editorPermissionResult.rows.some((row) =>
-				row.permissions.includes('edit_rescue_info')
+			const hasPermission = await permissionService.checkPermission(
+				editorUserId,
+				'edit_rescue_info'
 			);
-
 			if (!hasPermission) {
 				logger.warn(
-					`User ${editorUserId} attempted to edit permissions without the necessary permission.`
+					`User ${editorUserId} attempted to add staff without permission.`
 				);
-				return res
-					.status(403)
-					.send({ message: 'No permission to edit permissions' });
+				return res.status(403).send({ message: 'No permission to add staff' });
 			}
 
 			const updateStaffPermissionsQuery = {
@@ -727,23 +719,17 @@ router.put(
 				return res.status(404).json({ message: 'Staff member not found' });
 			}
 
-			// Check if the user has the 'edit_rescue_info' permission to verify staff
-			const permissionQuery = {
-				text: 'SELECT permissions FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
-				values: [rescueId, userId],
-			};
-			const permissionResult = await pool.query(permissionQuery);
-			const hasPermission = permissionResult.rows.some((row) =>
-				row.permissions.includes('edit_rescue_info')
+			const hasPermission = await permissionService.checkPermission(
+				userId,
+				'edit_rescue_info'
 			);
-
 			if (!hasPermission) {
 				logger.warn(
 					`User ${userId} attempted to verify staff without permission.`
 				);
 				return res
 					.status(403)
-					.json({ message: 'No permission to verify staff' });
+					.send({ message: 'No permission to verify staff' });
 			}
 
 			// Verify the staff member
@@ -788,16 +774,10 @@ router.delete(
 				return res.status(404).send({ message: 'Rescue not found' });
 			}
 
-			// Check if the user has permission to delete staff members
-			const editorPermissionQuery = {
-				text: 'SELECT permissions FROM staff_members WHERE rescue_id = $1 AND user_id = $2',
-				values: [rescueId, editorUserId],
-			};
-			const editorPermissionResult = await pool.query(editorPermissionQuery);
-			const hasPermission = editorPermissionResult.rows.some((row) =>
-				row.permissions.includes('edit_rescue_info')
+			const hasPermission = await permissionService.checkPermission(
+				editorUserId,
+				'edit_rescue_info'
 			);
-
 			if (!hasPermission) {
 				logger.warn(
 					`User ${editorUserId} attempted to delete staff without permission.`

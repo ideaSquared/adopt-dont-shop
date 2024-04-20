@@ -4,7 +4,7 @@ import supertest from 'supertest';
 import app from '../../index.js';
 import { pool } from '../../dbConnection.js';
 import jwt from 'jsonwebtoken';
-import { permissions } from '../../utils/permissions.js';
+import { permissionService } from '../../services/permissionService.js';
 // import multer from 'multer';
 
 const request = supertest(app);
@@ -37,7 +37,7 @@ describe('POST /api/pets/:id/images endpoint', () => {
 
 	it('should upload images successfully when permissions are granted and pet exists', async () => {
 		const petId = '123';
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query
 			.onFirstCall()
 			.resolves({ rows: [{ pet_id: petId, images: [] }], rowCount: 1 });
@@ -63,7 +63,7 @@ describe('POST /api/pets/:id/images endpoint', () => {
 
 	it('should return 403 if the user does not have permission to upload images', async () => {
 		const petId = '124';
-		sandbox.stub(permissions, 'checkPermission').resolves(false);
+		sandbox.stub(permissionService, 'checkPermission').resolves(false);
 
 		const response = await request
 			.post(`/api/pets/${petId}/images`)
@@ -78,7 +78,7 @@ describe('POST /api/pets/:id/images endpoint', () => {
 
 	it('should return 404 if the pet is not found', async () => {
 		const petId = '125';
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.onFirstCall().resolves({ rowCount: 0, rows: [] });
 
 		const response = await request
@@ -92,7 +92,7 @@ describe('POST /api/pets/:id/images endpoint', () => {
 
 	it('should handle errors gracefully', async () => {
 		const petId = '126';
-		sandbox.stub(permissions, 'checkPermission').resolves(true);
+		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.onFirstCall().rejects(new Error('Database connection failed'));
 
 		const response = await request
