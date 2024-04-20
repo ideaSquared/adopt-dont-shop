@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 
 const request = supertest(app);
 
-describe.only('PUT /api/conversations/messages/read/:conversationId', () => {
+describe('PUT /api/conversations/messages/read/:conversationId', () => {
 	let sandbox, cookie, userToken, authenticateTokenStub;
 
 	beforeEach(() => {
