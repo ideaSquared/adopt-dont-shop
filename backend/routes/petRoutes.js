@@ -4,6 +4,7 @@ import authenticateToken from '../middleware/authenticateToken.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { permissions } from '../utils/permissions.js'; // Adjust the path as necessary
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,34 +21,36 @@ const logger = new LoggerUtil('pet-service').getLogger();
 
 const router = express.Router();
 
-const checkPermission = async (userId, permissionRequired) => {
-	if (!userId) {
-		throw new Error('No userId provided');
-	}
+// const permissions.checkPermission = async (userId, permissionRequired) => {
+// 	if (!userId) {
+// 		throw new Error('No userId provided');
+// 	}
 
-	try {
-		const client = await pool.connect();
+// 	try {
+// 		const client = await pool.connect();
 
-		// Query to fetch staff member permissions
-		const queryText = `
-            SELECT permissions 
-            FROM staff_members 
-            WHERE user_id = $1;
-        `;
-		const { rows } = await client.query(queryText, [userId]);
-		client.release(); // Release the client back to the pool
+// 		// Query to fetch staff member permissions
+// 		const queryText = `
+//             SELECT permissions
+//             FROM staff_members
+//             WHERE user_id = $1;
+//         `;
+// 		const { rows } = await client.query(queryText, [userId]);
+// 		client.release(); // Release the client back to the pool
 
-		// Check if the user has the required permission
-		const hasPermission = rows.some((row) =>
-			row.permissions.includes(permissionRequired)
-		);
+// 		// Check if the user has the required permission
+// 		const hasPermission = rows.some((row) =>
+// 			row.permissions.includes(permissionRequired)
+// 		);
 
-		return hasPermission;
-	} catch (error) {
-		console.error('Error checking permission:', error);
-		throw error;
-	}
-};
+// 		// console.log('PERM');
+
+// 		return hasPermission;
+// 	} catch (error) {
+// 		console.error('Error checking permission:', error);
+// 		throw error;
+// 	}
+// };
 
 // Create a new pet record
 router.post(
@@ -58,9 +61,12 @@ router.post(
 		try {
 			const userId = req.user?.userId;
 
-			// console.log(req.body);
+			// console.log('REQ BODY: ', req.body, '\n');
 
-			const hasPermission = await checkPermission(userId, 'add_pet');
+			const hasPermission = await permissions.checkPermission(
+				userId,
+				'add_pet'
+			);
 			if (!hasPermission) {
 				logger.warn(
 					`User ${userId} attempted to add pet without sufficient permissions.`
@@ -69,6 +75,8 @@ router.post(
 					.status(403)
 					.send({ message: 'Insufficient permissions to add pet' });
 			}
+
+			// console.log('AFTER PERM ');
 
 			const insertPetQuery = `
                 INSERT INTO pets (name, owner_id, short_description, long_description, age, gender, status, type, vaccination_status, breed)
@@ -101,6 +109,8 @@ router.post(
 				breed,
 			]);
 			const newPetId = newPetResult.rows[0].pet_id;
+
+			// console.log('AFTER INSERT ACTION');
 
 			logger.info(
 				`New pet created with ID: ${newPetId} by User ${userId} for Rescue ${ownerId}`
@@ -208,7 +218,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
 	try {
 		logger.info(`User ${userId} attempting to update pet with ID: ${id}`);
-		const hasPermission = await checkPermission(userId, 'edit_pet');
+		const hasPermission = await permissions.checkPermission(userId, 'edit_pet');
 
 		if (!hasPermission) {
 			logger.warn(`User ${userId} lacks permission to edit pet with ID: ${id}`);
@@ -286,7 +296,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
 	try {
 		logger.info(`User ${userId} attempting to delete pet with ID: ${id}`);
-		const hasPermission = await checkPermission(userId, 'delete_pet');
+		const hasPermission = await permissions.checkPermission(
+			userId,
+			'delete_pet'
+		);
 
 		if (!hasPermission) {
 			logger.warn(
@@ -358,7 +371,10 @@ router.post(
 		const userId = req.user?.userId;
 
 		try {
-			const hasPermission = await checkPermission(userId, 'edit_pet');
+			const hasPermission = await permissions.checkPermission(
+				userId,
+				'edit_pet'
+			);
 			if (!hasPermission) {
 				logger.warn(
 					`User ${userId} lacks permission to upload images for pet with ID: ${id}`
@@ -417,7 +433,7 @@ router.delete('/:id/images', authenticateToken, async (req, res) => {
 	}
 
 	try {
-		const hasPermission = await checkPermission(userId, 'edit_pet');
+		const hasPermission = await permissions.checkPermission(userId, 'edit_pet');
 		if (!hasPermission) {
 			logger.warn(
 				`User ${userId} lacks permission to delete images for pet with ID: ${id}`
@@ -432,11 +448,13 @@ router.delete('/:id/images', authenticateToken, async (req, res) => {
 			values: [id],
 		};
 		const petResult = await pool.query(petQuery);
-		const pet = petResult.rows[0];
 
-		if (!pet) {
+		// Check if rows exist and if at least one row was returned
+		if (!petResult.rows || petResult.rows.length === 0) {
 			return res.status(404).send({ message: 'Pet not found' });
 		}
+
+		const pet = petResult.rows[0];
 
 		const updatedImages = pet.images.filter(
 			(image) => !imagesToDelete.includes(image)
