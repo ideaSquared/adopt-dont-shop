@@ -7,7 +7,7 @@ import app from '../index.js'; // Import your Express application
 import jwt from 'jsonwebtoken';
 
 // Allows mocking of the permissions check
-import { permissionService } from '../../services/permissionService.js';
+import { permissionService } from '../services/permissionService.js';
 
 // Create a supertest agent
 const request = supertest(app);

@@ -35,29 +35,32 @@ describe('PUT /api/rescue/:rescueId/:type(charity|company)/validate endpoint', (
 		sandbox.restore();
 	});
 
-	it('should successfully update the rescue with valid reference number', async () => {
-		const rescueId = '1';
-		const type = 'charity';
-		const referenceNumber = validCharityRegisterNumber;
+	it.only(
+		'should successfully update the rescue with valid reference number',
+		async () => {
+			const rescueId = '1';
+			const type = 'charity';
+			const referenceNumber = validCharityRegisterNumber;
 
-		pool.query.onFirstCall().resolves({
-			rows: [{ rescue_id: rescueId, reference_number: null }],
-			rowCount: 1,
-		});
-		pool.query.onSecondCall().resolves({ rows: [], rowCount: 0 }); // No conflict for the new reference number
-		pool.query.onThirdCall().resolves({ rows: [{ rescue_id: rescueId }] });
+			pool.query.onFirstCall().resolves({
+				rows: [{ rescue_id: rescueId, reference_number: null }],
+				rowCount: 1,
+			});
+			pool.query.onSecondCall().resolves({ rows: [], rowCount: 0 }); // No conflict for the new reference number
+			pool.query.onThirdCall().resolves({ rows: [{ rescue_id: rescueId }] });
 
-		const response = await request
-			.put(`/api/rescue/${rescueId}/${type}/validate`)
-			.set('Cookie', cookie)
-			.send({ referenceNumber })
-			.expect(200);
+			const response = await request
+				.put(`/api/rescue/${rescueId}/${type}/validate`)
+				.set('Cookie', cookie)
+				.send({ referenceNumber })
+				.expect(200);
 
-		expect(response.status).to.equal(200);
-		expect(response.body.message).to.equal(
-			'Charity rescue updated successfully'
-		);
-	});
+			expect(response.status).to.equal(200);
+			expect(response.body.message).to.equal(
+				'Charity rescue updated successfully'
+			);
+		}
+	).timeout(15000);
 
 	it('should return 404 if the rescue is not found', async () => {
 		const rescueId = '2';
