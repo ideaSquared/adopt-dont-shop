@@ -24,7 +24,7 @@ import LoggerUtil from '../utils/Logger.js';
 import { generateResetToken } from '../utils/tokenGenerator.js';
 import { sendEmailVerificationEmail } from '../services/emailService.js';
 
-import geoService from '../services/geoService.js';
+import { geoService } from '../services/geoService.js';
 
 export default function createAuthRoutes({ tokenGenerator, emailService }) {
 	const router = express.Router();

@@ -19,7 +19,7 @@ import { generateResetToken } from '../utils/tokenGenerator.js';
 import { sendEmailVerificationEmail } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
 
-import geoService from '../services/geoService.js';
+import { geoService } from '../services/geoService.js';
 
 // Instantiate a logger for this module.
 const logger = new LoggerUtil('rescue-route').getLogger();
@@ -421,7 +421,7 @@ router.put(
 			logger.error(
 				`Failed to update ${capitalizedType} rescue: ` + error.message
 			);
-			res.status(400).send({
+			res.status(500).send({
 				message: `Failed to update ${capitalizedType} rescue`,
 				error: error.message,
 			});
@@ -485,6 +485,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
 		if (locationPoint) {
 			queryText += `, location = $7 WHERE rescue_id = $8 RETURNING *;`;
 			queryValues.push(locationPoint, id);
+			logger.info(
+				`Rescue ${id} location updated successfully to ${locationPoint} `
+			);
 		} else {
 			queryText += ` WHERE rescue_id = $7 RETURNING *;`;
 			queryValues.push(id);
@@ -496,6 +499,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 		});
 
 		if (result.rows.length) {
+			logger.info(`Rescue ${id} updated successfully.`);
 			res.send({
 				message: 'Rescue updated successfully',
 				data: result.rows[0],
@@ -504,7 +508,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
 			res.status(404).send({ message: 'Rescue not found' });
 		}
 	} catch (error) {
-		console.error('Failed to update rescue:', error);
+		logger.error(
+			`Failed to update ${capitalizedType} rescue: ` + error.message
+		);
 		res
 			.status(500)
 			.send({ message: 'Failed to update rescue', error: error.message });
@@ -686,7 +692,8 @@ router.put(
  * It authenticates the user token, checks if the authenticated user has permission to verify staff, and then updates the staff member's verified status.
  * Returns a success message on successful verification.
  * On failure, including lack of permission, staff member not found, or database errors, returns an appropriate error message and status code.
- */ router.put(
+ */
+router.put(
 	'/:rescueId/staff/:staffId/verify',
 	authenticateToken,
 	async (req, res) => {
@@ -761,6 +768,7 @@ router.put(
 		}
 	}
 );
+
 router.delete(
 	'/:rescueId/staff/:staffId',
 	authenticateToken,
