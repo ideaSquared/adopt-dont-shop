@@ -98,9 +98,7 @@ router.get('/target/:targetId', authenticateToken, async (req, res) => {
 
 router.get('/find-ratings/:rescueId', authenticateToken, async (req, res) => {
 	try {
-		logger.info(`Params: ${JSON.stringify(req.params)}`);
-		const { rescueId } = req.params;
-		logger.info(`Using rescueId: ${rescueId}`);
+		const { rescueId } = req.params; // Make sure this line is correctly placed and used.
 
 		logger.info(
 			`Fetching likes and loves for all pets with ownerId: ${rescueId}`
@@ -195,6 +193,7 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 		});
 	}
 });
+
 router.get('/find-rated', authenticateToken, async (req, res) => {
 	try {
 		const userId = req.user.userId; // Assuming user ID is attached to the request by the authentication middleware
