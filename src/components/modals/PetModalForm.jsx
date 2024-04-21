@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Button, Form, Row, Col, Image } from 'react-bootstrap';
 import PetService from '../../services/PetService';
-import 'PetModalForm.scss';
+import './PetModalForm.scss';
 
 const PetModalForm = ({
 	show,
