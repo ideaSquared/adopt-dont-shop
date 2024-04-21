@@ -34,7 +34,7 @@ const Swipe = ({ item }) => {
 						<Button variant='danger' className='rounded-circle dislike'>
 							Dislike
 						</Button>
-						<Button variant='primary' className='rounded-circle love'>
+						<Button variant='secondary' className='rounded-circle love'>
 							Love
 						</Button>
 						<Button variant='success' className='rounded-circle like'>

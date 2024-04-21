@@ -17,7 +17,7 @@ const MessageInput = ({
 				style={{ resize: 'none' }}
 				disabled={!canCreateMessages}
 			/>
-			<Button variant='primary' type='submit' disabled={!canCreateMessages}>
+			<Button variant='secondary' type='submit' disabled={!canCreateMessages}>
 				Send
 			</Button>
 		</InputGroup>

@@ -38,7 +38,7 @@ const CustomNavbar = () => {
 						<>
 							<LinkContainer to='/login' style={{ borderRadius: '0' }}>
 								<Button
-									variant='primary'
+									variant='secondary'
 									className='p-3 d-flex flex-column align-items-center justify-content-center'
 								>
 									<BoxArrowRight className='icon' />
@@ -59,7 +59,7 @@ const CustomNavbar = () => {
 						<>
 							<LinkContainer to='/swipe' style={{ borderRadius: '0' }}>
 								<Button
-									variant='primary'
+									variant='secondary'
 									className='p-3 d-flex flex-column align-items-center justify-content-center'
 								>
 									<HouseDoor className='icon' />

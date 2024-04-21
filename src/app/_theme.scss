@@ -1,13 +1,72 @@
 // Define original theme colors
 $theme-colors: (
-    'primary': #eb557d,
-    'secondary': #102e19,
-    'success': #f4ecdf,
-    'info': #8dcfc6,
-    'warning': #ffc107,
-    'danger': #dc3545,
-    'light': #f8f9fa,
-    'dark': #343a40
+    // 'primary': #eb557d,
+    
+    // 'success': #f4ecdf,
+
+
+        'secondary': #102e19,
+        // Existing dark green
+        'secondary-complement': #19102e,
+        // Complementary to dark green (violet)
+        'secondary-analogous-1': #0e2910,
+        // Darker shade of green
+        'secondary-analogous-2': #1a3e1f,
+        // Different green variant
+    
+        'info': #8dcfc6,
+        // Existing soft teal
+        'info-complement': #c68db6,
+        // Complementary to soft teal (soft pink)
+        'info-analogous-1': #8dcfbb,
+        // Teal variant
+        'info-analogous-2': #8db4cf,
+        // Blue variant
+    
+        'warning': #ffc107,
+        // Existing yellow
+        'warning-complement': #0717ff,
+        // Complementary to yellow (violet)
+        'warning-analogous-1': #ffca07,
+        // Orange variant
+        'warning-analogous-2': #d1ff07,
+        // Lime green variant
+    
+        'danger': #dc3545,
+        // Existing red
+        'danger-complement': #35dc74,
+        // Complementary to red (green)
+        'danger-analogous-1': #dc6545,
+        // Orange-red
+        'danger-analogous-2': #dc355e,
+        // Pinkish red
+    
+        'light': #f8f9fa,
+        // Existing light gray
+        'light-complement': #0a060b,
+        // Complementary to light gray (very dark gray)
+        'light-analogous-1': #f1f1f2,
+        // Lighter gray
+        'light-analogous-2': #e0e1e2,
+        // Slightly darker gray
+    
+        'dark': #343a40,
+        // Existing dark gray
+        'dark-complement': #404334,
+        // Complementary to dark gray (olive)
+        'dark-analogous-1': #2f343a,
+        // Slightly lighter dark gray
+        'dark-analogous-2': #394045,
+        // Slightly bluer dark gray
+    
+        'grey': #bbc2c8,
+        // Existing grey
+        'grey-complement': #c8bbc2,
+        // Complementary grey (pinkish grey)
+        'grey-analogous-1': #b8c2c8,
+        // Light blue grey
+        'grey-analogous-2': #c2b8c8,
+        // Lavender grey
 );
 
 // Function to add darker variants to the map

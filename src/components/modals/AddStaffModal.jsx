@@ -134,7 +134,7 @@ const AddStaffModal = ({
 					Close
 				</Button>
 				<Button
-					variant='primary'
+					variant='secondary'
 					onClick={handleAddStaff}
 					disabled={!canAddStaff}
 				>

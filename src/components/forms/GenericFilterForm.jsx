@@ -69,7 +69,7 @@ const GenericFilterForm = ({ filters, onAddClick, canAdd }) => {
 								className='d-flex justify-content-end align-items-center'
 							>
 								<Button
-									variant='primary'
+									variant='secondary'
 									onClick={filter.onClick}
 									disabled={filter.disabled}
 									className='w-100'

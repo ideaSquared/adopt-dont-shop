@@ -55,10 +55,10 @@ const ConversationsComponent = ({
 								onConversationSelect(conversation);
 							}
 						}}
-						className={`d-flex align-items-center justify-content-between ${
+						className={`d-flex align-items-center justify-content-between bg-light ${
 							conversation.conversation_id ===
 							selectedConversation?.conversation_id
-								? 'bg-primary text-white'
+								? 'bg-dark-complement text-white'
 								: conversation.status === 'closed'
 								? 'bg-secondary text-muted'
 								: ''

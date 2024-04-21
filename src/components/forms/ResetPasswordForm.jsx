@@ -31,7 +31,7 @@ const ResetPasswordForm = ({
 					placeholder='Confirm Password'
 				/>
 			</Form.Group>
-			<Button variant='primary' type='submit'>
+			<Button variant='secondary' type='submit'>
 				Reset Password
 			</Button>
 		</Form>

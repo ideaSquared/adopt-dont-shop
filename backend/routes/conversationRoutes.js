@@ -164,21 +164,37 @@ router.get('/', authenticateToken, async (req, res) => {
 		// Check if the request is specifically for 'Rescue' conversations
 		if (req.query.type === 'Rescue') {
 			query = `
-                SELECT conversations.*, participants.participant_id, participants.participant_type, users.first_name, rescues.rescue_name FROM conversations
+				SELECT 
+					conversations.*,
+					participants.participant_id,
+					participants.participant_type,
+					users.first_name,
+					rescues.rescue_name,
+					pets.name AS pet_name
+				FROM conversations
 				JOIN participants ON conversations.conversation_id = participants.conversation_id
 				LEFT JOIN users ON participants.participant_id = users.user_id
 				JOIN rescues ON participants.rescue_id = rescues.rescue_id
+				LEFT JOIN pets ON conversations.pet_id = pets.pet_id
 				WHERE participants.rescue_id = $1 AND participants.participant_type = 'Rescue'
-            `;
+			`;
 			// console.log('RESCUE CONVERSATIONS');
 		} else {
 			query = `
-                SELECT conversations.*, participants.participant_id, participants.participant_type, users.first_name, rescues.rescue_name FROM conversations
+				SELECT 
+					conversations.*,
+					participants.participant_id,
+					participants.participant_type,
+					users.first_name,
+					rescues.rescue_name,
+					pets.name AS pet_name
+				FROM conversations
 				JOIN participants ON conversations.conversation_id = participants.conversation_id
 				JOIN users ON participants.user_id = users.user_id
 				LEFT JOIN rescues ON participants.rescue_id = rescues.rescue_id
+				LEFT JOIN pets ON conversations.pet_id = pets.pet_id
 				WHERE participants.user_id = $1 AND participants.participant_type = 'User'
-            `;
+			`;
 			queryParams = [req.user.userId];
 			// console.log('USER CONVERSATIONS');
 		}

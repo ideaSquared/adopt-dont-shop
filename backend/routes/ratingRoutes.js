@@ -120,7 +120,8 @@ router.get('/find-ratings/:rescueId', authenticateToken, async (req, res) => {
 					JOIN users u ON r.user_id = u.user_id
 				WHERE 
 					p.owner_id = $1
-					AND r.rating_type != 'dislike';
+					AND r.rating_type != 'dislike'
+				ORDER BY r.created_at DESC;
 
 			`,
 			values: [rescueId],

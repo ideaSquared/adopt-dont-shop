@@ -31,7 +31,7 @@ const LoginForm = ({ onEmailChange, onPasswordChange, onLogin }) => {
 
 			<Row>
 				<Col>
-					<Button variant='primary' type='submit'>
+					<Button variant='secondary' type='submit'>
 						Login
 					</Button>
 				</Col>

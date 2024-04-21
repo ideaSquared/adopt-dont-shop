@@ -18,7 +18,7 @@ const ForgotPassword = ({ onEmailChange, onForgotPassword }) => {
 					placeholder='Enter email'
 				/>
 			</Form.Group>
-			<Button variant='primary' type='submit'>
+			<Button variant='secondary' type='submit'>
 				Reset my password
 			</Button>
 		</Form>

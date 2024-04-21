@@ -108,7 +108,7 @@ const SwipeLanding = ({ item, handleSwipe }) => {
 								<span className='visually-hidden'>Dislike</span>
 							</Button>
 							<Button
-								variant='primary'
+								variant='secondary'
 								className='rounded-circle love'
 								onClick={() => handleAction('love')}
 								aria-label='Love'

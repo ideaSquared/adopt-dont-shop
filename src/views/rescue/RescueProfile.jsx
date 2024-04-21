@@ -322,7 +322,7 @@ const RescueProfile = () => {
 							/>
 						)}
 						<Card>
-							<Card.Body className='bg-info'>{renderSection()}</Card.Body>
+							<Card.Body className='bg-grey'>{renderSection()}</Card.Body>
 						</Card>
 					</Col>
 				</Row>

@@ -403,7 +403,7 @@ const CreateAccountForm = ({
 			</Row>
 			<Row>
 				<Col>
-					<Button variant='primary' type='submit'>
+					<Button variant='secondary' type='submit'>
 						Create Account
 					</Button>
 				</Col>

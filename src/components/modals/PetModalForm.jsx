@@ -396,7 +396,7 @@ const PetModalForm = ({
 					<Button variant='secondary' onClick={handleClose}>
 						Close
 					</Button>
-					<Button variant='primary' type='submit' onClick={handleSubmit}>
+					<Button variant='secondary' type='submit' onClick={handleSubmit}>
 						Save Changes
 					</Button>
 				</Modal.Footer>

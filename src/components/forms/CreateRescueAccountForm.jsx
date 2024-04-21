@@ -596,7 +596,7 @@ const CreateRescueAccountForm = ({
 
 			<Row>
 				<Col>
-					<Button variant='primary' type='submit'>
+					<Button variant='secondary' type='submit'>
 						Create Rescue Account
 					</Button>
 				</Col>

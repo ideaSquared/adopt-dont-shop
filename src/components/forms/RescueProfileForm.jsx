@@ -448,7 +448,7 @@ const RescueProfileForm = ({
 			{/* <Form.Group className='mb-3'></Form.Group> */}
 
 			<Button
-				variant='primary'
+				variant='secondary'
 				className='mt-3'
 				onClick={onSubmitUpdates}
 				disabled={!canEditRescueInfo}

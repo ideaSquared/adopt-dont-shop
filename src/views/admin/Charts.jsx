@@ -147,7 +147,7 @@ const Charts = () => {
 						className='form-control me-2'
 						style={{ width: 'auto', flexGrow: '1' }} // Ensure DatePicker takes only needed space and grows with the container
 					/>
-					<Button type='submit' variant='primary' className='mx-2'>
+					<Button type='submit' variant='secondary' className='mx-2'>
 						Set Date Range
 					</Button>
 				</Form.Group>

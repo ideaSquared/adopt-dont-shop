@@ -463,7 +463,7 @@ const AccountProfileForm = ({ initialData, updateUserDetails }) => {
 					</Col>
 				</Row>
 
-				<Button variant='primary' type='submit'>
+				<Button variant='secondary' type='submit'>
 					Update my account
 				</Button>
 			</Form>
