@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Badge, Button, Carousel } from 'react-bootstrap';
+import { Card, Badge, Button, Carousel, Image } from 'react-bootstrap';
 
 const MessagesPetDisplay = ({ petData, isExpanded, toggleHeight }) => {
 	if (!petData) return null;
@@ -17,18 +17,19 @@ const MessagesPetDisplay = ({ petData, isExpanded, toggleHeight }) => {
 				<div style={{ width: '50%', overflow: 'hidden' }}>
 					<Carousel
 						style={{
-							height: isExpanded ? '50vh' : '15vh',
+							height: isExpanded ? '100%' : '15vh',
 						}}
 					>
 						{petData.images.map((image, index) => (
 							<Carousel.Item key={index}>
-								<img
+								<Image
 									className='d-block w-100'
 									src={fileUploadsPath + image}
 									alt={`Slide ${index}`}
 									style={{
 										objectFit: 'cover',
 										height: isExpanded ? '100%' : '15vh',
+										// height: '100%',
 									}}
 								/>
 							</Carousel.Item>

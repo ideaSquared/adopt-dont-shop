@@ -85,7 +85,7 @@ const AccountProfileForm = ({ initialData, updateUserDetails }) => {
 					/>
 				</Form.Group>
 				<Form.Group className='mb-3' controlId='lastName'>
-					<Form.Label>First name</Form.Label>
+					<Form.Label>Last name</Form.Label>
 					<Form.Control
 						type='text'
 						name='lastName'
@@ -464,7 +464,7 @@ const AccountProfileForm = ({ initialData, updateUserDetails }) => {
 				</Row>
 
 				<Button variant='primary' type='submit'>
-					Update Details
+					Update my account
 				</Button>
 			</Form>
 		</>

@@ -79,7 +79,10 @@ const MessagesComponent = ({
 	}
 
 	return (
-		<Container fluid className='d-flex flex-column vh-100 p-2'>
+		<Container
+			fluid
+			className='d-flex flex-column vh-100 p-2 bg-light mx-2 rounded'
+		>
 			<MessagesPetDisplay
 				petData={petData}
 				isExpanded={isExpanded}

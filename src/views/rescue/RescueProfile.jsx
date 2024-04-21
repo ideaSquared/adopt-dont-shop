@@ -8,6 +8,7 @@ import {
 	Offcanvas,
 	Form,
 	Button,
+	Card,
 } from 'react-bootstrap';
 import axios from 'axios';
 import AlertComponent from '../../components/common/AlertComponent';
@@ -253,7 +254,7 @@ const RescueProfile = () => {
 					<Col
 						md={3}
 						lg={2}
-						className='d-none d-md-block bg-light p-0'
+						className='d-none d-md-block p-0'
 						style={{ height: '100vh' }}
 					>
 						<Nav
@@ -312,7 +313,7 @@ const RescueProfile = () => {
 							</Nav>
 						</Offcanvas.Body>
 					</Offcanvas>
-					<Col xs={12} md={9} lg={10}>
+					<Col xs={12} md={9} lg={10} className='bg-light p-2'>
 						{alertInfo.message && (
 							<AlertComponent
 								type={alertInfo.type}
@@ -320,7 +321,9 @@ const RescueProfile = () => {
 								onClose={() => setAlertInfo({ type: '', message: '' })}
 							/>
 						)}
-						<div>{renderSection()}</div>
+						<Card>
+							<Card.Body className='bg-info'>{renderSection()}</Card.Body>
+						</Card>
 					</Col>
 				</Row>
 			</Container>

@@ -106,8 +106,11 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 	}
 
 	return (
-		<Container fluid className={`${userType === 'Rescue' ? 'h-100 p-0' : ''}`}>
-			<Row className={`${userType === 'Rescue' ? 'h-100 g-0' : ''}`}>
+		<Container
+			fluid
+			className={`${userType === 'Rescue' ? 'h-100 p-0' : 'pt-md-3'}`}
+		>
+			<Row className={`${userType === 'Rescue' ? 'h-100 g-0' : 'p-1'}`}>
 				<Col
 					xs={12}
 					md={userType === 'Rescue' ? 3 : 4}

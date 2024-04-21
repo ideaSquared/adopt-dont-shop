@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AlertComponent from '../../components/common/AlertComponent'; // Make sure the path is correct
 
-import { Container } from 'react-bootstrap';
+import { Container, Card, Row, Col } from 'react-bootstrap';
 
 const LoginPage = () => {
 	const [email, setEmail] = useState('');
@@ -41,20 +41,28 @@ const LoginPage = () => {
 			className='d-flex justify-content-center align-items-center'
 			style={{ minHeight: '100vh' }}
 		>
-			<div className='justify-content-md-center w-50'>
-				{alert.show && (
-					<AlertComponent
-						type={alert.type}
-						message={alert.message}
-						onClose={handleCloseAlert}
-					/>
-				)}
-				<LoginForm
-					onEmailChange={setEmail}
-					onPasswordChange={setPassword}
-					onLogin={handleLogin}
-				/>
-			</div>
+			<Row className='w-75'>
+				<Col xs={12}>
+					<Card className='bg-light'>
+						<Card.Body>
+							<div className='justify-content-md-center '>
+								{alert.show && (
+									<AlertComponent
+										type={alert.type}
+										message={alert.message}
+										onClose={handleCloseAlert}
+									/>
+								)}
+								<LoginForm
+									onEmailChange={setEmail}
+									onPasswordChange={setPassword}
+									onLogin={handleLogin}
+								/>
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+			</Row>
 		</Container>
 	);
 };

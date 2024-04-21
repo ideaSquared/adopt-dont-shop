@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container } from 'react-bootstrap';
+import { Container, Card, Row, Col } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 import AccountProfileForm from '../../components/forms/AccountProfileForm';
@@ -29,15 +29,23 @@ const UserProfilePage = () => {
 
 	return (
 		<Container
-			className='d-flex justify-content-center mt-3'
+			className='d-flex justify-content-center align-items-center'
 			style={{ minHeight: '100vh' }}
 		>
-			<div className='justify-content-md-center w-50'>
-				<AccountProfileForm
-					initialData={initialData}
-					updateUserDetails={updateUserDetails}
-				/>
-			</div>
+			<Row>
+				<Col xs={12}>
+					<Card className='bg-light'>
+						<Card.Body>
+							<div className='justify-content-md-center'>
+								<AccountProfileForm
+									initialData={initialData}
+									updateUserDetails={updateUserDetails}
+								/>
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+			</Row>
 		</Container>
 	);
 };

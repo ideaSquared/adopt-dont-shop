@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Row, Col, Button, Card } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
 const CreateRescueAccountForm = ({
 	onFirstNameChange,
@@ -600,9 +601,9 @@ const CreateRescueAccountForm = ({
 					</Button>
 				</Col>
 				<Col className='d-flex justify-content-end'>
-					<a href='/create-account' className='align-self-center'>
+					<Link to='/create-account' className='align-self-center'>
 						Are you not a rescue?
-					</a>
+					</Link>
 				</Col>
 			</Row>
 		</Form>

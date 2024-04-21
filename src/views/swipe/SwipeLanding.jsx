@@ -45,7 +45,7 @@ const SwipeLanding = ({ item, handleSwipe }) => {
 	};
 
 	return (
-		<div className='d-flex align-items-center justify-content-center swipe-screen'>
+		<div className='d-flex align-items-center justify-content-center swipe-screen my-sm-3'>
 			{!viewDetails ? (
 				<Card
 					className={`swipe-card ${animationClass}`}

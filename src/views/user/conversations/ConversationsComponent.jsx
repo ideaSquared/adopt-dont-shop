@@ -38,8 +38,10 @@ const ConversationsComponent = ({
 		return dateB - dateA;
 	});
 
+	console.log(conversations);
+
 	return (
-		<Card className='flex-grow-1' style={{ overflowY: 'auto' }}>
+		<Card className='flex-grow-1 mb-sm-3' style={{ overflowY: 'none' }}>
 			<Card.Header className='bg-dark text-white'>
 				<span className='fs-5 fw-semibold'>{title}</span>
 			</Card.Header>
@@ -68,7 +70,7 @@ const ConversationsComponent = ({
 					>
 						<div className='flex-grow-1 text-truncate'>
 							<div className='fw-bold text-truncate'>
-								{getParticipantName(conversation)} for {conversation.pet_id}
+								{getParticipantName(conversation)} for {conversation.pet_name}
 							</div>
 							<div className='small text-truncate'>
 								{conversation.last_message}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ForgotPasswordForm from '../../components/forms/ForgotPasswordForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Container } from 'react-bootstrap';
+import { Container, Card, Row, Col } from 'react-bootstrap';
 import AlertComponent from '../../components/common/AlertComponent'; // Make sure the path is correct
 
 const ForgotPasswordPage = () => {
@@ -36,19 +36,27 @@ const ForgotPasswordPage = () => {
 			className='d-flex justify-content-center align-items-center'
 			style={{ minHeight: '100vh' }}
 		>
-			{alert.show && (
-				<AlertComponent
-					type={alert.type}
-					message={alert.message}
-					onClose={handleCloseAlert}
-				/>
-			)}
-			<div className='justify-content-md-center w-50'>
-				<ForgotPasswordForm
-					onEmailChange={setEmail}
-					onForgotPassword={handleForgotPassword}
-				/>
-			</div>
+			<Row>
+				<Col xs={12}>
+					<Card className='bg-light'>
+						<Card.Body>
+							{alert.show && (
+								<AlertComponent
+									type={alert.type}
+									message={alert.message}
+									onClose={handleCloseAlert}
+								/>
+							)}
+							<div className='justify-content-md-center'>
+								<ForgotPasswordForm
+									onEmailChange={setEmail}
+									onForgotPassword={handleForgotPassword}
+								/>
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+			</Row>
 		</Container>
 	);
 };

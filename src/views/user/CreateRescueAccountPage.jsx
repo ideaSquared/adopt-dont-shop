@@ -3,7 +3,7 @@ import CreateRescueAccountForm from '../../components/forms/CreateRescueAccountF
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-import { Container } from 'react-bootstrap';
+import { Container, Card, Row, Col } from 'react-bootstrap';
 import AlertComponent from '../../components/common/AlertComponent'; // Make sure the path is correct
 
 const CreateRescueAccountPage = () => {
@@ -59,38 +59,46 @@ const CreateRescueAccountPage = () => {
 
 	return (
 		<Container
-			className='d-flex justify-content-center align-items-center'
+			className='d-flex justify-content-center align-items-center mt-2'
 			style={{ minHeight: '100vh' }}
 		>
-			<div className='justify-content-md-center w-75'>
-				{alert.show && (
-					<AlertComponent
-						type={alert.type}
-						message={alert.message}
-						onClose={handleCloseAlert}
-					/>
-				)}
-				<CreateRescueAccountForm
-					onFirstNameChange={setFirstName}
-					onLastNameChange={setLastName}
-					onEmailChange={setEmail}
-					onPasswordChange={setPassword}
-					onConfirmPasswordChange={setConfirmPassword}
-					onRescueTypeChange={setRescueType}
-					onRescueNameChange={setRescueName}
-					// onAddressLine1Change={setAddressLine1}
-					// onAddressLine2Change={setAddressLine2}
-					onCityChange={setCity}
-					// onCountyChange={setCounty}
-					// onPostcodeChange={setPostcode}
-					onCountryChange={setCountry}
-					onCreateRescueAccount={handleCreateRescueAccount}
-					rescueType={rescueType}
-					onReferenceNumberChange={setReferenceNumber}
-					password={password}
-					confirmPassword={confirmPassword}
-				/>
-			</div>
+			<Row>
+				<Col xs={12}>
+					<Card className='bg-light'>
+						<Card.Body>
+							<div className='justify-content-md-center'>
+								{alert.show && (
+									<AlertComponent
+										type={alert.type}
+										message={alert.message}
+										onClose={handleCloseAlert}
+									/>
+								)}
+								<CreateRescueAccountForm
+									onFirstNameChange={setFirstName}
+									onLastNameChange={setLastName}
+									onEmailChange={setEmail}
+									onPasswordChange={setPassword}
+									onConfirmPasswordChange={setConfirmPassword}
+									onRescueTypeChange={setRescueType}
+									onRescueNameChange={setRescueName}
+									// onAddressLine1Change={setAddressLine1}
+									// onAddressLine2Change={setAddressLine2}
+									onCityChange={setCity}
+									// onCountyChange={setCounty}
+									// onPostcodeChange={setPostcode}
+									onCountryChange={setCountry}
+									onCreateRescueAccount={handleCreateRescueAccount}
+									rescueType={rescueType}
+									onReferenceNumberChange={setReferenceNumber}
+									password={password}
+									confirmPassword={confirmPassword}
+								/>
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+			</Row>
 		</Container>
 	);
 };

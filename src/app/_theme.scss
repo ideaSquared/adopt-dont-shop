@@ -1,0 +1,34 @@
+// Define original theme colors
+$theme-colors: (
+    'primary': #eb557d,
+    'secondary': #102e19,
+    'success': #f4ecdf,
+    'info': #8dcfc6,
+    'warning': #ffc107,
+    'danger': #dc3545,
+    'light': #f8f9fa,
+    'dark': #343a40
+);
+
+// Function to add darker variants to the map
+@function add-darker-variants($colors, $percentage: 15%) {
+    $new-colors: (
+        ); 
+
+    @each $color-name, $color-value in $colors {
+        // Create a new color name for the darker variant
+        $darker-name: $color-name + '-dark';
+        // Darken the color
+        $darker-color: darken($color-value, $percentage);
+        // Add the original and the darker color to the new map
+        $new-colors: map-merge($new-colors, ($color-name: $color-value, $darker-name: $darker-color));
+    }
+
+    // Automatically returns the last evaluated expression
+    @return $new-colors;
+}
+
+// Extend $theme-colors map to include darker variants
+$theme-colors: add-darker-variants($theme-colors);
+
+// Now $theme-colors contains both the original and darker variants of each color

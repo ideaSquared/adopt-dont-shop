@@ -1,0 +1,35 @@
+// custom.scss
+
+// Importing the Bootstrap functions first is important
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+
+@import './_theme.scss';
+@import './text.scss';
+@import './inputs.scss';
+
+// Optionally: Override any other Bootstrap variables here
+$body-bg: #f4ecdf;
+$body-color: #102e19;
+
+// Import the rest of Bootstrap
+@import 'bootstrap/scss/bootstrap';
+
+/* Default icon size for md devices and larger */
+.icon {
+    font-size: 50px;
+}
+
+/* Small devices (landscape phones, less than 768px) */
+@media (max-width: 767.98px) {
+    .icon {
+        font-size: 40px;
+    }
+}
+
+/* Extra small devices (portrait phones, less than 576px) */
+@media (max-width: 575.98px) {
+    .icon {
+        font-size: 35px;
+    }
+}

@@ -3,7 +3,7 @@ import ResetPasswordForm from '../../components/forms/ResetPasswordForm';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-import { Container } from 'react-bootstrap';
+import { Container, Card, Row, Col } from 'react-bootstrap';
 import AlertComponent from '../../components/common/AlertComponent';
 
 const ResetPasswordPage = () => {
@@ -21,7 +21,7 @@ const ResetPasswordPage = () => {
 		if (token) {
 			setToken(token);
 		} else {
-			alert('No token provided.');
+			setAlert({ ...alert, show: false });
 		}
 	}, [location]);
 
@@ -53,20 +53,28 @@ const ResetPasswordPage = () => {
 			className='d-flex justify-content-center align-items-center'
 			style={{ minHeight: '100vh' }}
 		>
-			{alert.show && (
-				<AlertComponent
-					type={alert.type}
-					message={alert.message}
-					onClose={handleCloseAlert}
-				/>
-			)}
-			<div className='justify-content-md-center w-50'>
-				<ResetPasswordForm
-					onPasswordChange={setPassword}
-					onConfirmPasswordChange={setConfirmPassword}
-					onResetPassword={handleResetPassword}
-				/>
-			</div>
+			<Row>
+				<Col xs={12}>
+					<Card className='bg-light'>
+						<Card.Body>
+							{alert.show && (
+								<AlertComponent
+									type={alert.type}
+									message={alert.message}
+									onClose={handleCloseAlert}
+								/>
+							)}
+							<div className='justify-content-md-center'>
+								<ResetPasswordForm
+									onPasswordChange={setPassword}
+									onConfirmPasswordChange={setConfirmPassword}
+									onResetPassword={handleResetPassword}
+								/>
+							</div>
+						</Card.Body>
+					</Card>
+				</Col>
+			</Row>
 		</Container>
 	);
 };

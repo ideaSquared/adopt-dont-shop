@@ -36,12 +36,21 @@ import Conversations from '../views/user/Conversations';
 import UserSwiper from '../views/user/UserSwiper';
 import AdminLanding from '../views/admin/Landing';
 
+import LandingFeatures from '../views/LandingFeatures';
+import LandingPricing from '../views/LandingPricing';
+import LandingFAQ from '../views/LandingFAQ';
+
 function App() {
 	return (
 		<Router>
 			<CustomNavbar />
 			<Routes>
 				<Route path='/' element={<HomePage />} />
+
+				<Route path='/features' element={<LandingFeatures />} />
+				<Route path='/pricing' element={<LandingPricing />} />
+				<Route path='/faq' element={<LandingFAQ />} />
+
 				<Route path='/login' element={<LoginPage />} />
 				<Route path='/create-account' element={<CreateAccountPage />} />
 				<Route

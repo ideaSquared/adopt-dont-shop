@@ -1,5 +1,6 @@
 import React from 'react';
 import { Form, Button, Row, Col } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
 const LoginForm = ({ onEmailChange, onPasswordChange, onLogin }) => {
 	return (
@@ -35,9 +36,9 @@ const LoginForm = ({ onEmailChange, onPasswordChange, onLogin }) => {
 					</Button>
 				</Col>
 				<Col className='d-flex justify-content-end'>
-					<a href='/forgot-password' className='align-self-center'>
+					<Link to='/forgot-password' className='align-self-center'>
 						Forgot password?
-					</a>
+					</Link>
 				</Col>
 			</Row>
 		</Form>

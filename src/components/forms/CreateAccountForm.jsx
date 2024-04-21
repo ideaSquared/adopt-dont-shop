@@ -1,5 +1,6 @@
 import React from 'react';
 import { Form, Button, Row, Col } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
 const CreateAccountForm = ({
 	onFirstNameChange,
@@ -407,9 +408,9 @@ const CreateAccountForm = ({
 					</Button>
 				</Col>
 				<Col className='d-flex justify-content-end'>
-					<a href='/create-rescue-account' className='align-self-center'>
+					<Link to='/create-rescue-account' className='align-self-center'>
 						Are you a rescue?
-					</a>
+					</Link>
 				</Col>
 			</Row>
 		</Form>

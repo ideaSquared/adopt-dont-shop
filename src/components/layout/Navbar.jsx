@@ -1,86 +1,133 @@
-// Navbar.jsx
 import React from 'react';
 import { LinkContainer } from 'react-router-bootstrap';
-import { Navbar, Nav, Button, Container, Dropdown } from 'react-bootstrap';
+import {
+	Container,
+	Row,
+	Col,
+	Button,
+	ButtonGroup,
+	Dropdown,
+	DropdownButton,
+} from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
+
+// Import the icons with specific sizes
+import {
+	PersonCircle,
+	ChatRightText,
+	BoxArrowRight,
+	PlusCircle,
+	HouseDoor,
+	Briefcase,
+	Eye,
+} from 'react-bootstrap-icons';
 
 const CustomNavbar = () => {
 	const { authState } = useAuth();
 	const handleLogout = useLogout();
 
-	// console.log(authState);
-
 	return (
-		<Navbar bg='light' expand='lg' className='bg-body-tertiary rounded'>
-			<Container fluid>
-				<LinkContainer to='/'>
-					<Navbar.Brand>AdoptDontShop</Navbar.Brand>
-				</LinkContainer>
-				<Navbar.Toggle aria-controls='navbarScroll' />
-				<Navbar.Collapse id='navbarScroll'>
-					<Nav
-						className='me-auto my-2 my-lg-0'
-						style={{ maxHeight: '100px' }}
-						navbarScroll
-					>
-						<LinkContainer to='/'>
-							<Nav.Link>Home</Nav.Link>
-						</LinkContainer>
-					</Nav>
-					<div className='d-flex'>
-						{!authState.isLoggedIn ? (
-							<>
-								<LinkContainer to='/login'>
-									<Button variant='primary' className='mx-2'>
-										Login
+		<Container fluid>
+			<Row className='justify-content-around text-center'>
+				<ButtonGroup
+					className='d-flex w-100 justify-content-around m-0 p-0'
+					style={{ borderRadius: '0' }}
+				>
+					{!authState.isLoggedIn ? (
+						<>
+							<LinkContainer to='/login' style={{ borderRadius: '0' }}>
+								<Button
+									variant='primary'
+									className='p-3 d-flex flex-column align-items-center justify-content-center'
+								>
+									<BoxArrowRight className='icon' />
+									<span className='d-none d-sm-inline'>Login</span>
+								</Button>
+							</LinkContainer>
+							<LinkContainer to='/create-account' style={{ borderRadius: '0' }}>
+								<Button
+									variant='info'
+									className='p-3 d-flex flex-column align-items-center justify-content-center'
+								>
+									<PlusCircle className='icon' />
+									<span className='d-none d-sm-inline'>Create Account</span>
+								</Button>
+							</LinkContainer>
+						</>
+					) : (
+						<>
+							<LinkContainer to='/swipe' style={{ borderRadius: '0' }}>
+								<Button
+									variant='primary'
+									className='p-3 d-flex flex-column align-items-center justify-content-center'
+								>
+									<HouseDoor className='icon' />
+									<span className='d-none d-sm-inline'>Swipe</span>
+								</Button>
+							</LinkContainer>
+							<LinkContainer
+								to='/adopter-conversations'
+								style={{ borderRadius: '0' }}
+							>
+								<Button
+									variant='success'
+									className='p-3 d-flex flex-column align-items-center justify-content-center'
+								>
+									<ChatRightText className='icon' />
+									<span className='d-none d-sm-inline'>Messages</span>
+								</Button>
+							</LinkContainer>
+
+							<LinkContainer to='/my-profile' style={{ borderRadius: '0' }}>
+								<Button
+									variant='info'
+									className='p-3 d-flex flex-column align-items-center justify-content-center'
+								>
+									<PersonCircle className='icon' />
+									<span className='d-none d-sm-inline'>My Profile</span>
+								</Button>
+							</LinkContainer>
+
+							{authState.isAdmin && (
+								<LinkContainer to='/admin' style={{ borderRadius: '0' }}>
+									<Button
+										variant='info'
+										className='p-3 d-flex flex-column align-items-center justify-content-center'
+									>
+										<Eye className='icon' />
+										<span className='d-none d-sm-inline'>Admin</span>
 									</Button>
 								</LinkContainer>
-								<LinkContainer to='/create-account'>
-									<Button variant='primary' className='mx-2'>
-										Create Account
+							)}
+							{authState.isRescue && (
+								<LinkContainer
+									to='/rescue-profile'
+									style={{ borderRadius: '0' }}
+								>
+									<Button
+										variant='info'
+										className='p-3 d-flex flex-column align-items-center justify-content-center'
+									>
+										<Briefcase className='icon' />
+										<span className='d-none d-sm-inline'>Rescue Profile</span>
 									</Button>
 								</LinkContainer>
-							</>
-						) : (
-							<>
-								<LinkContainer to='/adopter-conversations'>
-									<Button variant='primary' className='mx-2'>
-										Adopter Messages
-									</Button>
-								</LinkContainer>
-
-								<Dropdown className='mx-2' align={{ lg: 'end ' }}>
-									<Dropdown.Toggle variant='secondary' id='dropdown-settings'>
-										Settings
-									</Dropdown.Toggle>
-
-									<Dropdown.Menu>
-										<LinkContainer to='/my-profile'>
-											<Dropdown.Item>My Profile</Dropdown.Item>
-										</LinkContainer>
-
-										{authState.isAdmin && (
-											<LinkContainer to='/admin'>
-												<Dropdown.Item>Admin</Dropdown.Item>
-											</LinkContainer>
-										)}
-
-										{authState.isRescue && (
-											<LinkContainer to='/rescue-profile'>
-												<Dropdown.Item>Rescue Profile</Dropdown.Item>
-											</LinkContainer>
-										)}
-
-										<Dropdown.Item onClick={handleLogout}>Logout</Dropdown.Item>
-									</Dropdown.Menu>
-								</Dropdown>
-							</>
-						)}
-					</div>
-				</Navbar.Collapse>
-			</Container>
-		</Navbar>
+							)}
+							<Button
+								variant='warning'
+								className='p-3 d-flex flex-column align-items-center justify-content-center'
+								style={{ borderRadius: '0' }}
+								onClick={handleLogout}
+							>
+								<BoxArrowRight className='icon' />
+								<span className='d-none d-sm-inline'>Logout</span>
+							</Button>
+						</>
+					)}
+				</ButtonGroup>
+			</Row>
+		</Container>
 	);
 };
 
