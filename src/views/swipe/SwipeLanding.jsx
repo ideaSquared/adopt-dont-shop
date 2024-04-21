@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Button, Badge } from 'react-bootstrap';
 import { HandThumbsDown, HeartFill, HandThumbsUp } from 'react-bootstrap-icons';
-import './SwipeLayout.css';
-import './SwipeButton.css';
-import './SwipeResponsive.css';
-import './SwipeAnimation.css';
+import './Swipe.scss';
 
 const SwipeLanding = ({ item, handleSwipe }) => {
 	const [viewDetails, setViewDetails] = useState(false);

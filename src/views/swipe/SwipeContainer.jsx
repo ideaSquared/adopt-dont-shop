@@ -4,11 +4,13 @@ import useFetchUnratedPets from '../../hooks/useFetchUnratedPets';
 import { useAuth } from '../../contexts/AuthContext';
 import { postRating } from '../../services/RatingService';
 import SwipeLanding from './SwipeLanding';
+import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 
 const SwipeContainer = () => {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const { pets, isLoading, error } = useFetchUnratedPets();
 	const { userId } = useAuth().authState;
+	useLoginRedirect();
 
 	const handleSwipe = async (direction) => {
 		if (currentIndex < pets.length) {

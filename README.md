@@ -138,7 +138,7 @@ src/
 |-- utils/ # Utility functions and constants
 |-- app/
 | |-- App.jsx # Main App component
-| |-- App.css
+| |-- App.scss
 |-- index.js # Entry point for React app
-|-- index.css
+|-- index.scss
 |-- setupTests.js # If you're using create-react-app, setup for tests

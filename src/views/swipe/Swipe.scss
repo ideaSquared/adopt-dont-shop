@@ -1,0 +1,166 @@
+// Define basic animations
+@keyframes flyOutLeft {
+    to {
+        transform: translateX(-150%) rotate(-30deg);
+        opacity: 0;
+    }
+}
+
+@keyframes flyOutRight {
+    to {
+        transform: translateX(150%) rotate(30deg);
+        opacity: 0;
+    }
+}
+
+@keyframes flyOutTop {
+    to {
+        transform: translateY(-150%) rotate(15deg);
+        opacity: 0;
+    }
+}
+
+// Animation classes
+.fly-out-left {
+    animation: flyOutLeft 0.5s forwards;
+}
+
+.fly-out-right {
+    animation: flyOutRight 0.5s forwards;
+}
+
+.fly-out-top {
+    animation: flyOutTop 0.5s forwards;
+}
+
+// Button styles
+.action-buttons {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+
+    .btn {
+        width: 74px;
+        height: 74px;
+        border: none;
+    }
+}
+
+// Navigation button styles
+.navigation-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-750%);
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+
+    &.prev {
+        left: 10px;
+    }
+
+    &.next {
+        right: 10px;
+    }
+
+    &:hover {
+        background: rgba(255, 255, 255, 1);
+        cursor: pointer;
+    }
+}
+
+// Specific button variants
+%button-style {
+    transition: background-color 0.3s ease;
+
+    &:hover {
+        cursor: pointer;
+    }
+}
+
+.dislike {
+    @extend %button-style;
+    background-color: #dc3545;
+
+    &:hover {
+        background-color: #FA8072;
+    }
+}
+
+.love {
+    @extend %button-style;
+    background-color: #FF1493;
+
+    &:hover {
+        background-color: #FFB6C1;
+    }
+}
+
+.like {
+    @extend %button-style;
+    background-color: #28a745;
+
+    &:hover {
+        background-color: #58D68D;
+    }
+}
+
+.rounded-circle svg {
+    width: 50%;
+    height: auto;
+}
+
+// Layout styles
+.swipe-screen {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.swipe-card {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 2px 8px 16px rgba(0, 0, 0, 0.4);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    width: 50vw;
+    height: 75vh;
+
+    &.detailed-view {
+        overflow-y: auto;
+        max-height: 90vh;
+        width: auto;
+        margin: 20px;
+        padding: 20px;
+    }
+}
+
+.swipe-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 20px;
+}
+
+.badge-container {
+    padding: 10px;
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+    .swipe-card {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    .navigation-button.prev,
+    .navigation-button.next {
+        top: 50%;
+        transform: translateY(-900%);
+    }
+}
