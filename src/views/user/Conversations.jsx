@@ -85,8 +85,6 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 	const handleConversationSelect = async (conversation) => {
 		setSelectedConversation(conversation);
 
-		// Only applicable for rescues, marking messages as read
-
 		try {
 			await axios.put(
 				`${import.meta.env.VITE_API_BASE_URL}/conversations/messages/read/${

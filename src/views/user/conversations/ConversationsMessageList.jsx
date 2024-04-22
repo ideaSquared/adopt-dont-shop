@@ -1,19 +1,34 @@
 import React, { useRef, useEffect } from 'react';
 import { Card, Badge } from 'react-bootstrap';
+import './MessageList.scss';
 
 const MessageList = ({ messages, userType, userId, listOfStaffIds }) => {
 	const messagesEndRef = useRef(null);
+	const containerRef = useRef(null);
 
 	const scrollToBottom = () => {
-		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+		// Ensure the scroll to bottom affects only the message container
+		messagesEndRef.current?.scrollIntoView({
+			behavior: 'smooth',
+			block: 'nearest',
+			inline: 'start',
+		});
 	};
 
 	useEffect(() => {
-		scrollToBottom();
-	}, [messages]); // Effect runs on messages update
+		scrollToBottom(); // Call this when the component mounts
+	}, []); // Empty dependency array to run only once on mount
+
+	useEffect(() => {
+		scrollToBottom(); // Scroll to bottom whenever messages update
+	}, [messages]); // Dependency on messages to update on new message arrival
 
 	return (
-		<div className='overflow-auto' style={{ flex: 1 }}>
+		<div
+			className='overflow-auto custom-scroll'
+			style={{ flex: 1, maxHeight: '80vh' }}
+			ref={containerRef}
+		>
 			{messages.map((msg, index) => {
 				const isUserMessage =
 					(userType === 'User' && msg.sender_id === userId) ||
