@@ -1,0 +1,20 @@
+.content-wrapper {
+    padding-bottom: 60px; // Adjust the value to match the height of your navbar
+}
+
+/* Add this CSS to your stylesheet */
+.card-hover-darken:hover {
+    .img-hover-darken {
+        filter: brightness(70%);
+    }
+
+}
+
+.image-fixed-height {
+    height: 25vh;
+    /* Set height to fit your design */
+    object-fit: scale-down;
+    /* Cover ensures the image fully covers the set height and width */
+    width: 100%;
+    /* Ensures the image stretches to the width of the card */
+}

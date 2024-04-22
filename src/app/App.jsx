@@ -31,6 +31,7 @@ import ResetPasswordPage from '../views/user/ResetPasswordPage';
 import CreateAccountPage from '../views/user/CreateAccountPage';
 import CreateRescueAccountPage from '../views/user/CreateRescueAccountPage';
 
+import RescueDashboard from '../views/rescue/Dashboard';
 import RescueProfile from '../views/rescue/RescueProfile';
 import Conversations from '../views/user/Conversations';
 import UserSwiper from '../views/user/UserSwiper';
@@ -72,7 +73,7 @@ function App() {
 					{/* <Route path='/charity-form' element={<CharityForm />} /> */}
 					{/* <Route path='/company-form' element={<CompanyForm />} /> */}
 					{/* <Route path='/contact-us' element={<ContactUs />} /> */}
-					<Route path='/rescue-profile' element={<RescueProfile />} />
+					<Route path='/rescue-profile' element={<RescueDashboard />} />
 					<Route
 						path='/rescue-conversations'
 						element={<Conversations userType='Rescue' />}
