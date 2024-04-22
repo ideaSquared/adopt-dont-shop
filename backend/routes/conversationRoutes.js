@@ -444,48 +444,49 @@ router.put(
 				`Attempting to mark messages as read for conversationId: ${conversationId} by userId: ${userId}`
 			);
 
-			if (userType !== 'User' && userType !== 'Rescue') {
+			// Validate user type
+			if (!['User', 'Rescue'].includes(userType)) {
 				return res.status(400).json({ message: 'Invalid user type' });
 			}
 
+			// Prepare SQL query to update message status
 			let query = `
-            UPDATE messages 
+            UPDATE messages
             SET status = 'read', read_at = NOW()
             WHERE conversation_id = $1 AND status = 'sent'
         `;
+			let params = [conversationId];
 
 			if (userType === 'User') {
 				query += ` AND sender_id != $2`;
-			} else if (userType === 'Rescue') {
-				// Fetch user_ids of all staff members for the rescue associated with the user
-				const staffQuery = `
-                SELECT user_id FROM staff_members
-                WHERE rescue_id = (SELECT rescue_id FROM staff_members WHERE user_id = $2)
-            `;
-				const staffResult = await pool.query(staffQuery, [userId]);
-				staffMemberUserIds = staffResult.rows.map((row) => row.user_id);
-
-				query += ` AND NOT (sender_id = ANY($3))`;
-			}
-
-			const params = [conversationId];
-			if (userType === 'User') {
 				params.push(userId);
 			} else if (userType === 'Rescue') {
+				const staffQuery = `
+                SELECT user_id FROM staff_members
+                WHERE rescue_id = (SELECT rescue_id FROM staff_members WHERE user_id = $1)
+            `;
+				const staffResult = await pool.query(staffQuery, [userId]);
+				const staffMemberUserIds = staffResult.rows.map((row) => row.user_id);
+
+				query += ` AND sender_id <> ANY($2::text[])`;
 				params.push(staffMemberUserIds);
 			}
+
+			// Execute the query
+			logger.debug('Executing query:', query, 'Params:', params);
 			const result = await pool.query(query, params);
 
+			// Log the outcome
 			logger.info(`Messages updated, modified: ${result.rowCount}`);
 
-			// Update the conversation's unreadMessages count
+			// Update conversation status
 			const updateConversationQuery = `
             UPDATE conversations
             SET unread_messages = 0
             WHERE conversation_id = $1
         `;
-			await pool.query(updateConversationQuery, [conversationId]);
 
+			await pool.query(updateConversationQuery, [conversationId]);
 			res.status(200).json({
 				message: 'Messages marked as read',
 				updated: result.rowCount,
