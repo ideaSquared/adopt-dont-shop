@@ -32,6 +32,7 @@ const RatingsTable = ({ filteredRatings, onCreateConversation }) => {
 								onClick={() =>
 									onCreateConversation(rating.pet_id, rating.userid)
 								}
+								variant='secondary'
 							>
 								Start Conversation
 							</Button>
