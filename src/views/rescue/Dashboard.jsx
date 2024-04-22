@@ -80,7 +80,7 @@ const RescueDashboard = () => {
 			title: 'Adopters',
 		},
 		{
-			src: './undraw/undraw_personal_file_re_5joy.svg',
+			src: './undraw/undraw_profile_details_re_ch9r.svg',
 			component: 'settings',
 			title: 'Settings',
 		},

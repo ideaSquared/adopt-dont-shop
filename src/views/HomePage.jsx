@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Image } from 'react-bootstrap'; // assuming you have react-bootstrap installed
 import { useAuth } from '../contexts/AuthContext';
 import Footer from './LandingFooter';
+import LazyImage from '../components/LazyImage'; // Import your LazyImage component
 
 const HomePage = () => {
 	const { authState } = useAuth();
@@ -19,7 +20,11 @@ const HomePage = () => {
 				className='hero bg-primary text-white text-center py-5 mb-4  '
 			>
 				<Col>
-					<Image src='./adoptdontshoplogo.svg' fluid className='w-25' />
+					<LazyImage
+						src='./adoptdontshoplogo.svg'
+						alt="Adopt Don't Shop Logo"
+						className='w-25'
+					/>
 					<h1>Welcome to Adopt Don't Shop</h1>
 					<Button
 						variant='light'

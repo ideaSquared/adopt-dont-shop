@@ -1,8 +1,8 @@
 import React from 'react';
 import { Row, Col, Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-
 import './Rescue.scss';
+import LazyImage from '../../components/LazyImage'; // Import LazyImage component
 
 const SmallNavbar = ({ activeSection, navImages }) => {
 	const handleSectionChange = (sectionName) => {
@@ -23,8 +23,7 @@ const SmallNavbar = ({ activeSection, navImages }) => {
 								className='d-flex justify-content-center align-items-center'
 								style={{ height: '100%' }}
 							>
-								<Card.Img
-									variant='top'
+								<LazyImage
 									src={img.src}
 									alt={img.title}
 									className='img-fluid'

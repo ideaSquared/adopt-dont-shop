@@ -1,8 +1,8 @@
 import React from 'react';
 import { Row, Col, Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-
 import './Rescue.scss';
+import LazyImage from '../../components/LazyImage';
 
 const BigNavbar = ({ activeSection, navImages }) => {
 	const handleSectionChange = (sectionName) => {
@@ -25,8 +25,7 @@ const BigNavbar = ({ activeSection, navImages }) => {
 							className='text-decoration-none'
 							onClick={() => handleSectionChange(img.component)}
 						>
-							<Card.Img
-								variant='top'
+							<LazyImage
 								src={img.src}
 								alt={img.title}
 								className='img-fluid image-fixed-height img-hover-darken'

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Form, Row, Col, Button, Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import LazyImage from '../LazyImage';
 
 const CreateRescueAccountForm = ({
 	onFirstNameChange,
@@ -118,7 +119,7 @@ const CreateRescueAccountForm = ({
 						className={`d-block w-100 h-100 ${isSelected('individual')}`}
 						onClick={() => selectRescueType('individual')}
 					>
-						<img
+						<LazyImage
 							src='/undraw/undraw_personal_file_re_5joy.svg'
 							alt='Individual'
 							style={{ width: '80%', margin: '10px 0' }}
@@ -132,7 +133,7 @@ const CreateRescueAccountForm = ({
 						className={`d-block w-100 h-100 ${isSelected('charity')}`}
 						onClick={() => selectRescueType('charity')}
 					>
-						<img
+						<LazyImage
 							src='/undraw/undraw_gifts_0ceh.svg'
 							alt='Charity'
 							style={{ width: '80%', margin: '10px 0' }}
@@ -146,7 +147,7 @@ const CreateRescueAccountForm = ({
 						className={`d-block w-100 h-100 ${isSelected('company')}`}
 						onClick={() => selectRescueType('company')}
 					>
-						<img
+						<LazyImage
 							src='/undraw/undraw_businesswoman_re_5n6b.svg'
 							alt='Company'
 							style={{ width: '80%', margin: '10px 0' }}
@@ -160,7 +161,7 @@ const CreateRescueAccountForm = ({
 						className={`d-block w-100 h-100 ${isSelected('other')}`}
 						onClick={() => selectRescueType('other')}
 					>
-						<img
+						<LazyImage
 							src='/undraw/undraw_questions_re_1fy7.svg'
 							alt='Other'
 							style={{ width: '80%', margin: '10px 0' }}
