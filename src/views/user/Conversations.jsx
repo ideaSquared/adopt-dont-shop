@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ConversationsComponent from './conversations/ConversationsComponent';
 import MessagesComponent from './conversations/ConversationsMessages';
-import { Container, Row, Col } from 'react-bootstrap';
+import { Container, Row, Col, Card } from 'react-bootstrap';
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 
 const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
@@ -141,13 +141,20 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 							listOfStaffIds={listOfStaffIds}
 						/>
 					) : (
-						<div
-							className={`d-flex justify-content-center align-items-center ${
-								userType === 'Rescue' ? 'h-100' : ''
-							}`}
+						<Container
+							fluid
+							className='d-flex flex-column vh-100 p-2 bg-light mx-2 rounded'
 						>
-							Select a conversation to view messages.
-						</div>
+							{/* <div
+								className={`d-flex justify-content-center align-items-center ${
+									userType === 'Rescue' ? 'h-100' : ''
+								}`}
+							> */}
+							<Card className='bg-info'>
+								<Card.Body>Select a conversation to view messages.</Card.Body>
+							</Card>
+							{/* </div> */}
+						</Container>
 					)}
 				</Col>
 			</Row>
