@@ -31,4 +31,21 @@
         font-size: 1.2rem;
         margin-top: 0.2rem;
     }
+
+    // Media Query for Mobile Devices
+    @media (max-width: 768px) {
+        .nav-link {
+            padding: 5px 20px; // Reduced padding
+            font-size: 1rem; // Reduced font size
+
+            svg {
+                width: 25px; // Reduced icon size
+                height: 25px; // Reduced icon size
+            }
+        }
+
+        div {
+            font-size: 0.9rem; // Reduced font size for text under icons
+        }
+    }
 }
