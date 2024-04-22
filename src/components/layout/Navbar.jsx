@@ -1,16 +1,9 @@
 import React from 'react';
+import { Nav } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
-import {
-	Container,
-	Row,
-	Col,
-	Button,
-	ButtonGroup,
-	Dropdown,
-	DropdownButton,
-} from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
+import './Navbar.scss';
 
 // Import the icons with specific sizes
 import {
@@ -26,108 +19,71 @@ import {
 const CustomNavbar = () => {
 	const { authState } = useAuth();
 	const handleLogout = useLogout();
+	const iconSize = 30;
 
 	return (
-		<Container fluid>
-			<Row className='justify-content-around text-center'>
-				<ButtonGroup
-					className='d-flex w-100 justify-content-around m-0 p-0'
-					style={{ borderRadius: '0' }}
-				>
-					{!authState.isLoggedIn ? (
-						<>
-							<LinkContainer to='/login' style={{ borderRadius: '0' }}>
-								<Button
-									variant='secondary'
-									className='p-3 d-flex flex-column align-items-center justify-content-center'
-								>
-									<BoxArrowRight className='icon' />
-									<span className='d-none d-sm-inline'>Login</span>
-								</Button>
-							</LinkContainer>
-							<LinkContainer to='/create-account' style={{ borderRadius: '0' }}>
-								<Button
-									variant='info'
-									className='p-3 d-flex flex-column align-items-center justify-content-center'
-								>
-									<PlusCircle className='icon' />
-									<span className='d-none d-sm-inline'>Create Account</span>
-								</Button>
-							</LinkContainer>
-						</>
-					) : (
-						<>
-							<LinkContainer to='/swipe' style={{ borderRadius: '0' }}>
-								<Button
-									variant='secondary'
-									className='p-3 d-flex flex-column align-items-center justify-content-center'
-								>
-									<HouseDoor className='icon' />
-									<span className='d-none d-sm-inline'>Swipe</span>
-								</Button>
-							</LinkContainer>
-							<LinkContainer
-								to='/adopter-conversations'
-								style={{ borderRadius: '0' }}
-							>
-								<Button
-									variant='success'
-									className='p-3 d-flex flex-column align-items-center justify-content-center'
-								>
-									<ChatRightText className='icon' />
-									<span className='d-none d-sm-inline'>Messages</span>
-								</Button>
-							</LinkContainer>
-
-							<LinkContainer to='/my-profile' style={{ borderRadius: '0' }}>
-								<Button
-									variant='info'
-									className='p-3 d-flex flex-column align-items-center justify-content-center'
-								>
-									<PersonCircle className='icon' />
-									<span className='d-none d-sm-inline'>My Profile</span>
-								</Button>
-							</LinkContainer>
-
-							{authState.isAdmin && (
-								<LinkContainer to='/admin' style={{ borderRadius: '0' }}>
-									<Button
-										variant='info'
-										className='p-3 d-flex flex-column align-items-center justify-content-center'
-									>
-										<Eye className='icon' />
-										<span className='d-none d-sm-inline'>Admin</span>
-									</Button>
-								</LinkContainer>
-							)}
-							{authState.isRescue && (
-								<LinkContainer
-									to='/rescue-profile'
-									style={{ borderRadius: '0' }}
-								>
-									<Button
-										variant='info'
-										className='p-3 d-flex flex-column align-items-center justify-content-center'
-									>
-										<Briefcase className='icon' />
-										<span className='d-none d-sm-inline'>Rescue Profile</span>
-									</Button>
-								</LinkContainer>
-							)}
-							<Button
-								variant='warning'
-								className='p-3 d-flex flex-column align-items-center justify-content-center'
-								style={{ borderRadius: '0' }}
-								onClick={handleLogout}
-							>
-								<BoxArrowRight className='icon' />
-								<span className='d-none d-sm-inline'>Logout</span>
-							</Button>
-						</>
+		<Nav
+			className='fixed-bottom border-top text-center custom-navbar'
+			style={{ width: '100%', justifyContent: 'space-around' }}
+		>
+			{!authState.isLoggedIn ? (
+				<>
+					<LinkContainer to='/login'>
+						<Nav.Link>
+							<BoxArrowRight size={iconSize} />
+							<div>Login</div>
+						</Nav.Link>
+					</LinkContainer>
+					<LinkContainer to='/create-account'>
+						<Nav.Link>
+							<PlusCircle size={iconSize} />
+							<div>Create Account</div>
+						</Nav.Link>
+					</LinkContainer>
+				</>
+			) : (
+				<>
+					<LinkContainer to='/'>
+						<Nav.Link>
+							<HouseDoor size={iconSize} />
+							<div>Home</div>
+						</Nav.Link>
+					</LinkContainer>
+					<LinkContainer to='/adopter-conversations'>
+						<Nav.Link>
+							<ChatRightText size={iconSize} />
+							<div>Messages</div>
+						</Nav.Link>
+					</LinkContainer>
+					<LinkContainer to='/my-profile'>
+						<Nav.Link>
+							<PersonCircle size={iconSize} />
+							<div>My Profile</div>
+						</Nav.Link>
+					</LinkContainer>
+					{authState.isAdmin && (
+						<LinkContainer to='/admin'>
+							<Nav.Link>
+								<Eye size={iconSize} />
+								<div>Admin</div>
+							</Nav.Link>
+						</LinkContainer>
 					)}
-				</ButtonGroup>
-			</Row>
-		</Container>
+					{authState.isRescue && (
+						<LinkContainer to='/rescue-profile'>
+							<Nav.Link>
+								<Briefcase size={iconSize} />
+								<div>Rescue Profile</div>
+							</Nav.Link>
+						</LinkContainer>
+					)}
+					<Nav.Link onClick={handleLogout}>
+						<BoxArrowRight size={iconSize} />
+						<div>Logout</div>
+					</Nav.Link>
+				</>
+			)}
+		</Nav>
 	);
 };
 

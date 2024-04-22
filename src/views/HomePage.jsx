@@ -13,30 +13,25 @@ const HomePage = () => {
 	};
 
 	return (
-		<div
-			style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
-		>
-			<Container fluid className='p-0 m-0 flex-grow-1 bg-primary'>
-				<Row
-					as='header'
-					className='hero bg-primary text-white text-center py-5 mb-4'
-				>
-					<Col>
-						<Image src='./adoptdontshoplogo.svg' fluid className='w-25' />
-						<h1>Welcome to Adopt Don't Shop</h1>
-						<Button
-							variant='light'
-							onClick={handleButtonClick}
-							className='m-4 p-4'
-						>
-							Find your next pet today
-						</Button>
-					</Col>
-				</Row>
-			</Container>
-
+		<Container fluid className='bg-primary'>
+			<Row
+				as='header'
+				className='hero bg-primary text-white text-center py-5 mb-4  '
+			>
+				<Col>
+					<Image src='./adoptdontshoplogo.svg' fluid className='w-25' />
+					<h1>Welcome to Adopt Don't Shop</h1>
+					<Button
+						variant='light'
+						onClick={handleButtonClick}
+						className='m-4 p-4'
+					>
+						Find your next pet today
+					</Button>
+				</Col>
+			</Row>
 			<Footer />
-		</div>
+		</Container>
 	);
 };
 

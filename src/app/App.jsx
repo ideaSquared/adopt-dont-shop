@@ -44,51 +44,53 @@ function App() {
 	return (
 		<Router>
 			<CustomNavbar />
-			<Routes>
-				<Route path='/' element={<HomePage />} />
+			<div className='content-wrapper'>
+				<Routes>
+					<Route path='/' element={<HomePage />} />
 
-				<Route path='/features' element={<LandingFeatures />} />
-				<Route path='/pricing' element={<LandingPricing />} />
-				<Route path='/faq' element={<LandingFAQ />} />
+					<Route path='/features' element={<LandingFeatures />} />
+					<Route path='/pricing' element={<LandingPricing />} />
+					<Route path='/faq' element={<LandingFAQ />} />
 
-				<Route path='/login' element={<LoginPage />} />
-				<Route path='/create-account' element={<CreateAccountPage />} />
-				<Route
-					path='/create-rescue-account'
-					element={<CreateRescueAccountPage />}
-				/>
-				<Route path='/forgot-password' element={<ForgotPasswordPage />} />
-				<Route path='/reset-password' element={<ResetPasswordPage />} />
-				<Route path='/my-profile' element={<UserProfilePage />} />
-				<Route path='/admin' element={<AdminLanding />} />
-				{/* <Route path='/admin/users' element={<AdminUsers />} />
+					<Route path='/login' element={<LoginPage />} />
+					<Route path='/create-account' element={<CreateAccountPage />} />
+					<Route
+						path='/create-rescue-account'
+						element={<CreateRescueAccountPage />}
+					/>
+					<Route path='/forgot-password' element={<ForgotPasswordPage />} />
+					<Route path='/reset-password' element={<ResetPasswordPage />} />
+					<Route path='/my-profile' element={<UserProfilePage />} />
+					<Route path='/admin' element={<AdminLanding />} />
+					{/* <Route path='/admin/users' element={<AdminUsers />} />
 				<Route path='/admin/pets' element={<AdminPets />} />
 				<Route path='/admin/rescues' element={<AdminRescues />} />
 				<Route path='/admin/logs' element={<AdminLogs />} />
 				<Route path='/admin/conversations' element={<AdminConversation />} /> */}
-				{/* <Route path='/select-action' element={<PetActionSelection />} /> */}
-				{/* <Route path='/select-account-type' element={<AccountTypeSelection />} /> */}
-				{/* <Route path='/charity-form' element={<CharityForm />} /> */}
-				{/* <Route path='/company-form' element={<CompanyForm />} /> */}
-				{/* <Route path='/contact-us' element={<ContactUs />} /> */}
-				<Route path='/rescue-profile' element={<RescueProfile />} />
-				<Route
-					path='/rescue-conversations'
-					element={<Conversations userType='Rescue' />}
-				/>
-				<Route
-					path='/adopter-conversations'
-					element={
-						<Conversations
-							userType='User'
-							canCreateMessages={true}
-							canReadMessages={true}
-						/>
-					}
-				/>
-				<Route path='/swipe' element={<UserSwiper />} />
-				<Route path='/verify-email' element={<EmailVerification />} />
-			</Routes>
+					{/* <Route path='/select-action' element={<PetActionSelection />} /> */}
+					{/* <Route path='/select-account-type' element={<AccountTypeSelection />} /> */}
+					{/* <Route path='/charity-form' element={<CharityForm />} /> */}
+					{/* <Route path='/company-form' element={<CompanyForm />} /> */}
+					{/* <Route path='/contact-us' element={<ContactUs />} /> */}
+					<Route path='/rescue-profile' element={<RescueProfile />} />
+					<Route
+						path='/rescue-conversations'
+						element={<Conversations userType='Rescue' />}
+					/>
+					<Route
+						path='/adopter-conversations'
+						element={
+							<Conversations
+								userType='User'
+								canCreateMessages={true}
+								canReadMessages={true}
+							/>
+						}
+					/>
+					<Route path='/swipe' element={<UserSwiper />} />
+					<Route path='/verify-email' element={<EmailVerification />} />
+				</Routes>
+			</div>
 		</Router>
 	);
 }
