@@ -33,9 +33,7 @@ describe('POST /api/auth/forgot-password', () => {
 
 		expect(response.status).to.equal(200);
 		expect(emailService.sendPasswordResetEmail.calledOnce).to.be.true;
-		expect(response.body.message).to.equal(
-			'Password reset email sent. Redirecting to login page...'
-		);
+		expect(response.body.message).to.equal('Password reset email sent');
 	});
 
 	it('should return 404 if no user is found with the provided email', async () => {
