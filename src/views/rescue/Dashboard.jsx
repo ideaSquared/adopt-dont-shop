@@ -50,7 +50,7 @@ const RescueDashboard = () => {
 	});
 	const [activeSection, setActiveSection] = useState('');
 
-	const { authState } = useAuth();
+	const { authState, logout } = useAuth();
 	const userId = authState.userId;
 
 	const images = [
@@ -94,17 +94,22 @@ const RescueDashboard = () => {
 				const profileData = await RescueService.fetchRescueProfile();
 				setRescueProfile(profileData);
 			} catch (error) {
-				setAlertInfo({
-					type: 'danger',
-					message: 'Failed to load rescue profile. Please try again later.',
-				});
+				if (error.response.status === 401) {
+					// Assuming you have access to a logout or a similar method to reset auth state
+					logout(); // This will reset the auth state
+				} else {
+					setAlertInfo({
+						type: 'danger',
+						message: 'Failed to load rescue profile. Please try again later.',
+					});
+				}
 			}
 		};
 
 		if (authState.isRescue) {
 			initFetch();
 		}
-	}, [authState.isRescue]);
+	}, [authState.isRescue]); // Added useAuth as a dependency to ensure it's stable
 
 	// Check for permissions
 	const canViewRescueInfo =

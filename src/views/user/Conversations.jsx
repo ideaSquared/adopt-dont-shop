@@ -4,6 +4,7 @@ import ConversationsComponent from './conversations/ConversationsComponent';
 import MessagesComponent from './conversations/ConversationsMessages';
 import { Container, Row, Col, Card } from 'react-bootstrap';
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 	const [conversations, setConversations] = useState([]);
@@ -12,6 +13,7 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 	const [refreshConversations, setRefreshConversations] = useState(false);
 	const [listOfStaffIds, setStaffIDs] = useState([]);
 	useLoginRedirect();
+	const { logout } = useAuth();
 
 	const triggerConversationRefresh = () => {
 		setRefreshConversations((prevState) => !prevState);
@@ -47,6 +49,9 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 					setUserId(data[idKey]);
 					fetchConversations(data[idKey]);
 				} else {
+					if (response.status === 401) {
+						logout();
+					}
 					throw new Error(data.message || 'Failed to fetch details.');
 				}
 			} catch (error) {

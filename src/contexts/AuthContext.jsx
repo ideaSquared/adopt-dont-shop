@@ -143,6 +143,7 @@ const useProvideAuth = () => {
 		try {
 			await AuthService.logout();
 			setAuthState({
+				userId: '',
 				isLoggedIn: false,
 				isAdmin: false,
 				userPermissions: [],
@@ -150,6 +151,14 @@ const useProvideAuth = () => {
 			});
 		} catch (error) {
 			console.error('Logout failed:', error);
+			// Even if logout fails, reset the state to ensure no unauthorized access
+			setAuthState({
+				userId: '',
+				isLoggedIn: false,
+				isAdmin: false,
+				userPermissions: [],
+				isRescue: false,
+			});
 		}
 	};
 
@@ -265,6 +274,11 @@ const useProvideAuth = () => {
 
 			return response.data;
 		} catch (error) {
+			if (error.response.status === 401) {
+				console.log('401');
+				logout();
+			}
+			console.log('NOT 401', error.response.status);
 			console.error('Could not fetch user details:', error);
 			return { message: error.message, type: 'danger' };
 		}

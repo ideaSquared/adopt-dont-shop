@@ -48,6 +48,7 @@ const RescueService = {
 			const response = await axios.get(`${API_BASE_URL}/auth/my-rescue`, {
 				withCredentials: true,
 			});
+
 			return response.data;
 		} catch (error) {
 			console.error('Error fetching rescue profile:', error);
