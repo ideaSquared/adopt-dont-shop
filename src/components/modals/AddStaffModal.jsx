@@ -25,24 +25,24 @@ const AddStaffModal = ({
 	};
 
 	const handleAddStaff = async () => {
-		console.log('Attempting to add staff member...', {
-			tabKey,
-			newStaff,
-			existingStaffEmail,
-		});
+		// console.log('Attempting to add staff member...', {
+		// 	tabKey,
+		// 	newStaff,
+		// 	existingStaffEmail,
+		// });
 		try {
 			let addedStaff;
 			if (tabKey === 'newUser') {
-				console.log('Adding new staff member', newStaff);
+				// console.log('Adding new staff member', newStaff);
 				addedStaff = await StaffService.addStaffMember(rescueId, newStaff);
 			} else {
-				console.log('Adding existing staff member', existingStaffEmail);
+				// console.log('Adding existing staff member', existingStaffEmail);
 				addedStaff = await StaffService.addStaffMember(rescueId, {
 					email: existingStaffEmail,
 				});
 			}
 
-			console.log('Staff member added successfully');
+			// console.log('Staff member added successfully');
 			setRescueProfile((prevState) => ({
 				...prevState,
 				staff: [...prevState.staff, addedStaff],

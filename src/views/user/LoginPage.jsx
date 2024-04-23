@@ -17,7 +17,7 @@ const LoginPage = () => {
 		try {
 			// Use the login method from AuthContext
 			await login(email, password);
-			console.log('Login successful');
+			// console.log('Login successful');
 			// Redirect the user after successful login
 			navigate('/');
 		} catch (error) {

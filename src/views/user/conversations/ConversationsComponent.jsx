@@ -38,8 +38,6 @@ const ConversationsComponent = ({
 		return dateB - dateA;
 	});
 
-	console.log(conversations);
-
 	return (
 		<Card className='flex-grow-1 mb-sm-3' style={{ overflowY: 'none' }}>
 			<Card.Header className='bg-dark text-white'>

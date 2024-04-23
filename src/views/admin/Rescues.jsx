@@ -45,7 +45,7 @@ const Rescues = () => {
 	const fetchRescueDetails = async (rescueId) => {
 		try {
 			const data = await RescueService.fetchAdminRescueDetails(rescueId);
-			console.log(data);
+
 			setSelectedRescueDetails(data);
 			setShowModal(true);
 		} catch (error) {

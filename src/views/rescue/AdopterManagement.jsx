@@ -41,7 +41,7 @@ const AdopterManagement = ({ rescueId }) => {
 
 	const handleCreateConversation = (petId, userId) => {
 		RescueService.createConversation(rescueId, petId, userId)
-			.then((data) => console.log('Conversation created:', data))
+			.then((data) => console.log('Conversation created'))
 			.catch(console.error);
 	};
 

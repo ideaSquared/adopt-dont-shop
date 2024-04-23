@@ -40,7 +40,7 @@ const CreateRescueAccountPage = () => {
 				referenceNumber
 			);
 
-			console.log('Create rescue account successful', response.data);
+			// console.log('Create rescue account successful', response.data);
 			// Proceed to redirect the user or save the login state
 			navigate('/');
 		} catch (error) {

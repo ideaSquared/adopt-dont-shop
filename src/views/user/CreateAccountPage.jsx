@@ -21,7 +21,7 @@ const CreateAccountPage = () => {
 	const handleCreateAccount = async () => {
 		try {
 			await createUser(firstName, lastName, email, password, city, country);
-			console.log('Create user account successful');
+			// console.log('Create user account successful');
 			// Proceed to redirect the user or save the login state
 			navigate('/');
 		} catch (error) {

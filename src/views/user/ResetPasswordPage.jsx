@@ -32,7 +32,7 @@ const ResetPasswordPage = () => {
 		}
 		try {
 			const response = await resetPassword(token, password);
-			console.log('Reset password successful', response.data);
+			// console.log('Reset password successful', response.data);
 			navigate('/login');
 		} catch (error) {
 			console.error('Reset password failed', error.response.data);

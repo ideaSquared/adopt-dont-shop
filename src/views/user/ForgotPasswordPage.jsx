@@ -14,7 +14,7 @@ const ForgotPasswordPage = () => {
 	const handleForgotPassword = async () => {
 		try {
 			await sendForgotPasswordEmail(email);
-			console.log('Forgot password successful');
+			// console.log('Forgot password successful');
 			setAlert({
 				show: true,
 				message:
