@@ -33,7 +33,7 @@ const ResetPasswordPage = () => {
 		try {
 			const response = await resetPassword(token, password);
 			console.log('Reset password successful', response.data);
-			navigate('/');
+			navigate('/login');
 		} catch (error) {
 			console.error('Reset password failed', error.response.data);
 			setAlert({

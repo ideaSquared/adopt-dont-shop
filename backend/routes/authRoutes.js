@@ -414,7 +414,7 @@ export default function createAuthRoutes({}) {
 				await handlePasswordReset(user);
 
 				res.status(200).json({
-					message: 'Password reset email sent. Redirecting to login page...',
+					message: 'Password reset email sent',
 				});
 			} catch (error) {
 				logger.error(

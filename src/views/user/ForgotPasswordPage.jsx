@@ -14,14 +14,18 @@ const ForgotPasswordPage = () => {
 	const handleForgotPassword = async () => {
 		try {
 			await sendForgotPasswordEmail(email);
-			console.log('Login successful', response.data);
-			// Proceed to redirect the user or save the login state
-			navigate('/');
-		} catch (error) {
-			console.error('Login failed', error.response.data);
+			console.log('Forgot password successful');
 			setAlert({
 				show: true,
-				message: 'Failed to create account. Please try again.',
+				message:
+					"We've sent an email to you to reset your password, please check your emails.",
+				type: 'info',
+			});
+		} catch (error) {
+			console.error('Login failed', error);
+			setAlert({
+				show: true,
+				message: 'Failed to reset your password. Please try again.',
 				type: 'danger',
 			});
 		}
