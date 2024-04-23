@@ -52,7 +52,25 @@ export const emailService = {
 	 */
 	async sendPasswordResetEmail(email, resetURL) {
 		const subject = 'Reset Your Password';
-		const html = `<p>You requested a password reset. Click <a href="${resetURL}">here</a> to reset your password.</p>`;
+		const html = `<!DOCTYPE html>
+					<html>
+					<head>
+					<title>Reset Your Password</title>
+					<style>
+					body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+					.container { width: 100%; max-width: 600px; margin: auto; background-color: #f9f9f9; padding: 20px; }
+					.button { background-color: #007bff; color: white; padding: 10px 20px; text-align: center; display: inline-block; text-decoration: none; }
+					</style>
+					</head>
+					<body>
+					<div class="container">
+					<h2>Reset Your Password</h2>
+					<p>You requested a password reset. Please click the button below to set a new password.</p>
+					<a href="${resetURL}" class="button">Reset Password</a>
+					</div>
+					</body>
+					</html>
+					`;
 		return this.sendEmail(email, subject, html);
 	},
 
@@ -64,8 +82,27 @@ export const emailService = {
 	 * @returns {Promise<any>}
 	 */
 	async sendEmailVerificationEmail(email, verificationURL) {
-		const subject = 'Verify Your Email Address';
-		const html = `<p>Welcome! Please confirm your email address by clicking <a href="${verificationURL}">here</a>.</p>`;
+		const subject = 'Welcome to Adopt Dont Shop!';
+		const html = `<!DOCTYPE html>
+						<html>
+						<head>
+						<title>Verify Your Email</title>
+						<style>
+						body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+						.container { width: 100%; max-width: 600px; margin: auto; background-color: #f9f9f9; padding: 20px; }
+						.button { background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; display: inline-block; text-decoration: none; }
+						</style>
+						</head>
+						<body>
+						<div class="container">
+						<h2>Welcome to Adopt Dont Shop</h2>
+						<h4>Please verify your email address</h4>
+						<p>Welcome! Please confirm your email address by clicking the button below.</p>
+						<a href="${verificationURL}" class="button">Verify Email</a>
+						</div>
+						</body>
+						</html>
+						`;
 		return this.sendEmail(email, subject, html);
 	},
 
@@ -79,15 +116,26 @@ export const emailService = {
 	 */
 	async sendAccountCreationEmail(email, loginURL, temporaryPassword = '') {
 		const subject = 'Your Account Has Been Created';
-		const html = `<p>An account has been created for you on Adopt Don't Shop by an admin or rescue organization.</p>
-                      <p>${
-												temporaryPassword
-													? `Your temporary password is: <strong>${temporaryPassword}</strong>`
-													: ''
-											}</p>
-                      <p>Please click <a href="${loginURL}">here</a> to login and ${
-			temporaryPassword ? 'change your password.' : 'access your account.'
-		}</p>`;
+		const html = `<!DOCTYPE html>
+					<html>
+					<head>
+					<title>Welcome to Adopt Don't Shop</title>
+					<style>
+					body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+					.container { width: 100%; max-width: 600px; margin: auto; background-color: #f9f9f9; padding: 20px; }
+					.button { background-color: #008CBA; color: white; padding: 10px 20px; text-align: center; display: inline-block; text-decoration: none; }
+					</style>
+					</head>
+					<body>
+					<div class="container">
+					<h2>Your Account Has Been Created</h2>
+					<p>An account has been created for you on Adopt Don't Shop by an admin or rescue organization.</p>
+					<p>Please login and set your password</p>
+					<a href="${loginURL}" class="button">Login Now</a>
+					</div>
+					</body>
+					</html>
+					`;
 		return this.sendEmail(email, subject, html);
 	},
 };
