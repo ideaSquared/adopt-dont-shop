@@ -132,7 +132,7 @@ const SwipeLanding = ({ item, handleSwipe }) => {
 					</Card.Body>
 				</Card>
 			) : (
-				<Card className='swipe-card detailed-view'>
+				<Card className={`swipe-card detailed-view ${animationClass}`}>
 					<Card.Body className='d-flex flex-column align-items-center justify-content-center'>
 						<Card.Title>{item.name}</Card.Title>
 
