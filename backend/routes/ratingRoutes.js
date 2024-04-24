@@ -7,6 +7,7 @@ import {
 } from '../middleware/joiValidateSchema.js'; // Assuming you have a validation schema for ratings
 import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
+import { geoService } from '../services/geoService.js';
 
 const logger = new LoggerUtil('rating-service').getLogger();
 const router = express.Router();
@@ -153,33 +154,53 @@ router.get('/find-ratings/:rescueId', authenticateToken, async (req, res) => {
 });
 
 router.get('/find-unrated', authenticateToken, async (req, res) => {
+	const userId = req.user.userId; // Corrected to directly access userId from user object
 	try {
-		const userId = req.user.userId; // Assuming user ID is attached to the request by the authentication middleware
-
 		logger.info(`Fetching unrated pets for user ID: ${userId}`);
 
 		const query = {
 			text: `
-				SELECT 
-					*
-				FROM 
-					pets
-				WHERE 
-					pet_id NOT IN (
-						SELECT pet_id
-						FROM ratings
-						WHERE user_id = $1
-					);
-			`,
+                SELECT 
+                    p.*, u.location AS user_location, r.location AS rescue_location
+                FROM 
+                    pets p
+                JOIN
+                    users u ON u.user_id = $1
+                JOIN 
+                    rescues r ON r.rescue_id = p.owner_id
+                WHERE 
+                    p.pet_id NOT IN (
+                        SELECT pet_id
+                        FROM ratings
+                        WHERE user_id = $1
+                    );
+            `,
 			values: [userId],
 		};
 
 		const result = await pool.query(query);
-		const unratedPets = result.rows;
+		const petsData = result.rows;
 
-		if (unratedPets.length === 0) {
+		if (petsData.length === 0) {
 			return res.status(404).send({ message: 'No unrated pets found' });
 		}
+
+		const unratedPets = petsData.map((pet) => ({
+			pet_id: pet.pet_id,
+			name: pet.name,
+			type: pet.type,
+			age: pet.age,
+			breed: pet.breed,
+			gender: pet.gender,
+			images: pet.images,
+			short_description: pet.short_description,
+			long_description: pet.long_description,
+			status: pet.status,
+			distance: geoService.calculateDistanceBetweenTwoLatLng(
+				pet.user_location,
+				pet.rescue_location
+			),
+		}));
 
 		res.json(unratedPets);
 	} catch (error) {

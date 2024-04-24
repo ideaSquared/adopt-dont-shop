@@ -56,9 +56,32 @@ export const geoService = {
 		}
 	},
 
-	// Parses a point string into latitude and longitude.
+	objectToPointString(coord) {
+		return `(${coord.x}, ${coord.y})`;
+	},
+
 	parsePoint(point) {
-		const coordinates = point.replace(/[()]/g, '').split(',');
+		let coordinates;
+
+		if (typeof point === 'string') {
+			coordinates = point.replace(/[()]/g, '').split(',');
+		} else if (
+			typeof point === 'object' &&
+			point !== null &&
+			'x' in point &&
+			'y' in point
+		) {
+			coordinates = [point.x, point.y];
+		} else {
+			throw new TypeError(
+				'Input must be a string or an object with x and y properties'
+			);
+		}
+
+		if (coordinates.length !== 2) {
+			throw new Error('Input does not contain valid coordinates');
+		}
+
 		return {
 			latitude: parseFloat(coordinates[0].trim()),
 			longitude: parseFloat(coordinates[1].trim()),
@@ -209,8 +232,10 @@ export const geoService = {
 		unit = 'km',
 		method = 'best'
 	) {
-		const originCoords = this.parsePoint(origin);
-		const destinationCoords = this.parsePoint(destination);
+		const originCoords = this.parsePoint(this.objectToPointString(origin));
+		const destinationCoords = this.parsePoint(
+			this.objectToPointString(destination)
+		);
 		let distance = 0;
 		if (method === 'best') {
 			const latDiff = Math.abs(

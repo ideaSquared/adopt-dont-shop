@@ -72,6 +72,9 @@ const SwipeLanding = ({ item, handleSwipe }) => {
 							<Card.Title>{item.name}</Card.Title>
 							<div className='badge-container d-flex align-items-start'>
 								<Badge className='mx-1' bg='secondary'>
+									Distance: {item.distance}
+								</Badge>
+								<Badge className='mx-1' bg='secondary'>
 									Age: {item.age}
 								</Badge>
 								<Badge className='mx-1' bg='info'>
