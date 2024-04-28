@@ -55,14 +55,12 @@ const router = express.Router();
 // Create a new pet record
 router.post(
 	'/',
-	authenticateToken,
-	validateRequest(petJoiSchema),
+	authenticateToken, // Middleware to authenticate the user
+	validateRequest(petJoiSchema), // Middleware to validate the request body against the Joi schema
 	async (req, res) => {
+		const userId = req.user.userId;
 		try {
-			const userId = req.user?.userId;
-
-			// console.log('REQ BODY: ', req.body, '\n');
-
+			// Check if the authenticated user has permission to add a new pet
 			const hasPermission = await permissionService.checkPermission(
 				userId,
 				'add_pet'
@@ -76,13 +74,15 @@ router.post(
 					.send({ message: 'Insufficient permissions to add pet' });
 			}
 
-			// console.log('AFTER PERM ');
-
 			const insertPetQuery = `
-                INSERT INTO pets (name, owner_id, short_description, long_description, age, gender, status, type, vaccination_status, breed)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                RETURNING pet_id;
-            `;
+        INSERT INTO pets (
+          name, owner_id, short_description, long_description, age, gender, status, type, vaccination_status, breed,
+          other_pets, household, energy, family, temperament, health, size, grooming_needs, training_socialization, commitment_level
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+          $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+        ) RETURNING pet_id;
+      `;
 			const {
 				name,
 				short_description,
@@ -94,8 +94,19 @@ router.post(
 				type,
 				vaccination_status,
 				breed,
+				other_pets,
+				household,
+				energy,
+				family,
+				temperament,
+				health,
+				size,
+				grooming_needs,
+				training_socialization,
+				commitment_level,
 			} = req.body;
 
+			// Insert the new pet into the database
 			const newPetResult = await pool.query(insertPetQuery, [
 				name,
 				ownerId,
@@ -107,20 +118,26 @@ router.post(
 				type,
 				vaccination_status,
 				breed,
+				other_pets,
+				household,
+				energy,
+				family,
+				temperament,
+				health,
+				size,
+				grooming_needs,
+				training_socialization,
+				commitment_level,
 			]);
 			const newPetId = newPetResult.rows[0].pet_id;
 
-			// console.log('AFTER INSERT ACTION');
-
-			logger.info(
-				`New pet created with ID: ${newPetId} by User ${userId} for Rescue ${ownerId}`
-			);
+			logger.info(`New pet created with ID: ${newPetId} by User ${userId}`);
 			res.status(201).send({
 				message: 'Pet created successfully',
 				data: { id: newPetId, ...req.body },
 			});
 		} catch (error) {
-			logger.error(`Error creating pet: ${error.message}`, { error });
+			logger.error(`Error creating pet: ${error.message}`, { error, userId });
 			Sentry.captureException(error);
 			res.status(500).send({
 				message: 'An error occurred',
@@ -230,21 +247,20 @@ router.put('/:id', authenticateToken, async (req, res) => {
 				.send({ message: 'Insufficient permissions to edit pet' });
 		}
 
-		// Start constructing the SQL update statement
 		let updateSet = [];
 		let values = [];
 		let index = 1;
 
-		// Dynamically create the set part of the query based on the passed data
-		// Make sure to exclude 'updated_at' from the body if it exists
 		for (const key in req.body) {
 			if (
 				req.body.hasOwnProperty(key) &&
-				key !== 'pet_id' &&
-				key !== 'owner_id' &&
-				key !== 'created_at' &&
-				key !== 'archived' &&
-				key !== 'updated_at' // Exclude the updated_at field
+				![
+					'pet_id',
+					'owner_id',
+					'created_at',
+					'archived',
+					'updated_at',
+				].includes(key)
 			) {
 				updateSet.push(`${key} = $${index}`);
 				values.push(req.body[key]);
@@ -257,16 +273,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
 			return res.status(400).send({ message: 'No updatable fields provided' });
 		}
 
-		values.push(id); // For the WHERE condition
+		values.push(id);
 
-		// Execute the update only if there's something to update
 		if (updateSet.length > 0) {
 			const queryText = `UPDATE pets SET ${updateSet.join(
 				', '
-			)}, updated_at = NOW() WHERE pet_id = $${index} RETURNING *`; // Ensure updated_at is only set here
+			)}, updated_at = NOW() WHERE pet_id = $${index} RETURNING *`;
 			const result = await pool.query(queryText, values);
 
-			// Check if the pet was updated successfully
 			if (result.rowCount === 0) {
 				logger.warn(`Pet not found with ID: ${id} for update operation`);
 				return res.status(404).send({ message: 'Pet not found' });
@@ -274,10 +288,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
 			const pet = result.rows[0];
 			logger.info(`Pet with ID: ${id} updated successfully by User ${userId}`);
-			res.status(200).send({
-				message: 'Pet updated successfully',
-				data: pet,
-			});
+			res.status(200).send({ message: 'Pet updated successfully', data: pet });
 		}
 	} catch (error) {
 		logger.error(`Failed to update pet with ID: ${id}: ${error.message}`, {
@@ -285,10 +296,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
 			userId,
 		});
 		Sentry.captureException(error);
-		res.status(500).send({
-			message: 'Failed to update pet',
-			error: error.message,
-		});
+		res
+			.status(500)
+			.send({ message: 'Failed to update pet', error: error.message });
 	}
 });
 

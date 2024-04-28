@@ -8,7 +8,7 @@ import { permissionService } from '../../services/permissionService.js';
 
 const request = supertest(app);
 
-describe('POST /api/pets', () => {
+describe.only('POST /api/pets', () => {
 	let sandbox, cookie, userToken;
 
 	beforeEach(() => {
@@ -27,10 +27,14 @@ describe('POST /api/pets', () => {
 		sandbox.restore(); // Restore all stubs/spies created within the sandbox
 	});
 
-	it('should create a new pet record successfully', async () => {
+	it.only('should create a new pet record successfully', async () => {
 		sinon.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.resolves({
-			rows: [{ pet_id: 123 }],
+			rows: [
+				{
+					pet_id: 123,
+				},
+			],
 		});
 
 		const petData = {
@@ -44,6 +48,16 @@ describe('POST /api/pets', () => {
 			type: 'Dog',
 			vaccination_status: 'Up to date',
 			breed: 'Golden Retriever',
+			other_pets: 'None',
+			household: 'Active',
+			energy: 'High',
+			family: 'Friendly',
+			temperament: 'Calm',
+			health: 'Good',
+			size: 'Large',
+			grooming_needs: 'Regular grooming',
+			training_socialization: 'Required',
+			commitment_level: 'High',
 		};
 
 		const response = await request
