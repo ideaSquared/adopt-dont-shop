@@ -641,5 +641,153 @@ router.get(
 // 	}
 // );
 
+// function getRandomElement(array) {
+// 	return array[Math.floor(Math.random() * array.length)];
+// }
+
+// Generate random INSERT SQL statement for pets
+// ! This is a test route to generate random SQL to add to the database. It should never be exposed to production but is useful locally.
+// router.get('/generate-pet-sql', (req, res) => {
+// 	const ownerIds = [
+// 		'rescue_000009c8e9c8a9c7',
+// 		'rescue_00000c85fb37b1b6',
+// 		'rescue_000042c72a35070b',
+// 		'rescue_000063e9026eaaca',
+// 		'rescue_0000c55a398ef4dd',
+// 		'rescue_0000f5b5d19fd0dd',
+// 	];
+// 	const genders = ['Male', 'Female', 'Other', 'Unknown'];
+// 	const statuses = [
+// 		'Available',
+// 		'Reserved',
+// 		'Adoption Pending',
+// 		'Adopted',
+// 		'Draft',
+// 		'Quarantine',
+// 		'On Hold',
+// 		'Not Available for Adoption',
+// 	];
+// 	const types = ['Dog', 'Cat', 'Bird', 'Rabbit', 'Other'];
+// 	const vaccinatedStatuses = [
+// 		'Fully Vaccinated',
+// 		'Partially Vaccinated',
+// 		'Unvaccinated',
+// 		'Booster Required',
+// 		'Overdue for Vaccinations',
+// 		'Medical Exemption',
+// 	];
+// 	const temperaments = [
+// 		'Confident and sociable: Thrives in social settings and adapts quickly to new situations',
+// 		'Timid but warms up with patience: Needs a calm environment and gentle handling to gain confidence',
+// 		'Highly trainable: Responds well to training and enjoys learning new tricks and commands',
+// 		'Needs experienced owner: Best suited for adopters with previous pet ownership experience',
+// 	];
+// 	const family = [
+// 		'Needs a quiet home, preferably without children',
+// 		'Prefers a single-adult household',
+// 		'Ideal for a household with older children or adults only',
+// 		'Best suited for families with teenagers',
+// 		'Suitable for families with young children',
+// 	];
+// 	const energy = [
+// 		'Independent and self-sufficient; comfortable being alone for parts of the day',
+// 		'Enjoys human company and prefers someone present most of the time',
+// 		'Shy and reserved; requires a quiet environment to open up',
+// 		'Moderately active: Enjoys regular playtime and exercise',
+// 		'Full of energy and loves extensive playtime',
+// 	];
+// 	const household = [
+// 		'Needs an outdoor space',
+// 		'Prefers spending time outdoors',
+// 		'Enjoys both indoor and outdoor environments',
+// 		'Needs to be strictly indoor due to health/safety reasons',
+// 		'Prefers living indoors',
+// 	];
+// 	const otherPets = [
+// 		'Would enjoy being adopted with a companion but can adapt if alone',
+// 		'Needs to be adopted with my current animal companion',
+// 		'I would prefer not to live with a specific type of pet (e.g., dogs, cats, birds)',
+// 		'I would prefer to live with another specific type of pet (e.g., dogs, cats, birds)',
+// 		'Friendly with small animals (like rabbits, guinea pigs)',
+// 		'Can coexist peacefully with dogs',
+// 		'Can coexist peacefully with cats',
+// 		'Prefers an only pet household',
+// 	];
+// 	const commitmentLevel = [
+// 		'Ideal for first-time pet owners: Easygoing and adaptable to new pet parents',
+// 		'Needs active lifestyle: Thrives in an energetic environment with lots of physical activities',
+// 		'Suitable for relaxed lifestyle: Prefers a quieter, more laid-back environment with minimal disruption',
+// 	];
+// 	const trainingSocialization = [
+// 		'No training required: they are self trained animals',
+// 		'Basic training completed: Knows fundamental commands like sit, stay, and come',
+// 		'Obedience trained: Has received extensive training and responds well to commands',
+// 		'Socialized with multiple species: Comfortable around various animals, including those outside its species',
+// 		'Needs socialization: Requires training and exposure to become comfortable around other pets and people',
+// 	];
+// 	const groomingNeeds = [
+// 		'No grooming: They will groom themselves adequately',
+// 		`Low maintenance: Requires basic grooming that''s easy to manage`,
+// 		'Regular grooming needed: Needs frequent brushing and occasional professional grooming',
+// 		'High maintenance: Requires extensive grooming routines and regular professional care',
+// 	];
+// 	const size = [
+// 		'Extra-large (over 45 kg): Requires a spacious living environment and robust physical activity',
+// 		'Large (23-45 kg): Best suited for homes with ample space and a secure, large outdoor area',
+// 		'Medium (9-23 kg): A good fit for most homes, including those with yards',
+// 		'Small (up to 9 kg): Suitable for apartments or smaller living spaces',
+// 	];
+
+// 	const health = [
+// 		'Recently rehabilitated: Has recovered from an injury or illness and needs a supportive environment to maintain health',
+// 		'Senior pet: Older animals that may be less active but still need a loving home',
+// 		'Dietary restrictions: Needs a specific type of diet (e.g., grain-free, low-calorie)',
+// 		'Special needs: Requires ongoing medical care or hasphysical limitations',
+// 		'Perfect health: No ongoing medical issues',
+// 	];
+
+// 	// Helper function to generate random names and descriptions
+// 	const getRandomName = () =>
+// 		`Pet_${Math.random().toString(36).substring(2, 7)}`;
+// 	const getRandomDescription = () =>
+// 		`A description for ${getRandomName()}, who is a wonderful companion.`;
+
+// 	let sqlStatements = [];
+// 	for (let i = 0; i < 50; i++) {
+// 		const sqlownerId = getRandomElement(ownerIds);
+// 		const sqlage = Math.floor(Math.random() * 15) + 1; // Random age between 1 and 15
+// 		const sqlgender = getRandomElement(genders);
+// 		const sqlstatus = getRandomElement(statuses);
+// 		const sqltype = getRandomElement(types);
+// 		const sqlarchived = Math.random() > 0.8; // 20% chance of being archived
+// 		const sqlcreatedAt = new Date().toISOString().slice(0, 10);
+// 		const sqlupdatedAt = sqlcreatedAt;
+// 		const sqlname = getRandomName();
+// 		const sqlshortDescription = 'Loving and caring, ready for a home.';
+// 		const sqllongDescription = getRandomDescription();
+// 		const sqlvaccinationStatus = getRandomElement(vaccinatedStatuses);
+// 		const sqlbreed = 'Mixed';
+// 		const sqlotherPets = getRandomElement(otherPets);
+// 		const sqlhousehold = getRandomElement(household);
+// 		const sqlenergy = getRandomElement(energy);
+// 		const sqlfamily = getRandomElement(family);
+// 		const sqltemperament = getRandomElement(temperaments);
+// 		const sqlhealth = getRandomElement(health);
+// 		const sqlsize = getRandomElement(size);
+// 		const sqlgroomingNeeds = getRandomElement(groomingNeeds);
+// 		const sqltrainingSocialization = getRandomElement(trainingSocialization);
+// 		const sqlcommitmentLevel = getRandomElement(commitmentLevel);
+
+// 		const sql = `INSERT INTO pets (owner_id, name, age, gender, status, type, archived, created_at, updated_at, short_description, long_description, vaccination_status, breed, other_pets, household, energy, family, temperament, health, size, grooming_needs, training_socialization, commitment_level) VALUES ('${sqlownerId}', '${sqlname}', ${sqlage}, '${sqlgender}', '${sqlstatus}', '${sqltype}', ${sqlarchived}, '${sqlcreatedAt}', '${sqlupdatedAt}', '${sqlshortDescription}', '${sqllongDescription}', '${sqlvaccinationStatus}', '${sqlbreed}', '${sqlotherPets}', '${sqlhousehold}', '${sqlenergy}', '${sqlfamily}', '${sqltemperament}', '${sqlhealth}', '${sqlsize}', '${sqlgroomingNeeds}', '${sqltrainingSocialization}', '${sqlcommitmentLevel}');`;
+// 		sqlStatements.push(sql);
+// 	}
+
+// 	res.type('text').send(sqlStatements.join('\n'));
+// });
+
+function getRandomElement(array) {
+	return array[Math.floor(Math.random() * array.length)];
+}
+
 // Export the router to make these routes available to the rest of the application.
 export default router;

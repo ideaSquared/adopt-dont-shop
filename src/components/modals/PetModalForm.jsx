@@ -523,7 +523,7 @@ const PetModalForm = ({
 											<option value='No grooming: They will groom themselves adequately'>
 												No grooming: They will groom themselves adequately
 											</option>
-											<option value="Low maintenance: Requires basic grooming that's easy to manage">
+											<option value="Low maintenance: Requires basic grooming that''s easy to manage">
 												Low maintenance: Requires basic grooming that\'s easy to
 												manage
 											</option>
@@ -533,7 +533,7 @@ const PetModalForm = ({
 											</option>
 											<option value='High maintenance: Requires extensive grooming routines and regular professional care'>
 												High maintenance: Requires extensive grooming routines
-												and regular professional care'
+												and regular professional care
 											</option>
 										</Form.Control>
 									</Form.Group>

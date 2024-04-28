@@ -8,7 +8,7 @@ import { permissionService } from '../../services/permissionService.js';
 
 const request = supertest(app);
 
-describe.only('POST /api/pets', () => {
+describe('POST /api/pets', () => {
 	let sandbox, cookie, userToken;
 
 	beforeEach(() => {
@@ -27,7 +27,7 @@ describe.only('POST /api/pets', () => {
 		sandbox.restore(); // Restore all stubs/spies created within the sandbox
 	});
 
-	it.only('should create a new pet record successfully', async () => {
+	it('should create a new pet record successfully', async () => {
 		sinon.stub(permissionService, 'checkPermission').resolves(true);
 		pool.query.resolves({
 			rows: [
