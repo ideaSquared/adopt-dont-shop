@@ -160,21 +160,21 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 
 		const query = {
 			text: `
-                SELECT 
-                    p.*, u.location AS user_location, r.location AS rescue_location
-                FROM 
-                    pets p
-                JOIN
-                    users u ON u.user_id = $1
-                JOIN 
-                    rescues r ON r.rescue_id = p.owner_id
-                WHERE 
-                    p.pet_id NOT IN (
-                        SELECT pet_id
-                        FROM ratings
-                        WHERE user_id = $1
-                    );
-            `,
+        SELECT 
+          p.*, u.location AS user_location, r.location AS rescue_location
+        FROM 
+          pets p
+        JOIN
+          users u ON u.user_id = $1
+        JOIN 
+          rescues r ON r.rescue_id = p.owner_id
+        WHERE 
+          p.pet_id NOT IN (
+            SELECT pet_id
+            FROM ratings
+            WHERE user_id = $1
+          );
+      `,
 			values: [userId],
 		};
 

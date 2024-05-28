@@ -4,6 +4,7 @@ import supertest from 'supertest';
 import app from '../../index.js'; // Adjust as necessary
 import { pool } from '../../dbConnection.js'; // Adjust as necessary
 import jwt from 'jsonwebtoken';
+import { geoService } from '../../services/geoService.js';
 
 const request = supertest(app);
 
@@ -26,11 +27,26 @@ describe('GET /api/ratings/find-unrated endpoint', () => {
 
 	it('should fetch unrated pets successfully when they exist', async () => {
 		const mockUnratedPets = [
-			{ pet_id: '1', name: 'Fido', type: 'Dog' },
-			{ pet_id: '2', name: 'Whiskers', type: 'Cat' },
+			{
+				pet_id: '1',
+				name: 'Fido',
+				type: 'Dog',
+				user_location: '(37.7749,-122.4194)',
+				rescue_location: '(34.0522,-118.2437)',
+			},
+			{
+				pet_id: '2',
+				name: 'Whiskers',
+				type: 'Cat',
+				user_location: '(40.7128,-74.0060)',
+				rescue_location: '(34.0522,-118.2437)',
+			},
 		];
 
 		pool.query.resolves({ rows: mockUnratedPets });
+
+		// Mock the calculateDistanceBetweenTwoLatLng method
+		sinon.stub(geoService, 'calculateDistanceBetweenTwoLatLng').returns(100);
 
 		const response = await request
 			.get('/api/ratings/find-unrated')
@@ -38,7 +54,14 @@ describe('GET /api/ratings/find-unrated endpoint', () => {
 			.expect(200);
 
 		expect(response.status).to.equal(200);
-		expect(response.body).to.deep.equal(mockUnratedPets);
+		expect(response.body).to.deep.equal(
+			mockUnratedPets.map((pet) => ({
+				pet_id: pet.pet_id,
+				name: pet.name,
+				type: pet.type,
+				distance: 100, // Since we mocked this method to always return 100
+			}))
+		);
 	});
 
 	it('should return 404 when no unrated pets are found', async () => {
