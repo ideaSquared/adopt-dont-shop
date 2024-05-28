@@ -1,16 +1,13 @@
-// Import necessary modules and files.
 import express from 'express';
 import { pool } from '../dbConnection.js';
 import authenticateToken from '../middleware/authenticateToken.js';
-import checkAdmin from '../middleware/checkAdmin.js'; // Middleware to check if the authenticated user is an admin.
-import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import checkAdmin from '../middleware/checkAdmin.js';
+import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 
 const router = express.Router();
-const logger = new LoggerUtil('preferencesService').getLogger(); // Initialize logger for this service
+const logger = new LoggerUtil('preferencesService').getLogger();
 
-// Define allowed preference keys and their values
-// We're storing these here rather than in a database as I don't foresee them changing often, and managing the database changes vs in code is much more managable for me.
 const allowedPreferences = {
 	other_pets: [
 		'prefers_only_pet_household',
@@ -74,22 +71,21 @@ const allowedPreferences = {
 	],
 };
 
-// Helper function to validate preference key and value
-const isValidPreference = (key, value) => {
+const isValidPreference = (category, key) => {
 	return (
-		allowedPreferences.hasOwnProperty(key) &&
-		allowedPreferences[key].includes(value)
+		allowedPreferences.hasOwnProperty(category) &&
+		allowedPreferences[category].includes(key)
 	);
 };
 
-// POST route to add a new preference
 router.post('/', authenticateToken, async (req, res) => {
 	const { preferenceKey, preferenceValue } = req.body;
-	const userId = req.user.userId; // Extract userId from the authenticated user
+	const userId = req.user.userId;
 
-	// Validate preference key and value
 	if (!isValidPreference(preferenceKey, preferenceValue)) {
-		return res.status(400).json({ message: 'Invalid preference key or value' });
+		return res.status(400).json({
+			message: `Invalid preference category (${preferenceKey}) or value (${preferenceValue})`,
+		});
 	}
 
 	try {
@@ -113,22 +109,22 @@ router.post('/', authenticateToken, async (req, res) => {
 	}
 });
 
-// PUT route to update an existing preference
 router.put('/:id', authenticateToken, async (req, res) => {
 	const { preferenceKey, preferenceValue } = req.body;
 	const { id } = req.params;
-	const userId = req.user.userId; // Extract userId from the authenticated user
+	const userId = req.user.userId;
 
-	// Validate preference key and value
 	if (!isValidPreference(preferenceKey, preferenceValue)) {
-		return res.status(400).json({ message: 'Invalid preference key or value' });
+		return res
+			.status(400)
+			.json({ message: 'Invalid preference category or value' });
 	}
 
 	try {
 		const updateQuery = `
             UPDATE user_preferences
             SET preference_key = $1, preference_value = $2, updated_at = NOW()
-            WHERE id = $3
+            WHERE preferences_id = $3
             RETURNING *;
         `;
 		const result = await pool.query(updateQuery, [
@@ -149,14 +145,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
 	}
 });
 
-// DELETE route to remove a preference
 router.delete('/:id', authenticateToken, async (req, res) => {
 	const { id } = req.params;
-	const userId = req.user.userId; // Extract userId from the authenticated user
+	const userId = req.user.userId;
+
 	try {
 		const deleteQuery = `
             DELETE FROM user_preferences
-            WHERE id = $1
+            WHERE preferences_id = $1
             RETURNING *;
         `;
 		const result = await pool.query(deleteQuery, [id]);
@@ -176,7 +172,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 	}
 });
 
-// GET route to get all preferences
 router.get('/', authenticateToken, checkAdmin, async (req, res) => {
 	try {
 		const query = 'SELECT * FROM user_preferences;';
@@ -188,9 +183,9 @@ router.get('/', authenticateToken, checkAdmin, async (req, res) => {
 	}
 });
 
-// GET route to get all preferences by user
 router.get('/user', authenticateToken, async (req, res) => {
-	const userId = req.user.userId; // Extract userId from the authenticated user
+	const userId = req.user.userId;
+
 	try {
 		const query = 'SELECT * FROM user_preferences WHERE user_id = $1;';
 		const result = await pool.query(query, [userId]);

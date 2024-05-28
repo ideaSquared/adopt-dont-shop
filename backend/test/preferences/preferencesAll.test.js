@@ -78,7 +78,9 @@ describe('Preferences Service', () => {
 				.set('Cookie', cookie);
 
 			expect(response.status).to.equal(400);
-			expect(response.body.message).to.equal('Invalid preference key or value');
+			expect(response.body.message).to.equal(
+				'Invalid preference category (invalid_key) or value (prefers_only_pet_household)'
+			);
 		});
 
 		it('should return 400 if the preference value is invalid', async () => {
@@ -93,7 +95,9 @@ describe('Preferences Service', () => {
 				.set('Cookie', cookie);
 
 			expect(response.status).to.equal(400);
-			expect(response.body.message).to.equal('Invalid preference key or value');
+			expect(response.body.message).to.equal(
+				'Invalid preference category (other_pets) or value (invalid_value)'
+			);
 		});
 	});
 
@@ -149,7 +153,9 @@ describe('Preferences Service', () => {
 				.set('Cookie', cookie);
 
 			expect(response.status).to.equal(400);
-			expect(response.body.message).to.equal('Invalid preference key or value');
+			expect(response.body.message).to.equal(
+				'Invalid preference category or value'
+			);
 		});
 
 		it('should return 400 if the preference value is invalid', async () => {
@@ -165,7 +171,9 @@ describe('Preferences Service', () => {
 				.set('Cookie', cookie);
 
 			expect(response.status).to.equal(400);
-			expect(response.body.message).to.equal('Invalid preference key or value');
+			expect(response.body.message).to.equal(
+				'Invalid preference category or value'
+			);
 		});
 	});
 

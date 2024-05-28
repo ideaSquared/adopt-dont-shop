@@ -40,6 +40,7 @@ import AdminLanding from '../views/admin/Landing';
 import LandingFeatures from '../views/LandingFeatures';
 import LandingPricing from '../views/LandingPricing';
 import LandingFAQ from '../views/LandingFAQ';
+import PreferencesManager from '../views/user/PreferencesManager';
 
 function App() {
 	return (
@@ -90,6 +91,7 @@ function App() {
 					/>
 					<Route path='/swipe' element={<UserSwiper />} />
 					<Route path='/verify-email' element={<EmailVerification />} />
+					<Route path='/preferences' element={<PreferencesManager />} />
 				</Routes>
 			</div>
 		</Router>
