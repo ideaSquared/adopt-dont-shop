@@ -78,11 +78,30 @@ describe('GeoService', function () {
 		it('should correctly calculate the distance between two given point strings using the best method', () => {
 			const origin = '(53.4808, -2.2426)'; // Manchester
 			const destination = '(53.5228, -1.1312)'; // Doncaster
+
 			const distance = geoService.calculateDistanceBetweenTwoLatLng(
 				origin,
 				destination
 			);
+			// console.log('Distance:', distance);
 			expect(distance).to.include('74 km'); // Expected output should include the unit and distance
+
+			// Additional assertions to verify the distance in other units
+			const distanceInMiles = geoService.calculateDistanceBetweenTwoLatLng(
+				origin,
+				destination,
+				'miles'
+			);
+			// console.log('Distance in Miles:', distanceInMiles);
+			expect(distanceInMiles).to.include('46 miles'); // Approximate distance in miles
+
+			const distanceInMeters = geoService.calculateDistanceBetweenTwoLatLng(
+				origin,
+				destination,
+				'm'
+			);
+			// console.log('Distance in Meters:', distanceInMeters);
+			expect(distanceInMeters).to.include('73654 m'); // Approximate distance in meters
 		});
 	});
 });

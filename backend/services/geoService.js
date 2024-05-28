@@ -1,13 +1,6 @@
 import axios from 'axios';
 
-/*
-
-POSTGRESQL expects the data to be in a latitude/longitude order.
-
-*/
-
 export const geoService = {
-	// Async function to fetch geocoded data for a given city and country to store in the database dependent on what service to use.
 	async getGeocodePoint(city, country) {
 		const service = process.env.GEOCODE_SOLUTION;
 
@@ -56,10 +49,6 @@ export const geoService = {
 		}
 	},
 
-	objectToPointString(coord) {
-		return `(${coord.x}, ${coord.y})`;
-	},
-
 	parsePoint(point) {
 		let coordinates;
 
@@ -82,18 +71,23 @@ export const geoService = {
 			throw new Error('Input does not contain valid coordinates');
 		}
 
+		const latitude = parseFloat(coordinates[0].trim());
+		const longitude = parseFloat(coordinates[1].trim());
+
+		if (isNaN(latitude) || isNaN(longitude)) {
+			throw new Error('Parsed coordinates are not valid numbers');
+		}
+
 		return {
-			latitude: parseFloat(coordinates[0].trim()),
-			longitude: parseFloat(coordinates[1].trim()),
+			latitude,
+			longitude,
 		};
 	},
 
-	// Converts degrees to radians.
 	degreesToRadians(degrees) {
 		return (degrees * Math.PI) / 180;
 	},
 
-	// Converts distance from kilometers to the specified unit.
 	convertDistance(distanceKm, unit) {
 		if (unit === 'm') {
 			return distanceKm * 1000; // Convert to meters
@@ -103,7 +97,6 @@ export const geoService = {
 		return distanceKm; // Default to kilometers
 	},
 
-	// Formats the distance in the specified unit.
 	formatDistance(distance, unit) {
 		const roundedDistance = Math.round(distance);
 		if (unit === 'm') {
@@ -114,7 +107,6 @@ export const geoService = {
 		return `${roundedDistance} km`; // Default to kilometers
 	},
 
-	// Calculate distance and automatically determine the unit based on distance
 	calculateAndFormatDistance(distanceKm) {
 		if (distanceKm < 0.1) {
 			return `${(distanceKm * 1000).toFixed(0)} m`;
@@ -124,7 +116,6 @@ export const geoService = {
 		return `${distanceKm.toFixed(0)} km`;
 	},
 
-	// Haversine formula for calculating distance.
 	calculateHaversineDistance(lat1, lon1, lat2, lon2) {
 		const earthRadiusKm = 6371;
 		const dLat = this.degreesToRadians(lat2 - lat1);
@@ -138,7 +129,6 @@ export const geoService = {
 		return earthRadiusKm * c;
 	},
 
-	// Spherical Law of Cosines to calculate distance between two points.
 	calculateDistanceSphericalLawOfCosines(lat1, lon1, lat2, lon2) {
 		const earthRadiusKm = 6371;
 
@@ -156,7 +146,6 @@ export const geoService = {
 		return distance;
 	},
 
-	// Vincenty formula for calculating geodesic distances between two points on the Earth's surface.
 	calculateDistanceVincenty(lat1, lon1, lat2, lon2) {
 		const a = 6378137; // Semi-major axis
 		const b = 6356752.3142; // Semi-minor axis
@@ -225,17 +214,15 @@ export const geoService = {
 		return s / 1000;
 	},
 
-	// Calculates the distance between two points using the specified method and unit.
 	calculateDistanceBetweenTwoLatLng(
 		origin,
 		destination,
 		unit = 'km',
 		method = 'best'
 	) {
-		const originCoords = this.parsePoint(this.objectToPointString(origin));
-		const destinationCoords = this.parsePoint(
-			this.objectToPointString(destination)
-		);
+		const originCoords = this.parsePoint(origin);
+		const destinationCoords = this.parsePoint(destination);
+
 		let distance = 0;
 		if (method === 'best') {
 			const latDiff = Math.abs(
@@ -251,6 +238,8 @@ export const geoService = {
 					? 'SphericalLawOfCosines'
 					: 'Haversine';
 		}
+		// console.log('Chosen Method:', method);
+
 		switch (method) {
 			case 'Haversine':
 				distance = this.calculateHaversineDistance(
@@ -280,6 +269,7 @@ export const geoService = {
 				console.error('Invalid method specified');
 				return null;
 		}
+		// console.log('Calculated Distance:', distance);
 		distance = this.convertDistance(distance, unit);
 
 		return this.formatDistance(distance, unit);
