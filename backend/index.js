@@ -15,6 +15,7 @@ import petRoutes from './routes/petRoutes.js';
 import conversationRoutes from './routes/conversationRoutes.js';
 import logRoutes from './routes/logRoutes.js';
 import ratingRoutes from './routes/ratingRoutes.js';
+import preferencesRoutes from './routes/preferencesRoutes.js';
 import { tokenGenerators } from './utils/tokenGenerator.js';
 import { emailService } from './services/emailService.js';
 
@@ -78,6 +79,7 @@ app.use('/api/pets', petRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/ratings', ratingRoutes);
+app.use('/api/preferences', preferencesRoutes);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
