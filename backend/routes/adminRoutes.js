@@ -669,81 +669,81 @@ router.get(
 // 	];
 // 	const types = ['Dog', 'Cat', 'Bird', 'Rabbit', 'Other'];
 // 	const vaccinatedStatuses = [
-// 		'Fully Vaccinated',
-// 		'Partially Vaccinated',
-// 		'Unvaccinated',
-// 		'Booster Required',
-// 		'Overdue for Vaccinations',
-// 		'Medical Exemption',
-// 	];
-// 	const temperaments = [
-// 		'Confident and sociable: Thrives in social settings and adapts quickly to new situations',
-// 		'Timid but warms up with patience: Needs a calm environment and gentle handling to gain confidence',
-// 		'Highly trainable: Responds well to training and enjoys learning new tricks and commands',
-// 		'Needs experienced owner: Best suited for adopters with previous pet ownership experience',
-// 	];
-// 	const family = [
-// 		'Needs a quiet home, preferably without children',
-// 		'Prefers a single-adult household',
-// 		'Ideal for a household with older children or adults only',
-// 		'Best suited for families with teenagers',
-// 		'Suitable for families with young children',
-// 	];
-// 	const energy = [
-// 		'Independent and self-sufficient; comfortable being alone for parts of the day',
-// 		'Enjoys human company and prefers someone present most of the time',
-// 		'Shy and reserved; requires a quiet environment to open up',
-// 		'Moderately active: Enjoys regular playtime and exercise',
-// 		'Full of energy and loves extensive playtime',
-// 	];
-// 	const household = [
-// 		'Needs an outdoor space',
-// 		'Prefers spending time outdoors',
-// 		'Enjoys both indoor and outdoor environments',
-// 		'Needs to be strictly indoor due to health/safety reasons',
-// 		'Prefers living indoors',
-// 	];
-// 	const otherPets = [
-// 		'Would enjoy being adopted with a companion but can adapt if alone',
-// 		'Needs to be adopted with my current animal companion',
-// 		'I would prefer not to live with a specific type of pet (e.g., dogs, cats, birds)',
-// 		'I would prefer to live with another specific type of pet (e.g., dogs, cats, birds)',
-// 		'Friendly with small animals (like rabbits, guinea pigs)',
-// 		'Can coexist peacefully with dogs',
-// 		'Can coexist peacefully with cats',
-// 		'Prefers an only pet household',
-// 	];
-// 	const commitmentLevel = [
-// 		'Ideal for first-time pet owners: Easygoing and adaptable to new pet parents',
-// 		'Needs active lifestyle: Thrives in an energetic environment with lots of physical activities',
-// 		'Suitable for relaxed lifestyle: Prefers a quieter, more laid-back environment with minimal disruption',
-// 	];
-// 	const trainingSocialization = [
-// 		'No training required: they are self trained animals',
-// 		'Basic training completed: Knows fundamental commands like sit, stay, and come',
-// 		'Obedience trained: Has received extensive training and responds well to commands',
-// 		'Socialized with multiple species: Comfortable around various animals, including those outside its species',
-// 		'Needs socialization: Requires training and exposure to become comfortable around other pets and people',
-// 	];
-// 	const groomingNeeds = [
-// 		'No grooming: They will groom themselves adequately',
-// 		`Low maintenance: Requires basic grooming that''s easy to manage`,
-// 		'Regular grooming needed: Needs frequent brushing and occasional professional grooming',
-// 		'High maintenance: Requires extensive grooming routines and regular professional care',
-// 	];
-// 	const size = [
-// 		'Extra-large (over 45 kg): Requires a spacious living environment and robust physical activity',
-// 		'Large (23-45 kg): Best suited for homes with ample space and a secure, large outdoor area',
-// 		'Medium (9-23 kg): A good fit for most homes, including those with yards',
-// 		'Small (up to 9 kg): Suitable for apartments or smaller living spaces',
+// 		'fully_vaccinated',
+// 		'partially_vaccinated',
+// 		'unvaccinated',
+// 		'booster_required',
+// 		'overdue_for_vaccinations',
+// 		'medical_exemption',
 // 	];
 
+// 	const temperaments = [
+// 		'confident_and_sociable',
+// 		'timid_with_patience',
+// 		'highly_trainable',
+// 		'needs_experienced_owner',
+// 	];
+
+// 	const family = [
+// 		'needs_quiet_home_without_children',
+// 		'prefers_single_adult_household',
+// 		'ideal_for_older_children_or_adults',
+// 		'best_suited_for_teenagers',
+// 		'suitable_for_young_children',
+// 	];
+
+// 	const energy = [
+// 		'independent_self_sufficient',
+// 		'enjoys_human_company',
+// 		'shy_and_reserved',
+// 		'moderately_active',
+// 		'full_of_energy',
+// 	];
+
+// 	const household = [
+// 		'needs_outdoor_space',
+// 		'prefers_spending_outdoors',
+// 		'enjoys_indoor_outdoor',
+// 		'strictly_indoor_due_to_health',
+// 		'prefers_living_indoors',
+// 	];
+
+// 	const otherPets = [
+// 		'can_adapt_if_alone',
+// 		'needs_adopt_with_companion',
+// 		'not_live_with_specific_pet',
+// 		'live_with_specific_pet',
+// 		'friendly_with_small_animals',
+// 		'coexist_with_dogs',
+// 		'coexist_with_cats',
+// 		'prefers_only_pet_household',
+// 	];
+
+// 	const commitmentLevel = ['first_time', 'active', 'relaxed'];
+
+// 	const trainingSocialization = [
+// 		'no_training_required',
+// 		'basic_training_completed',
+// 		'obedience_trained',
+// 		'socialized_with_multiple_species',
+// 		'needs_socialization',
+// 	];
+
+// 	const groomingNeeds = [
+// 		'no_grooming',
+// 		'low_maintenance',
+// 		'regular_grooming_needed',
+// 		'high_maintenance',
+// 	];
+
+// 	const size = ['extra_large', 'large', 'medium', 'small'];
+
 // 	const health = [
-// 		'Recently rehabilitated: Has recovered from an injury or illness and needs a supportive environment to maintain health',
-// 		'Senior pet: Older animals that may be less active but still need a loving home',
-// 		'Dietary restrictions: Needs a specific type of diet (e.g., grain-free, low-calorie)',
-// 		'Special needs: Requires ongoing medical care or hasphysical limitations',
-// 		'Perfect health: No ongoing medical issues',
+// 		'recently_rehabilitated',
+// 		'senior_pet',
+// 		'dietary_restrictions',
+// 		'special_needs',
+// 		'perfect_health',
 // 	];
 
 // 	// Helper function to generate random names and descriptions
