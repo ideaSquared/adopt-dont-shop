@@ -71,8 +71,8 @@ export const geoService = {
 			throw new Error('Input does not contain valid coordinates');
 		}
 
-		const latitude = parseFloat(coordinates[0].trim());
-		const longitude = parseFloat(coordinates[1].trim());
+		const latitude = parseFloat(String(coordinates[0]).trim());
+		const longitude = parseFloat(String(coordinates[1]).trim());
 
 		if (isNaN(latitude) || isNaN(longitude)) {
 			throw new Error('Parsed coordinates are not valid numbers');
