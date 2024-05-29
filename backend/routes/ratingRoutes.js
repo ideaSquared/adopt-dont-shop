@@ -158,34 +158,62 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 	try {
 		logger.info(`Fetching unrated pets for user ID: ${userId}`);
 
-		const query = {
+		// Query to fetch unrated pets
+		const petQuery = {
 			text: `
-        SELECT 
-          p.*, u.location AS user_location, r.location AS rescue_location
-        FROM 
-          pets p
-        JOIN
-          users u ON u.user_id = $1
-        JOIN 
-          rescues r ON r.rescue_id = p.owner_id
-        WHERE 
-          p.pet_id NOT IN (
-            SELECT pet_id
-            FROM ratings
-            WHERE user_id = $1
-          );
-      `,
+				SELECT 
+				  p.*, u.location AS user_location, r.location AS rescue_location
+				FROM 
+				  pets p
+				JOIN
+				  users u ON u.user_id = $1
+				JOIN 
+				  rescues r ON r.rescue_id = p.owner_id
+				WHERE 
+				  p.pet_id NOT IN (
+					SELECT pet_id
+					FROM ratings
+					WHERE user_id = $1
+				  );
+			`,
 			values: [userId],
 		};
 
-		const result = await pool.query(query);
-		const petsData = result.rows;
+		const petResult = await pool.query(petQuery);
+		const petsData = petResult.rows;
 
+		// If no pets found, return 404
 		if (petsData.length === 0) {
 			return res.status(404).send({ message: 'No unrated pets found' });
 		}
 
-		const unratedPets = petsData.map((pet) => ({
+		// Query to fetch user preferences
+		const preferenceQuery = {
+			text: `
+				SELECT preference_key, preference_value
+				FROM user_preferences
+				WHERE user_id = $1;
+			`,
+			values: [userId],
+		};
+
+		const preferenceResult = await pool.query(preferenceQuery);
+		const userPreferences = preferenceResult.rows.reduce((acc, pref) => {
+			acc[pref.preference_key] = pref.preference_value;
+			return acc;
+		}, {});
+
+		// Filter pets based on user preferences
+		const filteredPets = petsData.filter((pet) => {
+			for (const [key, value] of Object.entries(userPreferences)) {
+				if (pet[key] && pet[key] !== value) {
+					return false;
+				}
+			}
+			return true;
+		});
+
+		const unratedPets = filteredPets.map((pet) => ({
 			pet_id: pet.pet_id,
 			name: pet.name,
 			type: pet.type,
