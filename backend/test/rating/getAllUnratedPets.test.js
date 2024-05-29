@@ -19,10 +19,14 @@ describe('GET /api/ratings/find-unrated endpoint', () => {
 		const userPayload = { userId: 'testUserId' };
 		userToken = jwt.sign(userPayload, secret, { expiresIn: '1h' });
 		cookie = `token=${userToken};`;
+
+		// Mock the calculateDistanceBetweenTwoLatLng method
+		sinon.stub(geoService, 'calculateDistanceBetweenTwoLatLng').returns(100);
 	});
 
 	afterEach(() => {
 		sandbox.restore();
+		sinon.restore();
 	});
 
 	it('should fetch unrated pets successfully when they exist', async () => {
@@ -44,9 +48,6 @@ describe('GET /api/ratings/find-unrated endpoint', () => {
 		];
 
 		pool.query.resolves({ rows: mockUnratedPets });
-
-		// Mock the calculateDistanceBetweenTwoLatLng method
-		sinon.stub(geoService, 'calculateDistanceBetweenTwoLatLng').returns(100);
 
 		const response = await request
 			.get('/api/ratings/find-unrated')
@@ -76,8 +77,71 @@ describe('GET /api/ratings/find-unrated endpoint', () => {
 		expect(response.body.message).to.equal('No unrated pets found');
 	});
 
-	// ! This times out - unsure why but we do have a catch for errors here so I won't spend time debugging this now.
-	it.skip('should handle errors gracefully if there is a database error', async () => {
+	it('should fetch and filter unrated pets based on user preferences', async () => {
+		const mockUnratedPets = [
+			{
+				pet_id: '1',
+				name: 'Fido',
+				type: 'Dog',
+				age: 2,
+				breed: 'Labrador',
+				gender: 'Male',
+				user_location: '(37.7749,-122.4194)',
+				rescue_location: '(34.0522,-118.2437)',
+				household: 'prefers_living_indoors',
+				other_pets: 'prefers_only_pet_household',
+			},
+			{
+				pet_id: '2',
+				name: 'Whiskers',
+				type: 'Cat',
+				age: 4,
+				breed: 'Siamese',
+				gender: 'Female',
+				user_location: '(40.7128,-74.0060)',
+				rescue_location: '(34.0522,-118.2437)',
+				household: 'other',
+				other_pets: 'not_mine',
+			},
+		];
+
+		const mockPreferences = [
+			{
+				preference_key: 'household',
+				preference_value: 'prefers_living_indoors',
+			},
+			{
+				preference_key: 'other_pets',
+				preference_value: 'prefers_only_pet_household',
+			},
+		];
+
+		pool.query
+			.onFirstCall()
+			.resolves({ rows: mockUnratedPets })
+			.onSecondCall()
+			.resolves({ rows: mockPreferences });
+
+		const response = await request
+			.get('/api/ratings/find-unrated')
+			.set('Cookie', cookie)
+			.expect(200);
+
+		expect(response.status).to.equal(200);
+		expect(response.body).to.deep.equal([
+			{
+				pet_id: '1',
+				name: 'Fido',
+				type: 'Dog',
+				age: 2,
+				breed: 'Labrador',
+				gender: 'Male',
+				distance: 100,
+			},
+		]);
+	});
+
+	it('should handle errors gracefully if there is a database error', async () => {
 		pool.query.rejects(new Error('Database error'));
 
 		const response = await request
