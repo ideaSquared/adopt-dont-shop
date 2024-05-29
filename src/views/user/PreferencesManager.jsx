@@ -3,6 +3,7 @@ import {
 	Form,
 	Row,
 	Col,
+	Card,
 	ToggleButton,
 	ToggleButtonGroup,
 } from 'react-bootstrap';
@@ -110,51 +111,76 @@ const PreferencesManager = () => {
 		);
 	};
 
+	// Split categories into pairs for each row
+	const categoryPairs = [];
+	const categories = Object.keys(allowedPreferences);
+	for (let i = 0; i < categories.length; i += 2) {
+		categoryPairs.push(categories.slice(i, i + 2));
+	}
+
 	return (
 		<Form>
-			{Object.keys(allowedPreferences).map((category) => (
-				<Row key={category} className='mb-3'>
-					<Col md={3}>
-						<Form.Label>
-							<strong>{capitalizeFirstLetter(category)}</strong>
-						</Form.Label>
-					</Col>
-					<Col md={9}>
-						<ToggleButtonGroup
-							className='flex-wrap'
-							type='radio'
-							name={category}
-							value={preferenceValues[category] || 'any'}
-							onChange={(val) => handlePreferenceChange(category, val)}
-						>
-							<ToggleButton
-								id={`tbg-radio-${category}-any`}
-								value='any'
-								variant={
-									preferenceValues[category] === 'any'
-										? 'primary'
-										: 'outline-primary'
-								}
-							>
-								Any
-							</ToggleButton>
-							{allowedPreferences[category].map((value, idx) => (
-								<ToggleButton
-									className='preference-button'
-									key={idx}
-									id={`tbg-radio-${category}-${idx}`}
-									value={value}
-									variant={
-										preferenceValues[category] === value
-											? 'primary'
-											: 'outline-primary'
-									}
-								>
-									{capitalizeFirstLetter(value)}
-								</ToggleButton>
-							))}
-						</ToggleButtonGroup>
-					</Col>
+			{categoryPairs.map((pair, idx) => (
+				<Row key={idx} className='mb-3'>
+					{pair.map((category) => (
+						<Col md={6} key={category}>
+							<Card className='mb-3'>
+								<Card.Body>
+									<Form.Label>
+										<strong>{capitalizeFirstLetter(category)}</strong>
+									</Form.Label>
+									<Row className='text-center'>
+										<Col xs={12} sm={6} className='mb-3'>
+											<ToggleButtonGroup
+												type='radio'
+												name={category}
+												value={preferenceValues[category] || 'any'}
+												onChange={(val) =>
+													handlePreferenceChange(category, val)
+												}
+											>
+												<ToggleButton
+													id={`tbg-radio-${category}-any`}
+													value='any'
+													variant={
+														preferenceValues[category] === 'any'
+															? 'primary'
+															: 'outline-primary'
+													}
+												>
+													Any
+												</ToggleButton>
+											</ToggleButtonGroup>
+										</Col>
+										{allowedPreferences[category].map((value, idx) => (
+											<Col xs={12} sm={6} key={idx} className='mb-3'>
+												<ToggleButtonGroup
+													type='radio'
+													name={category}
+													value={preferenceValues[category] || 'any'}
+													onChange={(val) =>
+														handlePreferenceChange(category, val)
+													}
+												>
+													<ToggleButton
+														id={`tbg-radio-${category}-${value}`}
+														value={value}
+														variant={
+															preferenceValues[category] === value
+																? 'primary'
+																: 'outline-primary'
+														}
+													>
+														{capitalizeFirstLetter(value)}
+													</ToggleButton>
+												</ToggleButtonGroup>
+											</Col>
+										))}
+									</Row>
+								</Card.Body>
+							</Card>
+						</Col>
+					))}
 				</Row>
 			))}
 		</Form>
