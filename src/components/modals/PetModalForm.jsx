@@ -146,6 +146,78 @@ const PetModalForm = ({
 		}
 	};
 
+	const allowedPreferences = {
+		other_pets: [
+			'prefers_only_pet_household',
+			'coexist_with_cats',
+			'coexist_with_dogs',
+			'friendly_with_small_animals',
+			'live_with_specific_pet',
+			'not_live_with_specific_pet',
+			'needs_adopt_with_companion',
+			'can_adapt_if_alone',
+		],
+		household: [
+			'prefers_living_indoors',
+			'strictly_indoor_due_to_health',
+			'enjoys_indoor_outdoor',
+			'prefers_spending_outdoors',
+			'needs_outdoor_space',
+		],
+		energy: [
+			'full_of_energy',
+			'moderately_active',
+			'shy_and_reserved',
+			'enjoys_human_company',
+			'independent_self_sufficient',
+		],
+		family: [
+			'suitable_for_young_children',
+			'best_suited_for_teenagers',
+			'ideal_for_older_children_or_adults',
+			'prefers_single_adult_household',
+			'needs_quiet_home_without_children',
+		],
+		temperament: [
+			'confident_and_sociable',
+			'timid_with_patience',
+			'highly_trainable',
+			'needs_experienced_owner',
+		],
+		health: [
+			'special_needs',
+			'dietary_restrictions',
+			'senior_pet',
+			'recently_rehabilitated',
+		],
+		size: ['small', 'medium', 'large', 'extra_large'],
+		grooming_needs: [
+			'low_maintenance',
+			'regular_grooming_needed',
+			'high_maintenance',
+		],
+		training_socialization: [
+			'basic_training_completed',
+			'obedience_trained',
+			'socialized_with_multiple_species',
+			'needs_socialization',
+		],
+		commitment_level: ['first_time', 'active', 'relaxed'],
+	};
+
+	const renderSelectOptions = (category) => {
+		return allowedPreferences[category].map((preference) => (
+			<option key={preference} value={preference}>
+				{preference
+					.split('_')
+					.map((word, index) =>
+						index === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word
+					)
+					.join(' ')}
+			</option>
+		));
+	};
+
 	return (
 		<Modal show={show} onHide={handleClose} size='lg'>
 			<Form onSubmit={handleSubmit}>
@@ -162,13 +234,8 @@ const PetModalForm = ({
 									<Form.Group>
 										<Form.Label>Pet Images</Form.Label>
 										<div className='pet-images-container'>
-											{/* Display a loading indicator when images are being fetched */}
 											{isLoading && <p>Loading images...</p>}
-
-											{/* Display an error message if there was an issue fetching the images */}
 											{error && <p className='text-danger'>{imagesError}</p>}
-
-											{/* Once loading is complete and if there's no error, check for images */}
 											{!isLoading &&
 												!error &&
 												(petDetails?.images?.length > 0 ? (
@@ -191,18 +258,6 @@ const PetModalForm = ({
 											onChange={handleFileChange}
 										/>
 									</Form.Group>
-									{/* <div className='image-previews'>
-										{selectedFiles.map((file, index) => (
-											<div key={index} className='image-preview'>
-												<Image
-													src={URL.createObjectURL(file)}
-													alt='preview'
-													className='w-100'
-													fluid
-												/>
-											</div>
-										))}
-									</div> */}
 								</Col>
 							</Row>
 							<Row className='mb-3'>
@@ -386,9 +441,6 @@ const PetModalForm = ({
 										</Form.Control>
 									</Form.Group>
 								</Col>
-								{/* 
-								
-								 */}
 								<Col xs={12} md={6}>
 									<Form.Group>
 										<Form.Label>Temperament</Form.Label>
@@ -404,29 +456,7 @@ const PetModalForm = ({
 											}
 										>
 											<option value=''>Select temperament</option>
-											<option
-												value='Confident and sociable: Thrives in social settings and
-												adapts quickly to new situations'
-											>
-												Confident and sociable: Thrives in social settings and
-												adapts quickly to new situations
-											</option>
-											<option
-												value='Timid but warms up with patience: Needs a calm
-												environment and gentle handling to gain confidence'
-											>
-												Timid but warms up with patience: Needs a calm
-												environment and gentle handling to gain confidence
-											</option>
-											<option value='Highly trainable: Responds well to training and enjoys learning new tricks and commands'>
-												Highly trainable: Responds well to training and enjoys
-												learning new tricks and commands
-											</option>
-											<option value='Needs experienced owner: Best suited for adopters with previous pet ownership experience, especially with specific breeds or behaviors'>
-												Needs experienced owner: Best suited for adopters with
-												previous pet ownership experience, especially with
-												specific breeds or behaviors
-											</option>
+											{renderSelectOptions('temperament')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
@@ -444,30 +474,8 @@ const PetModalForm = ({
 												})
 											}
 										>
-											<option value=''>Select pets health</option>
-											<option value='Perfect health: No ongoing medical issues'>
-												Perfect health: No ongoing medical issues
-											</option>
-											<option
-												value='Special needs: Requires ongoing medical care or has
-												physical limitations'
-											>
-												Special needs: Requires ongoing medical care or has
-												physical limitations
-											</option>
-											<option value='Dietary restrictions: Needs a specific type of diet (e.g., grain-free, low-calorie)'>
-												Dietary restrictions: Needs a specific type of diet
-												(e.g., grain-free, low-calorie)
-											</option>
-											<option value='Senior pet: Older animals that may be less active but still need a loving home'>
-												Senior pet: Older animals that may be less active but
-												still need a loving home
-											</option>
-											<option value='Recently rehabilitated: Has recovered from an injury or illness and needs a supportive environment to maintain health'>
-												Recently rehabilitated: Has recovered from an injury or
-												illness and needs a supportive environment to maintain
-												health
-											</option>
+											<option value=''>Select health</option>
+											{renderSelectOptions('health')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
@@ -485,23 +493,8 @@ const PetModalForm = ({
 												})
 											}
 										>
-											<option value=''>Select pet size</option>
-											<option value='Small (up to 9 kg): Suitable for apartments or smaller living spaces'>
-												Small (up to 9 kg): Suitable for apartments or smaller
-												living spaces
-											</option>
-											<option value='Medium (9-23 kg): A good fit for most homes, including those with yards'>
-												Medium (9-23 kg): A good fit for most homes, including
-												those with yards
-											</option>
-											<option value='Large (23-45 kg): Best suited for homes with ample space and a secure, large outdoor area'>
-												Large (23-45 kg): Best suited for homes with ample space
-												and a secure, large outdoor area
-											</option>
-											<option value='Extra-large (over 45 kg): Requires a spacious living environment and robust physical activity'>
-												Extra-large (over 45 kg): Requires a spacious living
-												environment and robust physical activity
-											</option>
+											<option value=''>Select size</option>
+											{renderSelectOptions('size')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
@@ -520,21 +513,7 @@ const PetModalForm = ({
 											}
 										>
 											<option value=''>Select grooming needs</option>
-											<option value='No grooming: They will groom themselves adequately'>
-												No grooming: They will groom themselves adequately
-											</option>
-											<option value="Low maintenance: Requires basic grooming that''s easy to manage">
-												Low maintenance: Requires basic grooming that\'s easy to
-												manage
-											</option>
-											<option value='Regular grooming needed: Needs frequent brushing and occasional professional grooming'>
-												Regular grooming needed: Needs frequent brushing and
-												occasional professional grooming
-											</option>
-											<option value='High maintenance: Requires extensive grooming routines and regular professional care'>
-												High maintenance: Requires extensive grooming routines
-												and regular professional care
-											</option>
+											{renderSelectOptions('grooming_needs')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
@@ -543,7 +522,7 @@ const PetModalForm = ({
 										<Form.Label>Training & Socialization</Form.Label>
 										<Form.Control
 											as='select'
-											name='vaccination_status'
+											name='training_socialization'
 											value={petDetails?.training_socialization || ''}
 											onChange={(e) =>
 												setPetDetails({
@@ -555,25 +534,7 @@ const PetModalForm = ({
 											<option value=''>
 												Select training & socialization status
 											</option>
-											<option value='No training required: they are self trained animals'>
-												No training required: they are self trained animals
-											</option>
-											<option value='Basic training completed: Knows fundamental commands like sit, stay, and come'>
-												Basic training completed: Knows fundamental commands
-												like sit, stay, and come
-											</option>
-											<option value='Obedience trained: Has received extensive training and responds well to commands'>
-												Obedience trained: Has received extensive training and
-												responds well to commands
-											</option>
-											<option value='Socialized with multiple species: Comfortable around various animals, including those outside its species'>
-												Socialized with multiple species: Comfortable around
-												various animals, including those outside its species
-											</option>
-											<option value='Needs socialization: Requires training and exposure to become comfortable around other pets and people'>
-												Needs socialization: Requires training and exposure to
-												become comfortable around other pets and people
-											</option>
+											{renderSelectOptions('training_socialization')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
@@ -582,7 +543,7 @@ const PetModalForm = ({
 										<Form.Label>Commitment Level</Form.Label>
 										<Form.Control
 											as='select'
-											name='vaccination_status'
+											name='commitment_level'
 											value={petDetails?.commitment_level || ''}
 											onChange={(e) =>
 												setPetDetails({
@@ -592,18 +553,7 @@ const PetModalForm = ({
 											}
 										>
 											<option value=''>Select commitment level</option>
-											<option value='Ideal for first-time pet owners: Easygoing and adaptable to new pet parents'>
-												Ideal for first-time pet owners: Easygoing and adaptable
-												to new pet parents
-											</option>
-											<option value='Needs active lifestyle: Thrives in an energetic environment with lots of physical activities'>
-												Needs active lifestyle: Thrives in an energetic
-												environment with lots of physical activities
-											</option>
-											<option value='Suitable for relaxed lifestyle: Prefers a quieter, more laid-back environment with minimal disruption'>
-												Suitable for relaxed lifestyle: Prefers a quieter, more
-												laid-back environment with minimal disruption
-											</option>
+											{renderSelectOptions('commitment_level')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
@@ -622,33 +572,7 @@ const PetModalForm = ({
 											}
 										>
 											<option value=''>Select other pet preference</option>
-											<option value='Prefers an only pet household'>
-												Prefers an only pet household
-											</option>
-											<option value='Can coexist peacefully with cats'>
-												Can coexist peacefully with cats
-											</option>
-											<option value='Can coexist peacefully with dogs'>
-												Can coexist peacefully with dogs
-											</option>
-											<option value='Friendly with small animals (like rabbits, guinea pigs)'>
-												Friendly with small animals (like rabbits, guinea pigs)
-											</option>
-											<option value='I would prefer to live with another specific type of pet (e.g., dogs, cats, birds)'>
-												I would prefer to live with another specific type of pet
-												(e.g., dogs, cats, birds)
-											</option>
-											<option value='I would prefer not to live with a specific type of pet (e.g., dogs, cats, birds)'>
-												I would prefer not to live with a specific type of pet
-												(e.g., dogs, cats, birds)
-											</option>
-											<option value='Needs to be adopted with my current animal companion'>
-												Needs to be adopted with my current animal companion
-											</option>
-											<option value='Would enjoy being adopted with a companion but can adapt if alone'>
-												Would enjoy being adopted with a companion but can adapt
-												if alone
-											</option>
+											{renderSelectOptions('other_pets')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
@@ -667,21 +591,7 @@ const PetModalForm = ({
 											}
 										>
 											<option value=''>Select household preference</option>
-											<option value='Prefers living indoors'>
-												Prefers living indoors
-											</option>
-											<option value='Needs to be strictly indoor due to health/safety reasons'>
-												Needs to be strictly indoor due to health/safety reasons
-											</option>
-											<option value='Enjoys both indoor and outdoor environments'>
-												Enjoys both indoor and outdoor environments
-											</option>
-											<option value='Prefers spending time outdoors'>
-												Prefers spending time outdoors
-											</option>
-											<option value='Needs an outdoor space'>
-												Needs an outdoor space
-											</option>
+											{renderSelectOptions('household')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
@@ -697,24 +607,7 @@ const PetModalForm = ({
 											}
 										>
 											<option value=''>Select energy level</option>
-											<option value='Full of energy and loves extensive playtime'>
-												Full of energy and loves extensive playtime
-											</option>
-											<option value='Moderately active: Enjoys regular playtime and exercise'>
-												Moderately active: Enjoys regular playtime and exercise
-											</option>
-											<option value='Shy and reserved; requires a quiet environment to open up'>
-												Shy and reserved; requires a quiet environment to open
-												up
-											</option>
-											<option value='Enjoys human company and prefers someone present most of the time'>
-												Enjoys human company and prefers someone present most of
-												the time
-											</option>
-											<option value='Independent and self-sufficient; comfortable being alone for parts of the day'>
-												Independent and self-sufficient; comfortable being alone
-												for parts of the day
-											</option>
+											{renderSelectOptions('energy')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
@@ -730,21 +623,7 @@ const PetModalForm = ({
 											}
 										>
 											<option value=''>Select family preference</option>
-											<option value='Suitable for families with young children'>
-												Suitable for families with young children
-											</option>
-											<option value='Best suited for families with teenagers'>
-												Best suited for families with teenagers
-											</option>
-											<option value='Ideal for a household with older children or adults only'>
-												Ideal for a household with older children or adults only
-											</option>
-											<option value='Prefers a single-adult household'>
-												Prefers a single-adult household
-											</option>
-											<option value='Needs a quiet home, preferably without children'>
-												Needs a quiet home, preferably without children
-											</option>
+											{renderSelectOptions('family')}
 										</Form.Control>
 									</Form.Group>
 								</Col>
