@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Spinner } from 'react-bootstrap';
 
 const LazyImage = ({ src, alt, className = '', fluid = false, style = {} }) => {
 	const [imageSrc, setImageSrc] = useState('');
@@ -20,17 +19,23 @@ const LazyImage = ({ src, alt, className = '', fluid = false, style = {} }) => {
 
 	const classes = `${className} ${fluid ? 'img-fluid' : ''}`.trim();
 
-	if (!loaded) {
-		return (
-			<div className='text-center p-5'>
-				<Spinner animation='border' role='status'>
-					<span className='visually-hidden'>Loading...</span>
-				</Spinner>
-			</div>
-		);
-	}
-
-	return <img src={imageSrc} alt={alt} className={classes} style={style} />;
+	return (
+		<div className='relative'>
+			{!loaded && (
+				<div className='absolute inset-0 flex items-center justify-center'>
+					<div className='animate-spin rounded-full h-20 w-20 border-t-2 border-b-2 border-gray-300'></div>
+				</div>
+			)}
+			{loaded && (
+				<img
+					src={imageSrc}
+					alt={alt}
+					className={`${classes} opacity-${loaded ? '100' : '0'}`}
+					style={style}
+				/>
+			)}
+		</div>
+	);
 };
 
 export default LazyImage;

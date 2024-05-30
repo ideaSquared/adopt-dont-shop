@@ -1,9 +1,7 @@
 import React from 'react';
-import Table from 'react-bootstrap/Table';
 import PaginationControls from '../common/PaginationControls';
 import StatusBadge from '../common/StatusBadge';
 
-// Assuming currentLogs, currentPage, totalPages, and setCurrentPage are passed as props
 const LogsTable = ({
 	currentLogs,
 	currentPage,
@@ -12,30 +10,32 @@ const LogsTable = ({
 }) => {
 	return (
 		<div>
-			<Table striped bordered hover>
+			<table className='table-auto w-full'>
 				<thead>
 					<tr>
-						<th>Timestamp</th>
-						<th>Level</th>
-						<th>Service</th>
-						<th>Message</th>
+						<th className='border px-4 py-2'>Timestamp</th>
+						<th className='border px-4 py-2'>Level</th>
+						<th className='border px-4 py-2'>Service</th>
+						<th className='border px-4 py-2'>Message</th>
 					</tr>
 				</thead>
 				<tbody>
 					{currentLogs.map((log) => (
-						<tr key={log._id}>
-							<td>{new Date(log.timestamp).toLocaleString()}</td>
-							<td>
+						<tr key={log._id} className='hover:bg-gray-100'>
+							<td className='border px-4 py-2'>
+								{new Date(log.timestamp).toLocaleString()}
+							</td>
+							<td className='border px-4 py-2'>
 								<StatusBadge type='loglevel' value={log.level} />
 							</td>
-							<td>
+							<td className='border px-4 py-2'>
 								<StatusBadge type='logservice' value={log.service} />
 							</td>
-							<td>{log.message}</td>
+							<td className='border px-4 py-2'>{log.message}</td>
 						</tr>
 					))}
 				</tbody>
-			</Table>
+			</table>
 			<PaginationControls
 				currentPage={currentPage}
 				totalPages={totalPages}

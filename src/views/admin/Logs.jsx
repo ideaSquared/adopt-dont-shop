@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Container } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
 import { useAdminRedirect } from '../../hooks/useAdminRedirect';
 import LogsTable from '../../components/tables/LogsTable';
 import { LogsService } from '../../services/LogService';

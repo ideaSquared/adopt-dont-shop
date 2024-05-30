@@ -1,14 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import {
-	Container,
-	Alert,
-	Spinner,
-	Row,
-	Col,
-	Form,
-	Button,
-	Card,
-} from 'react-bootstrap';
 import { Line, Bar } from 'react-chartjs-2';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -69,7 +59,7 @@ const Charts = () => {
 
 	useEffect(() => {
 		fetchData();
-	}, [dateRange]); // This ensures fetchData is called every time the date range changes
+	}, [dateRange]);
 
 	const chartOptions = {
 		scales: {
@@ -89,19 +79,19 @@ const Charts = () => {
 
 	if (loading) {
 		return (
-			<Container fluid>
-				<Spinner animation='border' role='status'>
-					<span className='visually-hidden'>Loading...</span>
-				</Spinner>
-			</Container>
+			<div className='flex items-center justify-center h-screen'>
+				<div className='animate-spin h-10 w-10 border-t-2 border-b-2 border-gray-900 rounded-full'></div>
+			</div>
 		);
 	}
 
 	if (error) {
 		return (
-			<Container fluid>
-				<Alert variant='danger'>{error}</Alert>
-			</Container>
+			<div className='container mx-auto my-4'>
+				<div className='alert alert-danger' role='alert'>
+					{error}
+				</div>
+			</div>
 		);
 	}
 
@@ -123,7 +113,6 @@ const Charts = () => {
 				Math.random() * 255
 			}, 0.5)`,
 			type: 'bar',
-			// type: idx % 2 === 0 ? 'line' : 'bar', // Alternate types for visibility
 		})),
 	};
 
@@ -133,99 +122,100 @@ const Charts = () => {
 	};
 
 	return (
-		<Container fluid>
+		<div className='container mx-auto my-4'>
 			<h1 className='mb-4'>Charts</h1>
-			<Form onSubmit={handleSubmit}>
-				<Form.Group className='mb-3 d-flex align-items-center'>
-					<Form.Label className='me-2'>Date Range: </Form.Label>
-					<DatePicker
-						selectsRange={true}
-						startDate={tempDateRange[0]}
-						endDate={tempDateRange[1]}
-						onChange={(update) => setTempDateRange(update)}
-						dateFormat='yyyy-MM-dd'
-						className='form-control me-2'
-						style={{ width: 'auto', flexGrow: '1' }} // Ensure DatePicker takes only needed space and grows with the container
-					/>
-					<Button type='submit' variant='secondary' className='mx-2'>
-						Set Date Range
-					</Button>
-				</Form.Group>
-			</Form>
+			<form onSubmit={handleSubmit} className='flex items-center mb-4'>
+				<label className='mr-2'>Date Range: </label>
+				<DatePicker
+					selectsRange={true}
+					startDate={tempDateRange[0]}
+					endDate={tempDateRange[1]}
+					onChange={(update) => setTempDateRange(update)}
+					dateFormat='yyyy-MM-dd'
+					className='form-control mr-2'
+				/>
+				<button type='submit' className='btn btn-secondary mx-2'>
+					Set Date Range
+				</button>
+			</form>
 
-			<Row className='mb-4'>
+			<div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
 				{Object.entries(totalCounts).map(([key, values]) => (
-					<Col md={4} key={key}>
-						<Card>
-							<Card.Body>
-								<Card.Title>
-									{key.charAt(0).toUpperCase() + key.slice(1)}
-								</Card.Title>
-								{Array.isArray(values) ? (
-									values.map((item, index) => (
-										<Card.Text key={index}>
-											Week {item.week}: {item.count}
-										</Card.Text>
-									))
-								) : (
-									<Card.Text>{values}</Card.Text>
-								)}
-							</Card.Body>
-						</Card>
-					</Col>
+					<div key={key} className='col-span-1'>
+						<div className='bg-white shadow-md rounded-lg p-4'>
+							<h2 className='text-lg font-bold mb-2'>
+								{key.charAt(0).toUpperCase() + key.slice(1)}
+							</h2>
+							{Array.isArray(values) ? (
+								values.map((item, index) => (
+									<p key={index}>
+										Week {item.week}: {item.count}
+									</p>
+								))
+							) : (
+								<p>{values}</p>
+							)}
+						</div>
+					</div>
 				))}
-			</Row>
+			</div>
 
-			<Row>
+			<div className='mb-4'>
 				<h2 className='mb-4'>Combined Charts</h2>
-				<Col md={12}>
+				<div className='bg-white shadow-md rounded-lg p-4'>
 					<Bar data={combinedData} options={chartOptions} />
-				</Col>
-			</Row>
+				</div>
+			</div>
 
 			{Object.keys(stats).map((key) => (
-				<Row key={key} className='mb-4'>
-					<h2>{key.charAt(0).toUpperCase() + key.slice(1)}</h2>
-					<Col md={6}>
-						<Line
-							data={{
-								labels: stats[key]?.map((data) => `Week ${data.week}`),
-								datasets: [
-									{
-										label: key,
-										data: stats[key]?.map((data) => data.count),
-										borderColor: `rgb(${Math.random() * 255}, ${
-											Math.random() * 255
-										}, ${Math.random() * 255})`,
-										backgroundColor: `rgba(${Math.random() * 255}, ${
-											Math.random() * 255
-										}, ${Math.random() * 255}, 0.5)`,
-									},
-								],
-							}}
-							options={chartOptions}
-						/>
-					</Col>
-					<Col md={6}>
-						<Bar
-							data={{
-								labels: stats[key]?.map((data) => `Week ${data.week}`),
-								datasets: [
-									{
-										label: key,
-										data: stats[key]?.map((data) => data.count),
-										backgroundColor: `rgba(${Math.random() * 255}, ${
-											Math.random() * 255
-										}, ${Math.random() * 255}, 0.5)`,
-									},
-								],
-							}}
-							options={chartOptions}
-						/>
-					</Col>
-				</Row>
+				<div key={key} className='mb-4'>
+					<h2 className='mb-4'>{key.charAt(0).toUpperCase() + key.slice(1)}</h2>
+					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+						<div className='col-span-1'>
+							<div className='bg-white shadow-md rounded-lg p-4'>
+								<Line
+									data={{
+										labels: stats[key]?.map((data) => `Week ${data.week}`),
+										datasets: [
+											{
+												label: key,
+												data: stats[key]?.map((data) => data.count),
+												borderColor: `rgb(${Math.random() * 255}, ${
+													Math.random() * 255
+												}, ${Math.random() * 255})`,
+												backgroundColor: `rgba(${Math.random() * 255}, ${
+													Math.random() * 255
+												}, ${Math.random() * 255}, 0.5)`,
+											},
+										],
+									}}
+									options={chartOptions}
+								/>
+							</div>
+						</div>
+						<div className='col-span-1'>
+							<div className='bg-white shadow-md rounded-lg p-4'>
+								<Bar
+									data={{
+										labels: stats[key]?.map((data) => `Week ${data.week}`),
+										datasets: [
+											{
+												label: key,
+												data: stats[key]?.map((data) => data.count),
+												backgroundColor: `rgba(${Math.random() * 255}, ${
+													Math.random() * 255
+												}, ${Math.random() * 255}, 0.5)`,
+											},
+										],
+									}}
+									options={chartOptions}
+								/>
+							</div>
+						</div>
+					</div>
+				</div>
 			))}
-		</Container>
+		</div>
 	);
 };
 

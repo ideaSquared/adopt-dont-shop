@@ -1,24 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import {
-	Container,
-	Row,
-	Col,
-	Nav,
-	Navbar,
-	Offcanvas,
-	Form,
-	Button,
-	Card,
-} from 'react-bootstrap';
 import axios from 'axios';
 import AlertComponent from '../../components/common/AlertComponent';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRescueRedirect } from '../../hooks/useRescueRedirect';
 import RescueProfileForm from '../../components/forms/RescueProfileForm';
 import RescueProfileHeader from './RescueProfileHeader';
-// import RescueStaffManagement from './RescueStaffManagement';
-// import RescuePetManagement from '../../../_archive/RescuePetsManagement';
-// import RescueAdopterManagement from './RescueAdopterManagement';
 
 import AdopterManagement from './AdopterManagement';
 import PetManagement from './PetsManagement';
@@ -34,13 +20,8 @@ const RescueProfile = () => {
 		staff: [],
 		rescueName: '',
 		rescueType: '',
-		// Update the address structure
-		// addressLine1: '',
-		// addressLine2: '',
 		city: '',
-		// county: '',
-		// postcode: '',
-		country: 'United Kingdom', // Default to UK, update accordingly if needed
+		country: 'United Kingdom',
 		referenceNumber: '',
 		referenceNumberVerified: false,
 	});
@@ -90,7 +71,6 @@ const RescueProfile = () => {
 				type: 'success',
 				message: 'Rescue profile updated successfully.',
 			});
-			// Optionally, fetch the updated profile here if not done automatically after update
 		} catch (error) {
 			setAlertInfo({
 				type: 'danger',
@@ -115,7 +95,6 @@ const RescueProfile = () => {
 					rescueProfile.rescueType,
 					rescueProfile.referenceNumber
 				);
-			// Update local state based on verificationResult
 			if (verificationResult.referenceNumberVerified) {
 				setAlertInfo({
 					type: 'success',
@@ -128,7 +107,6 @@ const RescueProfile = () => {
 				});
 			}
 
-			// Refresh the profile to get updated verification status
 			const profileData = await RescueService.fetchRescueProfile();
 			setRescueProfile(profileData);
 		} catch (error) {
@@ -140,8 +118,6 @@ const RescueProfile = () => {
 		}
 	};
 
-	// Check for permissions
-	// TODO: Stop it being an array of an array
 	const canViewRescueInfo =
 		authState.userPermissions.includes('view_rescue_info');
 	const canEditRescueInfo =
@@ -229,91 +205,129 @@ const RescueProfile = () => {
 
 	return (
 		<>
-			<Navbar
-				bg='dark'
-				variant='dark'
-				expand={false}
-				className='sticky-top flex-md-nowrap p-0 shadow d-md-none'
-			>
-				<Container fluid>
-					<Navbar.Brand href='#' className='col-md-3 col-lg-2 me-0 px-3 '>
-						{rescueProfile.rescueName}
-					</Navbar.Brand>
-					<Button
-						variant='dark'
-						onClick={() => setShowSidebar(true)}
-						className='me-2'
-					>
-						<span>Menu</span>
-					</Button>
-				</Container>
-			</Navbar>
+			<nav className='bg-dark text-white sticky-top flex-md-nowrap p-0 shadow d-md-none'>
+				<div className='flex justify-between items-center p-3'>
+					<span className='font-bold'>{rescueProfile.rescueName}</span>
+					<button onClick={() => setShowSidebar(true)} className='text-white'>
+						Menu
+					</button>
+				</div>
+			</nav>
 
-			<Container fluid>
-				<Row>
-					<Col
-						md={3}
-						lg={2}
-						className='d-none d-md-block p-0'
-						style={{ height: '100vh' }}
-					>
-						<Nav
-							className='flex-column'
-							variant='pills'
-							activeKey={activeSection}
-							onSelect={(selectedKey) => setActiveSection(selectedKey)}
-						>
-							<Nav.Item>
-								<Nav.Link eventKey='profile'>Rescue Profile</Nav.Link>
-							</Nav.Item>
-							<Nav.Item>
-								<Nav.Link eventKey='pets'>Pet Management</Nav.Link>
-							</Nav.Item>
-							<Nav.Item>
-								<Nav.Link eventKey='staff'>Staff Management</Nav.Link>
-							</Nav.Item>
-							<Nav.Item>
-								<Nav.Link eventKey='adopter'>Adopter Management</Nav.Link>
-							</Nav.Item>
-							<Nav.Item>
-								<Nav.Link eventKey='messages'>Messages</Nav.Link>
-							</Nav.Item>
-						</Nav>
-					</Col>
-					<Offcanvas
-						show={showSidebar}
-						onHide={() => setShowSidebar(false)}
-						placement='start'
-					>
-						<Offcanvas.Header closeButton>
-							<Offcanvas.Title>Menu</Offcanvas.Title>
-						</Offcanvas.Header>
-						<Offcanvas.Body>
-							<Nav
-								className='flex-column'
-								variant='pills'
-								activeKey={activeSection}
-								onSelect={(selectedKey) => setActiveSection(selectedKey)}
+			<div className='container mx-auto my-4'>
+				<div className='flex flex-col md:flex-row'>
+					<div className='w-full md:w-1/4 lg:w-1/5 hidden md:block bg-light p-0 h-screen'>
+						<nav className='flex flex-col space-y-2 p-4'>
+							<button
+								className={`p-2 text-left ${
+									activeSection === 'profile' ? 'bg-gray-300' : ''
+								}`}
+								onClick={() => setActiveSection('profile')}
 							>
-								<Nav.Item>
-									<Nav.Link eventKey='profile'>Rescue Profile</Nav.Link>
-								</Nav.Item>
-								<Nav.Item>
-									<Nav.Link eventKey='pets'>Pet Management</Nav.Link>
-								</Nav.Item>
-								<Nav.Item>
-									<Nav.Link eventKey='staff'>Staff Management</Nav.Link>
-								</Nav.Item>
-								<Nav.Item>
-									<Nav.Link eventKey='adopter'>Adopter Management</Nav.Link>
-								</Nav.Item>
-								<Nav.Item>
-									<Nav.Link eventKey='messages'>Messages</Nav.Link>
-								</Nav.Item>
-							</Nav>
-						</Offcanvas.Body>
-					</Offcanvas>
-					<Col xs={12} md={9} lg={10} className='bg-light p-2'>
+								Rescue Profile
+							</button>
+							<button
+								className={`p-2 text-left ${
+									activeSection === 'pets' ? 'bg-gray-300' : ''
+								}`}
+								onClick={() => setActiveSection('pets')}
+							>
+								Pet Management
+							</button>
+							<button
+								className={`p-2 text-left ${
+									activeSection === 'staff' ? 'bg-gray-300' : ''
+								}`}
+								onClick={() => setActiveSection('staff')}
+							>
+								Staff Management
+							</button>
+							<button
+								className={`p-2 text-left ${
+									activeSection === 'adopter' ? 'bg-gray-300' : ''
+								}`}
+								onClick={() => setActiveSection('adopter')}
+							>
+								Adopter Management
+							</button>
+							<button
+								className={`p-2 text-left ${
+									activeSection === 'messages' ? 'bg-gray-300' : ''
+								}`}
+								onClick={() => setActiveSection('messages')}
+							>
+								Messages
+							</button>
+						</nav>
+					</div>
+					{showSidebar && (
+						<div
+							className='fixed inset-0 bg-black bg-opacity-50 z-10'
+							onClick={() => setShowSidebar(false)}
+						></div>
+					)}
+					{showSidebar && (
+						<div className='fixed inset-y-0 left-0 bg-white w-64 z-20 p-4 overflow-y-auto'>
+							<nav className='flex flex-col space-y-2'>
+								<button
+									className={`p-2 text-left ${
+										activeSection === 'profile' ? 'bg-gray-300' : ''
+									}`}
+									onClick={() => {
+										setActiveSection('profile');
+										setShowSidebar(false);
+									}}
+								>
+									Rescue Profile
+								</button>
+								<button
+									className={`p-2 text-left ${
+										activeSection === 'pets' ? 'bg-gray-300' : ''
+									}`}
+									onClick={() => {
+										setActiveSection('pets');
+										setShowSidebar(false);
+									}}
+								>
+									Pet Management
+								</button>
+								<button
+									className={`p-2 text-left ${
+										activeSection === 'staff' ? 'bg-gray-300' : ''
+									}`}
+									onClick={() => {
+										setActiveSection('staff');
+										setShowSidebar(false);
+									}}
+								>
+									Staff Management
+								</button>
+								<button
+									className={`p-2 text-left ${
+										activeSection === 'adopter' ? 'bg-gray-300' : ''
+									}`}
+									onClick={() => {
+										setActiveSection('adopter');
+										setShowSidebar(false);
+									}}
+								>
+									Adopter Management
+								</button>
+								<button
+									className={`p-2 text-left ${
+										activeSection === 'messages' ? 'bg-gray-300' : ''
+									}`}
+									onClick={() => {
+										setActiveSection('messages');
+										setShowSidebar(false);
+									}}
+								>
+									Messages
+								</button>
+							</nav>
+						</div>
+					)}
+					<div className='w-full md:w-3/4 lg:w-4/5 p-4 bg-light'>
 						{alertInfo.message && (
 							<AlertComponent
 								type={alertInfo.type}
@@ -321,12 +335,12 @@ const RescueProfile = () => {
 								onClose={() => setAlertInfo({ type: '', message: '' })}
 							/>
 						)}
-						<Card>
-							<Card.Body className='bg-grey'>{renderSection()}</Card.Body>
-						</Card>
-					</Col>
-				</Row>
-			</Container>
+						<div className='bg-grey p-4 rounded-lg shadow-md'>
+							{renderSection()}
+						</div>
+					</div>
+				</div>
+			</div>
 		</>
 	);
 };

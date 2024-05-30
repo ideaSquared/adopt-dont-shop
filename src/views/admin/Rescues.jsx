@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Form } from 'react-bootstrap';
 import { useLocation } from 'react-router-dom';
 import RescuesTable from '../../components/tables/RescuesTable';
 import RescueDetailsModal from '../../components/modals/RescueDetailsModal';
@@ -45,7 +44,6 @@ const Rescues = () => {
 	const fetchRescueDetails = async (rescueId) => {
 		try {
 			const data = await RescueService.fetchAdminRescueDetails(rescueId);
-
 			setSelectedRescueDetails(data);
 			setShowModal(true);
 		} catch (error) {
@@ -64,7 +62,6 @@ const Rescues = () => {
 		}
 	};
 
-	// Function to delete staff from a rescue
 	const deleteStaffFromRescue = async (rescueId, staffId) => {
 		try {
 			await RescueService.deleteStaffFromAdminRescue(rescueId, staffId);
@@ -104,39 +101,39 @@ const Rescues = () => {
 		{
 			type: 'select',
 			label: 'Filter by Type',
-			value: filterType, // The current value of the filter
-			onChange: (e) => setFilterType(e.target.value), // Function to update the filter value
+			value: filterType,
+			onChange: (e) => setFilterType(e.target.value),
 			options: [
-				{ value: '', label: 'All Types' }, // The options for the select dropdown
+				{ value: '', label: 'All Types' },
 				{ value: 'individual', label: 'Individual' },
 				{ value: 'charity', label: 'Charity' },
 				{ value: 'company', label: 'Company' },
 			],
-			md: 4, // Assuming you want this to take up 4 columns in a grid layout
+			md: 4,
 		},
 		{
 			type: 'text',
 			label: 'Search by Name',
-			value: searchName, // The current value of the search input
-			onChange: (e) => setSearchName(e.target.value), // Function to update the search input value
+			value: searchName,
+			onChange: (e) => setSearchName(e.target.value),
 			placeholder: 'Search by rescue name',
 			md: 4,
 		},
 		{
 			type: 'text',
 			label: 'Search by Staff Email',
-			value: searchEmail, // The current value of the search input
-			onChange: (e) => setSearchEmail(e.target.value), // Function to update the search input value
+			value: searchEmail,
+			onChange: (e) => setSearchEmail(e.target.value),
 			placeholder: 'Search by staff email',
 			md: 4,
 		},
 	];
 
 	return (
-		<Container fluid>
+		<div className='container mx-auto my-4'>
 			<GenericFilterForm filters={filters} canAdd={canAdd} />
 			<RescuesTable
-				currentRescues={filteredRescues}
+				currentRescues={currentRescues}
 				onDeleteRescue={deleteRescue}
 				onShowDetails={fetchRescueDetails}
 				currentPage={currentPage}
@@ -149,7 +146,7 @@ const Rescues = () => {
 				rescueDetails={selectedRescueDetails}
 				onDeleteStaff={deleteStaffFromRescue}
 			/>
-		</Container>
+		</div>
 	);
 };
 

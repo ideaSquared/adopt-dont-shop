@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Container } from 'react-bootstrap';
 import UsersTable from '../../components/tables/UsersTable';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';
 import UserService from '../../services/UserService';
@@ -59,7 +58,7 @@ const Users = () => {
 
 		try {
 			await UserService.deleteAdminUser(userId);
-			fetchUsers(); // Refresh the list after deletion
+			fetchUsers();
 		} catch (error) {
 			console.error('Failed to delete user:', error);
 			alert('Failed to delete user. Please try again.');
@@ -68,7 +67,7 @@ const Users = () => {
 
 	const handleSearchChange = (e) => {
 		setSearchTerm(e.target.value);
-		setCurrentPage(1); // Reset to the first page for new search terms
+		setCurrentPage(1);
 	};
 
 	const filteredUsers = users.filter((user) => {
@@ -89,9 +88,6 @@ const Users = () => {
 
 	const handleFilterFlagChange = (e) => {
 		const { name, checked } = e.target;
-
-		// console.log('FILTER ', name, checked);
-
 		setFilterFlags((prevFlags) => ({
 			...prevFlags,
 			[name]: checked,
@@ -110,15 +106,15 @@ const Users = () => {
 		{
 			type: 'switch',
 			label: 'Force Reset Flag',
-			name: 'forceReset', // Make sure this matches the state property name
+			name: 'forceReset',
 			checked: filterFlags.forceReset,
 			onChange: handleFilterFlagChange,
-			md: 2, // Column size for Bootstrap grid
+			md: 2,
 		},
 		{
 			type: 'switch',
 			label: 'Admin',
-			name: 'admin', // Make sure this matches the state property name
+			name: 'admin',
 			checked: filterFlags.admin,
 			onChange: handleFilterFlagChange,
 			md: 2,
@@ -126,7 +122,7 @@ const Users = () => {
 	];
 
 	return (
-		<Container fluid>
+		<div className='container mx-auto my-4'>
 			<GenericFilterForm filters={filters} />
 			<UsersTable
 				currentUsers={currentUsers}
@@ -136,7 +132,7 @@ const Users = () => {
 				totalPages={totalPages}
 				onChangePage={setCurrentPage}
 			/>
-		</Container>
+		</div>
 	);
 };
 

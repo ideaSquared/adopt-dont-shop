@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Card } from 'react-bootstrap';
-import useFetchUnratedPets from '../../hooks/useFetchUnratedPets';
+import { useFetchUnratedPets } from '../../hooks/useFetchUnratedPets';
 import { useAuth } from '../../contexts/AuthContext';
 import { postRating } from '../../services/RatingService';
 import SwipeLanding from './SwipeLanding';
@@ -26,40 +25,34 @@ const SwipeContainer = () => {
 		}
 	};
 
-	// Loading state
 	if (isLoading) {
 		return (
-			<div className='d-flex align-items-center justify-content-center swipe-screen my-sm-3'>
-				<Card>
-					<Card.Body>Loading...</Card.Body>
-				</Card>
+			<div className='flex items-center justify-center h-screen'>
+				<div className='bg-white p-6 rounded-lg shadow-md'>Loading...</div>
 			</div>
 		);
 	}
 
-	// Check if all pets have been swiped
 	if (currentIndex >= pets.length || (error?.status === 404 && error)) {
 		return (
-			<div className='d-flex align-items-center justify-content-center swipe-screen my-sm-3'>
-				<Card>
-					<Card.Body>No more items to swipe!</Card.Body>
-				</Card>
+			<div className='flex items-center justify-center h-screen'>
+				<div className='bg-white p-6 rounded-lg shadow-md'>
+					No more items to swipe!
+				</div>
 			</div>
 		);
 	}
 
-	// Error state
 	if (error) {
 		return (
-			<div className='d-flex align-items-center justify-content-center swipe-screen my-sm-3'>
-				<Card>
-					<Card.Body>Error: {error}</Card.Body>
-				</Card>
+			<div className='flex items-center justify-center h-screen'>
+				<div className='bg-white p-6 rounded-lg shadow-md'>
+					Error: {error.message}
+				</div>
 			</div>
 		);
 	}
 
-	// Otherwise, render SwipeLanding with the current pet
 	const currentPet = pets[currentIndex];
 	return <SwipeLanding item={currentPet} handleSwipe={handleSwipe} />;
 };

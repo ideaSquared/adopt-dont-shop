@@ -1,7 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Modal, Button } from 'react-bootstrap';
-import PaginationControls from '../../components/common/PaginationControls';
-import StatusBadge from '../../components/common/StatusBadge';
 import { useAdminRedirect } from '../../hooks/useAdminRedirect';
 import { ConversationsService } from '../../services/ConversationService';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';

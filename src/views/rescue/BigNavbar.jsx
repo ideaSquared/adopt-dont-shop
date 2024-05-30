@@ -1,7 +1,5 @@
 import React from 'react';
-import { Row, Col, Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import './Rescue.scss';
 import LazyImage from '../../components/LazyImage';
 
 const BigNavbar = ({ activeSection, navImages }) => {
@@ -10,36 +8,28 @@ const BigNavbar = ({ activeSection, navImages }) => {
 	};
 
 	return (
-		<Row className='justify-content-center g-4'>
+		<div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4'>
 			{navImages.map((img, index) => (
-				<Col
-					key={index}
-					md={6}
-					lg={4}
-					xs={12}
-					className='d-flex align-items-stretch'
-				>
-					<Card className='w-100 shadow-sm hover-shadow bg-info card-hover-darken'>
+				<div key={index} className='w-full'>
+					<div className='bg-blue-100 shadow-md hover:shadow-lg rounded-lg overflow-hidden'>
 						<Link
 							to='#'
-							className='text-decoration-none'
+							className='block no-underline'
 							onClick={() => handleSectionChange(img.component)}
 						>
 							<LazyImage
 								src={img.src}
 								alt={img.title}
-								className='img-fluid image-fixed-height img-hover-darken'
+								className='w-full h-32 sm:h-40 md:h-48 object-cover'
 							/>
-							<Card.ImgOverlay className='d-flex align-items-end p-0'>
-								<Card.Title className='text-center w-100 bg-light text-black bg-opacity-50 py-2'>
-									{img.title}
-								</Card.Title>
-							</Card.ImgOverlay>
+							<div className='bg-black bg-opacity-50 text-white text-center py-2'>
+								{img.title}
+							</div>
 						</Link>
-					</Card>
-				</Col>
+					</div>
+				</div>
 			))}
-		</Row>
+		</div>
 	);
 };
 

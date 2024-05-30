@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container } from 'react-bootstrap';
 import MessagesPetDisplay from './ConversationsMessagesPetDisplay';
 import MessageList from './ConversationsMessageList';
 import MessageInput from './ConversationsMessageInput';
@@ -75,14 +74,15 @@ const MessagesComponent = ({
 	};
 
 	if (!conversation) {
-		return <div>Select a conversation to view messages.</div>;
+		return (
+			<div className='p-4 text-center text-gray-500'>
+				Select a conversation to view messages.
+			</div>
+		);
 	}
 
 	return (
-		<Container
-			fluid
-			className='d-flex flex-column vh-100 p-2 bg-light mx-2 rounded'
-		>
+		<div className='flex flex-col h-screen p-4 bg-gray-100 rounded-lg shadow'>
 			<MessagesPetDisplay
 				petData={petData}
 				isExpanded={isExpanded}
@@ -100,7 +100,7 @@ const MessagesComponent = ({
 				canCreateMessages={canCreateMessages}
 				handleSend={handleSend}
 			/>
-		</Container>
+		</div>
 	);
 };
 

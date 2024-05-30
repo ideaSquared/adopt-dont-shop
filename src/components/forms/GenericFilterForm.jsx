@@ -1,88 +1,104 @@
 import React from 'react';
-import { Form, Row, Col, Button } from 'react-bootstrap';
 
 const GenericFilterForm = ({ filters, onAddClick, canAdd }) => {
 	return (
-		<Row className='mb-3 align-items-center'>
+		<div className='flex flex-wrap gap-4 mb-3 items-center'>
 			{filters.map((filter, index) => {
 				switch (filter.type) {
 					case 'text':
 						return (
-							<Col
+							<div
 								key={index}
-								md={filter.md}
-								className='d-flex align-items-center'
+								className='flex-1 min-w-[150px] flex flex-col space-y-2'
 							>
-								<Form.Label>{filter.label}</Form.Label>
-								<Form.Control
+								<label className='text-sm font-medium text-gray-700'>
+									{filter.label}
+								</label>
+								<input
 									aria-label={filter.label}
 									type='text'
 									placeholder={filter.placeholder}
 									value={filter.value}
 									onChange={filter.onChange}
+									className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
 								/>
-							</Col>
+							</div>
 						);
 					case 'select':
 						return (
-							<Col
+							<div
 								key={index}
-								md={filter.md}
-								className='d-flex align-items-center'
+								className='flex-1 min-w-[150px] flex flex-col space-y-2'
 							>
-								<Form.Label>{filter.label}</Form.Label>
-								<Form.Select
+								<label className='text-sm font-medium text-gray-700'>
+									{filter.label}
+								</label>
+								<select
 									aria-label={filter.label}
 									value={filter.value}
 									onChange={filter.onChange}
+									className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
 								>
 									{filter.options.map((option, idx) => (
 										<option key={idx} value={option.value}>
 											{option.label}
 										</option>
 									))}
-								</Form.Select>
-							</Col>
+								</select>
+							</div>
 						);
 					case 'switch':
 						return (
-							<Col
+							<div
 								key={index}
-								md={filter.md}
-								className='d-flex align-items-center'
+								className='flex-1 min-w-[150px] flex items-center space-x-2'
 							>
-								<Form.Check
-									type='switch'
+								<label
+									htmlFor={filter.id}
+									className='text-sm font-medium text-gray-700'
+								>
+									{filter.label}
+								</label>
+								<input
+									type='checkbox'
 									id={filter.id}
 									name={filter.name}
-									label={filter.label}
 									checked={filter.checked}
 									onChange={filter.onChange}
+									className='form-checkbox h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500'
 								/>
-							</Col>
+							</div>
 						);
 					case 'button':
 						return (
-							<Col
+							<div
 								key={index}
-								md={filter.md}
-								className='d-flex justify-content-end align-items-center'
+								className='flex-1 min-w-[150px] flex justify-end items-center'
 							>
-								<Button
-									variant='secondary'
+								<button
 									onClick={filter.onClick}
 									disabled={filter.disabled}
-									className='w-100'
+									className='inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full'
 								>
 									{filter.label}
-								</Button>
-							</Col>
+								</button>
+							</div>
 						);
 					default:
 						return null;
 				}
 			})}
-		</Row>
+			{canAdd && (
+				<div className='flex-1 min-w-[150px] flex justify-end'>
+					<button
+						onClick={onAddClick}
+						className='inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+					>
+						Add
+					</button>
+				</div>
+			)}
+		</div>
 	);
 };
 

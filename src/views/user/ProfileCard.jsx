@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Image, Button } from 'react-bootstrap';
 import { PencilSquare } from 'react-bootstrap-icons';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import AccountProfileForm from '../../components/forms/AccountProfileForm';
 
 const ProfileCard = ({ userData, updateUserDetails }) => {
@@ -12,46 +10,40 @@ const ProfileCard = ({ userData, updateUserDetails }) => {
 	};
 
 	return (
-		<Card className='bg-light'>
-			<Card.Body>
-				<div className='d-flex justify-content-between align-items-center'>
-					<Image
-						src='https://via.placeholder.com/150'
-						roundedCircle
-						alt='Profile Photo'
-						className='mb-3'
-					/>
-					<Button
-						variant='info'
-						style={{ position: 'absolute', top: '10px', right: '10px' }}
-						onClick={handleEditClick}
-					>
-						<PencilSquare /> Edit my details
-					</Button>
-				</div>
-				{isEditing ? (
-					<AccountProfileForm
-						initialData={userData}
-						updateUserDetails={updateUserDetails}
-					/>
-				) : (
-					<>
-						<Card.Title>
-							{userData.firstName || ''} {userData.lastName || ''}
-						</Card.Title>
-						<Card.Text>
-							{userData.description ||
-								"This person hasn't filled out a description but we're sure they're awesome!"}
-						</Card.Text>
-						<Card.Text>
-							<small className='text-muted'>
-								Location: {userData.city || ''}, {userData.country || ''}
-							</small>
-						</Card.Text>
-					</>
-				)}
-			</Card.Body>
-		</Card>
+		<div className='bg-light p-6 rounded-lg shadow-md'>
+			<div className='flex justify-between items-center relative'>
+				<img
+					src='https://via.placeholder.com/150'
+					alt='Profile Photo'
+					className='rounded-full mb-3 w-24 h-24'
+				/>
+				<button
+					className='bg-blue-500 text-white px-4 py-2 rounded absolute top-2 right-2 flex items-center'
+					onClick={handleEditClick}
+				>
+					<PencilSquare className='mr-2' /> Edit my details
+				</button>
+			</div>
+			{isEditing ? (
+				<AccountProfileForm
+					initialData={userData}
+					updateUserDetails={updateUserDetails}
+				/>
+			) : (
+				<>
+					<h2 className='text-xl font-bold'>
+						{userData.firstName || ''} {userData.lastName || ''}
+					</h2>
+					<p className='mt-2'>
+						{userData.description ||
+							"This person hasn't filled out a description but we're sure they're awesome!"}
+					</p>
+					<p className='text-sm text-gray-500 mt-2'>
+						Location: {userData.city || ''}, {userData.country || ''}
+					</p>
+				</>
+			)}
+		</div>
 	);
 };
 

@@ -1,11 +1,9 @@
-// StaffManagement.js
 import React, { useState, useEffect } from 'react';
-import { Container, Button } from 'react-bootstrap';
 import { StaffService } from '../../services/StaffService';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';
 import StaffTable from '../../components/tables/StaffTable';
 import PaginationControls from '../../components/common/PaginationControls';
-import AddStaffModal from '../../components/modals/AddStaffModal';
+import AddStaffSidebar from '../../components/sidebars/AddStaffSidebar'; // Import the new sidebar component
 
 const StaffManagement = ({
 	rescueProfile,
@@ -16,7 +14,7 @@ const StaffManagement = ({
 	canDeleteStaff,
 	userId,
 }) => {
-	const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+	const [showAddStaffSidebar, setShowAddStaffSidebar] = useState(false);
 	const [filterCriteria, setFilterCriteria] = useState({
 		nameEmail: '',
 		permissions: 'all',
@@ -215,22 +213,21 @@ const StaffManagement = ({
 					canAddStaff && {
 						type: 'button',
 						label: 'Add Staff',
-						onClick: () => setShowAddStaffModal(true),
+						onClick: () => setShowAddStaffSidebar(true),
 						variant: 'primary',
 						md: 3,
 					},
 				].filter(Boolean)}
 			/>
 
-			{showAddStaffModal && (
-				<AddStaffModal
-					show={showAddStaffModal}
-					handleClose={() => setShowAddStaffModal(false)}
-					setRescueProfile={setRescueProfile}
-					rescueId={rescueProfile.rescue_id}
-					canAddStaff={canAddStaff}
-				/>
-			)}
+			<AddStaffSidebar
+				show={showAddStaffSidebar}
+				handleClose={() => setShowAddStaffSidebar(false)}
+				setRescueProfile={setRescueProfile}
+				rescueId={rescueProfile.rescue_id}
+				canAddStaff={canAddStaff}
+			/>
+
 			<StaffTable
 				staff={filteredStaff}
 				verifyStaff={verifyStaff}

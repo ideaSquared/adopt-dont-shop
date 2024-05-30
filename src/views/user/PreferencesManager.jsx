@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-	Form,
-	Row,
-	Col,
-	Card,
-	ToggleButton,
-	ToggleButtonGroup,
-} from 'react-bootstrap';
 import PreferencesService from '../../services/PreferencesService';
 import AllowedPreferences from '../../components/AllowedPreferences';
 
-// Get the allowed preferences
 const allowedPreferences = AllowedPreferences();
 
 const isValidPreference = (category, key) => {
@@ -35,7 +26,6 @@ const PreferencesManager = () => {
 				acc[preference.preference_key] = preference.preference_value;
 				return acc;
 			}, {});
-			// Set 'any' as the default value if no preference exists for a category
 			for (const category of Object.keys(allowedPreferences)) {
 				if (!initialPreferenceValues[category]) {
 					initialPreferenceValues[category] = 'any';
@@ -111,7 +101,6 @@ const PreferencesManager = () => {
 		);
 	};
 
-	// Split categories into pairs for each row
 	const categoryPairs = [];
 	const categories = Object.keys(allowedPreferences);
 	for (let i = 0; i < categories.length; i += 2) {
@@ -119,71 +108,49 @@ const PreferencesManager = () => {
 	}
 
 	return (
-		<Form>
+		<form className='space-y-4'>
 			{categoryPairs.map((pair, idx) => (
-				<Row key={idx} className='mb-3'>
+				<div key={idx} className='flex flex-wrap -mx-2'>
 					{pair.map((category) => (
-						<Col md={6} key={category}>
-							<Card className='mb-3'>
-								<Card.Body>
-									<Form.Label>
-										<strong>{capitalizeFirstLetter(category)}</strong>
-									</Form.Label>
-									<Row className='text-center'>
-										<Col xs={12} sm={6} className='mb-3'>
-											<ToggleButtonGroup
+						<div key={category} className='w-full md:w-1/2 px-2 mb-4'>
+							<div className='bg-white shadow-md rounded-lg p-4'>
+								<label className='block font-bold mb-2'>
+									{capitalizeFirstLetter(category)}
+								</label>
+								<div className='grid grid-cols-2 gap-2'>
+									<label className='flex items-center'>
+										<input
+											type='radio'
+											name={category}
+											value='any'
+											checked={preferenceValues[category] === 'any'}
+											onChange={() => handlePreferenceChange(category, 'any')}
+											className='form-radio'
+										/>
+										<span className='ml-2'>Any</span>
+									</label>
+									{allowedPreferences[category].map((value, idx) => (
+										<label key={idx} className='flex items-center'>
+											<input
 												type='radio'
 												name={category}
-												value={preferenceValues[category] || 'any'}
-												onChange={(val) =>
-													handlePreferenceChange(category, val)
-												}
-											>
-												<ToggleButton
-													id={`tbg-radio-${category}-any`}
-													value='any'
-													variant={
-														preferenceValues[category] === 'any'
-															? 'primary'
-															: 'outline-primary'
-													}
-												>
-													Any
-												</ToggleButton>
-											</ToggleButtonGroup>
-										</Col>
-										{allowedPreferences[category].map((value, idx) => (
-											<Col xs={12} sm={6} key={idx} className='mb-3'>
-												<ToggleButtonGroup
-													type='radio'
-													name={category}
-													value={preferenceValues[category] || 'any'}
-													onChange={(val) =>
-														handlePreferenceChange(category, val)
-													}
-												>
-													<ToggleButton
-														id={`tbg-radio-${category}-${value}`}
-														value={value}
-														variant={
-															preferenceValues[category] === value
-																? 'primary'
-																: 'outline-primary'
-														}
-													>
-														{capitalizeFirstLetter(value)}
-													</ToggleButton>
-												</ToggleButtonGroup>
-											</Col>
-										))}
-									</Row>
-								</Card.Body>
-							</Card>
-						</Col>
+												value={value}
+												checked={preferenceValues[category] === value}
+												onChange={() => handlePreferenceChange(category, value)}
+												className='form-radio'
+											/>
+											<span className='ml-2'>
+												{capitalizeFirstLetter(value)}
+											</span>
+										</label>
+									))}
+								</div>
+							</div>
+						</div>
 					))}
-				</Row>
+				</div>
 			))}
-		</Form>
+		</form>
 	);
 };
 

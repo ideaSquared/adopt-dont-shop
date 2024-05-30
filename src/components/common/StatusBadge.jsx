@@ -1,43 +1,45 @@
 import React from 'react';
-import Badge from 'react-bootstrap/Badge';
 
 const getBadgeVariant = (type, value) => {
 	value = value.toLowerCase();
 	if (type === 'loglevel') {
 		switch (value) {
 			case 'error':
-				return 'danger';
+				return 'bg-red-500 text-white';
 			case 'warn':
-				return 'warning';
+				return 'bg-yellow-500 text-black';
 			case 'info':
-				return 'info';
+				return 'bg-blue-500 text-white';
 			case 'debug':
-				return 'secondary';
+				return 'bg-gray-500 text-white';
 			default:
-				return 'primary';
+				return 'bg-blue-500 text-white';
 		}
 	} else if (type === 'logservice') {
-		// Assuming you want all service badges to be 'info', but you can customize this
-		return 'info';
+		return 'bg-blue-500 text-white';
 	} else if (type === 'misc') {
-		return 'info';
+		return 'bg-blue-500 text-white';
 	} else if (type === 'conversation') {
 		switch (value) {
 			case 'active':
-				return 'info';
+				return 'bg-blue-500 text-white';
 			case 'closed':
-				return 'warning';
+				return 'bg-yellow-500 text-black';
 			default:
-				return 'primary';
+				return 'bg-blue-500 text-white';
 		}
 	}
-	return 'primary';
+	return 'bg-blue-500 text-white';
 };
 
 const StatusBadge = ({ type, value, caps = true }) => {
 	const variant = getBadgeVariant(type, value);
-	const displayValue = caps ? value.toUpperCase() : value; // Apply toUpperCase only if caps is true
-	return <Badge bg={variant}>{displayValue}</Badge>;
+	const displayValue = caps ? value.toUpperCase() : value;
+	return (
+		<span className={`inline-block py-1 px-2 rounded ${variant}`}>
+			{displayValue}
+		</span>
+	);
 };
 
 export default StatusBadge;
