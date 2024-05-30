@@ -1,6 +1,4 @@
-// PaginationControls.jsx
 import React from 'react';
-import { Pagination } from 'react-bootstrap';
 
 const PaginationControls = ({ currentPage, totalPages, onChangePage }) => {
 	const goToFirstPage = () => {
@@ -20,25 +18,55 @@ const PaginationControls = ({ currentPage, totalPages, onChangePage }) => {
 	};
 
 	return (
-		<Pagination className='justify-content-center'>
-			<Pagination.First onClick={goToFirstPage} disabled={currentPage === 1} />
-			<Pagination.Prev
+		<div className='flex justify-center items-center space-x-2 mt-4'>
+			<button
+				onClick={goToFirstPage}
+				disabled={currentPage === 1}
+				className={`px-3 py-2 rounded-md ${
+					currentPage === 1
+						? 'bg-gray-300 cursor-not-allowed'
+						: 'bg-indigo-500 text-white hover:bg-indigo-600'
+				}`}
+			>
+				First
+			</button>
+			<button
 				onClick={goToPreviousPage}
 				disabled={currentPage === 1}
-			/>
-			{/* Display current page info or potentially dynamic page numbers here */}
-			<Pagination.Item
-				disabled
-			>{`Page ${currentPage} of ${totalPages}`}</Pagination.Item>
-			<Pagination.Next
+				className={`px-3 py-2 rounded-md ${
+					currentPage === 1
+						? 'bg-gray-300 cursor-not-allowed'
+						: 'bg-indigo-500 text-white hover:bg-indigo-600'
+				}`}
+			>
+				Previous
+			</button>
+			<span className='px-3 py-2 text-gray-700'>
+				{`Page ${currentPage} of ${totalPages}`}
+			</span>
+			<button
 				onClick={goToNextPage}
 				disabled={currentPage >= totalPages}
-			/>
-			<Pagination.Last
+				className={`px-3 py-2 rounded-md ${
+					currentPage >= totalPages
+						? 'bg-gray-300 cursor-not-allowed'
+						: 'bg-indigo-500 text-white hover:bg-indigo-600'
+				}`}
+			>
+				Next
+			</button>
+			<button
 				onClick={goToLastPage}
 				disabled={currentPage >= totalPages}
-			/>
-		</Pagination>
+				className={`px-3 py-2 rounded-md ${
+					currentPage >= totalPages
+						? 'bg-gray-300 cursor-not-allowed'
+						: 'bg-indigo-500 text-white hover:bg-indigo-600'
+				}`}
+			>
+				Last
+			</button>
+		</div>
 	);
 };
 

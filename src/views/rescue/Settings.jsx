@@ -1,32 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import {
-	Container,
-	Row,
-	Col,
-	Nav,
-	Navbar,
-	Offcanvas,
-	Form,
-	Button,
-	Card,
-} from 'react-bootstrap';
-import axios from 'axios';
-import AlertComponent from '../../components/common/AlertComponent';
-import { useAuth } from '../../contexts/AuthContext';
-import { useRescueRedirect } from '../../hooks/useRescueRedirect';
+import React from 'react';
 import RescueProfileForm from '../../components/forms/RescueProfileForm';
 import RescueProfileHeader from './RescueProfileHeader';
-// import RescueStaffManagement from './RescueStaffManagement';
-// import RescuePetManagement from '../../../_archive/RescuePetsManagement';
-// import RescueAdopterManagement from './RescueAdopterManagement';
-
-import AdopterManagement from './AdopterManagement';
-import PetManagement from './PetsManagement';
-import StaffManagement from './StaffManagement';
 import RescueService from '../../services/RescueService';
-
-import RescueNoPermissions from './RescueNoPermissions';
-import Conversations from '../user/Conversations';
 
 const RescueSettings = ({
 	rescueProfile,

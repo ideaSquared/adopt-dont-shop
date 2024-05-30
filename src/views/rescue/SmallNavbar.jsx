@@ -1,8 +1,7 @@
 import React from 'react';
-import { Row, Col, Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import './Rescue.scss';
-import LazyImage from '../../components/LazyImage'; // Import LazyImage component
+import LazyImage from '../../components/LazyImage';
 
 const SmallNavbar = ({ activeSection, navImages }) => {
 	const handleSectionChange = (sectionName) => {
@@ -10,36 +9,32 @@ const SmallNavbar = ({ activeSection, navImages }) => {
 	};
 
 	return (
-		<Row className='d-flex justify-content-center align-items-stretch g-2'>
+		<div className='flex justify-center items-stretch gap-2 flex-wrap'>
 			{navImages.map((img, index) => (
-				<Col key={index} xs={2} className='d-flex'>
-					<Card className='w-100 h-100 bg-light d-flex flex-column justify-content-center'>
+				<div key={index} className='w-1/4 flex'>
+					<div className='w-full h-full bg-light flex flex-col justify-center rounded-lg shadow-md'>
 						<Link
 							to='#'
 							className='text-decoration-none'
 							onClick={() => handleSectionChange(img.component)}
 						>
-							<div
-								className='d-flex justify-content-center align-items-center'
-								style={{ height: '100%' }}
-							>
+							<div className='flex justify-center items-center h-full'>
 								<LazyImage
 									src={img.src}
 									alt={img.title}
-									className='img-fluid'
-									style={{ maxHeight: '90%' }}
+									className='max-h-32 object-contain'
 								/>
 							</div>
-							<Card.ImgOverlay className='d-flex justify-content-center align-items-end p-1 d-none d-md-block'>
-								<Card.Title className='w-100 text-center bg-dark bg-opacity-75 text-white'>
+							<div className='flex justify-center items-end p-1 hidden md:flex'>
+								<span className='w-full text-center bg-dark bg-opacity-75 text-white py-1 rounded-b-lg'>
 									{img.title}
-								</Card.Title>
-							</Card.ImgOverlay>
+								</span>
+							</div>
 						</Link>
-					</Card>
-				</Col>
+					</div>
+				</div>
 			))}
-		</Row>
+		</div>
 	);
 };
 

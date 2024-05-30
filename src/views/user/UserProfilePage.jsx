@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Card, Row, Col } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 import AccountProfileForm from '../../components/forms/AccountProfileForm';
@@ -30,20 +29,16 @@ const UserProfilePage = () => {
 	}, []);
 
 	return (
-		<>
-			<Container className='mt-2' fluid>
-				<ProfileCard
-					userData={initialData}
-					updateUserDetails={updateUserDetails}
-				/>
+		<div className='container mx-auto mt-4'>
+			<ProfileCard
+				userData={initialData}
+				updateUserDetails={updateUserDetails}
+			/>
 
-				<Card className='bg-light mt-2 my-4'>
-					<Card.Body>
-						<PreferencesManager />
-					</Card.Body>
-				</Card>
-			</Container>
-		</>
+			<div className='bg-white shadow-md rounded-lg mt-4 p-6'>
+				<PreferencesManager />
+			</div>
+		</div>
 	);
 };
 

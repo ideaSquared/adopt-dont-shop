@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-	Modal,
-	Button,
-	Form,
-	Col,
-	Row,
-	Accordion,
-	Tab,
-	Tabs,
-} from 'react-bootstrap';
+import CustomModal from './CustomModal';
 
 const RescueDetailsModal = ({ showModal, handleClose, rescueDetails }) => {
 	const permissionCategories = {
@@ -41,101 +32,86 @@ const RescueDetailsModal = ({ showModal, handleClose, rescueDetails }) => {
 		view_messages: 'View Messages',
 	};
 
-	// Function to get the name of the permission
 	const getPermissionName = (permission) => {
 		return permissionNames[permission] || 'Unknown Permission';
 	};
 
-	// Function to check if staff has a specific permission
 	const staffHasPermission = (staffPermissions, permission) => {
 		return staffPermissions.includes(permission);
 	};
 
 	return (
-		<Modal show={showModal} onHide={handleClose} size='lg'>
-			<Modal.Header closeButton>
-				<Modal.Title>Rescue Details</Modal.Title>
-			</Modal.Header>
-			<Modal.Body>
-				{rescueDetails ? (
-					<Form>
-						<Form.Group controlId='rescue_name'>
-							<Form.Label>Rescue name</Form.Label>
-							<Form.Control
+		<CustomModal show={showModal} handleClose={handleClose}>
+			{rescueDetails ? (
+				<div className='p-4'>
+					<h2 className='text-lg font-semibold mb-4'>Rescue Details</h2>
+					<form>
+						<div className='mb-4'>
+							<label htmlFor='rescue_name' className='block mb-1'>
+								Rescue name
+							</label>
+							<input
+								id='rescue_name'
 								type='text'
 								value={rescueDetails.rescue_name}
 								disabled
+								className='w-full px-4 py-2 rounded-md border focus:outline-none'
 							/>
-						</Form.Group>
-						<Form.Group controlId='rescue_type'>
-							<Form.Label>Type</Form.Label>
-							<Form.Control
+						</div>
+						<div className='mb-4'>
+							<label htmlFor='rescue_type' className='block mb-1'>
+								Type
+							</label>
+							<input
+								id='rescue_type'
 								type='text'
 								value={rescueDetails.rescue_type}
 								disabled
+								className='w-full px-4 py-2 rounded-md border focus:outline-none'
 							/>
-						</Form.Group>
-
-						<Form.Group controlId='rescue_address'>
-							<Form.Label>Rescue address</Form.Label>
-							<Form.Control
-								as='textarea'
+						</div>
+						<div className='mb-4'>
+							<label htmlFor='rescue_address' className='block mb-1'>
+								Rescue address
+							</label>
+							<textarea
+								id='rescue_address'
 								rows={4}
-								value={
-									rescueDetails.rescue_address_line_1 +
-									'\n' +
-									rescueDetails.rescue_address_line_2 +
-									'\n' +
-									rescueDetails.rescue_city +
-									'\n' +
-									rescueDetails.rescue_county +
-									'\n' +
-									rescueDetails.rescue_postcode +
-									'\n' +
-									rescueDetails.rescue_country
-								}
+								value={`${rescueDetails.rescue_address_line_1}\n${rescueDetails.rescue_address_line_2}\n${rescueDetails.rescue_city}\n${rescueDetails.rescue_county}\n${rescueDetails.rescue_postcode}\n${rescueDetails.rescue_country}`}
 								disabled
+								className='w-full px-4 py-2 rounded-md border focus:outline-none'
 							/>
-						</Form.Group>
-						{/* EACH STAFF MEMBER */}
-						<hr />
-						<Accordion defaultActiveKey='0'>
+						</div>
+						<hr className='my-4' />
+						<div className='space-y-4'>
 							{rescueDetails.staff.map((staffMember, index) => (
-								<Accordion.Item
-									eventKey={index.toString()}
-									key={staffMember.userId}
-								>
-									<Accordion.Header>
+								<div key={staffMember.userId}>
+									<h3 className='text-lg font-semibold'>
 										Staff details for {staffMember.email}
-									</Accordion.Header>
-									<Accordion.Body>
-										<div className='d-flex justify-content-between align-items-center mb-3'>
-											<h5>Full details</h5>
-											<Button
-												variant='danger'
-												onClick={() => onDeleteStaff(staffMember.userId)}
-											>
-												Remove staff member
-											</Button>
-										</div>
-										<Form.Group as={Row} className='mb-3'>
-											<Form.Label column sm='2'>
-												Email
-											</Form.Label>
-											<Col sm='10'>
-												<Form.Control
-													type='email'
-													defaultValue={staffMember.email}
-													readOnly
-												/>
-											</Col>
-										</Form.Group>
-
-										<Tabs
-											defaultActiveKey='permissions'
-											id={`staff-${staffMember.userId}-tabs`}
-											className='mb-3'
+									</h3>
+									<div className='flex justify-between items-center mb-3'>
+										<h5>Full details</h5>
+										<button
+											className='text-red-500 hover:text-red-700 focus:outline-none'
+											onClick={() => onDeleteStaff(staffMember.userId)}
 										>
+											Remove staff member
+										</button>
+									</div>
+									<div className='mb-3'>
+										<label htmlFor={`email-${index}`} className='block mb-1'>
+											Email
+										</label>
+										<input
+											id={`email-${index}`}
+											type='email'
+											defaultValue={staffMember.email}
+											readOnly
+											className='w-full px-4 py-2 rounded-md border focus:outline-none'
+										/>
+									</div>
+									<div className='mb-3'>
+										<Tabs defaultActiveKey='permissions' className='mb-3'>
 											{Object.entries(permissionCategories).map(
 												([category, permissions]) => (
 													<Tab
@@ -143,47 +119,39 @@ const RescueDetailsModal = ({ showModal, handleClose, rescueDetails }) => {
 														title={category.replace(/([A-Z])/g, ' $1').trim()}
 														key={category}
 													>
-														{permissions.map(
-															(permission, permIndex) =>
-																staffHasPermission(
-																	staffMember.permissions,
-																	permission
-																) && (
-																	<Form.Group
-																		as={Row}
-																		key={permIndex}
-																		className='mb-3'
-																	>
-																		<Col sm={{ span: 10, offset: 2 }}>
-																			<Form.Check
-																				type='checkbox'
-																				label={getPermissionName(permission)}
-																				checked
-																				disabled
-																			/>
-																		</Col>
-																	</Form.Group>
-																)
+														{permissions.map((permission, permIndex) =>
+															staffHasPermission(
+																staffMember.permissions,
+																permission
+															) ? (
+																<div
+																	key={permIndex}
+																	className='mb-3 flex items-center'
+																>
+																	<input
+																		type='checkbox'
+																		className='form-checkbox mr-2'
+																		checked
+																		disabled
+																	/>
+																	<label>{getPermissionName(permission)}</label>
+																</div>
+															) : null
 														)}
 													</Tab>
 												)
 											)}
 										</Tabs>
-									</Accordion.Body>
-								</Accordion.Item>
+									</div>
+								</div>
 							))}
-						</Accordion>
-					</Form>
-				) : (
-					<p>Loading details...</p>
-				)}
-			</Modal.Body>
-			<Modal.Footer>
-				<Button variant='secondary' onClick={handleClose}>
-					Close
-				</Button>
-			</Modal.Footer>
-		</Modal>
+						</div>
+					</form>
+				</div>
+			) : (
+				<p>Loading details...</p>
+			)}
+		</CustomModal>
 	);
 };
 

@@ -1,30 +1,23 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Container, Row, Col, Button, Image } from 'react-bootstrap'; // assuming you have react-bootstrap installed
 import Footer from './LandingFooter';
 
 const LandingFeatures = () => {
 	return (
-		<div
-			style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
-		>
-			<Container fluid className='p-0 m-0'>
-				<Row
-					as='header'
-					className='hero bg-primary text-white text-center py-5 mb-4'
-				>
-					<Col>
-						<Image src='./adoptdontshoplogo.svg' fluid className='w-25' />
-						<h1>Features</h1>
-					</Col>
-				</Row>
-
-				<p></p>
-			</Container>
+		<div className='flex flex-col min-h-screen'>
+			<div className='bg-primary text-white text-center py-5 mb-4'>
+				<div className='w-full flex flex-col items-center'>
+					<img
+						src='./adoptdontshoplogo.svg'
+						alt="Adopt Don't Shop Logo"
+						className='w-1/4'
+					/>
+					<h1 className='text-4xl font-bold mt-4'>Features</h1>
+				</div>
+			</div>
+			<p></p>
 			<Footer />
 		</div>
 	);
 };
 
 export default LandingFeatures;
-``;

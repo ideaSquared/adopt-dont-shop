@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ConversationsComponent from './conversations/ConversationsComponent';
 import MessagesComponent from './conversations/ConversationsMessages';
-import { Container, Row, Col, Card } from 'react-bootstrap';
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -109,15 +108,20 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 	}
 
 	return (
-		<Container
-			fluid
-			className={`${userType === 'Rescue' ? 'h-100 p-0' : 'pt-md-3'}`}
+		<div
+			className={`${
+				userType === 'Rescue' ? 'h-full p-0' : 'pt-3'
+			} flex flex-col`}
 		>
-			<Row className={`${userType === 'Rescue' ? 'h-100 g-0' : 'p-1'}`}>
-				<Col
-					xs={12}
-					md={userType === 'Rescue' ? 3 : 4}
-					className={`${userType === 'Rescue' ? 'h-100' : ''}`}
+			<div
+				className={`${
+					userType === 'Rescue' ? 'h-full' : 'p-1'
+				} flex flex-col md:flex-row`}
+			>
+				<div
+					className={`${
+						userType === 'Rescue' ? 'h-full' : ''
+					} flex-grow-0 md:flex-none md:w-1/3`}
 				>
 					{/* Sidebar for Conversations */}
 					<ConversationsComponent
@@ -128,11 +132,11 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 						userType={userType}
 						listOfStaffIds={listOfStaffIds}
 					/>
-				</Col>
-				<Col
-					xs={12}
-					md={userType === 'Rescue' ? 9 : 8}
-					className={`${userType === 'Rescue' ? 'h-100' : ''}`}
+				</div>
+				<div
+					className={`${
+						userType === 'Rescue' ? 'h-full' : ''
+					} flex-grow md:w-2/3`}
 				>
 					{/* Main Content Area */}
 					{selectedConversation ? (
@@ -144,24 +148,21 @@ const Conversations = ({ userType, canCreateMessages, canReadMessages }) => {
 							listOfStaffIds={listOfStaffIds}
 						/>
 					) : (
-						<Container
-							fluid
-							className='d-flex flex-column vh-100 p-2 bg-light mx-2 rounded'
-						>
-							{/* <div
-								className={`d-flex justify-content-center align-items-center ${
-									userType === 'Rescue' ? 'h-100' : ''
+						<div className='flex flex-col h-full p-2 bg-light mx-2 rounded'>
+							<div
+								className={`flex justify-center items-center ${
+									userType === 'Rescue' ? 'h-full' : ''
 								}`}
-							> */}
-							<Card className='bg-info'>
-								<Card.Body>Select a conversation to view messages.</Card.Body>
-							</Card>
-							{/* </div> */}
-						</Container>
+							>
+								<div className='bg-info p-4 rounded'>
+									<p>Select a conversation to view messages.</p>
+								</div>
+							</div>
+						</div>
 					)}
-				</Col>
-			</Row>
-		</Container>
+				</div>
+			</div>
+		</div>
 	);
 };
 

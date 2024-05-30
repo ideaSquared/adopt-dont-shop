@@ -1,19 +1,26 @@
 // custom.scss
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 // Importing the Bootstrap functions first is important
-@import 'bootstrap/scss/functions';
-@import 'bootstrap/scss/variables';
+// @import 'bootstrap/scss/functions';
+// @import 'bootstrap/scss/variables';
 
-@import './_theme.scss';
-@import './text.scss';
-@import './inputs.scss';
+// @import './_theme.scss';
+// @import './text.scss';
+// @import './inputs.scss';
 
 // Optionally: Override any other Bootstrap variables here
-$body-bg: #f4ecdf;
-$body-color: #102e19;
+// $body-bg: #f4ecdf;
+// $body-color: #102e19;
 
 // Import the rest of Bootstrap
-@import 'bootstrap/scss/bootstrap';
+// @import 'bootstrap/scss/bootstrap';
+
+
+
+
 
 /* Default icon size for md devices and larger */
 .icon {

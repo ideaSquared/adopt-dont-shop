@@ -1,7 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AuthProvider } from './contexts/AuthContext';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import App from './app/App';
 import axios from 'axios';
 

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Form, Button, InputGroup } from 'react-bootstrap';
 
 const MessageInput = ({
 	message,
@@ -7,21 +6,28 @@ const MessageInput = ({
 	canCreateMessages,
 	handleSend,
 }) => (
-	<Form className='mt-auto p-3' onSubmit={handleSend}>
-		<InputGroup className='mb-3'>
-			<Form.Control
-				as='textarea'
-				placeholder='Enter message'
+	<form className='mt-auto p-4 bg-gray-100' onSubmit={handleSend}>
+		<div className='flex'>
+			<textarea
+				placeholder='Enter your message...'
 				value={message}
 				onChange={(e) => setMessage(e.target.value)}
-				style={{ resize: 'none' }}
+				className='flex-grow p-2 border border-gray-300 rounded-l-lg resize-none focus:ring-indigo-500 focus:border-indigo-500'
 				disabled={!canCreateMessages}
 			/>
-			<Button variant='secondary' type='submit' disabled={!canCreateMessages}>
+			<button
+				type='submit'
+				className={`px-4 py-2 rounded-r-lg transition-colors duration-200 ease-in-out ${
+					canCreateMessages
+						? 'bg-indigo-600 text-white hover:bg-indigo-700'
+						: 'bg-gray-400 text-gray-200 cursor-not-allowed'
+				}`}
+				disabled={!canCreateMessages}
+			>
 				Send
-			</Button>
-		</InputGroup>
-	</Form>
+			</button>
+		</div>
+	</form>
 );
 
 export default MessageInput;

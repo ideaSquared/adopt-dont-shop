@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Container, Button } from 'react-bootstrap';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -52,14 +51,12 @@ const Map = () => {
 	const addMarkers = (data) => {
 		const { users, rescues } = data;
 
-		// Remove existing markers
 		removeMarkers(userMarkers);
 		removeMarkers(rescueMarkers);
 
 		const newUsersMarkers = [];
 		const newRescuesMarkers = [];
 
-		// Add users markers
 		if (showUsers) {
 			users.forEach((user) => {
 				if (user.location) {
@@ -76,7 +73,6 @@ const Map = () => {
 			});
 		}
 
-		// Add rescues markers
 		if (showRescues) {
 			rescues.forEach((rescue) => {
 				if (rescue.location) {
@@ -116,22 +112,28 @@ const Map = () => {
 	}, [showUsers, showRescues]);
 
 	return (
-		<Container>
-			<h1>Map</h1>
-			<div ref={mapContainerRef} style={{ height: '75vh' }} />
-			<Button
-				onClick={toggleUsers}
-				variant={showUsers ? 'primary' : 'secondary'}
-			>
-				{showUsers ? 'Hide Users' : 'Show Users'}
-			</Button>
-			<Button
-				onClick={toggleRescues}
-				variant={showRescues ? 'danger' : 'secondary'}
-			>
-				{showRescues ? 'Hide Rescues' : 'Show Rescues'}
-			</Button>
-		</Container>
+		<div className='container mx-auto my-4'>
+			<h1 className='text-2xl font-bold mb-4'>Map</h1>
+			<div ref={mapContainerRef} className='h-96 mb-4' />
+			<div className='flex space-x-2'>
+				<button
+					onClick={toggleUsers}
+					className={`px-4 py-2 rounded ${
+						showUsers ? 'bg-blue-500 text-white' : 'bg-gray-500 text-white'
+					}`}
+				>
+					{showUsers ? 'Hide Users' : 'Show Users'}
+				</button>
+				<button
+					onClick={toggleRescues}
+					className={`px-4 py-2 rounded ${
+						showRescues ? 'bg-red-500 text-white' : 'bg-gray-500 text-white'
+					}`}
+				>
+					{showRescues ? 'Hide Rescues' : 'Show Rescues'}
+				</button>
+			</div>
+		</div>
 	);
 };
 

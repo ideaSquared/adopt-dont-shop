@@ -1,15 +1,13 @@
 import React from 'react';
-import { Row, Col } from 'react-bootstrap'; // assuming you have react-bootstrap installed
 
 const Footer = () => {
 	return (
-		<Row as='footer' className='footer bg-dark text-white text-center py-3 '>
-			<Col>
+		<footer className='footer bg-dark text-white text-center py-3'>
+			<div className='w-full flex justify-center'>
 				<p>© 2024 Adopt Don't Shop. All rights reserved.</p>
-			</Col>
-		</Row>
+			</div>
+		</footer>
 	);
 };
 
 export default Footer;
-``;

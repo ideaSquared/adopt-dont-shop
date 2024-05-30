@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Container } from 'react-bootstrap';
 import RatingsTable from '../../components/tables/RatingsTable';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';
 import RescueService from '../../services/RescueService';

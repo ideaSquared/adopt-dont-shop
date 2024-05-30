@@ -1,11 +1,7 @@
 import React from 'react';
-import { Nav } from 'react-bootstrap';
-import { LinkContainer } from 'react-router-bootstrap';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
-import './Navbar.scss';
-
-// Import the icons with specific sizes
 import {
 	PersonCircle,
 	ChatRightText,
@@ -19,71 +15,80 @@ import {
 const CustomNavbar = () => {
 	const { authState } = useAuth();
 	const handleLogout = useLogout();
-	const iconSize = 30;
+	const iconSize = 24; // Reduced the icon size for a more compact design
 
 	return (
-		<Nav
-			className='fixed-bottom border-top text-center custom-navbar'
-			style={{ width: '100%', justifyContent: 'space-around' }}
-		>
-			{!authState.isLoggedIn ? (
-				<>
-					<LinkContainer to='/login'>
-						<Nav.Link>
+		<nav className='fixed bottom-0 w-full bg-white border-t border-gray-200 shadow-lg'>
+			<div className='flex justify-around items-center py-2'>
+				{!authState.isLoggedIn ? (
+					<>
+						<Link
+							to='/login'
+							className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
+						>
 							<BoxArrowRight size={iconSize} />
-							<div>Login</div>
-						</Nav.Link>
-					</LinkContainer>
-					<LinkContainer to='/create-account'>
-						<Nav.Link>
+							<span className='text-xs mt-1'>Login</span>
+						</Link>
+						<Link
+							to='/create-account'
+							className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
+						>
 							<PlusCircle size={iconSize} />
-							<div>Create Account</div>
-						</Nav.Link>
-					</LinkContainer>
-				</>
-			) : (
-				<>
-					<LinkContainer to='/'>
-						<Nav.Link>
+							<span className='text-xs mt-1'>Create Account</span>
+						</Link>
+					</>
+				) : (
+					<>
+						<Link
+							to='/'
+							className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
+						>
 							<HouseDoor size={iconSize} />
-							<div>Home</div>
-						</Nav.Link>
-					</LinkContainer>
-					<LinkContainer to='/adopter-conversations'>
-						<Nav.Link>
+							<span className='text-xs mt-1'>Home</span>
+						</Link>
+						<Link
+							to='/adopter-conversations'
+							className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
+						>
 							<ChatRightText size={iconSize} />
-							<div>Messages</div>
-						</Nav.Link>
-					</LinkContainer>
-					<LinkContainer to='/my-profile'>
-						<Nav.Link>
+							<span className='text-xs mt-1'>Messages</span>
+						</Link>
+						<Link
+							to='/my-profile'
+							className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
+						>
 							<PersonCircle size={iconSize} />
-							<div>My Profile</div>
-						</Nav.Link>
-					</LinkContainer>
-					{authState.isAdmin && (
-						<LinkContainer to='/admin'>
-							<Nav.Link>
+							<span className='text-xs mt-1'>My Profile</span>
+						</Link>
+						{authState.isAdmin && (
+							<Link
+								to='/admin'
+								className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
+							>
 								<Eye size={iconSize} />
-								<div>Admin</div>
-							</Nav.Link>
-						</LinkContainer>
-					)}
-					{authState.isRescue && (
-						<LinkContainer to='/rescue-profile'>
-							<Nav.Link>
+								<span className='text-xs mt-1'>Admin</span>
+							</Link>
+						)}
+						{authState.isRescue && (
+							<Link
+								to='/rescue-profile'
+								className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
+							>
 								<Briefcase size={iconSize} />
-								<div>Rescue Profile</div>
-							</Nav.Link>
-						</LinkContainer>
-					)}
-					<Nav.Link onClick={handleLogout}>
-						<BoxArrowRight size={iconSize} />
-						<div>Logout</div>
-					</Nav.Link>
-				</>
-			)}
-		</Nav>
+								<span className='text-xs mt-1'>Rescue Profile</span>
+							</Link>
+						)}
+						<button
+							onClick={handleLogout}
+							className='nav-link flex flex-col items-center text-gray-700 hover:text-red-600 transition-colors focus:outline-none'
+						>
+							<BoxArrowRight size={iconSize} />
+							<span className='text-xs mt-1'>Logout</span>
+						</button>
+					</>
+				)}
+			</div>
+		</nav>
 	);
 };
 

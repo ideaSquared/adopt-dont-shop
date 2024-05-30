@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Button, Table, Image } from 'react-bootstrap';
 import PaginationControls from '../common/PaginationControls';
 
 const PetTable = ({
@@ -19,7 +18,13 @@ const PetTable = ({
 			return 'No Image';
 		}
 		const imageUrl = fileUploadsPath + images[0];
-		return <Image src={imageUrl} alt='Image of pet on the same row' fluid />;
+		return (
+			<img
+				src={imageUrl}
+				alt='Image of pet on the same row'
+				className='w-24 h-24 object-cover'
+			/>
+		);
 	};
 
 	const indexOfLastPet = currentPage * petsPerPage;
@@ -29,53 +34,54 @@ const PetTable = ({
 
 	return (
 		<div>
-			<Table striped bordered hover>
+			<table className='table-auto w-full'>
 				<thead>
 					<tr>
-						{isAdmin && <th>Pet ID</th>}
-						<th>Image</th>
-						<th>Name</th>
-						<th>Type</th>
-						<th>Status</th>
-						{isAdmin && <th>Owner Info</th>}
-						{/* Conditionally render this column */}
-						<th>Age</th>
-						<th>Actions</th>
+						{isAdmin && <th className='border px-4 py-2'>Pet ID</th>}
+						<th className='border px-4 py-2'>Image</th>
+						<th className='border px-4 py-2'>Name</th>
+						<th className='border px-4 py-2'>Type</th>
+						<th className='border px-4 py-2'>Status</th>
+						{isAdmin && <th className='border px-4 py-2'>Owner Info</th>}
+						<th className='border px-4 py-2'>Age</th>
+						<th className='border px-4 py-2'>Actions</th>
 					</tr>
 				</thead>
 				<tbody>
 					{currentPets.map((pet) => (
-						<tr key={pet.pet_id}>
-							{isAdmin && <td>{pet.pet_id}</td>}
-							<td style={{ maxWidth: '120px', overflow: 'hidden' }}>
+						<tr key={pet.pet_id} className='hover:bg-gray-100'>
+							{isAdmin && <td className='border px-4 py-2'>{pet.pet_id}</td>}
+							<td
+								className='border px-4 py-2'
+								style={{ maxWidth: '120px', overflow: 'hidden' }}
+							>
 								{renderPetImage(pet.images || '')}
 							</td>
-							<td>{pet.name || ''}</td>
-							<td>{pet.type || ''}</td>
-							<td>{pet.status || ''}</td>
-							{isAdmin && <td>{pet.ownerInfo}</td>}
-							{/* Conditionally render this cell */}
-							<td>{pet.age || ''}</td>
-							<td>
-								<Button
-									variant='info'
+							<td className='border px-4 py-2'>{pet.name || ''}</td>
+							<td className='border px-4 py-2'>{pet.type || ''}</td>
+							<td className='border px-4 py-2'>{pet.status || ''}</td>
+							{isAdmin && <td className='border px-4 py-2'>{pet.ownerInfo}</td>}
+							<td className='border px-4 py-2'>{pet.age || ''}</td>
+							<td className='border px-4 py-2'>
+								<button
+									className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2'
 									onClick={() => onEditPet(pet)}
 									disabled={!canEditPet}
 								>
 									Edit
-								</Button>{' '}
-								<Button
-									variant='danger'
+								</button>
+								<button
+									className='bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded'
 									onClick={() => onDeletePet(pet.pet_id)}
 									disabled={!canDeletePet}
 								>
 									Delete
-								</Button>
+								</button>
 							</td>
 						</tr>
 					))}
 				</tbody>
-			</Table>
+			</table>
 			<PaginationControls
 				currentPage={currentPage}
 				totalPages={totalPages}

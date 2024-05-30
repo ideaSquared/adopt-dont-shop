@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
 import { StaffService } from '../../services/StaffService';
-import CustomModal from './CustomModal'; // Import your CustomModal component
+import { useNavigate } from 'react-router-dom'; // Import for navigation
 
-const AddStaffModal = ({
-	show,
-	handleClose,
-	setRescueProfile,
-	rescueId,
-	canAddStaff,
-}) => {
+const AddStaffPage = ({ setRescueProfile, rescueId, canAddStaff }) => {
 	const [tabKey, setTabKey] = useState('newUser');
 	const [newStaff, setNewStaff] = useState({
 		firstName: '',
@@ -18,6 +12,7 @@ const AddStaffModal = ({
 	});
 	const [existingStaffEmail, setExistingStaffEmail] = useState('');
 	const [error, setError] = useState('');
+	const navigate = useNavigate(); // Use navigate hook
 
 	const resetForms = () => {
 		setNewStaff({ firstName: '', lastName: '', email: '', password: '' });
@@ -41,7 +36,7 @@ const AddStaffModal = ({
 				staff: [...prevState.staff, addedStaff],
 			}));
 			resetForms();
-			handleClose();
+			navigate('/rescue-profile'); // Navigate to rescue profile page after adding staff
 		} catch (error) {
 			setError('Error adding staff member');
 			console.error('Error adding staff member:', error);
@@ -49,7 +44,8 @@ const AddStaffModal = ({
 	};
 
 	return (
-		<CustomModal show={show} handleClose={handleClose}>
+		<div className='container mx-auto px-4 py-6'>
+			<h2 className='text-2xl font-semibold mb-4'>Add Staff</h2>
 			<div className='mb-3'>
 				<ul className='nav nav-tabs' role='tablist'>
 					<li className='nav-item' role='presentation'>
@@ -57,8 +53,6 @@ const AddStaffModal = ({
 							className={`nav-link ${tabKey === 'newUser' ? 'active' : ''}`}
 							onClick={() => setTabKey('newUser')}
 							id='newUser-tab'
-							data-bs-toggle='tab'
-							data-bs-target='#newUser'
 							type='button'
 							role='tab'
 							aria-controls='newUser'
@@ -74,8 +68,6 @@ const AddStaffModal = ({
 							}`}
 							onClick={() => setTabKey('existingUser')}
 							id='existingUser-tab'
-							data-bs-toggle='tab'
-							data-bs-target='#existingUser'
 							type='button'
 							role='tab'
 							aria-controls='existingUser'
@@ -155,6 +147,16 @@ const AddStaffModal = ({
 									}
 								/>
 							</div>
+							<div className='flex justify-end'>
+								<button
+									type='button'
+									onClick={handleAddStaff}
+									disabled={!canAddStaff}
+									className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+								>
+									Add Staff
+								</button>
+							</div>
 						</form>
 					</div>
 					<div
@@ -179,12 +181,23 @@ const AddStaffModal = ({
 									onChange={(e) => setExistingStaffEmail(e.target.value)}
 								/>
 							</div>
+							<div className='flex justify-end'>
+								<button
+									type='button'
+									onClick={handleAddStaff}
+									disabled={!canAddStaff}
+									className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+								>
+									Add Staff
+								</button>
+							</div>
 						</form>
 					</div>
 				</div>
 			</div>
-		</CustomModal>
+			{error && <div className='text-red-500'>{error}</div>}
+		</div>
 	);
 };
 
-export default AddStaffModal;
+export default AddStaffPage;

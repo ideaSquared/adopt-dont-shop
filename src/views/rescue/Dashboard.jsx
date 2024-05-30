@@ -1,16 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import {
-	Container,
-	Row,
-	Col,
-	Nav,
-	Navbar,
-	Offcanvas,
-	Form,
-	Button,
-	Card,
-	Image,
-} from 'react-bootstrap';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import AlertComponent from '../../components/common/AlertComponent';
@@ -38,13 +26,8 @@ const RescueDashboard = () => {
 		staff: [],
 		rescueName: '',
 		rescueType: '',
-		// Update the address structure
-		// addressLine1: '',
-		// addressLine2: '',
 		city: '',
-		// county: '',
-		// postcode: '',
-		country: 'United Kingdom', // Default to UK, update accordingly if needed
+		country: 'United Kingdom',
 		referenceNumber: '',
 		referenceNumberVerified: false,
 	});
@@ -95,8 +78,7 @@ const RescueDashboard = () => {
 				setRescueProfile(profileData);
 			} catch (error) {
 				if (error.response.status === 401) {
-					// Assuming you have access to a logout or a similar method to reset auth state
-					logout(); // This will reset the auth state
+					logout();
 				} else {
 					setAlertInfo({
 						type: 'danger',
@@ -109,9 +91,8 @@ const RescueDashboard = () => {
 		if (authState.isRescue) {
 			initFetch();
 		}
-	}, [authState.isRescue]); // Added useAuth as a dependency to ensure it's stable
+	}, [authState.isRescue]);
 
-	// Check for permissions
 	const canViewRescueInfo =
 		authState.userPermissions.includes('view_rescue_info');
 	const canEditRescueInfo =
@@ -191,29 +172,25 @@ const RescueDashboard = () => {
 				return <h1>Dashboard</h1>;
 			default:
 				return null;
-			// return <RescueNoPermissions rescueProfile={rescueProfile} />;
 		}
 	};
 
 	return (
-		<Container fluid='md' className='my-4'>
-			<Card className='mb-2'>
-				<Card.Body className='bg-light text-center border p-3'>
+		<div className='container mx-auto my-4'>
+			<div className='mb-2'>
+				<div className='bg-light text-center border p-3'>
 					<span>
 						Welcome <h1>{rescueProfile.rescueName}</h1>
 					</span>
-				</Card.Body>
-			</Card>
-			{!activeSection ? (
-				<BigNavbar navImages={images} activeSection={setActiveSection} />
-			) : (
-				<SmallNavbar navImages={images} activeSection={setActiveSection} />
-			)}
-			{/* This will render the selected section */}
-			<Card className='mt-2'>
-				<Card.Body className='bg-light'>{renderSection()}</Card.Body>
-			</Card>
-		</Container>
+				</div>
+			</div>
+
+			<BigNavbar navImages={images} activeSection={setActiveSection} />
+
+			<div className='mt-2'>
+				<div className='bg-light p-4'>{renderSection()}</div>
+			</div>
+		</div>
 	);
 };
 

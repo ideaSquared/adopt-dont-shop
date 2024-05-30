@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const useFetchUnratedPets = () => {
+export const useFetchUnratedPets = () => {
 	const [pets, setPets] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -36,5 +36,3 @@ const useFetchUnratedPets = () => {
 
 	return { pets, isLoading, error, noUnratedPets };
 };
-
-export default useFetchUnratedPets;

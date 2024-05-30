@@ -1,15 +1,14 @@
 import React from 'react';
-import { Container } from 'react-bootstrap';
-import Charts from './Charts';
 import { useAdminRedirect } from '../../hooks/useAdminRedirect';
+import Charts from './Charts';
 
 const Dashboard = () => {
 	useAdminRedirect();
 
 	return (
-		<Container>
+		<div className='container mx-auto my-4'>
 			<Charts />
-		</Container>
+		</div>
 	);
 };
 

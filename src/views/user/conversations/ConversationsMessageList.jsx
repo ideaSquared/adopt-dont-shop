@@ -1,5 +1,4 @@
 import React, { useRef, useEffect } from 'react';
-import { Card, Badge } from 'react-bootstrap';
 import './MessageList.scss';
 
 const MessageList = ({ messages, userType, userId, listOfStaffIds }) => {
@@ -7,7 +6,6 @@ const MessageList = ({ messages, userType, userId, listOfStaffIds }) => {
 	const containerRef = useRef(null);
 
 	const scrollToBottom = () => {
-		// Ensure the scroll to bottom affects only the message container
 		messagesEndRef.current?.scrollIntoView({
 			behavior: 'smooth',
 			block: 'nearest',
@@ -16,17 +14,16 @@ const MessageList = ({ messages, userType, userId, listOfStaffIds }) => {
 	};
 
 	useEffect(() => {
-		scrollToBottom(); // Call this when the component mounts
-	}, []); // Empty dependency array to run only once on mount
+		scrollToBottom();
+	}, []);
 
 	useEffect(() => {
-		scrollToBottom(); // Scroll to bottom whenever messages update
-	}, [messages]); // Dependency on messages to update on new message arrival
+		scrollToBottom();
+	}, [messages]);
 
 	return (
 		<div
-			className='overflow-auto custom-scroll'
-			style={{ flex: 1, maxHeight: '80vh' }}
+			className='overflow-auto custom-scroll flex-1 max-h-80vh'
 			ref={containerRef}
 		>
 			{messages.map((msg, index) => {
@@ -36,33 +33,32 @@ const MessageList = ({ messages, userType, userId, listOfStaffIds }) => {
 				return (
 					<div
 						key={index}
-						className={`d-flex ${
-							isUserMessage ? 'justify-content-end' : 'justify-content-start'
-						}`}
+						className={`flex ${
+							isUserMessage ? 'justify-end' : 'justify-start'
+						} mb-2`}
 					>
-						<Card
-							className={`mb-2 ${
-								isUserMessage ? 'bg-light' : 'bg-secondary text-white'
+						<div
+							className={`p-3 rounded-lg shadow-sm ${
+								isUserMessage
+									? 'bg-blue-100 text-right'
+									: 'bg-blue-600 text-white'
 							}`}
 							style={{ minWidth: '35%', maxWidth: '75%' }}
 						>
-							<Card.Body>
-								<div
-									className='text-muted text-end'
-									style={{ fontSize: '0.9em' }}
+							<div className='text-sm font-semibold mb-1'>
+								<span
+									className={`px-2 py-1 rounded ${
+										isUserMessage ? 'bg-blue-200' : 'bg-blue-700'
+									}`}
 								>
-									<Badge bg='info'>{msg.sender_name}</Badge>
-								</div>
-								<div style={{ whiteSpace: 'pre-wrap' }}>{msg.message_text}</div>
-								<Card.Text
-									className='text-muted text-end'
-									style={{ fontSize: '0.8em' }}
-								>
-									{new Date(msg.sent_at).toLocaleTimeString()} {msg.status}
-								</Card.Text>
-							</Card.Body>
-						</Card>
-						{/* Attach ref to the last message element */}
+									{msg.sender_name}
+								</span>
+							</div>
+							<div className='whitespace-pre-wrap'>{msg.message_text}</div>
+							<div className='text-xs text-gray-500 mt-1'>
+								{new Date(msg.sent_at).toLocaleTimeString()} {msg.status}
+							</div>
+						</div>
 						{index === messages.length - 1 && <div ref={messagesEndRef} />}
 					</div>
 				);

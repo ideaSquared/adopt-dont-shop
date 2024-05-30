@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import CreateRescueAccountForm from '../../components/forms/CreateRescueAccountForm';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-
-import { Container, Card, Row, Col } from 'react-bootstrap';
-import AlertComponent from '../../components/common/AlertComponent'; // Make sure the path is correct
+import AlertComponent from '../../components/common/AlertComponent';
 
 const CreateRescueAccountPage = () => {
 	const [firstName, setFirstName] = useState('');
@@ -15,20 +13,15 @@ const CreateRescueAccountPage = () => {
 	const [rescueType, setRescueType] = useState('individual');
 	const [rescueName, setRescueName] = useState('');
 	const [referenceNumber, setReferenceNumber] = useState('');
-	// New state hooks for the address components
-	// const [addressLine1, setAddressLine1] = useState('');
-	// const [addressLine2, setAddressLine2] = useState('');
 	const [city, setCity] = useState('');
-	// const [county, setCounty] = useState('');
-	// const [postcode, setPostcode] = useState('');
-	const [country, setCountry] = useState('United Kingdom'); // Default to UK, can be changed as needed
-	const navigate = useNavigate(); // Initialize useNavigate
+	const [country, setCountry] = useState('United Kingdom');
+	const navigate = useNavigate();
 	const [alert, setAlert] = useState({ show: false, message: '', type: '' });
 	const { createRescue } = useAuth();
 
 	const handleCreateRescueAccount = async () => {
 		try {
-			const response = await createRescue(
+			await createRescue(
 				firstName,
 				lastName,
 				email,
@@ -39,9 +32,6 @@ const CreateRescueAccountPage = () => {
 				country,
 				referenceNumber
 			);
-
-			// console.log('Create rescue account successful', response.data);
-			// Proceed to redirect the user or save the login state
 			navigate('/');
 		} catch (error) {
 			console.error('Create rescue account failed', error.response.data);
@@ -58,48 +48,35 @@ const CreateRescueAccountPage = () => {
 	};
 
 	return (
-		<Container
-			className='d-flex justify-content-center align-items-center mt-2'
-			style={{ minHeight: '100vh' }}
-		>
-			<Row>
-				<Col xs={12}>
-					<Card className='bg-light'>
-						<Card.Body>
-							<div className='justify-content-md-center'>
-								{alert.show && (
-									<AlertComponent
-										type={alert.type}
-										message={alert.message}
-										onClose={handleCloseAlert}
-									/>
-								)}
-								<CreateRescueAccountForm
-									onFirstNameChange={setFirstName}
-									onLastNameChange={setLastName}
-									onEmailChange={setEmail}
-									onPasswordChange={setPassword}
-									onConfirmPasswordChange={setConfirmPassword}
-									onRescueTypeChange={setRescueType}
-									onRescueNameChange={setRescueName}
-									// onAddressLine1Change={setAddressLine1}
-									// onAddressLine2Change={setAddressLine2}
-									onCityChange={setCity}
-									// onCountyChange={setCounty}
-									// onPostcodeChange={setPostcode}
-									onCountryChange={setCountry}
-									onCreateRescueAccount={handleCreateRescueAccount}
-									rescueType={rescueType}
-									onReferenceNumberChange={setReferenceNumber}
-									password={password}
-									confirmPassword={confirmPassword}
-								/>
-							</div>
-						</Card.Body>
-					</Card>
-				</Col>
-			</Row>
-		</Container>
+		<div className='flex justify-center items-center min-h-screen mt-2'>
+			<div className='w-full max-w-md'>
+				<div className='bg-light p-4 rounded shadow-md'>
+					{alert.show && (
+						<AlertComponent
+							type={alert.type}
+							message={alert.message}
+							onClose={handleCloseAlert}
+						/>
+					)}
+					<CreateRescueAccountForm
+						onFirstNameChange={setFirstName}
+						onLastNameChange={setLastName}
+						onEmailChange={setEmail}
+						onPasswordChange={setPassword}
+						onConfirmPasswordChange={setConfirmPassword}
+						onRescueTypeChange={setRescueType}
+						onRescueNameChange={setRescueName}
+						onCityChange={setCity}
+						onCountryChange={setCountry}
+						onCreateRescueAccount={handleCreateRescueAccount}
+						rescueType={rescueType}
+						onReferenceNumberChange={setReferenceNumber}
+						password={password}
+						confirmPassword={confirmPassword}
+					/>
+				</div>
+			</div>
+		</div>
 	);
 };
 

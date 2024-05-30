@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import ResetPasswordForm from '../../components/forms/ResetPasswordForm';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-
-import { Container, Card, Row, Col } from 'react-bootstrap';
 import AlertComponent from '../../components/common/AlertComponent';
 
 const ResetPasswordPage = () => {
@@ -32,7 +30,6 @@ const ResetPasswordPage = () => {
 		}
 		try {
 			const response = await resetPassword(token, password);
-			// console.log('Reset password successful', response.data);
 			navigate('/login');
 		} catch (error) {
 			console.error('Reset password failed', error.response.data);
@@ -49,33 +46,24 @@ const ResetPasswordPage = () => {
 	};
 
 	return (
-		<Container
-			className='d-flex justify-content-center align-items-center'
-			style={{ minHeight: '100vh' }}
-		>
-			<Row>
-				<Col xs={12}>
-					<Card className='bg-light'>
-						<Card.Body>
-							{alert.show && (
-								<AlertComponent
-									type={alert.type}
-									message={alert.message}
-									onClose={handleCloseAlert}
-								/>
-							)}
-							<div className='justify-content-md-center'>
-								<ResetPasswordForm
-									onPasswordChange={setPassword}
-									onConfirmPasswordChange={setConfirmPassword}
-									onResetPassword={handleResetPassword}
-								/>
-							</div>
-						</Card.Body>
-					</Card>
-				</Col>
-			</Row>
-		</Container>
+		<div className='flex items-center justify-center min-h-screen'>
+			<div className='w-full max-w-md bg-white shadow-md rounded-lg p-6'>
+				{alert.show && (
+					<AlertComponent
+						type={alert.type}
+						message={alert.message}
+						onClose={handleCloseAlert}
+					/>
+				)}
+				<div className='justify-center'>
+					<ResetPasswordForm
+						onPasswordChange={setPassword}
+						onConfirmPasswordChange={setConfirmPassword}
+						onResetPassword={handleResetPassword}
+					/>
+				</div>
+			</div>
+		</div>
 	);
 };
 
