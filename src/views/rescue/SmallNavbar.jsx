@@ -25,7 +25,7 @@ const SmallNavbar = ({ activeSection, navImages }) => {
 									className='max-h-32 object-contain'
 								/>
 							</div>
-							<div className='flex justify-center items-end p-1 hidden md:flex'>
+							<div className='flex justify-center items-end p-1 md:flex'>
 								<span className='w-full text-center bg-dark bg-opacity-75 text-white py-1 rounded-b-lg'>
 									{img.title}
 								</span>
