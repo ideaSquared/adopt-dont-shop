@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import RescuesTable from '../../components/tables/RescuesTable';
-import RescueDetailsModal from '../../components/modals/RescueDetailsModal';
+// import RescueDetailsModal from '../../components/modals/RescueDetailsModal';
 import RescueService from '../../services/RescueService';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';
 import { useAdminRedirect } from '../../hooks/useAdminRedirect';
@@ -140,12 +140,12 @@ const Rescues = () => {
 				totalPages={totalPages}
 				onChangePage={setCurrentPage}
 			/>
-			<RescueDetailsModal
+			{/* <RescueDetailsModal
 				showModal={showModal}
 				handleClose={() => setShowModal(false)}
 				rescueDetails={selectedRescueDetails}
 				onDeleteStaff={deleteStaffFromRescue}
-			/>
+			/> */}
 		</div>
 	);
 };
