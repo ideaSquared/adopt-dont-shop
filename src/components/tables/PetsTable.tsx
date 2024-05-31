@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
 import PaginationControls from '../common/PaginationControls';
-
-interface Pet {
-  pet_id: string;
-  images?: string[];
-  name?: string;
-  type?: string;
-  status?: string;
-  ownerInfo?: string;
-  age?: string;
-}
+import { Pet } from '../../types/pet';
 
 interface PetTableProps {
   pets: Pet[];

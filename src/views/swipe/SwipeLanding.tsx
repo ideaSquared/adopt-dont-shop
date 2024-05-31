@@ -1,21 +1,11 @@
 import React, { useState } from 'react';
 import { HandThumbsDown, HeartFill, HandThumbsUp } from 'react-bootstrap-icons';
 import './Swipe.scss';
+import { Pet } from '../../types/pet';
 
-interface PetItem {
-  pet_id: string;
-  name: string;
-  distance: number;
-  age: number;
-  gender: string;
-  status: string;
-  short_description: string;
-  long_description: string;
-  images: string[];
-}
 
 interface SwipeLandingProps {
-  item: PetItem;
+  item: Pet;
   handleSwipe: (direction: 'left' | 'love' | 'right') => void;
 }
 

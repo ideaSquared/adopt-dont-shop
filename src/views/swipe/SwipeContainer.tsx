@@ -4,18 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { postRating } from '../../services/RatingService';
 import SwipeLanding from './SwipeLanding';
 import { useLoginRedirect } from '../../hooks/useLoginRedirect';
-
-interface Pet {
-  pet_id: string;
-  name: string;
-  distance: number;
-  age: number;
-  gender: string;
-  status: string;
-  short_description: string;
-  long_description: string;
-  images: string[];
-}
+import { Pet } from '../../types/pet';
 
 interface FetchUnratedPetsResponse {
   pets: Pet[];

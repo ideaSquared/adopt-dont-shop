@@ -1,18 +1,9 @@
 import React from 'react';
+import { Pet } from '../../../types/pet';
 
-interface PetData {
-	images: string[];
-	name: string;
-	long_description: string;
-	short_description: string;
-	gender: string;
-	age: number;
-	type: string;
-	status: string;
-}
 
 interface MessagesPetDisplayProps {
-	petData: PetData | null;
+	petData: Pet | null;
 	isExpanded: boolean;
 	toggleHeight: () => void;
 }

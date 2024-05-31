@@ -1,11 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
+import { Pet } from '../types/pet';
 
 const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL as string;
-
-interface Pet {
-  pet_id: string;
-  // Define other properties of Pet
-}
 
 const PetService = {
   fetchPets: async (rescueId: string): Promise<Pet[]> => {

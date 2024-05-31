@@ -4,6 +4,7 @@ import MessagesPetDisplay from './ConversationsMessagesPetDisplay';
 import MessageList from './ConversationsMessageList';
 import MessageInput from './ConversationsMessageInput';
 import { useAuth } from '../../../contexts/AuthContext';
+import { Pet } from '../../../types/pet';
 
 interface Conversation {
   conversation_id: string;
@@ -27,17 +28,6 @@ interface Message {
   status: string;
 }
 
-interface PetData {
-  images: string[];
-  name: string;
-  long_description: string;
-  short_description: string;
-  gender: string;
-  age: number;
-  type: string;
-  status: string;
-}
-
 interface MessagesComponentProps {
   conversation: Conversation;
   onMessageSent: () => void;
@@ -54,7 +44,7 @@ const MessagesComponent: React.FC<MessagesComponentProps> = ({
   listOfStaffIds,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [petData, setPetData] = useState<PetData | null>(null);
+  const [petData, setPetData] = useState<Pet | null>(null);
   const [message, setMessage] = useState<string>('');
   const { authState } = useAuth();
   const userId = authState.userId;
