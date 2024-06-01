@@ -3,7 +3,7 @@ import PetTable from '../../components/tables/PetsTable';
 import PetFormSidebar from '../../components/sidebars/PetFormSidebar';
 import { useFilteredPets } from '../../hooks/useFilteredPets';
 import { Pet } from '../../types/pet';
-import { Rescue, StaffMember } from '../../types/rescue';
+import { Rescue } from '../../types/rescue';
 import PetService from '../../services/PetService';
 
 interface PetsProps {
@@ -93,8 +93,8 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 				<p>Error: {error.message}</p>
 			) : (
 				<>
-					<form className='space-y-4'>
-						<div>
+					<div className='flex flex-wrap gap-4 mb-3 items-center'>
+						<div className='flex-1 min-w-[150px]'>
 							<input
 								type='text'
 								placeholder='Search by pet name...'
@@ -105,7 +105,7 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 								className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
 							/>
 						</div>
-						<div>
+						<div className='flex-1 min-w-[150px]'>
 							<select
 								value={filterCriteria.searchType}
 								onChange={(e: ChangeEvent<HTMLSelectElement>) =>
@@ -123,7 +123,7 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 								)}
 							</select>
 						</div>
-						<div>
+						<div className='flex-1 min-w-[150px]'>
 							<select
 								value={filterCriteria.searchStatus}
 								onChange={(e: ChangeEvent<HTMLSelectElement>) =>
@@ -141,8 +141,11 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 								)}
 							</select>
 						</div>
-						<div className='flex items-center'>
-							<label htmlFor='filter-by-images-switch' className='mr-2'>
+						<div className='flex-1 min-w-[150px] flex items-center space-x-2'>
+							<label
+								htmlFor='filter-by-images-switch'
+								className='text-sm font-medium text-gray-700'
+							>
 								Has Images
 							</label>
 							<input
@@ -153,18 +156,20 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 								onChange={(e: ChangeEvent<HTMLInputElement>) =>
 									handleFilterChange('filterByImages')(e)
 								}
-								className='focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded'
+								className='form-checkbox h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500'
 							/>
 						</div>
-					</form>
-					{userPermissions?.includes('add_pet') && (
-						<button
-							onClick={() => handleOpenSidebar()}
-							className='mt-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-						>
-							Add Pet
-						</button>
-					)}
+						{userPermissions?.includes('add_pet') && (
+							<div className='flex-1 min-w-[150px] flex justify-end'>
+								<button
+									onClick={() => handleOpenSidebar()}
+									className='inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+								>
+									Add Pet
+								</button>
+							</div>
+						)}
+					</div>
 					<PetTable
 						pets={filteredPets}
 						onEditPet={handleEditPet}
