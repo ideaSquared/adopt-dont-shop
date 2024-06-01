@@ -1,4 +1,5 @@
-import { useState, useEffect, ChangeEvent } from 'react';
+// src/hooks/useFilteredPets.ts
+import { useState, useEffect, ChangeEvent, useCallback } from 'react';
 import PetService from '../services/PetService';
 import { Pet } from '../types/pet';
 import { ErrorResponse } from '../types/error';
@@ -22,30 +23,30 @@ export const useFilteredPets = (rescueId: string | null) => {
     filterByImages: false,
   });
 
-  useEffect(() => {
-    const fetchPets = async () => {
-      if (!rescueId) {
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const petsData = await PetService.fetchPets(rescueId);
-        setPets(petsData);
-        setFilteredPets(petsData);
-      } catch (err: any) {
-        console.error('Error fetching pets by rescue ID:', err);
-        setError({
-          status: err.response?.status || 500,
-          message: err.message || 'An unexpected error occurred',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPets();
+  const fetchPets = useCallback(async () => {
+    if (!rescueId) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const petsData = await PetService.fetchPets(rescueId);
+      setPets(petsData);
+      setFilteredPets(petsData);
+    } catch (err: any) {
+      console.error('Error fetching pets by rescue ID:', err);
+      setError({
+        status: err.response?.status || 500,
+        message: err.message || 'An unexpected error occurred',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [rescueId]);
+
+  useEffect(() => {
+    fetchPets();
+  }, [fetchPets]);
 
   useEffect(() => {
     const filtered = pets.filter((pet) => {
@@ -77,5 +78,6 @@ export const useFilteredPets = (rescueId: string | null) => {
     error,
     filterCriteria,
     handleFilterChange,
+    refreshPets: fetchPets, // Return the fetchPets function as refreshPets
   };
 };

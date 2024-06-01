@@ -7,8 +7,8 @@ import { Pet } from '../../types/pet';
 type PetFormSidebarProps = {
 	show: boolean;
 	handleClose: () => void;
-	petDetails: Pet;
-	setPetDetails: React.Dispatch<React.SetStateAction<Pet>>;
+	petDetails: Pet | null;
+	setPetDetails: React.Dispatch<React.SetStateAction<Pet | null>>;
 	isEditMode: boolean;
 	refreshPets: () => void;
 };
@@ -43,12 +43,27 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 
 	const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
 		const files = Array.from(event.target.files || []);
+		setSelectedFiles(files);
 
-		try {
-			await PetService.uploadPetImages(petDetails.pet_id, files);
-			await refreshPetDetails();
-		} catch (error) {
-			console.error('Error uploading files:', error);
+		if (petDetails?.pet_id) {
+			try {
+				await PetService.uploadPetImages(petDetails.pet_id, files);
+				// Directly add the new images to the petDetails state
+				const newImages = files.map((file) => URL.createObjectURL(file));
+				setPetDetails((prevDetails) => {
+					if (prevDetails) {
+						return {
+							...prevDetails,
+							images: [...(prevDetails.images || []), ...newImages],
+						};
+					}
+					return prevDetails;
+				});
+			} catch (error) {
+				console.error('Error uploading files:', error);
+			}
+		} else {
+			console.error('No pet ID available for uploading images.');
 		}
 	};
 
@@ -57,16 +72,15 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 		setIsLoading(true);
 		setError(null);
 		try {
-			const response = await PetService.createOrUpdatePet(petDetails, isEditMode);
+			if (petDetails) {
+				const response = await PetService.createOrUpdatePet(
+					petDetails,
+					isEditMode
+				);
 
-			const savedPet = response;
-
-			if (selectedFiles.length > 0) {
-				await PetService.uploadPetImages(savedPet.pet_id, selectedFiles);
+				refreshPets();
+				handleClose();
 			}
-
-			refreshPets();
-			handleClose();
 		} catch (error) {
 			console.error('Error submitting pet details:', error);
 			setError('Failed to submit pet details.');
@@ -75,25 +89,17 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 		}
 	};
 
-	const renderImagePreviews = () => {
-		return selectedFiles.length > 0 ? (
-			selectedFiles.map((file, index) => (
-				<div key={index} className='image-preview'>
-					<img src={URL.createObjectURL(file)} alt='preview' className='w-100' />
-				</div>
-			))
-		) : (
-			<p>No files selected for upload.</p>
-		);
-	};
-
 	const renderPetImages = () => {
+		const existingImages =
+			petDetails?.images?.filter((image) => !image.startsWith('blob:')) || [];
+		const newImages =
+			petDetails?.images?.filter((image) => image.startsWith('blob:')) || [];
 		return (
 			<div className='grid grid-cols-3 gap-4'>
-				{petDetails?.images?.map((image, index) => (
+				{[...existingImages, ...newImages].map((image, index) => (
 					<div key={index} className='relative'>
 						<img
-							src={fileUploadsPath + image}
+							src={image.startsWith('blob:') ? image : fileUploadsPath + image}
 							alt={image}
 							className='w-full h-auto object-cover'
 						/>
@@ -109,39 +115,30 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 		);
 	};
 
-	const refreshPetDetails = async () => {
-		setIsLoading(true);
-		setError(null);
-		try {
-			const updatedPetDetails = await PetService.getPetById(petDetails?.pet_id);
-			setPetDetails((prevDetails) => ({
-            ...prevDetails,
-            ...updatedPetDetails
-        }));
-		} catch (error) {
-			console.error('Error fetching updated pet details:', error);
-			setError('Failed to load updated pet details.');
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
 	const handleRemoveImage = async (index: number) => {
-		const imageToDelete = petDetails.images[index];
+		if (petDetails?.pet_id) {
+			const imageToDelete = petDetails.images[index];
 
-		try {
-			setIsLoading(true);
-			await PetService.deletePetImages(petDetails.pet_id, [imageToDelete]);
+			try {
+				setIsLoading(true);
+				if (!imageToDelete.startsWith('blob:')) {
+					await PetService.deletePetImages(petDetails.pet_id, [imageToDelete]);
+				}
 
-			const updatedImages = petDetails.images.filter((_, idx) => idx !== index);
-			const updatedPetDetails = { ...petDetails, images: updatedImages };
-			setPetDetails(updatedPetDetails);
+				const updatedImages = petDetails.images.filter(
+					(_, idx) => idx !== index
+				);
+				const updatedPetDetails = { ...petDetails, images: updatedImages };
+				setPetDetails(updatedPetDetails);
 
-			await refreshPetDetails();
-		} catch (error) {
-			console.error('Error deleting pet image:', error);
-		} finally {
-			setIsLoading(false);
+				refreshPets();
+			} catch (error) {
+				console.error('Error deleting pet image:', error);
+			} finally {
+				setIsLoading(false);
+			}
+		} else {
+			console.error('No pet ID available for deleting images.');
 		}
 	};
 
@@ -168,7 +165,7 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 			<form onSubmit={handleSubmit} className='space-y-6 flex flex-col h-full'>
 				{isLoading && <div>Loading pet details...</div>}
 				{error && <div className='text-danger'>{error}</div>}
-				{!isLoading && !error && (
+				{!isLoading && !error && petDetails && (
 					<div className='flex-grow overflow-y-auto space-y-6'>
 						{/* Pet Images */}
 						<div>
