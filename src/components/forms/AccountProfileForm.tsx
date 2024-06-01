@@ -1,48 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import CountrySelect from '../inputs/CountrySelect';
 import AlertComponent from '../../components/common/AlertComponent';
-
-interface FormData {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  firstName: string;
-  lastName: string;
-  city: string;
-  country: string;
-  description: string;
-}
+import { User } from '../../types/user';
 
 interface AccountProfileFormProps {
-  initialData: Partial<FormData>;
-  updateUserDetails: (formData: FormData) => Promise<{ success: boolean; error?: string }>;
+  initialData: Partial<User>;
+  updateUserDetails: (formData: User) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AccountProfileForm: React.FC<AccountProfileFormProps> = ({ initialData, updateUserDetails }) => {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<User>({
     email: '',
     password: '',
     confirmPassword: '',
     firstName: '',
     lastName: '',
     city: '',
-    country: '',
+    country: 'United Kingdom',
     description: '',
+    ...initialData,
   });
   const [alert, setAlert] = useState<{ message: string | null; type: 'success' | 'danger' | 'warning' | 'info' | null }>({ message: null, type: null });
 
   useEffect(() => {
-    setFormData({
-      email: '',
-      password: '',
-      confirmPassword: '',
-      firstName: '',
-      lastName: '',
-      city: '',
-      country: 'United Kingdom',
-      description: '',
+    setFormData((prevState) => ({
+      ...prevState,
       ...initialData,
-    });
+    }));
   }, [initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

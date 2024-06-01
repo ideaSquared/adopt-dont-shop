@@ -1,21 +1,11 @@
 import React, { useState } from 'react';
 import { PencilSquare } from 'react-bootstrap-icons';
 import AccountProfileForm from '../../components/forms/AccountProfileForm';
-
-interface UserData {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  firstName: string;
-  lastName: string;
-  city: string;
-  country: string;
-  description: string;
-}
+import { User } from '../../types/user';
 
 interface ProfileCardProps {
-  userData: Partial<UserData>;
-  updateUserDetails: (formData: UserData) => Promise<{ success: boolean; error?: string }>;
+  userData: Partial<User>;
+  updateUserDetails: (formData: User) => Promise<{ success: boolean; error?: string }>;
 }
 
 const ProfileCard: React.FC<ProfileCardProps> = ({ userData, updateUserDetails }) => {
