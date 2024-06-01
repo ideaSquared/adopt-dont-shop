@@ -17,5 +17,5 @@ export interface StaffMember {
 	email: string;
 	password?: string;
 	permissions?: string[];
-	verifiedByRescue?: boolean;
+	verified_by_rescue?: boolean;
 }
