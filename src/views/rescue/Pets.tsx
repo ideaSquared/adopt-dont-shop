@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import PetTable from '../../components/tables/PetsTable';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
 import PetFormSidebar from '../../components/sidebars/PetFormSidebar';
 import { useFilteredPets } from '../../hooks/useFilteredPets';
 import { Pet } from '../../types/pet';
-import { Rescue } from '../../types/rescue';
+import { Rescue, StaffMember } from '../../types/rescue';
 import PetService from '../../services/PetService';
 
 interface PetsProps {
 	rescueProfile: Rescue | null;
+	userPermissions: string[];
 }
 
-const Pets: React.FC<PetsProps> = ({ rescueProfile }) => {
+const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 	const [showSidebar, setShowSidebar] = useState(false);
 	const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 	const [isEditMode, setIsEditMode] = useState(false);
@@ -82,6 +82,8 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile }) => {
 		}
 	};
 
+	console.log(userPermissions);
+
 	return (
 		<div>
 			<h2 className='text-xl mb-4'>Pets</h2>
@@ -91,52 +93,78 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile }) => {
 				<p>Error: {error.message}</p>
 			) : (
 				<>
-					<GenericFilterForm
-						filters={[
-							{
-								type: 'text',
-								placeholder: 'Search by pet name...',
-								value: filterCriteria.searchTerm,
-								onChange: handleFilterChange('searchTerm'),
-							},
-							{
-								type: 'select',
-								value: filterCriteria.searchType,
-								onChange: handleFilterChange('searchType'),
-								options: [
-									{ value: '', label: 'All pet types' },
-									...Array.from(
-										new Set(filteredPets.map((pet) => pet.type))
-									).map((type) => ({
-										value: type || '', // Ensure the value is a string
-										label: type || '', // Ensure the label is a string
-									})),
-								],
-							},
-							{
-								type: 'select',
-								value: filterCriteria.searchStatus,
-								onChange: handleFilterChange('searchStatus'),
-								options: [
-									{ value: '', label: 'Filter by all statuses' },
-									...Array.from(
-										new Set(filteredPets.map((pet) => pet.status))
-									).map((status) => ({
-										value: status || '', // Ensure the value is a string
-										label: status || '', // Ensure the label is a string
-									})),
-								],
-							},
-							{
-								type: 'switch',
-								id: 'filter-by-images-switch',
-								name: 'filterByImages', // Added missing name property
-								label: 'Has Images',
-								checked: filterCriteria.filterByImages,
-								onChange: handleFilterChange('filterByImages'),
-							},
-						]}
-					/>
+					<form className='space-y-4'>
+						<div>
+							<input
+								type='text'
+								placeholder='Search by pet name...'
+								value={filterCriteria.searchTerm}
+								onChange={(e: ChangeEvent<HTMLInputElement>) =>
+									handleFilterChange('searchTerm')(e)
+								}
+								className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
+							/>
+						</div>
+						<div>
+							<select
+								value={filterCriteria.searchType}
+								onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+									handleFilterChange('searchType')(e)
+								}
+								className='mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
+							>
+								<option value=''>All pet types</option>
+								{Array.from(new Set(filteredPets.map((pet) => pet.type))).map(
+									(type) => (
+										<option key={type} value={type}>
+											{type}
+										</option>
+									)
+								)}
+							</select>
+						</div>
+						<div>
+							<select
+								value={filterCriteria.searchStatus}
+								onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+									handleFilterChange('searchStatus')(e)
+								}
+								className='mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
+							>
+								<option value=''>Filter by all statuses</option>
+								{Array.from(new Set(filteredPets.map((pet) => pet.status))).map(
+									(status) => (
+										<option key={status} value={status}>
+											{status}
+										</option>
+									)
+								)}
+							</select>
+						</div>
+						<div className='flex items-center'>
+							<label htmlFor='filter-by-images-switch' className='mr-2'>
+								Has Images
+							</label>
+							<input
+								type='checkbox'
+								id='filter-by-images-switch'
+								name='filterByImages'
+								checked={filterCriteria.filterByImages}
+								onChange={(e: ChangeEvent<HTMLInputElement>) =>
+									handleFilterChange('filterByImages')(e)
+								}
+								className='focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded'
+							/>
+						</div>
+					</form>
+					{userPermissions?.includes('add_pet') && (
+						<button
+							onClick={() => handleOpenSidebar()}
+							className='mt-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+						>
+							Add Pet
+						</button>
+					)}
 					<PetTable
 						pets={filteredPets}
 						onEditPet={handleEditPet}

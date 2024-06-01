@@ -5,7 +5,6 @@ import BaseSidebar from './BaseSidebar';
 type AddStaffSidebarProps = {
 	show: boolean;
 	handleClose: () => void;
-	setRescueProfile: React.Dispatch<React.SetStateAction<any>>;
 	rescueId: string;
 	canAddStaff: boolean;
 	refreshStaff: () => void; // Add refreshStaff as prop
@@ -21,7 +20,6 @@ type NewStaff = {
 const AddStaffSidebar: React.FC<AddStaffSidebarProps> = ({
 	show,
 	handleClose,
-	setRescueProfile,
 	rescueId,
 	canAddStaff,
 	refreshStaff, // Destructure refreshStaff from props

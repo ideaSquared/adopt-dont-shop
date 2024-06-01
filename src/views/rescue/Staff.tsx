@@ -7,15 +7,10 @@ import { StaffService } from '../../services/StaffService';
 
 interface StaffProps {
 	rescueProfile: Rescue | null;
-	setRescueProfile: React.Dispatch<React.SetStateAction<Rescue | null>>;
-	currentUserId: string;
+	userPermissions: string[];
 }
 
-const Staff: React.FC<StaffProps> = ({
-	rescueProfile,
-	setRescueProfile,
-	currentUserId,
-}) => {
+const Staff: React.FC<StaffProps> = ({ rescueProfile, userPermissions }) => {
 	const [showAddStaffSidebar, setShowAddStaffSidebar] = useState(false);
 
 	if (!rescueProfile) {
@@ -31,11 +26,7 @@ const Staff: React.FC<StaffProps> = ({
 		refreshStaff,
 	} = useFilteredStaff(rescueProfile.rescue_id);
 
-	const currentUserPermissions = rescueProfile.staff.find(
-		(staff) => staff.user_id === currentUserId
-	)?.permissions;
-
-	const canAddStaff = currentUserPermissions?.includes('add_staff') || false;
+	const canAddStaff = userPermissions?.includes('add_staff') || false;
 
 	const handleVerifyStaff = async (userId: string) => {
 		try {
@@ -175,7 +166,7 @@ const Staff: React.FC<StaffProps> = ({
 									onClick={() => setShowAddStaffSidebar(true)}
 									className='inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
 								>
-									Add
+									Add Pet
 								</button>
 							</div>
 						)}
@@ -195,7 +186,6 @@ const Staff: React.FC<StaffProps> = ({
 			<AddStaffSidebar
 				show={showAddStaffSidebar}
 				handleClose={() => setShowAddStaffSidebar(false)}
-				setRescueProfile={setRescueProfile}
 				rescueId={rescueProfile.rescue_id}
 				canAddStaff={canAddStaff}
 				refreshStaff={refreshStaff} // Pass refreshStaff function as prop
