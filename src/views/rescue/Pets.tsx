@@ -82,8 +82,6 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 		}
 	};
 
-	console.log(userPermissions);
-
 	return (
 		<div>
 			<h2 className='text-xl mb-4'>Pets</h2>
