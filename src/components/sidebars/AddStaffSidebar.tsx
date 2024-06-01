@@ -8,6 +8,7 @@ type AddStaffSidebarProps = {
 	setRescueProfile: React.Dispatch<React.SetStateAction<any>>;
 	rescueId: string;
 	canAddStaff: boolean;
+	refreshStaff: () => void; // Add refreshStaff as prop
 };
 
 type NewStaff = {
@@ -17,16 +18,13 @@ type NewStaff = {
 	password: string;
 };
 
-type ExistingStaff = {
-	email: string;
-};
-
 const AddStaffSidebar: React.FC<AddStaffSidebarProps> = ({
 	show,
 	handleClose,
 	setRescueProfile,
 	rescueId,
 	canAddStaff,
+	refreshStaff, // Destructure refreshStaff from props
 }) => {
 	const [tabKey, setTabKey] = useState<'newUser' | 'existingUser'>('newUser');
 	const [newStaff, setNewStaff] = useState<NewStaff>({
@@ -50,21 +48,18 @@ const AddStaffSidebar: React.FC<AddStaffSidebarProps> = ({
 			if (tabKey === 'newUser') {
 				addedStaff = await StaffService.addStaffMember(rescueId, newStaff);
 			} else {
-				const existingStaff = { 
-					firstName: '', 
-					lastName: '', 
-					email: existingStaffEmail, 
-					password: '' 
+				const existingStaff = {
+					firstName: '',
+					lastName: '',
+					email: existingStaffEmail,
+					password: '',
 				};
 				addedStaff = await StaffService.addStaffMember(rescueId, existingStaff);
 			}
 
-			setRescueProfile((prevState: any) => ({
-				...prevState,
-				staff: [...prevState.staff, addedStaff],
-			}));
+			refreshStaff(); // Refresh staff list
 			resetForms();
-			handleClose();
+			handleClose(); // Close the sidebar
 		} catch (error) {
 			setError('Error adding staff member');
 			console.error('Error adding staff member:', error);
@@ -85,7 +80,9 @@ const AddStaffSidebar: React.FC<AddStaffSidebarProps> = ({
 					</button>
 					<button
 						className={`flex-1 py-2 text-center ${
-							tabKey === 'existingUser' ? 'bg-indigo-500 text-white' : 'bg-gray-200'
+							tabKey === 'existingUser'
+								? 'bg-indigo-500 text-white'
+								: 'bg-gray-200'
 						} rounded-r-md`}
 						onClick={() => setTabKey('existingUser')}
 					>

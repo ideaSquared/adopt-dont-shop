@@ -1,15 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useFilteredStaff } from '../../hooks/useFilteredStaff';
 import StaffTable from '../../components/tables/StaffTable';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
+import AddStaffSidebar from '../../components/sidebars/AddStaffSidebar';
 import { Rescue } from '../../types/rescue';
 import { StaffService } from '../../services/StaffService';
 
 interface StaffProps {
 	rescueProfile: Rescue | null;
+	setRescueProfile: React.Dispatch<React.SetStateAction<Rescue | null>>;
+	currentUserId: string;
 }
 
-const Staff: React.FC<StaffProps> = ({ rescueProfile }) => {
+const Staff: React.FC<StaffProps> = ({
+	rescueProfile,
+	setRescueProfile,
+	currentUserId,
+}) => {
+	const [showAddStaffSidebar, setShowAddStaffSidebar] = useState(false);
+
 	if (!rescueProfile) {
 		return <p>Rescue profile not available.</p>;
 	}
@@ -22,6 +30,12 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile }) => {
 		handleFilterChange,
 		refreshStaff,
 	} = useFilteredStaff(rescueProfile.rescue_id);
+
+	const currentUserPermissions = rescueProfile.staff.find(
+		(staff) => staff.user_id === currentUserId
+	)?.permissions;
+
+	const canAddStaff = currentUserPermissions?.includes('add_staff') || false;
 
 	const handleVerifyStaff = async (userId: string) => {
 		try {
@@ -109,42 +123,63 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile }) => {
 				<p>Error: {error.message}</p>
 			) : (
 				<>
-					<GenericFilterForm
-						filters={[
-							{
-								type: 'text',
-								placeholder: 'Search by name or email',
-								value: filterCriteria.nameEmail,
-								onChange: handleFilterChange('nameEmail'),
-							},
-							{
-								type: 'select',
-								value: filterCriteria.permissions,
-								onChange: handleFilterChange('permissions'),
-								options: [
-									{ value: 'all', label: 'Filter by all permissions' },
-									...Array.from(
-										new Set(
-											filteredStaff.flatMap(
-												(staffMember) => staffMember.permissions || []
-											)
+					<div className='flex flex-wrap gap-4 mb-3 items-center'>
+						<div className='flex-1 min-w-[150px] flex flex-col space-y-2'>
+							<input
+								type='text'
+								placeholder='Search by name or email'
+								value={filterCriteria.nameEmail}
+								onChange={handleFilterChange('nameEmail')}
+								className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
+							/>
+						</div>
+						<div className='flex-1 min-w-[150px] flex flex-col space-y-2'>
+							<select
+								value={filterCriteria.permissions}
+								onChange={handleFilterChange('permissions')}
+								className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
+							>
+								<option value='all'>Filter by all permissions</option>
+								{Array.from(
+									new Set(
+										filteredStaff.flatMap(
+											(staffMember) => staffMember.permissions || []
 										)
-									).map((perm) => ({
-										value: perm || '',
-										label: perm || '',
-									})),
-								],
-							},
-							{
-								type: 'switch',
-								id: 'verified-switch',
-								name: 'verified',
-								label: 'Verified Only',
-								checked: filterCriteria.verified,
-								onChange: handleFilterChange('verified'),
-							},
-						]}
-					/>
+									)
+								).map((perm) => (
+									<option key={perm} value={perm}>
+										{perm}
+									</option>
+								))}
+							</select>
+						</div>
+						<div className='flex-1 min-w-[150px] flex items-center space-x-2'>
+							<label
+								htmlFor='verified-switch'
+								className='text-sm font-medium text-gray-700'
+							>
+								Verified Only
+							</label>
+							<input
+								type='checkbox'
+								id='verified-switch'
+								name='verified'
+								checked={filterCriteria.verified}
+								onChange={handleFilterChange('verified')}
+								className='form-checkbox h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500'
+							/>
+						</div>
+						{canAddStaff && (
+							<div className='flex-1 min-w-[150px] flex justify-end'>
+								<button
+									onClick={() => setShowAddStaffSidebar(true)}
+									className='inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+								>
+									Add
+								</button>
+							</div>
+						)}
+					</div>
 					<StaffTable
 						staff={filteredStaff}
 						verifyStaff={handleVerifyStaff}
@@ -157,6 +192,14 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile }) => {
 					/>
 				</>
 			)}
+			<AddStaffSidebar
+				show={showAddStaffSidebar}
+				handleClose={() => setShowAddStaffSidebar(false)}
+				setRescueProfile={setRescueProfile}
+				rescueId={rescueProfile.rescue_id}
+				canAddStaff={canAddStaff}
+				refreshStaff={refreshStaff} // Pass refreshStaff function as prop
+			/>
 		</div>
 	);
 };
