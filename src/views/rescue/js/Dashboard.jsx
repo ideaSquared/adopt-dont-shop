@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import AlertComponent from '../../components/common/AlertComponent';
-import { useAuth } from '../../contexts/AuthContext';
-import { useRescueRedirect } from '../../hooks/useRescueRedirect';
+import AlertComponent from '../../../components/common/AlertComponent';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useRescueRedirect } from '../../../hooks/useRescueRedirect';
 
 import BigNavbar from './BigNavbar';
 import SmallNavbar from './SmallNavbar';
@@ -13,10 +13,10 @@ import RescueSettings from './Settings';
 import AdopterManagement from './AdopterManagement';
 import PetManagement from './PetsManagement';
 import StaffManagement from './StaffManagement';
-import RescueService from '../../services/RescueService';
+import RescueService from '../../../services/RescueService';
 
 import RescueNoPermissions from './RescueNoPermissions';
-import Conversations from '../user/Conversations';
+import Conversations from '../../user/Conversations';
 
 import './Rescue.scss';
 

@@ -1,7 +1,7 @@
 import React from 'react';
-import RescueProfileForm from '../../components/forms/RescueProfileForm';
+import RescueProfileForm from '../../../components/forms/RescueProfileForm';
 import RescueProfileHeader from './RescueProfileHeader';
-import RescueService from '../../services/RescueService';
+import RescueService from '../../../services/RescueService';
 
 const RescueSettings = ({
 	rescueProfile,

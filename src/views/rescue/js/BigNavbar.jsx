@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import LazyImage from '../../components/LazyImage';
+import LazyImage from '../../../components/LazyImage';
 
 const BigNavbar = ({ activeSection, navImages }) => {
 	const handleSectionChange = (sectionName) => {

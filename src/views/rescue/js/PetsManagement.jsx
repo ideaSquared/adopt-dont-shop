@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import PetTable from '../../components/tables/PetsTable';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
-import PetService from '../../services/PetService';
-import PetFormSidebar from '../../components/sidebars/PetFormSidebar';
+import PetTable from '../../../components/tables/PetsTable';
+import GenericFilterForm from '../../../components/forms/GenericFilterForm';
+import PetService from '../../../services/PetService';
+import PetFormSidebar from '../../../components/sidebars/PetFormSidebar';
 
 const PetManagement = ({ rescueId, canAddPet, canEditPet, canDeletePet }) => {
 	const [allPets, setAllPets] = useState([]);

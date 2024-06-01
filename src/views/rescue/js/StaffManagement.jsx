@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StaffService } from '../../services/StaffService';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
-import StaffTable from '../../components/tables/StaffTable';
-import PaginationControls from '../../components/common/PaginationControls';
-import AddStaffSidebar from '../../components/sidebars/AddStaffSidebar'; // Import the new sidebar component
+import { StaffService } from '../../../services/StaffService';
+import GenericFilterForm from '../../../components/forms/GenericFilterForm';
+import StaffTable from '../../../components/tables/StaffTable';
+import PaginationControls from '../../../components/common/PaginationControls';
+import AddStaffSidebar from '../../../components/sidebars/AddStaffSidebar'; // Import the new sidebar component
 
 const StaffManagement = ({
 	rescueProfile,

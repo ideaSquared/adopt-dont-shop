@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './Rescue.scss';
-import LazyImage from '../../components/LazyImage';
+import LazyImage from '../../../components/LazyImage';
 
 const SmallNavbar = ({ activeSection, navImages }) => {
 	const handleSectionChange = (sectionName) => {

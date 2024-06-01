@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import RatingsTable from '../../components/tables/RatingsTable';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
-import RescueService from '../../services/RescueService';
+import RatingsTable from '../../../components/tables/RatingsTable';
+import GenericFilterForm from '../../../components/forms/GenericFilterForm';
+import RescueService from '../../../services/RescueService';
 
 const AdopterManagement = ({ rescueId }) => {
 	const [ratings, setRatings] = useState([]);

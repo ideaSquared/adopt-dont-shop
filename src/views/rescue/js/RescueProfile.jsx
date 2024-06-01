@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import AlertComponent from '../../components/common/AlertComponent';
-import { useAuth } from '../../contexts/AuthContext';
-import { useRescueRedirect } from '../../hooks/useRescueRedirect';
-import RescueProfileForm from '../../components/forms/RescueProfileForm';
+import AlertComponent from '../../../components/common/AlertComponent';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useRescueRedirect } from '../../../hooks/useRescueRedirect';
+import RescueProfileForm from '../../../components/forms/RescueProfileForm';
 import RescueProfileHeader from './RescueProfileHeader';
 
 import AdopterManagement from './AdopterManagement';
 import PetManagement from './PetsManagement';
 import StaffManagement from './StaffManagement';
-import RescueService from '../../services/RescueService';
+import RescueService from '../../../services/RescueService';
 
 import RescueNoPermissions from './RescueNoPermissions';
-import Conversations from '../user/Conversations';
+import Conversations from '../../user/Conversations';
 
 const RescueProfile = () => {
 	const [rescueProfile, setRescueProfile] = useState({
