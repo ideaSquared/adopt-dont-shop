@@ -1,10 +1,15 @@
 import React from 'react';
+import { Rescue } from '../../types/rescue'; 
 
-const Adopters: React.FC = () => {
+interface AdoptersProps {
+  rescueProfile: Rescue | null;
+}
+
+const Adopters: React.FC<AdoptersProps> = ({ rescueProfile }) => {
   return (
     <div>
-      <h2 className="text-xl mb-4">Adopters</h2>
-      <p>Content for Adopters page.</p>
+      <h1>Adopters</h1>
+      {/* Display or use rescueProfile data */}
     </div>
   );
 };

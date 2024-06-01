@@ -70,9 +70,25 @@ const updateStaffPermissions = async (rescueId: string, staffId: string, permiss
     }
 };
 
+const fetchAllStaffByRescueId = async (rescueId: string): Promise<StaffMember[]> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/rescue/${rescueId}/staff`, {
+            withCredentials: true,
+        });
+        return response.data.data;
+    } catch (error: any) {
+        console.error(
+            'Error fetching staff by rescue ID:',
+            error.response?.data || error.message
+        );
+        throw error;
+    }
+};
+
 export const StaffService = {
     verifyStaffMember,
     removeStaffMember,
     addStaffMember,
     updateStaffPermissions,
+    fetchAllStaffByRescueId, // Add the new method here
 };

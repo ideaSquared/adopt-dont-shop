@@ -816,5 +816,67 @@ router.delete(
 	}
 );
 
+//!!! There are no tests for this route yet
+// GET endpoint to fetch all staff by rescue ID
+router.get('/:rescueId/staff', authenticateToken, async (req, res) => {
+	const { rescueId } = req.params;
+	const editorUserId = req.user?.userId;
+
+	try {
+		// Validate if the rescue exists
+		const rescueQuery = {
+			text: 'SELECT * FROM rescues WHERE rescue_id = $1',
+			values: [rescueId],
+		};
+		const rescueResult = await pool.query(rescueQuery);
+		const rescue = rescueResult.rows[0];
+		if (!rescue) {
+			logger.warn(`Rescue not found with ID: ${rescueId}`);
+			return res.status(404).send({ message: 'Rescue not found' });
+		}
+
+		// Check if the user has the permission to view staff information
+		const hasPermission = await permissionService.checkPermission(
+			editorUserId,
+			'view_staff'
+		);
+		if (!hasPermission) {
+			logger.warn(
+				`User ${editorUserId} attempted to view staff without permission.`
+			);
+			return res.status(403).send({ message: 'No permission to view staff' });
+		}
+
+		// Fetch all staff members associated with the rescue
+		const staffQuery = {
+			text: `
+        SELECT sm.user_id, sm.permissions, sm.verified_by_rescue, u.email, u.first_name, u.last_name
+        FROM staff_members sm
+        JOIN users u ON sm.user_id = u.user_id
+        WHERE sm.rescue_id = $1
+      `,
+			values: [rescueId],
+		};
+		const staffResult = await pool.query(staffQuery);
+		const staffMembers = staffResult.rows;
+
+		logger.info(`Fetched staff members for rescue ID: ${rescueId}`);
+
+		res.send({
+			message: 'Staff members fetched successfully',
+			data: staffMembers,
+		});
+	} catch (error) {
+		Sentry.captureException(error);
+		logger.error(
+			`Error fetching staff for rescue ID: ${rescueId}: ${error.message}`
+		);
+		res.status(500).send({
+			message: 'Failed to fetch staff',
+			error: error.message,
+		});
+	}
+});
+
 // Export the router to make it available for use within the Express application.
 export default router;

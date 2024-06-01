@@ -1,7 +1,7 @@
 // src/types/rescue.d.ts
 
 export interface Rescue {
-	rescueId: string;
+	rescue_id: string;
 	rescueName: string;
 	rescueType: string;
 	referenceNumber?: string;
@@ -11,7 +11,7 @@ export interface Rescue {
 }
 
 export interface StaffMember {
-	userId: string;
+	user_id: string;
 	firstName: string;
 	lastName?: string;
 	email: string;

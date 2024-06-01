@@ -1,19 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-
-type Pet = {
-  pet_id: string;
-  name: string;
-  type: string;
-  age: number;
-  breed: string;
-  gender: string;
-  images: string[];
-  short_description: string;
-  long_description: string;
-  status: string;
-  distance: number;
-};
+import { Pet } from '../types/pet';
 
 interface ErrorResponse {
   status: number;

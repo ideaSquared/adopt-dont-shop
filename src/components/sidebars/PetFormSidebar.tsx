@@ -2,36 +2,13 @@ import React, { useState, ChangeEvent, FormEvent } from 'react';
 import PetService from '../../services/PetService';
 import AllowedPreferences from '../AllowedPreferences';
 import BaseSidebar from './BaseSidebar';
-
-type PetDetails = {
-	pet_id: string;
-	name: string;
-	age: number;
-	gender: string;
-	status: string;
-	type: string;
-	breed: string;
-	short_description: string;
-	long_description: string;
-	vaccination_status: string;
-	temperament: string;
-	health: string;
-	size: string;
-	grooming_needs: string;
-	training_socialization: string;
-	commitment_level: string;
-	other_pets: string;
-	household: string;
-	energy: string;
-	family: string;
-	images: string[];
-};
+import { Pet } from '../../types/pet';
 
 type PetFormSidebarProps = {
 	show: boolean;
 	handleClose: () => void;
-	petDetails: PetDetails;
-	setPetDetails: React.Dispatch<React.SetStateAction<PetDetails>>;
+	petDetails: Pet;
+	setPetDetails: React.Dispatch<React.SetStateAction<Pet>>;
 	isEditMode: boolean;
 	refreshPets: () => void;
 };
