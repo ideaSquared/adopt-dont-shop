@@ -3,7 +3,7 @@ import { useAdminRedirect } from '../../hooks/useAdminRedirect';
 import { ConversationsService } from '../../services/ConversationService';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';
 import ConversationsTable from '../../components/tables/ConversationsTable';
-import ConversationDetailsModal from '../../components/modals/ConversationDetailsModal';
+// import ConversationDetailsModal from '../../components/modals/ConversationDetailsModal';
 
 const Conversations = () => {
 	useAdminRedirect();
@@ -134,13 +134,13 @@ const Conversations = () => {
 				onChangePage={setCurrentPage}
 			/>
 
-			<ConversationDetailsModal
+			{/* <ConversationDetailsModal
 				showModal={showModal}
 				handleClose={handleCloseModal}
 				conversation={selectedConversation}
 				messages={messages}
 				loadingMessages={loadingMessages}
-			/>
+			/> */}
 		</div>
 	);
 };
