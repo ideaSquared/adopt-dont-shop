@@ -13,3 +13,20 @@ export interface Conversation {
 	first_name: string;
 	rescue_name: string;
 }
+
+export interface Message {
+	sender_id: string;
+	sender_name: string;
+	message_text: string;
+	sent_at: string;
+	status: string;
+}
+
+export interface ConversationsTableConversation {
+	conversation_id: string;
+	participant_emails: string[];
+	rescue_name?: string;
+	last_message_by_email: string;
+	updated_at: string;
+	status?: string;
+}
