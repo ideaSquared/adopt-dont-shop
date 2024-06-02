@@ -1,15 +1,15 @@
 // src/types/user.d.ts
 
 export interface User {
-	userId?: string;
+	user_id?: string;
 	email: string;
 	password: string;
 	confirmPassword: string;
-	firstName: string;
-	lastName: string;
+	first_name: string;
+	last_name: string;
 	city?: string;
 	country?: string;
 	description?: string;
-	resetTokenForceFlag?: boolean;
-	isAdmin?: boolean;
+	reset_token_force_flag?: boolean;
+	is_admin?: boolean;
 }

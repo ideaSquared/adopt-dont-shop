@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { User } from '../types/user';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const UserService = {
-	fetchAdminUsers: async (): Promise<any> => {
+	fetchAdminUsers: async (): Promise<User[]> => {
 		try {
 			const response = await axios.get(`${API_BASE_URL}/admin/users`, {
 				withCredentials: true,
@@ -15,9 +16,9 @@ const UserService = {
 		}
 	},
 
-	deleteAdminUser: async (userId: string): Promise<void> => {
+	deleteAdminUser: async (user_id: string): Promise<void> => {
 		try {
-			await axios.delete(`${API_BASE_URL}/admin/users/delete/${userId}`, {
+			await axios.delete(`${API_BASE_URL}/admin/users/delete/${user_id}`, {
 				withCredentials: true,
 			});
 		} catch (error) {
@@ -26,10 +27,10 @@ const UserService = {
 		}
 	},
 
-	resetAdminUserPassword: async (userId: string): Promise<void> => {
+	resetAdminUserPassword: async (user_id: string): Promise<void> => {
 		try {
 			await axios.post(
-				`${API_BASE_URL}/admin/users/reset-password/${userId}`,
+				`${API_BASE_URL}/admin/users/reset-password/${user_id}`,
 				{},
 				{ withCredentials: true }
 			);
