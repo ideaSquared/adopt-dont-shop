@@ -71,9 +71,9 @@ export const useUsers = () => {
 			user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
 			user.first_name.toLowerCase().includes(searchTerm.toLowerCase());
 		const forceResetMatch = filterFlags.forceReset
-			? user.resetTokenForceFlag
+			? user.reset_token_force_flag
 			: true;
-		const adminMatch = filterFlags.admin ? user.isAdmin : true;
+		const adminMatch = filterFlags.admin ? user.is_admin : true;
 		return searchMatch && forceResetMatch && adminMatch;
 	});
 
