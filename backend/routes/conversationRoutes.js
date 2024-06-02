@@ -88,10 +88,10 @@ router.post('/', authenticateToken, async (req, res) => {
 			await client.query('BEGIN');
 
 			const newConversationQuery = `
-                    INSERT INTO conversations (started_by, started_at, status, unread_messages, messages_count, pet_id, last_message, last_message_at, last_message_by)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                    RETURNING conversation_id;
-                `;
+				INSERT INTO conversations (started_by, started_at, status, unread_messages, messages_count, pet_id, last_message, last_message_at, last_message_by)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+				RETURNING conversation_id;
+			`;
 			const values = [
 				req.user.userId,
 				new Date(),
@@ -110,10 +110,10 @@ router.post('/', authenticateToken, async (req, res) => {
 			const conversationId = newConversationResult.rows[0].conversation_id;
 
 			const participantValues = participants.map((p) => {
-				if (p.participantType === 'User') {
-					return [conversationId, p.userId, null, 'User']; // Assuming p.userId is provided for User
-				} else if (p.participantType === 'Rescue') {
-					return [conversationId, null, p.rescueId, 'Rescue']; // Assuming p.rescueId is provided for Rescue
+				if (p.email.startsWith('user_')) {
+					return [conversationId, p.email, null, 'User']; // Assuming p.email is provided for User
+				} else if (p.email.startsWith('rescue_')) {
+					return [conversationId, null, p.email, 'Rescue']; // Assuming p.email is provided for Rescue
 				} else {
 					// Handle unexpected participantType
 					throw new Error('Invalid participant type');
