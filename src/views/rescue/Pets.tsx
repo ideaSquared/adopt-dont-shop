@@ -9,9 +9,14 @@ import PetService from '../../services/PetService';
 interface PetsProps {
 	rescueProfile: Rescue | null;
 	userPermissions: string[];
+	isAdmin: boolean;
 }
 
-const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
+const Pets: React.FC<PetsProps> = ({
+	rescueProfile,
+	userPermissions,
+	isAdmin,
+}) => {
 	const [showSidebar, setShowSidebar] = useState(false);
 	const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 	const [isEditMode, setIsEditMode] = useState(false);
@@ -55,11 +60,6 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 		setShowSidebar(true);
 	};
 
-	// Ensure rescueProfile is not null before proceeding
-	if (!rescueProfile) {
-		return <p>Rescue profile not available.</p>;
-	}
-
 	const {
 		filteredPets,
 		isLoading,
@@ -67,7 +67,7 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 		filterCriteria,
 		handleFilterChange,
 		refreshPets,
-	} = useFilteredPets(rescueProfile.rescue_id);
+	} = useFilteredPets(rescueProfile?.rescue_id || null, isAdmin);
 
 	const handleEditPet = (pet: Pet) => {
 		handleOpenSidebar(pet);
@@ -174,7 +174,7 @@ const Pets: React.FC<PetsProps> = ({ rescueProfile, userPermissions }) => {
 						onDeletePet={handleDeletePet}
 						canEditPet={true}
 						canDeletePet={true}
-						isAdmin={false}
+						isAdmin={isAdmin}
 					/>
 				</>
 			)}

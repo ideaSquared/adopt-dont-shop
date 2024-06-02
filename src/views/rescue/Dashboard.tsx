@@ -8,9 +8,13 @@ import Ratings from './Ratings';
 import Pets from './Pets';
 import Staff from './Staff';
 import Settings from './Settings';
+import Conversations from './Conversations';
+import Logs from './Logs';
+import Rescues from './Rescues';
+import Users from './Users';
 import PrivateRoute from './PrivateRoute';
-import useRescueProfile from '../../hooks/useRescueProfile'; // Adjust the path according to your project structure
-import { useAuth } from '../../contexts/AuthContext'; // Adjust the path according to your project structure
+import useRescueProfile from '../../hooks/useRescueProfile';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Dashboard: React.FC = () => {
 	const [showSidebar, setShowSidebar] = useState(false);
@@ -27,9 +31,13 @@ const Dashboard: React.FC = () => {
 
 	return (
 		<div className='min-h-screen bg-gray-100 flex flex-col'>
-			<Header toggleSidebar={toggleSidebar} />
+			<Header isAdmin={authState.isAdmin} toggleSidebar={toggleSidebar} />
 			<div className='flex flex-1'>
-				<Sidebar isVisible={showSidebar} />
+				<Sidebar
+					isVisible={showSidebar}
+					isAdmin={authState.isAdmin}
+					isRescue={authState.isRescue}
+				/>
 				<div
 					className={`flex-1 transition-all duration-300 ${
 						showSidebar ? 'ml-64' : 'ml-0'
@@ -52,6 +60,7 @@ const Dashboard: React.FC = () => {
 										<Pets
 											rescueProfile={rescueProfile}
 											userPermissions={authState.userPermissions}
+											isAdmin={authState.isAdmin}
 										/>
 									}
 								/>
@@ -68,6 +77,14 @@ const Dashboard: React.FC = () => {
 									path='settings'
 									element={<Settings rescueProfile={rescueProfile} />}
 								/>
+								{authState.isAdmin && (
+									<>
+										<Route path='conversations' element={<Conversations />} />
+										<Route path='logs' element={<Logs />} />
+										<Route path='rescues' element={<Rescues />} />
+										<Route path='users' element={<Users />} />
+									</>
+								)}
 							</Route>
 						</Routes>
 					</main>

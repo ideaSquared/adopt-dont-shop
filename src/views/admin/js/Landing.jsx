@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAdminRedirect } from '../../hooks/useAdminRedirect';
+import { useAdminRedirect } from '../../../hooks/useAdminRedirect';
 import Dashboard from './Dashboard';
 import Conversations from './Conversations';
 import Logs from './Logs';

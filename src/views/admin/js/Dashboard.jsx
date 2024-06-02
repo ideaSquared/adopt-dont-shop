@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAdminRedirect } from '../../hooks/useAdminRedirect';
+import { useAdminRedirect } from '../../../hooks/useAdminRedirect';
 import Charts from './Charts';
 
 const Dashboard = () => {

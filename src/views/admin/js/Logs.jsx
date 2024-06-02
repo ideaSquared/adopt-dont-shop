@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAdminRedirect } from '../../hooks/useAdminRedirect';
-import LogsTable from '../../components/tables/LogsTable';
-import { LogsService } from '../../services/LogService';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
+import { useAdminRedirect } from '../../../hooks/useAdminRedirect';
+import LogsTable from '../../../components/tables/LogsTable';
+import { LogsService } from '../../../services/LogService';
+import GenericFilterForm from '../../../components/forms/GenericFilterForm';
 
 const Logs = () => {
 	const [logs, setLogs] = useState([]);

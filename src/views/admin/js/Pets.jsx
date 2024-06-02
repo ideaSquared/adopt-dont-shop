@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAdminRedirect } from '../../hooks/useAdminRedirect';
-import PetTable from '../../components/tables/PetsTable';
-import PetService from '../../services/PetService';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
-import PetFormSidebar from '../../components/sidebars/PetFormSidebar';
+import { useAdminRedirect } from '../../../hooks/useAdminRedirect';
+import PetTable from '../../../components/tables/PetsTable';
+import PetService from '../../../services/PetService';
+import GenericFilterForm from '../../../components/forms/GenericFilterForm';
+import PetFormSidebar from '../../../components/sidebars/PetFormSidebar';
 
 const Pets = () => {
 	useAdminRedirect();

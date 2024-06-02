@@ -12,6 +12,14 @@ export interface Conversation {
 	unread_messages: number;
 	first_name: string;
 	rescue_name: string;
+	participants: Participant[];
+	rescue_id?: string;
+	rescue_name?: string;
+}
+
+export interface Participant {
+	email: string;
+	name: string;
 }
 
 export interface Message {

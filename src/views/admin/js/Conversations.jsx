@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAdminRedirect } from '../../hooks/useAdminRedirect';
-import { ConversationsService } from '../../services/ConversationService';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
-import ConversationsTable from '../../components/tables/ConversationsTable';
+import { useAdminRedirect } from '../../../hooks/useAdminRedirect';
+import { ConversationsService } from '../../../services/ConversationService';
+import GenericFilterForm from '../../../components/forms/GenericFilterForm';
+import ConversationsTable from '../../../components/tables/ConversationsTable';
 // import ConversationDetailsModal from '../../components/modals/ConversationDetailsModal';
 
 const Conversations = () => {

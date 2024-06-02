@@ -1,90 +1,80 @@
 import React from 'react';
-import StatusBadge from '../common/StatusBadge';
+import { Conversation } from '../../types/conversation';
 import PaginationControls from '../common/PaginationControls';
-import { ConversationsTableConversation } from '../../types/conversation';
 
 interface ConversationsTableProps {
-    conversations: ConversationsTableConversation[];
-    onDelete: (conversationId: string) => void;
-    onShowDetails: (conversation: ConversationsTableConversation) => void;
-    currentPage: number;
-    totalPages: number;
-    onChangePage: (page: number) => void;
+	conversations: Conversation[];
+	onDelete: (id: string) => void;
+	onShowDetails: (conversation: Conversation) => void;
+	currentPage: number;
+	totalPages: number;
+	onChangePage: (page: number) => void;
 }
 
 const ConversationsTable: React.FC<ConversationsTableProps> = ({
-    conversations,
-    onDelete,
-    onShowDetails,
-    currentPage,
-    totalPages,
-    onChangePage,
+	conversations,
+	onDelete,
+	onShowDetails,
+	currentPage,
+	totalPages,
+	onChangePage,
 }) => {
-    return (
-        <>
-            <table className='table-auto w-full'>
-                <thead>
-                    <tr>
-                        <th className='border px-4 py-2'>Conversation ID</th>
-                        <th className='border px-4 py-2'>Participants</th>
-                        <th className='border px-4 py-2'>Rescue</th>
-                        <th className='border px-4 py-2'>Last Message</th>
-                        <th className='border px-4 py-2'>Last Message At</th>
-                        <th className='border px-4 py-2'>Status</th>
-                        <th className='border px-4 py-2'>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {conversations.map((conversation) => (
-                        <tr
-                            key={conversation.conversation_id}
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => onShowDetails(conversation)}
-                            className='hover:bg-gray-100'
-                        >
-                            <td className='border px-4 py-2'>
-                                {conversation.conversation_id}
-                            </td>
-                            <td className='border px-4 py-2'>
-                                {conversation.participant_emails.join(', ')}
-                            </td>
-                            <td className='border px-4 py-2'>
-                                {conversation.rescue_name || 'N/A'}
-                            </td>
-                            <td className='border px-4 py-2'>
-                                {conversation.last_message_by_email}
-                            </td>
-                            <td className='border px-4 py-2'>
-                                {new Date(conversation.updated_at).toLocaleString()}
-                            </td>
-                            <td className='border px-4 py-2'>
-                                <StatusBadge
-                                    type='conversation'
-                                    value={conversation.status || ''}
-                                />
-                            </td>
-                            <td className='border px-4 py-2'>
-                                <button
-                                    className='bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded focus:outline-none'
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDelete(conversation.conversation_id);
-                                    }}
-                                >
-                                    Delete
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            <PaginationControls
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onChangePage={onChangePage}
-            />
-        </>
-    );
+	const handlePageChange = (newPage: number) => {
+		onChangePage(newPage);
+	};
+
+	return (
+		<div>
+			<table className='min-w-full divide-y divide-gray-200'>
+				<thead className='bg-gray-50'>
+					<tr>
+						<th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+							Participants
+						</th>
+						<th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+							Status
+						</th>
+						<th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+							Actions
+						</th>
+					</tr>
+				</thead>
+				<tbody className='bg-white divide-y divide-gray-200'>
+					{conversations.map((conversation) => (
+						<tr key={conversation.conversation_id}>
+							<td className='px-6 py-4 whitespace-nowrap'>
+								{conversation.participants
+									.map((participant) => participant.email)
+									.join(', ')}
+							</td>
+							<td className='px-6 py-4 whitespace-nowrap'>
+								{conversation.status}
+							</td>
+							<td className='px-6 py-4 whitespace-nowrap'>
+								<button
+									onClick={() => onShowDetails(conversation)}
+									className='text-indigo-600 hover:text-indigo-900'
+								>
+									Details
+								</button>
+								<button
+									onClick={() => onDelete(conversation.conversation_id)}
+									className='text-red-600 hover:text-red-900 ml-4'
+								>
+									Delete
+								</button>
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+			<PaginationControls
+				currentPage={currentPage}
+				totalPages={totalPages}
+				onChangePage={onChangePage}
+			/>
+		</div>
+	);
 };
 
 export default ConversationsTable;

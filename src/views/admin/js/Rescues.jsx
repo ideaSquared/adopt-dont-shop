@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import RescuesTable from '../../components/tables/RescuesTable';
+import RescuesTable from '../../../components/tables/RescuesTable';
 // import RescueDetailsModal from '../../components/modals/RescueDetailsModal';
-import RescueService from '../../services/RescueService';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
-import { useAdminRedirect } from '../../hooks/useAdminRedirect';
-import { useAuth } from '../../contexts/AuthContext';
+import RescueService from '../../../services/RescueService';
+import GenericFilterForm from '../../../components/forms/GenericFilterForm';
+import { useAdminRedirect } from '../../../hooks/useAdminRedirect';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const Rescues = () => {
 	const { authState } = useAuth();

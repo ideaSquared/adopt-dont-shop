@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import UsersTable from '../../components/tables/UsersTable';
-import GenericFilterForm from '../../components/forms/GenericFilterForm';
-import UserService from '../../services/UserService';
-import { useAdminRedirect } from '../../hooks/useAdminRedirect';
-import { useAuth } from '../../contexts/AuthContext';
+import UsersTable from '../../../components/tables/UsersTable';
+import GenericFilterForm from '../../../components/forms/GenericFilterForm';
+import UserService from '../../../services/UserService';
+import { useAdminRedirect } from '../../../hooks/useAdminRedirect';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const Users = () => {
 	const { authState } = useAuth();

@@ -73,20 +73,20 @@ const SwipeLanding: React.FC<SwipeLandingProps> = ({ item, handleSwipe }) => {
 	];
 
 	return (
-		<div className='flex items-center justify-center h-screen p-8'>
+		<div className='flex items-center justify-center h-screen p-8 bg-gray-100'>
 			{!viewDetails ? (
 				<div
-					className={`relative bg-cover bg-center rounded-lg shadow-md w-full max-w-3xl h-[36rem] ${animationClass}`}
+					className={`relative bg-cover bg-center rounded-lg shadow-lg w-full max-w-3xl h-[36rem] ${animationClass} transition-transform duration-500 ease-in-out`}
 					style={{ backgroundImage: `url(${imageSrc})` }}
 				>
 					<div className='absolute inset-0 bg-black bg-opacity-50 rounded-lg flex flex-col p-8 text-white'>
 						<div className='flex justify-between items-center mb-4'>
-							<h2 className='text-2xl font-bold'>{item.name}</h2>
+							<h2 className='text-3xl font-bold'>{item.name}</h2>
 							<div className='flex flex-wrap space-x-2'>
-								<span className='bg-gray-700 text-xs sm:text-sm md:text-base rounded-full px-2 py-1'>
+								<span className='bg-gray-700 text-xs sm:text-sm md:text-base rounded-full px-3 py-1'>
 									Distance: {item.distance ?? 'N/A'}
 								</span>
-								<span className='bg-gray-700 text-xs sm:text-sm md:text-base rounded-full px-2 py-1'>
+								<span className='bg-gray-700 text-xs sm:text-sm md:text-base rounded-full px-3 py-1'>
 									Age: {item.age}
 								</span>
 								<span
@@ -96,12 +96,12 @@ const SwipeLanding: React.FC<SwipeLandingProps> = ({ item, handleSwipe }) => {
 											: item.gender === 'male'
 											? 'bg-blue-500'
 											: 'bg-gray-500'
-									} text-xs sm:text-sm md:text-base rounded-full px-2 py-1`}
+									} text-xs sm:text-sm md:text-base rounded-full px-3 py-1`}
 								>
 									{item.gender}
 								</span>
 								<span
-									className={`text-xs sm:text-sm md:text-base rounded-full px-2 py-1 ${
+									className={`text-xs sm:text-sm md:text-base rounded-full px-3 py-1 ${
 										item.status === 'Adopted' ? 'bg-green-500' : 'bg-yellow-500'
 									}`}
 								>
@@ -109,7 +109,7 @@ const SwipeLanding: React.FC<SwipeLandingProps> = ({ item, handleSwipe }) => {
 								</span>
 							</div>
 						</div>
-						<p className='text-sm sm:text-base md:text-lg'>
+						<p className='text-sm sm:text-base md:text-lg mb-4'>
 							{item.short_description}{' '}
 							<a
 								href='#'
@@ -117,7 +117,7 @@ const SwipeLanding: React.FC<SwipeLandingProps> = ({ item, handleSwipe }) => {
 									e.preventDefault();
 									toggleViewDetails();
 								}}
-								className='underline'
+								className='underline hover:text-yellow-500'
 							>
 								See more...
 							</a>
@@ -165,15 +165,15 @@ const SwipeLanding: React.FC<SwipeLandingProps> = ({ item, handleSwipe }) => {
 				</div>
 			) : (
 				<div
-					className={`relative bg-white rounded-lg shadow-md w-full max-w-3xl h-[36rem] p-8 flex flex-col items-center justify-center ${animationClass}`}
+					className={`relative bg-white rounded-lg shadow-lg w-full max-w-3xl h-[36rem] p-8 flex flex-col items-center justify-center ${animationClass} transition-transform duration-500 ease-in-out`}
 				>
-					<h2 className='text-2xl font-bold'>{item.name}</h2>
-					<p className='mt-4 text-gray-700 text-lg'>{item.long_description}</p>
-					<div className='mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left text-gray-700'>
+					<h2 className='text-3xl font-bold mb-4'>{item.name}</h2>
+					<p className='mb-4 text-gray-700 text-lg'>{item.long_description}</p>
+					<div className='mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left text-gray-700 w-full'>
 						{details
 							.filter((detail) => detail.value)
 							.map((detail, index) => (
-								<p key={index}>
+								<p key={index} className='bg-gray-100 p-2 rounded-lg shadow-sm'>
 									<strong>{detail.label}:</strong>{' '}
 									{capitalizeFirstLetter(detail.value)}
 								</p>
