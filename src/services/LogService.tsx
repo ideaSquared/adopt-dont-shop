@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { Log } from '../types/log';
 
-const fetchLogs = async (): Promise<any[]> => {
+const fetchLogs = async (): Promise<Log[]> => {
 	const endpoint = `${import.meta.env.VITE_API_BASE_URL}/logs`;
 	try {
 		const { data } = await axios.get(endpoint);
