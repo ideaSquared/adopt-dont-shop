@@ -10,7 +10,11 @@ const MessagesPage: React.FC<MessagesProps> = ({ rescueProfile }) => {
 	return (
 		<div className='container mx-auto my-4'>
 			<h1 className='text-2xl font-bold mb-4'>Conversations</h1>
-			<Conversations userType='Rescue' canCreateMessages canReadMessages />
+			<Conversations
+				userType='Rescue'
+				canCreateMessages={true}
+				canReadMessages={true}
+			/>
 		</div>
 	);
 };
