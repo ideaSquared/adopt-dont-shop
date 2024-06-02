@@ -161,21 +161,21 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 		// Query to fetch unrated pets
 		const petQuery = {
 			text: `
-				SELECT 
-				  p.*, u.location AS user_location, r.location AS rescue_location
-				FROM 
-				  pets p
-				JOIN
-				  users u ON u.user_id = $1
-				JOIN 
-				  rescues r ON r.rescue_id = p.owner_id
-				WHERE 
-				  p.pet_id NOT IN (
-					SELECT pet_id
-					FROM ratings
-					WHERE user_id = $1
-				  );
-			`,
+                SELECT 
+                    p.*, u.location AS user_location, r.location AS rescue_location
+                FROM 
+                    pets p
+                JOIN
+                    users u ON u.user_id = $1
+                JOIN 
+                    rescues r ON r.rescue_id = p.owner_id
+                WHERE 
+                    p.pet_id NOT IN (
+                        SELECT pet_id
+                        FROM ratings
+                        WHERE user_id = $1
+                    );
+            `,
 			values: [userId],
 		};
 
@@ -190,23 +190,26 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 		// Query to fetch user preferences
 		const preferenceQuery = {
 			text: `
-				SELECT preference_key, preference_value
-				FROM user_preferences
-				WHERE user_id = $1;
-			`,
+                SELECT preference_key, preference_value
+                FROM user_preferences
+                WHERE user_id = $1;
+            `,
 			values: [userId],
 		};
 
 		const preferenceResult = await pool.query(preferenceQuery);
 		const userPreferences = preferenceResult.rows.reduce((acc, pref) => {
-			acc[pref.preference_key] = pref.preference_value;
+			if (!acc[pref.preference_key]) {
+				acc[pref.preference_key] = [];
+			}
+			acc[pref.preference_key].push(pref.preference_value);
 			return acc;
 		}, {});
 
 		// Filter pets based on user preferences
 		const filteredPets = petsData.filter((pet) => {
-			for (const [key, value] of Object.entries(userPreferences)) {
-				if (pet[key] && pet[key] !== value) {
+			for (const [key, values] of Object.entries(userPreferences)) {
+				if (values.length > 0 && (!pet[key] || !values.includes(pet[key]))) {
 					return false;
 				}
 			}
@@ -228,6 +231,17 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 				pet.user_location,
 				pet.rescue_location
 			),
+			vaccination_status: pet.vaccination_status,
+			other_pets: pet.other_pets,
+			household: pet.household,
+			energy: pet.energy,
+			family: pet.family,
+			temperament: pet.temperament,
+			health: pet.health,
+			size: pet.size,
+			grooming_needs: pet.grooming_needs,
+			training_socialization: pet.training_socialization,
+			commitment_level: pet.commitment_level,
 		}));
 
 		res.json(unratedPets);
