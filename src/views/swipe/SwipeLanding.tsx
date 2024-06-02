@@ -54,6 +54,24 @@ const SwipeLanding: React.FC<SwipeLandingProps> = ({ item, handleSwipe }) => {
 		}, 500);
 	};
 
+	const capitalizeFirstLetter = (str: string) =>
+		str.charAt(0).toUpperCase() + str.slice(1).toLowerCase().replace(/_/g, ' ');
+
+	const details = [
+		{ label: 'Breed', value: item.breed },
+		{ label: 'Vaccination Status', value: item.vaccination_status },
+		{ label: 'Temperament', value: item.temperament },
+		{ label: 'Health', value: item.health },
+		{ label: 'Size', value: item.size },
+		{ label: 'Grooming Needs', value: item.grooming_needs },
+		{ label: 'Training & Socialization', value: item.training_socialization },
+		{ label: 'Commitment Level', value: item.commitment_level },
+		{ label: 'Other Pets', value: item.other_pets },
+		{ label: 'Household', value: item.household },
+		{ label: 'Energy', value: item.energy },
+		{ label: 'Family', value: item.family },
+	];
+
 	return (
 		<div className='flex items-center justify-center h-screen p-8'>
 			{!viewDetails ? (
@@ -66,7 +84,7 @@ const SwipeLanding: React.FC<SwipeLandingProps> = ({ item, handleSwipe }) => {
 							<h2 className='text-2xl font-bold'>{item.name}</h2>
 							<div className='flex flex-wrap space-x-2'>
 								<span className='bg-gray-700 text-xs sm:text-sm md:text-base rounded-full px-2 py-1'>
-									{item.distance} away
+									Distance: {item.distance ?? 'N/A'}
 								</span>
 								<span className='bg-gray-700 text-xs sm:text-sm md:text-base rounded-full px-2 py-1'>
 									Age: {item.age}
@@ -151,6 +169,16 @@ const SwipeLanding: React.FC<SwipeLandingProps> = ({ item, handleSwipe }) => {
 				>
 					<h2 className='text-2xl font-bold'>{item.name}</h2>
 					<p className='mt-4 text-gray-700 text-lg'>{item.long_description}</p>
+					<div className='mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left text-gray-700'>
+						{details
+							.filter((detail) => detail.value)
+							.map((detail, index) => (
+								<p key={index}>
+									<strong>{detail.label}:</strong>{' '}
+									{capitalizeFirstLetter(detail.value)}
+								</p>
+							))}
+					</div>
 					<button
 						className='bg-gray-500 text-white rounded-full px-6 py-3 mt-8 shadow-lg transition transform hover:scale-110'
 						onClick={toggleViewDetails}
