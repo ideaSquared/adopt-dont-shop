@@ -10,7 +10,7 @@ import ForgotPasswordPage from '../views/user/ForgotPasswordPage';
 import ResetPasswordPage from '../views/user/ResetPasswordPage';
 import CreateAccountPage from '../views/user/CreateAccountPage';
 import CreateRescueAccountPage from '../views/user/CreateRescueAccountPage';
-import Dashboard from '../views/rescue/Dashboard';
+import Dashboard from '../views/dashboard/Dashboard';
 import Conversations from '../views/user/Conversations';
 import UserSwiper from '../views/user/UserSwiper';
 import PreferencesManager from '../views/user/PreferencesManager';
