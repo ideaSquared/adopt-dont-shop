@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Header from '../../components/rescue/Header';
-import Sidebar from '../../components/rescue/Sidebar';
-import Footer from '../../components/rescue/Footer';
+import Header from '../../components/dashboard/Header';
+import Sidebar from '../../components/dashboard/Sidebar';
+import Footer from '../../components/dashboard/Footer';
 import Adopters from './Adopters';
 import Ratings from './Ratings';
 import Pets from './Pets';

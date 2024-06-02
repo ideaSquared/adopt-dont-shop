@@ -32,7 +32,7 @@ const App: React.FC = () => {
 					<Route path='/forgot-password' element={<ForgotPasswordPage />} />
 					<Route path='/reset-password' element={<ResetPasswordPage />} />
 					<Route path='/my-profile' element={<UserProfilePage />} />
-					<Route path='/rescue-profile/*' element={<Dashboard />} />
+					<Route path='/dashboard/*' element={<Dashboard />} />
 					<Route path='/admin/*' element={<Dashboard />} />
 					<Route
 						path='/rescue-conversations'

@@ -20,38 +20,41 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, isAdmin, isRescue }) => {
 					{!isAdmin && (
 						<>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/rescue-profile/adopters'>Adopters</Link>
+								<Link to='/dashboard/adopters'>Adopters</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/rescue-profile/staff'>Staff</Link>
+								<Link to='/dashboard/staff'>Staff</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/rescue-profile/ratings'>Ratings</Link>
+								<Link to='/dashboard/ratings'>Ratings</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/rescue-profile/settings'>Settings</Link>
+								<Link to='/dashboard/settings'>Settings</Link>
+							</li>
+							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
+								<Link to='/dashboard/messages'>Messages</Link>
 							</li>
 						</>
 					)}
 					{isAdmin && (
 						<>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/rescue-profile/conversations'>Conversations</Link>
+								<Link to='/dashboard/conversations'>Conversations</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/rescue-profile/logs'>Logs</Link>
+								<Link to='/dashboard/logs'>Logs</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/rescue-profile/rescues'>Rescues</Link>
+								<Link to='/dashboard/rescues'>Rescues</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/rescue-profile/users'>Users</Link>
+								<Link to='/dashboard/users'>Users</Link>
 							</li>
 						</>
 					)}
 
 					<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-						<Link to='/rescue-profile/pets'>Pets</Link>
+						<Link to='/dashboard/pets'>Pets</Link>
 					</li>
 				</ul>
 			</nav>

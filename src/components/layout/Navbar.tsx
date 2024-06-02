@@ -71,7 +71,7 @@ const CustomNavbar: React.FC = () => {
 						)}
 						{authState.isRescue && (
 							<Link
-								to='/rescue-profile'
+								to='/dashboard'
 								className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
 							>
 								<Briefcase size={iconSize} />
