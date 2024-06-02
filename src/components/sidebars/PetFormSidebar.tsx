@@ -47,14 +47,16 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 
 		if (petDetails?.pet_id) {
 			try {
-				await PetService.uploadPetImages(petDetails.pet_id, files);
+				const filenames = await PetService.uploadPetImages(
+					petDetails.pet_id,
+					files
+				);
 				// Directly add the new images to the petDetails state
-				const newImages = files.map((file) => URL.createObjectURL(file));
 				setPetDetails((prevDetails) => {
 					if (prevDetails) {
 						return {
 							...prevDetails,
-							images: [...(prevDetails.images || []), ...newImages],
+							images: [...(prevDetails.images || []), ...filenames],
 						};
 					}
 					return prevDetails;
@@ -90,16 +92,13 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 	};
 
 	const renderPetImages = () => {
-		const existingImages =
-			petDetails?.images?.filter((image) => !image.startsWith('blob:')) || [];
-		const newImages =
-			petDetails?.images?.filter((image) => image.startsWith('blob:')) || [];
+		const existingImages = petDetails?.images || [];
 		return (
 			<div className='grid grid-cols-3 gap-4'>
-				{[...existingImages, ...newImages].map((image, index) => (
+				{existingImages.map((image, index) => (
 					<div key={index} className='relative'>
 						<img
-							src={image.startsWith('blob:') ? image : fileUploadsPath + image}
+							src={fileUploadsPath + image}
 							alt={image}
 							className='w-full h-auto object-cover'
 						/>
@@ -110,7 +109,7 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 							X
 						</button>
 					</div>
-				)) || <p>No images available.</p>}
+				))}
 			</div>
 		);
 	};
@@ -121,9 +120,7 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 
 			try {
 				setIsLoading(true);
-				if (!imageToDelete.startsWith('blob:')) {
-					await PetService.deletePetImages(petDetails.pet_id, [imageToDelete]);
-				}
+				await PetService.deletePetImages(petDetails.pet_id, [imageToDelete]);
 
 				const updatedImages = petDetails.images.filter(
 					(_, idx) => idx !== index

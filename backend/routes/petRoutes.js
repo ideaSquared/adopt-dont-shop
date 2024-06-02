@@ -419,6 +419,7 @@ router.post(
 			res.status(200).send({
 				message: 'Images uploaded successfully',
 				data: updatedPet,
+				filenames: updatedImages, // Add this line
 			});
 		} catch (error) {
 			logger.error(
