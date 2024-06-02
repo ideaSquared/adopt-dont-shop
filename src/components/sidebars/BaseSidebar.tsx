@@ -1,11 +1,11 @@
 import React, { ReactNode } from 'react';
 
 type BaseSidebarProps = {
-	show: boolean,
-	handleClose: () => void,
-	children: ReactNode,
-	title: string,
-	size?: string,
+	show: boolean;
+	handleClose: () => void;
+	children: ReactNode;
+	title: string;
+	size?: string;
 };
 
 const BaseSidebar: React.FC<BaseSidebarProps> = ({

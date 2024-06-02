@@ -1,16 +1,10 @@
-import React, { ChangeEvent } from 'react';
-import { useLocation } from 'react-router-dom';
+import React from 'react';
 import RescuesTable from '../../components/tables/RescuesTable';
 import { useRescues } from '../../hooks/useRescues';
-import { useAdminRedirect } from '../../hooks/useAdminRedirect';
-import { useAuth } from '../../contexts/AuthContext';
+import RescueDetailsSidebar from '../../components/sidebars/RescueDetailsSidebar'; // Adjust the path as necessary
+import { Rescue } from '../../types/rescue'; // Ensure the path is correct
 
 const Rescues: React.FC = () => {
-	const { authState } = useAuth();
-	useAdminRedirect();
-	const location = useLocation();
-	const canAdd = true;
-
 	const {
 		rescues,
 		totalPages,
@@ -66,12 +60,12 @@ const Rescues: React.FC = () => {
 				totalPages={totalPages}
 				onChangePage={handlePageChange}
 			/>
-			{/* <RescueDetailsModal
-        showModal={showModal}
-        handleClose={handleCloseModal}
-        rescueDetails={selectedRescueDetails}
-        onDeleteStaff={handleDeleteStaff}
-      /> */}
+			<RescueDetailsSidebar
+				show={showModal}
+				handleClose={handleCloseModal}
+				rescueDetails={selectedRescueDetails as Rescue}
+				onDeleteStaff={handleDeleteStaff}
+			/>
 		</div>
 	);
 };
