@@ -4,8 +4,6 @@ import supertest from 'supertest';
 import { pool } from '../../dbConnection.js'; // Adjust as necessary
 import app from '../../index.js'; // Adjust as necessary
 import jwt from 'jsonwebtoken';
-// import logger from '../path/to/your/logger';
-// import Sentry from '@sentry/node';
 
 const request = supertest(app);
 
@@ -14,7 +12,6 @@ describe('POST /api/conversations', () => {
 
 	beforeEach(() => {
 		sandbox = sinon.createSandbox();
-		// Simulating pool connection and query handling
 		const queryStub = sandbox.stub();
 		const releaseStub = sandbox.stub();
 		sandbox.stub(pool, 'connect').resolves({
@@ -22,13 +19,11 @@ describe('POST /api/conversations', () => {
 			release: releaseStub,
 		});
 
-		// Setup JWT and cookie for a user
-		const secret = process.env.SECRET_KEY; // Your JWT secret should be consistent
+		const secret = process.env.SECRET_KEY;
 		const userPayload = { userId: 'testUserId', isAdmin: false };
 		userToken = jwt.sign(userPayload, secret, { expiresIn: '1h' });
 		cookie = `token=${userToken};`;
 
-		// Setup mock behavior for each test
 		global.queryStub = queryStub;
 		global.releaseStub = releaseStub;
 	});
@@ -51,13 +46,12 @@ describe('POST /api/conversations', () => {
 			petId: mockPetId,
 		};
 
-		// Mock the database response for successful insertion
-		queryStub.onFirstCall().resolves(); // Simulate BEGIN transaction
+		queryStub.onFirstCall().resolves();
 		queryStub
 			.onSecondCall()
-			.resolves({ rows: [{ conversation_id: mockNewConversationId }] }); // INSERT conversation
-		queryStub.onThirdCall().resolves(); // INSERT participants
-		queryStub.onCall(3).resolves(); // COMMIT transaction
+			.resolves({ rows: [{ conversation_id: mockNewConversationId }] });
+		queryStub.onThirdCall().resolves();
+		queryStub.onCall(3).resolves();
 
 		const response = await request
 			.post('/api/conversations')
@@ -72,7 +66,7 @@ describe('POST /api/conversations', () => {
 
 	it('should return 400 if participants are invalid', async () => {
 		const requestPayload = {
-			participants: [], // Invalid empty array
+			participants: [],
 			petId: 'pet123',
 		};
 
@@ -94,7 +88,6 @@ describe('POST /api/conversations', () => {
 			petId: 'pet123',
 		};
 
-		// Simulate a database error
 		queryStub.rejects(new Error('Database Error'));
 
 		const response = await request

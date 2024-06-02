@@ -66,8 +66,6 @@ async function checkParticipant(req, res, next) {
 // CRUD Routes for Conversations
 // Create a new conversation
 router.post('/', authenticateToken, async (req, res) => {
-	// console.log('Request body:', req.body);
-
 	const { participants, petId } = req.body;
 
 	if (
@@ -75,12 +73,9 @@ router.post('/', authenticateToken, async (req, res) => {
 		!Array.isArray(participants) ||
 		participants.length < 2
 	) {
-		// Assuming at least 2 participants are required
 		logger.warn('Invalid participants for new conversation');
 		return res.status(400).json({ message: 'Invalid participants' });
 	}
-
-	// console.log('Participants received:', participants);
 
 	try {
 		const client = await pool.connect(); // Start a database transaction
@@ -110,10 +105,10 @@ router.post('/', authenticateToken, async (req, res) => {
 			const conversationId = newConversationResult.rows[0].conversation_id;
 
 			const participantValues = participants.map((p) => {
-				if (p.email.startsWith('user_')) {
-					return [conversationId, p.email, null, 'User']; // Assuming p.email is provided for User
-				} else if (p.email.startsWith('rescue_')) {
-					return [conversationId, null, p.email, 'Rescue']; // Assuming p.email is provided for Rescue
+				if (p.participantType === 'User') {
+					return [conversationId, p.userId, null, 'User']; // Assuming p.userId is provided for User
+				} else if (p.participantType === 'Rescue') {
+					return [conversationId, null, p.userId, 'Rescue']; // Assuming p.userId is provided for Rescue
 				} else {
 					// Handle unexpected participantType
 					throw new Error('Invalid participant type');
@@ -143,15 +138,14 @@ router.post('/', authenticateToken, async (req, res) => {
 			await client.query('ROLLBACK');
 			logger.error(`Error during conversation creation: ${error.message}`);
 			Sentry.captureException(error);
-			res.status(500).json({ message: error.message });
-			throw error;
+			return res.status(500).json({ message: error.message });
 		} finally {
 			client.release();
 		}
 	} catch (error) {
 		logger.error(`Error creating conversation: ${error.message}`);
 		Sentry.captureException(error);
-		res.status(500).json({ message: error.message });
+		return res.status(500).json({ message: error.message });
 	}
 });
 

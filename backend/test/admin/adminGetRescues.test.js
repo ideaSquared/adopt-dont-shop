@@ -35,7 +35,7 @@ describe('GET /api/admin/rescues', () => {
 		const mockRescues = [
 			{
 				rescue_id: 1,
-				rescueName: 'Hope Rescues',
+				rescueName: 'Test Rescue',
 				rescueType: 'Animal',
 				city: 'Springfield',
 				country: 'USA',
@@ -47,18 +47,12 @@ describe('GET /api/admin/rescues', () => {
 				],
 			},
 		];
-		pool.query.resolves({ rows: mockRescues });
 
-		const response = await request
-			.get('/api/admin/rescues')
-			.set('Cookie', cookie);
-
-		expect(response.status).to.equal(200);
-		expect(response.body).to.deep.equal([
+		const expectedRescues = [
 			{
 				rescue_id: 1,
-				rescue_name: 'Hope Rescues',
-				rescue_type: 'Animal',
+				rescueName: 'Test Rescue',
+				rescueType: 'Animal',
 				rescue_city: 'Springfield',
 				rescue_country: 'USA',
 				staff: [
@@ -68,7 +62,16 @@ describe('GET /api/admin/rescues', () => {
 					},
 				],
 			},
-		]);
+		];
+
+		pool.query.resolves({ rows: mockRescues });
+
+		const response = await request
+			.get('/api/admin/rescues')
+			.set('Cookie', cookie);
+
+		expect(response.status).to.equal(200);
+		expect(response.body).to.deep.equal(expectedRescues);
 		// sinon.assert.calledWith(logger.info, 'All rescues fetched successfully.');
 	});
 
@@ -83,12 +86,12 @@ describe('GET /api/admin/rescues', () => {
 		expect(response.body.message).to.equal('Failed to fetch rescues');
 		expect(response.body.error).to.equal('Database Error');
 		// sinon.assert.calledWith(
-		// 	logger.error,
-		// 	'Failed to fetch rescues: Database Error'
+		//  logger.error,
+		//  'Failed to fetch rescues: Database Error'
 		// );
 		// sinon.assert.calledWith(
-		// 	Sentry.captureException,
-		// 	sinon.match.instanceOf(Error)
+		//  Sentry.captureException,
+		//  sinon.match.instanceOf(Error)
 		// );
 	});
 
