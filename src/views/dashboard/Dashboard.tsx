@@ -15,6 +15,8 @@ import Users from './Users';
 import PrivateRoute from './PrivateRoute';
 import useRescueProfile from '../../hooks/useRescueProfile';
 import { useAuth } from '../../contexts/AuthContext';
+import Messages from './Messages';
+import MessagesPage from './Messages';
 
 const Dashboard: React.FC = () => {
 	const [showSidebar, setShowSidebar] = useState(false);
@@ -76,6 +78,10 @@ const Dashboard: React.FC = () => {
 								<Route
 									path='settings'
 									element={<Settings rescueProfile={rescueProfile} />}
+								/>
+								<Route
+									path='messages'
+									element={<MessagesPage rescueProfile={rescueProfile} />}
 								/>
 								{authState.isAdmin && (
 									<>
