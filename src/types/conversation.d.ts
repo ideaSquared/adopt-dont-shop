@@ -2,24 +2,26 @@
 
 export interface Conversation {
 	conversation_id: string;
-	sender_id: string;
+	started_by: string;
+	started_at: string;
+	last_message: string;
+	last_message_at: string;
+	last_message_by: string;
 	pet_id: string;
 	status: string;
-	pet_name: string;
-	last_message: string;
-	last_message_by: string;
-	last_message_at: string;
 	unread_messages: number;
-	first_name: string;
-	rescue_name: string;
-	participants: Participant[];
-	rescue_id?: string;
-	rescue_name?: string;
+	messages_count: number;
+	created_at: string;
+	updated_at: string;
+	participant_emails: string[];
+	participant_rescues: string[];
+	started_by_email: string;
+	last_message_by_email: string;
 }
 
 export interface Participant {
 	email: string;
-	name: string;
+	name?: string;
 }
 
 export interface Message {

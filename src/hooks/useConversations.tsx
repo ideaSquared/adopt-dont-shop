@@ -39,8 +39,8 @@ export const useConversations = () => {
 			(conversation) =>
 				(!filterStatus || conversation.status === filterStatus) &&
 				(!searchTerm ||
-					conversation.participants.some((participant) =>
-						participant.email.toLowerCase().includes(searchTerm.toLowerCase())
+					conversation.participant_emails.some((email) =>
+						email.toLowerCase().includes(searchTerm.toLowerCase())
 					))
 		);
 		setFilteredConversations(filtered);
