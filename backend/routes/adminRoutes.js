@@ -240,8 +240,8 @@ router.get('/rescues', authenticateToken, checkAdmin, async (req, res) => {
 		// Processing the rows to match the desired JSON structure
 		const rescues = rows.map((row) => ({
 			rescue_id: row.rescue_id,
-			rescue_name: row.rescueName,
-			rescue_type: row.rescueType,
+			rescueName: row.rescueName,
+			rescueType: row.rescueType,
 			// rescue_address_line_1: row.address_line_1,
 			// rescue_address_line_2: row.address_line_2,
 			rescue_city: row.city,

@@ -66,8 +66,6 @@ async function checkParticipant(req, res, next) {
 // CRUD Routes for Conversations
 // Create a new conversation
 router.post('/', authenticateToken, async (req, res) => {
-	// console.log('Request body:', req.body);
-
 	const { participants, petId } = req.body;
 
 	if (
@@ -75,12 +73,9 @@ router.post('/', authenticateToken, async (req, res) => {
 		!Array.isArray(participants) ||
 		participants.length < 2
 	) {
-		// Assuming at least 2 participants are required
 		logger.warn('Invalid participants for new conversation');
 		return res.status(400).json({ message: 'Invalid participants' });
 	}
-
-	// console.log('Participants received:', participants);
 
 	try {
 		const client = await pool.connect(); // Start a database transaction
@@ -88,10 +83,10 @@ router.post('/', authenticateToken, async (req, res) => {
 			await client.query('BEGIN');
 
 			const newConversationQuery = `
-                    INSERT INTO conversations (started_by, started_at, status, unread_messages, messages_count, pet_id, last_message, last_message_at, last_message_by)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                    RETURNING conversation_id;
-                `;
+				INSERT INTO conversations (started_by, started_at, status, unread_messages, messages_count, pet_id, last_message, last_message_at, last_message_by)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+				RETURNING conversation_id;
+			`;
 			const values = [
 				req.user.userId,
 				new Date(),
@@ -113,7 +108,7 @@ router.post('/', authenticateToken, async (req, res) => {
 				if (p.participantType === 'User') {
 					return [conversationId, p.userId, null, 'User']; // Assuming p.userId is provided for User
 				} else if (p.participantType === 'Rescue') {
-					return [conversationId, null, p.rescueId, 'Rescue']; // Assuming p.rescueId is provided for Rescue
+					return [conversationId, null, p.userId, 'Rescue']; // Assuming p.userId is provided for Rescue
 				} else {
 					// Handle unexpected participantType
 					throw new Error('Invalid participant type');
@@ -143,15 +138,14 @@ router.post('/', authenticateToken, async (req, res) => {
 			await client.query('ROLLBACK');
 			logger.error(`Error during conversation creation: ${error.message}`);
 			Sentry.captureException(error);
-			res.status(500).json({ message: error.message });
-			throw error;
+			return res.status(500).json({ message: error.message });
 		} finally {
 			client.release();
 		}
 	} catch (error) {
 		logger.error(`Error creating conversation: ${error.message}`);
 		Sentry.captureException(error);
-		res.status(500).json({ message: error.message });
+		return res.status(500).json({ message: error.message });
 	}
 });
 
