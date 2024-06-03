@@ -1,28 +1,20 @@
+// src/views/user/Conversations.tsx
 import React, { useState, useEffect } from 'react';
-import axios, { AxiosResponse } from 'axios';
-import ConversationsComponent from './conversations/ConversationsComponent';
-import MessagesComponent from './conversations/ConversationsMessages';
-import { useLoginRedirect } from '../../hooks/useLoginRedirect';
-import { useAuth } from '../../contexts/AuthContext';
-import { Rescue } from '../../types/rescue';
-import { Conversation } from '../../types/conversation';
-import { User } from '../../types/user';
+import axios from 'axios';
+import ConversationsComponent from './ConversationsComponent';
+import MessagesComponent from './MessagesComponent';
+import { useLoginRedirect } from '../../../hooks/useLoginRedirect';
+import { useAuth } from '../../../contexts/AuthContext';
+import featureFlagService from '../../../services/FeatureFlagService';
+import { Rescue } from '../../../types/rescue';
+import { Conversation } from '../../../types/conversation';
+import { User } from '../../../types/user';
 
-interface ConversationsProps {
+export interface ConversationsProps {
 	userType: 'User' | 'Rescue';
 	canCreateMessages: boolean;
 	canReadMessages: boolean;
 }
-
-// Type guard for AxiosResponse
-const isAxiosResponse = (response: any): response is AxiosResponse => {
-	return response && response.data;
-};
-
-// Type guard for Fetch Response
-const isFetchResponse = (response: any): response is Response => {
-	return response && response.json;
-};
 
 const Conversations: React.FC<ConversationsProps> = ({
 	userType,
@@ -50,27 +42,8 @@ const Conversations: React.FC<ConversationsProps> = ({
 
 		const fetchDetails = async () => {
 			try {
-				let response: AxiosResponse<any, any> | Response;
-				if (userType === 'Rescue') {
-					response = await axios.get(apiUrl, { withCredentials: true });
-				} else {
-					response = await fetch(apiUrl, {
-						method: 'GET',
-						credentials: 'include',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-					});
-				}
-
-				let data: User | Rescue;
-				if (isAxiosResponse(response)) {
-					data = response.data;
-				} else if (isFetchResponse(response)) {
-					data = await response.json();
-				} else {
-					throw new Error('Unexpected response type');
-				}
+				const response = await axios.get(apiUrl, { withCredentials: true });
+				const data: User | Rescue = response.data;
 
 				if ('userId' in data || 'rescue_id' in data) {
 					const idKey = userType === 'Rescue' ? 'rescue_id' : 'userId';
@@ -80,15 +53,13 @@ const Conversations: React.FC<ConversationsProps> = ({
 						);
 						setStaffIDs(ids);
 					}
-
 					setUserId((data as any)[idKey]);
 					fetchConversations((data as any)[idKey]);
 				} else {
-					if ('status' in response && response.status === 401) {
+					if (response.status === 401) {
 						logout();
 					}
-
-					throw new Error((data as any).message || 'Failed to fetch details.');
+					throw new Error(data.message || 'Failed to fetch details.');
 				}
 			} catch (error) {
 				console.error(
@@ -104,9 +75,7 @@ const Conversations: React.FC<ConversationsProps> = ({
 					`${
 						import.meta.env.VITE_API_BASE_URL
 					}/conversations/?type=${userType}&participantId=${id}`,
-					{
-						withCredentials: true,
-					}
+					{ withCredentials: true }
 				);
 				setConversations(conversationsResponse.data);
 			} catch (error) {
@@ -126,7 +95,6 @@ const Conversations: React.FC<ConversationsProps> = ({
 
 	const handleConversationSelect = async (conversation: Conversation) => {
 		setSelectedConversation(conversation);
-
 		try {
 			await axios.put(
 				`${import.meta.env.VITE_API_BASE_URL}/conversations/messages/read/${
@@ -135,7 +103,7 @@ const Conversations: React.FC<ConversationsProps> = ({
 				{ userType },
 				{ withCredentials: true }
 			);
-			triggerConversationRefresh(); // Refresh to reflect the changes in UI
+			triggerConversationRefresh();
 		} catch (error) {
 			console.error('Error marking messages as read:', error);
 		}
@@ -161,7 +129,6 @@ const Conversations: React.FC<ConversationsProps> = ({
 						userType === 'Rescue' ? 'h-full' : ''
 					} flex-grow-0 md:flex-none md:w-1/3`}
 				>
-					{/* Sidebar for Conversations */}
 					<ConversationsComponent
 						conversations={conversations}
 						title={userType}
@@ -176,7 +143,6 @@ const Conversations: React.FC<ConversationsProps> = ({
 						userType === 'Rescue' ? 'h-full' : ''
 					} flex-grow md:w-2/3`}
 				>
-					{/* Main Content Area */}
 					{selectedConversation ? (
 						<MessagesComponent
 							conversation={selectedConversation}
@@ -204,4 +170,11 @@ const Conversations: React.FC<ConversationsProps> = ({
 	);
 };
 
-export default Conversations;
+const ConversationsWrapper: React.FC<ConversationsProps> = (props) => {
+	if (!featureFlagService.isFeatureEnabled('enableConversations')) {
+		return <div>Conversations feature is disabled.</div>;
+	}
+	return <Conversations {...props} />;
+};
+
+export default ConversationsWrapper;

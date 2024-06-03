@@ -1,3 +1,4 @@
+// src/App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.scss';
@@ -11,10 +12,9 @@ import ResetPasswordPage from '../views/user/ResetPasswordPage';
 import CreateAccountPage from '../views/user/CreateAccountPage';
 import CreateRescueAccountPage from '../views/user/CreateRescueAccountPage';
 import Dashboard from '../views/dashboard/Dashboard';
-import Conversations from '../views/user/Conversations';
+import ConversationsWrapper from '../views/user/conversations/Conversations';
 import UserSwiper from '../views/user/UserSwiper';
 import PreferencesManager from '../views/user/PreferencesManager';
-import { Dash } from 'react-bootstrap-icons';
 
 const App: React.FC = () => {
 	return (
@@ -37,20 +37,20 @@ const App: React.FC = () => {
 					<Route
 						path='/rescue-conversations'
 						element={
-							<Conversations
+							<ConversationsWrapper
 								userType='Rescue'
-								canCreateMessages
-								canReadMessages
+								canCreateMessages={true}
+								canReadMessages={true}
 							/>
 						}
 					/>
 					<Route
 						path='/adopter-conversations'
 						element={
-							<Conversations
+							<ConversationsWrapper
 								userType='User'
-								canCreateMessages
-								canReadMessages
+								canCreateMessages={true}
+								canReadMessages={true}
 							/>
 						}
 					/>
