@@ -23,16 +23,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, isAdmin, isRescue }) => {
 								<Link to='/dashboard/adopters'>Adopters</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
+								<Link to='/dashboard/pets'>Pets</Link>
+							</li>
+							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
 								<Link to='/dashboard/staff'>Staff</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
 								<Link to='/dashboard/ratings'>Ratings</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/dashboard/settings'>Settings</Link>
+								<Link to='/dashboard/messages'>Messages</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/dashboard/messages'>Messages</Link>
+								<Link to='/dashboard/settings'>Settings</Link>
 							</li>
 						</>
 					)}
@@ -52,10 +55,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, isAdmin, isRescue }) => {
 							</li>
 						</>
 					)}
-
-					<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-						<Link to='/dashboard/pets'>Pets</Link>
-					</li>
 				</ul>
 			</nav>
 		</aside>
