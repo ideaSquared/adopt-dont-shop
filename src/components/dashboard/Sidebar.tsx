@@ -1,5 +1,7 @@
+// src/components/layout/Sidebar.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+import featureFlagService from '../../services/FeatureFlagService';
 
 interface SidebarProps {
 	isVisible: boolean;
@@ -8,6 +10,10 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isVisible, isAdmin, isRescue }) => {
+	const isConversationsEnabled = featureFlagService.isFeatureEnabled(
+		'enableConversations'
+	);
+
 	return (
 		<aside
 			className={`bg-gray-800 text-white w-64 p-4 fixed md:relative transform ${
@@ -31,9 +37,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, isAdmin, isRescue }) => {
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
 								<Link to='/dashboard/ratings'>Ratings</Link>
 							</li>
-							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/dashboard/messages'>Messages</Link>
-							</li>
+							{isConversationsEnabled && (
+								<li className='p-2 hover:bg-gray-700 cursor-pointer'>
+									<Link to='/dashboard/messages'>Messages</Link>
+								</li>
+							)}
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
 								<Link to='/dashboard/settings'>Settings</Link>
 							</li>
@@ -41,9 +49,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, isAdmin, isRescue }) => {
 					)}
 					{isAdmin && (
 						<>
-							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/dashboard/conversations'>Conversations</Link>
-							</li>
+							{isConversationsEnabled && (
+								<li className='p-2 hover:bg-gray-700 cursor-pointer'>
+									<Link to='/dashboard/conversations'>Conversations</Link>
+								</li>
+							)}
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
 								<Link to='/dashboard/logs'>Logs</Link>
 							</li>

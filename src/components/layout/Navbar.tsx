@@ -1,7 +1,9 @@
+// src/components/layout/CustomNavbar.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
+import featureFlagService from '../../services/FeatureFlagService';
 import {
 	PersonCircle,
 	ChatRightText,
@@ -16,6 +18,9 @@ const CustomNavbar: React.FC = () => {
 	const { authState } = useAuth();
 	const handleLogout = useLogout();
 	const iconSize = 24; // Reduced the icon size for a more compact design
+	const isConversationsEnabled = featureFlagService.isFeatureEnabled(
+		'enableConversations'
+	);
 
 	return (
 		<nav className='fixed bottom-0 w-full bg-white border-t border-gray-200 shadow-lg'>
@@ -46,13 +51,15 @@ const CustomNavbar: React.FC = () => {
 							<HouseDoor size={iconSize} />
 							<span className='text-xs mt-1'>Home</span>
 						</Link>
-						<Link
-							to='/adopter-conversations'
-							className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
-						>
-							<ChatRightText size={iconSize} />
-							<span className='text-xs mt-1'>Messages</span>
-						</Link>
+						{isConversationsEnabled && (
+							<Link
+								to='/adopter-conversations'
+								className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
+							>
+								<ChatRightText size={iconSize} />
+								<span className='text-xs mt-1'>Messages</span>
+							</Link>
+						)}
 						<Link
 							to='/my-profile'
 							className='nav-link flex flex-col items-center text-gray-700 hover:text-indigo-600 transition-colors'
