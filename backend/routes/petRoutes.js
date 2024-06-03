@@ -205,17 +205,43 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 		const { ownerId } = req.params;
 		logger.info(`Fetching pets for ownerId: ${ownerId}`);
 
-		const query = 'SELECT * FROM pets WHERE owner_id = $1';
-		const result = await pool.query(query, [ownerId]);
-		if (result.rowCount === 0) {
+		const petQuery = 'SELECT * FROM pets WHERE owner_id = $1';
+		const petResult = await pool.query(petQuery, [ownerId]);
+
+		if (petResult.rowCount === 0) {
 			logger.warn(`No pets found for ownerId: ${ownerId}`);
 			return res.status(404).send({ message: 'No pets found for this owner' });
 		}
-		const pets = result.rows;
+
+		const pets = petResult.rows;
+		const petIds = pets.map((pet) => pet.pet_id);
+
+		const ratingQuery = `
+			SELECT pet_id, rating_type, COUNT(*) AS count
+			FROM ratings
+			WHERE pet_id = ANY($1)
+			GROUP BY pet_id, rating_type
+			`;
+
+		const ratingResult = await pool.query(ratingQuery, [petIds]);
+
+		const ratings = ratingResult.rows.reduce((acc, row) => {
+			if (!acc[row.pet_id]) {
+				acc[row.pet_id] = {};
+			}
+			acc[row.pet_id][row.rating_type] = parseInt(row.count, 10);
+			return acc;
+		}, {});
+
+		const petsWithRatings = pets.map((pet) => ({
+			...pet,
+			ratings: ratings[pet.pet_id] || {},
+		}));
+
 		logger.info(
-			`Successfully fetched pets for ownerId: ${ownerId}. Count: ${pets.length}`
+			`Successfully fetched pets and ratings for ownerId: ${ownerId}. Count: ${pets.length}`
 		);
-		res.json(pets);
+		res.json(petsWithRatings);
 	} catch (error) {
 		logger.error(
 			`Failed to fetch pets for ownerId: ${req.params.ownerId}: ${error.message}`,

@@ -24,13 +24,13 @@ describe('GET /api/pets/owner/:ownerId', () => {
 		sandbox.restore();
 	});
 
-	it('should fetch pets successfully for a given owner', async () => {
+	it('should fetch pets and their ratings successfully for a given owner', async () => {
 		const ownerId = 'testOwnerId';
 		const mockPets = [
 			{
-				id: 1,
+				pet_id: '1',
 				name: 'Rex',
-				ownerId: ownerId,
+				owner_id: ownerId,
 				short_description: 'Friendly dog',
 				long_description: 'Very friendly dog, loves to play fetch',
 				age: 5,
@@ -41,19 +41,42 @@ describe('GET /api/pets/owner/:ownerId', () => {
 				breed: 'Golden Retriever',
 			},
 		];
-		pool.query.resolves({ rows: mockPets, rowCount: 1 });
+		const mockRatings = [
+			{
+				pet_id: '1',
+				rating_type: 'like',
+				count: '10',
+			},
+			{
+				pet_id: '1',
+				rating_type: 'love',
+				count: '5',
+			},
+		];
+		pool.query.onFirstCall().resolves({ rows: mockPets, rowCount: 1 });
+		pool.query.onSecondCall().resolves({ rows: mockRatings, rowCount: 2 });
+
+		const expectedResponse = [
+			{
+				...mockPets[0],
+				ratings: {
+					like: 10,
+					love: 5,
+				},
+			},
+		];
 
 		const response = await request
 			.get(`/api/pets/owner/${ownerId}`)
 			.set('Cookie', cookie);
 
 		expect(response.status).to.equal(200);
-		expect(response.body).to.deep.equal(mockPets);
+		expect(response.body).to.deep.equal(expectedResponse);
 	});
 
 	it('should return 404 when no pets are found for the owner', async () => {
 		const ownerId = 'testOwnerId';
-		pool.query.resolves({ rows: [], rowCount: 0 });
+		pool.query.onFirstCall().resolves({ rows: [], rowCount: 0 });
 
 		const response = await request
 			.get(`/api/pets/owner/${ownerId}`)
@@ -65,7 +88,7 @@ describe('GET /api/pets/owner/:ownerId', () => {
 
 	it('should handle errors when failing to fetch pets for an owner', async () => {
 		const ownerId = 'testOwnerId';
-		pool.query.rejects(new Error('Database error'));
+		pool.query.onFirstCall().rejects(new Error('Database error'));
 
 		const response = await request
 			.get(`/api/pets/owner/${ownerId}`)
