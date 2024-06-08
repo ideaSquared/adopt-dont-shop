@@ -9,14 +9,6 @@ export interface Application {
 }
 
 export const fetchApplications = async (): Promise<Application[]> => {
-	// const response = await fetch(
-	// 	`${import.meta.env.VITE_API_BASE_URL}/applications`
-	// );
-	// if (!response.ok) {
-	// 	throw new Error('Failed to fetch applications');
-	// }
-	// const data = await response.json();
-	// return data;
 	// Mock data
 	const data: Application[] = [
 		{
@@ -50,6 +42,34 @@ export const fetchApplications = async (): Promise<Application[]> => {
 
 	// Simulate a delay to mimic fetching data
 	return new Promise((resolve) => {
-		resolve(data);
+		setTimeout(() => {
+			resolve(data);
+		}, 1000);
 	});
+};
+
+export const approveApplication = async (id: string): Promise<Application> => {
+	// Find the application and update its status
+	const application = await fetchApplications().then((apps) =>
+		apps.find((app) => app.id === id)
+	);
+	if (application) {
+		application.status = 'approved';
+		application.actioned_by = 'admin';
+		return application;
+	}
+	throw new Error('Application not found');
+};
+
+export const rejectApplication = async (id: string): Promise<Application> => {
+	// Find the application and update its status
+	const application = await fetchApplications().then((apps) =>
+		apps.find((app) => app.id === id)
+	);
+	if (application) {
+		application.status = 'rejected';
+		application.actioned_by = 'admin';
+		return application;
+	}
+	throw new Error('Application not found');
 };

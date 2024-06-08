@@ -1,6 +1,8 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import {
 	fetchApplications,
+	approveApplication,
+	rejectApplication,
 	Application,
 } from '../services/ApplicationsService';
 
@@ -64,6 +66,34 @@ const useApplications = () => {
 		setShowUnActioned((prevState) => !prevState);
 	};
 
+	const handleApprove = async (id: string) => {
+		try {
+			const updatedApplication = await approveApplication(id);
+			setApplications((prevApplications) =>
+				prevApplications.map((app) =>
+					app.id === id ? updatedApplication : app
+				)
+			);
+			applyFilters(applications);
+		} catch (error) {
+			console.error('Failed to approve application', error);
+		}
+	};
+
+	const handleReject = async (id: string) => {
+		try {
+			const updatedApplication = await rejectApplication(id);
+			setApplications((prevApplications) =>
+				prevApplications.map((app) =>
+					app.id === id ? updatedApplication : app
+				)
+			);
+			applyFilters(applications);
+		} catch (error) {
+			console.error('Failed to reject application', error);
+		}
+	};
+
 	return {
 		applications: filteredApplications,
 		loading,
@@ -74,6 +104,8 @@ const useApplications = () => {
 		handleSearchChange,
 		handleFilterChange,
 		toggleShowUnActioned,
+		handleApprove,
+		handleReject,
 	};
 };
 

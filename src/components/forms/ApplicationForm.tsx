@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { Rescue } from '../../types/rescue';
 import { Application } from '../../services/ApplicationsService';
+import {
+	approveApplication,
+	rejectApplication,
+} from '../../services/ApplicationsService';
 
 interface ApplicationFormProps {
 	rescueProfile?: Rescue;
@@ -72,8 +76,27 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		// Handle form submission
-		console.log(formData);
+		// Handle form submission for customer
+		console.log('Submit application:', formData);
+		// Add submission logic here
+	};
+
+	const handleApprove = async () => {
+		try {
+			const updatedApplication = await approveApplication(formData.id);
+			setFormData(updatedApplication);
+		} catch (error) {
+			console.error('Failed to approve application', error);
+		}
+	};
+
+	const handleReject = async () => {
+		try {
+			const updatedApplication = await rejectApplication(formData.id);
+			setFormData(updatedApplication);
+		} catch (error) {
+			console.error('Failed to reject application', error);
+		}
 	};
 
 	const isActioned = formData.actioned_by !== null;
@@ -96,7 +119,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 					) : (
 						<p>Viewing Application</p>
 					)}
-					<form onSubmit={handleSubmit} className='space-y-4'>
+					<form className='space-y-4'>
 						<FormFields formData={formData} handleChange={handleChange} />
 						<div className='mt-4'>
 							{isActioned ? (
@@ -113,12 +136,14 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 								<>
 									<button
 										type='button'
+										onClick={handleApprove}
 										className='bg-green-500 text-white py-2 px-4 rounded mr-2'
 									>
 										Approve
 									</button>
 									<button
 										type='button'
+										onClick={handleReject}
 										className='bg-red-500 text-white py-2 px-4 rounded'
 									>
 										Reject
