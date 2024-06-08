@@ -1,3 +1,4 @@
+// src/pages/dashboard/Dashboard.tsx
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Header from '../../components/dashboard/Header';
@@ -15,7 +16,6 @@ import Users from './Users';
 import PrivateRoute from './PrivateRoute';
 import useRescueProfile from '../../hooks/useRescueProfile';
 import { useAuth } from '../../contexts/AuthContext';
-import Messages from './Messages';
 import MessagesPage from './Messages';
 
 const Dashboard: React.FC = () => {

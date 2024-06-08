@@ -1,4 +1,4 @@
-// src/components/layout/Sidebar.tsx
+// src/components/dashboard/Sidebar.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import featureFlagService from '../../services/FeatureFlagService';
@@ -54,6 +54,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, isAdmin, isRescue }) => {
 									<Link to='/dashboard/conversations'>Conversations</Link>
 								</li>
 							)}
+							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
+								<Link to='/dashboard/applications'>Applications</Link>
+							</li>
+							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
+								<Link to='/dashboard/pets'>Pets</Link>
+							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
 								<Link to='/dashboard/logs'>Logs</Link>
 							</li>

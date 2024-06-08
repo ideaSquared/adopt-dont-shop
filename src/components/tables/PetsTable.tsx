@@ -92,19 +92,23 @@ const PetTable: React.FC<PetTableProps> = ({
 							<tr key={pet.pet_id} className='hover:bg-gray-100'>
 								{isAdmin && <td className='border px-4 py-2'>{pet.pet_id}</td>}
 								<td className='border px-4 py-2'>
-									<img
-										src={`${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/${
-											pet.images[0]
-										}`}
-										alt={`Image of ${pet.name}`}
-										className='w-24 h-24 object-cover'
-									/>
+									{pet.images && pet.images.length > 0 ? (
+										<img
+											src={`${
+												import.meta.env.VITE_API_IMAGE_BASE_URL
+											}/uploads/${pet.images[0]}`}
+											alt={`Image of ${pet.name}`}
+											className='w-24 h-24 object-cover'
+										/>
+									) : (
+										<span>No Image</span>
+									)}
 								</td>
 								<td className='border px-4 py-2'>{pet.name || ''}</td>
 								<td className='border px-4 py-2'>{pet.type || ''}</td>
 								<td className='border px-4 py-2'>{pet.status || ''}</td>
 								{isAdmin && (
-									<td className='border px-4 py-2'>{pet.ownerInfo}</td>
+									<td className='border px-4 py-2'>{pet.ownerInfo || ''}</td>
 								)}
 								<td className='border px-4 py-2'>{pet.age || ''}</td>
 								<td
