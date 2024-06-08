@@ -82,6 +82,11 @@ const Pets: React.FC<PetsProps> = ({
 		}
 	};
 
+	const handleRatingClick = (petId: string) => {
+		// Your logic to handle rating click, e.g., navigating to another page
+		console.log(`Ratings for pet with ID ${petId} clicked`);
+	};
+
 	return (
 		<div>
 			<h2 className='text-xl mb-4'>Pets</h2>
@@ -175,6 +180,7 @@ const Pets: React.FC<PetsProps> = ({
 						canEditPet={true}
 						canDeletePet={true}
 						isAdmin={isAdmin}
+						onRatingClick={handleRatingClick}
 					/>
 				</>
 			)}

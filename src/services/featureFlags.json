@@ -1,3 +1,4 @@
 {
-  "enableConversations": false
+  "enableConversations": false,
+  "enableApplications": true
 }

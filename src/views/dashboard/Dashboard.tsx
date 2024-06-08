@@ -3,7 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import Header from '../../components/dashboard/Header';
 import Sidebar from '../../components/dashboard/Sidebar';
 import Footer from '../../components/dashboard/Footer';
-import Adopters from './Adopters';
+import Applications from './Applications';
 import Ratings from './Ratings';
 import Pets from './Pets';
 import Staff from './Staff';
@@ -49,8 +49,12 @@ const Dashboard: React.FC = () => {
 						<Routes>
 							<Route path='/' element={<PrivateRoute />}>
 								<Route
-									path='adopters'
-									element={<Adopters rescueProfile={rescueProfile} />}
+									path='applications'
+									element={<Applications rescueProfile={rescueProfile} />}
+								/>
+								<Route
+									path='applications/:petId'
+									element={<Applications rescueProfile={rescueProfile} />}
 								/>
 								<Route
 									path='ratings'

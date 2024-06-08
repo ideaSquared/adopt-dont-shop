@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PaginationControls from '../common/PaginationControls';
 import PetCard from '../cards/PetCard';
 import { Pet } from '../../types/pet';
@@ -23,11 +24,16 @@ const PetTable: React.FC<PetTableProps> = ({
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [petsPerPage] = useState<number>(10);
 	const [isGridView, setIsGridView] = useState<boolean>(false);
+	const navigate = useNavigate();
 
 	const indexOfLastPet = currentPage * petsPerPage;
 	const indexOfFirstPet = indexOfLastPet - petsPerPage;
 	const currentPets = pets.slice(indexOfFirstPet, indexOfLastPet);
 	const totalPages = Math.ceil(pets.length / petsPerPage);
+
+	const handleRatingClick = (petId: string) => {
+		navigate(`/dashboard/applications/${petId}`);
+	};
 
 	return (
 		<div>
@@ -60,6 +66,7 @@ const PetTable: React.FC<PetTableProps> = ({
 							onDeletePet={onDeletePet}
 							canEditPet={canEditPet}
 							canDeletePet={canDeletePet}
+							onRatingClick={handleRatingClick}
 						/>
 					))}
 				</div>
@@ -100,10 +107,16 @@ const PetTable: React.FC<PetTableProps> = ({
 									<td className='border px-4 py-2'>{pet.ownerInfo}</td>
 								)}
 								<td className='border px-4 py-2'>{pet.age || ''}</td>
-								<td className='border px-4 py-2 love'>
+								<td
+									className='border px-4 py-2 love'
+									onClick={() => handleRatingClick(pet.pet_id)}
+								>
 									{pet.ratings?.love || 0}
 								</td>
-								<td className='border px-4 py-2 like'>
+								<td
+									className='border px-4 py-2 like'
+									onClick={() => handleRatingClick(pet.pet_id)}
+								>
 									{pet.ratings?.like || 0}
 								</td>
 								<td className='border px-4 py-2 dislike'>

@@ -26,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, isAdmin, isRescue }) => {
 					{!isAdmin && (
 						<>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
-								<Link to='/dashboard/adopters'>Adopters</Link>
+								<Link to='/dashboard/applications'>Applications</Link>
 							</li>
 							<li className='p-2 hover:bg-gray-700 cursor-pointer'>
 								<Link to='/dashboard/pets'>Pets</Link>
