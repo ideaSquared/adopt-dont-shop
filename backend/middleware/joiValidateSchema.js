@@ -199,6 +199,20 @@ const ratingSchema = Joi.object({
 	ratingType: Joi.string().required().valid('like', 'love', 'dislike'),
 });
 
+// Define the new schemas for applications
+const applicationSchema = Joi.object({
+	user_id: Joi.string().required(),
+	pet_id: Joi.string().required(),
+	description: Joi.string().required(),
+	status: Joi.string().valid('pending', 'rejected', 'approved').required(),
+	actioned_by: Joi.string().allow(null), // Allow null for new applications
+});
+
+const updateApplicationSchema = Joi.object({
+	status: Joi.string().valid('pending', 'rejected', 'approved').required(),
+	actioned_by: Joi.string().required(),
+});
+
 /**
  * Utility function for validating the request body against a given Joi schema.
  * It applies the schema to the request body, returning a 400 status code with a detailed message if validation fails,
@@ -252,4 +266,6 @@ export {
 	ratingSchema,
 	validateRequest,
 	rescueJoiSchema,
+	applicationSchema,
+	updateApplicationSchema,
 };
