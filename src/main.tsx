@@ -5,6 +5,8 @@ import { createRoot } from 'react-dom/client';
 import { AuthProvider } from './contexts/AuthContext';
 import App from './app/App';
 import axios from 'axios';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 axios.defaults.baseURL = import.meta.env.VITE_APP_API_BASE_URL as string;
 axios.defaults.withCredentials = true;

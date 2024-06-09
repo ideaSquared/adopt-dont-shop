@@ -67,6 +67,7 @@ const PetTable: React.FC<PetTableProps> = ({
 							canEditPet={canEditPet}
 							canDeletePet={canDeletePet}
 							onApplicationClick={handleApplicationClick}
+							isRescue={true}
 						/>
 					))}
 				</div>
