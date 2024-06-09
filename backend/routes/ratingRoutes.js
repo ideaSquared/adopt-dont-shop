@@ -266,18 +266,15 @@ router.get('/find-rated', authenticateToken, async (req, res) => {
 		logger.info(`Fetching rated pets for user ID: ${userId}`);
 
 		const query = {
-			text: `
-				SELECT 
-					*
+			text: `SELECT 
+					p.*, r.rating_type
 				FROM 
 					pets p
+				JOIN ratings r ON p.pet_id = r.pet_id
 				WHERE 
-					p.pet_id IN (
-						SELECT r.pet_id
-						FROM ratings r
-						WHERE r.user_id = $1
-					);
-			`,
+					r.user_id = $1
+					AND r.rating_type IN ('like', 'love');
+				`,
 			values: [userId],
 		};
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Pet } from '../../types/pet';
 
 interface PetCardProps {
-	pet: Pet;
+	pet: Pet & { rating_type?: 'like' | 'love' };
 	onEditPet: (pet: Pet) => void;
 	onDeletePet: (petId: string) => void;
 	canEditPet: boolean;
@@ -35,8 +35,17 @@ const PetCard: React.FC<PetCardProps> = ({
 		);
 	};
 
+	const ratingClass =
+		pet.rating_type === 'love'
+			? 'love'
+			: pet.rating_type === 'like'
+			? 'like'
+			: '';
+
 	return (
-		<div className='relative bg-white p-6 shadow-lg rounded-lg m-4 hover:shadow-xl transition-shadow duration-300 ease-in-out'>
+		<div
+			className={`relative bg-white p-6 shadow-lg rounded-lg m-4 hover:shadow-xl transition-shadow duration-300 ease-in-out ${ratingClass}`}
+		>
 			<div className='absolute top-2 right-2 space-y-2'>
 				<span className='bg-blue-500 text-white text-xs font-semibold px-2 py-1 mx-1 rounded-full'>
 					{pet.type}

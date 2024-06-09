@@ -48,7 +48,7 @@ const UserProfilePage: React.FC = () => {
 			/>
 
 			<div className='bg-white shadow-md rounded-lg mt-4 p-6'>
-				<h2 className='text-2xl font-bold mb-4'>Rated Pets</h2>
+				<h3 className='text-xl font-bold mb-4'>Pets you've liked (or loved)</h3>
 				{isLoading && <p>Loading...</p>}
 				{error && <p>{error.message}</p>}
 				{!isLoading && ratedPets.length > 0 && (
