@@ -31,7 +31,7 @@ const PetTable: React.FC<PetTableProps> = ({
 	const currentPets = pets.slice(indexOfFirstPet, indexOfLastPet);
 	const totalPages = Math.ceil(pets.length / petsPerPage);
 
-	const handleRatingClick = (petId: string) => {
+	const handleApplicationClick = (petId: string) => {
 		navigate(`/dashboard/applications/${petId}`);
 	};
 
@@ -66,7 +66,7 @@ const PetTable: React.FC<PetTableProps> = ({
 							onDeletePet={onDeletePet}
 							canEditPet={canEditPet}
 							canDeletePet={canDeletePet}
-							onRatingClick={handleRatingClick}
+							onApplicationClick={handleApplicationClick}
 						/>
 					))}
 				</div>
@@ -84,6 +84,7 @@ const PetTable: React.FC<PetTableProps> = ({
 							<th className='border px-4 py-2'>Love</th>
 							<th className='border px-4 py-2'>Like</th>
 							<th className='border px-4 py-2'>Dislike</th>
+							<th className='border px-4 py-2'>Applications</th>
 							<th className='border px-4 py-2'>Actions</th>
 						</tr>
 					</thead>
@@ -111,20 +112,16 @@ const PetTable: React.FC<PetTableProps> = ({
 									<td className='border px-4 py-2'>{pet.ownerInfo || ''}</td>
 								)}
 								<td className='border px-4 py-2'>{pet.age || ''}</td>
-								<td
-									className='border px-4 py-2 love'
-									onClick={() => handleRatingClick(pet.pet_id)}
-								>
-									{pet.ratings?.love || 0}
-								</td>
-								<td
-									className='border px-4 py-2 like'
-									onClick={() => handleRatingClick(pet.pet_id)}
-								>
-									{pet.ratings?.like || 0}
-								</td>
-								<td className='border px-4 py-2 dislike'>
+								<td className='border px-4 py-2'>{pet.ratings?.love || 0}</td>
+								<td className='border px-4 py-2'>{pet.ratings?.like || 0}</td>
+								<td className='border px-4 py-2'>
 									{pet.ratings?.dislike || 0}
+								</td>
+								<td
+									className='border px-4 py-2 applications cursor-pointer text-blue-500'
+									onClick={() => handleApplicationClick(pet.pet_id)}
+								>
+									{pet.application_count || 0}
 								</td>
 								<td className='border px-4 py-2'>
 									<button

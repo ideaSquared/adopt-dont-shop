@@ -24,7 +24,7 @@ describe('GET /api/pets/owner/:ownerId', () => {
 		sandbox.restore();
 	});
 
-	it('should fetch pets and their ratings successfully for a given owner', async () => {
+	it('should fetch pets, ratings, and application counts successfully for a given owner', async () => {
 		const ownerId = 'testOwnerId';
 		const mockPets = [
 			{
@@ -53,8 +53,15 @@ describe('GET /api/pets/owner/:ownerId', () => {
 				count: '5',
 			},
 		];
+		const mockApplications = [
+			{
+				pet_id: '1',
+				application_count: '3',
+			},
+		];
 		pool.query.onFirstCall().resolves({ rows: mockPets, rowCount: 1 });
 		pool.query.onSecondCall().resolves({ rows: mockRatings, rowCount: 2 });
+		pool.query.onThirdCall().resolves({ rows: mockApplications, rowCount: 1 });
 
 		const expectedResponse = [
 			{
@@ -63,6 +70,7 @@ describe('GET /api/pets/owner/:ownerId', () => {
 					like: 10,
 					love: 5,
 				},
+				application_count: 3,
 			},
 		];
 

@@ -4,6 +4,7 @@ import { Rescue } from '../../types/rescue';
 import useApplications from '../../hooks/useApplications';
 import ApplicationRow from './ApplicationRow';
 import ApplicationForm from '../../components/forms/ApplicationForm';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AdoptersProps {
 	rescueProfile: Rescue | null;
@@ -11,6 +12,7 @@ interface AdoptersProps {
 
 const Applications: React.FC<AdoptersProps> = ({ rescueProfile }) => {
 	const { petId } = useParams<{ petId: string }>();
+	const { authState } = useAuth();
 	const {
 		applications,
 		loading,
@@ -21,7 +23,9 @@ const Applications: React.FC<AdoptersProps> = ({ rescueProfile }) => {
 		handleSearchChange,
 		handleFilterChange,
 		toggleShowUnActioned,
-	} = useApplications();
+		handleApprove,
+		handleReject,
+	} = useApplications(authState.isRescue, rescueProfile?.rescue_id);
 	const [selectedApplication, setSelectedApplication] = useState<any>(null);
 
 	const handleViewApplication = (application: any) => {
@@ -87,27 +91,31 @@ const Applications: React.FC<AdoptersProps> = ({ rescueProfile }) => {
 					/>
 				</div>
 			) : (
-				<table className='min-w-full bg-white'>
-					<thead>
-						<tr>
-							<th className='py-2'>First Name</th>
-							<th className='py-2'>Pet Name</th>
-							<th className='py-2'>Description</th>
-							<th className='py-2'>Status</th>
-							<th className='py-2'>Actioned By</th>
-							<th className='py-2'>Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						{filteredApplications.map((application) => (
-							<ApplicationRow
-								key={application.id}
-								application={application}
-								onViewApplication={handleViewApplication}
-							/>
-						))}
-					</tbody>
-				</table>
+				<div className='overflow-x-auto'>
+					<table className='table-auto w-full'>
+						<thead>
+							<tr>
+								<th className='border px-4 py-2'>First Name</th>
+								<th className='border px-4 py-2'>Pet Name</th>
+								<th className='border px-4 py-2'>Description</th>
+								<th className='border px-4 py-2'>Status</th>
+								<th className='border px-4 py-2'>Actioned By</th>
+								<th className='border px-4 py-2'>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{filteredApplications.map((application) => (
+								<ApplicationRow
+									key={application.application_id}
+									application={application}
+									onViewApplication={handleViewApplication}
+									onApprove={handleApprove}
+									onReject={handleReject}
+								/>
+							))}
+						</tbody>
+					</table>
+				</div>
 			)}
 		</div>
 	);

@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { Rescue } from '../../types/rescue';
 import { Application } from '../../services/ApplicationsService';
-import {
-	approveApplication,
-	rejectApplication,
-} from '../../services/ApplicationsService';
+import ApplicationService from '../../services/ApplicationsService';
 
 interface ApplicationFormProps {
 	rescueProfile?: Rescue;
@@ -60,7 +57,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 	isViewing,
 	isCustomer,
 }) => {
-	const [formData, setFormData] = useState(application);
+	const [formData, setFormData] = useState<Application>(application);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -83,7 +80,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
 	const handleApprove = async () => {
 		try {
-			const updatedApplication = await approveApplication(formData.id);
+			const updatedApplication = await ApplicationService.approveApplication(
+				formData.application_id
+			);
 			setFormData(updatedApplication);
 		} catch (error) {
 			console.error('Failed to approve application', error);
@@ -92,7 +91,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
 	const handleReject = async () => {
 		try {
-			const updatedApplication = await rejectApplication(formData.id);
+			const updatedApplication = await ApplicationService.rejectApplication(
+				formData.application_id
+			);
 			setFormData(updatedApplication);
 		} catch (error) {
 			console.error('Failed to reject application', error);
@@ -106,16 +107,23 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 			<h2 className='text-xl font-semibold mb-4'>Application Form</h2>
 			<div className='absolute top-4 right-4 space-x-2'>
 				<span className='bg-gray-200 text-gray-700 py-1 px-3 rounded-full text-sm'>
-					{formData.status}
+					{formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
 				</span>
-				<span className='bg-gray-200 text-gray-700 py-1 px-3 rounded-full text-sm'>
-					{formData.actioned_by}
-				</span>
+				{formData.actioned_by && (
+					<span className='bg-gray-200 text-gray-700 py-1 px-3 rounded-full text-sm'>
+						Actioned by: {formData.actioned_by_name}
+					</span>
+				)}
 			</div>
 			{isViewing && !isCustomer ? (
 				<div>
 					{rescueProfile ? (
-						<p>Viewing Application for: {rescueProfile.rescue_name}</p>
+						<p>
+							Viewing Application for:{' '}
+							<span className='bg-gray-200 text-slate-600 py-1 px-3 rounded-full text-sm'>
+								{rescueProfile.rescueName}
+							</span>
+						</p>
 					) : (
 						<p>Viewing Application</p>
 					)}
@@ -138,6 +146,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 										type='button'
 										onClick={handleApprove}
 										className='bg-green-500 text-white py-2 px-4 rounded mr-2'
+										disabled={!isActioned}
 									>
 										Approve
 									</button>
@@ -145,6 +154,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 										type='button'
 										onClick={handleReject}
 										className='bg-red-500 text-white py-2 px-4 rounded'
+										disabled={!isActioned}
 									>
 										Reject
 									</button>

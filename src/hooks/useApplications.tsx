@@ -1,12 +1,9 @@
 import { useState, useEffect, ChangeEvent } from 'react';
-import {
-	fetchApplications,
-	approveApplication,
-	rejectApplication,
+import ApplicationService, {
 	Application,
 } from '../services/ApplicationsService';
 
-const useApplications = () => {
+const useApplications = (isRescue: boolean, rescueId?: string) => {
 	const [applications, setApplications] = useState<Application[]>([]);
 	const [filteredApplications, setFilteredApplications] = useState<
 		Application[]
@@ -15,12 +12,15 @@ const useApplications = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [searchTerm, setSearchTerm] = useState<string>('');
 	const [filterStatus, setFilterStatus] = useState<string>('');
-	const [showUnActioned, setShowUnActioned] = useState<boolean>(true);
+	const [showUnActioned, setShowUnActioned] = useState<boolean>(false);
 
 	useEffect(() => {
 		const getApplications = async () => {
 			try {
-				const data = await fetchApplications();
+				const data = await ApplicationService.fetchApplications(
+					isRescue,
+					rescueId
+				);
 				setApplications(data);
 				applyFilters(data);
 			} catch (error) {
@@ -31,14 +31,14 @@ const useApplications = () => {
 		};
 
 		getApplications();
-	}, []);
+	}, [isRescue, rescueId]);
 
 	useEffect(() => {
 		applyFilters(applications);
 	}, [searchTerm, filterStatus, showUnActioned, applications]);
 
-	const applyFilters = (applications: Application[]) => {
-		const filtered = applications.filter(
+	const applyFilters = (apps: Application[]) => {
+		const filtered = apps.filter(
 			(application) =>
 				(!filterStatus ||
 					application.status.toLowerCase() === filterStatus.toLowerCase()) &&
@@ -68,10 +68,12 @@ const useApplications = () => {
 
 	const handleApprove = async (id: string) => {
 		try {
-			const updatedApplication = await approveApplication(id);
+			const updatedApplication = await ApplicationService.approveApplication(
+				id
+			);
 			setApplications((prevApplications) =>
 				prevApplications.map((app) =>
-					app.id === id ? updatedApplication : app
+					app.application_id === id ? updatedApplication : app
 				)
 			);
 			applyFilters(applications);
@@ -82,10 +84,10 @@ const useApplications = () => {
 
 	const handleReject = async (id: string) => {
 		try {
-			const updatedApplication = await rejectApplication(id);
+			const updatedApplication = await ApplicationService.rejectApplication(id);
 			setApplications((prevApplications) =>
 				prevApplications.map((app) =>
-					app.id === id ? updatedApplication : app
+					app.application_id === id ? updatedApplication : app
 				)
 			);
 			applyFilters(applications);

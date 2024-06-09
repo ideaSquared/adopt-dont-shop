@@ -9,22 +9,59 @@ import {
 import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 import checkAdmin from '../middleware/checkAdmin.js';
+import { permissionService } from '../services/permissionService.js';
 
 const logger = new LoggerUtil('application-service').getLogger();
 const router = express.Router();
 
-// Middleware to check if user is rescue
-const checkRescue = (req, res, next) => {
-	if (!req.user.isRescue) {
-		return res.status(403).send({ message: 'Forbidden' });
+// GET ALL applications by owner_id
+router.get('/:ownerId', authenticateToken, async (req, res) => {
+	try {
+		const { ownerId } = req.params;
+
+		const rescueResult = await pool.query(
+			'SELECT pet_id FROM pets WHERE owner_id = $1',
+			[ownerId]
+		);
+		const petIds = rescueResult.rows.map((row) => row.pet_id);
+
+		const result = await pool.query(
+			`SELECT a.*, 
+				u.first_name, 
+				p.name AS pet_name, 
+				b.first_name AS actioned_by_name
+			FROM applications a
+			JOIN users u ON a.user_id = u.user_id
+			JOIN pets p ON a.pet_id = p.pet_id
+			LEFT JOIN users b ON a.actioned_by = b.user_id
+			WHERE a.pet_id = ANY($1);
+			`,
+			[petIds]
+		);
+
+		res.status(200).send(result.rows);
+	} catch (error) {
+		logger.error(`Error fetching applications: ${error.message}`, { error });
+		Sentry.captureException(error);
+		res.status(500).send({
+			message: 'An error occurred',
+			error: error.message,
+		});
 	}
-	next();
-};
+});
 
 // GET all applications (admin)
-router.get('/', authenticateToken, checkAdmin, async (req, res) => {
+router.get('/admin', authenticateToken, checkAdmin, async (req, res) => {
 	try {
-		const result = await pool.query('SELECT * FROM applications');
+		const result = await pool.query(
+			`SELECT a.*, u.first_name, p.name AS pet_name
+			 FROM applications a
+			 JOIN users u ON a.user_id = u.user_id
+			 JOIN pets p ON a.pet_id = p.pet_id`
+		);
+		if (!result || !result.rows) {
+			throw new Error('Unexpected response from database');
+		}
 		res.status(200).send(result.rows);
 	} catch (error) {
 		logger.error(`Error fetching applications: ${error.message}`, { error });
@@ -37,17 +74,50 @@ router.get('/', authenticateToken, checkAdmin, async (req, res) => {
 });
 
 // GET all applications for pet_id (rescue)
-router.get('/pet/:petId', authenticateToken, checkRescue, async (req, res) => {
+router.get('/pet/:petId', authenticateToken, async (req, res) => {
+	const { petId } = req.params;
 	try {
-		const { petId } = req.params;
 		const result = await pool.query(
-			'SELECT * FROM applications WHERE pet_id = $1',
+			`SELECT a.*, u.first_name, p.name AS pet_name, b.first_name AS actioned_by_name
+			 FROM applications a
+			 JOIN users u ON a.user_id = u.user_id
+			 JOIN pets p ON a.pet_id = p.pet_id
+			 JOIN users b ON a.actioned_by = b.user_id
+			 WHERE a.pet_id = $1`,
 			[petId]
 		);
 		res.status(200).send(result.rows);
 	} catch (error) {
 		logger.error(
 			`Error fetching applications for pet_id ${petId}: ${error.message}`,
+			{ error }
+		);
+		Sentry.captureException(error);
+		res.status(500).send({
+			message: 'An error occurred',
+			error: error.message,
+		});
+	}
+});
+
+// GET count of applications for a pet_id (rescue)
+router.get('/pet/:petId/count', authenticateToken, async (req, res) => {
+	const { petId } = req.params;
+	try {
+		const result = await pool.query(
+			`SELECT COUNT(*) AS application_count
+			 FROM applications
+			 WHERE pet_id = $1`,
+			[petId]
+		);
+
+		res.status(200).send({
+			petId,
+			application_count: parseInt(result.rows[0].application_count, 10),
+		});
+	} catch (error) {
+		logger.error(
+			`Error counting applications for pet_id ${petId}: ${error.message}`,
 			{ error }
 		);
 		Sentry.captureException(error);
@@ -67,7 +137,12 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
 
 	try {
 		const result = await pool.query(
-			'SELECT * FROM applications WHERE user_id = $1',
+			`SELECT a.*, u.first_name, p.name AS pet_name, b.first_name AS actioned_by_name
+			 FROM applications a
+			 JOIN users u ON a.user_id = u.user_id
+			 JOIN pets p ON a.pet_id = p.pet_id
+			 JOIN users b ON a.actioned_by = b.user_id
+			 WHERE a.user_id = $1`,
 			[userId]
 		);
 		res.status(200).json({ data: result.rows });
@@ -112,13 +187,26 @@ router.post(
 router.put(
 	'/:applicationId',
 	authenticateToken,
-	checkRescue,
 	validateRequest(updateApplicationSchema),
 	async (req, res) => {
 		try {
 			const { applicationId } = req.params;
 			const { status } = req.body;
 			const actionedBy = req.user.userId;
+
+			const hasPermission = await permissionService.checkPermission(
+				req.user.userId,
+				'action_applications'
+			);
+
+			if (!hasPermission) {
+				logger.warn(
+					`User ${req.user.userId} lacks permission to action applications`
+				);
+				return res
+					.status(403)
+					.send({ message: 'Insufficient permissions to action applications' });
+			}
 
 			const result = await pool.query(
 				`UPDATE applications 

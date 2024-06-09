@@ -86,6 +86,7 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile, userPermissions }) => {
 		],
 		petManagement: ['view_pet', 'add_pet', 'edit_pet', 'delete_pet'],
 		communications: ['create_messages', 'view_messages'],
+		applications: ['view_applications', 'action_applications'],
 	};
 
 	const permissionNames = {
@@ -103,6 +104,8 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile, userPermissions }) => {
 		delete_pet: 'Delete Pet',
 		create_messages: 'Create Messages',
 		view_messages: 'View Messages',
+		view_applications: 'View Applications',
+		action_applications: 'Action Applictions',
 	};
 
 	return (

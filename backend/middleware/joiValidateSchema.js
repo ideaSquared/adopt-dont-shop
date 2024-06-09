@@ -210,7 +210,7 @@ const applicationSchema = Joi.object({
 
 const updateApplicationSchema = Joi.object({
 	status: Joi.string().valid('pending', 'rejected', 'approved').required(),
-	actioned_by: Joi.string().required(),
+	// actioned_by: Joi.string().required(),
 });
 
 /**

@@ -7,7 +7,7 @@ interface PetCardProps {
 	onDeletePet: (petId: string) => void;
 	canEditPet: boolean;
 	canDeletePet: boolean;
-	onRatingClick: (petId: string) => void;
+	onApplicationClick: (petId: string) => void; // Renamed to match the new functionality
 }
 
 const PetCard: React.FC<PetCardProps> = ({
@@ -16,7 +16,7 @@ const PetCard: React.FC<PetCardProps> = ({
 	onDeletePet,
 	canEditPet,
 	canDeletePet,
-	onRatingClick,
+	onApplicationClick,
 }) => {
 	const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 	const renderPetImage = (images?: string[]) => {
@@ -52,17 +52,20 @@ const PetCard: React.FC<PetCardProps> = ({
 			</p>
 			<div className='flex space-x-4 my-2'>
 				<p className='love px-2 py-1 rounded-lg'>
-					<button onClick={() => onRatingClick(pet.pet_id)}>
-						<strong>Love:</strong> {pet.ratings?.love || 0}
-					</button>
+					<strong>Love:</strong> {pet.ratings?.love || 0}
 				</p>
 				<p className='like px-2 py-1 rounded-lg'>
-					<button onClick={() => onRatingClick(pet.pet_id)}>
-						<strong>Like:</strong> {pet.ratings?.like || 0}
-					</button>
+					<strong>Like:</strong> {pet.ratings?.like || 0}
 				</p>
 				<p className='dislike px-2 py-1 rounded-lg'>
 					<strong>Dislike:</strong> {pet.ratings?.dislike || 0}
+				</p>
+			</div>
+			<div className='flex space-x-4 my-2'>
+				<p className='applications px-2 py-1 rounded-lg'>
+					<button onClick={() => onApplicationClick(pet.pet_id)}>
+						<strong>Applications:</strong> {pet.application_count || 0}
+					</button>
 				</p>
 			</div>
 			<div className='mt-6 flex justify-between'>

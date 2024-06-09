@@ -24,4 +24,10 @@ export interface Pet {
 	household: string;
 	energy: string;
 	family: string;
+	ratings?: {
+		love: number;
+		like: number;
+		dislike: number;
+	};
+	application_count?: number;
 }

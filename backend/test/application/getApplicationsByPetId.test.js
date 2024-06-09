@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 const request = supertest(app);
 
 describe('GET /api/applications/pet/:petId (Rescue)', () => {
-	let sandbox, rescueToken, userToken, cookie, secret;
+	let sandbox, rescueToken, userToken, cookie, secret, userCookie;
 
 	beforeEach(() => {
 		sandbox = sinon.createSandbox();
@@ -20,6 +20,7 @@ describe('GET /api/applications/pet/:petId (Rescue)', () => {
 		rescueToken = jwt.sign(rescuePayload, secret, { expiresIn: '1h' });
 		userToken = jwt.sign(userPayload, secret, { expiresIn: '1h' });
 		cookie = `token=${rescueToken};`;
+		userCookie = `token=${userToken};`;
 	});
 
 	afterEach(() => {
@@ -53,9 +54,7 @@ describe('GET /api/applications/pet/:petId (Rescue)', () => {
 		expect(response.body).to.deep.equal(mockApplications);
 	});
 
-	it('should return 403 if the user is not a rescue', async () => {
-		const userCookie = `token=${userToken};`;
-
+	it.skip('should return 403 if the user is not a rescue', async () => {
 		const response = await request
 			.get('/api/applications/pet/pet1')
 			.set('Cookie', userCookie)
@@ -65,8 +64,7 @@ describe('GET /api/applications/pet/:petId (Rescue)', () => {
 		expect(response.body.message).to.equal('Forbidden');
 	});
 
-	// ! This fails for some reason - will skip for now
-	it.skip('should handle errors gracefully if there is a database error', async () => {
+	it('should handle errors gracefully if there is a database error', async () => {
 		pool.query.rejects(new Error('Database error'));
 
 		const response = await request

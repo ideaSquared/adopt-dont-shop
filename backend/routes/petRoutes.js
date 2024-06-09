@@ -221,8 +221,7 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 			FROM ratings
 			WHERE pet_id = ANY($1)
 			GROUP BY pet_id, rating_type
-			`;
-
+		`;
 		const ratingResult = await pool.query(ratingQuery, [petIds]);
 
 		const ratings = ratingResult.rows.reduce((acc, row) => {
@@ -233,15 +232,29 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 			return acc;
 		}, {});
 
-		const petsWithRatings = pets.map((pet) => ({
+		const applicationQuery = `
+			SELECT pet_id, COUNT(*) AS application_count
+			FROM applications
+			WHERE pet_id = ANY($1)
+			GROUP BY pet_id
+		`;
+		const applicationResult = await pool.query(applicationQuery, [petIds]);
+
+		const applicationCounts = applicationResult.rows.reduce((acc, row) => {
+			acc[row.pet_id] = parseInt(row.application_count, 10);
+			return acc;
+		}, {});
+
+		const petsWithDetails = pets.map((pet) => ({
 			...pet,
 			ratings: ratings[pet.pet_id] || {},
+			application_count: applicationCounts[pet.pet_id] || 0,
 		}));
 
 		logger.info(
-			`Successfully fetched pets and ratings for ownerId: ${ownerId}. Count: ${pets.length}`
+			`Successfully fetched pets and details for ownerId: ${ownerId}. Count: ${pets.length}`
 		);
-		res.json(petsWithRatings);
+		res.json(petsWithDetails);
 	} catch (error) {
 		logger.error(
 			`Failed to fetch pets for ownerId: ${req.params.ownerId}: ${error.message}`,

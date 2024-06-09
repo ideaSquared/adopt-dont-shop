@@ -1,5 +1,9 @@
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export interface Application {
-	id: string;
+	application_id: string;
 	first_name: string;
 	pet_id: string;
 	pet_name: string;
@@ -8,68 +12,62 @@ export interface Application {
 	actioned_by: string | null;
 }
 
-export const fetchApplications = async (): Promise<Application[]> => {
-	// Mock data
-	const data: Application[] = [
-		{
-			id: '1',
-			first_name: 'John',
-			pet_id: 'pet_0000d23c93486091',
-			pet_name: 'Buddy',
-			description: 'Looking for a friendly companion for my kids.',
-			status: 'pending',
-			actioned_by: null,
-		},
-		{
-			id: '2',
-			first_name: 'Jane',
-			pet_id: 'pet_0000b8f0ffc29b18',
-			pet_name: 'Max',
-			description: 'Need a playful pet for my apartment.',
-			status: 'approved',
-			actioned_by: null,
-		},
-		{
-			id: '3',
-			first_name: 'Alice',
-			pet_id: 'pet_0000d23c93486091',
-			pet_name: 'Bella',
-			description: 'Want a calm pet to accompany my elderly mother.',
-			status: 'rejected',
-			actioned_by: 'admin3',
-		},
-	];
+const ApplicationService = {
+	fetchApplications: async (
+		isRescue: boolean,
+		rescueId?: string
+	): Promise<Application[]> => {
+		try {
+			let url = `${API_BASE_URL}/applications`;
+			if (isRescue && rescueId) {
+				url = `${API_BASE_URL}/applications/${rescueId}`;
+			}
+			const response = await axios.get(url, {
+				withCredentials: true,
+			});
+			return response.data; // Assuming the API returns the applications directly
+		} catch (error: any) {
+			console.error(
+				'Error fetching applications',
+				error.response ? error.response.data : error.message
+			);
+			throw new Error(
+				error.response?.data.message ||
+					'An error occurred while fetching applications.'
+			);
+		}
+	},
 
-	// Simulate a delay to mimic fetching data
-	return new Promise((resolve) => {
-		setTimeout(() => {
-			resolve(data);
-		}, 1000);
-	});
+	updateApplicationStatus: async (
+		id: string,
+		status: 'approved' | 'rejected'
+	): Promise<Application> => {
+		try {
+			const response = await axios.put(
+				`${API_BASE_URL}/applications/${id}`,
+				{ status },
+				{ withCredentials: true }
+			);
+			return response.data; // Assuming the API returns the updated application directly
+		} catch (error: any) {
+			console.error(
+				`Error ${status} application`,
+				error.response ? error.response.data : error.message
+			);
+			throw new Error(
+				error.response?.data.message ||
+					`An error occurred while ${status} the application.`
+			);
+		}
+	},
+
+	approveApplication: async (id: string): Promise<Application> => {
+		return ApplicationService.updateApplicationStatus(id, 'approved');
+	},
+
+	rejectApplication: async (id: string): Promise<Application> => {
+		return ApplicationService.updateApplicationStatus(id, 'rejected');
+	},
 };
 
-export const approveApplication = async (id: string): Promise<Application> => {
-	// Find the application and update its status
-	const application = await fetchApplications().then((apps) =>
-		apps.find((app) => app.id === id)
-	);
-	if (application) {
-		application.status = 'approved';
-		application.actioned_by = 'admin';
-		return application;
-	}
-	throw new Error('Application not found');
-};
-
-export const rejectApplication = async (id: string): Promise<Application> => {
-	// Find the application and update its status
-	const application = await fetchApplications().then((apps) =>
-		apps.find((app) => app.id === id)
-	);
-	if (application) {
-		application.status = 'rejected';
-		application.actioned_by = 'admin';
-		return application;
-	}
-	throw new Error('Application not found');
-};
+export default ApplicationService;
