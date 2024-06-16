@@ -38,6 +38,16 @@ const ApplicationService = {
 		}
 	},
 
+	fetchApplicationsByUserId: async (userId: string) => {
+		const response = await axios.get<{ data: Application[] }>(
+			`${API_BASE_URL}/applications/user/${userId}`,
+			{
+				withCredentials: true,
+			}
+		);
+		return response.data.data;
+	},
+
 	updateApplicationStatus: async (
 		id: string,
 		status: 'approved' | 'rejected'

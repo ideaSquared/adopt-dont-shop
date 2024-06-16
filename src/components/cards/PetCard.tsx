@@ -42,6 +42,8 @@ const PetCard: React.FC<PetCardProps> = ({
 			? 'like'
 			: '';
 
+	const canApplyNow = true;
+
 	return (
 		<div
 			className={`relative bg-white p-6 shadow-lg rounded-lg m-4 hover:shadow-xl transition-shadow duration-300 ease-in-out ${ratingClass}`}
@@ -61,6 +63,7 @@ const PetCard: React.FC<PetCardProps> = ({
 			<p className='text-gray-700 mb-1'>
 				<strong>Age:</strong> {pet.age}
 			</p>
+
 			{isRescue && (
 				<>
 					<div className='flex space-x-4 my-2'>
@@ -102,6 +105,13 @@ const PetCard: React.FC<PetCardProps> = ({
 						</button>
 					</div>
 				</>
+			)}
+			{canApplyNow && (
+				<div className='mt-6 flex align-items-right'>
+					<button className='bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded'>
+						Apply Now
+					</button>
+				</div>
 			)}
 		</div>
 	);

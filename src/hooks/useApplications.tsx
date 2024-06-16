@@ -3,7 +3,11 @@ import ApplicationService, {
 	Application,
 } from '../services/ApplicationsService';
 
-const useApplications = (isRescue: boolean, rescueId?: string) => {
+const useApplications = (
+	isRescue: boolean,
+	rescueId?: string,
+	userId?: string
+) => {
 	const [applications, setApplications] = useState<Application[]>([]);
 	const [filteredApplications, setFilteredApplications] = useState<
 		Application[]
@@ -16,11 +20,18 @@ const useApplications = (isRescue: boolean, rescueId?: string) => {
 
 	useEffect(() => {
 		const getApplications = async () => {
+			if (!userId && !isRescue) {
+				setLoading(false);
+				return;
+			}
+			setLoading(true);
 			try {
-				const data = await ApplicationService.fetchApplications(
-					isRescue,
-					rescueId
-				);
+				let data: Application[];
+				if (userId) {
+					data = await ApplicationService.fetchApplicationsByUserId(userId);
+				} else {
+					data = await ApplicationService.fetchApplications(isRescue, rescueId);
+				}
 				setApplications(data);
 				applyFilters(data);
 			} catch (error) {
@@ -31,7 +42,7 @@ const useApplications = (isRescue: boolean, rescueId?: string) => {
 		};
 
 		getApplications();
-	}, [isRescue, rescueId]);
+	}, [isRescue, rescueId, userId]);
 
 	useEffect(() => {
 		applyFilters(applications);
