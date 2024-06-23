@@ -28,7 +28,7 @@ describe('DELETE /api/rescue/:rescueId/staff/:staffId endpoint', () => {
 	it('should successfully delete a staff member when authorized', async () => {
 		const rescueId = '1';
 		const staffId = '2';
-		const editorUserId = '3'; // Assuming this is the authenticated user's ID
+		const editorUserId = '3';
 
 		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 

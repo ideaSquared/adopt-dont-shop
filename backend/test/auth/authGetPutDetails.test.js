@@ -4,8 +4,8 @@ import supertest from 'supertest';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../../dbConnection.js';
-import app from '../../index.js'; // Import your Express application
-import { geoService } from '../../services/geoService.js'; // Assuming you have this service
+import app from '../../index.js';
+import { geoService } from '../../services/geoService.js';
 const request = supertest(app);
 
 describe('User Details Routes', () => {

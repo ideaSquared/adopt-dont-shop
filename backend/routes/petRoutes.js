@@ -15,7 +15,7 @@ import {
 	petJoiSchema,
 } from '../middleware/joiValidateSchema.js';
 
-import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 const logger = new LoggerUtil('pet-service').getLogger();
 

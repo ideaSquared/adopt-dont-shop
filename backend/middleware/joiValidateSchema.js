@@ -75,7 +75,7 @@ const forgotPasswordSchema = Joi.object({
  * It validates the userId as a required string and permissions as an array of predefined strings.
  */
 const rescueStaffJoiSchema = Joi.object({
-	userId: Joi.string().required(), // Assuming MongoDB ObjectId is passed as a string
+	userId: Joi.string().required(),
 	permissions: Joi.array().items(
 		Joi.string().valid(
 			'edit_rescue_info',
@@ -112,7 +112,7 @@ const rescueJoiSchema = Joi.object({
 	rescueType: Joi.string().valid('Individual', 'Charity', 'Company').required(),
 	referenceNumber: Joi.string().allow(''),
 	referenceNumberVerified: Joi.boolean(),
-	staff: Joi.array().items(rescueStaffJoiSchema), // Assuming rescueStaffJoiSchema is defined elsewhere
+	staff: Joi.array().items(rescueStaffJoiSchema),
 });
 
 // Joi schema for adding/updating pet details
@@ -194,7 +194,7 @@ const messageSchema = Joi.object({
 });
 
 const ratingSchema = Joi.object({
-	// userId: Joi.string().required(), // Assuming userId is sent as a string
+	// userId: Joi.string().required(),
 	petId: Joi.string().required(), // Renamed targetId to petId for clarity
 	ratingType: Joi.string().required().valid('like', 'love', 'dislike'),
 });

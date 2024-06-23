@@ -25,7 +25,7 @@ const ApplicationService = {
 			const response = await axios.get(url, {
 				withCredentials: true,
 			});
-			return response.data; // Assuming the API returns the applications directly
+			return response.data;
 		} catch (error: any) {
 			console.error(
 				'Error fetching applications',
@@ -58,7 +58,7 @@ const ApplicationService = {
 				{ status },
 				{ withCredentials: true }
 			);
-			return response.data; // Assuming the API returns the updated application directly
+			return response.data;
 		} catch (error: any) {
 			console.error(
 				`Error ${status} application`,

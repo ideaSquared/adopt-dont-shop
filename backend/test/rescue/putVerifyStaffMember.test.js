@@ -28,7 +28,7 @@ describe('PUT /api/rescue/:rescueId/staff/:staffId/verify endpoint', () => {
 	it('should verify a staff member successfully', async () => {
 		const rescueId = '1';
 		const staffId = '2';
-		const userId = '3'; // Assuming this is the authenticated user's ID
+		const userId = '3';
 		sandbox.stub(permissionService, 'checkPermission').resolves(true);
 
 		pool.query
@@ -102,7 +102,7 @@ describe('PUT /api/rescue/:rescueId/staff/:staffId/verify endpoint', () => {
 	it('should return 403 if the user does not have permission to verify staff', async () => {
 		const rescueId = '1';
 		const staffId = '2';
-		const userId = '3'; // Assuming this is the authenticated user's ID
+		const userId = '3';
 		sandbox.stub(permissionService, 'checkPermission').resolves(false);
 
 		pool.query

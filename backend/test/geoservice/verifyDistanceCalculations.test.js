@@ -4,7 +4,7 @@ import { geoService } from '../../services/geoService.js'; // Adjust the path as
 describe('GeoService', function () {
 	describe('parsePoint', () => {
 		it('should correctly parse a point string to a latitude and longitude object', () => {
-			const point = '(53.4808, -2.2426)'; // Assuming the format (latitude, longitude)
+			const point = '(53.4808, -2.2426)';
 			const parsed = geoService.parsePoint(point);
 			expect(parsed).to.deep.equal({ latitude: 53.4808, longitude: -2.2426 });
 		});

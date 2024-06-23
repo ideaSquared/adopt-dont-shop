@@ -5,7 +5,7 @@ import {
 	validateRequest,
 	applicationSchema,
 	updateApplicationSchema,
-} from '../middleware/joiValidateSchema.js'; // Assuming you have a validation schema for applications
+} from '../middleware/joiValidateSchema.js';
 import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 import checkAdmin from '../middleware/checkAdmin.js';

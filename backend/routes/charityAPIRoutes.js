@@ -10,7 +10,7 @@ import express from 'express'; // For routing.
 import axios from 'axios'; // For making HTTP requests.
 import verifyCharityIsValid from '../utils/verifyCharityIsValid.js'; // Custom utility function for validating charity data.
 
-import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 const logger = new LoggerUtil('charity-api-wrapper').getLogger();
 
@@ -91,7 +91,6 @@ router.get('/:registeredNumber', async (req, res) => {
 		}
 	} catch (error) {
 		if (error.response) {
-			// Assuming you want to customize the message based on the status code
 			let errorMessage;
 			switch (error.response.status) {
 				case 404:

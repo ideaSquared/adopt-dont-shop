@@ -18,7 +18,7 @@ import {
 	forgotPasswordSchema,
 } from '../middleware/joiValidateSchema.js';
 
-import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 
 import { tokenGenerators } from '../utils/tokenGenerator.js';
@@ -213,7 +213,6 @@ export default function createAuthRoutes({}) {
 	});
 
 	router.get('/validate-session', authenticateToken, async (req, res) => {
-		// Assuming you have a middleware that sets req.user if the token is valid
 		if (!req.user) {
 			return res.status(401).json({ message: 'Invalid or expired token.' });
 		}
@@ -350,7 +349,7 @@ export default function createAuthRoutes({}) {
 	);
 
 	router.get('/details', authenticateToken, async (req, res) => {
-		const userId = req.user.userId; // Assuming authenticateToken middleware adds user info to req
+		const userId = req.user.userId;
 		logger.info(`Fetching user details for userId: ${userId}`); // Log the start of the process
 
 		try {
@@ -552,7 +551,7 @@ export default function createAuthRoutes({}) {
 	});
 
 	router.get('/my-rescue', authenticateToken, async (req, res) => {
-		const userId = req.user.userId; // Assuming authenticateToken adds user to req
+		const userId = req.user.userId;
 
 		logger.info(`Fetching rescue organization for user ${userId}`);
 
@@ -588,12 +587,12 @@ export default function createAuthRoutes({}) {
 			const responseData = {
 				rescue_id: rescue.rescue_id,
 				rescueName: rescue.rescue_name,
-				// addressLine1: rescue.address_line_1, // Assuming these fields are now part of your database
+				// addressLine1: rescue.address_line_1,
 				// addressLine2: rescue.address_line_2,
 				city: rescue.city,
 				// county: rescue.county,
 				// postcode: rescue.postcode,
-				country: rescue.country, // Assuming country field is added to your database
+				country: rescue.country,
 				rescueType: rescue.rescue_type,
 				referenceNumber: rescue.reference_number,
 				referenceNumberVerified: rescue.reference_number_verified,

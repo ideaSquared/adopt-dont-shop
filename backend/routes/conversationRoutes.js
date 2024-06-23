@@ -16,7 +16,7 @@ const router = express.Router();
 
 // Middleware to check if the user is a participant in the conversation
 async function checkParticipant(req, res, next) {
-	const userId = req.user.userId; // Assuming `req.user` is populated by `authenticateToken` middleware
+	const userId = req.user.userId;
 	const conversationId = req.params.conversationId;
 
 	try {
@@ -106,9 +106,9 @@ router.post('/', authenticateToken, async (req, res) => {
 
 			const participantValues = participants.map((p) => {
 				if (p.participantType === 'User') {
-					return [conversationId, p.userId, null, 'User']; // Assuming p.userId is provided for User
+					return [conversationId, p.userId, null, 'User'];
 				} else if (p.participantType === 'Rescue') {
-					return [conversationId, null, p.userId, 'Rescue']; // Assuming p.userId is provided for Rescue
+					return [conversationId, null, p.userId, 'Rescue'];
 				} else {
 					// Handle unexpected participantType
 					throw new Error('Invalid participant type');
@@ -391,7 +391,6 @@ router.get('/messages/:conversationId', authenticateToken, async (req, res) => {
 	try {
 		const conversationId = req.params.conversationId;
 
-		// Assuming you have a join table or a way to identify messages and senders,
 		// This query will fetch messages and join them with the user's details (rescueName, firstName)
 		const messagesQuery = `
             SELECT 

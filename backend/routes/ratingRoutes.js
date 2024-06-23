@@ -4,7 +4,7 @@ import authenticateToken from '../middleware/authenticateToken.js';
 import {
 	validateRequest,
 	ratingSchema,
-} from '../middleware/joiValidateSchema.js'; // Assuming you have a validation schema for ratings
+} from '../middleware/joiValidateSchema.js';
 import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 import { geoService } from '../services/geoService.js';
@@ -18,7 +18,7 @@ router.post(
 	validateRequest(ratingSchema),
 	async (req, res) => {
 		try {
-			const userId = req.user.userId; // Assuming user ID is attached to the request by the authentication middleware
+			const userId = req.user.userId;
 			const { petId, ratingType } = req.body; // Destructure petId and ratingType from the body
 
 			// Check if the Pet exists
@@ -261,7 +261,7 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 
 router.get('/find-rated', authenticateToken, async (req, res) => {
 	try {
-		const userId = req.user.userId; // Assuming user ID is attached to the request by the authentication middleware
+		const userId = req.user.userId;
 
 		logger.info(`Fetching rated pets for user ID: ${userId}`);
 

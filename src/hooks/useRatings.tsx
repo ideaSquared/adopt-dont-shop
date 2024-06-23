@@ -1,6 +1,6 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import RescueService from '../services/RescueService';
-import { Rating } from '../types/rating'; // Assuming you have a Rating type defined
+import { Rating } from '../types/rating';
 
 export const useRatings = (rescueId: string) => {
 	const [ratings, setRatings] = useState<Rating[]>([]);

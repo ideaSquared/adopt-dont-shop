@@ -9,7 +9,7 @@ import {
 	validateRequest,
 	rescueJoiSchema,
 } from '../middleware/joiValidateSchema.js'; // Middleware for validating request bodies against Joi schemas.
-import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 
 import fetchAndValidateCharity from '../utils/verifyCharity.js';
@@ -594,7 +594,7 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 			userId: addedStaffRow.user_id,
 			permissions: addedStaffRow.permissions,
 			verifiedByRescue: addedStaffRow.verified_by_rescue,
-			email: user.email, // Assuming 'email' is fetched or created earlier as part of user object
+			email: user.email,
 		};
 
 		logger.info(

@@ -37,7 +37,7 @@ describe('GET /api/ratings/target/:targetId ratings endpoint', () => {
 		const response = await request
 			.get(`/api/ratings/target/${targetId}`)
 			.set('Cookie', cookie)
-			.expect(200); // assuming authentication is mocked out for this test
+			.expect(200);
 
 		expect(response.status).to.equal(200);
 		expect(response.body.message).to.equal('Ratings fetched successfully');

@@ -92,7 +92,6 @@ describe.skip('ForgotPasswordForm', () => {
 			</MemoryRouter>
 		);
 
-		// Assuming you have a link with text "Back to Login" for navigation
 		await userEvent.click(screen.getByText(/back to login/i));
 
 		// Since useNavigate is mocked, check if it was called with the expected argument

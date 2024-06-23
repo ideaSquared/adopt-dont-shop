@@ -72,7 +72,7 @@ describe('GET /api/ratings/find-ratings/:rescueId endpoint', () => {
 
 		const response = await request
 			.get(`/api/ratings/find-ratings/${rescueId}`) // Ensure this matches your actual API route.
-			.set('Cookie', cookie) // Assuming cookie is defined in a higher scope if used.
+			.set('Cookie', cookie)
 			.expect(500);
 
 		expect(response.status).to.equal(500);

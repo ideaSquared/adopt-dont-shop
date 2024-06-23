@@ -7,7 +7,7 @@ import checkAdmin from '../middleware/checkAdmin.js'; // Middleware to check if 
 import nodemailer from 'nodemailer'; // Imported but not used in this snippet. Potentially for sending emails (e.g., password reset instructions).
 import { validateRequest } from '../middleware/joiValidateSchema.js'; // For validating request bodies against Joi schemas.
 
-import Sentry from '@sentry/node'; // Assuming Sentry is already imported and initialized elsewhere
+import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 const logger = new LoggerUtil('admin-service').getLogger();
 
@@ -90,7 +90,6 @@ router.post(
 				return res.status(404).json({ message: 'User not found.' });
 			}
 
-			// Assuming the database has a column `reset_token_force_flag` to indicate reset requirement
 			const updateResult = await pool.query(
 				'UPDATE users SET reset_token_force_flag = TRUE WHERE user_id = $1 RETURNING *',
 				[id]
