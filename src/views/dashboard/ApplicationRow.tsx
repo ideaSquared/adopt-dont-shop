@@ -2,10 +2,14 @@ import React from 'react';
 import { Application } from '../../services/ApplicationsService';
 
 interface ApplicationRowProps {
-	application: Application;
+	application: ApplicationRowPropsApplication;
 	onViewApplication: (application: Application) => void;
 	onApprove: (id: string) => Promise<void>;
 	onReject: (id: string) => Promise<void>;
+}
+
+interface ApplicationRowPropsApplication extends Application {
+	actioned_by_name: string;
 }
 
 const ApplicationRow: React.FC<ApplicationRowProps> = ({
