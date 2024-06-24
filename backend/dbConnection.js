@@ -7,7 +7,6 @@ dotenv.config();
 
 const pool = new Pool({
 	connectionString: process.env.DATABASE_URL,
-	// If you are using SSL to connect to a hosted PostgreSQL instance (e.g., Heroku)
 	ssl:
 		process.env.NODE_ENV === 'production'
 			? {
