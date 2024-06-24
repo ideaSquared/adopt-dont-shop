@@ -52,12 +52,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // CORS configuration
-const corsOptions = {
-	origin: 'http://localhost:5173',
-	credentials: true,
-};
+app.use(
+	cors({
+		origin: 'http://localhost:3000', // Allow only this origin to access the backend
+		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+		credentials: true, // Allow credentials (cookies, authorization headers, etc.) if needed
+	})
+);
 
-app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
