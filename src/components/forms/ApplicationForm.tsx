@@ -5,9 +5,13 @@ import ApplicationService from '../../services/ApplicationsService';
 
 interface ApplicationFormProps {
 	rescueProfile?: Rescue;
-	application: Application;
+	application: ApplicationActionedExtend;
 	isViewing: boolean;
 	isCustomer: boolean;
+}
+
+interface ApplicationActionedExtend extends Application {
+	actioned_by_name?: string;
 }
 
 const FormFields: React.FC<{
@@ -57,7 +61,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 	isViewing,
 	isCustomer,
 }) => {
-	const [formData, setFormData] = useState<Application>(application);
+	const [formData, setFormData] =
+		useState<ApplicationActionedExtend>(application);
 
 	const handleChange = (
 		e: React.ChangeEvent<
