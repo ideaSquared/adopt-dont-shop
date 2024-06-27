@@ -28,7 +28,7 @@ const LogsTable: React.FC = () => {
 				</thead>
 				<tbody>
 					{logs.map((log) => (
-						<tr key={log._id} className='hover:bg-gray-100'>
+						<tr key={self.crypto.randomUUID()} className='hover:bg-gray-100'>
 							<td className='border px-4 py-2'>
 								{new Date(log.timestamp).toLocaleString()}
 							</td>
