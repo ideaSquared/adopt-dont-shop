@@ -147,7 +147,7 @@ export const emailService = {
 	 * @returns {Promise<any>}
 	 */
 	async sendStaffAdditionEmail(email, loginURL, rescueName) {
-		const subject = 'You Have Been Added as Staff';
+		const subject = `${rescueName} has added you as a member of staff on AdoptDontShop`;
 		const html = `<!DOCTYPE html>
 			<html>
 			<head>
@@ -160,7 +160,7 @@ export const emailService = {
 			</head>
 			<body>
 			<div class="container">
-				<h2>You Have Been Added as Staff to ${rescueName}</h2>
+				<h2>You have been added as staff to ${rescueName}</h2>
 				<p>A rescue has added you as staff. Please go to the website and login. If they have made an account for you, please follow the instructions to reset your password.</p>
 				<a href="${loginURL}" class="button">Login Now</a>
 			</div>
