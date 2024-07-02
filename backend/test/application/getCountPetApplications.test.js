@@ -6,7 +6,7 @@ import { pool } from '../../dbConnection.js';
 import jwt from 'jsonwebtoken';
 const request = supertest(app);
 
-describe.only('GET /api/applications/pet/:petId/count (Rescue)', () => {
+describe('GET /api/applications/pet/:petId/count (Rescue)', () => {
 	let sandbox, rescueToken, cookie, secret;
 
 	beforeEach(() => {
