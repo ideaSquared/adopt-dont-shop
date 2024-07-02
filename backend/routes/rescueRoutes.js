@@ -575,7 +575,7 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 			await emailService.sendStaffAdditionEmail(
 				email,
 				loginURL,
-				rescue.rescueName
+				rescue.rescue_name
 			);
 		}
 

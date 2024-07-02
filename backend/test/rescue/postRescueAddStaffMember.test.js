@@ -48,7 +48,10 @@ describe('POST /api/rescue/:rescueId/staff endpoint', function () {
 					text: sinon.match(/SELECT \* FROM rescues WHERE rescue_id/),
 				})
 			)
-			.resolves({ rows: [{ rescue_id: rescueId }], rowCount: 1 });
+			.resolves({
+				rows: [{ rescue_id: rescueId, rescue_name: 'Test Rescue' }],
+				rowCount: 1,
+			});
 		pool.query
 			.withArgs(
 				sinon.match({ text: sinon.match(/SELECT \* FROM users WHERE email/) })
