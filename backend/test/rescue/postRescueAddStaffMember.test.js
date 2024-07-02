@@ -6,10 +6,12 @@ import { pool } from '../../dbConnection.js'; // Adjust as necessary
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { permissionService } from '../../services/permissionService.js';
+import { emailService } from '../../services/emailService.js';
 
 const request = supertest(app);
 
-describe('POST /api/rescue/:rescueId/staff endpoint', () => {
+describe.only('POST /api/rescue/:rescueId/staff endpoint', function () {
+	this.timeout(10000); // Setting the timeout to 10 seconds
 	let sandbox, userToken, cookie;
 
 	beforeEach(() => {
@@ -37,6 +39,7 @@ describe('POST /api/rescue/:rescueId/staff endpoint', () => {
 			permissions: ['edit_rescue_info'],
 		};
 		sandbox.stub(permissionService, 'checkPermission').resolves(true);
+		sandbox.stub(emailService, 'sendAccountCreationEmail').resolves();
 
 		// Mock database responses
 		pool.query

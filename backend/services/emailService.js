@@ -138,6 +138,36 @@ export const emailService = {
 					`;
 		return this.sendEmail(email, subject, html);
 	},
+
+	/**
+	 * Sends an email to notify a user that a rescue has added them as staff.
+	 *
+	 * @param {string} email Recipient's email address.
+	 * @param {string} loginURL URL for the login page.
+	 * @returns {Promise<any>}
+	 */
+	async sendStaffAdditionEmail(email, loginURL, rescueName) {
+		const subject = 'You Have Been Added as Staff';
+		const html = `<!DOCTYPE html>
+			<html>
+			<head>
+			<title>Staff Addition Notification</title>
+			<style>
+				body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+				.container { width: 100%; max-width: 600px; margin: auto; background-color: #f9f9f9; padding: 20px; }
+				.button { background-color: #008CBA; color: white; padding: 10px 20px; text-align: center; display: inline-block; text-decoration: none; }
+			</style>
+			</head>
+			<body>
+			<div class="container">
+				<h2>You Have Been Added as Staff to ${rescueName}</h2>
+				<p>A rescue has added you as staff. Please go to the website and login. If they have made an account for you, please follow the instructions to reset your password.</p>
+				<a href="${loginURL}" class="button">Login Now</a>
+			</div>
+			</body>
+			</html>`;
+		return this.sendEmail(email, subject, html);
+	},
 };
 
 // Optionally export default if this is the only module being exported from the file

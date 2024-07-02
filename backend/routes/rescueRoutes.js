@@ -245,7 +245,7 @@ router.post('/:type(individual|charity|company)', async (req, res) => {
 		logger.info(`New user registered: ${user.user_id}`);
 
 		const verificationURL = `${
-			process.env.FRONTEND_BASE_URL || 'http://localhost:5173'
+			process.env.FRONTEND_BASE_URL || 'http://localhost:3000'
 		}/verify-email?token=${verificationToken}`;
 		await emailService.sendEmailVerificationEmail(email, verificationURL);
 
@@ -564,11 +564,19 @@ router.post('/:rescueId/staff', authenticateToken, async (req, res) => {
 		if (!user && firstName && password) {
 			const hashedPassword = await bcrypt.hash(password, 12);
 			const newUserQuery = {
-				text: 'INSERT INTO users (email, password, first_name) VALUES ($1, $2, $3) RETURNING *',
+				text: 'INSERT INTO users (email, password, first_name, reset_token_force_flag) VALUES ($1, $2, $3, true) RETURNING *',
 				values: [email, hashedPassword, firstName],
 			};
 			const newUserResult = await pool.query(newUserQuery);
 			user = newUserResult.rows[0];
+
+			// Email user
+			const loginURL = process.env.FRONTEND_BASE_URL + '/login';
+			await emailService.sendStaffAdditionEmail(
+				email,
+				loginURL,
+				rescue.rescueName
+			);
 		}
 
 		const isStaffMemberQuery = {
