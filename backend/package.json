@@ -15,7 +15,6 @@
   "license": "ISC",
   "dependencies": {
     "@sentry/node": "~7.107.0",
-    "@sentry/profiling-node": "~7.107.0",
     "axios": "~1.6.8",
     "bcryptjs": "~2.4.3",
     "chalk": "^5.3.0",

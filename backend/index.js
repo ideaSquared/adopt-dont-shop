@@ -20,8 +20,8 @@ import applicationRoutes from './routes/applicationsRoutes.js';
 import { tokenGenerators } from './utils/tokenGenerator.js';
 import { emailService } from './services/emailService.js';
 
-import * as Sentry from '@sentry/node';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
+// import * as Sentry from '@sentry/node';
+// import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import LoggerUtil from './utils/Logger.js';
 
 dotenv.config();
@@ -29,23 +29,23 @@ dotenv.config();
 const app = express();
 app.use(LoggerUtil.httpLogger());
 
-if (process.env.SENTRY_ENABLED) {
-	Sentry.init({
-		dsn: process.env.SENTRY_DSN,
-		integrations: [
-			// enable HTTP calls tracing
-			new Sentry.Integrations.Http({ tracing: true }),
-			// enable Express.js middleware tracing
-			new Sentry.Integrations.Express({ app }),
-			nodeProfilingIntegration(),
-		],
-		// Performance Monitoring
-		tracesSampleRate: 1.0, //  Capture 100% of the transactions
-		// Set sampling rate for profiling - this is relative to tracesSampleRate
-		profilesSampleRate: 1.0,
-		environment: process.env.SENTRY_ENVIRONMENT, // Set the environment
-	});
-}
+// if (process.env.SENTRY_ENABLED) {
+// 	Sentry.init({
+// 		dsn: process.env.SENTRY_DSN,
+// 		integrations: [
+// 			// enable HTTP calls tracing
+// 			new Sentry.Integrations.Http({ tracing: true }),
+// 			// enable Express.js middleware tracing
+// 			new Sentry.Integrations.Express({ app }),
+// 			nodeProfilingIntegration(),
+// 		],
+// 		// Performance Monitoring
+// 		tracesSampleRate: 1.0, //  Capture 100% of the transactions
+// 		// Set sampling rate for profiling - this is relative to tracesSampleRate
+// 		profilesSampleRate: 1.0,
+// 		environment: process.env.SENTRY_ENVIRONMENT, // Set the environment
+// 	});
+// }
 
 // Since __dirname is not available in ES module scope, we define it manually
 const __filename = fileURLToPath(import.meta.url);
@@ -63,14 +63,14 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 
-if (process.env.SENTRY_ENABLED) {
-	// The request handler must be the first middleware on the app
-	app.use(Sentry.Handlers.requestHandler());
-	// TracingHandler creates a trace for every incoming request
-	app.use(Sentry.Handlers.tracingHandler());
-	// The error handler must be registered before any other error middleware and after all controllers
-	app.use(Sentry.Handlers.errorHandler());
-}
+// if (process.env.SENTRY_ENABLED) {
+// 	// The request handler must be the first middleware on the app
+// 	app.use(Sentry.Handlers.requestHandler());
+// 	// TracingHandler creates a trace for every incoming request
+// 	app.use(Sentry.Handlers.tracingHandler());
+// 	// The error handler must be registered before any other error middleware and after all controllers
+// 	app.use(Sentry.Handlers.errorHandler());
+// }
 // Create routes
 const authRoutes = createAuthRoutes({});
 app.use('/api/auth', authRoutes);
@@ -90,13 +90,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Serve static files from the 'uploads' directory
 // All uploads are accessed without the /api
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-if (process.env.NODE_ENV !== 'production') {
-	app.get('/debug-sentry', function mainHandler(req, res) {
-		Sentry.captureMessage('Something happened');
-		throw new Error('My first Sentry error!');
-	});
-}
 
 // Handle SPA routing: serve your React app
 app.get('*', (req, res) => {
