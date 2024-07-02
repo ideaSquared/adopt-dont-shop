@@ -3,6 +3,7 @@ import PetService from '../../services/PetService';
 import AllowedPreferences from '../AllowedPreferences';
 import BaseSidebar from './BaseSidebar';
 import { Pet } from '../../types/pet';
+import AgeInput, { parseAgeFormat } from '../inputs/AgeInput';
 
 type PetFormSidebarProps = {
 	show: boolean;
@@ -213,24 +214,10 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 							/>
 						</div>
 						{/* Age */}
-						<div>
-							<label
-								htmlFor='age'
-								className='block text-sm font-medium text-gray-700'
-							>
-								Age
-							</label>
-							<input
-								type='number'
-								id='age'
-								placeholder="Enter pet's age"
-								value={petDetails?.age || ''}
-								onChange={(e) =>
-									setPetDetails({ ...petDetails, age: Number(e.target.value) })
-								}
-								className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
-							/>
-						</div>
+						<AgeInput
+							ageInMonths={petDetails.age}
+							setAgeInMonths={(age) => setPetDetails({ ...petDetails, age })}
+						/>
 						{/* Gender */}
 						<div>
 							<label

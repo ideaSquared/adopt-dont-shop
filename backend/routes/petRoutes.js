@@ -5,6 +5,7 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { permissionService } from '../services/permissionService.js'; // Adjust the path as necessary
+import { convertPetAge } from '../utils/petConvertMonthsToYears.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -153,7 +154,10 @@ router.get('/', authenticateToken, async (req, res) => {
 		logger.info('Fetching all pets');
 		const query = 'SELECT * FROM pets';
 		const result = await pool.query(query);
-		const pets = result.rows;
+		const pets = result.rows.map((pet) => ({
+			...pet,
+			age: convertPetAge(pet.age),
+		}));
 		logger.info(`Successfully fetched all pets. Count: ${pets.length}`);
 		res.status(200).send({
 			message: 'Pets fetched successfully',
@@ -180,7 +184,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
 			logger.warn(`Pet not found with ID: ${id}`);
 			return res.status(404).send({ message: 'Pet not found' });
 		}
-		const pet = result.rows[0];
+		const pet = {
+			...result.rows[0],
+			age: convertPetAge(result.rows[0].age),
+		};
 		logger.info(`Successfully fetched pet with ID: ${id}`);
 		res.status(200).send({
 			message: 'Pet fetched successfully',
@@ -213,7 +220,10 @@ router.get('/owner/:ownerId', authenticateToken, async (req, res) => {
 			return res.status(404).send({ message: 'No pets found for this owner' });
 		}
 
-		const pets = petResult.rows;
+		const pets = petResult.rows.map((pet) => ({
+			...pet,
+			age: convertPetAge(pet.age),
+		}));
 		const petIds = pets.map((pet) => pet.pet_id);
 
 		const ratingQuery = `

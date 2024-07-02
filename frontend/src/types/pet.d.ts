@@ -6,7 +6,7 @@ export interface Pet {
 	name: string;
 	type: string;
 	status: string;
-	age: number;
+	age: number | string;
 	gender: string;
 	short_description: string;
 	long_description: string;

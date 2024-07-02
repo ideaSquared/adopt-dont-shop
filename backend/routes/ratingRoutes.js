@@ -8,6 +8,7 @@ import {
 import Sentry from '@sentry/node';
 import LoggerUtil from '../utils/Logger.js';
 import { geoService } from '../services/geoService.js';
+import { convertPetAge } from '../utils/petConvertMonthsToYears.js';
 
 const logger = new LoggerUtil('rating-service').getLogger();
 const router = express.Router();
@@ -221,7 +222,7 @@ router.get('/find-unrated', authenticateToken, async (req, res) => {
 			pet_id: pet.pet_id,
 			name: pet.name,
 			type: pet.type,
-			age: pet.age,
+			age: convertPetAge(pet.age),
 			breed: pet.breed,
 			gender: pet.gender,
 			images: pet.images,

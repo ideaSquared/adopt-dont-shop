@@ -35,7 +35,7 @@ const Pets: React.FC<PetsProps> = ({
 			setSelectedPet({
 				pet_id: '',
 				name: '',
-				age: 0,
+				age: '',
 				gender: '',
 				status: '',
 				type: '',

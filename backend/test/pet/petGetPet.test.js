@@ -4,6 +4,7 @@ import supertest from 'supertest';
 import { pool } from '../../dbConnection.js'; // Adjust as necessary
 import app from '../../index.js'; // Adjust as necessary
 import jwt from 'jsonwebtoken';
+import { convertPetAge } from '../../utils/petConvertMonthsToYears.js'; // Import the age conversion utility
 
 const request = supertest(app);
 
@@ -42,13 +43,18 @@ describe('GET /api/pets/:id', () => {
 		};
 		pool.query.resolves({ rows: [mockPet], rowCount: 1 });
 
+		const expectedPet = {
+			...mockPet,
+			age: convertPetAge(mockPet.age),
+		};
+
 		const response = await request
 			.get(`/api/pets/${petId}`)
 			.set('Cookie', cookie);
 
 		expect(response.status).to.equal(200);
 		expect(response.body.message).to.equal('Pet fetched successfully');
-		expect(response.body.data).to.deep.equal(mockPet);
+		expect(response.body.data).to.deep.equal(expectedPet);
 	});
 
 	it('should return 404 when pet not found', async () => {

@@ -4,6 +4,7 @@ import supertest from 'supertest';
 import { pool } from '../../dbConnection.js'; // Adjust as necessary
 import app from '../../index.js'; // Adjust as necessary
 import jwt from 'jsonwebtoken';
+import { convertPetAge } from '../../utils/petConvertMonthsToYears.js'; // Import the age conversion utility
 
 const request = supertest(app);
 
@@ -43,26 +44,31 @@ describe('GET /api/pets', () => {
 			},
 			{
 				id: 2,
-				name: 'Rex',
+				name: 'Bella',
 				ownerId: 'testUserId',
-				short_description: 'Friendly dog',
-				long_description: 'Very friendly dog, loves to play fetch',
-				age: 5,
-				gender: 'Male',
+				short_description: 'Calm cat',
+				long_description: 'Very calm cat, loves to sleep',
+				age: 24,
+				gender: 'Female',
 				status: 'Adoption',
-				type: 'Dog',
+				type: 'Cat',
 				vaccination_status: 'Up to date',
-				breed: 'Golden Retriever',
+				breed: 'Siamese',
 			},
 		];
 		pool.query.resolves({ rows: mockPets });
+
+		// Convert ages for the expected response
+		const expectedPets = mockPets.map((pet) => ({
+			...pet,
+			age: convertPetAge(pet.age),
+		}));
 
 		const response = await request.get('/api/pets').set('Cookie', cookie);
 
 		expect(response.status).to.equal(200);
 		expect(response.body.message).to.equal('Pets fetched successfully');
-		expect(response.body.data).to.deep.equal(mockPets);
-		// expect(queryStub.calledOnce).to.be.true;
+		expect(response.body.data).to.deep.equal(expectedPets);
 	});
 
 	it('should handle errors when failing to fetch pets', async () => {

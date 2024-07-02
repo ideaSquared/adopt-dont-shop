@@ -62,7 +62,7 @@ const MessagesPetDisplay: React.FC<MessagesPetDisplayProps> = ({
 								{petData.gender}
 							</span>
 							<span className='bg-green-500 text-white px-2 py-1 rounded'>
-								{petData.age} years old
+								{petData.age} old
 							</span>
 							<span className='bg-yellow-500 text-black px-2 py-1 rounded'>
 								{petData.type}

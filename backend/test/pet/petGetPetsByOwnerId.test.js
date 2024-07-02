@@ -4,6 +4,7 @@ import supertest from 'supertest';
 import { pool } from '../../dbConnection.js'; // Adjust as necessary
 import app from '../../index.js'; // Adjust as necessary
 import jwt from 'jsonwebtoken';
+import { convertPetAge } from '../../utils/petConvertMonthsToYears.js'; // Import the age conversion utility
 
 const request = supertest(app);
 
@@ -66,6 +67,7 @@ describe('GET /api/pets/owner/:ownerId', () => {
 		const expectedResponse = [
 			{
 				...mockPets[0],
+				age: convertPetAge(mockPets[0].age),
 				ratings: {
 					like: 10,
 					love: 5,

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 interface Item {
 	name: string;
-	age: number;
+	age: number | string;
 	gender: string;
 	status: string;
 	short_description: string;
