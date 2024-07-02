@@ -10,7 +10,7 @@ import { emailService } from '../../services/emailService.js';
 
 const request = supertest(app);
 
-describe.only('POST /api/rescue/:rescueId/staff endpoint', function () {
+describe('POST /api/rescue/:rescueId/staff endpoint', function () {
 	this.timeout(10000); // Setting the timeout to 10 seconds
 	let sandbox, userToken, cookie;
 
