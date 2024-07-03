@@ -10,6 +10,9 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=mydb
     depends_on:
       - db
 
@@ -36,7 +39,7 @@ services:
       POSTGRES_DB: mydb
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./adoptdontshop.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
   postgres_data:
