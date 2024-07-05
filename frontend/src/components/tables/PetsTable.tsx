@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import PaginationControls from '../common/PaginationControls';
 import PetCard from '../cards/PetCard';
 import { Pet } from '../../types/pet';
+import PetImage from '../common/PetImage';
 
 interface PetTableProps {
 	pets: Pet[];
@@ -31,8 +32,30 @@ const PetTable: React.FC<PetTableProps> = ({
 	const currentPets = pets.slice(indexOfFirstPet, indexOfLastPet);
 	const totalPages = Math.ceil(pets.length / petsPerPage);
 
+	const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
+
 	const handleApplicationClick = (petId: string) => {
 		navigate(`/dashboard/applications/${petId}`);
+	};
+
+	const renderPetImage = (images?: string[], petName?: string) => {
+		if (!images || images.length === 0) {
+			return (
+				<PetImage
+					src=''
+					alt={`No Image for ${petName}`}
+					className='w-24 h-24 object-cover'
+				/>
+			);
+		}
+		const imageUrl = fileUploadsPath + images[0];
+		return (
+			<PetImage
+				src={imageUrl}
+				alt={`Image of ${petName}`}
+				className='w-24 h-24 object-cover'
+			/>
+		);
 	};
 
 	return (
@@ -94,17 +117,7 @@ const PetTable: React.FC<PetTableProps> = ({
 							<tr key={pet.pet_id} className='hover:bg-gray-100'>
 								{isAdmin && <td className='border px-4 py-2'>{pet.pet_id}</td>}
 								<td className='border px-4 py-2'>
-									{pet.images && pet.images.length > 0 ? (
-										<img
-											src={`${
-												import.meta.env.VITE_API_IMAGE_BASE_URL
-											}/uploads/${pet.images[0]}`}
-											alt={`Image of ${pet.name}`}
-											className='w-24 h-24 object-cover'
-										/>
-									) : (
-										<span>No Image</span>
-									)}
+									{renderPetImage(pet.images, pet.name)}
 								</td>
 								<td className='border px-4 py-2'>{pet.name || ''}</td>
 								<td className='border px-4 py-2'>{pet.type || ''}</td>

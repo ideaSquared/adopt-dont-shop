@@ -4,6 +4,7 @@ import AllowedPreferences from '../AllowedPreferences';
 import BaseSidebar from './BaseSidebar';
 import { Pet } from '../../types/pet';
 import AgeInput, { parseAgeFormat } from '../inputs/AgeInput';
+import PetImage from '../common/PetImage';
 
 type PetFormSidebarProps = {
 	show: boolean;
@@ -98,7 +99,7 @@ const PetFormSidebar: React.FC<PetFormSidebarProps> = ({
 			<div className='grid grid-cols-3 gap-4'>
 				{existingImages.map((image, index) => (
 					<div key={index} className='relative'>
-						<img
+						<PetImage
 							src={fileUploadsPath + image}
 							alt={image}
 							className='w-full h-auto object-cover'

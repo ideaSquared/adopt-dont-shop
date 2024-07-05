@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pet } from '../../types/pet';
+import PetImage from '../common/PetImage';
 
 interface PetCardProps {
 	pet: Pet & { rating_type?: 'like' | 'love' };
@@ -23,11 +24,17 @@ const PetCard: React.FC<PetCardProps> = ({
 	const fileUploadsPath = `${import.meta.env.VITE_API_IMAGE_BASE_URL}/uploads/`;
 	const renderPetImage = (images?: string[]) => {
 		if (!images || images.length === 0) {
-			return 'No Image';
+			return (
+				<PetImage
+					src=''
+					alt={`No Image for ${pet.name}`}
+					className='w-24 h-24 object-cover'
+				/>
+			);
 		}
 		const imageUrl = fileUploadsPath + images[0];
 		return (
-			<img
+			<PetImage
 				src={imageUrl}
 				alt={`Image of ${pet.name}`}
 				className='w-24 h-24 object-cover'
