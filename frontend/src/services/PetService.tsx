@@ -48,11 +48,18 @@ const PetService = {
 
 	createOrUpdatePet: async (pet: Pet, isEditMode: boolean): Promise<Pet> => {
 		try {
+			// Create a copy of the pet object without the ratings field
+			const { application_count, ratings, ...petWithoutRatings } = pet;
+
 			const response: AxiosResponse<Pet> = isEditMode
-				? await axios.put(`${API_BASE_URL}/pets/${pet.pet_id}`, pet, {
-						withCredentials: true,
-				  })
-				: await axios.post(`${API_BASE_URL}/pets`, pet, {
+				? await axios.put(
+						`${API_BASE_URL}/pets/${pet.pet_id}`,
+						petWithoutRatings,
+						{
+							withCredentials: true,
+						}
+				  )
+				: await axios.post(`${API_BASE_URL}/pets`, petWithoutRatings, {
 						withCredentials: true,
 				  });
 			return response.data;
