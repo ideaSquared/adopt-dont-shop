@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { useFilteredStaff } from '../../hooks/useFilteredStaff';
-import StaffTable from '../../components/tables/StaffTable';
+import React, { useState, ChangeEvent } from 'react';
+import Table from '../../components/tables/Table';
 import AddStaffSidebar from '../../components/sidebars/AddStaffSidebar';
+import { useFilteredStaff } from '../../hooks/useFilteredStaff';
 import { Rescue } from '../../types/rescue';
 import { StaffService } from '../../services/StaffService';
+import staffColumns from '../../config/staffColumns';
 
 interface StaffProps {
 	rescueProfile: Rescue | null;
@@ -55,7 +56,7 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile, userPermissions }) => {
 	) => {
 		try {
 			const staffMember = filteredStaff.find(
-				(staff) => staff.user_id === userId
+				(staff) => staff.userId === userId
 			);
 			if (!staffMember) return;
 
@@ -105,8 +106,18 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile, userPermissions }) => {
 		create_messages: 'Create Messages',
 		view_messages: 'View Messages',
 		view_applications: 'View Applications',
-		action_applications: 'Action Applictions',
+		action_applications: 'Action Applications',
 	};
+
+	const columns = staffColumns(
+		handleVerifyStaff,
+		handleRemoveStaff,
+		handleUpdatePermissions,
+		true,
+		permissionCategories,
+		permissionNames,
+		rescueProfile.rescue_id
+	);
 
 	return (
 		<div>
@@ -123,14 +134,18 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile, userPermissions }) => {
 								type='text'
 								placeholder='Search by name or email'
 								value={filterCriteria.nameEmail}
-								onChange={handleFilterChange('nameEmail')}
+								onChange={(e: ChangeEvent<HTMLInputElement>) =>
+									handleFilterChange('nameEmail')(e)
+								}
 								className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
 							/>
 						</div>
 						<div className='flex-1 min-w-[150px] flex flex-col space-y-2'>
 							<select
 								value={filterCriteria.permissions}
-								onChange={handleFilterChange('permissions')}
+								onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+									handleFilterChange('permissions')(e)
+								}
 								className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
 							>
 								<option value='all'>Filter by all permissions</option>
@@ -159,7 +174,9 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile, userPermissions }) => {
 								id='verified-switch'
 								name='verified'
 								checked={filterCriteria.verified}
-								onChange={handleFilterChange('verified')}
+								onChange={(e: ChangeEvent<HTMLInputElement>) =>
+									handleFilterChange('verified')(e)
+								}
 								className='form-checkbox h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500'
 							/>
 						</div>
@@ -174,16 +191,7 @@ const Staff: React.FC<StaffProps> = ({ rescueProfile, userPermissions }) => {
 							</div>
 						)}
 					</div>
-					<StaffTable
-						staff={filteredStaff}
-						verifyStaff={handleVerifyStaff}
-						removeStaff={handleRemoveStaff}
-						updatePermissions={handleUpdatePermissions}
-						canEdit={true}
-						permissionCategories={permissionCategories}
-						permissionNames={permissionNames}
-						user_id={rescueProfile.rescue_id}
-					/>
+					<Table columns={columns} data={filteredStaff} />
 				</>
 			)}
 			<AddStaffSidebar

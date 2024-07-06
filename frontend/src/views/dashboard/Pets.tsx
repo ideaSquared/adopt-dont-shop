@@ -1,10 +1,11 @@
 import React, { useState, ChangeEvent } from 'react';
-import PetTable from '../../components/tables/PetsTable';
+import Table from '../../components/tables/Table';
 import PetFormSidebar from '../../components/sidebars/PetFormSidebar';
 import { useFilteredPets } from '../../hooks/useFilteredPets';
 import { Pet } from '../../types/pet';
 import { Rescue } from '../../types/rescue';
 import PetService from '../../services/PetService';
+import petColumns from '../../config/petColumns';
 
 interface PetsProps {
 	rescueProfile: Rescue | null;
@@ -83,9 +84,18 @@ const Pets: React.FC<PetsProps> = ({
 	};
 
 	const handleRatingClick = (petId: string) => {
-		// Your logic to handle rating click, e.g., navigating to another page
 		console.log(`Ratings for pet with ID ${petId} clicked`);
 	};
+
+	const handleApplicationClick = (petId: string) => {
+		console.log(`Applications for pet with ID ${petId} clicked`);
+	};
+
+	const columns = petColumns(
+		handleEditPet,
+		handleDeletePet,
+		handleApplicationClick
+	);
 
 	return (
 		<div>
@@ -173,15 +183,7 @@ const Pets: React.FC<PetsProps> = ({
 							</div>
 						)}
 					</div>
-					<PetTable
-						pets={filteredPets}
-						onEditPet={handleEditPet}
-						onDeletePet={handleDeletePet}
-						canEditPet={true}
-						canDeletePet={true}
-						isAdmin={isAdmin}
-						onRatingClick={handleRatingClick}
-					/>
+					<Table columns={columns} data={filteredPets} />
 				</>
 			)}
 			{selectedPet && (
@@ -191,7 +193,7 @@ const Pets: React.FC<PetsProps> = ({
 					petDetails={selectedPet}
 					setPetDetails={setSelectedPet}
 					isEditMode={isEditMode}
-					refreshPets={refreshPets} // Pass the refreshPets function here
+					refreshPets={refreshPets}
 				/>
 			)}
 		</div>

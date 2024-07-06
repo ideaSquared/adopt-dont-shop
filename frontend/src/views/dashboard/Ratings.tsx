@@ -1,8 +1,9 @@
 import React from 'react';
 import { Rescue } from '../../types/rescue';
-import RatingsTable from '../../components/tables/RatingsTable';
+import Table from '../../components/tables/Table';
 import GenericFilterForm from '../../components/forms/GenericFilterForm';
 import { useRatings } from '../../hooks/useRatings';
+import ratingsColumns from '../../config/ratingsColumns';
 
 interface RatingsProps {
 	rescueProfile: Rescue | null;
@@ -21,6 +22,8 @@ const Ratings: React.FC<RatingsProps> = ({ rescueProfile }) => {
 		handleFilterChange,
 		handleCreateConversation,
 	} = useRatings(rescueProfile.rescue_id);
+
+	const columns = ratingsColumns(handleCreateConversation);
 
 	return (
 		<div>
@@ -45,10 +48,7 @@ const Ratings: React.FC<RatingsProps> = ({ rescueProfile }) => {
 					},
 				]}
 			/>
-			<RatingsTable
-				filteredRatings={filteredRatings}
-				onCreateConversation={handleCreateConversation}
-			/>
+			<Table columns={columns} data={filteredRatings} />
 		</div>
 	);
 };

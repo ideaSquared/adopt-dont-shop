@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Rescue } from '../../types/rescue';
 import useApplications from '../../hooks/useApplications';
-import ApplicationRow from './ApplicationRow';
 import ApplicationForm from '../../components/forms/ApplicationForm';
 import { useAuth } from '../../contexts/AuthContext';
+import Table from '../../components/tables/Table';
+import applicationsColumns from '../../config/applicationColumns';
 
 interface AdoptersProps {
 	rescueProfile: Rescue | null;
@@ -43,6 +44,12 @@ const Applications: React.FC<AdoptersProps> = ({ rescueProfile }) => {
 	const filteredApplications = petId
 		? applications.filter((app) => app.pet_id === petId)
 		: applications;
+
+	const columns = applicationsColumns(
+		handleViewApplication,
+		handleApprove,
+		handleReject
+	);
 
 	return (
 		<div className='container mx-auto p-4'>
@@ -91,31 +98,7 @@ const Applications: React.FC<AdoptersProps> = ({ rescueProfile }) => {
 					/>
 				</div>
 			) : (
-				<div className='overflow-x-auto'>
-					<table className='table-auto w-full'>
-						<thead>
-							<tr>
-								<th className='border px-4 py-2'>First Name</th>
-								<th className='border px-4 py-2'>Pet Name</th>
-								<th className='border px-4 py-2'>Description</th>
-								<th className='border px-4 py-2'>Status</th>
-								<th className='border px-4 py-2'>Actioned By</th>
-								<th className='border px-4 py-2'>Actions</th>
-							</tr>
-						</thead>
-						<tbody>
-							{filteredApplications.map((application) => (
-								<ApplicationRow
-									key={application.application_id}
-									application={application}
-									onViewApplication={handleViewApplication}
-									onApprove={handleApprove}
-									onReject={handleReject}
-								/>
-							))}
-						</tbody>
-					</table>
-				</div>
+				<Table columns={columns} data={filteredApplications} />
 			)}
 		</div>
 	);
