@@ -1,14 +1,13 @@
 import React from 'react';
-import RescuesTable from '../../components/tables/RescuesTable';
+import Table from '../../components/tables/Table';
 import { useRescues } from '../../hooks/useRescues';
-import RescueDetailsSidebar from '../../components/sidebars/RescueDetailsSidebar'; // Adjust the path as necessary
-import { Rescue } from '../../types/rescue'; // Ensure the path is correct
+import RescueDetailsSidebar from '../../components/sidebars/RescueDetailsSidebar';
+import { Rescue } from '../../types/rescue';
+import rescuesColumns from '../../config/rescuesColumns';
 
 const Rescues: React.FC = () => {
 	const {
 		rescues,
-		totalPages,
-		currentPage,
 		filterType,
 		searchName,
 		searchEmail,
@@ -20,9 +19,10 @@ const Rescues: React.FC = () => {
 		handleDeleteRescue,
 		handleShowDetails,
 		handleCloseModal,
-		handlePageChange,
 		handleDeleteStaff,
 	} = useRescues();
+
+	const columns = rescuesColumns(handleShowDetails, handleDeleteRescue);
 
 	return (
 		<div className='container mx-auto my-4'>
@@ -52,14 +52,7 @@ const Rescues: React.FC = () => {
 					className='border p-2 rounded'
 				/>
 			</div>
-			<RescuesTable
-				rescues={rescues}
-				onDeleteRescue={handleDeleteRescue}
-				onShowDetails={handleShowDetails}
-				currentPage={currentPage}
-				totalPages={totalPages}
-				onChangePage={handlePageChange}
-			/>
+			<Table columns={columns} data={rescues} />
 			<RescueDetailsSidebar
 				show={showModal}
 				handleClose={handleCloseModal}
