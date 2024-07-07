@@ -48,53 +48,57 @@ const RescueDetailsSidebar: React.FC<RescueDetailsSidebarProps> = ({
 						<b>Country:</b> {rescueDetails.rescue_country}
 					</p>
 					<ul className='list-none'>
-						{rescueDetails.staff.map((staffMember, index) => (
-							<li key={index} className='border-b py-2'>
-								<div className='flex justify-between items-center'>
-									<span>{staffMember.email}</span>
-									<div className='flex gap-2'>
-										<button
-											onClick={() => togglePermissions(staffMember.userId)}
-											className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline'
-										>
-											{visiblePermissions[staffMember.userId]
-												? 'Hide Permissions'
-												: 'View Permissions'}
-										</button>
-										<button
-											onClick={() =>
-												onDeleteStaff(
-													rescueDetails.rescue_id,
-													staffMember.userId
-												)
-											}
-											className='bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline'
-										>
-											Delete
-										</button>
-									</div>
-								</div>
-								{visiblePermissions[staffMember.userId] && (
-									<div className='mt-2'>
-										<h5 className='font-semibold'>Permissions:</h5>
-										{staffMember.permissions &&
-										staffMember.permissions.length > 0 ? (
-											<ul className='list-disc list-inside ml-4'>
-												{staffMember.permissions.map(
-													(permission, permIndex) => (
-														<li key={permIndex} className='text-gray-700'>
-															{permission}
-														</li>
+						{rescueDetails.staff && rescueDetails.staff.length > 0 ? (
+							rescueDetails.staff.map((staffMember, index) => (
+								<li key={index} className='border-b py-2'>
+									<div className='flex justify-between items-center'>
+										<span>{staffMember.email}</span>
+										<div className='flex gap-2'>
+											<button
+												onClick={() => togglePermissions(staffMember.userId)}
+												className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline'
+											>
+												{visiblePermissions[staffMember.userId]
+													? 'Hide Permissions'
+													: 'View Permissions'}
+											</button>
+											<button
+												onClick={() =>
+													onDeleteStaff(
+														rescueDetails.rescue_id,
+														staffMember.userId
 													)
-												)}
-											</ul>
-										) : (
-											<p className='text-gray-700'>No permissions</p>
-										)}
+												}
+												className='bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline'
+											>
+												Delete
+											</button>
+										</div>
 									</div>
-								)}
-							</li>
-						))}
+									{visiblePermissions[staffMember.userId] && (
+										<div className='mt-2'>
+											<h5 className='font-semibold'>Permissions:</h5>
+											{staffMember.permissions &&
+											staffMember.permissions.length > 0 ? (
+												<ul className='list-disc list-inside ml-4'>
+													{staffMember.permissions.map(
+														(permission, permIndex) => (
+															<li key={permIndex} className='text-gray-700'>
+																{permission}
+															</li>
+														)
+													)}
+												</ul>
+											) : (
+												<p className='text-gray-700'>No permissions</p>
+											)}
+										</div>
+									)}
+								</li>
+							))
+						) : (
+							<p>No staff found</p>
+						)}
 					</ul>
 				</div>
 			) : (
