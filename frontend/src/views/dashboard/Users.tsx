@@ -44,7 +44,7 @@ const Users: React.FC = () => {
 						onChange={handleFilterFlagChange}
 						className='mr-2'
 					/>
-					Force Reset Flag
+					Force reset flag
 				</label>
 				<label className='flex items-center'>
 					<input
