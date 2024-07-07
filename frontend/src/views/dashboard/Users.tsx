@@ -1,6 +1,7 @@
 import React from 'react';
-import UsersTable from '../../components/tables/UsersTable';
+import Table from '../../components/tables/Table';
 import { useUsers } from '../../hooks/useUsers';
+import usersColumns from '../../config/usersColumns';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Users: React.FC = () => {
@@ -8,8 +9,6 @@ const Users: React.FC = () => {
 
 	const {
 		users,
-		currentPage,
-		totalPages,
 		searchTerm,
 		filterFlags,
 		isLoading,
@@ -18,8 +17,9 @@ const Users: React.FC = () => {
 		handleFilterFlagChange,
 		handleResetPassword,
 		handleDeleteUser,
-		setCurrentPage,
 	} = useUsers();
+
+	const columns = usersColumns(handleResetPassword, handleDeleteUser);
 
 	if (isLoading) {
 		return <div>Loading...</div>;
@@ -60,14 +60,7 @@ const Users: React.FC = () => {
 					Admin
 				</label>
 			</div>
-			<UsersTable
-				currentUsers={users}
-				onResetPassword={handleResetPassword}
-				onDeleteUser={handleDeleteUser}
-				currentPage={currentPage}
-				totalPages={totalPages}
-				onChangePage={setCurrentPage}
-			/>
+			<Table columns={columns} data={users} />
 		</div>
 	);
 };

@@ -9,8 +9,6 @@ interface FilterFlags {
 
 export const useUsers = () => {
 	const [users, setUsers] = useState<User[]>([]);
-	const [currentPage, setCurrentPage] = useState(1);
-	const [usersPerPage] = useState(10);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [filterFlags, setFilterFlags] = useState<FilterFlags>({
 		forceReset: false,
@@ -55,7 +53,6 @@ export const useUsers = () => {
 
 	const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
 		setSearchTerm(e.target.value);
-		setCurrentPage(1);
 	};
 
 	const handleFilterFlagChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -77,15 +74,8 @@ export const useUsers = () => {
 		return searchMatch && forceResetMatch && adminMatch;
 	});
 
-	const indexOfLastUser = currentPage * usersPerPage;
-	const indexOfFirstUser = indexOfLastUser - usersPerPage;
-	const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-	const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-
 	return {
-		users: currentUsers,
-		currentPage,
-		totalPages,
+		users: filteredUsers,
 		searchTerm,
 		filterFlags,
 		isLoading,
@@ -94,6 +84,5 @@ export const useUsers = () => {
 		handleFilterFlagChange,
 		handleResetPassword,
 		handleDeleteUser,
-		setCurrentPage,
 	};
 };
