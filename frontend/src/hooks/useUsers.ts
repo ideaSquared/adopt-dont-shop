@@ -36,6 +36,13 @@ export const useUsers = () => {
 	const handleResetPassword = async (userId: string) => {
 		try {
 			await UserService.resetAdminUserPassword(userId);
+			setUsers((prevUsers) =>
+				prevUsers.map((user) =>
+					user.user_id === userId
+						? { ...user, reset_token_force_flag: true }
+						: user
+				)
+			);
 			alert('Password reset successfully.');
 		} catch (error) {
 			alert('Failed to reset password. Please try again.');
