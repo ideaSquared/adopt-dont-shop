@@ -1,4 +1,5 @@
 -- Ensure the 'public' schema exists
+-- TODO: Add participants test data to the schema
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'public') THEN
