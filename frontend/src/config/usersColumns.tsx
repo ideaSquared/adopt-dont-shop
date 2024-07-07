@@ -33,7 +33,7 @@ const usersColumns = (
 				)}
 				{row.reset_token_force_flag && (
 					<span className='bg-red-100 text-red-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded'>
-						Forced Reset
+						Forced reset
 					</span>
 				)}
 			</div>
