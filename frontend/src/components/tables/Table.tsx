@@ -16,7 +16,7 @@ interface TableProps<T> {
 const Table = <T extends {}>({
 	columns,
 	data,
-	rowsPerPage = 2,
+	rowsPerPage = 8,
 }: TableProps<T>) => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);

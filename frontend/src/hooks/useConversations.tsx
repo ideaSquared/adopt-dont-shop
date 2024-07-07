@@ -7,8 +7,6 @@ export const useConversations = () => {
 	const [filteredConversations, setFilteredConversations] = useState<
 		Conversation[]
 	>([]);
-	const [currentPage, setCurrentPage] = useState(1);
-	const [conversationsPerPage] = useState(10);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [filterStatus, setFilterStatus] = useState('');
 	const [selectedConversation, setSelectedConversation] =
@@ -92,19 +90,8 @@ export const useConversations = () => {
 
 	const handleCloseModal = () => setSelectedConversation(null);
 
-	const currentConversations = filteredConversations.slice(
-		(currentPage - 1) * conversationsPerPage,
-		currentPage * conversationsPerPage
-	);
-
-	const totalPages = Math.ceil(
-		filteredConversations.length / conversationsPerPage
-	);
-
 	return {
-		conversations: currentConversations,
-		totalPages,
-		currentPage,
+		filteredConversations,
 		searchTerm,
 		filterStatus,
 		selectedConversation,
@@ -115,6 +102,5 @@ export const useConversations = () => {
 		handleDeleteConversation,
 		handleShowDetails,
 		handleCloseModal,
-		setCurrentPage,
 	};
 };

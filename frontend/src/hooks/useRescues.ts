@@ -5,8 +5,6 @@ import { Rescue } from '../types/rescue';
 export const useRescues = () => {
 	const [rescues, setRescues] = useState<Rescue[]>([]);
 	const [filteredRescues, setFilteredRescues] = useState<Rescue[]>([]);
-	const [currentPage, setCurrentPage] = useState(1);
-	const [rescuesPerPage] = useState(10);
 	const [filterType, setFilterType] = useState('');
 	const [searchName, setSearchName] = useState('');
 	const [searchEmail, setSearchEmail] = useState('');
@@ -78,18 +76,8 @@ export const useRescues = () => {
 		}
 	};
 
-	const indexOfLastRescue = currentPage * rescuesPerPage;
-	const indexOfFirstRescue = indexOfLastRescue - rescuesPerPage;
-	const currentRescues = filteredRescues.slice(
-		indexOfFirstRescue,
-		indexOfLastRescue
-	);
-	const totalPages = Math.ceil(filteredRescues.length / rescuesPerPage);
-
 	return {
-		rescues: currentRescues,
-		totalPages,
-		currentPage,
+		rescues: filteredRescues,
 		filterType,
 		searchName,
 		searchEmail,
@@ -104,7 +92,6 @@ export const useRescues = () => {
 		handleDeleteRescue: deleteRescue,
 		handleShowDetails: fetchRescueDetails,
 		handleCloseModal: () => setShowModal(false),
-		handlePageChange: setCurrentPage,
 		handleDeleteStaff: deleteStaffFromRescue,
 	};
 };
