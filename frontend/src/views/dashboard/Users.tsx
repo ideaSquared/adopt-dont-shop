@@ -2,11 +2,8 @@ import React from 'react';
 import Table from '../../components/tables/Table';
 import { useUsers } from '../../hooks/useUsers';
 import usersColumns from '../../config/usersColumns';
-import { useAuth } from '../../contexts/AuthContext';
 
 const Users: React.FC = () => {
-	const { authState } = useAuth();
-
 	const {
 		users,
 		searchTerm,
