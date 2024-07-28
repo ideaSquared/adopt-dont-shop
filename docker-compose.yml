@@ -16,13 +16,25 @@ services:
     depends_on:
       - db
 
-  frontend:
-    build: ./frontend
+  frontend-old:
+    build: ./frontend/old
     ports:
       - '3000:3000'
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./frontend:/old/app
+      - /frontend/old/app/node_modules
+    environment:
+      - NODE_ENV=development
+    stdin_open: true
+    tty: true
+
+  frontend-new:
+    build: ./frontend/new
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./frontend:/new/app
+      - /frontend/new/app/node_modules
     environment:
       - NODE_ENV=development
     stdin_open: true

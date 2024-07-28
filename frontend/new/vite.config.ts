@@ -3,6 +3,13 @@ import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
+	server: {
+		host: true,
+		port: 3001,
+		watch: {
+			usePolling: true,
+		},
+	},
 	plugins: [react(), tsconfigPaths()],
 	resolve: {
 		alias: {
@@ -15,8 +22,5 @@ export default defineConfig({
 			'@store': '/src/store',
 			'@styles': '/src/styles',
 		},
-	},
-	server: {
-		port: 3001,
 	},
 });
