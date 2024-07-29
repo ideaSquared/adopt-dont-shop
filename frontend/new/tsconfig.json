@@ -17,14 +17,14 @@
     "jsx": "react-jsx",
     "baseUrl": "./src",
     "paths": {
-      "@components/*": ["components/*"],
-      "@utils/*": ["utils/*"],
-      "@hooks/*": ["hooks/*"],
-      "@lib/*": ["libs/*"],
-      "@pages/*": ["pages/*"],
-      "@services/*": ["services/*"],
-      "@store/*": ["store/*"],
-      "@styles/*": ["styles/*"]
+      "@adoptdontshop/components/*": ["components/*"],
+      "@adoptdontshop/utils/*": ["utils/*"],
+      "@adoptdontshop/hooks/*": ["hooks/*"],
+      "@adoptdontshop/libs/*": ["libs/*"],
+      "@adoptdontshop/pages/*": ["pages/*"],
+      "@adoptdontshop/services/*": ["services/*"],
+      "@adoptdontshop/store/*": ["store/*"],
+      "@adoptdontshop/styles/*": ["styles/*"]
     }
   },
   "include": ["src"]

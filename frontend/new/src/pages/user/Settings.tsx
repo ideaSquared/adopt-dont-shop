@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import UserService from '@lib/users/UserService';
-import { User } from '@lib/users/User';
-import TextInput from '@components/form/TextInput';
-import Button from '@components/common/Button';
+import UserService from '@adoptdontshop/libs/users/UserService';
+import { User } from '@adoptdontshop/libs/users/User';
+import { Button, TextInput } from '@adoptdontshop/components';
 
 const Settings: React.FC = () => {
 	const [user, setUser] = useState<User | undefined>(undefined);

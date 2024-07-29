@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import UserService from '@lib/users/UserService';
-import { User } from '@lib/users/User';
-import TextInput from '@components/form/TextInput';
-import SelectInput from '@components/form/SelectInput';
+import UserService from '@adoptdontshop/libs/users/UserService';
+import { User } from '@adoptdontshop/libs/users/User';
+import { SelectInput, TextInput } from '@adoptdontshop/components';
 
 const CreateAccount: React.FC = () => {
 	const [isRescueForm, setIsRescueForm] = useState(false);

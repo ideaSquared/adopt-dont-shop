@@ -3,9 +3,9 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import Users from './pages/Users';
 import Login from './pages/user/Login';
-import CreateAccount from './pages/user/CreateAccount';
-import ForgotPassword from './pages/user/ForgotPassword';
-import Header from './components/layout/Header';
+import CreateAccount from '@adoptdontshop/pages/user/CreateAccount';
+import ForgotPassword from '@adoptdontshop/pages/user/ForgotPassword';
+import { Header } from '@adoptdontshop/components';
 
 const App: React.FC = () => {
 	return (

@@ -1,8 +1,7 @@
 // frontend/new/src/pages/user/ResetPassword.tsx
 import React, { useState } from 'react';
-import UserService from '@lib/users/UserService';
-import TextInput from '@components/form/TextInput';
-import Button from '@components/common/Button';
+import UserService from '@adoptdontshop/libs/users/UserService';
+import { Button, TextInput } from '@adoptdontshop/components';
 
 const ResetPassword: React.FC = () => {
 	const [email, setEmail] = useState('');

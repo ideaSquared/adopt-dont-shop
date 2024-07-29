@@ -13,14 +13,14 @@ export default defineConfig({
 	plugins: [react(), tsconfigPaths()],
 	resolve: {
 		alias: {
-			'@components': '/src/components',
-			'@utils': '/src/utils',
-			'@hooks': '/src/hooks',
-			'@libs': '/src/lib',
-			'@pages': '/src/pages',
-			'@services': '/src/services',
-			'@store': '/src/store',
-			'@styles': '/src/styles',
+			'@adoptdontshop/components': '/src/components',
+			'@adoptdontshop/utils': '/src/utils',
+			'@adoptdontshop/hooks': '/src/hooks',
+			'@adoptdontshop/libs': '/src/libs',
+			'@adoptdontshop/pages': '/src/pages',
+			'@adoptdontshop/services': '/src/services',
+			'@adoptdontshop/store': '/src/store',
+			'@adoptdontshop/styles': '/src/styles',
 		},
 	},
 });

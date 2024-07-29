@@ -1,6 +1,6 @@
 // frontend/new/src/pages/Users.tsx
 import React from 'react';
-import { UserService } from '@lib/users';
+import { UserService } from '@adoptdontshop/libs/users';
 
 const Users: React.FC = () => {
 	const users = UserService.getUsers();
