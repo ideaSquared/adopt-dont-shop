@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
 						className='w-1/3 md:w-1/4'
 					/>
 					<h1 className='text-4xl md:text-5xl font-bold mt-6'>
-						Welcome to Adopt Don't Shop
+						Welcome to Adopt Don't Shopssssssssss
 					</h1>
 					<p className='text-lg md:text-xl mt-4 max-w-xl'>
 						Discover and adopt your perfect pet today. Join our community and

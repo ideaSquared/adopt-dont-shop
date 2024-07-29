@@ -1,3 +1,4 @@
+// frontend/new/src/components/layout/Header.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -13,10 +14,10 @@ const Header: React.FC = () => {
 						<Link to='/users'>Users</Link>
 					</li>
 					<li>
-						<Link to='/pets'>Pets</Link>
+						<Link to='/login'>Login</Link>
 					</li>
 					<li>
-						<Link to='/conversations'>Conversations</Link>
+						<Link to='/create-account'>Create Account</Link>
 					</li>
 				</ul>
 			</nav>

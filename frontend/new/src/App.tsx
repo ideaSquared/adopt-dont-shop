@@ -2,12 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import Users from './pages/Users';
-// Uncomment these once you have the components
-// import Pets from './pages/Pets';
-// import Conversations from './pages/Conversations';
+import Login from './pages/user/Login';
+import CreateAccount from './pages/user/CreateAccount';
+import ForgotPassword from './pages/user/ForgotPassword';
 import Header from './components/layout/Header';
-// Uncomment this once you have the component
-// import Footer from './components/layout/Footer';
 
 const App: React.FC = () => {
 	return (
@@ -16,9 +14,10 @@ const App: React.FC = () => {
 			<Routes>
 				<Route path='/' element={<Home />} />
 				<Route path='/users' element={<Users />} />
-				{/* <Route path='/pets' element={<Pets />} /> */}
+				<Route path='/login' element={<Login />} />
+				<Route path='/create-account' element={<CreateAccount />} />
+				<Route path='/forgot-password' element={<ForgotPassword />} />
 			</Routes>
-			{/* <Footer /> */}
 		</Router>
 	);
 };
