@@ -6,6 +6,7 @@ import Login from './pages/user/Login';
 import CreateAccount from '@adoptdontshop/pages/user/CreateAccount';
 import ForgotPassword from '@adoptdontshop/pages/user/ForgotPassword';
 import { Header } from '@adoptdontshop/components';
+import ResetPassword from '@adoptdontshop/pages/user/ResetPassword';
 
 const App: React.FC = () => {
 	return (
@@ -17,6 +18,7 @@ const App: React.FC = () => {
 				<Route path='/login' element={<Login />} />
 				<Route path='/create-account' element={<CreateAccount />} />
 				<Route path='/forgot-password' element={<ForgotPassword />} />
+				<Route path='/reset-password' element={<ResetPassword />} />
 			</Routes>
 		</Router>
 	);
