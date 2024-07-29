@@ -21,8 +21,8 @@ services:
     ports:
       - '3000:3000'
     volumes:
-      - ./frontend:/old/app
-      - /frontend/old/app/node_modules
+      - ./frontend/old:/app
+      - /app/node_modules
     environment:
       - NODE_ENV=development
     stdin_open: true
@@ -33,10 +33,11 @@ services:
     ports:
       - '3001:3001'
     volumes:
-      - ./frontend:/new/app
-      - /frontend/new/app/node_modules
+      - ./frontend/new:/app
+      - /app/node_modules
     environment:
       - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
     stdin_open: true
     tty: true
 
