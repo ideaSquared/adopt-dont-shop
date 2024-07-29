@@ -17,7 +17,7 @@
     "jsx": "react-jsx",
     "baseUrl": "./src",
     "paths": {
-      "@adoptdontshop/components/*": ["components/*"],
+      "@adoptdontshop/components": ["components/index.ts"],
       "@adoptdontshop/utils/*": ["utils/*"],
       "@adoptdontshop/hooks/*": ["hooks/*"],
       "@adoptdontshop/libs/*": ["libs/*"],
@@ -27,5 +27,8 @@
       "@adoptdontshop/styles/*": ["styles/*"]
     }
   },
-  "include": ["src"]
+  "include": [
+        "./**/*.ts",
+        "./**/*.tsx"
+    ],
 }
