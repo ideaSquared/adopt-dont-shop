@@ -17,7 +17,7 @@ const CreateAccount: React.FC = () => {
 	const [referenceNumber, setReferenceNumber] = useState('');
 	const [message, setMessage] = useState('');
 
-	const handleUserSubmit = (event: React.FormEvent) => {
+	const handleUserSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const newUser: Omit<User, 'user_id'> = {
 			first_name: firstName,
@@ -28,7 +28,7 @@ const CreateAccount: React.FC = () => {
 		setMessage(`User registered with ID: ${user.user_id}`);
 	};
 
-	const handleRescueSubmit = (event: React.FormEvent) => {
+	const handleRescueSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		if (rescueType === 'other') {
 			setMessage("We don't support other types of rescues.");
@@ -50,33 +50,43 @@ const CreateAccount: React.FC = () => {
 				<TextInput
 					label='First name'
 					value={firstName}
-					onChange={(e) => setFirstName(e.target.value)}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						setFirstName(e.target.value)
+					}
 					required
 				/>
 				<TextInput
 					label='Last name'
 					value={lastName}
-					onChange={(e) => setLastName(e.target.value)}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						setLastName(e.target.value)
+					}
 					required
 				/>
 				<TextInput
 					label='Email'
 					value={email}
-					onChange={(e) => setEmail(e.target.value)}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						setEmail(e.target.value)
+					}
 					type='email'
 					required
 				/>
 				<TextInput
 					label='Password'
 					value={password}
-					onChange={(e) => setPassword(e.target.value)}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						setPassword(e.target.value)
+					}
 					type='password'
 					required
 				/>
 				<TextInput
 					label='Confirm password'
 					value={confirmPassword}
-					onChange={(e) => setConfirmPassword(e.target.value)}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						setConfirmPassword(e.target.value)
+					}
 					type='password'
 					required
 				/>
@@ -86,7 +96,9 @@ const CreateAccount: React.FC = () => {
 						<SelectInput
 							label='Rescue Type'
 							value={rescueType}
-							onChange={(e) => setRescueType(e.target.value)}
+							onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+								setRescueType(e.target.value)
+							}
 							options={[
 								{ value: 'charity', label: 'Charity' },
 								{ value: 'company', label: 'Company' },
@@ -99,7 +111,9 @@ const CreateAccount: React.FC = () => {
 								<TextInput
 									label='Rescue Name'
 									value={rescueName}
-									onChange={(e) => setRescueName(e.target.value)}
+									onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+										setRescueName(e.target.value)
+									}
 								/>
 								<TextInput
 									label={
@@ -108,7 +122,9 @@ const CreateAccount: React.FC = () => {
 											: 'Company number'
 									}
 									value={referenceNumber}
-									onChange={(e) => setReferenceNumber(e.target.value)}
+									onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+										setReferenceNumber(e.target.value)
+									}
 								/>
 								<p>
 									Please enter the reference number as it appears in official
@@ -136,12 +152,16 @@ const CreateAccount: React.FC = () => {
 						<TextInput
 							label='City'
 							value={city}
-							onChange={(e) => setCity(e.target.value)}
+							onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+								setCity(e.target.value)
+							}
 						/>
 						<TextInput
 							label='Country'
 							value={country}
-							onChange={(e) => setCountry(e.target.value)}
+							onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+								setCountry(e.target.value)
+							}
 						/>
 					</>
 				)}

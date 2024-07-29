@@ -21,14 +21,18 @@ const Login: React.FC = () => {
 				<TextInput
 					label='Email'
 					value={email}
-					onChange={(e) => setEmail(e.target.value)}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						setEmail(e.target.value)
+					}
 					type='email'
 					required
 				/>
 				<TextInput
 					label='Password'
 					value={password}
-					onChange={(e) => setPassword(e.target.value)}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						setPassword(e.target.value)
+					}
 					type='password'
 					required
 				/>
