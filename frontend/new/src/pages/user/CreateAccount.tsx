@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import UserService from '@lib/users/UserService';
 import { User } from '@lib/users/User';
+import TextInput from '@components/form/TextInput';
+import SelectInput from '@components/form/SelectInput';
 
 const CreateAccount: React.FC = () => {
 	const [isRescueForm, setIsRescueForm] = useState(false);
@@ -46,83 +48,69 @@ const CreateAccount: React.FC = () => {
 		<div>
 			<h1>{isRescueForm ? 'Create Rescue Account' : 'Create User Account'}</h1>
 			<form onSubmit={isRescueForm ? handleRescueSubmit : handleUserSubmit}>
-				<div>
-					<label>First Name:</label>
-					<input
-						type='text'
-						value={firstName}
-						onChange={(e) => setFirstName(e.target.value)}
-					/>
-				</div>
-				<div>
-					<label>Last Name:</label>
-					<input
-						type='text'
-						value={lastName}
-						onChange={(e) => setLastName(e.target.value)}
-					/>
-				</div>
-				<div>
-					<label>Email:</label>
-					<input
-						type='email'
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-					/>
-				</div>
-				<div>
-					<label>Password:</label>
-					<input
-						type='password'
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-					/>
-				</div>
-				<div>
-					<label>Confirm Password:</label>
-					<input
-						type='password'
-						value={confirmPassword}
-						onChange={(e) => setConfirmPassword(e.target.value)}
-					/>
-				</div>
+				<TextInput
+					label='First name'
+					value={firstName}
+					onChange={(e) => setFirstName(e.target.value)}
+					required
+				/>
+				<TextInput
+					label='Last name'
+					value={lastName}
+					onChange={(e) => setLastName(e.target.value)}
+					required
+				/>
+				<TextInput
+					label='Email'
+					value={email}
+					onChange={(e) => setEmail(e.target.value)}
+					type='email'
+					required
+				/>
+				<TextInput
+					label='Password'
+					value={password}
+					onChange={(e) => setPassword(e.target.value)}
+					type='password'
+					required
+				/>
+				<TextInput
+					label='Confirm password'
+					value={confirmPassword}
+					onChange={(e) => setConfirmPassword(e.target.value)}
+					type='password'
+					required
+				/>
+
 				{isRescueForm && (
 					<>
-						<div>
-							<label>Rescue Type:</label>
-							<select
-								value={rescueType}
-								onChange={(e) => setRescueType(e.target.value)}
-							>
-								<option value=''>Select a type</option>
-								<option value='charity'>Charity</option>
-								<option value='company'>Company</option>
-								<option value='individual'>Individual</option>
-								<option value='other'>Other</option>
-							</select>
-						</div>
+						<SelectInput
+							label='Rescue Type'
+							value={rescueType}
+							onChange={(e) => setRescueType(e.target.value)}
+							options={[
+								{ value: 'charity', label: 'Charity' },
+								{ value: 'company', label: 'Company' },
+								{ value: 'individual', label: 'Individual' },
+								{ value: 'other', label: 'Other' },
+							]}
+						/>
 						{(rescueType === 'charity' || rescueType === 'company') && (
 							<>
-								<div>
-									<label>Rescue Name:</label>
-									<input
-										type='text'
-										value={rescueName}
-										onChange={(e) => setRescueName(e.target.value)}
-									/>
-								</div>
-								<div>
-									<label>
-										{rescueType === 'charity'
-											? 'Charity Number'
-											: 'Company Number'}
-									</label>
-									<input
-										type='text'
-										value={referenceNumber}
-										onChange={(e) => setReferenceNumber(e.target.value)}
-									/>
-								</div>
+								<TextInput
+									label='Rescue Name'
+									value={rescueName}
+									onChange={(e) => setRescueName(e.target.value)}
+								/>
+								<TextInput
+									label={
+										rescueType === 'charity'
+											? 'Charity number'
+											: 'Company number'
+									}
+									value={referenceNumber}
+									onChange={(e) => setReferenceNumber(e.target.value)}
+								/>
 								<p>
 									Please enter the reference number as it appears in official
 									records.{' '}
@@ -146,22 +134,16 @@ const CreateAccount: React.FC = () => {
 								</p>
 							</div>
 						)}
-						<div>
-							<label>City:</label>
-							<input
-								type='text'
-								value={city}
-								onChange={(e) => setCity(e.target.value)}
-							/>
-						</div>
-						<div>
-							<label>Country:</label>
-							<input
-								type='text'
-								value={country}
-								onChange={(e) => setCountry(e.target.value)}
-							/>
-						</div>
+						<TextInput
+							label='City'
+							value={city}
+							onChange={(e) => setCity(e.target.value)}
+						/>
+						<TextInput
+							label='Country'
+							value={country}
+							onChange={(e) => setCountry(e.target.value)}
+						/>
 					</>
 				)}
 				<button type='submit'>

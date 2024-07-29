@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import UserService from '@lib/users/UserService';
+import TextInput from '@components/form/TextInput';
+import Button from '@components/common/Button';
 
 const Login: React.FC = () => {
 	const [email, setEmail] = useState('');
@@ -17,23 +19,21 @@ const Login: React.FC = () => {
 		<div>
 			<h1>Login</h1>
 			<form onSubmit={handleSubmit}>
-				<div>
-					<label>Email:</label>
-					<input
-						type='email'
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-					/>
-				</div>
-				<div>
-					<label>Password:</label>
-					<input
-						type='password'
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-					/>
-				</div>
-				<button type='submit'>Login</button>
+				<TextInput
+					label='Email'
+					value={email}
+					onChange={(e) => setEmail(e.target.value)}
+					type='email'
+					required
+				/>
+				<TextInput
+					label='Password'
+					value={password}
+					onChange={(e) => setPassword(e.target.value)}
+					type='password'
+					required
+				/>
+				<Button type='submit'>Login</Button>
 			</form>
 			{message && <p>{message}</p>}
 			<p>

@@ -1,6 +1,8 @@
 // frontend/new/src/pages/user/ResetPassword.tsx
 import React, { useState } from 'react';
 import UserService from '@lib/users/UserService';
+import TextInput from '@components/form/TextInput';
+import Button from '@components/common/Button';
 
 const ResetPassword: React.FC = () => {
 	const [email, setEmail] = useState('');
@@ -16,15 +18,14 @@ const ResetPassword: React.FC = () => {
 		<div>
 			<h1>Reset Password</h1>
 			<form onSubmit={handleSubmit}>
-				<div>
-					<label>Email:</label>
-					<input
-						type='email'
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-					/>
-				</div>
-				<button type='submit'>Reset Password</button>
+				<TextInput
+					label='Email'
+					value={email}
+					onChange={(e) => setEmail(e.target.value)}
+					type='email'
+					required
+				/>
+				<Button type='submit'>Reset Password</Button>
 			</form>
 			{message && <p>{message}</p>}
 		</div>
