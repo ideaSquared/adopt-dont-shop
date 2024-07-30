@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import UserService from '@adoptdontshop/libs/users/UserService';
-import { Button, TextInput } from '@adoptdontshop/components';
+import { Button, FormInput, TextInput } from '@adoptdontshop/components';
 
 const Login: React.FC = () => {
 	const [email, setEmail] = useState('');
@@ -18,24 +18,28 @@ const Login: React.FC = () => {
 		<div>
 			<h1>Login</h1>
 			<form onSubmit={handleSubmit}>
-				<TextInput
-					label='Email'
-					value={email}
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-						setEmail(e.target.value)
-					}
-					type='email'
-					required
-				/>
-				<TextInput
-					label='Password'
-					value={password}
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-						setPassword(e.target.value)
-					}
-					type='password'
-					required
-				/>
+				<FormInput label='Email'>
+					<TextInput
+						value={email}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setEmail(e.target.value)
+						}
+						type='email'
+						required
+					/>
+				</FormInput>
+
+				<FormInput label='Password'>
+					<TextInput
+						value={password}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setPassword(e.target.value)
+						}
+						type='password'
+						required
+					/>
+				</FormInput>
+
 				<Button type='submit'>Login</Button>
 			</form>
 			{message && <p>{message}</p>}

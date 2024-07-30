@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import UserService from '@adoptdontshop/libs/users/UserService';
 import { User } from '@adoptdontshop/libs/users/User';
-import { Button, TextInput } from '@adoptdontshop/components';
+import { Button, FormInput, TextInput } from '@adoptdontshop/components';
+import { Form } from 'react-router-dom';
 
 const Settings: React.FC = () => {
 	const [user, setUser] = useState<User | undefined>(undefined);
@@ -37,22 +38,28 @@ const Settings: React.FC = () => {
 			<h1>Settings</h1>
 			{user ? (
 				<form onSubmit={handleSubmit}>
-					<TextInput
-						label='First name'
-						value={user.first_name || ''}
-						onChange={handleChange}
-					/>
-					<TextInput
-						label='Last name'
-						value={user.last_name || ''}
-						onChange={handleChange}
-					/>
-					<TextInput
-						label='Email'
-						value={user.email || ''}
-						onChange={handleChange}
-						type='email'
-					/>
+					<FormInput label='First name'>
+						<TextInput
+							type='text'
+							value={user.first_name || ''}
+							onChange={handleChange}
+						/>
+					</FormInput>
+					<FormInput label='Last name'>
+						<TextInput
+							type='text'
+							value={user.last_name || ''}
+							onChange={handleChange}
+						/>
+					</FormInput>
+					<FormInput label='Email'>
+						<TextInput
+							value={user.email || ''}
+							onChange={handleChange}
+							type='email'
+						/>
+					</FormInput>
+
 					<Button type='submit'>Save Settings</Button>
 				</form>
 			) : (

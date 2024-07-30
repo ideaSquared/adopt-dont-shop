@@ -1,7 +1,7 @@
 // frontend/new/src/pages/user/ForgotPassword.tsx
 import React, { useState } from 'react';
 import UserService from '@adoptdontshop/libs/users/UserService';
-import { Button, TextInput } from '@adoptdontshop/components';
+import { Button, FormInput, TextInput } from '@adoptdontshop/components';
 
 const ForgotPassword: React.FC = () => {
 	const [email, setEmail] = useState('');
@@ -17,15 +17,17 @@ const ForgotPassword: React.FC = () => {
 		<div>
 			<h1>Forgot Password</h1>
 			<form onSubmit={handleSubmit}>
-				<TextInput
-					label='Email'
-					value={email}
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-						setEmail(e.target.value)
-					}
-					type='email'
-					required
-				/>
+				<FormInput label='Email'>
+					<TextInput
+						value={email}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setEmail(e.target.value)
+						}
+						type='email'
+						required
+					/>
+				</FormInput>
+
 				<Button type='submit'>Submit</Button>
 			</form>
 			{message && <p>{message}</p>}
