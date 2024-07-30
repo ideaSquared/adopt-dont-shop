@@ -54,7 +54,6 @@ const CreateAccount: React.FC = () => {
 			<form onSubmit={isRescueForm ? handleRescueSubmit : handleUserSubmit}>
 				<FormInput label='First name'>
 					<TextInput
-						label='First name'
 						type='text'
 						value={firstName}
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
