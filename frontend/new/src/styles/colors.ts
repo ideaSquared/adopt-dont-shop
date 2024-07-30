@@ -24,7 +24,7 @@ export const palette = {
 
 export const font = {
 	family: {
-		body: 'Arial, sans-serif',
+		body: 'Arial, Courier New, monospace, sans-serif',
 	},
 	weight: {
 		body: 400,

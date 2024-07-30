@@ -1,3 +1,5 @@
+import { palette, font } from './colors';
+
 export type Theme = {
 	text: {
 		body: string;
@@ -28,9 +30,20 @@ export type Theme = {
 		content: string;
 		focus: string;
 	};
-};
 
-import { palette } from './colors';
+	font: {
+		family: {
+			body: string;
+		};
+		weight: {
+			body: number;
+			bold: number;
+		};
+		size: {
+			body: string;
+		};
+	};
+};
 
 export const lightTheme: Theme = {
 	text: {
@@ -59,6 +72,18 @@ export const lightTheme: Theme = {
 	border: {
 		content: palette.gray,
 		focus: palette.primary,
+	},
+	font: {
+		family: {
+			body: font.family.body,
+		},
+		weight: {
+			body: font.weight.body,
+			bold: font.weight.bold,
+		},
+		size: {
+			body: font.size.body,
+		},
 	},
 };
 
@@ -89,5 +114,17 @@ export const darkTheme: Theme = {
 	border: {
 		content: palette.darkGray,
 		focus: palette.primary,
+	},
+	font: {
+		family: {
+			body: font.family.body,
+		},
+		weight: {
+			body: font.weight.body,
+			bold: font.weight.bold,
+		},
+		size: {
+			body: font.size.body,
+		},
 	},
 };
