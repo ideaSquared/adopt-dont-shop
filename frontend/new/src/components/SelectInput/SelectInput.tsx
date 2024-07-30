@@ -21,6 +21,13 @@ const StyledSelect = styled.select`
 	font-size: 1rem;
 	line-height: 1.5;
 	width: 100%;
+	background-color: ${(props) => props.theme.background.content};
+	color: ${(props) => props.theme.text.body};
+
+	option {
+		background-color: ${(props) => props.theme.background.content};
+		color: ${(props) => props.theme.text.body};
+	}
 `;
 
 const SelectInput: React.FC<SelectInputProps> = ({

@@ -18,6 +18,7 @@ const StyledInput = styled.input`
 	line-height: 1.5;
 	width: 100%;
 	background-color: ${(props) => props.theme.background.content};
+	color: ${(props) => props.theme.text.body};
 `;
 
 const TextInput: React.FC<TextInputProps> = ({
