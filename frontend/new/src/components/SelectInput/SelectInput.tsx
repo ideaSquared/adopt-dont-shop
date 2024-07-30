@@ -1,32 +1,48 @@
 import React from 'react';
+import styled from 'styled-components';
+
+interface Option {
+	value: string;
+	label: string;
+}
 
 interface SelectInputProps {
-	label: string;
+	options: Option[];
 	value: string;
 	onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-	options: { value: string; label: string }[];
+	disabled?: boolean;
 	required?: boolean;
 }
 
+const StyledSelect = styled.select`
+	padding: 0.375rem 0.75rem;
+	border: 1px solid #ced4da;
+	border-radius: 0.25rem;
+	font-size: 1rem;
+	line-height: 1.5;
+	width: 100%;
+`;
+
 const SelectInput: React.FC<SelectInputProps> = ({
-	label,
+	options,
 	value,
 	onChange,
-	options,
+	disabled = false,
 	required = false,
 }) => {
 	return (
-		<div>
-			<label>{label}:</label>
-			<select value={value} onChange={onChange} required={required}>
-				<option value=''>Select a type</option>
-				{options.map((option) => (
-					<option key={option.value} value={option.value}>
-						{option.label}
-					</option>
-				))}
-			</select>
-		</div>
+		<StyledSelect
+			value={value}
+			onChange={onChange}
+			disabled={disabled}
+			required={required}
+		>
+			{options.map((option) => (
+				<option key={option.value} value={option.value}>
+					{option.label}
+				</option>
+			))}
+		</StyledSelect>
 	);
 };
 

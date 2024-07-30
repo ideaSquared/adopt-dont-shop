@@ -1,7 +1,15 @@
 import React from 'react';
+import styled from 'styled-components';
+
+const StyledFooter = styled.footer`
+	background-color: #f8f9fa;
+	padding: 1rem;
+	text-align: center;
+	border-top: 1px solid #e9ecef;
+`;
 
 const Footer: React.FC = () => {
-	return <p>Footer</p>;
+	return <StyledFooter>© 2024 Your Company. All rights reserved.</StyledFooter>;
 };
 
 export default Footer;

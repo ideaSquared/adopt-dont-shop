@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import UserService from '@adoptdontshop/libs/users/UserService';
 import { User } from '@adoptdontshop/libs/users/User';
-import { SelectInput, TextInput } from '@adoptdontshop/components';
+import {
+	Button,
+	FormInput,
+	SelectInput,
+	TextInput,
+} from '@adoptdontshop/components';
 
 const CreateAccount: React.FC = () => {
 	const [isRescueForm, setIsRescueForm] = useState(false);
@@ -47,85 +52,101 @@ const CreateAccount: React.FC = () => {
 		<div>
 			<h1>{isRescueForm ? 'Create Rescue Account' : 'Create User Account'}</h1>
 			<form onSubmit={isRescueForm ? handleRescueSubmit : handleUserSubmit}>
-				<TextInput
-					label='First name'
-					value={firstName}
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-						setFirstName(e.target.value)
-					}
-					required
-				/>
-				<TextInput
-					label='Last name'
-					value={lastName}
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-						setLastName(e.target.value)
-					}
-					required
-				/>
-				<TextInput
-					label='Email'
-					value={email}
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-						setEmail(e.target.value)
-					}
-					type='email'
-					required
-				/>
-				<TextInput
-					label='Password'
-					value={password}
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-						setPassword(e.target.value)
-					}
-					type='password'
-					required
-				/>
-				<TextInput
-					label='Confirm password'
-					value={confirmPassword}
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-						setConfirmPassword(e.target.value)
-					}
-					type='password'
-					required
-				/>
+				<FormInput label='First name'>
+					<TextInput
+						label='First name'
+						type='text'
+						value={firstName}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setFirstName(e.target.value)
+						}
+						required
+					/>
+				</FormInput>
+				<FormInput label='Last name'>
+					<TextInput
+						type='text'
+						value={lastName}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setLastName(e.target.value)
+						}
+						required
+					/>
+				</FormInput>
+				<FormInput label='Email'>
+					<TextInput
+						value={email}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setEmail(e.target.value)
+						}
+						type='email'
+						required
+					/>
+				</FormInput>
+				<FormInput label='Password'>
+					<TextInput
+						value={password}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setPassword(e.target.value)
+						}
+						type='password'
+						required
+					/>
+				</FormInput>
+				<FormInput label='Confirm password'>
+					<TextInput
+						value={confirmPassword}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setConfirmPassword(e.target.value)
+						}
+						type='password'
+						required
+					/>
+				</FormInput>
 
 				{isRescueForm && (
 					<>
-						<SelectInput
-							label='Rescue Type'
-							value={rescueType}
-							onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-								setRescueType(e.target.value)
-							}
-							options={[
-								{ value: 'charity', label: 'Charity' },
-								{ value: 'company', label: 'Company' },
-								{ value: 'individual', label: 'Individual' },
-								{ value: 'other', label: 'Other' },
-							]}
-						/>
+						<FormInput label='Rescue type'>
+							<SelectInput
+								value={rescueType}
+								onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+									setRescueType(e.target.value)
+								}
+								options={[
+									{ value: 'charity', label: 'Charity' },
+									{ value: 'company', label: 'Company' },
+									{ value: 'individual', label: 'Individual' },
+									{ value: 'other', label: 'Other' },
+								]}
+							/>
+						</FormInput>
+
 						{(rescueType === 'charity' || rescueType === 'company') && (
 							<>
-								<TextInput
-									label='Rescue Name'
-									value={rescueName}
-									onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-										setRescueName(e.target.value)
-									}
-								/>
-								<TextInput
+								<FormInput label='Rescue name'>
+									<TextInput
+										type='text'
+										value={rescueName}
+										onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+											setRescueName(e.target.value)
+										}
+									/>
+								</FormInput>
+								<FormInput
 									label={
 										rescueType === 'charity'
 											? 'Charity number'
 											: 'Company number'
 									}
-									value={referenceNumber}
-									onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-										setReferenceNumber(e.target.value)
-									}
-								/>
+								>
+									<TextInput
+										type='text'
+										value={referenceNumber}
+										onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+											setReferenceNumber(e.target.value)
+										}
+									/>
+								</FormInput>
 								<p>
 									Please enter the reference number as it appears in official
 									records.{' '}
@@ -149,32 +170,36 @@ const CreateAccount: React.FC = () => {
 								</p>
 							</div>
 						)}
-						<TextInput
-							label='City'
-							value={city}
-							onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-								setCity(e.target.value)
-							}
-						/>
-						<TextInput
-							label='Country'
-							value={country}
-							onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-								setCountry(e.target.value)
-							}
-						/>
+						<FormInput label='City'>
+							<TextInput
+								type='text'
+								value={city}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+									setCity(e.target.value)
+								}
+							/>
+						</FormInput>
+						<FormInput label='Country'>
+							<TextInput
+								type='text'
+								value={country}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+									setCountry(e.target.value)
+								}
+							/>
+						</FormInput>
 					</>
 				)}
-				<button type='submit'>
+				<Button type='submit'>
 					{isRescueForm ? 'Create Rescue Account' : 'Create User Account'}
-				</button>
+				</Button>
 			</form>
 			{message && <p>{message}</p>}
 			<p>
 				{isRescueForm ? 'Not a rescue?' : 'Are you a rescue?'}{' '}
-				<button onClick={() => setIsRescueForm(!isRescueForm)}>
+				<Button onClick={() => setIsRescueForm(!isRescueForm)}>
 					{isRescueForm ? 'Create User Account' : 'Create Rescue Account'}
-				</button>
+				</Button>
 			</p>
 		</div>
 	);
