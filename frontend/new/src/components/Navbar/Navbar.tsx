@@ -54,6 +54,12 @@ const Navbar: React.FC = () => {
 					<NavItem>
 						<NavLink to='/create-account'>Create Account</NavLink>
 					</NavItem>
+					<NavItem>
+						<NavLink to='/forgot-password'>Forgot Password</NavLink>
+					</NavItem>
+					<NavItem>
+						<NavLink to='/reset-password'>Reset Password</NavLink>
+					</NavItem>
 				</NavList>
 			</Nav>
 		</StyledNavbar>
