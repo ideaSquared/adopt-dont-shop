@@ -7,7 +7,7 @@ import Users from '@adoptdontshop/pages/Users';
 import Login from '@adoptdontshop/pages/user/Login';
 import CreateAccount from '@adoptdontshop/pages/user/CreateAccount';
 import ForgotPassword from '@adoptdontshop/pages/user/ForgotPassword';
-import { Header } from '@adoptdontshop/components';
+import { Navbar } from '@adoptdontshop/components';
 import ResetPassword from '@adoptdontshop/pages/user/ResetPassword';
 import { theme } from './styles/theme';
 import GlobalStyles from './styles/GlobalStyles';
@@ -18,7 +18,7 @@ const App: React.FC = () => {
 		<ThemeProvider theme={theme}>
 			<GlobalStyles />
 			<Router>
-				<Header />
+				<Navbar />
 				<Routes>
 					<Route path='/' element={<Home />} />
 					<Route path='/users' element={<Users />} />
