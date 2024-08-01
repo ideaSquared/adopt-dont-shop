@@ -15,7 +15,7 @@ const ForgotPassword: React.FC = () => {
 
 	return (
 		<div>
-			<h1>Forgot Password</h1>
+			<h1>Forgot password</h1>
 			<form onSubmit={handleSubmit}>
 				<FormInput label='Email'>
 					<TextInput
@@ -28,7 +28,7 @@ const ForgotPassword: React.FC = () => {
 					/>
 				</FormInput>
 
-				<Button type='submit'>Submit</Button>
+				<Button type='submit'>Reset my password</Button>
 			</form>
 			{message && <p>{message}</p>}
 		</div>
