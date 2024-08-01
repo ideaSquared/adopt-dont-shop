@@ -7,15 +7,15 @@ interface CardProps {
 }
 
 const StyledCard = styled.div`
-	border: 1px solid #e9ecef;
+	border: 1px solid ${(props) => props.theme.border.content};
 	border-radius: 0.25rem;
 	margin-bottom: 1rem;
 `;
 
 const StyledCardHeader = styled.div`
-	background-color: #f8f9fa;
+	background-color: ${(props) => props.theme.background.contrast};
 	padding: 0.75rem 1.25rem;
-	border-bottom: 1px solid #e9ecef;
+	border-bottom: 1px solid ${(props) => props.theme.border.content};
 `;
 
 const StyledCardBody = styled.div`

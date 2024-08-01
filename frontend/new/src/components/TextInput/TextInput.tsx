@@ -19,6 +19,7 @@ const StyledInput = styled.input`
 	width: 100%;
 	background-color: ${(props) => props.theme.background.content};
 	color: ${(props) => props.theme.text.body};
+	box-sizing: border-box;
 `;
 
 const TextInput: React.FC<TextInputProps> = ({

@@ -1,4 +1,4 @@
-import { palette, font } from './colors';
+import { palette } from './colors';
 
 export type Theme = {
 	text: {
@@ -30,101 +30,36 @@ export type Theme = {
 		content: string;
 		focus: string;
 	};
-
-	font: {
-		family: {
-			body: string;
-		};
-		weight: {
-			body: number;
-			bold: number;
-		};
-		size: {
-			body: string;
-		};
-	};
 };
 
-export const lightTheme: Theme = {
+export const theme = {
 	text: {
-		body: palette.black,
-		dark: palette.black,
-		light: palette.gray,
-		dim: palette.lightGray,
-		highlight: palette.primary,
-		link: palette.blue,
-		danger: palette.red,
-		success: palette.green,
-		warning: palette.yellow,
-		info: palette.cyan,
+		body: palette.darkGrey,
+		dark: palette.veryDarkGrey,
+		light: palette.white,
+		dim: palette.mediumGrey,
+		highlight: palette.brightOrange,
+		link: palette.brightBlue,
+		danger: palette.brightRed,
+		success: palette.brightGreen,
+		warning: palette.brightOrange,
+		info: palette.brightSkyBlue,
 	},
-	background: {
-		body: palette.white,
-		content: palette.lightGray,
-		contrast: palette.black,
-		highlight: palette.primaryLight,
-		mouseHighlight: palette.primaryDark,
-		danger: palette.redLight,
-		success: palette.greenLight,
-		warning: palette.yellowLight,
-		info: palette.cyanLight,
-	},
-	border: {
-		content: palette.gray,
-		focus: palette.primary,
-	},
-	font: {
-		family: {
-			body: font.family.body,
-		},
-		weight: {
-			body: font.weight.body,
-			bold: font.weight.bold,
-		},
-		size: {
-			body: font.size.body,
-		},
-	},
-};
 
-export const darkTheme: Theme = {
-	text: {
-		body: palette.white,
-		dark: palette.lightGray,
-		light: palette.gray,
-		dim: palette.darkGray,
-		highlight: palette.primary,
-		link: palette.blue,
-		danger: palette.red,
-		success: palette.green,
-		warning: palette.yellow,
-		info: palette.cyan,
-	},
 	background: {
-		body: palette.black,
-		content: palette.darkGray,
-		contrast: palette.white,
-		highlight: palette.primaryDark,
-		mouseHighlight: palette.primaryLight,
-		danger: palette.redDark,
-		success: palette.greenDark,
-		warning: palette.yellowDark,
-		info: palette.cyanDark,
+		body: palette.veryLightGrey,
+		content: palette.white,
+		contrast: palette.veryDarkGrey,
+		highlight: palette.brightYellow,
+		mouseHighlight: palette.brightAmber,
+		danger: palette.lightRed,
+		success: palette.lightGreen,
+		warning: palette.lightOrangeYellow,
+		info: palette.lightSkyBlue,
 	},
+
 	border: {
-		content: palette.darkGray,
-		focus: palette.primary,
-	},
-	font: {
-		family: {
-			body: font.family.body,
-		},
-		weight: {
-			body: font.weight.body,
-			bold: font.weight.bold,
-		},
-		size: {
-			body: font.size.body,
-		},
+		content: palette.lightGrey,
+		focus: palette.brightOrange,
 	},
 };

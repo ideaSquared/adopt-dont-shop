@@ -9,22 +9,16 @@ import CreateAccount from '@adoptdontshop/pages/user/CreateAccount';
 import ForgotPassword from '@adoptdontshop/pages/user/ForgotPassword';
 import { Header } from '@adoptdontshop/components';
 import ResetPassword from '@adoptdontshop/pages/user/ResetPassword';
-import { lightTheme, darkTheme } from './styles/theme';
+import { theme } from './styles/theme';
 import GlobalStyles from './styles/GlobalStyles';
 import Settings from '@adoptdontshop/pages/user/Settings';
 
 const App: React.FC = () => {
-	const [isDarkMode, setIsDarkMode] = useState(false);
-
-	const toggleTheme = () => {
-		setIsDarkMode(!isDarkMode);
-	};
-
 	return (
-		<ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
+		<ThemeProvider theme={theme}>
 			<GlobalStyles />
 			<Router>
-				<Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
+				<Header />
 				<Routes>
 					<Route path='/' element={<Home />} />
 					<Route path='/users' element={<Users />} />

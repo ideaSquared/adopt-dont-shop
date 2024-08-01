@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { Button } from '@adoptdontshop/components';
 
 const StyledHeader = styled.header`
 	background-color: ${(props) => props.theme.background.content};
@@ -11,17 +10,9 @@ const StyledHeader = styled.header`
 	border-bottom: 1px solid ${(props) => props.theme.border.content};
 `;
 
-interface HeaderProps {
-	toggleTheme: () => void;
-	isDarkMode: boolean;
-}
-
-const Header: React.FC<HeaderProps> = ({ toggleTheme, isDarkMode }) => {
+const Header: React.FC = () => {
 	return (
 		<StyledHeader>
-			<Button onClick={toggleTheme}>
-				Switch to {isDarkMode ? 'Light' : 'Dark'} Mode
-			</Button>
 			<nav>
 				<ul>
 					<li>
