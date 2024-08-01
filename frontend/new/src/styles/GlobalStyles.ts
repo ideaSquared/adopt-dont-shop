@@ -10,7 +10,7 @@ const GlobalStyles = createGlobalStyle`
   }
 
   a {
-  color: ${(props) => props.theme.text.link};
+    color: ${(props) => props.theme.text.link};
   }
 `;
 
