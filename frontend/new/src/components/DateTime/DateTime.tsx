@@ -3,13 +3,16 @@ import styled from 'styled-components';
 import * as Tooltip from '@radix-ui/react-tooltip';
 
 interface DateTimeProps {
-	timestamp: string; // Expecting an ISO string or similar timestamp
+	/* A ISO or similar timestamp */
+	timestamp: string;
 	localeOption?: 'en-GB' | 'en-US';
+	showTooltip?: boolean;
 }
 
 const DateTime: React.FC<DateTimeProps> = ({
 	timestamp,
 	localeOption = 'en-GB',
+	showTooltip = false,
 }) => {
 	const date = new Date(timestamp);
 
@@ -51,27 +54,34 @@ const DateTime: React.FC<DateTimeProps> = ({
 			<Tooltip.Root>
 				<Tooltip.Trigger asChild>
 					<ClickableTime dateTime={timestamp}>
+						{showTooltip && (
+							<span role='img' aria-label='clock'>
+								🕒
+							</span>
+						)}
 						{formattedDate} UTC
 					</ClickableTime>
 				</Tooltip.Trigger>
-				<Tooltip.Portal>
-					<TooltipContent side='top' align='center'>
-						<ClocksContainer>
-							<Clock
-								timezone='local'
-								label='Local Time'
-								timestamp={timestamp}
-							/>
-							<Clock timezone='UTC' label='UTC' timestamp={timestamp} />
-							<Clock
-								timezone='America/New_York'
-								label='New York'
-								timestamp={timestamp}
-							/>
-						</ClocksContainer>
-						<TooltipArrow />
-					</TooltipContent>
-				</Tooltip.Portal>
+				{showTooltip && (
+					<Tooltip.Portal>
+						<TooltipContent side='top' align='center'>
+							<ClocksContainer>
+								<Clock
+									timezone='local'
+									label='Local Time'
+									timestamp={timestamp}
+								/>
+								<Clock timezone='UTC' label='UTC' timestamp={timestamp} />
+								<Clock
+									timezone='America/New_York'
+									label='New York'
+									timestamp={timestamp}
+								/>
+							</ClocksContainer>
+							<TooltipArrow />
+						</TooltipContent>
+					</Tooltip.Portal>
+				)}
 			</Tooltip.Root>
 		</Tooltip.Provider>
 	);
@@ -79,8 +89,9 @@ const DateTime: React.FC<DateTimeProps> = ({
 
 const ClickableTime = styled.time`
 	cursor: pointer;
-	text-decoration: underline;
-	color: blue;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 `;
 
 const ClocksContainer = styled.div`
@@ -94,6 +105,7 @@ const Clock: React.FC<{
 	label: string;
 	timestamp: string;
 }> = ({ timezone, label, timestamp }) => {
+	// Format the timestamp based on the provided timezone
 	const date = new Date(timestamp);
 
 	const dateOptions: Intl.DateTimeFormatOptions = {
@@ -116,7 +128,8 @@ const Clock: React.FC<{
 
 	return (
 		<ClockContainer>
-			<strong>{label}:</strong> {formattedDate}, {formattedTime}
+			<strong>{label}:</strong> {formattedDate}, {formattedTime}{' '}
+			{timezone === 'UTC' ? 'UTC' : ''}
 		</ClockContainer>
 	);
 };

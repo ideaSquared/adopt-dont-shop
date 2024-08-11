@@ -86,7 +86,7 @@ const AuditLogs: React.FC = () => {
 							<td>{auditLog.log_id}</td>
 							<td>{auditLog.user_id || 'No ID'}</td>
 							<td>
-								<DateTime timestamp={auditLog.timestamp} />
+								<DateTime timestamp={auditLog.timestamp} showTooltip={true} />
 							</td>
 							<td>{auditLog.level}</td>
 							<td>{auditLog.service}</td>
