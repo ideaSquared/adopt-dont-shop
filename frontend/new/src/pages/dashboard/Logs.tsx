@@ -7,7 +7,7 @@ import {
 	DateTime,
 } from '@adoptdontshop/components';
 import { AuditLog } from '@adoptdontshop/libs/audit-logs/AuditLogs';
-import AuditAuditLogservice from '@adoptdontshop/libs/audit-logs/AuditLogsService';
+import AuditLogservice from '@adoptdontshop/libs/audit-logs/AuditLogsService';
 
 const AuditLogs: React.FC = () => {
 	const [auditlogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -17,7 +17,7 @@ const AuditLogs: React.FC = () => {
 
 	useEffect(() => {
 		// Fetch auditlogs from the AuditLogservice
-		const fetchedAuditAuditLogs = AuditAuditLogservice.getAuditLogs();
+		const fetchedAuditAuditLogs = AuditLogservice.getAuditLogs();
 		setAuditLogs(fetchedAuditAuditLogs);
 		setFilteredAuditLogs(fetchedAuditAuditLogs);
 	}, []);
