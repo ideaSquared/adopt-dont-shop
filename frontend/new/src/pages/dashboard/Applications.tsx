@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	FormInput,
 	SelectInput,
@@ -7,11 +7,19 @@ import {
 	Table,
 	Button,
 } from '@adoptdontshop/components';
+import { Application } from '@adoptdontshop/libs/applications';
+import ApplicationService from '@adoptdontshop/libs/applications/ApplicationService';
 
 const Applications: React.FC = () => {
+	const [applications, setApplications] = useState<Application[]>([]);
 	const [searchTerm, setSearchTerm] = useState<string | null>(null);
 	const [filterStatus, setFilterStatus] = useState<string | null>(null);
 	const [onlyWaiting, setOnlyWaiting] = useState<boolean>(false);
+
+	useEffect(() => {
+		const fetchedApplications = ApplicationService.getApplications();
+		setApplications(fetchedApplications);
+	}, []);
 
 	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setSearchTerm(e.target.value);
@@ -28,6 +36,18 @@ const Applications: React.FC = () => {
 	) => {
 		setOnlyWaiting((prevState) => !prevState);
 	};
+
+	// Filter applications based on search term and filters
+	const filteredApplications = applications.filter((application) => {
+		const matchesSearch =
+			!searchTerm ||
+			application.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			application.pet_name.toLowerCase().includes(searchTerm.toLowerCase());
+		const matchesStatus = !filterStatus || application.status === filterStatus;
+		const matchesWaiting = !onlyWaiting || application.status === 'pending';
+
+		return matchesSearch && matchesStatus && matchesWaiting;
+	});
 
 	const filterOptions = [
 		{ value: '', label: 'All' },
@@ -61,26 +81,30 @@ const Applications: React.FC = () => {
 			</FormInput>
 			<Table hasActions>
 				<thead>
-					<th>First name</th>
-					<th>Pet name</th>
-					<th>Description</th>
-					<th>Status</th>
-					<th>Actioned by</th>
-					<th>Actions</th>
+					<tr>
+						<th>First name</th>
+						<th>Pet name</th>
+						<th>Description</th>
+						<th>Status</th>
+						<th>Actioned by</th>
+						<th>Actions</th>
+					</tr>
 				</thead>
 				<tbody>
-					<tr>
-						<td>Test first name</td>
-						<td>Test pet name</td>
-						<td>Test description</td>
-						<td>Test status</td>
-						<td>Test actioned by</td>
-						<td>
-							<Button type='button'>View</Button>
-							<Button type='button'>Approve</Button>
-							<Button type='button'>Reject</Button>
-						</td>
-					</tr>
+					{filteredApplications.map((application) => (
+						<tr key={application.application_id}>
+							<td>{application.first_name}</td>
+							<td>{application.pet_name}</td>
+							<td>{application.description}</td>
+							<td>{application.status}</td>
+							<td>{application.actioned_by || 'N/A'}</td>
+							<td>
+								<Button type='button'>View</Button>
+								<Button type='button'>Approve</Button>
+								<Button type='button'>Reject</Button>
+							</td>
+						</tr>
+					))}
 				</tbody>
 			</Table>
 		</div>
