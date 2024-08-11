@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 
 interface TextInputProps {
-	value: string;
+	value: string | null;
 	type: string;
 	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 	placeholder?: string;
@@ -33,7 +33,7 @@ const TextInput: React.FC<TextInputProps> = ({
 	return (
 		<StyledInput
 			type={type}
-			value={value}
+			value={value || ''}
 			onChange={onChange}
 			placeholder={placeholder}
 			disabled={disabled}

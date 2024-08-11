@@ -8,7 +8,7 @@ interface Option {
 
 interface SelectInputProps {
 	options: Option[];
-	value: string;
+	value?: string | null;
 	onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 	disabled?: boolean;
 	required?: boolean;
@@ -39,7 +39,7 @@ const SelectInput: React.FC<SelectInputProps> = ({
 }) => {
 	return (
 		<StyledSelect
-			value={value}
+			value={value || ''}
 			onChange={onChange}
 			disabled={disabled}
 			required={required}

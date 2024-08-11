@@ -12,6 +12,7 @@ import ResetPassword from '@adoptdontshop/pages/user/ResetPassword';
 import { theme } from './styles/theme';
 import GlobalStyles from './styles/GlobalStyles';
 import Settings from '@adoptdontshop/pages/user/Settings';
+import Applications from '@adoptdontshop/pages/dashboard/Applications';
 
 const App: React.FC = () => {
 	return (
@@ -27,6 +28,8 @@ const App: React.FC = () => {
 					<Route path='/forgot-password' element={<ForgotPassword />} />
 					<Route path='/reset-password' element={<ResetPassword />} />
 					<Route path='/settings' element={<Settings />} />
+
+					<Route path='/applications' element={<Applications />} />
 				</Routes>
 			</Router>
 		</ThemeProvider>

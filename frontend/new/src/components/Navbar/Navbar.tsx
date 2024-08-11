@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { DropdownMenu } from '@adoptdontshop/components';
 
 const StyledNavbar = styled.header`
 	background-color: ${(props) => props.theme.background.content};
@@ -24,94 +25,39 @@ const NavList = styled.ul`
 
 const NavItem = styled.li`
 	margin: 0 1rem;
-	position: relative;
-`;
-
-const NavLink = styled(Link)`
-	color: ${(props) => props.theme.text.body};
-	text-decoration: none;
-	font-weight: bold;
-
-	&:hover {
-		color: ${(props) => props.theme.text.highlight};
-		text-decoration: underline;
-	}
-`;
-
-const Dropdown = styled.ul<{ isOpen: boolean }>`
-	display: ${(props) => (props.isOpen ? 'block' : 'none')};
-	position: absolute;
-	top: 100%;
-	left: 0;
-	background-color: ${(props) => props.theme.background.content};
-	border: 1px solid ${(props) => props.theme.border.content};
-	list-style-type: none;
-	padding: 0.5rem 0;
-	margin: 0;
-`;
-
-const DropdownItem = styled.li`
-	margin: 0;
-`;
-
-const DropdownLink = styled(Link)`
-	display: block;
-	padding: 0.5rem 1rem;
-	color: ${(props) => props.theme.text.body};
-	text-decoration: none;
-
-	&:hover {
-		background-color: ${(props) => props.theme.background.highlight};
-		color: ${(props) => props.theme.text.highlight};
-	}
-`;
-
-const AccountLink = styled.span`
-	color: ${(props) => props.theme.text.body};
-	font-weight: bold;
-	cursor: pointer;
-
-	&:hover {
-		color: ${(props) => props.theme.text.highlight};
-		text-decoration: underline;
-	}
 `;
 
 const Navbar: React.FC = () => {
-	const [dropdownOpen, setDropdownOpen] = useState(false);
-
-	const toggleDropdown = () => {
-		setDropdownOpen(!dropdownOpen);
-	};
-
 	return (
 		<StyledNavbar>
 			<Nav>
 				<NavList>
 					<NavItem>
-						<NavLink to='/'>Home</NavLink>
+						<Link to='/'>Home</Link>
 					</NavItem>
-					<NavItem onMouseEnter={toggleDropdown} onMouseLeave={toggleDropdown}>
-						<AccountLink>Account</AccountLink>
-						<Dropdown isOpen={dropdownOpen}>
-							<DropdownItem>
-								<DropdownLink to='/login'>Login</DropdownLink>
-							</DropdownItem>
-							<DropdownItem>
-								<DropdownLink to='/create-account'>Create Account</DropdownLink>
-							</DropdownItem>
-							<DropdownItem>
-								<DropdownLink to='/forgot-password'>
-									Forgot Password
-								</DropdownLink>
-							</DropdownItem>
-							<DropdownItem>
-								<DropdownLink to='/reset-password'>Reset Password</DropdownLink>
-							</DropdownItem>
-							<DropdownItem>
-								<DropdownLink to='/settings'>Settings</DropdownLink>
-							</DropdownItem>
-						</Dropdown>
+					<NavItem>
+						<DropdownMenu
+							triggerLabel='Account'
+							items={[
+								{ label: 'Login', to: '/login' },
+								{ label: 'Create Account', to: '/create-account' },
+								{ label: 'Forgot Password', to: '/forgot-password' },
+								{ label: 'Reset Password', to: '/reset-password' },
+								{ label: 'Settings', to: '/settings' },
+							]}
+						/>
+					</NavItem>
+					<NavItem>
+						<DropdownMenu
+							triggerLabel='Rescue'
+							items={[
+								{ label: 'Applications', to: '/applications' },
+								{ label: 'Ratings', to: '/ratings' },
+								{ label: 'Pets', to: '/pets' },
+								{ label: 'Staff', to: '/staff' },
+								{ label: 'Settings', to: '/rescue-settings' },
+							]}
+						/>
 					</NavItem>
 				</NavList>
 			</Nav>
