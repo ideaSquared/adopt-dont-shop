@@ -116,8 +116,7 @@ const Clock: React.FC<{
 
 	return (
 		<ClockContainer>
-			<strong>{label}:</strong> {formattedDate}, {formattedTime}{' '}
-			{timezone === 'UTC' ? 'UTC' : ''}
+			<strong>{label}:</strong> {formattedDate}, {formattedTime}
 		</ClockContainer>
 	);
 };
