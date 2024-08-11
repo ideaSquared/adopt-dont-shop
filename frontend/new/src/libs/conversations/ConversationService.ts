@@ -1,6 +1,33 @@
 // src/libs/conversations/ConversationService.ts
 
-import { Conversation } from './Conversation';
+import { Conversation, Message } from './Conversation';
+
+const messages: Message[] = [
+	{
+		sender_id: '1',
+		sender_name: 'John Doe',
+		message_text: 'Is Max still available?',
+		sent_at: '2024-08-01T10:01:00Z',
+		status: 'sent',
+		conversation_id: '1',
+	},
+	{
+		sender_id: '1',
+		sender_name: 'John Doe',
+		message_text: 'I would like more information about Max.',
+		sent_at: '2024-08-01T10:05:00Z',
+		status: 'sent',
+		conversation_id: '1',
+	},
+	{
+		sender_id: '2',
+		sender_name: 'Jane Smith',
+		message_text: 'I would like to adopt Bella.',
+		sent_at: '2024-08-02T11:45:00Z',
+		status: 'sent',
+		conversation_id: '2',
+	},
+];
 
 const conversations: Conversation[] = [
 	{
@@ -46,7 +73,11 @@ const getConversations = (): Conversation[] => conversations;
 const getConversationById = (id: string): Conversation | undefined =>
 	conversations.find((conversation) => conversation.conversation_id === id);
 
+const getMessagesByConversationId = (id: string): Message[] =>
+	messages.filter((message) => message.conversation_id === id);
+
 export default {
 	getConversations,
 	getConversationById,
+	getMessagesByConversationId,
 };

@@ -30,6 +30,7 @@ export interface Participant {
 }
 
 export interface Message {
+	conversation_id: ID;
 	sender_id: ID;
 	sender_name: string;
 	message_text: string;

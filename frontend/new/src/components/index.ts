@@ -11,3 +11,4 @@ export { default as ListGroup } from './ListGroup';
 export { default as Modal } from './Modal';
 export { default as DropdownMenu } from './DropdownMenu';
 export { default as CheckboxInput } from './CheckboxInput';
+export { default as BaseSidebar } from './BaseSidebar';

@@ -52,11 +52,19 @@ const Navbar: React.FC = () => {
 							triggerLabel='Rescue'
 							items={[
 								{ label: 'Applications', to: '/applications' },
-								{ label: 'Conversations', to: '/conversations' },
 								{ label: 'Ratings', to: '/ratings' },
 								{ label: 'Pets', to: '/pets' },
 								{ label: 'Staff', to: '/staff' },
 								{ label: 'Settings', to: '/rescue-settings' },
+							]}
+						/>
+					</NavItem>
+					<NavItem>
+						<DropdownMenu
+							triggerLabel='Admin'
+							items={[
+								{ label: 'Conversations', to: '/conversations' },
+								{ label: 'Logs', to: '/logs' },
 							]}
 						/>
 					</NavItem>
