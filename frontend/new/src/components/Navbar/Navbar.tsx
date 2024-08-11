@@ -52,6 +52,7 @@ const Navbar: React.FC = () => {
 							triggerLabel='Rescue'
 							items={[
 								{ label: 'Applications', to: '/applications' },
+								{ label: 'Conversations', to: '/conversations' },
 								{ label: 'Ratings', to: '/ratings' },
 								{ label: 'Pets', to: '/pets' },
 								{ label: 'Staff', to: '/staff' },

@@ -13,6 +13,7 @@ import { theme } from './styles/theme';
 import GlobalStyles from './styles/GlobalStyles';
 import Settings from '@adoptdontshop/pages/user/Settings';
 import Applications from '@adoptdontshop/pages/dashboard/Applications';
+import Conversations from '@adoptdontshop/pages/dashboard/Conversations';
 
 const App: React.FC = () => {
 	return (
@@ -30,6 +31,7 @@ const App: React.FC = () => {
 					<Route path='/settings' element={<Settings />} />
 
 					<Route path='/applications' element={<Applications />} />
+					<Route path='/conversations' element={<Conversations />} />
 				</Routes>
 			</Router>
 		</ThemeProvider>

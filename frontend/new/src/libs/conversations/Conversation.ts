@@ -36,12 +36,3 @@ export interface Message {
 	sent_at: Timestamp;
 	status: Status;
 }
-
-export interface ConversationsTableConversation {
-	conversation_id: ID;
-	participant_emails: Email[];
-	rescue_name?: string;
-	last_message_by_email: Email;
-	updated_at: Timestamp;
-	status?: Status;
-}
