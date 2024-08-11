@@ -14,6 +14,11 @@ import GlobalStyles from './styles/GlobalStyles';
 import Settings from '@adoptdontshop/pages/user/Settings';
 import Applications from '@adoptdontshop/pages/dashboard/Applications';
 import Conversations from '@adoptdontshop/pages/dashboard/Conversations';
+import Ratings from '@adoptdontshop/pages/dashboard/Ratings';
+import Pets from '@adoptdontshop/pages/dashboard/Pets';
+import Staff from '@adoptdontshop/pages/dashboard/Staff';
+import RescueSettings from '@adoptdontshop/pages/dashboard/RescueSettings';
+import Logs from '@adoptdontshop/pages/dashboard/Logs';
 
 const App: React.FC = () => {
 	return (
@@ -31,7 +36,13 @@ const App: React.FC = () => {
 					<Route path='/settings' element={<Settings />} />
 
 					<Route path='/applications' element={<Applications />} />
+					<Route path='/ratings' element={<Ratings />} />
+					<Route path='/pets' element={<Pets />} />
+					<Route path='/staff' element={<Staff />} />
+					<Route path='/rescue-settings' element={<RescueSettings />} />
+
 					<Route path='/conversations' element={<Conversations />} />
+					<Route path='/logs' element={<Logs />} />
 				</Routes>
 			</Router>
 		</ThemeProvider>

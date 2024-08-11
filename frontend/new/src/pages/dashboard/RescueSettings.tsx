@@ -8,12 +8,12 @@ import {
 	Button,
 } from '@adoptdontshop/components';
 
-const Settings: React.FC = () => {
+const RescueSettings: React.FC = () => {
 	return (
 		<div>
-			<h1>Settings</h1>
+			<h1>RescueSettings</h1>
 		</div>
 	);
 };
 
-export default Settings;
+export default RescueSettings;
