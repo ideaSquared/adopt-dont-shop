@@ -7,6 +7,7 @@ import {
 	Table,
 	Button,
 	BaseSidebar,
+	DateTime,
 } from '@adoptdontshop/components';
 import {
 	Conversation,
@@ -159,7 +160,9 @@ const Conversations: React.FC = () => {
 					{filteredConversations.map((conversation) => (
 						<tr key={conversation.conversation_id}>
 							<td>{conversation.started_by}</td>
-							<td>{new Date(conversation.started_at).toLocaleString()}</td>
+							<td>
+								<DateTime timestamp={conversation.started_at} />
+							</td>
 							<td>{conversation.last_message}</td>
 							<td>{conversation.status}</td>
 							<td>{conversation.unread_messages}</td>

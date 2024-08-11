@@ -4,7 +4,7 @@ import {
 	SelectInput,
 	TextInput,
 	Table,
-	Button,
+	DateTime,
 } from '@adoptdontshop/components';
 import { Log } from '@adoptdontshop/libs/logs/Logs';
 import LogService from '@adoptdontshop/libs/logs/LogsService';
@@ -83,7 +83,9 @@ const Logs: React.FC = () => {
 						<tr key={log.log_id}>
 							<td>{log.log_id}</td>
 							<td>{log.user_id || 'No ID'}</td>
-							<td>{new Date(log.timestamp).toLocaleString()}</td>
+							<td>
+								<DateTime timestamp={log.timestamp} />
+							</td>
 							<td>{log.level}</td>
 							<td>{log.service}</td>
 							<td>{log.message}</td>

@@ -49,7 +49,7 @@ export const theme = {
 	background: {
 		body: palette.veryLightGrey,
 		content: palette.white,
-		contrast: palette.lightGrey,
+		contrast: palette.paleGrey,
 		highlight: palette.brightYellow,
 		mouseHighlight: palette.brightAmber,
 		danger: palette.lightRed,
