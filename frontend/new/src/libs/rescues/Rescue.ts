@@ -1,19 +1,21 @@
-// frontend/new/src/lib/users/User.ts
-
-export interface User {
+export interface StaffMember {
 	user_id: string;
-	email?: string;
-	password?: string;
-	confirmPassword?: string;
-	first_name?: string;
+	first_name: string;
 	last_name?: string;
-	city?: string;
-	country?: string;
-	description?: string;
-	reset_token_force_flag?: boolean;
-	is_admin?: boolean;
+	email: string;
+	password?: string;
+	permissions?: string[];
+	verified_by_rescue?: boolean;
 }
 
-// Using type aliases and Pick to create specific subsets
-export type LoginUser = Pick<User, 'email' | 'password'>;
-export type ResetPasswordUser = Pick<User, 'email'>;
+export interface Rescue {
+	rescue_id: string;
+	rescue_name: string;
+	rescue_type: string;
+	rescue_city: string;
+	rescue_country: string;
+	reference_number?: string;
+	reference_number_verified?: boolean;
+	country?: string;
+	staff: StaffMember[];
+}

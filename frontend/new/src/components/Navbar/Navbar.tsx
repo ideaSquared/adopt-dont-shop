@@ -55,7 +55,7 @@ const Navbar: React.FC = () => {
 								{ label: 'Ratings', to: '/ratings' },
 								{ label: 'Pets', to: '/pets' },
 								{ label: 'Staff', to: '/staff' },
-								{ label: 'Settings', to: '/rescue-settings' },
+								{ label: 'Settings', to: '/rescue' },
 							]}
 						/>
 					</NavItem>
@@ -65,6 +65,7 @@ const Navbar: React.FC = () => {
 							items={[
 								{ label: 'Conversations', to: '/conversations' },
 								{ label: 'Logs', to: '/logs' },
+								{ label: 'Rescues', to: '/rescues' },
 							]}
 						/>
 					</NavItem>

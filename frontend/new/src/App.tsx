@@ -17,7 +17,8 @@ import Conversations from '@adoptdontshop/pages/dashboard/Conversations';
 import Ratings from '@adoptdontshop/pages/dashboard/Ratings';
 import Pets from '@adoptdontshop/pages/dashboard/Pets';
 import Staff from '@adoptdontshop/pages/dashboard/Staff';
-import RescueSettings from '@adoptdontshop/pages/dashboard/RescueSettings';
+import Rescues from '@adoptdontshop/pages/dashboard/Rescues';
+import Rescue from '@adoptdontshop/pages/dashboard/Rescue';
 import Logs from '@adoptdontshop/pages/dashboard/Logs';
 
 const App: React.FC = () => {
@@ -39,8 +40,9 @@ const App: React.FC = () => {
 					<Route path='/ratings' element={<Ratings />} />
 					<Route path='/pets' element={<Pets />} />
 					<Route path='/staff' element={<Staff />} />
-					<Route path='/rescue-settings' element={<RescueSettings />} />
+					<Route path='/rescue' element={<Rescue />} />
 
+					<Route path='/rescues' element={<Rescues />} />
 					<Route path='/conversations' element={<Conversations />} />
 					<Route path='/logs' element={<Logs />} />
 				</Routes>
