@@ -63,18 +63,18 @@ const getRescueById = (id: string): Rescue | undefined =>
 	rescues.find((rescue) => rescue.rescue_id === id);
 
 const getStaffMembersByRescueId = (
-	rescueId: string
+	rescue_id: string
 ): StaffMember[] | undefined => {
-	const rescue = getRescueById(rescueId);
+	const rescue = getRescueById(rescue_id);
 	return rescue?.staff;
 };
 
 const getStaffMemberById = (
-	rescueId: string,
-	staffId: string
+	rescue_id: string,
+	staff_id: string
 ): StaffMember | undefined => {
-	const staff = getStaffMembersByRescueId(rescueId);
-	return staff?.find((member) => member.user_id === staffId);
+	const staff = getStaffMembersByRescueId(rescue_id);
+	return staff?.find((member) => member.user_id === staff_id);
 };
 
 export default {
