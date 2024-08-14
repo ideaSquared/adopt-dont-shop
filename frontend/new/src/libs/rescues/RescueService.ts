@@ -5,12 +5,11 @@ const rescues: Rescue[] = [
 	{
 		rescue_id: '1',
 		rescue_name: 'Animal Rescue A',
-		rescue_type: 'Non-Profit',
+		rescue_type: 'Charity',
 		rescue_city: 'New York',
 		rescue_country: 'USA',
 		reference_number: 'AR1234',
 		reference_number_verified: true,
-		country: 'USA',
 		staff: [
 			{
 				user_id: '1',
@@ -39,10 +38,9 @@ const rescues: Rescue[] = [
 	{
 		rescue_id: '2',
 		rescue_name: 'Wildlife Rescue B',
-		rescue_type: 'Government',
+		rescue_type: 'Company',
 		rescue_city: 'Los Angeles',
 		rescue_country: 'USA',
-		country: 'USA',
 		staff: [
 			{
 				user_id: '3',
@@ -58,6 +56,28 @@ const rescues: Rescue[] = [
 				last_name: 'Johnson',
 				email: 'bob@example.com',
 				role: [Role.COMMUNICATIONS_MANAGER],
+				verified_by_rescue: true,
+			},
+		],
+	},
+	{
+		rescue_id: '3',
+		rescue_type: 'Individual',
+		rescue_city: 'New York',
+		rescue_country: 'USA',
+		staff: [
+			{
+				user_id: '1',
+				first_name: 'Mike',
+				last_name: 'Doss',
+				email: 'mike.doss@example.com',
+				role: [
+					Role.RESCUE_MANAGER,
+					Role.APPLICATION_MANAGER,
+					Role.COMMUNICATIONS_MANAGER,
+					Role.PET_MANAGER,
+					Role.STAFF_MANAGER,
+				],
 				verified_by_rescue: true,
 			},
 		],

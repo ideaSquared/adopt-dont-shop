@@ -1,4 +1,7 @@
 import { Role } from 'contexts/Permission';
+
+export type RescueType = 'Individual' | 'Charity' | 'Company';
+
 export interface StaffMember {
 	user_id: string;
 	first_name: string;
@@ -11,12 +14,11 @@ export interface StaffMember {
 
 export interface Rescue {
 	rescue_id: string;
-	rescue_name: string;
-	rescue_type: string;
+	rescue_name?: string;
+	rescue_type: RescueType;
 	rescue_city: string;
 	rescue_country: string;
 	reference_number?: string;
 	reference_number_verified?: boolean;
-	country?: string;
 	staff: StaffMember[];
 }
