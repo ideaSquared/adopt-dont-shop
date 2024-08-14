@@ -18,7 +18,7 @@ export enum Permission {
 }
 
 export enum Role {
-	ADMIN = 'admin',
+	RESCUE_MANAGER = 'rescue_manager',
 	STAFF_MANAGER = 'staff_manager',
 	PET_MANAGER = 'pet_manager',
 	COMMUNICATIONS_MANAGER = 'communications_manager',
@@ -26,23 +26,10 @@ export enum Role {
 }
 
 export const rolePermissions: Record<Role, Permission[]> = {
-	[Role.ADMIN]: [
+	[Role.RESCUE_MANAGER]: [
 		Permission.VIEW_RESCUE_INFO,
 		Permission.EDIT_RESCUE_INFO,
 		Permission.DELETE_RESCUE,
-		Permission.VIEW_STAFF,
-		Permission.ADD_STAFF,
-		Permission.EDIT_STAFF,
-		Permission.VERIFY_STAFF,
-		Permission.DELETE_STAFF,
-		Permission.VIEW_PET,
-		Permission.ADD_PET,
-		Permission.EDIT_PET,
-		Permission.DELETE_PET,
-		Permission.CREATE_MESSAGES,
-		Permission.VIEW_MESSAGES,
-		Permission.VIEW_APPLICATIONS,
-		Permission.ACTION_APPLICATIONS,
 	],
 	[Role.STAFF_MANAGER]: [
 		Permission.VIEW_STAFF,

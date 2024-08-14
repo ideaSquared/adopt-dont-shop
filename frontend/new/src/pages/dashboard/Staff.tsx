@@ -9,14 +9,13 @@ import {
 } from '@adoptdontshop/components';
 import { Rescue, StaffMember } from '@adoptdontshop/libs/rescues';
 import { RescueService } from '@adoptdontshop/libs/rescues';
+import { Role } from 'contexts/Permission';
 
 const Staff: React.FC = () => {
 	const [staff, setStaff] = useState<StaffMember[]>([]);
 	const [filteredStaff, setFilteredStaff] = useState<StaffMember[]>([]);
 	const [searchByEmailName, setSearchByEmailName] = useState<string | null>('');
-	const [filterByPermissions, setFilterByPermissions] = useState<string | null>(
-		''
-	);
+	const [filterByRole, setFilterByRole] = useState<Role | 'all'>('all');
 	const [filterByVerified, setFilterByVerified] = useState<boolean>(false);
 
 	useEffect(() => {
@@ -38,27 +37,23 @@ const Staff: React.FC = () => {
 					.includes(searchByEmailName.toLowerCase()) ??
 					false);
 
-			const matchesPermissions =
-				!filterByPermissions ||
-				filterByPermissions === 'all' ||
-				member.permissions?.includes(filterByPermissions);
+			const matchesRole =
+				filterByRole === 'all' || member.role.includes(filterByRole as Role);
 
 			const matchesVerified = !filterByVerified || member.verified_by_rescue;
 
-			return matchesSearch && matchesPermissions && matchesVerified;
+			return matchesSearch && matchesRole && matchesVerified;
 		});
 
 		setFilteredStaff(filtered);
-	}, [searchByEmailName, filterByPermissions, filterByVerified, staff]);
+	}, [searchByEmailName, filterByRole, filterByVerified, staff]);
 
 	const handleSearchByEmailName = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setSearchByEmailName(e.target.value);
 	};
 
-	const handleFilterByPermissions = (
-		e: React.ChangeEvent<HTMLSelectElement>
-	) => {
-		setFilterByPermissions(e.target.value);
+	const handleFilterByRole = (e: React.ChangeEvent<HTMLSelectElement>) => {
+		setFilterByRole(e.target.value as Role | 'all');
 	};
 
 	const handleFilterByVerified = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,17 +70,15 @@ const Staff: React.FC = () => {
 					onChange={handleSearchByEmailName}
 				/>
 			</FormInput>
-			<FormInput label='Filter by permissions'>
+			<FormInput label='Filter by Role'>
 				<SelectInput
-					value={filterByPermissions}
-					onChange={handleFilterByPermissions}
+					value={filterByRole}
+					onChange={handleFilterByRole}
 					options={[
-						{ value: 'all', label: 'Filter by all permissions' },
-						...Array.from(
-							new Set(filteredStaff.flatMap((staff) => staff.permissions || []))
-						).map((perm) => ({
-							value: perm,
-							label: perm,
+						{ value: 'all', label: 'Filter by all roles' },
+						...Object.values(Role).map((role) => ({
+							value: role,
+							label: role.replace(/_/g, ' ').toLowerCase(),
 						})),
 					]}
 				/>
@@ -103,7 +96,7 @@ const Staff: React.FC = () => {
 						<th>First Name</th>
 						<th>Last Name</th>
 						<th>Email</th>
-						<th>Permissions</th>
+						<th>Role</th>
 						<th>Verified</th>
 						<th>Actions</th>
 					</tr>
@@ -115,7 +108,12 @@ const Staff: React.FC = () => {
 							<td>{staff.first_name}</td>
 							<td>{staff.last_name}</td>
 							<td>{staff.email}</td>
-							<td>{staff.permissions?.join(', ') || 'None'}</td>
+							<td>
+								{staff.role
+									.map((role) => role.replace(/_/g, ' ').toUpperCase())
+									.join(', ')}
+							</td>
+
 							<td>{staff.verified_by_rescue ? 'Yes' : 'No'}</td>
 							<td>
 								<Button type='button'>Delete</Button>

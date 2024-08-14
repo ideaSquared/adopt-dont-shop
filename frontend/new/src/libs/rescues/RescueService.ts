@@ -1,4 +1,5 @@
 import { Rescue, StaffMember } from './Rescue';
+import { Role } from 'contexts/Permission';
 
 const rescues: Rescue[] = [
 	{
@@ -16,7 +17,13 @@ const rescues: Rescue[] = [
 				first_name: 'John',
 				last_name: 'Doe',
 				email: 'john@example.com',
-				permissions: ['read', 'write'],
+				role: [
+					Role.RESCUE_MANAGER,
+					Role.APPLICATION_MANAGER,
+					Role.COMMUNICATIONS_MANAGER,
+					Role.PET_MANAGER,
+					Role.STAFF_MANAGER,
+				],
 				verified_by_rescue: true,
 			},
 			{
@@ -24,7 +31,7 @@ const rescues: Rescue[] = [
 				first_name: 'Jane',
 				last_name: 'Doe',
 				email: 'jane@example.com',
-				permissions: ['read'],
+				role: [Role.STAFF_MANAGER],
 				verified_by_rescue: false,
 			},
 		],
@@ -42,7 +49,7 @@ const rescues: Rescue[] = [
 				first_name: 'Alice',
 				last_name: 'Smith',
 				email: 'alice@example.com',
-				permissions: ['read', 'write'],
+				role: [Role.PET_MANAGER],
 				verified_by_rescue: true,
 			},
 			{
@@ -50,7 +57,7 @@ const rescues: Rescue[] = [
 				first_name: 'Bob',
 				last_name: 'Johnson',
 				email: 'bob@example.com',
-				permissions: ['read'],
+				role: [Role.COMMUNICATIONS_MANAGER],
 				verified_by_rescue: true,
 			},
 		],
