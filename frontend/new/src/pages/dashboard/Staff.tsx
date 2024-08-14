@@ -6,10 +6,17 @@ import {
 	CheckboxInput,
 	Table,
 	Button,
+	Badge,
 } from '@adoptdontshop/components';
+import styled from 'styled-components';
 import { Rescue, StaffMember } from '@adoptdontshop/libs/rescues';
 import { RescueService } from '@adoptdontshop/libs/rescues';
 import { Role } from 'contexts/Permission';
+
+const BadgeWrapper = styled.div`
+	display: flex;
+	gap: 0.5rem; /* space between badges */
+`;
 
 const Staff: React.FC = () => {
 	const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -109,12 +116,22 @@ const Staff: React.FC = () => {
 							<td>{staff.last_name}</td>
 							<td>{staff.email}</td>
 							<td>
-								{staff.role
-									.map((role) => role.replace(/_/g, ' ').toUpperCase())
-									.join(', ')}
+								<BadgeWrapper>
+									{staff.role.map((role) => (
+										<Badge key={role} variant='info'>
+											{role.replace(/_/g, ' ').toUpperCase()}
+										</Badge>
+									))}
+								</BadgeWrapper>
 							</td>
 
-							<td>{staff.verified_by_rescue ? 'Yes' : 'No'}</td>
+							<td>
+								{staff.verified_by_rescue ? (
+									<Badge variant='success'>YES</Badge>
+								) : (
+									<Badge variant='danger'>NO</Badge>
+								)}
+							</td>
 							<td>
 								<Button type='button'>Delete</Button>
 							</td>

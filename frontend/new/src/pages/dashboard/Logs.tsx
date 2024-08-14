@@ -5,12 +5,13 @@ import {
 	TextInput,
 	Table,
 	DateTime,
+	Badge,
 } from '@adoptdontshop/components';
 import { AuditLog } from '@adoptdontshop/libs/audit-logs/AuditLogs';
 import AuditLogservice from '@adoptdontshop/libs/audit-logs/AuditLogsService';
 
 const AuditLogs: React.FC = () => {
-	const [auditlogs, setAuditLogs] = useState<AuditLog[]>([]);
+	const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 	const [filteredAuditLogs, setFilteredAuditLogs] = useState<AuditLog[]>([]);
 	const [searchTerm, setSearchTerm] = useState<string | null>(null);
 	const [serviceTerm, setServiceTerm] = useState<string | null>(null);
@@ -24,13 +25,13 @@ const AuditLogs: React.FC = () => {
 
 	useEffect(() => {
 		// Filter auditlogs based on searchTerm and serviceTerm
-		const filtered = auditlogs.filter((log) => {
+		const filtered = auditLogs.filter((log) => {
 			const matchesSearch = !searchTerm || log.log_id.includes(searchTerm);
 			const matchesService = !serviceTerm || log.service.includes(serviceTerm);
 			return matchesSearch && matchesService;
 		});
 		setFilteredAuditLogs(filtered);
-	}, [searchTerm, serviceTerm, auditlogs]);
+	}, [searchTerm, serviceTerm, auditLogs]);
 
 	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setSearchTerm(e.target.value);
@@ -44,13 +45,30 @@ const AuditLogs: React.FC = () => {
 
 	const serviceOptions = [
 		{ value: '', label: 'All Services' },
-		...Array.from(new Set(auditlogs.map((log) => log.service))).map(
+		...Array.from(new Set(auditLogs.map((log) => log.service))).map(
 			(service) => ({
 				value: service,
 				label: service,
 			})
 		),
 	];
+
+	const getLevelVariant = (
+		level: string
+	): 'info' | 'warning' | 'success' | 'danger' | null => {
+		switch (level.toLowerCase()) {
+			case 'info':
+				return 'info';
+			case 'warning':
+				return 'warning';
+			case 'success':
+				return 'success';
+			case 'error':
+				return 'danger';
+			default:
+				return null;
+		}
+	};
 
 	return (
 		<div>
@@ -88,8 +106,14 @@ const AuditLogs: React.FC = () => {
 							<td>
 								<DateTime timestamp={auditLog.timestamp} showTooltip={true} />
 							</td>
-							<td>{auditLog.level}</td>
-							<td>{auditLog.service}</td>
+							<td>
+								<Badge variant={getLevelVariant(auditLog.level)}>
+									{auditLog.level.toUpperCase()}
+								</Badge>
+							</td>
+							<td>
+								<Badge variant='content'>{auditLog.service}</Badge>
+							</td>
 							<td>{auditLog.message}</td>
 						</tr>
 					))}

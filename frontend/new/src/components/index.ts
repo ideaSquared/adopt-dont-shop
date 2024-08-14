@@ -13,3 +13,4 @@ export { default as DropdownMenu } from './DropdownMenu';
 export { default as CheckboxInput } from './CheckboxInput';
 export { default as BaseSidebar } from './BaseSidebar';
 export { default as DateTime } from './DateTime';
+export { default as Badge } from './Badge';

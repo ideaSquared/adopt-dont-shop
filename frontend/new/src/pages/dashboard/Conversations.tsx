@@ -8,6 +8,7 @@ import {
 	Button,
 	BaseSidebar,
 	DateTime,
+	Badge,
 } from '@adoptdontshop/components';
 import {
 	Conversation,
@@ -28,17 +29,6 @@ const ParticipantsContainer = styled.div`
 	flex-wrap: wrap;
 	gap: 0.5rem;
 	margin-bottom: 1rem;
-`;
-
-const ParticipantBadge = styled.span<{ color: string }>`
-	// TODO: Make these work with theme
-	background-color: ${(props) =>
-		props.color === 'blue' ? '#ebf8ff' : '#f0fff4'};
-	color: ${(props) => (props.color === 'blue' ? '#2c5282' : '#276749')};
-	font-size: 0.875rem;
-	font-weight: 500;
-	padding: 0.25rem 0.5rem;
-	border-radius: 0.25rem;
 `;
 
 const MessagesTitle = styled.h3`
@@ -204,14 +194,14 @@ const Conversations: React.FC = () => {
 						<ParticipantsTitle>Participants</ParticipantsTitle>
 						<ParticipantsContainer>
 							{selectedConversation.participant_emails.map((email, index) => (
-								<ParticipantBadge key={index} color='blue'>
+								<Badge key={index} variant='info'>
 									{email}
-								</ParticipantBadge>
+								</Badge>
 							))}
 							{selectedConversation.participant_rescues.map((rescue, index) => (
-								<ParticipantBadge key={index} color='green'>
+								<Badge key={index} variant='info'>
 									{rescue}
-								</ParticipantBadge>
+								</Badge>
 							))}
 						</ParticipantsContainer>
 						<MessagesTitle>Messages</MessagesTitle>
