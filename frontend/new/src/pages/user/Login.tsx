@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import UserService from '@adoptdontshop/libs/users/UserService';
+import { UserService } from '@adoptdontshop/libs/users/';
 import { Button, FormInput, TextInput } from '@adoptdontshop/components';
 
 const Login: React.FC = () => {

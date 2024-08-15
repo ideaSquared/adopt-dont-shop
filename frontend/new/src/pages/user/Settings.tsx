@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import UserService from '@adoptdontshop/libs/users/UserService';
-import { User } from '@adoptdontshop/libs/users/User';
+import { User, UserService } from '@adoptdontshop/libs/users/';
 import { Button, FormInput, TextInput } from '@adoptdontshop/components';
 import { Form } from 'react-router-dom';
 

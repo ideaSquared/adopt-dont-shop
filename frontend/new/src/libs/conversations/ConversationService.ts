@@ -1,5 +1,3 @@
-// src/libs/conversations/ConversationService.ts
-
 import { Conversation, Message } from './Conversation';
 
 const messages: Message[] = [

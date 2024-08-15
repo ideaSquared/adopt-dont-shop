@@ -13,8 +13,8 @@ import {
 import {
 	Conversation,
 	Message,
-} from '@adoptdontshop/libs/conversations/Conversation';
-import ConversationService from '@adoptdontshop/libs/conversations/ConversationService';
+	ConversationService,
+} from '@adoptdontshop/libs/conversations/';
 
 // Styled Components
 

@@ -7,8 +7,10 @@ import {
 	Table,
 	Button,
 } from '@adoptdontshop/components';
-import { Application } from '@adoptdontshop/libs/applications';
-import ApplicationService from '@adoptdontshop/libs/applications/ApplicationService';
+import {
+	Application,
+	ApplicationService,
+} from '@adoptdontshop/libs/applications';
 
 const Applications: React.FC = () => {
 	const [applications, setApplications] = useState<Application[]>([]);

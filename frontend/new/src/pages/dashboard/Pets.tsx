@@ -7,8 +7,7 @@ import {
 	Table,
 	Button,
 } from '@adoptdontshop/components';
-import { Pet } from '@adoptdontshop/libs/pets';
-import PetsService from '@adoptdontshop/libs/pets/PetsService';
+import { Pet, PetsService } from '@adoptdontshop/libs/pets';
 
 const Pets: React.FC = () => {
 	const [pets, setPets] = useState<Pet[]>([]);

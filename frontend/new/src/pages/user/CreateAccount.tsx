@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import UserService from '@adoptdontshop/libs/users/UserService';
-import { User } from '@adoptdontshop/libs/users/User';
+import { User, UserService } from '@adoptdontshop/libs/users/';
 import {
 	Button,
 	FormInput,
