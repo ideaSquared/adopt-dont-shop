@@ -3,6 +3,7 @@ export { default as Button } from './Button';
 export { default as FormInput } from './FormInput';
 export { default as TextInput } from './TextInput';
 export { default as SelectInput } from './SelectInput';
+export { default as CountrySelectInput } from './CountrySelectInput';
 export { default as Footer } from './Footer';
 export { default as Navbar } from './Navbar';
 export { default as Card } from './Card';
