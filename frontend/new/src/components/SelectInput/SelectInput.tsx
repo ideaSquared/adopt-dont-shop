@@ -20,9 +20,11 @@ const StyledSelect = styled.select`
 	border-radius: 0.25rem;
 	font-size: 1rem;
 	line-height: 1.5;
+	height: 2.375rem;
 	width: 100%;
 	background-color: ${(props) => props.theme.background.content};
 	color: ${(props) => props.theme.text.body};
+	box-sizing: border-box;
 
 	option {
 		background-color: ${(props) => props.theme.background.content};

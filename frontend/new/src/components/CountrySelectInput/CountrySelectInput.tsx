@@ -21,6 +21,7 @@ const StyledButton = styled.button`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	box-sizing: border-box;
 
 	&:disabled {
 		background-color: ${(props) => props.theme.background.disabled};
@@ -38,8 +39,10 @@ const DropdownMenu = styled.ul`
 	max-height: 15rem;
 	overflow-y: auto;
 	border-radius: 0.25rem;
-	padding: 0.5rem 0;
+	padding: 0.375rem 0.75rem;
+	line-height: 1.5;
 	list-style: none;
+	box-sizing: border-box;
 
 	li {
 		padding: 0.5rem 1rem;

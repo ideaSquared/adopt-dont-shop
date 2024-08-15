@@ -34,7 +34,6 @@ const Rescue: React.FC = () => {
 	};
 
 	const handleSubmit = () => {
-		// Handle the submit action for verification
 		console.log('Submitted for verification:', { rescueName, referenceNumber });
 	};
 
