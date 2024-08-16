@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { DropdownMenu } from '@adoptdontshop/components';
+import { usePermissions } from 'contexts/PermissionContext';
+import { Role, Permission } from 'contexts/Permission';
 
 const StyledNavbar = styled.header`
 	background-color: ${(props) => props.theme.background.content};
@@ -26,8 +28,12 @@ const NavList = styled.ul`
 const NavItem = styled.li`
 	margin: 0 1rem;
 `;
-
 const Navbar: React.FC = () => {
+	const { hasRole } = usePermissions();
+
+	const canViewRescueDashboard = hasRole(Role.STAFF);
+	const canViewAdminDashboard = hasRole(Role.ADMIN);
+
 	return (
 		<StyledNavbar>
 			<Nav>
@@ -35,6 +41,7 @@ const Navbar: React.FC = () => {
 					<NavItem>
 						<Link to='/'>Home</Link>
 					</NavItem>
+
 					<NavItem>
 						<DropdownMenu
 							triggerLabel='Account'
@@ -47,28 +54,34 @@ const Navbar: React.FC = () => {
 							]}
 						/>
 					</NavItem>
-					<NavItem>
-						<DropdownMenu
-							triggerLabel='Rescue'
-							items={[
-								{ label: 'Applications', to: '/applications' },
-								{ label: 'Ratings', to: '/ratings' },
-								{ label: 'Pets', to: '/pets' },
-								{ label: 'Staff', to: '/staff' },
-								{ label: 'Settings', to: '/rescue' },
-							]}
-						/>
-					</NavItem>
-					<NavItem>
-						<DropdownMenu
-							triggerLabel='Admin'
-							items={[
-								{ label: 'Conversations', to: '/conversations' },
-								{ label: 'Logs', to: '/logs' },
-								{ label: 'Rescues', to: '/rescues' },
-							]}
-						/>
-					</NavItem>
+
+					{canViewRescueDashboard && (
+						<NavItem>
+							<DropdownMenu
+								triggerLabel='Rescue'
+								items={[
+									{ label: 'Applications', to: '/applications' },
+									{ label: 'Ratings', to: '/ratings' },
+									{ label: 'Pets', to: '/pets' },
+									{ label: 'Staff', to: '/staff' },
+									{ label: 'Settings', to: '/rescue' },
+								]}
+							/>
+						</NavItem>
+					)}
+
+					{canViewAdminDashboard && (
+						<NavItem>
+							<DropdownMenu
+								triggerLabel='Admin'
+								items={[
+									{ label: 'Conversations', to: '/conversations' },
+									{ label: 'Logs', to: '/logs' },
+									{ label: 'Rescues', to: '/rescues' },
+								]}
+							/>
+						</NavItem>
+					)}
 				</NavList>
 			</Nav>
 		</StyledNavbar>

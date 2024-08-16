@@ -1,52 +1,110 @@
-// src/App.tsx
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
-import Home from '@adoptdontshop/pages/Home';
-import Users from '@adoptdontshop/pages/Users';
-import Login from '@adoptdontshop/pages/user/Login';
-import CreateAccount from '@adoptdontshop/pages/user/CreateAccount';
-import ForgotPassword from '@adoptdontshop/pages/user/ForgotPassword';
+import { Home } from '@adoptdontshop/pages/landing';
+import {
+	Login,
+	CreateAccount,
+	ForgotPassword,
+	ResetPassword,
+	Settings,
+} from '@adoptdontshop/pages/account';
+import {
+	Applications,
+	Conversations,
+	Ratings,
+	Pets,
+	Staff,
+	Rescues,
+	Rescue,
+	Logs,
+} from '@adoptdontshop/pages/dashboard';
 import { Navbar } from '@adoptdontshop/components';
-import ResetPassword from '@adoptdontshop/pages/user/ResetPassword';
 import { theme } from './styles/theme';
 import GlobalStyles from './styles/GlobalStyles';
-import Settings from '@adoptdontshop/pages/user/Settings';
-import Applications from '@adoptdontshop/pages/dashboard/Applications';
-import Conversations from '@adoptdontshop/pages/dashboard/Conversations';
-import Ratings from '@adoptdontshop/pages/dashboard/Ratings';
-import Pets from '@adoptdontshop/pages/dashboard/Pets';
-import Staff from '@adoptdontshop/pages/dashboard/Staff';
-import Rescues from '@adoptdontshop/pages/dashboard/Rescues';
-import Rescue from '@adoptdontshop/pages/dashboard/Rescue';
-import Logs from '@adoptdontshop/pages/dashboard/Logs';
+import { PermissionProvider } from 'contexts/PermissionContext';
+import { Role, Permission } from 'contexts/Permission';
+import ProtectedRoute from 'contexts/ProtectedRoute';
 
 const App: React.FC = () => {
+	const TEST_userRoles: Role[] = [];
+	const TEST_rescueRoles: Role[] = [
+		Role.STAFF,
+		Role.RESCUE_MANAGER,
+		Role.STAFF_MANAGER,
+		Role.PET_MANAGER,
+		Role.COMMUNICATIONS_MANAGER,
+		Role.APPLICATION_MANAGER,
+	];
+	const TEST_adminRoles: Role[] = [Role.ADMIN];
+
 	return (
 		<ThemeProvider theme={theme}>
-			<GlobalStyles />
-			<Router>
-				<Navbar />
-				<Routes>
-					<Route path='/' element={<Home />} />
-					<Route path='/users' element={<Users />} />
-					<Route path='/login' element={<Login />} />
-					<Route path='/create-account' element={<CreateAccount />} />
-					<Route path='/forgot-password' element={<ForgotPassword />} />
-					<Route path='/reset-password' element={<ResetPassword />} />
-					<Route path='/settings' element={<Settings />} />
+			<PermissionProvider roles={TEST_userRoles}>
+				<GlobalStyles />
+				<Router>
+					<Navbar />
+					<Routes>
+						<Route path='/' element={<Home />} />
+						<Route path='/login' element={<Login />} />
+						<Route path='/create-account' element={<CreateAccount />} />
+						<Route path='/forgot-password' element={<ForgotPassword />} />
+						<Route path='/reset-password' element={<ResetPassword />} />
+						<Route path='/settings' element={<Settings />} />
 
-					<Route path='/applications' element={<Applications />} />
-					<Route path='/ratings' element={<Ratings />} />
-					<Route path='/pets' element={<Pets />} />
-					<Route path='/staff' element={<Staff />} />
-					<Route path='/rescue' element={<Rescue />} />
-
-					<Route path='/rescues' element={<Rescues />} />
-					<Route path='/conversations' element={<Conversations />} />
-					<Route path='/logs' element={<Logs />} />
-				</Routes>
-			</Router>
+						<Route
+							element={
+								<ProtectedRoute
+									requiredPermission={Permission.VIEW_APPLICATIONS}
+								/>
+							}
+						>
+							<Route path='/applications' element={<Applications />} />
+						</Route>
+						<Route
+							element={
+								<ProtectedRoute requiredPermission={Permission.VIEW_PET} />
+							}
+						>
+							<Route path='/ratings' element={<Ratings />} />
+							<Route path='/pets' element={<Pets />} />
+						</Route>
+						<Route
+							element={
+								<ProtectedRoute requiredPermission={Permission.VIEW_STAFF} />
+							}
+						>
+							<Route path='/staff' element={<Staff />} />
+						</Route>
+						<Route
+							element={
+								<ProtectedRoute
+									requiredPermission={Permission.VIEW_RESCUE_INFO}
+								/>
+							}
+						>
+							<Route path='/rescue' element={<Rescue />} />
+							<Route path='/rescues' element={<Rescues />} />
+						</Route>
+						<Route
+							element={
+								<ProtectedRoute requiredPermission={Permission.VIEW_MESSAGES} />
+							}
+						>
+							<Route path='/conversations' element={<Conversations />} />
+						</Route>
+						<Route
+							element={
+								<ProtectedRoute
+									requiredPermission={Permission.VIEW_DASHBOARD}
+								/>
+							}
+						>
+							<Route path='/logs' element={<Logs />} />
+						</Route>
+					</Routes>
+				</Router>
+			</PermissionProvider>
 		</ThemeProvider>
 	);
 };
