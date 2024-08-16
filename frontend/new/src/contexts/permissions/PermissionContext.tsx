@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { Role, Permission, rolePermissions } from './Permission';
+import { Role, Permission, rolePermissions } from '.';
 
 interface PermissionContextProps {
 	roles: Role[];
@@ -16,7 +16,7 @@ interface PermissionProviderProps {
 	children: ReactNode;
 }
 
-export const PermissionProvider: React.FC<PermissionProviderProps> = ({
+const PermissionProvider: React.FC<PermissionProviderProps> = ({
 	roles,
 	children,
 }) => {
@@ -40,10 +40,13 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
 	);
 };
 
-export const usePermissions = () => {
+const usePermissions = () => {
 	const context = useContext(PermissionContext);
 	if (!context) {
 		throw new Error('usePermissions must be used within a PermissionProvider');
 	}
 	return context;
 };
+
+export default PermissionProvider;
+export { usePermissions };

@@ -2,8 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { DropdownMenu } from '@adoptdontshop/components';
-import { usePermissions } from 'contexts/PermissionContext';
-import { Role, Permission } from 'contexts/Permission';
+import { usePermissions, Role } from '@adoptdontshop/permissions';
 
 const StyledNavbar = styled.header`
 	background-color: ${(props) => props.theme.background.content};

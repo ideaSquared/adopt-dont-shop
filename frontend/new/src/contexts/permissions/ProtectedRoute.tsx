@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { usePermissions } from 'contexts/PermissionContext';
-import { Permission } from 'contexts/Permission';
+import { usePermissions, Permission } from '.';
 
 interface ProtectedRouteProps {
 	requiredPermission: Permission;

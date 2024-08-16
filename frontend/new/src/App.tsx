@@ -22,9 +22,12 @@ import {
 import { Navbar } from '@adoptdontshop/components';
 import { theme } from './styles/theme';
 import GlobalStyles from './styles/GlobalStyles';
-import { PermissionProvider } from 'contexts/PermissionContext';
-import { Role, Permission } from 'contexts/Permission';
-import ProtectedRoute from 'contexts/ProtectedRoute';
+import {
+	PermissionProvider,
+	Role,
+	Permission,
+	ProtectedRoute,
+} from '@adoptdontshop/permissions';
 
 const App: React.FC = () => {
 	const TEST_userRoles: Role[] = [];

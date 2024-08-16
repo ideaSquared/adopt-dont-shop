@@ -11,7 +11,7 @@ import {
 import styled from 'styled-components';
 import { Rescue, StaffMember } from '@adoptdontshop/libs/rescues';
 import { RescueService } from '@adoptdontshop/libs/rescues';
-import { Role } from 'contexts/Permission';
+import { Role } from '@adoptdontshop/permissions';
 
 const BadgeWrapper = styled.div`
 	display: flex;

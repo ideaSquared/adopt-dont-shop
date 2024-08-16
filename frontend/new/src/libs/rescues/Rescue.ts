@@ -1,10 +1,10 @@
-import { Role } from 'contexts/Permission';
+import { Role } from '@adoptdontshop/permissions';
 
 export type RescueType = 'Individual' | 'Charity' | 'Company';
 
 export interface StaffMember {
 	user_id: string;
-	role: Role[];
+	role: Role[] | Role;
 	verified_by_rescue: boolean;
 }
 
@@ -23,8 +23,8 @@ export interface OrganizationRescue {
 	rescue_type: 'Charity' | 'Company';
 	rescue_city: string;
 	rescue_country: string;
-	reference_number: string;
-	reference_number_verified: boolean;
+	reference_number?: string;
+	reference_number_verified?: boolean;
 	staff: StaffMember[];
 }
 

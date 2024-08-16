@@ -21,6 +21,7 @@ export default defineConfig({
 			'@adoptdontshop/services': '/src/services',
 			'@adoptdontshop/store': '/src/store',
 			'@adoptdontshop/styles': '/src/styles',
+			'@adoptdontshop/permissions/*': 'src/contexts/permissions/',
 		},
 	},
 });
