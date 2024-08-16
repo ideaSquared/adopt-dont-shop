@@ -9,7 +9,7 @@ import {
 	Badge,
 } from '@adoptdontshop/components';
 import styled from 'styled-components';
-import { Rescue, StaffMember } from '@adoptdontshop/libs/rescues';
+import { StaffMember } from '@adoptdontshop/libs/rescues';
 import { RescueService } from '@adoptdontshop/libs/rescues';
 import { Role } from '@adoptdontshop/permissions';
 

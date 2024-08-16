@@ -13,6 +13,9 @@ const rescues: Rescue[] = [
 		staff: [
 			{
 				user_id: '1',
+				first_name: 'John',
+				last_name: 'Doe',
+				email: 'john@example.com',
 				role: [
 					Role.RESCUE_MANAGER,
 					Role.APPLICATION_MANAGER,
@@ -24,6 +27,9 @@ const rescues: Rescue[] = [
 			},
 			{
 				user_id: '2',
+				first_name: 'Jane',
+				last_name: 'Doe',
+				email: 'jane@example.com',
 				role: [Role.STAFF_MANAGER],
 				verified_by_rescue: false,
 			},
@@ -38,12 +44,18 @@ const rescues: Rescue[] = [
 		staff: [
 			{
 				user_id: '3',
-				role: Role.PET_MANAGER,
+				first_name: 'Alice',
+				last_name: 'Smith',
+				email: 'alice@example.com',
+				role: [Role.PET_MANAGER],
 				verified_by_rescue: true,
 			},
 			{
 				user_id: '4',
-				role: Role.COMMUNICATIONS_MANAGER,
+				first_name: 'Bob',
+				last_name: 'Johnson',
+				email: 'bob@example.com',
+				role: [Role.COMMUNICATIONS_MANAGER],
 				verified_by_rescue: true,
 			},
 		],
@@ -56,6 +68,9 @@ const rescues: Rescue[] = [
 		staff: [
 			{
 				user_id: '1',
+				first_name: 'Mike',
+				last_name: 'Doss',
+				email: 'mike.doss@example.com',
 				role: [
 					Role.RESCUE_MANAGER,
 					Role.APPLICATION_MANAGER,

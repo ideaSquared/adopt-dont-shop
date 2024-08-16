@@ -1,5 +1,3 @@
-// frontend/new/src/lib/users/User.ts
-
 export interface User {
 	user_id: string;
 	email?: string;
