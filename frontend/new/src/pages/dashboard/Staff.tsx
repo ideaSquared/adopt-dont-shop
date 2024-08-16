@@ -15,7 +15,7 @@ import { Role } from '@adoptdontshop/permissions';
 
 const BadgeWrapper = styled.div`
 	display: flex;
-	gap: 0.5rem; /* space between badges */
+	gap: 0.5rem;
 `;
 
 const Staff: React.FC = () => {
