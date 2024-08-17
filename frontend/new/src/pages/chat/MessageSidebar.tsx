@@ -3,24 +3,32 @@ import React from 'react'
 import styled from 'styled-components'
 
 const SidebarContainer = styled.div`
-  width: 250px;
-  height: 100%;
-  border-right: 1px solid #ccc;
+  width: 100%;
+  height: 200px;
+  border-right: none;
   overflow-y: auto;
   border-bottom: 1px solid #ccc;
+
+  @media (min-width: 768px) {
+    width: 250px;
+    height: 100%;
+    border-right: 1px solid #ccc;
+  }
 `
 
 const ConversationItem = styled.div<{ isSelected: boolean }>`
-  padding: 15px;
+  padding: 10px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   background-color: ${(props) =>
-    props.isSelected
-      ? '#d0e6ff'
-      : 'transparent'}; /* Highlight color for selected conversation */
+    props.isSelected ? '#d0e6ff' : 'transparent'};
 
   &:hover {
     background-color: ${(props) => (props.isSelected ? '#c0d6ff' : '#f5f5f5')};
+  }
+
+  @media (min-width: 768px) {
+    padding: 15px;
   }
 `
 

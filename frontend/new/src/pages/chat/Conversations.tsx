@@ -14,23 +14,35 @@ const OuterContainer = styled.div`
   align-items: center;
   height: 100vh;
   background-color: #f0f0f0;
+  padding: 10px; /* Add padding for mobile */
+
+  @media (min-width: 768px) {
+    padding: 0; /* Remove padding on larger screens */
+  }
 `
 
 const Container = styled.div`
   display: flex;
-  width: 75%;
-  height: 75%;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
   background-color: #fff;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   overflow: hidden;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    width: 75%;
+    height: 75%;
+  }
 `
 
 const ChatArea = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Ensure the chat area doesn't overflow */
+  overflow: hidden;
 `
 
 const MainContainer: React.FC = () => {

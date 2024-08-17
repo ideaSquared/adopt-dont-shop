@@ -8,29 +8,34 @@ interface ChatProps {
   onSendMessage: (message: Message) => void
 }
 
+interface MessageItemProps {
+  isCurrentUser: boolean
+}
+
 const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: 100%; /* Make sure the chat container takes up full height */
+  height: 100%;
+  padding: 10px; /* Add some padding for mobile */
+
+  @media (min-width: 768px) {
+    padding: 0; /* Remove padding on larger screens */
+  }
 `
 
 const MessageList = styled.div`
   flex: 1;
   padding: 10px;
-  overflow-y: auto; /* Enable scrolling within the message list */
+  overflow-y: auto;
   background-color: #f9f9f9;
 `
-
-interface MessageItemProps {
-  isCurrentUser: boolean
-}
 
 const MessageItem = styled.div<MessageItemProps>`
   margin-bottom: 10px;
   padding: 8px;
   border-radius: 4px;
   background-color: #e1ffc7;
-  max-width: 60%;
+  max-width: 90%; /* Adjust for mobile */
 
   ${(props) =>
     props.isCurrentUser
@@ -44,6 +49,10 @@ const MessageItem = styled.div<MessageItemProps>`
           background-color: #e1ffc7;
           margin-right: auto;
         `}
+
+  @media (min-width: 768px) {
+    max-width: 60%; /* Retain original styling on larger screens */
+  }
 `
 
 const MessageSender = styled.div`
@@ -60,7 +69,6 @@ const MessageTimestamp = styled.div`
   color: #666;
   text-align: right;
 `
-
 const InputContainer = styled.div`
   display: flex;
   padding: 10px;
@@ -68,6 +76,10 @@ const InputContainer = styled.div`
   border-top: 1px solid #ccc;
   border-bottom: 1px solid #ccc;
   box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+
+  @media (min-width: 768px) {
+    padding: 10px;
+  }
 `
 
 const Input = styled.input`
