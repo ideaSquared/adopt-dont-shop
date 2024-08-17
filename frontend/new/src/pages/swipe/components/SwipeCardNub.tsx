@@ -17,7 +17,7 @@ const Card = styled.div<{ swipeDirection: 'left' | 'right' | null }>`
 	border-radius: 10px;
 	display: flex;
 	flex-direction: column;
-	justify-content: space-between;
+	justify-content: flex-end; /* Changed to align the info and actions at the bottom */
 	align-items: center;
 	font-size: 16px;
 	padding: 20px;
@@ -52,10 +52,14 @@ const Card = styled.div<{ swipeDirection: 'left' | 'right' | null }>`
 `;
 
 const CardImage = styled.img`
+	position: absolute;
+	top: 0;
+	left: 0;
 	width: 100%;
 	height: 180px;
 	object-fit: cover;
-	border-radius: 10px;
+	border-top-left-radius: 10px;
+	border-top-right-radius: 10px;
 
 	@media (max-width: 768px) {
 		height: 150px; /* Adjust image height for smaller screens */
@@ -70,12 +74,15 @@ const CardInfo = styled.div`
 	text-align: center;
 	padding: 10px 0;
 	flex-grow: 1;
+	margin-top: 180px; /* Push down the content below the image */
 
 	@media (max-width: 768px) {
+		margin-top: 150px; /* Adjust for smaller screens */
 		padding: 8px 0; /* Adjust padding for smaller screens */
 	}
 
 	@media (max-width: 480px) {
+		margin-top: 120px; /* Adjust for very small screens */
 		padding: 5px 0; /* Adjust padding for very small screens */
 	}
 `;
@@ -117,7 +124,7 @@ const ActionButton = styled.button`
 	}
 `;
 
-const SwipeCard: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
+const SwipeCardNub: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
 	const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(
 		null
 	);
@@ -148,4 +155,4 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
 	);
 };
 
-export default SwipeCard;
+export default SwipeCardNub;

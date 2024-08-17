@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import SwipeCard from './components/SwipeCard';
+import {
+	SwipeCardDefault,
+	SwipeCardBackground,
+	SwipeCardMinimal,
+	SwipeCardNub,
+} from './components/';
 import { Pet, PetsService } from '@adoptdontshop/libs/pets';
 
 const SwipeContainer = styled.div`
@@ -25,8 +30,25 @@ const DefaultCard = styled.div`
 	color: #555;
 `;
 
+const ToggleButton = styled.button`
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	padding: 10px 15px;
+	background-color: #007bff;
+	color: white;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	z-index: 1000;
+
+	&:hover {
+		background-color: #0056b3;
+	}
+`;
 const Swipe: React.FC = () => {
 	const [petCards, setPetCards] = useState<Pet[]>([]);
+	const [cardDesign, setCardDesign] = useState('default'); // Default card design
 
 	useEffect(() => {
 		const fetchedPets = PetsService.getPets() as Pet[];
@@ -39,19 +61,63 @@ const Swipe: React.FC = () => {
 		);
 	};
 
+	const toggleCardDesign = () => {
+		setCardDesign((prevDesign) => {
+			if (prevDesign === 'default') return 'background';
+			if (prevDesign === 'background') return 'minimal';
+			if (prevDesign === 'minimal') return 'nub';
+			return 'default';
+		});
+	};
+
 	const currentCard = petCards[0];
 
-	return (
-		<SwipeContainer>
-			{currentCard ? (
-				<SwipeCard
+	const renderCard = () => {
+		if (!currentCard) return <DefaultCard>No more pets available</DefaultCard>;
+
+		if (cardDesign === 'default') {
+			return (
+				<SwipeCardDefault
 					key={currentCard.pet_id}
 					card={currentCard}
 					onSwipe={handleSwipe}
 				/>
-			) : (
-				<DefaultCard>No more pets available</DefaultCard>
-			)}
+			);
+		}
+
+		if (cardDesign === 'background') {
+			return (
+				<SwipeCardBackground
+					key={currentCard.pet_id}
+					card={currentCard}
+					onSwipe={handleSwipe}
+				/>
+			);
+		}
+
+		if (cardDesign === 'nub') {
+			return (
+				<SwipeCardNub
+					key={currentCard.pet_id}
+					card={currentCard}
+					onSwipe={handleSwipe}
+				/>
+			);
+		}
+
+		return (
+			<SwipeCardMinimal
+				key={currentCard.pet_id}
+				card={currentCard}
+				onSwipe={handleSwipe}
+			/>
+		);
+	};
+
+	return (
+		<SwipeContainer>
+			<ToggleButton onClick={toggleCardDesign}>Toggle Card Design</ToggleButton>
+			{renderCard()}
 		</SwipeContainer>
 	);
 };
