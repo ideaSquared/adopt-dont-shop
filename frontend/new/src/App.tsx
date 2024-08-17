@@ -43,7 +43,7 @@ const App: React.FC = () => {
 
 	return (
 		<ThemeProvider theme={theme}>
-			<PermissionProvider roles={TEST_userRoles}>
+			<PermissionProvider roles={TEST_rescueRoles}>
 				<GlobalStyles />
 				<Router>
 					<Navbar />

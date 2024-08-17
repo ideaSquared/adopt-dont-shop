@@ -71,10 +71,12 @@ const Modal: React.FC<ModalProps> = ({ title, children, isOpen, onClose }) => {
 
 	return (
 		<StyledModal isOpen={isOpen}>
-			<StyledModalDialog>
+			<StyledModalDialog role='dialog' aria-labelledby='modal-title'>
 				<StyledModalContent>
 					<StyledModalHeader>
-						<h5 className='modal-title'>{title}</h5>
+						<h5 id='modal-title' className='modal-title'>
+							{title}
+						</h5>
 						<button
 							type='button'
 							className='btn-close'

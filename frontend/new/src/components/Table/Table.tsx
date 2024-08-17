@@ -1,13 +1,13 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
 import styled, { css } from 'styled-components';
 
-interface TableProps {
-	children: ReactNode;
+interface StyledTableProps {
+	children: React.ReactNode;
 	striped?: boolean;
 	hasActions?: boolean;
 }
 
-const StyledTable = styled.table<{ striped?: boolean; hasActions?: boolean }>`
+const StyledTable = styled.table<StyledTableProps>`
 	width: 100%;
 	margin-bottom: 1rem;
 	color: ${(props) => props.theme.text.body};
@@ -46,7 +46,7 @@ const StyledTable = styled.table<{ striped?: boolean; hasActions?: boolean }>`
 		`}
 `;
 
-const Table: React.FC<TableProps> = ({
+const Table: React.FC<StyledTableProps> = ({
 	children,
 	striped = false,
 	hasActions = false,

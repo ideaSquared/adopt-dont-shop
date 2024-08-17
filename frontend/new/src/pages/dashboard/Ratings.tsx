@@ -70,7 +70,7 @@ const Ratings: React.FC = () => {
 					options={typeOptions}
 				/>
 			</FormInput>
-			<Table>
+			<Table striped>
 				<thead>
 					<tr>
 						<th>Pet ID</th>

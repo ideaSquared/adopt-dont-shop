@@ -33,7 +33,7 @@ const StyledBadge = styled.span<{ variant: BadgeProps['variant'] }>`
 			case 'info':
 				return props.theme.text.info;
 			default:
-				return props.theme.text.contrast;
+				return props.theme.text.body;
 		}
 	}};
 	font-size: 0.875rem;

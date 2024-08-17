@@ -9,7 +9,11 @@ const StyledFooter = styled.footer`
 `;
 
 const Footer: React.FC = () => {
-	return <StyledFooter>© 2024 Your Company. All rights reserved.</StyledFooter>;
+	return (
+		<StyledFooter>
+			© 2024 Adopt Dont Shop & ideaSquared. All rights reserved.
+		</StyledFooter>
+	);
 };
 
 export default Footer;

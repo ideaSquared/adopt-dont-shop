@@ -18,6 +18,7 @@ const DateTime: React.FC<DateTimeProps> = ({
 
 	// Function to get the ordinal suffix for a day
 	const getOrdinalSuffix = (day: number): string => {
+		if (localeOption === 'en-US') return ''; // Skip ordinal suffix for en-US
 		if (day > 3 && day < 21) return 'th'; // Special case for 11th, 12th, 13th
 		switch (day % 10) {
 			case 1:
@@ -31,9 +32,11 @@ const DateTime: React.FC<DateTimeProps> = ({
 		}
 	};
 
-	// Get the day with the ordinal suffix
 	const day = date.getUTCDate();
-	const dayWithSuffix = `${day}${getOrdinalSuffix(day)}`;
+	const dayWithSuffix =
+		localeOption === 'en-US'
+			? day.toString()
+			: `${day}${getOrdinalSuffix(day)}`;
 
 	// Get the month name and year
 	const month = date.toLocaleString(localeOption, {
@@ -46,8 +49,19 @@ const DateTime: React.FC<DateTimeProps> = ({
 	const hours = date.getUTCHours().toString().padStart(2, '0');
 	const minutes = date.getUTCMinutes().toString().padStart(2, '0');
 
-	// Format the final string without "at"
-	const formattedDate = `${dayWithSuffix} ${month} ${year}, ${hours}:${minutes}`;
+	// Format the final string
+	// Format the final string differently for en-US and en-GB
+	const formattedDate =
+		localeOption === 'en-US'
+			? `${month} ${day}, ${year}, ${date.toLocaleTimeString(localeOption, {
+					hour: '2-digit',
+					minute: '2-digit',
+					timeZone: 'UTC',
+			  })} UTC`
+			: `${dayWithSuffix} ${month} ${year}, ${date.toLocaleTimeString(
+					localeOption,
+					{ hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }
+			  )} UTC`;
 
 	return (
 		<Tooltip.Provider>
@@ -59,7 +73,7 @@ const DateTime: React.FC<DateTimeProps> = ({
 								🕒
 							</span>
 						)}
-						{formattedDate} UTC
+						{formattedDate}
 					</ClickableTime>
 				</Tooltip.Trigger>
 				{showTooltip && (
@@ -70,12 +84,19 @@ const DateTime: React.FC<DateTimeProps> = ({
 									timezone='local'
 									label='Local Time'
 									timestamp={timestamp}
+									localeOption={localeOption}
 								/>
-								<Clock timezone='UTC' label='UTC' timestamp={timestamp} />
+								<Clock
+									timezone='UTC'
+									label='UTC'
+									timestamp={timestamp}
+									localeOption={localeOption}
+								/>
 								<Clock
 									timezone='America/New_York'
 									label='New York'
 									timestamp={timestamp}
+									localeOption={localeOption}
 								/>
 							</ClocksContainer>
 							<TooltipArrow />
@@ -104,8 +125,8 @@ const Clock: React.FC<{
 	timezone: string;
 	label: string;
 	timestamp: string;
-}> = ({ timezone, label, timestamp }) => {
-	// Format the timestamp based on the provided timezone
+	localeOption: 'en-GB' | 'en-US';
+}> = ({ timezone, label, timestamp, localeOption }) => {
 	const date = new Date(timestamp);
 
 	const dateOptions: Intl.DateTimeFormatOptions = {
@@ -119,12 +140,12 @@ const Clock: React.FC<{
 		hour: '2-digit',
 		minute: '2-digit',
 		second: '2-digit',
-		hour12: false,
+		hour12: localeOption === 'en-US', // en-US prefers 12-hour format
 		timeZone: timezone === 'local' ? undefined : timezone,
 	};
 
-	const formattedDate = date.toLocaleDateString('en-GB', dateOptions);
-	const formattedTime = date.toLocaleTimeString('en-GB', timeOptions);
+	const formattedDate = date.toLocaleDateString(localeOption, dateOptions);
+	const formattedTime = date.toLocaleTimeString(localeOption, timeOptions);
 
 	return (
 		<ClockContainer>

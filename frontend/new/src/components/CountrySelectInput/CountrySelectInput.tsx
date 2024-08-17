@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import Flag from 'react-world-flags';
 import countries from './CountryList.json';
+import { count } from 'console';
 
 interface CountrySelectProps {
 	onCountryChange: (value: string) => void;
@@ -81,6 +82,11 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
 
+	if (!countries || countries.length === 0) {
+		console.error('No countries data');
+		return null;
+	}
+
 	const handleSelect = (name: string) => {
 		onCountryChange(name);
 		setIsOpen(false);
@@ -131,6 +137,7 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
 			<StyledButton
 				ref={buttonRef}
 				type='button'
+				role='button'
 				aria-haspopup='listbox'
 				aria-expanded={isOpen}
 				onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -160,9 +167,9 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
 							role='option'
 							aria-selected={country.name === countryValue}
 							className={`
-                ${country.name === countryValue ? 'selected' : ''} 
-                ${highlightedIndex === index ? 'highlighted' : ''}
-              `}
+								${country.name === countryValue ? 'selected' : ''} 
+								${highlightedIndex === index ? 'highlighted' : ''}
+							`}
 							onClick={() => handleSelect(country.name)}
 						>
 							<FlagIcon code={country.code} />

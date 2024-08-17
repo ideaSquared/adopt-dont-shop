@@ -24,7 +24,7 @@
 			"@adoptdontshop/pages/*": ["pages/*"],
 			"@adoptdontshop/services/*": ["services/*"],
 			"@adoptdontshop/store/*": ["store/*"],
-			"@adoptdontshop/styles/*": ["styles/*"],
+			"@adoptdontshop/styles": ["styles"],
 			"@adoptdontshop/permissions": ["contexts/permissions"]
 		}
 	},
