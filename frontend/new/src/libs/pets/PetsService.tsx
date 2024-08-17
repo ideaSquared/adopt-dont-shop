@@ -1,6 +1,6 @@
-import { Pet } from './Pets';
+import { Pet, PetRescue } from './Pets';
 
-const pets: Pet[] = [
+const pets: PetRescue[] = [
 	{
 		pet_id: '101',
 		images: ['image1.jpg'],
@@ -53,12 +53,12 @@ const pets: Pet[] = [
 	},
 ];
 
-const getPets = (): Pet[] => pets;
+const getPets = (): Pet[] | PetRescue[] => pets;
 
-const getPetById = (pet_id: string): Pet | undefined =>
+const getPetById = (pet_id: string): Pet | PetRescue | undefined =>
 	pets.find((pet) => pet.pet_id === pet_id);
 
-const getPetsByType = (type: string): Pet[] =>
+const getPetsByType = (type: string): Pet[] | PetRescue[] =>
 	pets.filter((pet) => pet.type.toLowerCase() === type.toLowerCase());
 
 export default {

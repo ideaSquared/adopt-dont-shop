@@ -22,6 +22,9 @@ export interface Pet {
 	household: string;
 	energy: string;
 	family: string;
+}
+
+export interface PetRescue extends Pet {
 	ratings?: {
 		love: number;
 		like: number;
