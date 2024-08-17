@@ -1,7 +1,7 @@
-import React from 'react'
-import styled, { css } from 'styled-components'
 import { Pet } from '@adoptdontshop/libs/pets'
 import { SwipeControls, useSwipe } from '@adoptdontshop/pages/swipe/components'
+import React from 'react'
+import styled, { css } from 'styled-components'
 
 type SwipeCardProps = {
   card: Pet
@@ -103,7 +103,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
   })
 
   return (
-    <Card swipeDirection={swipeDirection} imageUrl="https://picsum.photos/400">
+    <Card swipeDirection={swipeDirection} imageUrl={card.images[0]}>
       <CardContent>
         <CardTitle>{card.name}</CardTitle>
         <CardText>{card.breed}</CardText>

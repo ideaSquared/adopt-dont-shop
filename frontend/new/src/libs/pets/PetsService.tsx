@@ -3,7 +3,7 @@ import { Pet, PetRescue } from './Pets'
 const pets: PetRescue[] = [
   {
     pet_id: '101',
-    images: ['image1.jpg'],
+    images: ['https://placecats.com/300/200'],
     name: 'Max',
     type: 'Dog',
     status: 'Available',
@@ -29,7 +29,7 @@ const pets: PetRescue[] = [
   },
   {
     pet_id: '102',
-    images: ['image2.jpg'],
+    images: ['https://placecats.com/300/200'],
     name: 'Bella',
     type: 'Cat',
     status: 'Adopted',
@@ -55,7 +55,7 @@ const pets: PetRescue[] = [
   },
   {
     pet_id: '103',
-    images: ['image3.jpg'],
+    images: ['https://placecats.com/300/200'],
     name: 'Charlie',
     type: 'Dog',
     status: 'Available',
@@ -81,7 +81,7 @@ const pets: PetRescue[] = [
   },
   {
     pet_id: '104',
-    images: ['image4.jpg'],
+    images: ['https://placecats.com/300/200'],
     name: 'Luna',
     type: 'Cat',
     status: 'Available',
@@ -107,7 +107,7 @@ const pets: PetRescue[] = [
   },
   {
     pet_id: '105',
-    images: ['image5.jpg'],
+    images: ['https://placecats.com/300/200'],
     name: 'Rocky',
     type: 'Dog',
     status: 'Adopted',
@@ -133,7 +133,7 @@ const pets: PetRescue[] = [
   },
   {
     pet_id: '106',
-    images: ['image6.jpg'],
+    images: ['https://placecats.com/300/200'],
     name: 'Milo',
     type: 'Rabbit',
     status: 'Available',
@@ -158,7 +158,7 @@ const pets: PetRescue[] = [
   },
   {
     pet_id: '107',
-    images: ['image7.jpg'],
+    images: ['https://placecats.com/300/200'],
     name: 'Daisy',
     type: 'Dog',
     status: 'Available',
@@ -184,7 +184,7 @@ const pets: PetRescue[] = [
   },
   {
     pet_id: '108',
-    images: ['image8.jpg'],
+    images: ['https://placecats.com/300/200'],
     name: 'Oliver',
     type: 'Cat',
     status: 'Available',
