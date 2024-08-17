@@ -1,3 +1,4 @@
+import { Role } from '@adoptdontshop/permissions'
 import { User } from './User'
 
 const users: User[] = [
@@ -6,15 +7,44 @@ const users: User[] = [
     first_name: 'John',
     last_name: 'Doe',
     email: 'john@example.com',
+    roles: [Role.ADMIN, Role.STAFF_MANAGER, Role.VERIFIED_USER],
   },
   {
     user_id: '2',
     first_name: 'Jane',
     last_name: 'Doe',
     email: 'jane@example.com',
+    roles: [Role.RESCUE_MANAGER, Role.VERIFIED_USER],
+  },
+  {
+    user_id: '3',
+    first_name: 'Alice',
+    last_name: 'Smith',
+    email: 'alice@example.com',
+    roles: [Role.PET_MANAGER, Role.VERIFIED_USER],
+  },
+  {
+    user_id: '4',
+    first_name: 'Bob',
+    last_name: 'Brown',
+    email: 'bob@example.com',
+    roles: [Role.STAFF, Role.USER],
+  },
+  {
+    user_id: '5',
+    first_name: 'Charlie',
+    last_name: 'Johnson',
+    email: 'charlie@example.com',
+    roles: [Role.STAFF, Role.USER],
+  },
+  {
+    user_id: '6',
+    first_name: 'Emily',
+    last_name: 'Davis',
+    email: 'emily@example.com',
+    roles: [Role.STAFF, Role.VERIFIED_USER],
   },
 ]
-
 const getUsers = (): User[] => users
 
 const getUserById = (id: string): User | undefined =>

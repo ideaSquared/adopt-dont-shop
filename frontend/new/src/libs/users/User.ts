@@ -1,3 +1,5 @@
+import { Role } from '@adoptdontshop/permissions'
+
 export interface User {
   user_id: string
   email: string
@@ -10,6 +12,7 @@ export interface User {
   description?: string
   reset_token_force_flag?: boolean
   is_admin?: boolean
+  roles: Role[]
 }
 
 // Using type aliases and Pick to create specific subsets

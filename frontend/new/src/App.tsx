@@ -15,6 +15,7 @@ import {
   Rescue,
   Rescues,
   Staff,
+  Users,
 } from '@adoptdontshop/pages/dashboard'
 import { Home } from '@adoptdontshop/pages/landing'
 import { Swipe } from '@adoptdontshop/pages/swipe'
@@ -47,7 +48,7 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <PermissionProvider roles={TEST_rescueRoles}>
+      <PermissionProvider roles={TEST_adminRoles}>
         <GlobalStyles />
         <Router>
           <Navbar />
@@ -110,6 +111,7 @@ const App: React.FC = () => {
               }
             >
               <Route path="/logs" element={<Logs />} />
+              <Route path="/users" element={<Users />} />
             </Route>
           </Routes>
         </Router>

@@ -1,4 +1,5 @@
 import { User } from '@adoptdontshop/libs/users'
+import { Role } from '@adoptdontshop/permissions'
 import React, {
   ReactNode,
   createContext,
@@ -58,6 +59,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         email: 'mockuser@example.com',
         first_name: 'John',
         last_name: 'Doe',
+        roles: [Role.ADMIN],
       }
       setUser(mockedUser)
     } catch (error) {
