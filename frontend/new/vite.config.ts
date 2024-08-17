@@ -22,6 +22,7 @@ export default defineConfig({
 			'@adoptdontshop/store': '/src/store',
 			'@adoptdontshop/styles': '/src/styles',
 			'@adoptdontshop/permissions/*': 'src/contexts/permissions/',
+			'@adoptdontshop/swipe': 'swipe/',
 		},
 	},
 });

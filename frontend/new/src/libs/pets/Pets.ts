@@ -8,7 +8,7 @@ export interface Pet {
 	gender: string;
 	short_description: string;
 	long_description: string;
-	ownerInfo?: string;
+	owner_id: string;
 	distance?: number;
 	breed: string;
 	vaccination_status: string;

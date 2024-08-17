@@ -7,11 +7,11 @@ import {
 	Table,
 	Button,
 } from '@adoptdontshop/components';
-import { Pet, PetsService } from '@adoptdontshop/libs/pets';
+import { PetRescue, PetsService } from '@adoptdontshop/libs/pets';
 
 const Pets: React.FC = () => {
-	const [pets, setPets] = useState<Pet[]>([]);
-	const [filteredPets, setFilteredPets] = useState<Pet[]>([]);
+	const [pets, setPets] = useState<PetRescue[]>([]);
+	const [filteredPets, setFilteredPets] = useState<PetRescue[]>([]);
 	const [searchTerm, setSearchTerm] = useState<string | null>(null);
 	const [filterByType, setFilterByType] = useState<string | null>(null);
 
@@ -114,7 +114,7 @@ const Pets: React.FC = () => {
 							<td>{pet.energy}</td>
 							<td>{pet.family}</td>
 							<td>{pet.distance || 'N/A'}</td>
-							<td>{pet.ownerInfo || 'No Info'}</td>
+							<td>{pet.owner_id || 'No Info'}</td>
 							<td>
 								{pet.ratings ? (
 									<div>

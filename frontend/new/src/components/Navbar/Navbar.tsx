@@ -54,6 +54,13 @@ const Navbar: React.FC = () => {
 						/>
 					</NavItem>
 
+					<NavItem>
+						<DropdownMenu
+							triggerLabel='Swipe'
+							items={[{ label: 'Swipe', to: '/swipe' }]}
+						/>
+					</NavItem>
+
 					{canViewRescueDashboard && (
 						<NavItem>
 							<DropdownMenu

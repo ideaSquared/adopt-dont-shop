@@ -28,6 +28,7 @@ import {
 	Permission,
 	ProtectedRoute,
 } from '@adoptdontshop/permissions';
+import { Swipe } from '@adoptdontshop/pages/swipe';
 
 const App: React.FC = () => {
 	const TEST_userRoles: Role[] = [];
@@ -54,6 +55,7 @@ const App: React.FC = () => {
 						<Route path='/forgot-password' element={<ForgotPassword />} />
 						<Route path='/reset-password' element={<ResetPassword />} />
 						<Route path='/settings' element={<Settings />} />
+						<Route path='/swipe' element={<Swipe />} />
 
 						<Route
 							element={
