@@ -1,6 +1,6 @@
 import { Message } from '@adoptdontshop/libs/conversations'
 import React, { useState } from 'react'
-import styled from 'styled-components'
+import styled, { css } from 'styled-components'
 
 interface ChatProps {
   messages: Message[]
@@ -21,11 +21,29 @@ const MessageList = styled.div`
   background-color: #f9f9f9;
 `
 
-const MessageItem = styled.div`
+interface MessageItemProps {
+  isCurrentUser: boolean
+}
+
+const MessageItem = styled.div<MessageItemProps>`
   margin-bottom: 10px;
   padding: 8px;
   border-radius: 4px;
   background-color: #e1ffc7;
+  max-width: 60%;
+
+  ${(props) =>
+    props.isCurrentUser
+      ? css`
+          background-color: #007bff;
+          color: #fff;
+          margin-left: auto;
+          text-align: right;
+        `
+      : css`
+          background-color: #e1ffc7;
+          margin-right: auto;
+        `}
 `
 
 const MessageSender = styled.div`
@@ -84,12 +102,13 @@ const Chat: React.FC<ChatProps> = ({
   onSendMessage,
 }) => {
   const [newMessage, setNewMessage] = useState<string>('')
+  const currentUserId = '1' // Assume the current user has an ID of '1'
   const isMessageValid = newMessage.trim().length > 0
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
       const newMsg: Message = {
-        sender_id: '1',
+        sender_id: currentUserId,
         sender_name: 'John Doe',
         message_text: newMessage,
         sent_at: new Date().toISOString(),
@@ -106,7 +125,10 @@ const Chat: React.FC<ChatProps> = ({
     <ChatContainer>
       <MessageList>
         {messages.map((message, index) => (
-          <MessageItem key={index}>
+          <MessageItem
+            key={index}
+            isCurrentUser={message.sender_id === currentUserId}
+          >
             <MessageSender>{message.sender_name}</MessageSender>
             <MessageText>{message.message_text}</MessageText>
             <MessageTimestamp>
