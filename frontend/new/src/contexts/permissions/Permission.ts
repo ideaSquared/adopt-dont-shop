@@ -17,6 +17,8 @@ export enum Permission {
   VIEW_APPLICATIONS = 'view_applications',
   ACTION_APPLICATIONS = 'action_applications',
   VIEW_DASHBOARD = 'view_dashboard',
+  VIEW_CHAT = 'view_chat',
+  EDIT_PROFILE = 'edit_profile',
 }
 
 export enum Role {
@@ -27,6 +29,8 @@ export enum Role {
   APPLICATION_MANAGER = 'application_manager',
   STAFF = 'staff',
   ADMIN = 'admin',
+  VERIFIED_USER = 'verified_user',
+  USER = 'user',
 }
 
 export const rolePermissions: Record<Role, Permission[]> = {
@@ -58,4 +62,6 @@ export const rolePermissions: Record<Role, Permission[]> = {
   ],
   [Role.STAFF]: [Permission.VIEW_DASHBOARD],
   [Role.ADMIN]: [],
+  [Role.VERIFIED_USER]: [Permission.VIEW_CHAT],
+  [Role.USER]: [Permission.EDIT_PROFILE],
 }
