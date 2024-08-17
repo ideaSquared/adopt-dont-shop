@@ -42,5 +42,6 @@ module.exports = {
     'no-debugger': 'warn',
     'import/no-absolute-path': 'error',
     'react-hooks/exhaustive-deps': 'error',
+    'react/react-in-jsx-scope': 'off', // Not needed with React 17+
   },
 }
