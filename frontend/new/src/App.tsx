@@ -1,34 +1,34 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { ThemeProvider } from 'styled-components'
-import { Home } from '@adoptdontshop/pages/landing'
+import { Navbar } from '@adoptdontshop/components'
 import {
-  Login,
   CreateAccount,
   ForgotPassword,
+  Login,
   ResetPassword,
   Settings,
 } from '@adoptdontshop/pages/account'
+import { Conversations } from '@adoptdontshop/pages/chat'
 import {
   Applications,
-  Conversations,
-  Ratings,
-  Pets,
-  Staff,
-  Rescues,
-  Rescue,
   Logs,
+  Pets,
+  Ratings,
+  Rescue,
+  Rescues,
+  Staff,
 } from '@adoptdontshop/pages/dashboard'
-import { Navbar } from '@adoptdontshop/components'
-import { theme } from './styles/theme'
-import GlobalStyles from './styles/GlobalStyles'
-import {
-  PermissionProvider,
-  Role,
-  Permission,
-  ProtectedRoute,
-} from '@adoptdontshop/permissions'
+import { Home } from '@adoptdontshop/pages/landing'
 import { Swipe } from '@adoptdontshop/pages/swipe'
+import {
+  Permission,
+  PermissionProvider,
+  ProtectedRoute,
+  Role,
+} from '@adoptdontshop/permissions'
+import React from 'react'
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
+import { ThemeProvider } from 'styled-components'
+import GlobalStyles from './styles/GlobalStyles'
+import { theme } from './styles/theme'
 
 const App: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -59,6 +59,7 @@ const App: React.FC = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/swipe" element={<Swipe />} />
+            <Route path="/chat" element={<Conversations />} />
 
             <Route
               element={

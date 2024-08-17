@@ -1,8 +1,8 @@
+import { DropdownMenu } from '@adoptdontshop/components'
+import { Role, usePermissions } from '@adoptdontshop/permissions'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
-import { DropdownMenu } from '@adoptdontshop/components'
-import { usePermissions, Role } from '@adoptdontshop/permissions'
 
 const StyledNavbar = styled.header`
   background-color: ${(props) => props.theme.background.content};
@@ -57,7 +57,10 @@ const Navbar: React.FC = () => {
           <NavItem>
             <DropdownMenu
               triggerLabel="Swipe"
-              items={[{ label: 'Swipe', to: '/swipe' }]}
+              items={[
+                { label: 'Swipe', to: '/swipe' },
+                { label: 'Chat', to: '/chat' },
+              ]}
             />
           </NavItem>
 
