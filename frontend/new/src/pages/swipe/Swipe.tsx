@@ -117,7 +117,9 @@ const Swipe: React.FC = () => {
 
   return (
     <SwipeContainer>
-      <ToggleButton onClick={toggleCardDesign}>Toggle Card Design</ToggleButton>
+      <ToggleButton onClick={toggleCardDesign}>
+        Toggle Card Design (Current: {cardDesign})
+      </ToggleButton>
       {renderCard()}
     </SwipeContainer>
   )

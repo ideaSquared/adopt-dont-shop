@@ -103,7 +103,7 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
   })
 
   return (
-    <Card swipeDirection={swipeDirection} imageUrl={card.images[0]}>
+    <Card swipeDirection={swipeDirection} imageUrl="https://picsum.photos/400">
       <CardContent>
         <CardTitle>{card.name}</CardTitle>
         <CardText>{card.breed}</CardText>
