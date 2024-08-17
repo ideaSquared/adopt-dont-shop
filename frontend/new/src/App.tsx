@@ -44,7 +44,7 @@ const App: React.FC = () => {
     Role.APPLICATION_MANAGER,
   ]
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const TEST_adminRoles: Role[] = [Role.ADMIN]
+  const TEST_adminRoles: Role[] = [Role.ADMIN, Role.STAFF]
 
   return (
     <ThemeProvider theme={theme}>

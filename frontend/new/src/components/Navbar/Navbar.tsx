@@ -43,21 +43,21 @@ const Navbar: React.FC = () => {
 
           <NavItem>
             <DropdownMenu
-              triggerLabel="Account"
+              triggerLabel="User"
               items={[
                 { label: 'Login', to: '/login' },
                 { label: 'Create Account', to: '/create-account' },
                 { label: 'Forgot Password', to: '/forgot-password' },
                 { label: 'Reset Password', to: '/reset-password' },
-                { label: 'Settings', to: '/settings' },
               ]}
             />
           </NavItem>
 
           <NavItem>
             <DropdownMenu
-              triggerLabel="Swipe"
+              triggerLabel="Verified User"
               items={[
+                { label: 'Profile', to: '/profile' },
                 { label: 'Swipe', to: '/swipe' },
                 { label: 'Chat', to: '/chat' },
               ]}
@@ -67,7 +67,7 @@ const Navbar: React.FC = () => {
           {canViewRescueDashboard && (
             <NavItem>
               <DropdownMenu
-                triggerLabel="Rescue"
+                triggerLabel="Staff"
                 items={[
                   { label: 'Applications', to: '/applications' },
                   { label: 'Ratings', to: '/ratings' },
