@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled, { css } from 'styled-components';
 import { Pet } from '@adoptdontshop/libs/pets';
+import { SwipeControls, useSwipe } from '@adoptdontshop/pages/swipe/components';
 
 type SwipeCardProps = {
 	card: Pet;
@@ -125,17 +126,9 @@ const ActionButton = styled.button`
 `;
 
 const SwipeCardNub: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
-	const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(
-		null
-	);
-
-	const handleSwipe = (direction: 'left' | 'right') => {
-		setSwipeDirection(direction);
-		setTimeout(() => {
-			onSwipe(card.pet_id, direction);
-			setSwipeDirection(null); // Reset the swipe direction for future swipes
-		}, 300);
-	};
+	const { swipeDirection, handleSwipe } = useSwipe((direction) => {
+		onSwipe(card.pet_id, direction);
+	});
 
 	return (
 		<Card swipeDirection={swipeDirection}>
@@ -146,11 +139,7 @@ const SwipeCardNub: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
 				<p>Age: {card.age} years</p>
 				<p>{card.short_description}</p>
 			</CardInfo>
-			<CardActions>
-				<ActionButton onClick={() => handleSwipe('left')}>Dislike</ActionButton>
-				<ActionButton onClick={() => handleSwipe('right')}>Like</ActionButton>
-				<ActionButton onClick={() => handleSwipe('right')}>Love</ActionButton>
-			</CardActions>
+			<SwipeControls onSwipe={handleSwipe} />
 		</Card>
 	);
 };

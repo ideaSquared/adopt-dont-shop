@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled, { css } from 'styled-components';
 import { Pet } from '@adoptdontshop/libs/pets';
+import { SwipeControls, useSwipe } from '@adoptdontshop/pages/swipe/components';
 
 type SwipeCardProps = {
 	card: Pet;
@@ -25,7 +26,7 @@ const Card = styled.div<{
 	flex-direction: column;
 	justify-content: space-between;
 	align-items: center;
-	color: white;
+	color: white; /* Ensure text is visible on the image background */
 	font-size: 16px;
 	padding: 20px;
 	transition: transform 0.3s ease, opacity 0.3s ease;
@@ -123,34 +124,22 @@ const ActionButton = styled.button`
 	}
 `;
 
-const SwipeCardBackground: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
-	const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(
-		null
-	);
-
-	const handleSwipe = (direction: 'left' | 'right') => {
-		setSwipeDirection(direction);
-		setTimeout(() => {
-			onSwipe(card.pet_id, direction);
-			setSwipeDirection(null); // Reset the swipe direction for future swipes
-		}, 300);
-	};
+const SwipeCard: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
+	const { swipeDirection, handleSwipe } = useSwipe((direction) => {
+		onSwipe(card.pet_id, direction);
+	});
 
 	return (
-		<Card swipeDirection={swipeDirection} imageUrl='https://picsum.photos/1000'>
+		<Card swipeDirection={swipeDirection} imageUrl={card.images[0]}>
 			<CardContent>
 				<CardTitle>{card.name}</CardTitle>
 				<CardText>{card.breed}</CardText>
 				<CardText>Age: {card.age} years</CardText>
 				<CardText>{card.short_description}</CardText>
 			</CardContent>
-			<CardActions>
-				<ActionButton onClick={() => handleSwipe('left')}>Dislike</ActionButton>
-				<ActionButton onClick={() => handleSwipe('right')}>Like</ActionButton>
-				<ActionButton onClick={() => handleSwipe('right')}>Love</ActionButton>
-			</CardActions>
+			<SwipeControls onSwipe={handleSwipe} />
 		</Card>
 	);
 };
 
-export default SwipeCardBackground;
+export default SwipeCard;
