@@ -3,17 +3,17 @@ name: Frontend CI
 on:
   push:
     paths:
-      - '**.js'
-      - '**.jsx'
-      - 'package.json'
-      - 'package-lock.json'
+      - 'frontend/new/**.ts'
+      - 'frontend/new/**.tsx'
+      - 'frontend/new/package.json'
+      - 'frontend/new/package-lock.json'
       - '!backend/**'
   pull_request:
     paths:
-      - '**.js'
-      - '**.jsx'
-      - 'package.json'
-      - 'package-lock.json'
+      - 'frontend/new/**.ts'
+      - 'frontend/new/**.tsx'
+      - 'frontend/new/package.json'
+      - 'frontend/new/package-lock.json'
       - '!backend/**'
 
 jobs:
