@@ -66,6 +66,7 @@ const MainContainer: React.FC = () => {
     <OuterContainer>
       <Container>
         <MessageSidebar
+          selectedConversationId={selectedConversationId}
           conversations={conversations}
           onSelectConversation={handleSelectConversation}
         />
