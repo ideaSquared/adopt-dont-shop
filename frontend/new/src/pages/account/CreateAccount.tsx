@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, UserService } from '@adoptdontshop/libs/users/';
 import {
 	Button,
+	CountrySelectInput,
 	FormInput,
 	SelectInput,
 	TextInput,
@@ -178,25 +179,22 @@ const CreateAccount: React.FC = () => {
 							/>
 						</FormInput>
 						<FormInput label='Country'>
-							<TextInput
-								type='text'
-								value={country}
-								onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-									setCountry(e.target.value)
-								}
+							<CountrySelectInput
+								countryValue={country}
+								onCountryChange={(value: string) => setCountry(value)}
 							/>
 						</FormInput>
 					</>
 				)}
 				<Button type='submit'>
-					{isRescueForm ? 'Create Rescue Account' : 'Create User Account'}
+					{isRescueForm ? 'Create rescue account' : 'Create user account'}
 				</Button>
 			</form>
 			{message && <p>{message}</p>}
 			<p>
 				{isRescueForm ? 'Not a rescue?' : 'Are you a rescue?'}{' '}
 				<Button onClick={() => setIsRescueForm(!isRescueForm)}>
-					{isRescueForm ? 'Create User Account' : 'Create Rescue Account'}
+					{isRescueForm ? 'Create user account' : 'Create rescue account'}
 				</Button>
 			</p>
 		</div>
