@@ -39,7 +39,6 @@ const Applications: React.FC = () => {
 		setOnlyWaiting((prevState) => !prevState);
 	};
 
-	// Filter applications based on search term and filters
 	const filteredApplications = applications.filter((application) => {
 		const matchesSearch =
 			!searchTerm ||

@@ -18,8 +18,8 @@ const DateTime: React.FC<DateTimeProps> = ({
 
 	// Function to get the ordinal suffix for a day
 	const getOrdinalSuffix = (day: number): string => {
-		if (localeOption === 'en-US') return ''; // Skip ordinal suffix for en-US
-		if (day > 3 && day < 21) return 'th'; // Special case for 11th, 12th, 13th
+		if (localeOption === 'en-US') return '';
+		if (day > 3 && day < 21) return 'th';
 		switch (day % 10) {
 			case 1:
 				return 'st';
@@ -38,19 +38,15 @@ const DateTime: React.FC<DateTimeProps> = ({
 			? day.toString()
 			: `${day}${getOrdinalSuffix(day)}`;
 
-	// Get the month name and year
 	const month = date.toLocaleString(localeOption, {
 		month: 'long',
 		timeZone: 'UTC',
 	});
 	const year = date.getUTCFullYear();
 
-	// Get the time (hour and minute)
 	const hours = date.getUTCHours().toString().padStart(2, '0');
 	const minutes = date.getUTCMinutes().toString().padStart(2, '0');
 
-	// Format the final string
-	// Format the final string differently for en-US and en-GB
 	const formattedDate =
 		localeOption === 'en-US'
 			? `${month} ${day}, ${year}, ${date.toLocaleTimeString(localeOption, {

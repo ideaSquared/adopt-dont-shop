@@ -6,7 +6,6 @@ interface BadgeProps {
 	variant?: 'content' | 'success' | 'danger' | 'warning' | 'info' | null;
 }
 
-// Define the styled component with dynamic styles based on the variant prop
 const StyledBadge = styled.span<{ variant: BadgeProps['variant'] }>`
 	background-color: ${(props) => {
 		switch (props.variant) {
@@ -42,7 +41,6 @@ const StyledBadge = styled.span<{ variant: BadgeProps['variant'] }>`
 	border-radius: 0.25rem;
 `;
 
-// Badge component using StyledBadge
 const Badge: React.FC<BadgeProps> = ({ children, variant = 'content' }) => {
 	return <StyledBadge variant={variant}>{children}</StyledBadge>;
 };

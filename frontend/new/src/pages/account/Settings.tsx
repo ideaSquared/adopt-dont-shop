@@ -8,8 +8,7 @@ const Settings: React.FC = () => {
 	const [message, setMessage] = useState('');
 
 	useEffect(() => {
-		// Simulate fetching the current logged-in user
-		const currentUser = UserService.getUserById('1'); // Replace '1' with the actual user ID
+		const currentUser = UserService.getUserById('1');
 		if (currentUser) {
 			setUser(currentUser);
 		}

@@ -1,4 +1,3 @@
-// frontend/new/src/pages/user/ResetPassword.tsx
 import React, { useState } from 'react';
 import { UserService } from '@adoptdontshop/libs/users/';
 import { Button, FormInput, TextInput } from '@adoptdontshop/components';

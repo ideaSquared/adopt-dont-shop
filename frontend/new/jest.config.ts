@@ -1,4 +1,3 @@
-// jest.config.ts
 import { Config } from 'jest';
 
 const config: Config = {

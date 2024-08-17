@@ -1,5 +1,3 @@
-// src/types/conversation.d.ts
-
 type ID = string;
 type Timestamp = string;
 type Email = string;

@@ -16,8 +16,6 @@ import {
 	ConversationService,
 } from '@adoptdontshop/libs/conversations/';
 
-// Styled Components
-
 const ParticipantsTitle = styled.h3`
 	font-size: 1.25rem;
 	font-weight: 500;

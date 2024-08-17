@@ -16,14 +16,12 @@ const AuditLogs: React.FC = () => {
 	const [serviceTerm, setServiceTerm] = useState<string | null>(null);
 
 	useEffect(() => {
-		// Fetch auditlogs from the AuditLogservice
 		const fetchedAuditAuditLogs = AuditLogsService.getAuditLogs();
 		setAuditLogs(fetchedAuditAuditLogs);
 		setFilteredAuditLogs(fetchedAuditAuditLogs);
 	}, []);
 
 	useEffect(() => {
-		// Filter auditlogs based on searchTerm and serviceTerm
 		const filtered = auditLogs.filter((log) => {
 			const matchesSearch = !searchTerm || log.log_id.includes(searchTerm);
 			const matchesService = !serviceTerm || log.service.includes(serviceTerm);

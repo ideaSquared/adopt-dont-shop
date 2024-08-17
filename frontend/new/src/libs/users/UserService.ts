@@ -1,4 +1,3 @@
-// services/UserService.ts
 import { User } from './User';
 
 const users: User[] = [
@@ -22,22 +21,18 @@ const getUserById = (id: string): User | undefined =>
 	users.find((user) => user.user_id === id);
 
 const login = (email: string, password: string): boolean => {
-	// Placeholder logic for login
 	return users.some((user) => user.email === email);
 };
 
 const resetPassword = (email: string): boolean => {
-	// Placeholder logic for resetting password
 	return users.some((user) => user.email === email);
 };
 
 const forgotPassword = (email: string): boolean => {
-	// Placeholder logic for forgot password
 	return users.some((user) => user.email === email);
 };
 
 const createAccount = (newUser: Omit<User, 'user_id'>): User => {
-	// Placeholder logic for user registration
 	const user_id = (users.length + 1).toString();
 	const user = { user_id, ...newUser };
 	users.push(user);
