@@ -1,2 +1,2 @@
-export * from './Ratings';
-export { default as RatingService } from './RatingService';
+export * from './Ratings'
+export { default as RatingService } from './RatingService'

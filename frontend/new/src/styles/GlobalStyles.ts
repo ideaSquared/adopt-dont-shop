@@ -1,5 +1,5 @@
-import { createGlobalStyle } from 'styled-components';
-import { font } from './colors';
+import { createGlobalStyle } from 'styled-components'
+import { font } from './colors'
 
 const GlobalStyles = createGlobalStyle`
   body {
@@ -12,6 +12,6 @@ const GlobalStyles = createGlobalStyle`
   a {
     color: ${(props) => props.theme.text.link};
   }
-`;
+`
 
-export default GlobalStyles;
+export default GlobalStyles

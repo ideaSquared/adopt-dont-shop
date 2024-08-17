@@ -1,19 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import {
-	FormInput,
-	SelectInput,
-	TextInput,
-	CheckboxInput,
-	Table,
-	Button,
-} from '@adoptdontshop/components';
+import React from 'react'
 
 const Users: React.FC = () => {
-	return (
-		<div>
-			<h1>Users</h1>
-		</div>
-	);
-};
+  return (
+    <div>
+      <h1>Users</h1>
+    </div>
+  )
+}
 
-export default Users;
+export default Users

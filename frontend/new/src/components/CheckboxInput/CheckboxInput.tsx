@@ -1,10 +1,11 @@
-import React from 'react';
-import styled from 'styled-components';
+import React from 'react'
+import styled from 'styled-components'
 
 interface CheckboxProps {
-	checked: boolean;
-	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-	disabled?: boolean;
+  checked: boolean
+  // eslint-disable-next-line no-unused-vars
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  disabled?: boolean
 }
 
 const StyledCheckbox = styled.input.attrs({ type: 'checkbox' })`
@@ -14,16 +15,16 @@ const StyledCheckbox = styled.input.attrs({ type: 'checkbox' })`
 	margin: 0;
 	padding: 0;
 	background-color ${(props) => props.theme.text.body}
-`;
+`
 
 const CheckboxInput: React.FC<CheckboxProps> = ({
-	checked,
-	onChange,
-	disabled = false,
+  checked,
+  onChange,
+  disabled = false,
 }) => {
-	return (
-		<StyledCheckbox checked={checked} onChange={onChange} disabled={disabled} />
-	);
-};
+  return (
+    <StyledCheckbox checked={checked} onChange={onChange} disabled={disabled} />
+  )
+}
 
-export default CheckboxInput;
+export default CheckboxInput

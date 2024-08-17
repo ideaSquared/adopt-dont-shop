@@ -1,1 +1,1 @@
-export { default } from './CountrySelectInput';
+export { default } from './CountrySelectInput'

@@ -1,2 +1,2 @@
-export * from './AuditLogs';
-export { default as AuditLogsService } from './AuditLogsService';
+export * from './AuditLogs'
+export { default as AuditLogsService } from './AuditLogsService'

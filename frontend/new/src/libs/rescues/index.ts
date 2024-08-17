@@ -1,2 +1,2 @@
-export * from './Rescue';
-export { default as RescueService } from './RescueService';
+export * from './Rescue'
+export { default as RescueService } from './RescueService'

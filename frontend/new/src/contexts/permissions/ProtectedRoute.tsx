@@ -1,21 +1,21 @@
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { usePermissions, Permission } from '.';
+import React from 'react'
+import { Navigate, Outlet } from 'react-router-dom'
+import { usePermissions, Permission } from '.'
 
 interface ProtectedRouteProps {
-	requiredPermission: Permission;
+  requiredPermission: Permission
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-	requiredPermission,
+  requiredPermission,
 }) => {
-	const { hasPermission } = usePermissions();
+  const { hasPermission } = usePermissions()
 
-	if (hasPermission(requiredPermission)) {
-		return <Outlet />; // Outlet will render nested routes
-	} else {
-		return <Navigate to='/login' replace />;
-	}
-};
+  if (hasPermission(requiredPermission)) {
+    return <Outlet /> // Outlet will render nested routes
+  } else {
+    return <Navigate to="/login" replace />
+  }
+}
 
-export default ProtectedRoute;
+export default ProtectedRoute

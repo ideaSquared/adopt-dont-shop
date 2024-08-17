@@ -1,15 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import {
-	FormInput,
-	SelectInput,
-	TextInput,
-	Table,
-	DateTime,
-	Badge,
-} from '@adoptdontshop/components';
+import React from 'react'
 
 const Dashboard: React.FC = () => {
-	return <div></div>;
-};
+  return <div></div>
+}
 
-export default Dashboard;
+export default Dashboard

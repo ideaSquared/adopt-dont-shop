@@ -1,2 +1,2 @@
-export * from './Pets';
-export { default as PetsService } from './PetsService';
+export * from './Pets'
+export { default as PetsService } from './PetsService'
