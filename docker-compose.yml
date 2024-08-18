@@ -19,7 +19,7 @@ services:
       sh -c "
       /usr/local/bin/wait-for database:5432 -- 
       && npm run sync-db 
-      && npm run start
+      && npm run dev
       "
 
   frontend:

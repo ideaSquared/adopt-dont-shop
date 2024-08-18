@@ -1,3 +1,4 @@
+import cors from 'cors'
 import dotenv from 'dotenv'
 import express, { Request, Response } from 'express'
 import { connectToDatabase } from './DatabaseConnection'
@@ -9,6 +10,15 @@ dotenv.config()
 
 const app = express()
 const port = process.env.PORT || 5000
+
+// Enable CORS
+app.use(
+  cors({
+    origin: 'http://localhost:3001', // Allow only this origin to access the backend
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, // Allow credentials (cookies, authorization headers, etc.) if needed
+  }),
+)
 
 // Database connection
 connectToDatabase()
