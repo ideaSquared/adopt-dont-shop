@@ -20,7 +20,7 @@
     "migrate:dev": "npx sequelize-cli database:migrate --env development",
     "migrate:test": "npx sequelize-cli database:migrate --env test",
     "migrate:prod": "npx sequelize-cli database:migrate --env production",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "nodemon",
     "database:migrate": "ts-node node_modules/.bin/sequelize database:migrate",
     "database:seed": "ts-node node_modules/.bin/sequelize database:seed:all"
   },
@@ -37,3 +37,4 @@
     "typescript": "^5.5.4"
   }
 }
+
