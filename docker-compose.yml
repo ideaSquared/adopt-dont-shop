@@ -15,25 +15,15 @@ services:
       - POSTGRES_DB=mydb
     depends_on:
       - db
+    entrypoint:
+      ['/usr/local/bin/wait-for', 'db:5432', '--', 'npm', 'run', 'start']
 
-  frontend-old:
-    build: ./frontend/old
-    ports:
-      - '3000:3000'
-    volumes:
-      - ./frontend/old:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-    stdin_open: true
-    tty: true
-
-  frontend-new:
-    build: ./frontend/new
+  frontend:
+    build: ./frontend
     ports:
       - '3001:3001'
     volumes:
-      - ./frontend/new:/app
+      - ./frontend:/app
       - /app/node_modules
     environment:
       - NODE_ENV=development

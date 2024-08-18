@@ -157,6 +157,7 @@ CREATE TABLE public.user_preferences (
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Users Table
 CREATE TABLE public.users (
     user_id varchar DEFAULT ('user_' || left(md5(random()::text), 12)) NOT NULL,
     first_name text,
@@ -167,13 +168,44 @@ CREATE TABLE public.users (
     reset_token varchar(64),
     reset_token_expiration timestamp,
     reset_token_force_flag boolean,
-    is_admin boolean,
-    created_at timestamp DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp DEFAULT CURRENT_TIMESTAMP,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
     last_name text,
     country varchar(255),
     city varchar(255),
-    location point
+    location point,
+    CONSTRAINT users_pkey PRIMARY KEY (user_id),
+    CONSTRAINT users_email_key UNIQUE (email)
+);
+
+-- Roles Table
+CREATE TABLE public.roles (
+    role_id serial PRIMARY KEY,
+    role_name varchar(255) NOT NULL UNIQUE
+);
+
+-- Permissions Table
+CREATE TABLE public.permissions (
+    permission_id serial PRIMARY KEY,
+    permission_name varchar(255) NOT NULL UNIQUE
+);
+
+-- User Roles Junction Table
+CREATE TABLE public.user_roles (
+    user_id varchar NOT NULL,
+    role_id int NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES public.roles(role_id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, role_id)
+);
+
+-- Role Permissions Junction Table
+CREATE TABLE public.role_permissions (
+    role_id int NOT NULL,
+    permission_id int NOT NULL,
+    FOREIGN KEY (role_id) REFERENCES public.roles(role_id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES public.permissions(permission_id) ON DELETE CASCADE,
+    PRIMARY KEY (role_id, permission_id)
 );
 
 -- =====================
@@ -189,8 +221,6 @@ ALTER TABLE public.ratings ADD CONSTRAINT ratings_pkey PRIMARY KEY (rating_id);
 ALTER TABLE public.rescues ADD CONSTRAINT rescues_pkey PRIMARY KEY (rescue_id);
 ALTER TABLE public.staff_members ADD CONSTRAINT staff_members_pkey PRIMARY KEY (staff_member_id);
 ALTER TABLE public.user_preferences ADD CONSTRAINT user_preferences_pkey PRIMARY KEY (preferences_id);
-ALTER TABLE public.users ADD CONSTRAINT users_pkey PRIMARY KEY (user_id);
-ALTER TABLE public.users ADD CONSTRAINT users_email_key UNIQUE (email);
 
 -- =====================
 -- Foreign Keys
@@ -295,19 +325,126 @@ DECLARE
         'conversation_' || left(md5(random()::text), 12)
     ];
 BEGIN
-    INSERT INTO public.users (user_id, first_name, last_name, email, password, email_verified, is_admin, created_at, updated_at)
+    -- Insert users
+    INSERT INTO public.users (user_id, first_name, last_name, email, password, email_verified, created_at, updated_at)
     VALUES
-        (admin_user_id, 'Admin', 'User', 'admin@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[1], 'User2', 'Example', 'user2@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[2], 'User3', 'Example', 'user3@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[3], 'User4', 'Example', 'user4@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[4], 'User5', 'Example', 'user5@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[5], 'User6', 'Example', 'user6@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[6], 'User7', 'Example', 'user7@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[7], 'User8', 'Example', 'user8@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[8], 'User9', 'Example', 'user9@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[9], 'User10', 'Example', 'user10@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (user_ids[10], 'User11', 'Example', 'user11@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        (admin_user_id, 'Admin', 'User', 'admin@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (user_ids[1], 'Rescue', 'Manager', 'rescue.manager@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (user_ids[2], 'Pet', 'Manager', 'pet.manager@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (user_ids[3], 'Staff1', 'User', 'staff1@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (user_ids[4], 'Staff2', 'User', 'staff2@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (user_ids[5], 'Staff3', 'User', 'staff3@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (user_ids[6], 'User1', 'Example', 'user1@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (user_ids[7], 'User2', 'Example', 'user2@example.com', '$2a$12$G7.KLn8vGgaXqeQH71106OfcelJr7cOe0qh5c4Ra7kDyG6iFnyCmi', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+    -- Insert Roles
+    INSERT INTO public.roles (role_name) VALUES
+        ('rescue_manager'),
+        ('staff_manager'),
+        ('pet_manager'),
+        ('communications_manager'),
+        ('application_manager'),
+        ('staff'),
+        ('admin'),
+        ('verified_user'),
+        ('user');
+
+    -- Insert Permissions
+    INSERT INTO public.permissions (permission_name) VALUES
+        ('view_rescue_info'),
+        ('edit_rescue_info'),
+        ('delete_rescue'),
+        ('view_staff'),
+        ('add_staff'),
+        ('edit_staff'),
+        ('verify_staff'),
+        ('delete_staff'),
+        ('view_pet'),
+        ('add_pet'),
+        ('edit_pet'),
+        ('delete_pet'),
+        ('create_messages'),
+        ('view_messages'),
+        ('view_applications'),
+        ('action_applications'),
+        ('view_dashboard'),
+        ('view_chat'),
+        ('edit_profile');
+
+        -- Map Roles to Permissions
+        -- Rescue Manager
+        INSERT INTO public.role_permissions (role_id, permission_id)
+        SELECT r.role_id, p.permission_id
+        FROM public.roles r, public.permissions p
+        WHERE r.role_name = 'rescue_manager'
+        AND p.permission_name IN ('view_rescue_info', 'edit_rescue_info', 'delete_rescue');
+
+        -- Staff Manager
+        INSERT INTO public.role_permissions (role_id, permission_id)
+        SELECT r.role_id, p.permission_id
+        FROM public.roles r, public.permissions p
+        WHERE r.role_name = 'staff_manager'
+        AND p.permission_name IN ('view_staff', 'add_staff', 'edit_staff', 'verify_staff', 'delete_staff');
+
+        -- Pet Manager
+        INSERT INTO public.role_permissions (role_id, permission_id)
+        SELECT r.role_id, p.permission_id
+        FROM public.roles r, public.permissions p
+        WHERE r.role_name = 'pet_manager'
+        AND p.permission_name IN ('view_pet', 'add_pet', 'edit_pet', 'delete_pet');
+
+        -- Communications Manager
+        INSERT INTO public.role_permissions (role_id, permission_id)
+        SELECT r.role_id, p.permission_id
+        FROM public.roles r, public.permissions p
+        WHERE r.role_name = 'communications_manager'
+        AND p.permission_name IN ('create_messages', 'view_messages');
+
+        -- Application Manager
+        INSERT INTO public.role_permissions (role_id, permission_id)
+        SELECT r.role_id, p.permission_id
+        FROM public.roles r, public.permissions p
+        WHERE r.role_name = 'application_manager'
+        AND p.permission_name IN ('view_applications', 'action_applications');
+
+        -- Staff
+        INSERT INTO public.role_permissions (role_id, permission_id)
+        SELECT r.role_id, p.permission_id
+        FROM public.roles r, public.permissions p
+        WHERE r.role_name = 'staff'
+        AND p.permission_name = 'view_dashboard';
+
+        -- Verified User
+        INSERT INTO public.role_permissions (role_id, permission_id)
+        SELECT r.role_id, p.permission_id
+        FROM public.roles r, public.permissions p
+        WHERE r.role_name = 'verified_user'
+        AND p.permission_name = 'view_chat';
+
+        -- User
+        INSERT INTO public.role_permissions (role_id, permission_id)
+        SELECT r.role_id, p.permission_id
+        FROM public.roles r, public.permissions p
+        WHERE r.role_name = 'user'
+        AND p.permission_name = 'edit_profile';
+        
+
+        -- =====================
+        -- Assign Roles to Users
+        -- =====================
+
+       -- Assign roles to the users
+        INSERT INTO public.user_roles (user_id, role_id)
+        SELECT u.user_id, r.role_id
+        FROM public.users u, public.roles r
+        WHERE (u.email = 'admin@example.com' AND r.role_name IN ('admin', 'verified_user'))
+        OR (u.email = 'rescue.manager@example.com' AND r.role_name IN ('rescue_manager', 'verified_user'))
+        OR (u.email = 'pet.manager@example.com' AND r.role_name IN ('pet_manager', 'verified_user'))
+        OR (u.email = 'staff1@example.com' AND r.role_name IN ('staff', 'user'))
+        OR (u.email = 'staff2@example.com' AND r.role_name IN ('staff', 'user'))
+        OR (u.email = 'staff3@example.com' AND r.role_name = 'verified_user')
+        OR (u.email = 'user1@example.com' AND r.role_name = 'user')
+        OR (u.email = 'user2@example.com' AND r.role_name = 'user');
 
     -- =====================
     -- Rescues
