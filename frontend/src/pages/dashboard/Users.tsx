@@ -27,9 +27,17 @@ const Users: React.FC = () => {
   const [filterByRole, setFilterByRole] = useState<Role | 'all'>('all')
 
   useEffect(() => {
-    const fetchedUsers = UserService.getUsers || []
-    setUsers(fetchedUsers)
-    setFilteredUsers(fetchedUsers)
+    const fetchUsers = async () => {
+      try {
+        const fetchedUsers = await UserService.getUsers()
+        setUsers(fetchedUsers)
+        setFilteredUsers(fetchedUsers)
+      } catch (error) {
+        console.error('Error fetching users:', error)
+      }
+    }
+
+    fetchUsers()
   }, [])
 
   useEffect(() => {

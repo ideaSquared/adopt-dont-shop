@@ -3,7 +3,7 @@ import { User } from './User'
 const API_URL = 'http://localhost:5000/api/auth'
 
 const getUsers = async (): Promise<User[]> => {
-  const response = await fetch(`${API_URL}/users`)
+  const response = await fetch(`http://localhost:5000/api/admin/users`)
   if (!response.ok) {
     throw new Error('Failed to fetch users')
   }

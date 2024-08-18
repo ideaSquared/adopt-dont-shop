@@ -102,6 +102,10 @@ User.init(
   {
     sequelize,
     tableName: 'users',
+    defaultScope: {
+      // Automatically exclude password in default queries
+      attributes: { exclude: ['password'] },
+    },
     timestamps: false,
   },
 )
