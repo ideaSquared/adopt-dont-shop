@@ -4,10 +4,15 @@ const API_URL = 'http://localhost:5000/api/auth'
 
 const getUsers = async (): Promise<User[]> => {
   const response = await fetch(`http://localhost:5000/api/admin/users`)
+
   if (!response.ok) {
     throw new Error('Failed to fetch users')
   }
-  return response.json()
+
+  // Assuming the response JSON is structured as { users: User[] }
+  const data = await response.json()
+
+  return data.users
 }
 
 const getUserById = async (id: string): Promise<User | undefined> => {

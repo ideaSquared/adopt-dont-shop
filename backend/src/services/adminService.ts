@@ -1,34 +1,48 @@
-import User from '../Models/User'
+import { Role, User } from '../Models'
 
-interface GetAllUsersParams {
-  page?: number
-  limit?: number
-  sort?: 'asc' | 'desc'
-  role?: string
+interface GetAllUsersParams {}
+
+interface UserWithRoles {
+  user_id: string
+  first_name: string
+  last_name: string
+  email: string
+  roles: string[]
 }
 
-export const getAllUsersService = async ({
-  page = 1,
-  limit = 10,
-  sort = 'asc',
-  role,
-}: GetAllUsersParams) => {
-  const offset = (page - 1) * limit
-  const whereClause: any = {}
+interface UserResponse {
+  users: UserWithRoles[]
+}
 
-  const { rows, count } = await User.findAndCountAll({
-    where: whereClause,
-    limit,
-    offset,
-    order: [['created_at', sort.toUpperCase()]],
-  })
+export const getAllUsersService =
+  async ({}: GetAllUsersParams): Promise<UserResponse> => {
+    const users = await User.findAll({
+      include: [
+        {
+          model: Role,
+          as: 'Roles', // Use the exact alias as defined in the association
+          through: { attributes: [] }, // Exclude UserRole join table attributes
+          attributes: ['role_name'], // Only select the role_name from the Role model
+        },
+      ],
+    })
 
-  return {
-    users: rows,
-    pagination: {
-      totalItems: count,
-      currentPage: page,
-      totalPages: Math.ceil(count / limit),
-    },
+    const usersWithRoles: UserWithRoles[] = users.map((user) => {
+      const userJSON = user.toJSON() as any // Convert the Sequelize instance to a plain object
+      const roles = userJSON.Roles.map(
+        (role: { role_name: string }) => role.role_name,
+      ) // Extract the role names
+
+      return {
+        user_id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        roles: roles,
+      }
+    })
+
+    return {
+      users: usersWithRoles,
+    }
   }
-}

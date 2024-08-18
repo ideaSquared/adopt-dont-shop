@@ -9,7 +9,7 @@ import {
 } from '@adoptdontshop/components'
 import { User, UserService } from '@adoptdontshop/libs/users'
 import { Role } from '@adoptdontshop/permissions'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import styled from 'styled-components'
 
 const BadgeWrapper = styled.div`
@@ -21,7 +21,7 @@ const BadgeWrapper = styled.div`
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
-  const [searchByEmailName, setSearchByEmailName] = useState<string | null>('')
+  const [searchByEmailName, setSearchByEmailName] = useState<string>('')
   const [filterByAdmin, setFilterByAdmin] = useState<boolean>(false)
   const [filterByVerified, setFilterByVerified] = useState<boolean>(false)
   const [filterByRole, setFilterByRole] = useState<Role | 'all'>('all')
@@ -31,7 +31,6 @@ const Users: React.FC = () => {
       try {
         const fetchedUsers = await UserService.getUsers()
         setUsers(fetchedUsers)
-        setFilteredUsers(fetchedUsers)
       } catch (error) {
         console.error('Error fetching users:', error)
       }
@@ -40,9 +39,8 @@ const Users: React.FC = () => {
     fetchUsers()
   }, [])
 
-  useEffect(() => {
-    const filtered = users.filter((user) => {
-      // Check if the user's email or name matches the search term
+  const filtered = useMemo(() => {
+    return users.filter((user) => {
       const matchesSearch =
         !searchByEmailName ||
         user.email.toLowerCase().includes(searchByEmailName.toLowerCase()) ||
@@ -54,18 +52,21 @@ const Users: React.FC = () => {
           .includes(searchByEmailName.toLowerCase()) ??
           false)
 
-      // Check if the user is verified if the filter is active
       const matchesVerified = !filterByVerified || user.reset_token_force_flag
 
       const matchesRole =
         filterByRole === 'all' ||
         user.roles.some((role) => role === filterByRole)
 
-      return matchesSearch && matchesVerified && matchesRole
-    })
+      const matchesAdmin = !filterByAdmin || user.roles.includes(Role.ADMIN)
 
-    setFilteredUsers(filtered)
+      return matchesSearch && matchesVerified && matchesRole && matchesAdmin
+    })
   }, [searchByEmailName, filterByAdmin, filterByVerified, filterByRole, users])
+
+  useEffect(() => {
+    setFilteredUsers(filtered)
+  }, [filtered])
 
   const handleSearchByEmailName = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchByEmailName(e.target.value)
@@ -126,30 +127,35 @@ const Users: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredUsers.map((user) => (
-            <tr key={user.user_id}>
-              <td>{user.user_id}</td>
-              <td>{user.first_name}</td>
-              <td>{user.last_name}</td>
-              <td>{user.email}</td>
-              <td>
-                <BadgeWrapper>
-                  {/* Assuming user roles are an array of Role enums */}
-                  {user.roles?.map((role) => (
-                    <Badge key={role} variant="info">
-                      {role.replace(/_/g, ' ').toUpperCase()}
-                    </Badge>
-                  ))}
-                  {user.reset_token_force_flag && (
-                    <Badge variant="success">Force reset</Badge>
-                  )}
-                </BadgeWrapper>
-              </td>
-              <td>
-                <Button type="button">Delete</Button>
-              </td>
+          {Array.isArray(filteredUsers) && filteredUsers.length > 0 ? (
+            filteredUsers.map((user) => (
+              <tr key={user.user_id}>
+                <td>{user.user_id}</td>
+                <td>{user.first_name}</td>
+                <td>{user.last_name}</td>
+                <td>{user.email}</td>
+                <td>
+                  <BadgeWrapper>
+                    {user.roles?.map((role) => (
+                      <Badge key={role} variant="info">
+                        {role.replace(/_/g, ' ').toUpperCase()}
+                      </Badge>
+                    ))}
+                    {user.reset_token_force_flag && (
+                      <Badge variant="success">Force reset</Badge>
+                    )}
+                  </BadgeWrapper>
+                </td>
+                <td>
+                  <Button type="button">Delete</Button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={6}>No users found</td>
             </tr>
-          ))}
+          )}
         </tbody>
       </Table>
     </div>

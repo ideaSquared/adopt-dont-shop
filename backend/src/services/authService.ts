@@ -1,7 +1,7 @@
 // src/services/authService.ts
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import User from '../Models/User'
+import { User } from '../Models/'
 
 export const loginUser = async (
   email: string,

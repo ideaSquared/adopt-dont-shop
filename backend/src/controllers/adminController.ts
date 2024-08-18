@@ -9,6 +9,7 @@ export const getAllUsers = async (
     const users = await getAllUsersService(req.query)
     res.status(200).json(users)
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Error retrieving users' })
   }
 }
