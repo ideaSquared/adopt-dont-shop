@@ -8,6 +8,7 @@ import {
 } from '@adoptdontshop/pages/account'
 import { Conversations } from '@adoptdontshop/pages/chat'
 import {
+  Conversations as AdminConversations,
   Applications,
   Logs,
   Pets,
@@ -101,7 +102,7 @@ const App: React.FC = () => {
                 <ProtectedRoute requiredPermission={Permission.VIEW_MESSAGES} />
               }
             >
-              <Route path="/conversations" element={<Conversations />} />
+              <Route path="/conversations" element={<AdminConversations />} />
             </Route>
             <Route
               element={
