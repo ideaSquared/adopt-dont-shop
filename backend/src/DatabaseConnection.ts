@@ -25,7 +25,6 @@ pool.on('connect', async (client: PoolClient) => {
 
 const ConnectToDatabase = async (): Promise<void> => {
   try {
-    console.log(process.env.DATABASE_URL)
     await pool.connect() // Check if the connection is successful
     console.log('PostgreSQL connected')
   } catch (error) {
