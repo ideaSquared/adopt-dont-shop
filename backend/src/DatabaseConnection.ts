@@ -36,7 +36,7 @@ pool.on('connect', async (client: PoolClient) => {
   }
 })
 
-const ConnectToDatabase = async (): Promise<void> => {
+const connectToDatabase = async (): Promise<void> => {
   try {
     await pool.connect() // Check if the connection is successful
     console.log('PostgreSQL connected')
@@ -46,4 +46,4 @@ const ConnectToDatabase = async (): Promise<void> => {
   }
 }
 
-export { ConnectToDatabase, pool }
+export { connectToDatabase, pool }

@@ -1,89 +1,147 @@
-import { Role } from '@adoptdontshop/permissions'
 import { User } from './User'
 
-const users: User[] = [
-  {
-    user_id: '1',
-    first_name: 'John',
-    last_name: 'Doe',
-    email: 'john@example.com',
-    roles: [Role.ADMIN, Role.STAFF_MANAGER, Role.VERIFIED_USER],
-  },
-  {
-    user_id: '2',
-    first_name: 'Jane',
-    last_name: 'Doe',
-    email: 'jane@example.com',
-    roles: [Role.RESCUE_MANAGER, Role.VERIFIED_USER],
-  },
-  {
-    user_id: '3',
-    first_name: 'Alice',
-    last_name: 'Smith',
-    email: 'alice@example.com',
-    roles: [Role.PET_MANAGER, Role.VERIFIED_USER],
-  },
-  {
-    user_id: '4',
-    first_name: 'Bob',
-    last_name: 'Brown',
-    email: 'bob@example.com',
-    roles: [Role.STAFF, Role.USER],
-  },
-  {
-    user_id: '5',
-    first_name: 'Charlie',
-    last_name: 'Johnson',
-    email: 'charlie@example.com',
-    roles: [Role.STAFF, Role.USER],
-  },
-  {
-    user_id: '6',
-    first_name: 'Emily',
-    last_name: 'Davis',
-    email: 'emily@example.com',
-    roles: [Role.STAFF, Role.VERIFIED_USER],
-  },
-]
-const getUsers = (): User[] => users
+const API_URL = 'http://localhost:5000/api/auth'
 
-const getUserById = (id: string): User | undefined =>
-  users.find((user) => user.user_id === id)
-
-const login = (email: string, password: string): boolean => {
-  if (password !== '123') return false
-
-  return users.some((user) => user.email === email)
-}
-
-const resetPassword = (email: string): boolean => {
-  return users.some((user) => user.email === email)
-}
-
-const forgotPassword = (email: string): boolean => {
-  return users.some((user) => user.email === email)
-}
-
-const createAccount = (newUser: Omit<User, 'user_id'>): User => {
-  const user_id = (users.length + 1).toString()
-  const user = { user_id, ...newUser }
-  users.push(user)
-  return user
-}
-
-const updateUser = (updatedUser: User): User | undefined => {
-  const index = users.findIndex((user) => user.user_id === updatedUser.user_id)
-  if (index !== -1) {
-    users[index] = updatedUser
-    return updatedUser
+const getUsers = async (): Promise<User[]> => {
+  const response = await fetch(`${API_URL}/users`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch users')
   }
-  return undefined
+  return response.json()
+}
+
+const getUserById = async (id: string): Promise<User | undefined> => {
+  const response = await fetch(`${API_URL}/users/${id}`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch user')
+  }
+  return response.json()
+}
+
+const login = async (
+  email: string,
+  password: string,
+): Promise<string | null> => {
+  try {
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Login failed')
+    }
+
+    const { token } = await response.json()
+    // Save token to localStorage or cookies
+    localStorage.setItem('token', token)
+    return token
+  } catch (error) {
+    console.error('Login failed:', error)
+    return null
+  }
+}
+
+const logout = async (): Promise<void> => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    await fetch(`${API_URL}/logout`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    localStorage.removeItem('token')
+  }
+}
+
+const resetPassword = async (email: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_URL}/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Reset password failed')
+    }
+
+    return true
+  } catch (error) {
+    console.error('Reset password failed:', error)
+    return false
+  }
+}
+
+const forgotPassword = async (email: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_URL}/forgot-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Forgot password failed')
+    }
+
+    return true
+  } catch (error) {
+    console.error('Forgot password failed:', error)
+    return false
+  }
+}
+
+const createAccount = async (newUser: Omit<User, 'user_id'>): Promise<User> => {
+  const response = await fetch(`${API_URL}/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(newUser),
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to create account')
+  }
+
+  return response.json()
+}
+
+const updateUser = async (updatedUser: User): Promise<User | undefined> => {
+  try {
+    const response = await fetch(`${API_URL}/users/${updatedUser.user_id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedUser),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to update user')
+    }
+
+    return response.json()
+  } catch (error) {
+    console.error('Update user failed:', error)
+    return undefined
+  }
 }
 
 export default {
   getUsers,
   getUserById,
   login,
+  logout,
   resetPassword,
   forgotPassword,
   createAccount,
