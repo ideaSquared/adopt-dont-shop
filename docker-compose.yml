@@ -11,13 +11,13 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: ${DEV_DB_NAME} # Default to development DB
-      POSTGRES_HOST: db
+      POSTGRES_HOST: database
       POSTGRES_PORT: 5432
     depends_on:
-      - db
+      - database
     entrypoint: >
       sh -c "
-      /usr/local/bin/wait-for db:5432 -- 
+      /usr/local/bin/wait-for database:5432 -- 
       && npm run sync-db 
       && npm run start
       "
@@ -35,8 +35,8 @@ services:
     stdin_open: true
     tty: true
 
-  db:
-    image: postgres:14
+  database:
+    image: postgres:16.4
     restart: always
     ports:
       - '5432:5432'

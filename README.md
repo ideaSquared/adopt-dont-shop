@@ -7,6 +7,8 @@ The Pet Adoption Platform is a full-stack web application designed to facilitate
 
 ## Docker commands
 
+`docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build`
+
 ### Rebuild the database
 
 ```

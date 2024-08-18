@@ -23,4 +23,4 @@ RUN chmod +x /usr/local/bin/wait-for
 EXPOSE 5000
 
 # Command to run the application using wait-for
-CMD ["/usr/local/bin/wait-for", "db:5432", "--", "npm", "run", "start"]
+CMD ["/usr/local/bin/wait-for", "database:5432", "--", "npm", "run", "start"]
