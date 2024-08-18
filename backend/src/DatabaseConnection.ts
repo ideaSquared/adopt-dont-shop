@@ -3,8 +3,21 @@ import { Pool, PoolClient } from 'pg'
 
 dotenv.config()
 
+const databaseUrl = (() => {
+  switch (process.env.NODE_ENV) {
+    case 'development':
+      return process.env.DEV_DATABASE_URL
+    case 'test':
+      return process.env.TEST_DATABASE_URL
+    case 'production':
+      return process.env.PROD_DATABASE_URL
+    default:
+      throw new Error('NODE_ENV is not set to a valid environment')
+  }
+})()
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: databaseUrl,
   ssl:
     process.env.NODE_ENV === 'production'
       ? {

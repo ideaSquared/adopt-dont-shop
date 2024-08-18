@@ -2,6 +2,7 @@ FROM node:18
 
 WORKDIR /app
 
+# Install necessary packages
 RUN apt-get update && apt-get install -y netcat-openbsd
 
 COPY package*.json ./
@@ -21,5 +22,5 @@ RUN chmod +x /usr/local/bin/wait-for
 
 EXPOSE 5000
 
-# Use the script to wait for the database service before starting the app
+# Command to run the application using wait-for
 CMD ["/usr/local/bin/wait-for", "db:5432", "--", "npm", "run", "start"]
