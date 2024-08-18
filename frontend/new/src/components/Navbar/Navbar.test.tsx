@@ -1,10 +1,10 @@
-import React from 'react'
-import { render, screen } from '@testing-library/react'
-import { ThemeProvider } from 'styled-components'
-import { BrowserRouter as Router } from 'react-router-dom'
+import { Role, usePermissions } from '@adoptdontshop/permissions'
 import { theme } from '@adoptdontshop/styles'
+import { render, screen } from '@testing-library/react'
+import React from 'react'
+import { BrowserRouter as Router } from 'react-router-dom'
+import { ThemeProvider } from 'styled-components'
 import Navbar from './Navbar'
-import { usePermissions, Role } from '@adoptdontshop/permissions'
 
 // Mock the usePermissions hook
 jest.mock('@adoptdontshop/permissions', () => ({
@@ -35,10 +35,10 @@ describe('Navbar', () => {
     expect(screen.getByText('Home')).toBeInTheDocument()
 
     // Verify Account DropdownMenu is present
-    expect(screen.getByText('Account')).toBeInTheDocument()
+    expect(screen.getByText('User')).toBeInTheDocument()
 
     // Rescue and Admin dropdowns should not be present
-    expect(screen.queryByText('Rescue')).not.toBeInTheDocument()
+    expect(screen.queryByText('Staff')).not.toBeInTheDocument()
     expect(screen.queryByText('Admin')).not.toBeInTheDocument()
   })
 
@@ -82,7 +82,7 @@ describe('Navbar', () => {
     renderWithProviders(<Navbar />)
 
     // Verify Rescue and Admin dropdowns are present
-    expect(screen.getByText('Rescue')).toBeInTheDocument()
+    expect(screen.getByText('Staff')).toBeInTheDocument()
     expect(screen.getByText('Admin')).toBeInTheDocument()
   })
 })
