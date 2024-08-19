@@ -1,17 +1,24 @@
+import { Button, FormInput, TextInput } from '@adoptdontshop/components'
+import { useUser } from 'contexts/auth/UserContext'
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { UserService } from '@adoptdontshop/libs/users/'
-import { Button, FormInput, TextInput } from '@adoptdontshop/components'
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
+  const { loginUser } = useUser()
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    const success = UserService.login(email, password)
-    setMessage(success ? 'Login successful!' : 'Login failed')
+
+    try {
+      await loginUser(email, password)
+      setMessage('Login successful!')
+    } catch (error) {
+      console.error('Error during login:', error)
+      setMessage('Login failed')
+    }
   }
 
   return (

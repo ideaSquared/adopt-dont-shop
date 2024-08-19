@@ -1,5 +1,5 @@
-import React, { createContext, useContext, ReactNode } from 'react'
-import { Role, Permission, rolePermissions } from '.'
+import React, { ReactNode, createContext, useContext } from 'react'
+import { Permission, Role, rolePermissions } from '.'
 
 interface PermissionContextProps {
   roles: Role[]
@@ -21,11 +21,9 @@ const PermissionProvider: React.FC<PermissionProviderProps> = ({
   children,
 }) => {
   const hasPermission = (permission: Permission) => {
-    // If user is admin then skip perm check
     if (roles.includes(Role.ADMIN)) {
       return true
     }
-    // Otherwise, check the user's roles against the specific permissions
     return roles.some((role) => rolePermissions[role]?.includes(permission))
   }
 

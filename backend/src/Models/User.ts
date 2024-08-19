@@ -118,6 +118,11 @@ User.init(
       // Automatically exclude password in default queries
       attributes: { exclude: ['password'] },
     },
+    scopes: {
+      withPassword: {
+        attributes: { include: ['password'] },
+      },
+    },
     timestamps: false,
   },
 )

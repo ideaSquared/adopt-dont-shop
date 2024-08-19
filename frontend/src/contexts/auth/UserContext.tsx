@@ -1,19 +1,10 @@
-import { User } from '@adoptdontshop/libs/users'
-import { Role } from '@adoptdontshop/permissions'
-import React, {
-  ReactNode,
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react'
-import { deleteCookie, getCookie, setCookie } from './CookieUtils' // Adjust the path based on your folder structure
+import { User, UserService } from '@adoptdontshop/libs/users'
+import React, { ReactNode, createContext, useContext, useState } from 'react'
 
 interface UserContextProps {
   user: User | null
   setUser: (user: User | null) => void
-  login: (email: string, password: string) => Promise<void>
+  loginUser: (email: string, password: string) => Promise<void>
   logout: () => void
 }
 
@@ -32,92 +23,27 @@ export const useUser = () => {
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = localStorage.getItem('user')
+    return storedUser ? JSON.parse(storedUser) : null
+  })
 
-  const fetchUserData = useCallback(async (token: string) => {
-    try {
-      // Replace with a fetch call to your backend API
-      /*
-      const response = await fetch('/api/user', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-
-      const data = await response.json();
-      setUser(data.user);
-      */
-
-      // For demonstration, returning a mocked user object
-      const mockedUser: User = {
-        user_id: '123',
-        email: 'mockuser@example.com',
-        first_name: 'John',
-        last_name: 'Doe',
-        roles: [Role.ADMIN],
-      }
-      setUser(mockedUser)
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to fetch user data:', error)
-      }
-      logout()
-    }
-  }, [])
-
-  useEffect(() => {
-    const token = getCookie('authToken')
-    if (token) {
-      fetchUserData(token)
-    }
-  }, [fetchUserData])
-
-  const login = async (email: string, password: string) => {
-    try {
-      // Replace with a fetch call to your backend API
-      /*
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const data = await response.json();
-      const token = data.token;
-      setCookie('authToken', token, { httpOnly: true, secure: true });
-      fetchUserData(token);
-      */
-
-      // For demonstration, returning a mocked token and calling fetchUserData
-      const mockedToken = 'mocked-token'
-      setCookie('authToken', mockedToken, { httpOnly: true, secure: true })
-      fetchUserData(mockedToken)
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Login failed:', error)
-      }
-      throw error
+  const loginUser = async (email: string, password: string) => {
+    const result = await UserService.login(email, password)
+    if (result) {
+      const { user } = result
+      setUser(user)
+      localStorage.setItem('user', JSON.stringify(user)) // Save user to localStorage
     }
   }
 
   const logout = () => {
-    deleteCookie('authToken')
+    UserService.logout()
     setUser(null)
   }
 
   return (
-    <UserContext.Provider value={{ user, setUser, login, logout }}>
+    <UserContext.Provider value={{ user, setUser, loginUser, logout }}>
       {children}
     </UserContext.Provider>
   )

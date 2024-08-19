@@ -1,12 +1,17 @@
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import React from 'react'
 import styled from 'styled-components'
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+
+interface DropdownItem {
+  label: string
+  to?: string
+  onClick?: () => void
+}
 
 interface DropdownProps {
   triggerLabel: string
-  items: { label: string; to: string }[]
+  items: DropdownItem[]
 }
-
 const Trigger = styled.span`
   color: ${(props) => props.theme.text.body};
   font-weight: bold;
@@ -53,7 +58,12 @@ const Dropdown: React.FC<DropdownProps> = ({ triggerLabel, items }) => {
       </DropdownMenu.Trigger>
       <DropdownContent>
         {items.map((item, index) => (
-          <DropdownItem as="a" href={item.to} key={index}>
+          <DropdownItem
+            as={item.to ? 'a' : 'div'}
+            href={item.to}
+            onClick={item.onClick}
+            key={index}
+          >
             {item.label}
           </DropdownItem>
         ))}

@@ -25,11 +25,11 @@ export async function seed(queryInterface: QueryInterface) {
     },
     {
       email: 'rescue.manager@example.com',
-      roles: ['rescue_manager', 'verified_user'],
+      roles: ['rescue_manager', 'verified_user', 'staff'],
     },
     {
       email: 'pet.manager@example.com',
-      roles: ['pet_manager', 'verified_user'],
+      roles: ['pet_manager', 'verified_user', 'staff'],
     },
     {
       email: 'staff.user@example.com',
@@ -49,7 +49,7 @@ export async function seed(queryInterface: QueryInterface) {
     },
     {
       email: 'rescue.manager2@example.com',
-      roles: ['rescue_manager', 'verified_user'],
+      roles: ['rescue_manager', 'verified_user', 'staff'],
     },
   ]
 

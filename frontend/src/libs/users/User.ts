@@ -3,17 +3,22 @@ import { Role } from '@adoptdontshop/permissions'
 export interface User {
   user_id: string
   email: string
-  password?: string
-  confirm_password?: string
   first_name: string
   last_name: string
-  city?: string
-  country?: string
-  description?: string
-  reset_token_force_flag?: boolean
+  email_verified: boolean
+  verification_token?: string | null
+  reset_token?: string | null
+  reset_token_expiration?: string | null
+  reset_token_force_flag?: boolean | null
+  created_at: string
+  updated_at: string
+  country?: string | null
+  city?: string | null
+  location?: string | null
   roles: Role[]
+  password?: string // Optional fields for user creation
+  confirm_password?: string // Optional fields for user creation
 }
 
-// Using type aliases and Pick to create specific subsets
 export type LoginUser = Pick<User, 'email' | 'password'>
 export type ResetPasswordUser = Pick<User, 'email'>

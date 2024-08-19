@@ -26,7 +26,7 @@ const getUserById = async (id: string): Promise<User | undefined> => {
 const login = async (
   email: string,
   password: string,
-): Promise<string | null> => {
+): Promise<{ token: string; user: User } | null> => {
   try {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
@@ -40,10 +40,12 @@ const login = async (
       throw new Error('Login failed')
     }
 
-    const { token } = await response.json()
+    const { token, user } = await response.json()
+
     // Save token to localStorage or cookies
     localStorage.setItem('token', token)
-    return token
+
+    return { token, user }
   } catch (error) {
     console.error('Login failed:', error)
     return null

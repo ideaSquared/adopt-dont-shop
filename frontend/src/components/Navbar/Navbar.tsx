@@ -1,5 +1,6 @@
 import { DropdownMenu } from '@adoptdontshop/components'
 import { Role, usePermissions } from '@adoptdontshop/permissions'
+import { useUser } from 'contexts/auth/UserContext'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
@@ -27,7 +28,9 @@ const NavList = styled.ul`
 const NavItem = styled.li`
   margin: 0 1rem;
 `
+
 const Navbar: React.FC = () => {
+  const { user, logout } = useUser()
   const { hasRole } = usePermissions()
 
   const canViewRescueDashboard = hasRole(Role.STAFF)
@@ -43,26 +46,34 @@ const Navbar: React.FC = () => {
 
           <NavItem>
             <DropdownMenu
-              triggerLabel="User"
-              items={[
-                { label: 'Login', to: '/login' },
-                { label: 'Create Account', to: '/create-account' },
-                { label: 'Forgot Password', to: '/forgot-password' },
-                { label: 'Reset Password', to: '/reset-password' },
-              ]}
+              triggerLabel={user ? user.first_name : 'User'}
+              items={
+                user
+                  ? [
+                      { label: 'Profile', to: '/settings' },
+                      { label: 'Logout', onClick: logout },
+                    ]
+                  : [
+                      { label: 'Login', to: '/login' },
+                      { label: 'Create Account', to: '/create-account' },
+                      { label: 'Forgot Password', to: '/forgot-password' },
+                      { label: 'Reset Password', to: '/reset-password' },
+                    ]
+              }
             />
           </NavItem>
 
-          <NavItem>
-            <DropdownMenu
-              triggerLabel="Verified User"
-              items={[
-                { label: 'Profile', to: '/profile' },
-                { label: 'Swipe', to: '/swipe' },
-                { label: 'Chat', to: '/chat' },
-              ]}
-            />
-          </NavItem>
+          {hasRole(Role.USER) && (
+            <NavItem>
+              <DropdownMenu
+                triggerLabel="Verified User"
+                items={[
+                  { label: 'Swipe', to: '/swipe' },
+                  { label: 'Chat', to: '/chat' },
+                ]}
+              />
+            </NavItem>
+          )}
 
           {canViewRescueDashboard && (
             <NavItem>
