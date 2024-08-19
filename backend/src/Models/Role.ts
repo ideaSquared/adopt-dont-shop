@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import sequelize from '../sequelize'
+import { User } from '../types/User'
 
 interface RoleAttributes {
   role_id: number
@@ -18,6 +19,8 @@ class Role
   public role_name!: string
   public created_at!: Date
   public updated_at!: Date
+
+  public Users?: User[]
 }
 
 Role.init(

@@ -1,5 +1,11 @@
-import { DataTypes, Model, Optional } from 'sequelize'
+import {
+  BelongsToManyAddAssociationMixin,
+  DataTypes,
+  Model,
+  Optional,
+} from 'sequelize'
 import sequelize from '../sequelize'
+import { Role } from '../types/User'
 
 interface UserAttributes {
   user_id: string
@@ -40,6 +46,12 @@ class User
   public country!: string
   public city!: string
   public location!: { type: string; coordinates: [number, number] }
+
+  // Association methods
+  public addRole!: BelongsToManyAddAssociationMixin<Role, number>
+
+  // Association property
+  public Roles?: Role[]
 }
 
 User.init(

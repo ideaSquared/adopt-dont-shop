@@ -14,16 +14,26 @@ import UserPreference from './UserPreference'
 import UserRole from './UserRole'
 
 // Associations
-User.belongsToMany(Role, { through: UserRole, foreignKey: 'user_id' })
-Role.belongsToMany(User, { through: UserRole, foreignKey: 'role_id' })
+User.belongsToMany(Role, {
+  through: UserRole,
+  foreignKey: 'user_id',
+  as: 'Roles',
+})
+Role.belongsToMany(User, {
+  through: UserRole,
+  foreignKey: 'role_id',
+  as: 'Users',
+})
 
 Role.belongsToMany(Permission, {
   through: RolePermission,
   foreignKey: 'role_id',
+  as: 'Permissions',
 })
 Permission.belongsToMany(Role, {
   through: RolePermission,
   foreignKey: 'permission_id',
+  as: 'Roles',
 })
 
 Conversation.belongsTo(User, { foreignKey: 'started_by', as: 'starter' })

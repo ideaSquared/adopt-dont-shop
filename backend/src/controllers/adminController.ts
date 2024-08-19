@@ -6,10 +6,10 @@ export const getAllUsers = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const users = await getAllUsersService(req.query)
+    const users = await getAllUsersService()
     res.status(200).json(users)
   } catch (error) {
-    console.log(error)
+    console.error(error)
     res.status(500).json({ message: 'Error retrieving users' })
   }
 }

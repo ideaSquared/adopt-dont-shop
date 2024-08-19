@@ -1,8 +1,8 @@
-export interface User {
+import { Model } from 'sequelize'
+
+export interface User extends Model {
   user_id: string
   email: string
-  password?: string
-  confirm_password?: string
   first_name: string
   last_name: string
   city?: string
@@ -10,7 +10,7 @@ export interface User {
   description?: string
   reset_token_force_flag?: boolean
   is_admin?: boolean
-  Roles: { role_name: string }[] // Sequelize result includes this
+  Roles: Role[]
 }
 
 export interface Role {
