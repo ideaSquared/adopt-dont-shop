@@ -11,7 +11,6 @@ export interface User {
   country?: string
   description?: string
   reset_token_force_flag?: boolean
-  is_admin?: boolean
   roles: Role[]
 }
 
