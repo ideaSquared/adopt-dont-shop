@@ -92,7 +92,7 @@ const Settings: React.FC = () => {
 
           <h2>Change Password</h2>
           <form onSubmit={handleChangePassword}>
-            <FormInput label="Current Password">
+            <FormInput label="Current password">
               <TextInput
                 type="password"
                 value={currentPassword}
@@ -100,7 +100,7 @@ const Settings: React.FC = () => {
                 required
               />
             </FormInput>
-            <FormInput label="New Password">
+            <FormInput label="New password">
               <TextInput
                 type="password"
                 value={newPassword}
