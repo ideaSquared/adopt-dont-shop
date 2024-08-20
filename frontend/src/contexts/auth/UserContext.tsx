@@ -40,6 +40,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const logout = () => {
     UserService.logout()
     setUser(null)
+    localStorage.removeItem('user')
   }
 
   return (
