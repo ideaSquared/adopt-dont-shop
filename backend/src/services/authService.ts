@@ -24,12 +24,16 @@ export const loginUser = async (
   // Fetch user roles
   const roles = await getRolesForUser(user.user_id)
 
+  // Ensure SECRET_KEY is defined
+  const secretKey = process.env.SECRET_KEY
+  if (!secretKey) {
+    throw new Error('Internal server error')
+  }
+
   // Generate JWT token
-  const token = jwt.sign(
-    { userId: user.user_id },
-    process.env.SECRET_KEY as string,
-    { expiresIn: '1h' },
-  )
+  const token = jwt.sign({ userId: user.user_id, roles }, secretKey, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+  })
 
   // Destructure user object to exclude password
   const { password: _, ...userWithoutPassword } = user.toJSON()
