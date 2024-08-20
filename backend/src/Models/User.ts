@@ -5,7 +5,7 @@ import {
   Optional,
 } from 'sequelize'
 import sequelize from '../sequelize'
-import { Role } from '../types/User'
+import { Role, UserRole } from './'
 
 interface UserAttributes {
   user_id: string
@@ -14,7 +14,7 @@ interface UserAttributes {
   email: string
   password: string
   email_verified?: boolean
-  verification_token?: string
+  verification_token?: string | null
   reset_token?: string | null
   reset_token_expiration?: Date | null
   reset_token_force_flag?: boolean
@@ -24,8 +24,8 @@ interface UserAttributes {
   city?: string
   location?: { type: string; coordinates: [number, number] }
 }
-
-interface UserCreationAttributes extends Optional<UserAttributes, 'user_id'> {}
+export interface UserCreationAttributes
+  extends Optional<UserAttributes, 'user_id'> {}
 
 class User
   extends Model<UserAttributes, UserCreationAttributes>
@@ -37,7 +37,7 @@ class User
   public email!: string
   public password!: string
   public email_verified!: boolean
-  public verification_token!: string
+  public verification_token!: string | null
   public reset_token!: string | null
   public reset_token_expiration!: Date | null
   public reset_token_force_flag!: boolean
@@ -50,8 +50,12 @@ class User
   // Association methods
   public addRole!: BelongsToManyAddAssociationMixin<Role, number>
 
-  // Association property
+  // Roles property to store the associated roles
   public Roles?: Role[]
+
+  public static associate() {
+    this.belongsToMany(Role, { through: UserRole, foreignKey: 'user_id' })
+  }
 }
 
 User.init(

@@ -5,6 +5,7 @@ import {
   Login,
   ResetPassword,
   Settings,
+  VerifyEmail,
 } from '@adoptdontshop/pages/account'
 import { Conversations } from '@adoptdontshop/pages/chat'
 import {
@@ -47,6 +48,7 @@ const AppContent: React.FC = () => {
           <Route path="/create-account" element={<CreateAccount />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           <Route
             element={

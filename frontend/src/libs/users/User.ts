@@ -22,3 +22,18 @@ export interface User {
 
 export type LoginUser = Pick<User, 'email' | 'password'>
 export type ResetPasswordUser = Pick<User, 'email'>
+
+export interface CreateUserPayload {
+  first_name: string
+  last_name: string
+  email: string
+  password: string
+}
+
+export interface CreateRescuePayload extends CreateUserPayload {
+  rescue_type: string
+  rescue_name: string
+  city: string
+  country: string
+  reference_number: string
+}

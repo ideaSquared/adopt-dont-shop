@@ -19,7 +19,7 @@ interface RescueAttributes {
   location?: { type: string; coordinates: [number, number] }
 }
 
-interface RescueCreationAttributes
+export interface RescueCreationAttributes
   extends Optional<RescueAttributes, 'rescue_id'> {}
 
 class Rescue

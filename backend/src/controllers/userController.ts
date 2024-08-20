@@ -1,10 +1,12 @@
 import { Request, Response } from 'express'
 import {
   changePassword,
+  createUser,
   forgotPassword,
   loginUser,
   resetPassword,
   updateUserDetails,
+  verifyEmailToken,
 } from '../services/authService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
 
@@ -111,5 +113,115 @@ export const resetPasswordHandler = async (
     res.status(200).json({ message: 'Password reset successful!' })
   } else {
     res.status(400).json({ message: 'Invalid or expired token' })
+  }
+}
+
+export const createUserAccount = async (req: Request, res: Response) => {
+  try {
+    const { first_name, last_name, email, password } = req.body
+
+    // Validate required fields
+    if (!email || typeof email !== 'string') {
+      return res
+        .status(400)
+        .json({ message: 'Email is required and must be a string' })
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: 'Passwords is required' })
+    }
+
+    const userData = { first_name, last_name, email, password }
+    const { user } = await createUser(userData)
+
+    res.status(201).json({ message: 'User created successfully', user })
+  } catch (error) {
+    if (error instanceof Error) {
+      res
+        .status(500)
+        .json({ message: 'Error creating user account', error: error.message })
+    } else {
+      res.status(500).json({ message: 'Unknown error occurred' })
+    }
+  }
+}
+
+export const createRescueAccount = async (req: Request, res: Response) => {
+  try {
+    const {
+      first_name,
+      last_name,
+      email,
+      password,
+      confirmPassword,
+      rescue_type,
+      rescue_name,
+      city,
+      country,
+      reference_number,
+    } = req.body
+
+    // Validate required fields
+    if (!email || typeof email !== 'string') {
+      return res
+        .status(400)
+        .json({ message: 'Email is required and must be a string' })
+    }
+
+    if (!password || password !== confirmPassword) {
+      return res
+        .status(400)
+        .json({ message: 'Passwords do not match or are missing' })
+    }
+
+    const userData = { first_name, last_name, email, password }
+    const rescueData = {
+      rescue_type,
+      rescue_name,
+      city,
+      country,
+      reference_number,
+    }
+
+    const { user, rescue, staffMember } = await createUser(userData, rescueData)
+
+    res.status(201).json({
+      message: 'Rescue and user created successfully',
+      user,
+      rescue,
+      staffMember,
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({
+        message: 'Error creating rescue account',
+        error: error.message,
+      })
+    } else {
+      res.status(500).json({ message: 'Unknown error occurred' })
+    }
+  }
+}
+
+export const verifyEmail = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { token } = req.query
+
+    if (!token) {
+      res.status(400).json({ message: 'Verification token is required' })
+      return
+    }
+
+    const user = await verifyEmailToken(token as string)
+
+    res.status(200).json({
+      message: 'Email verified successfully!',
+      user_id: user?.user_id,
+    })
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message })
   }
 }

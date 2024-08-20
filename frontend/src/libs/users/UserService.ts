@@ -1,4 +1,4 @@
-import { User } from './User'
+import { CreateRescuePayload, CreateUserPayload, User } from './User'
 
 const API_URL = 'http://localhost:5000/api/auth'
 
@@ -109,9 +109,8 @@ export const forgotPassword = async (email: string): Promise<boolean> => {
     return false
   }
 }
-
-const createAccount = async (newUser: Omit<User, 'user_id'>): Promise<User> => {
-  const response = await fetch(`${API_URL}/register`, {
+const createAccount = async (newUser: CreateUserPayload): Promise<User> => {
+  const response = await fetch(`${API_URL}/create-user`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -121,6 +120,25 @@ const createAccount = async (newUser: Omit<User, 'user_id'>): Promise<User> => {
 
   if (!response.ok) {
     throw new Error('Failed to create account')
+  }
+
+  return response.json()
+}
+
+const createRescueAccount = async (
+  newUser: CreateUserPayload,
+  rescueDetails: Omit<CreateRescuePayload, keyof CreateUserPayload>,
+): Promise<User> => {
+  const response = await fetch(`${API_URL}/create-rescue`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ user: newUser, rescue: rescueDetails }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to create rescue account')
   }
 
   return response.json()
@@ -176,6 +194,21 @@ export const changePassword = async (
   }
 }
 
+const verifyEmail = async (token: string): Promise<{ message: string }> => {
+  const response = await fetch(`${API_URL}/verify-email?token=${token}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error('Verification failed')
+  }
+
+  return response.json()
+}
+
 export default {
   getUsers,
   getUserById,
@@ -186,4 +219,6 @@ export default {
   forgotPassword,
   createAccount,
   updateUser,
+  createRescueAccount,
+  verifyEmail,
 }

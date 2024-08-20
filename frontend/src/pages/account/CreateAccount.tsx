@@ -1,5 +1,3 @@
-import React, { useState } from 'react'
-import { User, UserService } from '@adoptdontshop/libs/users/'
 import {
   Button,
   CountrySelectInput,
@@ -7,6 +5,8 @@ import {
   SelectInput,
   TextInput,
 } from '@adoptdontshop/components'
+import { CreateUserPayload, UserService } from '@adoptdontshop/libs/users/'
+import React, { useState } from 'react'
 
 const CreateAccount: React.FC = () => {
   const [isRescueForm, setIsRescueForm] = useState(false)
@@ -22,30 +22,61 @@ const CreateAccount: React.FC = () => {
   const [referenceNumber, setReferenceNumber] = useState('')
   const [message, setMessage] = useState('')
 
-  const handleUserSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleUserSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const newUser: Omit<User, 'user_id'> = {
+    if (password !== confirmPassword) {
+      setMessage('Passwords do not match')
+      return
+    }
+    const newUser: CreateUserPayload = {
       first_name: firstName,
       last_name: lastName,
       email,
+      password,
     }
-    const user = UserService.createAccount(newUser)
-    setMessage(`User registered with ID: ${user.user_id}`)
+    try {
+      const user = await UserService.createAccount(newUser)
+      setMessage(
+        'Account created! Please check your email to verify your account.',
+      )
+    } catch (error) {
+      setMessage('Failed to create user account')
+    }
   }
 
-  const handleRescueSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleRescueSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault()
+    if (password !== confirmPassword) {
+      setMessage('Passwords do not match')
+      return
+    }
     if (rescueType === 'other') {
       setMessage("We don't support other types of rescues.")
       return
     }
-    const newUser: Omit<User, 'user_id'> = {
+    const newUser: CreateUserPayload = {
       first_name: firstName,
       last_name: lastName,
       email,
+      password,
     }
-    const user = UserService.createAccount(newUser)
-    setMessage(`Rescue registered with ID: ${user.user_id}`)
+    const rescueDetails = {
+      rescue_type: rescueType,
+      rescue_name: rescueName,
+      city,
+      country,
+      reference_number: referenceNumber,
+    }
+    try {
+      const user = await UserService.createRescueAccount(newUser, rescueDetails)
+      setMessage(
+        'Rescue account created! Please check your email to verify your account.',
+      )
+    } catch (error) {
+      setMessage('Failed to create rescue account')
+    }
   }
 
   return (

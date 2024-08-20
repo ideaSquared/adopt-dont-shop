@@ -5,11 +5,11 @@ import Participant from './Participant'
 import Permission from './Permission'
 import Pet from './Pet'
 import Rating from './Rating'
-import Rescue from './Rescue'
+import Rescue, { RescueCreationAttributes } from './Rescue'
 import Role from './Role'
 import RolePermission from './RolePermission'
 import StaffMember from './StaffMember'
-import User from './User'
+import User, { UserCreationAttributes } from './User'
 import UserPreference from './UserPreference'
 import UserRole from './UserRole'
 
@@ -63,10 +63,12 @@ export {
   Pet,
   Rating,
   Rescue,
+  RescueCreationAttributes,
   Role,
   RolePermission,
   StaffMember,
   User,
+  UserCreationAttributes,
   UserPreference,
   UserRole,
 }

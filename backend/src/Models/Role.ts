@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import sequelize from '../sequelize'
-import { User } from '../types/User'
+import { User, UserRole } from './'
 
 interface RoleAttributes {
   role_id: number
@@ -20,7 +20,9 @@ class Role
   public created_at!: Date
   public updated_at!: Date
 
-  public Users?: User[]
+  public static associate() {
+    this.belongsToMany(User, { through: UserRole, foreignKey: 'role_id' })
+  }
 }
 
 Role.init(
