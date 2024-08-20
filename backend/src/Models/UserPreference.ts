@@ -59,7 +59,7 @@ UserPreference.init(
   {
     sequelize,
     tableName: 'user_preferences',
-    timestamps: false,
+    timestamps: true,
   },
 )
 

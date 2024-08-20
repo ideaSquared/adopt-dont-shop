@@ -96,7 +96,7 @@ Rescue.init(
   {
     sequelize,
     tableName: 'rescues',
-    timestamps: false,
+    timestamps: true,
   },
 )
 

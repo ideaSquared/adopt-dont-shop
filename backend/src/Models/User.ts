@@ -127,7 +127,7 @@ User.init(
         attributes: { include: ['password'] },
       },
     },
-    timestamps: false,
+    timestamps: true,
   },
 )
 

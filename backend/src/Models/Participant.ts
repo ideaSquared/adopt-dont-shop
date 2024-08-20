@@ -61,7 +61,7 @@ Participant.init(
   {
     sequelize,
     tableName: 'participants',
-    timestamps: false,
+    timestamps: true,
   },
 )
 

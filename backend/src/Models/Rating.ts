@@ -56,7 +56,7 @@ Rating.init(
   {
     sequelize,
     tableName: 'ratings',
-    timestamps: false,
+    timestamps: true,
   },
 )
 

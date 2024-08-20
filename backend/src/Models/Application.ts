@@ -72,7 +72,7 @@ Application.init(
   {
     sequelize,
     tableName: 'applications',
-    timestamps: false,
+    timestamps: true,
   },
 )
 

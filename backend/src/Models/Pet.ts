@@ -150,7 +150,7 @@ Pet.init(
   {
     sequelize,
     tableName: 'pets',
-    timestamps: false,
+    timestamps: true,
   },
 )
 

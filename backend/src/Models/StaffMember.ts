@@ -56,7 +56,7 @@ StaffMember.init(
   {
     sequelize,
     tableName: 'staff_members',
-    timestamps: false,
+    timestamps: true,
   },
 )
 

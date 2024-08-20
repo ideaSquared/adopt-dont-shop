@@ -46,7 +46,7 @@ Permission.init(
   {
     sequelize,
     tableName: 'permissions',
-    timestamps: false,
+    timestamps: true,
   },
 )
 
