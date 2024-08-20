@@ -48,7 +48,11 @@ const AppContent: React.FC = () => {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          <Route element={<ProtectedRoute requiredRole={Role.USER} />}>
+          <Route
+            element={
+              <ProtectedRoute requiredRole={Role.USER || Role.VERIFIED_USER} />
+            }
+          >
             <Route path="/settings" element={<Settings />} />
             <Route path="/swipe" element={<Swipe />} />
             <Route path="/chat" element={<Conversations />} />

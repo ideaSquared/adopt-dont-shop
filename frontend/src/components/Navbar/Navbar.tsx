@@ -63,17 +63,18 @@ const Navbar: React.FC = () => {
             />
           </NavItem>
 
-          {hasRole(Role.USER) && (
-            <NavItem>
-              <DropdownMenu
-                triggerLabel="Verified User"
-                items={[
-                  { label: 'Swipe', to: '/swipe' },
-                  { label: 'Chat', to: '/chat' },
-                ]}
-              />
-            </NavItem>
-          )}
+          {hasRole(Role.USER) ||
+            (hasRole(Role.VERIFIED_USER) && (
+              <NavItem>
+                <DropdownMenu
+                  triggerLabel="Verified User"
+                  items={[
+                    { label: 'Swipe', to: '/swipe' },
+                    { label: 'Chat', to: '/chat' },
+                  ]}
+                />
+              </NavItem>
+            ))}
 
           {canViewRescueDashboard && (
             <NavItem>
