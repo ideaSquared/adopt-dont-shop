@@ -147,11 +147,38 @@ const updateUser = async (user: User): Promise<User | null> => {
   }
 }
 
+export const changePassword = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_URL}/users/${userId}/change-password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token if necessary
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to change password')
+    }
+
+    return true
+  } catch (error) {
+    console.error('Change password failed:', error)
+    return false
+  }
+}
+
 export default {
   getUsers,
   getUserById,
   login,
   logout,
+  changePassword,
   resetPassword,
   forgotPassword,
   createAccount,

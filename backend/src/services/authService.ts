@@ -63,3 +63,35 @@ export const updateUserDetails = async (
   // Fetch the updated user to return
   return user
 }
+
+export const changePassword = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<boolean> => {
+  const user = await User.scope('withPassword').findByPk(userId)
+
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  // Verify current password
+  const isPasswordValid = await bcrypt.compare(currentPassword, user.password)
+  if (!isPasswordValid) {
+    throw new Error('Current password is incorrect')
+  }
+
+  // Validate new password (e.g., length, complexity)
+  // if (newPassword.length < 8) {
+  //   throw new Error('New password must be at least 8 characters long')
+  // }
+
+  // Hash the new password
+  const hashedNewPassword = await bcrypt.hash(newPassword, 10)
+
+  // Update the user's password
+  user.password = hashedNewPassword
+  await user.save()
+
+  return true
+}

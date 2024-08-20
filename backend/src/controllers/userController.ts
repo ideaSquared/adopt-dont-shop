@@ -1,5 +1,9 @@
 import { Request, Response } from 'express'
-import { loginUser, updateUserDetails } from '../services/authService'
+import {
+  changePassword,
+  loginUser,
+  updateUserDetails,
+} from '../services/authService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
 
 export const login = async (req: Request, res: Response): Promise<void> => {
@@ -43,6 +47,37 @@ export const updateUser = async (
     }
 
     res.status(200).json(updatedUser)
+  } catch (error) {
+    const typedError = error as Error
+    res.status(400).json({ message: typedError.message })
+  }
+}
+
+export const changePasswordHandler = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { userId } = req.params // Assuming userId is passed in the URL
+    const { currentPassword, newPassword } = req.body
+
+    if (!currentPassword || !newPassword) {
+      res
+        .status(400)
+        .json({ message: 'Current and new passwords are required' })
+      return
+    }
+
+    // Ensure user is updating their own password
+    if (req.user !== userId) {
+      res.status(403).json({
+        message: "You are not authorized to change this user's password",
+      })
+      return
+    }
+
+    await changePassword(userId, currentPassword, newPassword)
+    res.status(200).json({ message: 'Password changed successfully' })
   } catch (error) {
     const typedError = error as Error
     res.status(400).json({ message: typedError.message })
