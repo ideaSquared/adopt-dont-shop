@@ -62,6 +62,8 @@ Participant.init(
     sequelize,
     tableName: 'participants',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   },
 )
 

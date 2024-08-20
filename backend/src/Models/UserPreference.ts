@@ -60,6 +60,8 @@ UserPreference.init(
     sequelize,
     tableName: 'user_preferences',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   },
 )
 

@@ -77,6 +77,8 @@ Message.init(
     sequelize,
     tableName: 'messages',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   },
 )
 

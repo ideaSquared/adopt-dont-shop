@@ -151,6 +151,8 @@ Pet.init(
     sequelize,
     tableName: 'pets',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   },
 )
 

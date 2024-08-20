@@ -51,6 +51,8 @@ RolePermission.init(
     sequelize,
     tableName: 'role_permissions',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   },
 )
 

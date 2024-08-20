@@ -42,6 +42,8 @@ UserRole.init(
     sequelize,
     tableName: 'user_roles',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   },
 )
 
