@@ -46,3 +46,20 @@ export const loginUser = async (
 
   return { token, user: userWithRoles }
 }
+
+export const updateUserDetails = async (
+  userId: string,
+  updatedData: Partial<User>,
+): Promise<User | null> => {
+  const user = await User.findByPk(userId)
+
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  // Update the user with the new details
+  await user.update(updatedData)
+
+  // Fetch the updated user to return
+  return user
+}

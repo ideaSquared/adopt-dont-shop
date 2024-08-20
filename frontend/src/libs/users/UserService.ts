@@ -123,24 +123,27 @@ const createAccount = async (newUser: Omit<User, 'user_id'>): Promise<User> => {
   return response.json()
 }
 
-const updateUser = async (updatedUser: User): Promise<User | undefined> => {
+const updateUser = async (user: User): Promise<User | null> => {
   try {
-    const response = await fetch(`${API_URL}/users/${updatedUser.user_id}`, {
+    const response = await fetch(`${API_URL}/users/${user.user_id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
-      body: JSON.stringify(updatedUser),
+      body: JSON.stringify(user),
     })
 
     if (!response.ok) {
       throw new Error('Failed to update user')
     }
 
-    return response.json()
+    const updatedUser = await response.json()
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+    return updatedUser
   } catch (error) {
     console.error('Update user failed:', error)
-    return undefined
+    return null
   }
 }
 

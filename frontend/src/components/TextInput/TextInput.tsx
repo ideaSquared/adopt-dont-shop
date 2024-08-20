@@ -4,6 +4,7 @@ import styled from 'styled-components'
 interface TextInputProps {
   value: string | null
   type: string
+  name?: string
   // eslint-disable-next-line no-unused-vars
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   placeholder?: string
@@ -26,6 +27,7 @@ const StyledInput = styled.input`
 
 const TextInput: React.FC<TextInputProps> = ({
   value,
+  name,
   type,
   onChange,
   placeholder = '',
@@ -35,6 +37,7 @@ const TextInput: React.FC<TextInputProps> = ({
   return (
     <StyledInput
       type={type}
+      name={name}
       value={value || ''}
       onChange={onChange}
       placeholder={placeholder}

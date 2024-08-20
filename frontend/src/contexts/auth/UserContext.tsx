@@ -4,7 +4,7 @@ import React, { ReactNode, createContext, useContext, useState } from 'react'
 interface UserContextProps {
   user: User | null
   setUser: (user: User | null) => void
-  loginUser: (email: string, password: string) => Promise<void>
+  loginUser: (email: string, password: string) => Promise<boolean>
   logout: () => void
 }
 
@@ -27,13 +27,23 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const storedUser = localStorage.getItem('user')
     return storedUser ? JSON.parse(storedUser) : null
   })
-
-  const loginUser = async (email: string, password: string) => {
-    const result = await UserService.login(email, password)
-    if (result) {
-      const { user } = result
-      setUser(user)
-      localStorage.setItem('user', JSON.stringify(user)) // Save user to localStorage
+  const loginUser = async (
+    email: string,
+    password: string,
+  ): Promise<boolean> => {
+    try {
+      const result = await UserService.login(email, password)
+      if (result) {
+        const { user } = result
+        setUser(user)
+        localStorage.setItem('user', JSON.stringify(user))
+        return true
+      } else {
+        return false
+      }
+    } catch (error) {
+      console.error('Error during login:', error)
+      return false
     }
   }
 
