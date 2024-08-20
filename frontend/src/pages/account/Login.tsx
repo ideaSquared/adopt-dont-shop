@@ -13,8 +13,12 @@ const Login: React.FC = () => {
     event.preventDefault()
 
     try {
-      await loginUser(email, password)
-      setMessage('Login successful!')
+      const success = await loginUser(email, password)
+      if (success) {
+        setMessage('Login successful!')
+      } else {
+        setMessage('Login failed: Invalid email or password.')
+      }
     } catch (error) {
       console.error('Error during login:', error)
       setMessage('Login failed')
