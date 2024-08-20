@@ -1,14 +1,14 @@
-import React, { useState } from 'react'
-import { UserService } from '@adoptdontshop/libs/users'
 import { Button, FormInput, TextInput } from '@adoptdontshop/components'
+import { UserService } from '@adoptdontshop/libs/users'
+import React, { useState } from 'react'
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    const success = UserService.forgotPassword(email)
+    const success = await UserService.forgotPassword(email)
     setMessage(success ? 'Password reset link sent!' : 'Email not found')
   }
 

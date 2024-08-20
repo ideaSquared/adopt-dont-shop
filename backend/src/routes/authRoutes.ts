@@ -2,7 +2,9 @@
 import express from 'express'
 import {
   changePasswordHandler,
+  forgotPasswordHandler,
   login,
+  resetPasswordHandler,
   updateUser,
 } from '../controllers/userController'
 import { authenticateJWT } from '../middlewares/authMiddleware'
@@ -21,5 +23,8 @@ router.put(
   authenticateJWT,
   changePasswordHandler,
 )
+
+router.post('/forgot-password', forgotPasswordHandler)
+router.post('/reset-password', resetPasswordHandler)
 
 export default router

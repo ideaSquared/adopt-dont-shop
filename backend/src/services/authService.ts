@@ -1,7 +1,10 @@
 // src/services/authService.ts
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { Op } from 'sequelize'
+import { v4 as uuidv4 } from 'uuid'
 import { User } from '../Models/'
+import { sendPasswordResetEmail } from './emailService'
 import { getRolesForUser } from './permissionService'
 
 export const loginUser = async (
@@ -91,6 +94,47 @@ export const changePassword = async (
 
   // Update the user's password
   user.password = hashedNewPassword
+  await user.save()
+
+  return true
+}
+
+export const forgotPassword = async (email: string): Promise<boolean> => {
+  const user = await User.findOne({ where: { email } })
+
+  if (!user) {
+    return false
+  }
+
+  const resetToken = uuidv4()
+  user.reset_token = resetToken
+  user.reset_token_expiration = new Date(Date.now() + 3600000) // 1 hour expiration
+  await user.save()
+
+  await sendPasswordResetEmail(email, resetToken)
+
+  return true
+}
+
+export const resetPassword = async (
+  resetToken: string,
+  newPassword: string,
+): Promise<boolean> => {
+  const user = await User.findOne({
+    where: {
+      reset_token: resetToken,
+      reset_token_expiration: { [Op.gt]: new Date() },
+    },
+  })
+
+  if (!user) {
+    return false
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+  user.password = hashedPassword
+  user.reset_token = null
+  user.reset_token_expiration = null
   await user.save()
 
   return true

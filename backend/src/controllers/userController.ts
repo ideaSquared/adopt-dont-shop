@@ -1,7 +1,9 @@
 import { Request, Response } from 'express'
 import {
   changePassword,
+  forgotPassword,
   loginUser,
+  resetPassword,
   updateUserDetails,
 } from '../services/authService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
@@ -81,5 +83,33 @@ export const changePasswordHandler = async (
   } catch (error) {
     const typedError = error as Error
     res.status(400).json({ message: typedError.message })
+  }
+}
+
+export const forgotPasswordHandler = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const { email } = req.body
+
+  const success = await forgotPassword(email)
+  if (success) {
+    res.status(200).json({ message: 'Password reset link sent!' })
+  } else {
+    res.status(404).json({ message: 'Email not found' })
+  }
+}
+
+export const resetPasswordHandler = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const { resetToken, newPassword } = req.body
+
+  const success = await resetPassword(resetToken, newPassword)
+  if (success) {
+    res.status(200).json({ message: 'Password reset successful!' })
+  } else {
+    res.status(400).json({ message: 'Invalid or expired token' })
   }
 }

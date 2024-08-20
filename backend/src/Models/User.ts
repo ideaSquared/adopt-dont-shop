@@ -15,8 +15,8 @@ interface UserAttributes {
   password: string
   email_verified?: boolean
   verification_token?: string
-  reset_token?: string
-  reset_token_expiration?: Date
+  reset_token?: string | null
+  reset_token_expiration?: Date | null
   reset_token_force_flag?: boolean
   created_at?: Date
   updated_at?: Date
@@ -38,8 +38,8 @@ class User
   public password!: string
   public email_verified!: boolean
   public verification_token!: string
-  public reset_token!: string
-  public reset_token_expiration!: Date
+  public reset_token!: string | null
+  public reset_token_expiration!: Date | null
   public reset_token_force_flag!: boolean
   public created_at!: Date
   public updated_at!: Date

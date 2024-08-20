@@ -1,28 +1,51 @@
-import React, { useState } from 'react'
-import { UserService } from '@adoptdontshop/libs/users/'
 import { Button, FormInput, TextInput } from '@adoptdontshop/components'
+import { UserService } from '@adoptdontshop/libs/users/'
+import React, { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
+
+const useQuery = () => {
+  return new URLSearchParams(useLocation().search)
+}
 
 const ResetPassword: React.FC = () => {
-  const [email, setEmail] = useState('')
+  const query = useQuery()
+  const [resetToken, setResetToken] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [message, setMessage] = useState('')
 
-  const handleSubmit = (event: React.FormEvent) => {
+  useEffect(() => {
+    const token = query.get('token')
+    if (token) {
+      setResetToken(token)
+    } else {
+      setMessage('Invalid or missing reset token')
+    }
+  }, [query])
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    const success = UserService.resetPassword(email)
-    setMessage(success ? 'Password reset link sent!' : 'Email not found')
+    if (!resetToken) {
+      setMessage('No reset token provided')
+      return
+    }
+
+    const success = await UserService.resetPassword(resetToken, newPassword)
+    setMessage(
+      success ? 'Password reset successful!' : 'Invalid or expired token',
+    )
   }
 
   return (
     <div>
       <h1>Reset Password</h1>
       <form onSubmit={handleSubmit}>
-        <FormInput label="Email">
+        <FormInput label="New Password">
           <TextInput
-            value={email}
+            value={newPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setEmail(e.target.value)
+              setNewPassword(e.target.value)
             }
-            type="email"
+            type="password"
             required
           />
         </FormInput>

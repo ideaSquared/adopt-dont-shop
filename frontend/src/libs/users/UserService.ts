@@ -65,18 +65,21 @@ const logout = async (): Promise<void> => {
   }
 }
 
-const resetPassword = async (email: string): Promise<boolean> => {
+export const resetPassword = async (
+  resetToken: string,
+  newPassword: string,
+): Promise<boolean> => {
   try {
     const response = await fetch(`${API_URL}/reset-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ resetToken, newPassword }),
     })
 
     if (!response.ok) {
-      throw new Error('Reset password failed')
+      return false
     }
 
     return true
@@ -86,7 +89,7 @@ const resetPassword = async (email: string): Promise<boolean> => {
   }
 }
 
-const forgotPassword = async (email: string): Promise<boolean> => {
+export const forgotPassword = async (email: string): Promise<boolean> => {
   try {
     const response = await fetch(`${API_URL}/forgot-password`, {
       method: 'POST',
@@ -97,7 +100,7 @@ const forgotPassword = async (email: string): Promise<boolean> => {
     })
 
     if (!response.ok) {
-      throw new Error('Forgot password failed')
+      return false
     }
 
     return true
