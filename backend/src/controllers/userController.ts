@@ -148,47 +148,45 @@ export const createUserAccount = async (req: Request, res: Response) => {
 
 export const createRescueAccount = async (req: Request, res: Response) => {
   try {
-    const {
-      first_name,
-      last_name,
-      email,
-      password,
-      confirmPassword,
-      rescue_type,
-      rescue_name,
-      city,
-      country,
-      reference_number,
-    } = req.body
+    const { user, rescue } = req.body
 
-    // Validate required fields
-    if (!email || typeof email !== 'string') {
+    // Validate user fields
+    if (!user?.email || typeof user.email !== 'string') {
       return res
         .status(400)
         .json({ message: 'Email is required and must be a string' })
     }
 
-    if (!password || password !== confirmPassword) {
-      return res
-        .status(400)
-        .json({ message: 'Passwords do not match or are missing' })
+    if (!user?.password) {
+      return res.status(400).json({ message: 'Passwords is required' })
     }
 
-    const userData = { first_name, last_name, email, password }
+    // Extract fields from the nested objects
+    const userData = {
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      password: user.password,
+    }
+
     const rescueData = {
-      rescue_type,
-      rescue_name,
-      city,
-      country,
-      reference_number,
+      rescue_type: rescue.rescue_type,
+      rescue_name: rescue.rescue_name,
+      city: rescue.city,
+      country: rescue.country,
+      reference_number: rescue.reference_number,
     }
 
-    const { user, rescue, staffMember } = await createUser(userData, rescueData)
+    const {
+      user: createdUser,
+      rescue: createdRescue,
+      staffMember,
+    } = await createUser(userData, rescueData)
 
     res.status(201).json({
       message: 'Rescue and user created successfully',
-      user,
-      rescue,
+      user: createdUser,
+      rescue: createdRescue,
       staffMember,
     })
   } catch (error) {

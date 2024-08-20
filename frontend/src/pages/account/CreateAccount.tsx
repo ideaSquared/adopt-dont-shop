@@ -143,9 +143,9 @@ const CreateAccount: React.FC = () => {
                   setRescueType(e.target.value)
                 }
                 options={[
+                  { value: 'individual', label: 'Individual' },
                   { value: 'charity', label: 'Charity' },
                   { value: 'company', label: 'Company' },
-                  { value: 'individual', label: 'Individual' },
                   { value: 'other', label: 'Other' },
                 ]}
               />

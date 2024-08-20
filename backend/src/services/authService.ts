@@ -157,12 +157,10 @@ export const createUser = async (
   const completeUserData: UserCreationAttributes = {
     ...userData,
     email_verified: false,
-    verification_token: verificationToken, // Set the verification token here
+    verification_token: verificationToken,
     reset_token: null,
     reset_token_expiration: null,
     reset_token_force_flag: undefined,
-    created_at: new Date(),
-    updated_at: new Date(),
     country: userData.country ?? undefined,
     city: userData.city ?? undefined,
     location: userData.location ?? undefined,
@@ -184,8 +182,6 @@ export const createUser = async (
     const completeRescueData: RescueCreationAttributes = {
       ...rescueData,
       reference_number_verified: false,
-      created_at: new Date(),
-      updated_at: new Date(),
       address_line_1: '',
       address_line_2: '',
       county: '',
