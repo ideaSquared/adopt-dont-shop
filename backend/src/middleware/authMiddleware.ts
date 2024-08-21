@@ -1,4 +1,3 @@
-// src/middlewares/authMiddleware.ts
 import { NextFunction, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import { AuditLogger } from '../services/auditLogService'
@@ -26,14 +25,23 @@ export const authenticateJWT = (
 
   try {
     const secretKey = process.env.SECRET_KEY as string
-    const decoded = jwt.verify(token, secretKey)
+    const decoded = jwt.verify(token, secretKey) as { userId: string }
+
+    if (!decoded || !decoded.userId) {
+      AuditLogger.logAction(
+        'AuthService',
+        'Authentication failed due to missing user ID in token',
+        'WARNING',
+      )
+      return res.status(401).json({ message: 'Invalid token' })
+    }
 
     // Attach the user ID from the token to the request object
-    req.user = (decoded as any).userId
+    req.user = decoded.userId
 
     AuditLogger.logAction(
       'AuthService',
-      `User authenticated successfully with ID: ${(decoded as any).userId}`,
+      `User authenticated successfully with ID: ${req.user}`,
       'INFO',
       req.user,
     )

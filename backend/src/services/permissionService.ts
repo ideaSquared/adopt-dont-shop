@@ -60,3 +60,41 @@ export const getRolesForUser = async (userId: string): Promise<string[]> => {
     throw error
   }
 }
+
+export const verifyUserHasRole = async (
+  userId: string,
+  roleName: string,
+): Promise<boolean> => {
+  try {
+    const roles = await getRolesForUser(userId)
+    const hasRole = roles.includes(roleName)
+
+    await AuditLogger.logAction(
+      'PermissionService',
+      `User with ID: ${userId} ${
+        hasRole ? 'has' : 'does not have'
+      } the role: ${roleName}`,
+      'INFO',
+      userId,
+    )
+
+    return hasRole
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'PermissionService',
+        `Error verifying role: ${roleName} for user with ID: ${userId}. Error: ${error.message}`,
+        'ERROR',
+        userId,
+      )
+    } else {
+      await AuditLogger.logAction(
+        'PermissionService',
+        `Unknown error verifying role: ${roleName} for user with ID: ${userId}`,
+        'ERROR',
+        userId,
+      )
+    }
+    throw error
+  }
+}

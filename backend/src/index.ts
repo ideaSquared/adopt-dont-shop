@@ -4,6 +4,7 @@ import express, { Application, Request, Response } from 'express'
 import { connectToDatabase } from './DatabaseConnection'
 import errorHandler from './middleware/errorHandler'
 import adminRoutes from './routes/adminRoutes'
+import auditLogRoutes from './routes/auditLogRoutes'
 import authRoutes from './routes/authRoutes'
 import rescueRoutes from './routes/rescueRoutes'
 import { AuditLogger } from './services/auditLogService'
@@ -50,6 +51,7 @@ app.use('/api/auth', authRoutes)
 AuditLogger.logAction('Server', 'Auth routes setup complete', 'INFO')
 
 app.use('/api/admin', adminRoutes)
+app.use('/api/admin', auditLogRoutes)
 AuditLogger.logAction('Server', 'Admin routes setup complete', 'INFO')
 
 // Use rescue routes

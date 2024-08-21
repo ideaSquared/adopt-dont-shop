@@ -1,4 +1,5 @@
 import { AuditLog } from '../Models'
+
 export const AuditLogger = {
   async logAction(
     service: string,

@@ -1,29 +1,24 @@
 import { AuditLog } from './AuditLogs'
 
-const logs: AuditLog[] = [
-  {
-    log_id: '1',
-    timestamp: '2024-08-01T10:00:00Z',
-    user_id: '1',
-    level: 'INFO',
-    service: 'UserService',
-    message: 'User logged in successfully.',
-  },
-  {
-    log_id: '2',
-    timestamp: '2024-08-01T10:05:00Z',
-    level: 'ERROR',
-    service: 'AuthService',
-    message: 'Failed to authenticate user.',
-  },
-]
+const API_URL = 'http://localhost:5000/api' // Base API URL
 
-const getAuditLogs = (): AuditLog[] => logs
+const getAuditLogs = async (): Promise<AuditLog[]> => {
+  const response = await fetch(`${API_URL}/admin/audit-logs`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming JWT is stored in localStorage
+    },
+  })
 
-const getAuditLogById = (id: string): AuditLog | undefined =>
-  logs.find((auditLog) => auditLog.log_id === id)
+  if (!response.ok) {
+    throw new Error('Failed to fetch audit logs')
+  }
 
-export default {
-  getAuditLogs,
-  getAuditLogById,
+  // Assuming the response JSON is structured as { auditLogs: AuditLog[] }
+  const data = await response.json()
+
+  return data
 }
+
+export default { getAuditLogs }
