@@ -2,7 +2,6 @@
 import express from 'express'
 import {
   changePasswordHandler,
-  createRescueAccount,
   createUserAccount,
   forgotPasswordHandler,
   login,
@@ -35,8 +34,5 @@ router.post('/reset-password', resetPasswordHandler)
 
 // Route for creating a user account
 router.post('/create-user', createUserAccount)
-
-// Route for creating a rescue account
-router.post('/create-rescue', createRescueAccount)
 
 export default router

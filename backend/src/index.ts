@@ -1,14 +1,16 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
-import express, { Request, Response } from 'express'
+import express, { Application, Request, Response } from 'express'
 import { connectToDatabase } from './DatabaseConnection'
 import errorHandler from './middlewares/errorHandler'
 import adminRoutes from './routes/adminRoutes'
 import authRoutes from './routes/authRoutes'
+import rescueRoutes from './routes/rescueRoutes'
 
 dotenv.config()
 
-const app = express()
+const app: Application = express()
+app.use(express.json())
 const port = process.env.PORT || 5000
 
 // Enable CORS
@@ -29,6 +31,9 @@ app.use(express.json())
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/admin', adminRoutes)
+
+// Use rescue routes
+app.use('/api/rescue', rescueRoutes)
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, TypeScript with Express!')

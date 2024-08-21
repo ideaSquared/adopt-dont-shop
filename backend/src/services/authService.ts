@@ -147,6 +147,7 @@ export const resetPassword = async (
 
   return true
 }
+
 export const createUser = async (
   userData: Omit<UserCreationAttributes, 'user_id'>,
   rescueData?: Partial<RescueCreationAttributes>,
