@@ -24,7 +24,9 @@ export const AuditLogger = {
   async getAllLogs(): Promise<any[]> {
     // Adjust the return type based on your needs
     try {
-      const logs = await AuditLog.findAll()
+      const logs = await AuditLog.findAll({
+        order: [['timestamp', 'DESC']],
+      })
       return logs
     } catch (error) {
       console.error('Failed to retrieve logs:', error)

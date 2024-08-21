@@ -8,6 +8,20 @@ import {
 } from '@adoptdontshop/components'
 import { AuditLog, AuditLogsService } from '@adoptdontshop/libs/audit-logs/'
 import React, { ChangeEvent, useEffect, useMemo, useState } from 'react'
+import styled from 'styled-components'
+
+const StyledButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  color: blue;
+  cursor: pointer;
+
+  &:focus {
+    outline: 2px solid #007bff; /* Optional: for better accessibility */
+  }
+`
 
 const AuditLogs: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
@@ -29,12 +43,13 @@ const AuditLogs: React.FC = () => {
     fetchAuditLogs()
   }, [])
 
-  // Memoize filtered logs based on searchTerm and serviceTerm
   const filtered = useMemo(() => {
     return auditLogs.filter((log) => {
+      const logIdString = String(log.id) // Convert log.id to a string
       const matchesSearch =
         !searchTerm ||
-        log.log_id.includes(searchTerm) ||
+        logIdString.includes(searchTerm) ||
+        log.user?.includes(searchTerm) ||
         log.action.toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesService = !serviceTerm || log.service.includes(serviceTerm)
@@ -55,6 +70,15 @@ const AuditLogs: React.FC = () => {
 
   const handleServiceFilterChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setServiceTerm(e.target.value)
+  }
+
+  // Click handler for user_id and service cells
+  const handleUserClick = (userId: string) => {
+    setSearchTerm(userId)
+  }
+
+  const handleServiceClick = (service: string) => {
+    setServiceTerm(service)
   }
 
   // Generate options for service filter
@@ -89,7 +113,7 @@ const AuditLogs: React.FC = () => {
   return (
     <div>
       <h1>Audit Logs</h1>
-      <FormInput label="Search by ID or Message">
+      <FormInput label="Search by ID, User ID, or Message">
         <TextInput
           onChange={handleSearchChange}
           type="text"
@@ -116,9 +140,15 @@ const AuditLogs: React.FC = () => {
         </thead>
         <tbody>
           {filteredAuditLogs.map((auditLog) => (
-            <tr key={auditLog.log_id}>
-              <td>{auditLog.log_id}</td>
-              <td>{auditLog.user || 'No ID'}</td>
+            <tr key={auditLog.id}>
+              <td>{auditLog.id}</td>
+              <td>
+                <StyledButton
+                  onClick={() => handleUserClick(auditLog.user || '')}
+                >
+                  {auditLog.user || 'No ID'}
+                </StyledButton>
+              </td>
               <td>
                 <DateTime timestamp={auditLog.timestamp} showTooltip={true} />
               </td>
@@ -128,7 +158,11 @@ const AuditLogs: React.FC = () => {
                 </Badge>
               </td>
               <td>
-                <Badge variant="content">{auditLog.service}</Badge>
+                <StyledButton
+                  onClick={() => handleServiceClick(auditLog.service)}
+                >
+                  {auditLog.service}
+                </StyledButton>
               </td>
               <td>{auditLog.action}</td>
             </tr>
