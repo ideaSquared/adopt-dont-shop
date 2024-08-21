@@ -1,4 +1,3 @@
-// src/services/authService.ts
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
@@ -12,6 +11,7 @@ import {
   User,
   UserCreationAttributes,
 } from '../Models/'
+import { AuditLogger } from './auditLogService'
 import { sendPasswordResetEmail, sendVerificationEmail } from './emailService'
 import { getRolesForUser } from './permissionService'
 
@@ -19,60 +19,119 @@ export const loginUser = async (
   email: string,
   password: string,
 ): Promise<{ token: string; user: any }> => {
-  const user = await User.scope('withPassword').findOne({
-    where: { email },
-  })
+  try {
+    const user = await User.scope('withPassword').findOne({
+      where: { email },
+    })
 
-  if (!user) {
-    throw new Error('Invalid email or password')
+    if (!user) {
+      await AuditLogger.logAction(
+        'AuthService',
+        `Failed login attempt for email: ${email}`,
+        'WARNING',
+      )
+      throw new Error('Invalid email or password')
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+    if (!isPasswordValid) {
+      await AuditLogger.logAction(
+        'AuthService',
+        `Failed login attempt for email: ${email}`,
+        'WARNING',
+        user.user_id,
+      )
+      throw new Error('Invalid email or password')
+    }
+
+    const roles = await getRolesForUser(user.user_id)
+    const secretKey = process.env.SECRET_KEY
+    if (!secretKey) {
+      await AuditLogger.logAction(
+        'AuthService',
+        'Missing SECRET_KEY environment variable',
+        'ERROR',
+      )
+      throw new Error('Internal server error')
+    }
+
+    const token = jwt.sign({ userId: user.user_id, roles }, secretKey, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+    })
+
+    const { password: _, ...userWithoutPassword } = user.toJSON()
+    const userWithRoles = { ...userWithoutPassword, roles }
+
+    await AuditLogger.logAction(
+      'AuthService',
+      `User logged in with email: ${email}`,
+      'INFO',
+      user.user_id,
+    )
+
+    return { token, user: userWithRoles }
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'AuthService',
+        `Error during login: ${error.message}`,
+        'ERROR',
+      )
+    } else {
+      await AuditLogger.logAction(
+        'AuthService',
+        'Unknown error during login',
+        'ERROR',
+      )
+    }
+    throw error
   }
-
-  const isPasswordValid = await bcrypt.compare(password, user.password)
-  if (!isPasswordValid) {
-    throw new Error('Invalid email or password')
-  }
-
-  // Fetch user roles
-  const roles = await getRolesForUser(user.user_id)
-
-  // Ensure SECRET_KEY is defined
-  const secretKey = process.env.SECRET_KEY
-  if (!secretKey) {
-    throw new Error('Internal server error')
-  }
-
-  // Generate JWT token
-  const token = jwt.sign({ userId: user.user_id, roles }, secretKey, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-  })
-
-  // Destructure user object to exclude password
-  const { password: _, ...userWithoutPassword } = user.toJSON()
-
-  // Include roles in the user object
-  const userWithRoles = {
-    ...userWithoutPassword,
-    roles,
-  }
-
-  return { token, user: userWithRoles }
 }
 
 export const updateUserDetails = async (
   userId: string,
   updatedData: Partial<User>,
 ): Promise<User | null> => {
-  const user = await User.findByPk(userId)
+  try {
+    const user = await User.findByPk(userId)
 
-  if (!user) {
-    throw new Error('User not found')
+    if (!user) {
+      await AuditLogger.logAction(
+        'UserService',
+        `Attempted to update non-existent user: ${userId}`,
+        'WARNING',
+        userId,
+      )
+      throw new Error('User not found')
+    }
+
+    await user.update(updatedData)
+    await AuditLogger.logAction(
+      'UserService',
+      `Updated user details for user: ${userId}`,
+      'INFO',
+      userId,
+    )
+
+    return user
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'UserService',
+        `Error updating user: ${error.message}`,
+        'ERROR',
+        userId,
+      )
+    } else {
+      await AuditLogger.logAction(
+        'UserService',
+        'Unknown error updating user',
+        'ERROR',
+        userId,
+      )
+    }
+    throw error
   }
-
-  // Update the user with the new details
-  await user.update(updatedData)
-
-  // Fetch the updated user to return
-  return user
 }
 
 export const changePassword = async (
@@ -80,161 +139,301 @@ export const changePassword = async (
   currentPassword: string,
   newPassword: string,
 ): Promise<boolean> => {
-  const user = await User.scope('withPassword').findByPk(userId)
+  try {
+    const user = await User.scope('withPassword').findByPk(userId)
 
-  if (!user) {
-    throw new Error('User not found')
+    if (!user) {
+      await AuditLogger.logAction(
+        'UserService',
+        `Attempted to change password for non-existent user: ${userId}`,
+        'WARNING',
+        userId,
+      )
+      throw new Error('User not found')
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password)
+    if (!isPasswordValid) {
+      await AuditLogger.logAction(
+        'UserService',
+        `Incorrect current password attempt for user: ${userId}`,
+        'WARNING',
+        userId,
+      )
+      throw new Error('Current password is incorrect')
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10)
+    user.password = hashedNewPassword
+    await user.save()
+
+    await AuditLogger.logAction(
+      'UserService',
+      `Password changed for user: ${userId}`,
+      'INFO',
+      userId,
+    )
+
+    return true
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'UserService',
+        `Error changing password: ${error.message}`,
+        'ERROR',
+        userId,
+      )
+    } else {
+      await AuditLogger.logAction(
+        'UserService',
+        'Unknown error changing password',
+        'ERROR',
+        userId,
+      )
+    }
+    throw error
   }
-
-  // Verify current password
-  const isPasswordValid = await bcrypt.compare(currentPassword, user.password)
-  if (!isPasswordValid) {
-    throw new Error('Current password is incorrect')
-  }
-
-  // Validate new password (e.g., length, complexity)
-  // if (newPassword.length < 8) {
-  //   throw new Error('New password must be at least 8 characters long')
-  // }
-
-  // Hash the new password
-  const hashedNewPassword = await bcrypt.hash(newPassword, 10)
-
-  // Update the user's password
-  user.password = hashedNewPassword
-  await user.save()
-
-  return true
 }
 
 export const forgotPassword = async (email: string): Promise<boolean> => {
-  const user = await User.findOne({ where: { email } })
+  try {
+    const user = await User.findOne({ where: { email } })
 
-  if (!user) {
-    return false
+    if (!user) {
+      await AuditLogger.logAction(
+        'AuthService',
+        `Password reset requested for non-existent email: ${email}`,
+        'WARNING',
+      )
+      return false
+    }
+
+    const resetToken = uuidv4()
+    user.reset_token = resetToken
+    user.reset_token_expiration = new Date(Date.now() + 3600000) // 1 hour expiration
+    await user.save()
+
+    await sendPasswordResetEmail(user.email, resetToken)
+    await AuditLogger.logAction(
+      'AuthService',
+      `Password reset email sent to: ${email}`,
+      'INFO',
+      user.user_id,
+    )
+
+    return true
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'AuthService',
+        `Error requesting password reset: ${error.message}`,
+        'ERROR',
+      )
+    } else {
+      await AuditLogger.logAction(
+        'AuthService',
+        'Unknown error requesting password reset',
+        'ERROR',
+      )
+    }
+    throw error
   }
-
-  const resetToken = uuidv4()
-  user.reset_token = resetToken
-  user.reset_token_expiration = new Date(Date.now() + 3600000) // 1 hour expiration
-  await user.save()
-
-  await sendPasswordResetEmail(user.email, resetToken)
-
-  return true
 }
 
 export const resetPassword = async (
   resetToken: string,
   newPassword: string,
 ): Promise<boolean> => {
-  const user = await User.findOne({
-    where: {
-      reset_token: resetToken,
-      reset_token_expiration: { [Op.gt]: new Date() },
-    },
-  })
+  try {
+    const user = await User.findOne({
+      where: {
+        reset_token: resetToken,
+        reset_token_expiration: { [Op.gt]: new Date() },
+      },
+    })
 
-  if (!user) {
-    return false
+    if (!user) {
+      await AuditLogger.logAction(
+        'AuthService',
+        `Invalid or expired password reset token used: ${resetToken}`,
+        'WARNING',
+      )
+      return false
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    user.password = hashedPassword
+    user.reset_token = null
+    user.reset_token_expiration = null
+    await user.save()
+
+    await AuditLogger.logAction(
+      'AuthService',
+      `Password reset successfully for user: ${user.user_id}`,
+      'INFO',
+      user.user_id,
+    )
+
+    return true
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'AuthService',
+        `Error resetting password: ${error.message}`,
+        'ERROR',
+      )
+    } else {
+      await AuditLogger.logAction(
+        'AuthService',
+        'Unknown error resetting password',
+        'ERROR',
+      )
+    }
+    throw error
   }
-
-  const hashedPassword = await bcrypt.hash(newPassword, 10)
-  user.password = hashedPassword
-  user.reset_token = null
-  user.reset_token_expiration = null
-  await user.save()
-
-  return true
 }
 
 export const createUser = async (
   userData: Omit<UserCreationAttributes, 'user_id'>,
   rescueData?: Partial<RescueCreationAttributes>,
 ): Promise<{ user: User; rescue?: Rescue; staffMember?: StaffMember }> => {
-  // Generate a verification token
-  const verificationToken = crypto.randomBytes(32).toString('hex')
+  try {
+    const verificationToken = crypto.randomBytes(32).toString('hex')
 
-  const completeUserData: UserCreationAttributes = {
-    ...userData,
-    email_verified: false,
-    verification_token: verificationToken,
-    reset_token: null,
-    reset_token_expiration: null,
-    reset_token_force_flag: undefined,
-    country: userData.country ?? undefined,
-    city: userData.city ?? undefined,
-    location: userData.location ?? undefined,
-    password: await bcrypt.hash(userData.password, 10),
-  }
-
-  const user = await User.create(completeUserData)
-
-  // Send the verification email
-  await sendVerificationEmail(user.email, verificationToken)
-
-  // Assign 'user' role to the user
-  const userRole = await Role.findOne({ where: { role_name: 'user' } })
-  if (userRole) {
-    await user.addRole(userRole)
-  }
-
-  if (rescueData) {
-    const completeRescueData: RescueCreationAttributes = {
-      ...rescueData,
-      reference_number_verified: false,
-      address_line_1: '',
-      address_line_2: '',
-      county: '',
-      postcode: '',
-      location: rescueData.location ?? undefined,
+    const completeUserData: UserCreationAttributes = {
+      ...userData,
+      email_verified: false,
+      verification_token: verificationToken,
+      reset_token: null,
+      reset_token_expiration: null,
+      reset_token_force_flag: undefined,
+      country: userData.country ?? undefined,
+      city: userData.city ?? undefined,
+      location: userData.location ?? undefined,
+      password: await bcrypt.hash(userData.password, 10),
     }
 
-    const rescue = await Rescue.create(completeRescueData)
+    const user = await User.create(completeUserData)
+    await sendVerificationEmail(user.email, verificationToken)
 
-    // Associate user as a staff member of the rescue
-    const staffMember = await StaffMember.create({
-      user_id: user.user_id,
-      rescue_id: rescue.rescue_id,
-      verified_by_rescue: true,
-    })
-
-    // Assign additional roles
-    const roleNames = [
-      'staff',
-      'rescue_manager',
-      'staff_manager',
-      'pet_manager',
-      'communications_manager',
-      'application_manager',
-    ]
-
-    const roles = await Role.findAll({
-      where: {
-        role_name: roleNames,
-      },
-    })
-
-    for (const role of roles) {
-      await user.addRole(role)
+    const userRole = await Role.findOne({ where: { role_name: 'user' } })
+    if (userRole) {
+      await user.addRole(userRole)
     }
 
-    return { user, rescue, staffMember }
-  }
+    if (rescueData) {
+      const completeRescueData: RescueCreationAttributes = {
+        ...rescueData,
+        reference_number_verified: false,
+        address_line_1: '',
+        address_line_2: '',
+        county: '',
+        postcode: '',
+        location: rescueData.location ?? undefined,
+      }
 
-  return { user }
+      const rescue = await Rescue.create(completeRescueData)
+
+      const staffMember = await StaffMember.create({
+        user_id: user.user_id,
+        rescue_id: rescue.rescue_id,
+        verified_by_rescue: true,
+      })
+
+      const roleNames = [
+        'staff',
+        'rescue_manager',
+        'staff_manager',
+        'pet_manager',
+        'communications_manager',
+        'application_manager',
+      ]
+
+      const roles = await Role.findAll({
+        where: {
+          role_name: roleNames,
+        },
+      })
+
+      for (const role of roles) {
+        await user.addRole(role)
+      }
+
+      await AuditLogger.logAction(
+        'UserService',
+        `User and rescue created: ${user.user_id}, ${rescue.rescue_id}`,
+        'INFO',
+        user.user_id,
+      )
+
+      return { user, rescue, staffMember }
+    }
+
+    await AuditLogger.logAction(
+      'UserService',
+      `User created: ${user.user_id}`,
+      'INFO',
+      user.user_id,
+    )
+
+    return { user }
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'UserService',
+        `Error creating user: ${error.message}`,
+        'ERROR',
+      )
+    } else {
+      await AuditLogger.logAction(
+        'UserService',
+        'Unknown error creating user',
+        'ERROR',
+      )
+    }
+    throw error
+  }
 }
 
 export const verifyEmailToken = async (token: string): Promise<User | null> => {
-  const user = await User.findOne({ where: { verification_token: token } })
+  try {
+    const user = await User.findOne({ where: { verification_token: token } })
 
-  if (!user) {
-    throw new Error('Invalid or expired verification token')
+    if (!user) {
+      await AuditLogger.logAction(
+        'AuthService',
+        `Invalid or expired email verification token: ${token}`,
+        'WARNING',
+      )
+      throw new Error('Invalid or expired verification token')
+    }
+
+    user.email_verified = true
+    user.verification_token = null
+    await user.save()
+
+    await AuditLogger.logAction(
+      'AuthService',
+      `Email verified for user: ${user.user_id}`,
+      'INFO',
+      user.user_id,
+    )
+
+    return user
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'AuthService',
+        `Error verifying email: ${error.message}`,
+        'ERROR',
+      )
+    } else {
+      await AuditLogger.logAction(
+        'AuthService',
+        'Unknown error verifying email',
+        'ERROR',
+      )
+    }
+    throw error
   }
-
-  user.email_verified = true
-  user.verification_token = null
-  await user.save()
-
-  return user
 }

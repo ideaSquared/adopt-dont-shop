@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
 import nodemailer from 'nodemailer'
+import { AuditLogger } from './auditLogService'
 dotenv.config()
 
 // Create a reusable transporter object using the default SMTP transport
@@ -22,20 +23,49 @@ const sendEmail = async (
   text: string,
   html: string,
 ) => {
-  const transporter = createTransporter()
+  try {
+    const transporter = createTransporter()
 
-  const mailOptions = {
-    from: '"AdoptDontShop Support" <support@adoptdontshop.com>',
-    to,
-    subject,
-    text,
-    html,
+    const mailOptions = {
+      from: '"AdoptDontShop Support" <support@adoptdontshop.com>',
+      to,
+      subject,
+      text,
+      html,
+    }
+
+    const info = await transporter.sendMail(mailOptions)
+
+    // Audit log for successful email sending
+    await AuditLogger.logAction(
+      'EmailService',
+      `Email sent successfully to ${to} with subject: "${subject}"`,
+      'INFO',
+      to,
+    )
+
+    // Uncomment if you want to log details in the console
+    // console.log('Message sent: %s', info.messageId);
+    // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+  } catch (error) {
+    if (error instanceof Error) {
+      // Audit log for email sending failure
+      await AuditLogger.logAction(
+        'EmailService',
+        `Failed to send email to ${to} with subject: "${subject}". Error: ${error.message}`,
+        'ERROR',
+        to,
+      )
+    } else {
+      await AuditLogger.logAction(
+        'EmailService',
+        `Unknown error occurred while sending email to ${to} with subject: "${subject}"`,
+        'ERROR',
+        to,
+      )
+    }
+    throw error
   }
-
-  const info = await transporter.sendMail(mailOptions)
-
-  // console.log('Message sent: %s', info.messageId)
-  // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info))
 }
 
 // Function to generate the password reset email
@@ -50,6 +80,14 @@ export const sendPasswordResetEmail = async (
                 <p><a href="${resetUrl}">Reset Password</a></p>`
 
   await sendEmail(email, 'Password Reset', text, html)
+
+  // Audit log for sending a password reset email
+  await AuditLogger.logAction(
+    'EmailService',
+    `Password reset email sent to ${email}`,
+    'INFO',
+    email,
+  )
 }
 
 // Function to generate the email verification email
@@ -64,4 +102,12 @@ export const sendVerificationEmail = async (
                 <p><a href="${verificationUrl}">Verify Email</a></p>`
 
   await sendEmail(email, 'Please Verify Your Email', text, html)
+
+  // Audit log for sending a verification email
+  await AuditLogger.logAction(
+    'EmailService',
+    `Verification email sent to ${email}`,
+    'INFO',
+    email,
+  )
 }

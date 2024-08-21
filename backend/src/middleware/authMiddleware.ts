@@ -1,6 +1,7 @@
 // src/middlewares/authMiddleware.ts
-import { NextFunction, Request, Response } from 'express'
+import { NextFunction, Response } from 'express'
 import jwt from 'jsonwebtoken'
+import { AuditLogger } from '../services/auditLogService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
 
 export const authenticateJWT = (
@@ -11,6 +12,11 @@ export const authenticateJWT = (
   const authHeader = req.headers.authorization
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    AuditLogger.logAction(
+      'AuthService',
+      'Authentication failed due to missing or invalid token',
+      'WARNING',
+    )
     return res
       .status(401)
       .json({ message: 'Authentication token missing or invalid' })
@@ -25,30 +31,28 @@ export const authenticateJWT = (
     // Attach the user ID from the token to the request object
     req.user = (decoded as any).userId
 
+    AuditLogger.logAction(
+      'AuthService',
+      `User authenticated successfully with ID: ${(decoded as any).userId}`,
+      'INFO',
+      req.user,
+    )
+
     next()
   } catch (error) {
-    res.status(403).json({ message: 'Forbidden' })
-  }
-}
-
-export const isAdmin = (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  const token = req.headers.authorization?.split(' ')[1]
-  if (!token) {
-    return res.status(401).json({ message: 'Unauthorized' })
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY as string) as any
-    if (decoded.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Forbidden' })
+    if (error instanceof Error) {
+      AuditLogger.logAction(
+        'AuthService',
+        `Authentication failed with error: ${error.message}`,
+        'ERROR',
+      )
+    } else {
+      AuditLogger.logAction(
+        'AuthService',
+        'Authentication failed due to an unknown error',
+        'ERROR',
+      )
     }
-    req.user = decoded // Attach user info to request object
-    next()
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' })
+    res.status(403).json({ message: 'Forbidden' })
   }
 }

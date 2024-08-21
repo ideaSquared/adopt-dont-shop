@@ -1,4 +1,5 @@
 // src/models/index.ts
+import { AuditLog } from './AuditLog'
 import Conversation from './Conversation'
 import Message from './Message'
 import Participant from './Participant'
@@ -56,6 +57,7 @@ StaffMember.belongsTo(Rescue, { foreignKey: 'rescue_id' })
 UserPreference.belongsTo(User, { foreignKey: 'user_id' })
 
 export {
+  AuditLog,
   Conversation,
   Message,
   Participant,

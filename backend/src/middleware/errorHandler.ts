@@ -1,5 +1,6 @@
 // src/middlewares/errorHandler.ts
 import { NextFunction, Request, Response } from 'express'
+import { AuditLogger } from '../services/auditLogService'
 
 interface ErrorWithStatusCode extends Error {
   statusCode?: number
@@ -15,6 +16,14 @@ const errorHandler = (
 
   const statusCode = err.statusCode || 500
   const message = err.message || 'Internal Server Error'
+
+  // Audit log the error
+  AuditLogger.logAction(
+    'ErrorHandler',
+    `Error occurred: ${message} - Status code: ${statusCode} - Path: ${req.path}`,
+    'ERROR',
+    (req as any).user || null,
+  )
 
   res.status(statusCode).json({
     success: false,
