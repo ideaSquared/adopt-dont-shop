@@ -41,6 +41,7 @@ export const updateUser = async (
       res.status(403).json({
         message: "You are not authorized to update this user's details",
       })
+      return
     }
 
     const updatedUser = await updateUserDetails(userId, updatedData)
@@ -73,7 +74,7 @@ export const changePasswordHandler = async (
     }
 
     // Ensure user is updating their own password
-    if (req.user !== userId) {
+    if (req.user !== userId.toString()) {
       res.status(403).json({
         message: "You are not authorized to change this user's password",
       })
