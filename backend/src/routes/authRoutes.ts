@@ -9,7 +9,7 @@ import {
   updateUser,
   verifyEmail,
 } from '../controllers/userController'
-import { authenticateJWT } from '../middlewares/authMiddleware'
+import { authenticateJWT } from '../middleware/authMiddleware'
 
 const router = express.Router()
 
