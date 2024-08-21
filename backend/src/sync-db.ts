@@ -1,3 +1,5 @@
+import './Models' // Ensure all models are registered
+import { AuditLog } from './Models/AuditLog' // Explicitly import the AuditLog model
 import sequelize from './sequelize'
 import { AuditLogger } from './services/auditLogService'
 
@@ -16,7 +18,13 @@ async function isDatabaseEmpty(): Promise<boolean> {
   try {
     await sequelize.authenticate()
     console.log('Connection established successfully.')
-    AuditLogger.logAction(
+
+    // Sync the audit_logs table first
+    await AuditLog.sync({ force: false })
+    console.log('Audit log table ensured.')
+
+    // Now that the table exists, we can safely log the connection action
+    await AuditLogger.logAction(
       'DatabaseService',
       'Connection established successfully',
       'INFO',
@@ -25,7 +33,7 @@ async function isDatabaseEmpty(): Promise<boolean> {
     if (forceSync) {
       console.log('Forcing database synchronization...')
       await sequelize.sync({ force: true })
-      AuditLogger.logAction(
+      await AuditLogger.logAction(
         'DatabaseService',
         'Database forced sync completed',
         'INFO',
@@ -36,14 +44,14 @@ async function isDatabaseEmpty(): Promise<boolean> {
       if (databaseEmpty) {
         await sequelize.sync()
         console.log('Database synchronized successfully.')
-        AuditLogger.logAction(
+        await AuditLogger.logAction(
           'DatabaseService',
           'Database synchronized successfully',
           'INFO',
         )
       } else {
         console.log('Database is not empty; skipping synchronization.')
-        AuditLogger.logAction(
+        await AuditLogger.logAction(
           'DatabaseService',
           'Database is not empty; skipping synchronization.',
           'INFO',
@@ -52,7 +60,7 @@ async function isDatabaseEmpty(): Promise<boolean> {
     }
   } catch (error) {
     console.error('Error during database setup:', error)
-    AuditLogger.logAction(
+    await AuditLogger.logAction(
       'DatabaseService',
       `Error during database setup: ${(error as Error).message}`,
       'ERROR',
@@ -61,7 +69,7 @@ async function isDatabaseEmpty(): Promise<boolean> {
   } finally {
     await sequelize.close()
     console.log('Database connection closed.')
-    AuditLogger.logAction(
+    await AuditLogger.logAction(
       'DatabaseService',
       'Database connection closed',
       'INFO',
