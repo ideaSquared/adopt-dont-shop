@@ -171,17 +171,21 @@ const Table: React.FC<StyledTableProps> = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(1)
 
+  // Ensure children is not undefined and is an array
+  const childrenArray = React.Children.toArray(children)
+
   // Separate the children into <thead>, <tbody>, and any other potential elements
-  const thead = React.Children.toArray(children).find(
-    (child) => (child as ReactElement).type === 'thead',
+  const thead = childrenArray.find(
+    (child) => React.isValidElement(child) && child.type === 'thead',
   )
-  const tbody = React.Children.toArray(children).find(
-    (child) => (child as ReactElement).type === 'tbody',
-  ) as ReactElement
-  const otherElements = React.Children.toArray(children).filter(
+  const tbody = childrenArray.find(
+    (child) => React.isValidElement(child) && child.type === 'tbody',
+  ) as ReactElement | undefined
+  const otherElements = childrenArray.filter(
     (child) =>
-      (child as ReactElement).type !== 'thead' &&
-      (child as ReactElement).type !== 'tbody',
+      React.isValidElement(child) &&
+      child.type !== 'thead' &&
+      child.type !== 'tbody',
   )
 
   if (!tbody) {
