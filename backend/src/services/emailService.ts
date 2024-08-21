@@ -34,8 +34,8 @@ const sendEmail = async (
 
   const info = await transporter.sendMail(mailOptions)
 
-  console.log('Message sent: %s', info.messageId)
-  console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info))
+  // console.log('Message sent: %s', info.messageId)
+  // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info))
 }
 
 // Function to generate the password reset email
