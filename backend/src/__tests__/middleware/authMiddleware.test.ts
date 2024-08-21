@@ -3,7 +3,15 @@ import jwt from 'jsonwebtoken'
 import request from 'supertest'
 import { authenticateJWT } from '../../middleware/authMiddleware'
 
+// Mock services and dependencies
 jest.mock('jsonwebtoken')
+jest.mock('../../services/auditLogService', () => ({
+  AuditLogger: {
+    logAction: jest.fn(), // Mock the logAction method
+    getAllLogs: jest.fn(),
+    getLogsByUserId: jest.fn(),
+  },
+}))
 
 const app = express()
 app.use(express.json())

@@ -3,11 +3,20 @@ import request from 'supertest'
 import { createRescueAccount } from '../../controllers/userController'
 import { createUser } from '../../services/authService'
 
+// Mock the necessary services and models
 jest.mock('../../services/authService')
+jest.mock('../../Models', () => ({
+  AuditLog: {
+    create: jest.fn(),
+    findAll: jest.fn(),
+  },
+}))
 
 const app: Application = express()
 app.use(express.json())
-app.use('/api/rescue', createRescueAccount)
+
+// Mount the route correctly
+app.post('/api/rescue/create-rescue', createRescueAccount)
 
 describe('Rescue Account Controller - createRescueAccount', () => {
   const userData = {
@@ -15,7 +24,6 @@ describe('Rescue Account Controller - createRescueAccount', () => {
     last_name: 'Testyerson',
     email: 'tester@test.com',
     password: '123456',
-    confirmPassword: '123456',
   }
 
   const rescueData = {

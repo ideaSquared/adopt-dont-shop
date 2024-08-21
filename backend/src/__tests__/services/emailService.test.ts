@@ -1,10 +1,16 @@
 import nodemailer from 'nodemailer'
+import { AuditLogger } from '../../services/auditLogService'
 import {
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from '../../services/emailService'
 
 jest.mock('nodemailer')
+jest.mock('../../services/auditLogService', () => ({
+  AuditLogger: {
+    logAction: jest.fn(),
+  },
+}))
 
 // Mock environment variables
 process.env.MAIL_HOST = 'smtp.test.com'
@@ -28,7 +34,7 @@ describe('Email Service', () => {
   })
 
   describe('sendPasswordResetEmail', () => {
-    it('should send a password reset email with the correct content', async () => {
+    it('should send a password reset email with the correct content and log the action', async () => {
       const email = 'user@test.com'
       const resetToken = 'reset-token'
 
@@ -52,11 +58,25 @@ describe('Email Service', () => {
         html: `<p>You requested a password reset. Please use the following link to reset your password:</p>
                 <p><a href="http://localhost:3001/reset-password?token=reset-token">Reset Password</a></p>`,
       })
+
+      expect(AuditLogger.logAction).toHaveBeenCalledWith(
+        'EmailService',
+        'Email sent successfully to user@test.com with subject: "Password Reset"',
+        'INFO',
+        'user@test.com',
+      )
+
+      expect(AuditLogger.logAction).toHaveBeenCalledWith(
+        'EmailService',
+        'Password reset email sent to user@test.com',
+        'INFO',
+        'user@test.com',
+      )
     })
   })
 
   describe('sendVerificationEmail', () => {
-    it('should send a verification email with the correct content', async () => {
+    it('should send a verification email with the correct content and log the action', async () => {
       const email = 'user@test.com'
       const verificationToken = 'verification-token'
 
@@ -80,6 +100,20 @@ describe('Email Service', () => {
         html: `<p>Thank you for registering. Please verify your email by clicking the link below:</p>
                 <p><a href="http://localhost:3001/verify-email?token=verification-token">Verify Email</a></p>`,
       })
+
+      expect(AuditLogger.logAction).toHaveBeenCalledWith(
+        'EmailService',
+        'Email sent successfully to user@test.com with subject: "Please Verify Your Email"',
+        'INFO',
+        'user@test.com',
+      )
+
+      expect(AuditLogger.logAction).toHaveBeenCalledWith(
+        'EmailService',
+        'Verification email sent to user@test.com',
+        'INFO',
+        'user@test.com',
+      )
     })
   })
 })

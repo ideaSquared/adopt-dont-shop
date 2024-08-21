@@ -14,7 +14,11 @@ export const getRolesForUser = async (userId: string): Promise<string[]> => {
       ],
     })
 
-    if (!userWithRoles || !userWithRoles.Roles) {
+    if (
+      !userWithRoles ||
+      !userWithRoles.Roles ||
+      userWithRoles.Roles.length === 0
+    ) {
       await AuditLogger.logAction(
         'PermissionService',
         `No roles found for user with ID: ${userId}`,
