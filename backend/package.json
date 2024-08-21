@@ -18,6 +18,7 @@
     "build": "tsc",
     "start": "npm run build && node dist/index.js",
     "sync-db": "ts-node src/sync-db.ts",
+    "force-sync-db": "ts-node src/sync-db.ts -- --sync",
     "start:dev": "NODE_ENV=development ts-node src/index.ts",
     "start:test": "NODE_ENV=test ts-node src/index.ts",
     "start:prod": "NODE_ENV=production ts-node src/index.ts",
@@ -47,3 +48,4 @@
     "typescript": "^5.5.4"
   }
 }
+
