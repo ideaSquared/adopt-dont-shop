@@ -7,6 +7,7 @@ import {
 import sequelize from '../sequelize'
 import { Role, UserRole } from './'
 
+// Define the UserAttributes interface with the optional Roles property
 interface UserAttributes {
   user_id: string
   first_name?: string
@@ -23,7 +24,9 @@ interface UserAttributes {
   country?: string
   city?: string
   location?: { type: string; coordinates: [number, number] }
+  Roles?: Role[] // Mark Roles as optional
 }
+
 export interface UserCreationAttributes
   extends Optional<UserAttributes, 'user_id'> {}
 
@@ -47,11 +50,11 @@ class User
   public city!: string
   public location!: { type: string; coordinates: [number, number] }
 
+  // Optional Roles property
+  public Roles?: Role[]
+
   // Association methods
   public addRole!: BelongsToManyAddAssociationMixin<Role, number>
-
-  // Roles property to store the associated roles
-  public Roles?: Role[]
 
   public static associate() {
     this.belongsToMany(Role, { through: UserRole, foreignKey: 'user_id' })
@@ -119,7 +122,6 @@ User.init(
     sequelize,
     tableName: 'users',
     defaultScope: {
-      // Automatically exclude password in default queries
       attributes: { exclude: ['password'] },
     },
     scopes: {

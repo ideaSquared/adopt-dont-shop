@@ -14,10 +14,10 @@ interface UserResponse {
 }
 
 export const getAllUsersService = async (): Promise<UserResponse> => {
-  const users = await User.findAll()
+  const users: User[] = await User.findAll()
 
   const usersWithRoles: UserWithRoles[] = await Promise.all(
-    users.map(async (user) => {
+    users.map(async (user: User): Promise<UserWithRoles> => {
       const roles = await getRolesForUser(user.user_id)
       return {
         user_id: user.user_id,

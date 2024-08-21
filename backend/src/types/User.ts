@@ -10,7 +10,7 @@ export interface User extends Model {
   description?: string
   reset_token_force_flag?: boolean
   is_admin?: boolean
-  Roles: Role[]
+  Roles?: Role[]
 }
 
 export interface Role {
