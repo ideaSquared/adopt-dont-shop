@@ -72,12 +72,12 @@ const AppContent: React.FC = () => {
           </Route>
           <Route element={<ProtectedRoute requiredRole={Role.STAFF} />}>
             <Route path="/rescue" element={<Rescue />} />
-            <Route path="/rescues" element={<Rescues />} />
           </Route>
           <Route element={<ProtectedRoute requiredRole={Role.ADMIN} />}>
             <Route path="/logs" element={<Logs />} />
             <Route path="/users" element={<Users />} />
             <Route path="/conversations" element={<AdminConversations />} />
+            <Route path="/rescues" element={<Rescues />} />
           </Route>
         </Routes>
       </Router>

@@ -51,8 +51,13 @@ Pet.belongsTo(Rescue, { foreignKey: 'owner_id' })
 Rating.belongsTo(User, { foreignKey: 'user_id' })
 Rating.belongsTo(Pet, { foreignKey: 'pet_id' })
 
-StaffMember.belongsTo(User, { foreignKey: 'user_id' })
+StaffMember.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
 StaffMember.belongsTo(Rescue, { foreignKey: 'rescue_id' })
+
+Rescue.hasMany(StaffMember, {
+  foreignKey: 'rescue_id',
+  as: 'staff',
+})
 
 UserPreference.belongsTo(User, { foreignKey: 'user_id' })
 

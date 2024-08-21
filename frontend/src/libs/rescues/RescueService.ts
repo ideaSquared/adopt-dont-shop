@@ -1,107 +1,92 @@
 import { Rescue, StaffMember } from './Rescue'
-import { Role } from '@adoptdontshop/permissions'
 
-const rescues: Rescue[] = [
-  {
-    rescue_id: '1',
-    rescue_name: 'Animal Rescue A',
-    rescue_type: 'Charity',
-    rescue_city: 'New York',
-    rescue_country: 'USA',
-    reference_number: 'AR1234',
-    reference_number_verified: true,
-    staff: [
-      {
-        user_id: '1',
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john@example.com',
-        role: [
-          Role.RESCUE_MANAGER,
-          Role.APPLICATION_MANAGER,
-          Role.COMMUNICATIONS_MANAGER,
-          Role.PET_MANAGER,
-          Role.STAFF_MANAGER,
-        ],
-        verified_by_rescue: true,
-      },
-      {
-        user_id: '2',
-        first_name: 'Jane',
-        last_name: 'Doe',
-        email: 'jane@example.com',
-        role: [Role.STAFF_MANAGER],
-        verified_by_rescue: false,
-      },
-    ],
-  },
-  {
-    rescue_id: '2',
-    rescue_name: 'Wildlife Rescue B',
-    rescue_type: 'Company',
-    rescue_city: 'Los Angeles',
-    rescue_country: 'USA',
-    staff: [
-      {
-        user_id: '3',
-        first_name: 'Alice',
-        last_name: 'Smith',
-        email: 'alice@example.com',
-        role: [Role.PET_MANAGER],
-        verified_by_rescue: true,
-      },
-      {
-        user_id: '4',
-        first_name: 'Bob',
-        last_name: 'Johnson',
-        email: 'bob@example.com',
-        role: [Role.COMMUNICATIONS_MANAGER],
-        verified_by_rescue: true,
-      },
-    ],
-  },
-  {
-    rescue_id: '3',
-    rescue_type: 'Individual',
-    rescue_city: 'New York',
-    rescue_country: 'USA',
-    staff: [
-      {
-        user_id: '1',
-        first_name: 'Mike',
-        last_name: 'Doss',
-        email: 'mike.doss@example.com',
-        role: [
-          Role.RESCUE_MANAGER,
-          Role.APPLICATION_MANAGER,
-          Role.COMMUNICATIONS_MANAGER,
-          Role.PET_MANAGER,
-          Role.STAFF_MANAGER,
-        ],
-        verified_by_rescue: true,
-      },
-    ],
-  },
-]
+// Define the base URL for your API
+const API_URL = 'http://localhost:5000/api'
 
-const getRescues = (): Rescue[] => rescues
+// Fetch all rescues
+const getRescues = async (): Promise<Rescue[]> => {
+  const response = await fetch(`${API_URL}/admin/rescues`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming JWT is stored in localStorage
+    },
+  })
 
-const getRescueById = (id: string): Rescue | undefined =>
-  rescues.find((rescue) => rescue.rescue_id === id)
-
-const getStaffMembersByRescueId = (
-  rescue_id: string,
-): StaffMember[] | undefined => {
-  const rescue = getRescueById(rescue_id)
-  return rescue?.staff
+  if (!response.ok) {
+    throw new Error(`Failed to fetch rescues: ${response.statusText}`)
+  }
+  const data = await response.json()
+  return data.rescues || []
 }
 
-const getStaffMemberById = (
+// Fetch a specific rescue by ID
+const getRescueById = async (id: string): Promise<Rescue | undefined> => {
+  const response = await fetch(`${API_URL}/admin/rescues/${id}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming JWT is stored in localStorage
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch rescue with ID ${id}: ${response.statusText}`,
+    )
+  }
+  const data = await response.json()
+  return data as Rescue
+}
+
+// Fetch all staff members for a specific rescue
+const getStaffMembersByRescueId = async (
+  rescue_id: string,
+): Promise<StaffMember[] | undefined> => {
+  const response = await fetch(`${API_URL}/admin/rescues/${rescue_id}/staff`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming JWT is stored in localStorage
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch staff for rescue ID ${rescue_id}: ${response.statusText}`,
+    )
+  }
+  const data = await response.json()
+  return data as StaffMember[]
+}
+
+// Fetch a specific staff member by their ID within a specific rescue
+const getStaffMemberById = async (
   rescue_id: string,
   staff_id: string,
-): StaffMember | undefined => {
-  const staff = getStaffMembersByRescueId(rescue_id)
-  return staff?.find((member) => member.user_id === staff_id)
+): Promise<StaffMember | undefined> => {
+  const response = await fetch(
+    `${API_URL}/admin/rescues/${rescue_id}/staff/${staff_id}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming JWT is stored in localStorage
+      },
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch staff member with ID ${staff_id} for rescue ID ${rescue_id}: ${response.statusText}`,
+    )
+  }
+  const data = await response.json()
+  return data as StaffMember
+}
+
+const deleteRescue = async (rescue_id: string) => {
+  console.log(`Delete req for ${rescue_id}`)
 }
 
 export default {
@@ -109,4 +94,5 @@ export default {
   getRescueById,
   getStaffMembersByRescueId,
   getStaffMemberById,
+  deleteRescue,
 }

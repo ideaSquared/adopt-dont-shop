@@ -1,5 +1,5 @@
-import { User } from '@adoptdontshop/libs/users'
-import { Role } from '@adoptdontshop/permissions'
+import { Role } from './Role'
+import { User } from './User'
 
 export type RescueType = 'Individual' | 'Charity' | 'Company'
 
@@ -15,7 +15,7 @@ export interface IndividualRescue {
   rescue_type: 'Individual'
   city: string
   country: string
-  staff: [StaffMember] // Only one staff member, themselves
+  staff: [StaffMember]
 }
 
 export interface OrganizationRescue {

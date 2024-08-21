@@ -1,38 +1,56 @@
-import React, { useState, useEffect } from 'react'
 import {
   FormInput,
   SelectInput,
-  TextInput,
   Table,
-  Button,
+  TextInput,
 } from '@adoptdontshop/components'
 import { Rescue, RescueService } from '@adoptdontshop/libs/rescues'
+import React, { ChangeEvent, useEffect, useMemo, useState } from 'react'
+import styled from 'styled-components'
+
+const StyledButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  color: blue;
+  cursor: pointer;
+
+  &:focus {
+    outline: 2px solid #007bff; /* Optional: for better accessibility */
+  }
+`
 
 const Rescues: React.FC = () => {
   const [rescues, setRescues] = useState<Rescue[]>([])
-  const [filteredRescues, setFilteredRescues] = useState<Rescue[]>([])
+  const [searchTerm, setSearchTerm] = useState<string | null>(null)
   const [filterByType, setFilterByType] = useState<string | null>(null)
   const [staffEmailSearchTerm, setStaffEmailSearchTerm] = useState<
     string | null
   >(null)
-  const [rescueNameSearchTerm, setRescueNameSearchTerm] = useState<
-    string | null
-  >(null)
 
+  // Fetch rescues on component mount
   useEffect(() => {
-    const fetchedRescues = RescueService.getRescues()
-    setRescues(fetchedRescues)
-    setFilteredRescues(fetchedRescues)
+    const fetchRescues = async () => {
+      try {
+        const fetchedRescues = await RescueService.getRescues()
+        setRescues(fetchedRescues)
+      } catch (error) {
+        console.error('Failed to fetch rescues:', error)
+      }
+    }
+
+    fetchRescues()
   }, [])
 
-  useEffect(() => {
-    const filtered = rescues.filter((rescue) => {
+  const filteredRescues = useMemo(() => {
+    return rescues.filter((rescue) => {
       const matchesType = !filterByType || rescue.rescue_type === filterByType
 
       const matchesRescueName =
-        !rescueNameSearchTerm ||
+        !searchTerm ||
         (rescue.rescue_name?.toLowerCase() || '').includes(
-          rescueNameSearchTerm.toLowerCase(),
+          searchTerm.toLowerCase(),
         )
 
       const matchesStaffEmail =
@@ -45,26 +63,19 @@ const Rescues: React.FC = () => {
 
       return matchesType && matchesRescueName && matchesStaffEmail
     })
+  }, [filterByType, searchTerm, staffEmailSearchTerm, rescues])
 
-    setFilteredRescues(filtered)
-  }, [filterByType, rescueNameSearchTerm, staffEmailSearchTerm, rescues])
-
-  const handleFilterByTypeChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
-    setFilterByType(e.target.value)
+  // Event handlers for input changes
+  const handleSearchTermChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
   }
 
-  const handleStaffEmailSearchChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleStaffEmailSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setStaffEmailSearchTerm(e.target.value)
   }
 
-  const handleRescueNameSearchChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setRescueNameSearchTerm(e.target.value)
+  const handleFilterByTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setFilterByType(e.target.value)
   }
 
   const rescuesOptions = [
@@ -82,9 +93,9 @@ const Rescues: React.FC = () => {
       <h1>Rescues</h1>
       <FormInput label="Search by rescue name">
         <TextInput
-          onChange={handleRescueNameSearchChange}
+          onChange={handleSearchTermChange}
           type="text"
-          value={rescueNameSearchTerm || ''}
+          value={searchTerm || ''}
         />
       </FormInput>
       <FormInput label="Search by staff email">
@@ -94,11 +105,11 @@ const Rescues: React.FC = () => {
           value={staffEmailSearchTerm || ''}
         />
       </FormInput>
-      <FormInput label="Filter by types">
+      <FormInput label="Filter by type">
         <SelectInput
           options={rescuesOptions}
           onChange={handleFilterByTypeChange}
-          value={filterByType}
+          value={filterByType || ''}
         />
       </FormInput>
       <Table>
@@ -119,8 +130,8 @@ const Rescues: React.FC = () => {
               <td>{rescue.rescue_id}</td>
               <td>{rescue.rescue_name}</td>
               <td>{rescue.rescue_type}</td>
-              <td>{rescue.rescue_city}</td>
-              <td>{rescue.rescue_country}</td>
+              <td>{rescue.city}</td>
+              <td>{rescue.country}</td>
               <td>
                 {rescue.staff.map((staff) => (
                   <div key={staff.user_id}>
@@ -129,7 +140,11 @@ const Rescues: React.FC = () => {
                 ))}
               </td>
               <td>
-                <Button type="button">Delete</Button>
+                <StyledButton
+                  onClick={() => console.log(`Delete ${rescue.rescue_id}`)}
+                >
+                  Delete
+                </StyledButton>
               </td>
             </tr>
           ))}
