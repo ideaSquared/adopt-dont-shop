@@ -1,7 +1,7 @@
 import { Permission, Role, usePermissions } from '@adoptdontshop/permissions'
-import { useUser } from 'contexts/auth/UserContext'
 import React from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
+import { useUser } from '../auth/UserContext'
 
 interface ProtectedRouteProps {
   requiredPermission?: Permission

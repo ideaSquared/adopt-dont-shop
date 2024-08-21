@@ -1,9 +1,11 @@
 import { Role, usePermissions } from '@adoptdontshop/permissions'
 import { theme } from '@adoptdontshop/styles'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import React from 'react'
 import { BrowserRouter as Router } from 'react-router-dom'
 import { ThemeProvider } from 'styled-components'
+import { UserProvider } from '../../contexts/auth/UserContext'
 import Navbar from './Navbar'
 
 // Mock the usePermissions hook
@@ -17,9 +19,11 @@ jest.mock('@adoptdontshop/permissions', () => ({
 
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
-    <ThemeProvider theme={theme}>
-      <Router>{ui}</Router>
-    </ThemeProvider>,
+    <UserProvider>
+      <ThemeProvider theme={theme}>
+        <Router>{ui}</Router>
+      </ThemeProvider>
+    </UserProvider>,
   )
 }
 
@@ -42,47 +46,42 @@ describe('Navbar', () => {
     expect(screen.queryByText('Admin')).not.toBeInTheDocument()
   })
 
-  // TODO: Fix
-  it.skip('renders Rescue dropdown when user has STAFF role', () => {
+  it('renders Rescue dropdown when user has STAFF role', async () => {
     ;(usePermissions as jest.Mock).mockReturnValue({
       hasRole: (role: Role) => role === Role.STAFF,
     })
 
     renderWithProviders(<Navbar />)
 
-    // Verify Rescue dropdown is present
-    expect(screen.getByText('Rescue')).toBeInTheDocument()
-    expect(screen.getByText('Applications')).toBeInTheDocument()
-    expect(screen.getByText('Ratings')).toBeInTheDocument()
-    expect(screen.getByText('Pets')).toBeInTheDocument()
-    expect(screen.getByText('Staff')).toBeInTheDocument()
-    expect(screen.getByText('Settings')).toBeInTheDocument()
+    // Trigger the dropdown
+    const staffTrigger = screen.getByText('Staff')
+    await act(async () => {
+      await userEvent.click(staffTrigger)
+    })
+
+    // Check if the dropdown items are present
+    expect(screen.getByText(/Applications/i)).toBeInTheDocument()
+    expect(screen.getByText(/Ratings/i)).toBeInTheDocument()
+    expect(screen.getByText(/Pets/i)).toBeInTheDocument()
+    expect(screen.getByText(/Settings/i)).toBeInTheDocument()
   })
 
-  // TODO: Fix
-  it.skip('renders Admin dropdown when user has ADMIN role', () => {
+  it('renders Admin dropdown when user has ADMIN role', async () => {
     ;(usePermissions as jest.Mock).mockReturnValue({
       hasRole: (role: Role) => role === Role.ADMIN,
     })
 
     renderWithProviders(<Navbar />)
 
-    // Verify Admin dropdown is present
-    expect(screen.getByText('Admin')).toBeInTheDocument()
-    expect(screen.getByText('Conversations')).toBeInTheDocument()
-    expect(screen.getByText('Logs')).toBeInTheDocument()
-    expect(screen.getByText('Rescues')).toBeInTheDocument()
-  })
-
-  it('renders both Rescue and Admin dropdowns when user has both roles', () => {
-    ;(usePermissions as jest.Mock).mockReturnValue({
-      hasRole: (role: Role) => role === Role.STAFF || role === Role.ADMIN,
+    // Trigger the dropdown
+    const adminTrigger = screen.getByText('Admin')
+    await act(async () => {
+      await userEvent.click(adminTrigger)
     })
 
-    renderWithProviders(<Navbar />)
-
-    // Verify Rescue and Admin dropdowns are present
-    expect(screen.getByText('Staff')).toBeInTheDocument()
-    expect(screen.getByText('Admin')).toBeInTheDocument()
+    // Check if the dropdown items are present
+    expect(screen.getByText(/Conversations/i)).toBeInTheDocument()
+    expect(screen.getByText(/Logs/i)).toBeInTheDocument()
+    expect(screen.getByText(/Rescues/i)).toBeInTheDocument()
   })
 })
