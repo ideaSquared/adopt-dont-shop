@@ -35,7 +35,7 @@ const AuditLogs: React.FC = () => {
       const matchesSearch =
         !searchTerm ||
         log.log_id.includes(searchTerm) ||
-        log.message.toLowerCase().includes(searchTerm.toLowerCase())
+        log.action.toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesService = !serviceTerm || log.service.includes(serviceTerm)
 
