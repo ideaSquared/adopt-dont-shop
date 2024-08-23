@@ -53,17 +53,35 @@ const MainContainer: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
 
   useEffect(() => {
-    const fetchedConversations = ConversationService.getConversations()
-    setConversations(fetchedConversations)
+    const fetchConversations = async () => {
+      try {
+        const fetchedConversations =
+          await ConversationService.getConversations()
+        setConversations(fetchedConversations)
+      } catch (error) {
+        console.error('Error fetching conversations:', error)
+      }
+    }
+
+    fetchConversations()
   }, [])
 
   useEffect(() => {
-    if (selectedConversationId) {
-      const fetchedMessages = ConversationService.getMessagesByConversationId(
-        selectedConversationId,
-      )
-      setMessages(fetchedMessages)
+    const fetchMessages = async () => {
+      if (selectedConversationId) {
+        try {
+          const fetchedMessages =
+            await ConversationService.getMessagesByConversationId(
+              selectedConversationId,
+            )
+          setMessages(fetchedMessages)
+        } catch (error) {
+          console.error('Error fetching messages:', error)
+        }
+      }
     }
+
+    fetchMessages()
   }, [selectedConversationId])
 
   const handleSelectConversation = (id: string) => {

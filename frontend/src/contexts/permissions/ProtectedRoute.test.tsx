@@ -19,7 +19,7 @@ describe('ProtectedRoute', () => {
               <Route
                 element={
                   <ProtectedRoute
-                    requiredPermission={Permission.VIEW_RESCUE_INFO}
+                    requiredPermissions={[Permission.VIEW_RESCUE_INFO]}
                   />
                 }
               >
@@ -43,7 +43,7 @@ describe('ProtectedRoute', () => {
               <Route
                 element={
                   <ProtectedRoute
-                    requiredPermission={Permission.VIEW_RESCUE_INFO}
+                    requiredPermissions={[Permission.VIEW_RESCUE_INFO]}
                   />
                 }
               >
