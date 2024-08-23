@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react'
-import styled from 'styled-components'
 import {
+  Badge,
+  BaseSidebar,
+  Button,
+  DateTime,
   FormInput,
   SelectInput,
-  TextInput,
   Table,
-  Button,
-  BaseSidebar,
-  DateTime,
-  Badge,
+  TextInput,
 } from '@adoptdontshop/components'
 import {
   Conversation,
-  Message,
   ConversationService,
+  Message,
 } from '@adoptdontshop/libs/conversations/'
+import React, { useEffect, useMemo, useState } from 'react'
+import styled from 'styled-components'
 
 const ParticipantsTitle = styled.h3`
   font-size: 1.25rem;
@@ -65,11 +65,41 @@ const Conversations: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
+  // Fetch conversations on component mount
   useEffect(() => {
-    const fetchedConversations = ConversationService.getConversations()
-    setConversations(fetchedConversations)
+    const fetchConversations = async () => {
+      try {
+        const fetchedConversations =
+          await ConversationService.getConversations()
+        setConversations(fetchedConversations)
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error)
+      }
+    }
+
+    fetchConversations()
   }, [])
 
+  const filteredConversations = useMemo(() => {
+    if (!conversations) return []
+    return conversations.filter((conversation) => {
+      const matchesSearch =
+        !searchTerm ||
+        conversation.participants.some(
+          (participant) =>
+            participant.email
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            participant.name.toLowerCase().includes(searchTerm.toLowerCase()),
+        )
+      const matchesStatus =
+        !filterStatus || conversation.status === filterStatus
+
+      return matchesSearch && matchesStatus
+    })
+  }, [searchTerm, filterStatus, conversations])
+
+  // Event handlers for input changes
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
   }
@@ -80,13 +110,20 @@ const Conversations: React.FC = () => {
     setFilterStatus(e.target.value)
   }
 
-  const handleViewConversation = (conversation: Conversation) => {
+  // Handle viewing a conversation and fetching related messages
+  const handleViewConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation)
-    const fetchedMessages = ConversationService.getMessagesByConversationId(
-      conversation.conversation_id,
-    )
-    setMessages(fetchedMessages || [])
     setIsSidebarOpen(true)
+
+    try {
+      const fetchedMessages =
+        await ConversationService.getMessagesByConversationId(
+          conversation.conversation_id,
+        )
+      setMessages(fetchedMessages)
+    } catch (error) {
+      console.error('Failed to fetch messages:', error)
+    }
   }
 
   const handleCloseSidebar = () => {
@@ -94,20 +131,6 @@ const Conversations: React.FC = () => {
     setSelectedConversation(null)
     setMessages([])
   }
-
-  const filteredConversations = conversations.filter((conversation) => {
-    const matchesSearch =
-      !searchTerm ||
-      conversation.participant_emails.some((email) =>
-        email.toLowerCase().includes(searchTerm.toLowerCase()),
-      ) ||
-      conversation.participant_rescues.some((rescue) =>
-        rescue.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    const matchesStatus = !filterStatus || conversation.status === filterStatus
-
-    return matchesSearch && matchesStatus
-  })
 
   const filterOptions = [
     { value: '', label: 'All' },
@@ -118,7 +141,7 @@ const Conversations: React.FC = () => {
   return (
     <div>
       <h1>Conversations</h1>
-      <FormInput label="Search by participant email">
+      <FormInput label="Search by participant name or email">
         <TextInput
           value={searchTerm || ''}
           type="text"
@@ -135,8 +158,9 @@ const Conversations: React.FC = () => {
       <Table hasActions>
         <thead>
           <tr>
+            <th>ID</th>
             <th>Started By</th>
-            <th>Started At</th>
+            <th>Created At</th>
             <th>Last Message</th>
             <th>Status</th>
             <th>Unread Messages</th>
@@ -147,24 +171,22 @@ const Conversations: React.FC = () => {
         <tbody>
           {filteredConversations.map((conversation) => (
             <tr key={conversation.conversation_id}>
+              <td>{conversation.conversation_id}</td>
               <td>{conversation.started_by}</td>
               <td>
-                <DateTime timestamp={conversation.started_at} />
+                <DateTime timestamp={conversation.created_at} />
               </td>
               <td>{conversation.last_message}</td>
               <td>{conversation.status}</td>
               <td>{conversation.unread_messages}</td>
               <td>
                 <div>
-                  {conversation.participant_emails &&
-                  conversation.participant_emails.length > 0
-                    ? conversation.participant_emails.join(', ')
+                  {conversation.participants &&
+                  conversation.participants.length > 0
+                    ? conversation.participants
+                        .map((p) => `${p.name} (${p.email})`)
+                        .join(', ')
                     : 'No participants'}
-                  <br />
-                  {conversation.participant_rescues &&
-                  conversation.participant_rescues.length > 0
-                    ? conversation.participant_rescues.join(', ')
-                    : 'No rescues'}
                 </div>
               </td>
               <td>
@@ -191,14 +213,9 @@ const Conversations: React.FC = () => {
           <div>
             <ParticipantsTitle>Participants</ParticipantsTitle>
             <ParticipantsContainer>
-              {selectedConversation.participant_emails.map((email, index) => (
+              {selectedConversation.participants.map((participant, index) => (
                 <Badge key={index} variant="info">
-                  {email}
-                </Badge>
-              ))}
-              {selectedConversation.participant_rescues.map((rescue, index) => (
-                <Badge key={index} variant="info">
-                  {rescue}
+                  {participant.name} ({participant.email})
                 </Badge>
               ))}
             </ParticipantsContainer>

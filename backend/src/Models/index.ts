@@ -1,4 +1,5 @@
 // src/models/index.ts
+import Application from './Application'
 import { AuditLog } from './AuditLog'
 import Conversation from './Conversation'
 import Message from './Message'
@@ -37,14 +38,24 @@ Permission.belongsToMany(Role, {
   as: 'Roles',
 })
 
+// Conversation Associations
 Conversation.belongsTo(User, { foreignKey: 'started_by', as: 'starter' })
 Conversation.belongsTo(Pet, { foreignKey: 'pet_id' })
-Message.belongsTo(Conversation, { foreignKey: 'conversation_id' })
-Message.belongsTo(User, { foreignKey: 'sender_id' })
+Conversation.hasMany(Message, { foreignKey: 'conversation_id' }) // If needed to access messages via Conversation
+Conversation.hasMany(Participant, {
+  as: 'participants',
+  foreignKey: 'conversation_id',
+  sourceKey: 'conversation_id',
+})
 
+// Participant Associations
 Participant.belongsTo(User, { foreignKey: 'user_id' })
 Participant.belongsTo(Conversation, { foreignKey: 'conversation_id' })
 Participant.belongsTo(Rescue, { foreignKey: 'rescue_id' })
+
+// Message Associations
+Message.belongsTo(Conversation, { foreignKey: 'conversation_id' })
+Message.belongsTo(User, { foreignKey: 'sender_id', as: 'User' })
 
 Pet.belongsTo(Rescue, { foreignKey: 'owner_id' })
 
@@ -62,6 +73,7 @@ Rescue.hasMany(StaffMember, {
 UserPreference.belongsTo(User, { foreignKey: 'user_id' })
 
 export {
+  Application,
   AuditLog,
   Conversation,
   Message,

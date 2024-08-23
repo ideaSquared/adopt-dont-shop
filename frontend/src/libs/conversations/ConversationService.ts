@@ -1,78 +1,62 @@
 import { Conversation, Message } from './Conversation'
 
-const messages: Message[] = [
-  {
-    sender_id: '1',
-    sender_name: 'John Doe',
-    message_text: 'Is Max still available?',
-    sent_at: '2024-08-01T10:01:00Z',
-    status: 'sent',
-    conversation_id: '1',
-  },
-  {
-    sender_id: '1',
-    sender_name: 'John Doe',
-    message_text: 'I would like more information about Max.',
-    sent_at: '2024-08-01T10:05:00Z',
-    status: 'sent',
-    conversation_id: '1',
-  },
-  {
-    sender_id: '2',
-    sender_name: 'Jane Smith',
-    message_text: 'I would like to adopt Bella.',
-    sent_at: '2024-08-02T11:45:00Z',
-    status: 'sent',
-    conversation_id: '2',
-  },
-]
+const API_URL = 'http://localhost:5000/api' // Base API URL
 
-const conversations: Conversation[] = [
-  {
-    conversation_id: '1',
-    started_by: 'John Doe',
-    started_at: '2024-08-01T10:00:00Z',
-    last_message: 'Is Max still available?',
-    last_message_at: '2024-08-01T12:00:00Z',
-    last_message_by: 'John Doe',
-    pet_id: '101',
-    status: 'open',
-    unread_messages: 2,
-    messages_count: 10,
-    created_at: '2024-08-01T10:00:00Z',
-    updated_at: '2024-08-01T12:00:00Z',
-    participant_emails: ['john@example.com'],
-    participant_rescues: ['Rescue Org'],
-    started_by_email: 'john@example.com',
-    last_message_by_email: 'john@example.com',
-  },
-  {
-    conversation_id: '2',
-    started_by: 'Jane Smith',
-    started_at: '2024-08-02T11:30:00Z',
-    last_message: 'I would like to adopt Bella.',
-    last_message_at: '2024-08-02T13:00:00Z',
-    last_message_by: 'Jane Smith',
-    pet_id: '102',
-    status: 'closed',
-    unread_messages: 0,
-    messages_count: 15,
-    created_at: '2024-08-02T11:30:00Z',
-    updated_at: '2024-08-02T13:00:00Z',
-    participant_emails: ['jane@example.com'],
-    participant_rescues: ['Rescue Org'],
-    started_by_email: 'jane@example.com',
-    last_message_by_email: 'jane@example.com',
-  },
-]
+// Fetch all conversations from the API
+const getConversations = async (): Promise<Conversation[]> => {
+  const response = await fetch(`${API_URL}/conversations`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  })
 
-const getConversations = (): Conversation[] => conversations
+  if (!response.ok) {
+    throw new Error('Failed to fetch conversations')
+  }
 
-const getConversationById = (id: string): Conversation | undefined =>
-  conversations.find((conversation) => conversation.conversation_id === id)
+  const data = await response.json()
+  return data // Assuming the response JSON is structured as { conversations: Conversation[] }
+}
 
-const getMessagesByConversationId = (id: string): Message[] =>
-  messages.filter((message) => message.conversation_id === id)
+// Fetch a single conversation by its ID
+const getConversationById = async (
+  id: string,
+): Promise<Conversation | undefined> => {
+  const response = await fetch(`${API_URL}/conversations/${id}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch conversation with id: ${id}`)
+  }
+
+  const data = await response.json()
+  return data // Assuming the response JSON is structured as { conversation: Conversation }
+}
+
+// Fetch all messages by conversation ID from the API
+const getMessagesByConversationId = async (id: string): Promise<Message[]> => {
+  const response = await fetch(`${API_URL}/messages/conversation/${id}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch messages for conversation with id: ${id}`)
+  }
+
+  const data = await response.json()
+  return data // Assuming the response JSON is structured as { messages: Message[] }
+}
 
 export default {
   getConversations,

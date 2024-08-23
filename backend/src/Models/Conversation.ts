@@ -1,5 +1,6 @@
 // src/models/Conversation.ts
-import { DataTypes, Model, Optional } from 'sequelize'
+import { Association, DataTypes, Model, Optional } from 'sequelize'
+import { Participant } from '.'
 import sequelize from '../sequelize'
 
 interface ConversationAttributes {
@@ -36,6 +37,13 @@ class Conversation
   public messages_count!: number
   public created_at!: Date
   public updated_at!: Date
+
+  // Optional associations
+  public readonly participants?: Participant[]
+
+  public static associations: {
+    participants: Association<Conversation, Participant>
+  }
 }
 
 Conversation.init(

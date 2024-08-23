@@ -23,7 +23,7 @@ export interface Conversation {
 
 export interface Participant {
   email: Email
-  name: string
+  name?: string
 }
 
 export interface Message {

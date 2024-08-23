@@ -1,5 +1,6 @@
 // src/models/Participant.ts
-import { DataTypes, Model, Optional } from 'sequelize'
+import { Association, DataTypes, Model, Optional } from 'sequelize'
+import { Conversation, User } from '.'
 import sequelize from '../sequelize'
 
 interface ParticipantAttributes {
@@ -26,6 +27,15 @@ class Participant
   public participant_type!: string
   public created_at!: Date
   public updated_at!: Date
+
+  // Optional associations
+  public readonly User?: User
+  public readonly Conversation?: Conversation
+
+  public static associations: {
+    User: Association<Participant, User>
+    Conversation: Association<Participant, Conversation>
+  }
 }
 
 Participant.init(

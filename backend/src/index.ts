@@ -8,6 +8,9 @@ import auditLogRoutes from './routes/auditLogRoutes'
 import authRoutes from './routes/authRoutes'
 import rescueRoutes from './routes/rescueRoutes'
 import { AuditLogger } from './services/auditLogService'
+import conversationRoutes from './routes/conversationRoutes'
+import messageRoutes from './routes/messageRoutes'
+import participantRoutes from './routes/participantRoutes'
 
 dotenv.config()
 
@@ -57,6 +60,10 @@ AuditLogger.logAction('Server', 'Admin routes setup complete', 'INFO')
 // Use rescue routes
 app.use('/api/rescue', rescueRoutes)
 AuditLogger.logAction('Server', 'Rescue routes setup complete', 'INFO')
+
+app.use('/api/conversations', conversationRoutes)
+app.use('/api/messages', messageRoutes)
+app.use('/api/participants', participantRoutes)
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, TypeScript with Express!')

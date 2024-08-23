@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { v4 as uuidv4 } from 'uuid'
 import { User } from '../../Models'
 import { AuditLogger } from '../../services/auditLogService'
 import {
@@ -13,10 +12,10 @@ import {
 } from '../../services/authService'
 import { sendPasswordResetEmail } from '../../services/emailService'
 import { getRolesForUser } from '../../services/permissionService'
+import { generateUUID } from '../../utils/generateUUID'
 
 jest.mock('bcryptjs')
 jest.mock('jsonwebtoken')
-jest.mock('uuid')
 jest.mock('../../Models/')
 jest.mock('../../services/emailService')
 jest.mock('../../services/permissionService')
@@ -24,6 +23,9 @@ jest.mock('../../services/auditLogService', () => ({
   AuditLogger: {
     logAction: jest.fn(),
   },
+}))
+jest.mock('../../utils/generateUUID', () => ({
+  generateUUID: jest.fn(),
 }))
 
 describe('AuthService', () => {
@@ -212,7 +214,7 @@ describe('AuthService', () => {
         reset_token_expiration: new Date(),
       }
       ;(User.findOne as jest.Mock).mockResolvedValue(mockUser)
-      ;(uuidv4 as jest.Mock).mockReturnValue('reset-token')
+      ;(generateUUID as jest.Mock).mockReturnValue('reset-token')
 
       const result = await forgotPassword('test@example.com')
 

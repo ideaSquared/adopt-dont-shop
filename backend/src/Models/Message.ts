@@ -1,5 +1,6 @@
 // src/models/Message.ts
-import { DataTypes, Model, Optional } from 'sequelize'
+import { Association, DataTypes, Model, Optional } from 'sequelize'
+import { User } from '.'
 import sequelize from '../sequelize'
 
 interface MessageAttributes {
@@ -13,6 +14,7 @@ interface MessageAttributes {
   status?: string
   created_at?: Date
   updated_at?: Date
+  User?: User
 }
 
 interface MessageCreationAttributes
@@ -32,6 +34,12 @@ class Message
   public status!: string
   public created_at!: Date
   public updated_at!: Date
+
+  public readonly User?: User
+
+  public static associations: {
+    User: Association<Message, User>
+  }
 }
 
 Message.init(

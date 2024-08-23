@@ -2,7 +2,6 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import { Op } from 'sequelize'
-import { v4 as uuidv4 } from 'uuid'
 import {
   Rescue,
   RescueCreationAttributes,
@@ -11,6 +10,7 @@ import {
   User,
   UserCreationAttributes,
 } from '../Models/'
+import { generateUUID } from '../utils/generateUUID'
 import { AuditLogger } from './auditLogService'
 import { sendPasswordResetEmail, sendVerificationEmail } from './emailService'
 import { getRolesForUser } from './permissionService'
@@ -208,7 +208,7 @@ export const forgotPassword = async (email: string): Promise<boolean> => {
       return false
     }
 
-    const resetToken = uuidv4()
+    const resetToken = generateUUID()
     user.reset_token = resetToken
     user.reset_token_expiration = new Date(Date.now() + 3600000) // 1 hour expiration
     await user.save()
