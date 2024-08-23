@@ -52,7 +52,7 @@ const AppContent: React.FC = () => {
 
           <Route
             element={
-              <ProtectedRoute requiredRole={Role.USER || Role.VERIFIED_USER} />
+              <ProtectedRoute requiredRoles={[Role.USER, Role.VERIFIED_USER]} />
             }
           >
             <Route path="/settings" element={<Settings />} />
@@ -60,20 +60,20 @@ const AppContent: React.FC = () => {
             <Route path="/chat" element={<Conversations />} />
           </Route>
 
-          <Route element={<ProtectedRoute requiredRole={Role.STAFF} />}>
+          <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route path="/applications" element={<Applications />} />
           </Route>
-          <Route element={<ProtectedRoute requiredRole={Role.STAFF} />}>
+          <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route path="/ratings" element={<Ratings />} />
             <Route path="/pets" element={<Pets />} />
           </Route>
-          <Route element={<ProtectedRoute requiredRole={Role.STAFF} />}>
+          <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route path="/staff" element={<Staff />} />
           </Route>
-          <Route element={<ProtectedRoute requiredRole={Role.STAFF} />}>
+          <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route path="/rescue" element={<Rescue />} />
           </Route>
-          <Route element={<ProtectedRoute requiredRole={Role.ADMIN} />}>
+          <Route element={<ProtectedRoute requiredRoles={[Role.ADMIN]} />}>
             <Route path="/logs" element={<Logs />} />
             <Route path="/users" element={<Users />} />
             <Route path="/conversations" element={<AdminConversations />} />

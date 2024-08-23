@@ -4,24 +4,30 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { useUser } from '../auth/UserContext'
 
 interface ProtectedRouteProps {
-  requiredPermission?: Permission
-  requiredRole?: Role
+  requiredPermissions?: Permission[]
+  requiredRoles?: Role[]
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  requiredPermission,
-  requiredRole,
+  requiredPermissions,
+  requiredRoles,
 }) => {
   const { hasPermission } = usePermissions()
   const { user } = useUser()
 
-  // Check if user has the required permission or role
-  const isAuthorized =
-    (requiredPermission && hasPermission(requiredPermission)) ||
-    (requiredRole && user?.roles?.includes(requiredRole))
+  const hasRequiredPermission = requiredPermissions?.some((permission) =>
+    hasPermission(permission),
+  )
+
+  // Check if user has at least one of the required roles
+  const hasRequiredRole = requiredRoles?.some((role) =>
+    user?.roles?.includes(role),
+  )
+
+  const isAuthorized = hasRequiredPermission || hasRequiredRole
 
   if (isAuthorized) {
-    return <Outlet /> // Outlet will render nested routes
+    return <Outlet />
   } else {
     return <Navigate to="/login" replace />
   }
