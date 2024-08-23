@@ -1,5 +1,11 @@
 import { User, UserService } from '@adoptdontshop/libs/users'
-import React, { ReactNode, createContext, useContext, useState } from 'react'
+import React, {
+  ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from 'react'
 
 interface UserContextProps {
   user: User | null
@@ -27,6 +33,30 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const storedUser = localStorage.getItem('user')
     return storedUser ? JSON.parse(storedUser) : null
   })
+
+  useEffect(() => {
+    const checkJwtExpiration = async (response: Response) => {
+      if (response.status === 401) {
+        const errorData = await response.json()
+        if (errorData.message.includes('JWT')) {
+          logout()
+          window.location.href = '/login' // Redirect to login page after logout
+        }
+      }
+      return response
+    }
+
+    const originalFetch = window.fetch
+    window.fetch = async (url, options) => {
+      const response = await originalFetch(url, options)
+      return checkJwtExpiration(response)
+    }
+
+    return () => {
+      window.fetch = originalFetch // Clean up by resetting fetch to its original implementation
+    }
+  }, [])
+
   const loginUser = async (
     email: string,
     password: string,

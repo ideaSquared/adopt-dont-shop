@@ -49,6 +49,15 @@ export const authenticateJWT = (
     next()
   } catch (error) {
     if (error instanceof Error) {
+      if (error.message.includes('jwt')) {
+        AuditLogger.logAction(
+          'AuthService',
+          `Jwt authentication failed with error: ${error.message}`,
+          'ERROR',
+        )
+        res.status(401).json({ message: 'JWT token expired' })
+      }
+
       AuditLogger.logAction(
         'AuthService',
         `Authentication failed with error: ${error.message}`,
