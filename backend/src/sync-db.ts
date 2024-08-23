@@ -1,3 +1,6 @@
+import fs from 'fs'
+import path from 'path'
+import { QueryInterface } from 'sequelize'
 import './Models' // Ensure all models are registered
 import { AuditLog } from './Models/AuditLog' // Explicitly import the AuditLog model
 import sequelize from './sequelize'
@@ -7,7 +10,13 @@ import { AuditLogger } from './services/auditLogService'
 async function isDatabaseEmpty(): Promise<boolean> {
   const queryInterface = sequelize.getQueryInterface()
   const tables = await queryInterface.showAllTables()
-  return tables.length === 0
+
+  // Exclude specific tables, like AuditLog, from this check if needed
+  const filteredTables = tables.filter(
+    (tableName) => tableName !== AuditLog.getTableName(),
+  )
+
+  return filteredTables.length === 0
 }
 
 // Main function to handle database sync
@@ -36,6 +45,33 @@ async function isDatabaseEmpty(): Promise<boolean> {
       await AuditLogger.logAction(
         'DatabaseService',
         'Database forced sync completed',
+        'INFO',
+      )
+
+      // Force seed the database
+      console.log('Starting database seeding...')
+      const seedersPath = path.resolve(__dirname, 'Seeders')
+      const queryInterface: QueryInterface = sequelize.getQueryInterface()
+
+      for (const file of fs.readdirSync(seedersPath)) {
+        const seederModule = require(path.join(seedersPath, file))
+        const seedFunction = seederModule.seed || seederModule.default
+
+        if (typeof seedFunction === 'function') {
+          await seedFunction(queryInterface)
+          console.log(`Seeder ${file} executed successfully`)
+        } else {
+          console.warn(
+            `Seeder in file ${file} does not export a 'seed' function`,
+          )
+        }
+      }
+      console.log('Database seeding completed.')
+
+      // Log the seeding action
+      await AuditLogger.logAction(
+        'DatabaseService',
+        'Database seeding completed',
         'INFO',
       )
     } else {
@@ -67,12 +103,12 @@ async function isDatabaseEmpty(): Promise<boolean> {
     )
     process.exit(1) // Exit with failure
   } finally {
-    await sequelize.close()
-    console.log('Database connection closed.')
     await AuditLogger.logAction(
       'DatabaseService',
       'Database connection closed',
       'INFO',
     )
+    await sequelize.close()
+    console.log('Database connection closed.')
   }
 })()
