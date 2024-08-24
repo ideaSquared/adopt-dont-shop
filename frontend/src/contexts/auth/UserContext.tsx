@@ -37,10 +37,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkJwtExpiration = async (response: Response) => {
       if (response.status === 401) {
+        console.log('401 detected, logging out') // Add logging here
         const errorData = await response.json()
         if (errorData.message.includes('JWT')) {
-          logout()
-          window.location.href = '/login' // Redirect to login page after logout
+          logout() // Log the user out and trigger a re-render
+          window.location.href = '/login' // Redirect to login page
         }
       }
       return response
