@@ -5,7 +5,7 @@ const API_URL = 'http://localhost:5000/api'
 
 // Fetch all rescues
 const getRescues = async (): Promise<Rescue[]> => {
-  const response = await fetch(`${API_URL}/admin/rescues`, {
+  const response = await fetch(`${API_URL}/rescue/rescues`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -22,7 +22,7 @@ const getRescues = async (): Promise<Rescue[]> => {
 
 // Fetch a specific rescue by ID
 const getRescueById = async (id: string): Promise<Rescue | undefined> => {
-  const response = await fetch(`${API_URL}/admin/rescues/${id}`, {
+  const response = await fetch(`${API_URL}/rescue/rescues/${id}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ const getRescueById = async (id: string): Promise<Rescue | undefined> => {
 const getStaffMembersByRescueId = async (
   rescue_id: string,
 ): Promise<StaffMember[] | undefined> => {
-  const response = await fetch(`${API_URL}/admin/rescues/${rescue_id}/staff`, {
+  const response = await fetch(`${API_URL}/rescue/rescues/${rescue_id}/staff`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ const getStaffMemberById = async (
   staff_id: string,
 ): Promise<StaffMember | undefined> => {
   const response = await fetch(
-    `${API_URL}/admin/rescues/${rescue_id}/staff/${staff_id}`,
+    `${API_URL}/rescue/rescues/${rescue_id}/staff/${staff_id}`,
     {
       method: 'GET',
       headers: {
