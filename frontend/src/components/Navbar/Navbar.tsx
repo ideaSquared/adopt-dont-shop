@@ -96,6 +96,7 @@ const Navbar: React.FC = () => {
               <DropdownMenu
                 triggerLabel="Admin"
                 items={[
+                  { label: 'Users', to: '/users' },
                   { label: 'Conversations', to: '/conversations' },
                   { label: 'Logs', to: '/logs' },
                   { label: 'Rescues', to: '/rescues' },

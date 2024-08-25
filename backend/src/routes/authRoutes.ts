@@ -8,8 +8,10 @@ import {
   resetPasswordHandler,
   updateUser,
   verifyEmail,
+  getAllUsers,
 } from '../controllers/userController'
 import { authenticateJWT } from '../middleware/authMiddleware'
+import { checkUserRole } from '../middleware/roleCheckMiddleware'
 
 const router = express.Router()
 
@@ -34,5 +36,7 @@ router.post('/reset-password', resetPasswordHandler)
 
 // Route for creating a user account
 router.post('/create-user', createUserAccount)
+
+router.get('/users', authenticateJWT, checkUserRole('admin'), getAllUsers)
 
 export default router

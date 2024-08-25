@@ -3,6 +3,7 @@ import {
   changePassword,
   createUser,
   forgotPassword,
+  getAllUsersService,
   loginUser,
   resetPassword,
   updateUserDetails,
@@ -222,5 +223,18 @@ export const verifyEmail = async (
     })
   } catch (error) {
     res.status(400).json({ message: (error as Error).message })
+  }
+}
+
+export const getAllUsers = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const users = await getAllUsersService()
+    res.status(200).json(users)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Error retrieving users' })
   }
 }

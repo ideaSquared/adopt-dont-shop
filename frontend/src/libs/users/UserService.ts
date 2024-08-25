@@ -3,7 +3,13 @@ import { CreateRescuePayload, CreateUserPayload, User } from './User'
 const API_URL = 'http://localhost:5000/api/auth'
 
 const getUsers = async (): Promise<User[]> => {
-  const response = await fetch(`http://localhost:5000/api/admin/users`)
+  const response = await fetch(`${API_URL}/users`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  })
 
   if (!response.ok) {
     throw new Error('Failed to fetch users')
