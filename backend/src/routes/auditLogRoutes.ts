@@ -1,5 +1,5 @@
 import express from 'express'
-import { getAllAuditLogs } from '../controllers/auditLogController'
+import { getAllAuditLogsController } from '../controllers/auditLogController'
 import { authenticateJWT } from '../middleware/authMiddleware'
 import { checkUserRole } from '../middleware/roleCheckMiddleware'
 
@@ -9,7 +9,7 @@ router.get(
   '/audit-logs',
   authenticateJWT,
   checkUserRole('admin'),
-  getAllAuditLogs,
+  getAllAuditLogsController,
 )
 
 export default router

@@ -1,11 +1,11 @@
 import express, { Application } from 'express'
 import request from 'supertest'
-import * as userController from '../../controllers/userController'
+import { createRescueAccountController } from '../../controllers/userController'
 import router from '../../routes/rescueRoutes'
 
 // Mock the createRescueAccount controller
 jest.mock('../../controllers/userController', () => ({
-  createRescueAccount: jest.fn(),
+  createRescueAccountController: jest.fn(),
 }))
 
 const app: Application = express()
@@ -31,7 +31,7 @@ describe('Rescue Account Routes', () => {
       staffMember: { id: 1 },
     }
 
-    ;(userController.createRescueAccount as jest.Mock).mockImplementation(
+    ;(createRescueAccountController as jest.Mock).mockImplementation(
       (req, res) => {
         res.status(201).json(mockResponse)
       },

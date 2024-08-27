@@ -1,5 +1,9 @@
 import { Router } from 'express'
-import * as participantController from '../controllers/participantController'
+import {
+  createParticipantController,
+  getAllParticipantsController,
+  getParticipantByIdController,
+} from '../controllers/participantController'
 import { authenticateJWT } from '../middleware/authMiddleware'
 import { checkUserRole } from '../middleware/roleCheckMiddleware'
 
@@ -9,9 +13,9 @@ router.get(
   '/',
   authenticateJWT,
   checkUserRole('admin'),
-  participantController.getAllParticipants,
+  getAllParticipantsController,
 )
-router.get('/:id', authenticateJWT, participantController.getParticipantById)
-router.post('/', authenticateJWT, participantController.createParticipant)
+router.get('/:id', authenticateJWT, getParticipantByIdController)
+router.post('/', authenticateJWT, createParticipantController)
 
 export default router

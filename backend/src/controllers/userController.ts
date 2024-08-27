@@ -11,7 +11,7 @@ import {
 } from '../services/authService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
 
-export const login = async (req: Request, res: Response): Promise<void> => {
+export const loginController = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body
 
@@ -29,7 +29,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 }
 
-export const updateUser = async (
+export const updateUserController = async (
   req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
@@ -59,7 +59,7 @@ export const updateUser = async (
   }
 }
 
-export const changePasswordHandler = async (
+export const changePasswordController = async (
   req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
@@ -90,7 +90,7 @@ export const changePasswordHandler = async (
   }
 }
 
-export const forgotPasswordHandler = async (
+export const forgotPasswordController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
@@ -104,7 +104,7 @@ export const forgotPasswordHandler = async (
   }
 }
 
-export const resetPasswordHandler = async (
+export const resetPasswordController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
@@ -118,7 +118,7 @@ export const resetPasswordHandler = async (
   }
 }
 
-export const createUserAccount = async (req: Request, res: Response) => {
+export const createUserAccountController = async (req: Request, res: Response) => {
   try {
     const { first_name, last_name, email, password } = req.body
 
@@ -148,7 +148,7 @@ export const createUserAccount = async (req: Request, res: Response) => {
   }
 }
 
-export const createRescueAccount = async (req: Request, res: Response) => {
+export const createRescueAccountController = async (req: Request, res: Response) => {
   try {
     const { user, rescue } = req.body
 
@@ -203,7 +203,7 @@ export const createRescueAccount = async (req: Request, res: Response) => {
   }
 }
 
-export const verifyEmail = async (
+export const verifyEmailController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
@@ -226,7 +226,7 @@ export const verifyEmail = async (
   }
 }
 
-export const getAllUsers = async (
+export const getAllUsersController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {

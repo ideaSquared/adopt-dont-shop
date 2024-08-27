@@ -1,5 +1,10 @@
 import { Router } from 'express'
-import * as messageController from '../controllers/messageController'
+import {
+  createMessageController,
+  getAllMessagesController,
+  getMessageByIdController,
+  getMessagesByConversationIdController,
+} from '../controllers/messageController'
 import { authenticateJWT } from '../middleware/authMiddleware'
 import { checkUserRole } from '../middleware/roleCheckMiddleware'
 
@@ -9,14 +14,14 @@ router.get(
   '/',
   authenticateJWT,
   checkUserRole('admin'),
-  messageController.getAllMessages,
+  getAllMessagesController,
 )
-router.get('/:id', authenticateJWT, messageController.getMessageById)
-router.post('/', authenticateJWT, messageController.createMessage)
+router.get('/:id', authenticateJWT, getMessageByIdController)
+router.post('/', authenticateJWT, createMessageController)
 router.get(
   '/conversation/:conversationId',
   authenticateJWT,
-  messageController.getMessagesByConversationId,
+  getMessagesByConversationIdController,
 )
 
 export default router

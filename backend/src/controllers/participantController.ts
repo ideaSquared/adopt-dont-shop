@@ -1,7 +1,10 @@
 import { Request, Response } from 'express'
 import * as participantService from '../services/participantService'
 
-export const getAllParticipants = async (req: Request, res: Response) => {
+export const getAllParticipantsController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const participants = await participantService.getAllParticipants()
     res.status(200).json(participants)
@@ -14,7 +17,10 @@ export const getAllParticipants = async (req: Request, res: Response) => {
   }
 }
 
-export const getParticipantById = async (req: Request, res: Response) => {
+export const getParticipantByIdController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const participant = await participantService.getParticipantById(
       req.params.id,
@@ -33,7 +39,10 @@ export const getParticipantById = async (req: Request, res: Response) => {
   }
 }
 
-export const createParticipant = async (req: Request, res: Response) => {
+export const createParticipantController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const participant = await participantService.createParticipant(req.body)
     res.status(201).json(participant)

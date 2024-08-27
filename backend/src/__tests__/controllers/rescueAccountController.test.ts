@@ -1,6 +1,6 @@
 import express, { Application } from 'express'
 import request from 'supertest'
-import { createRescueAccount } from '../../controllers/userController'
+import { createRescueAccountController } from '../../controllers/userController'
 import { createUser } from '../../services/authService'
 
 // Mock the necessary services and models
@@ -16,7 +16,7 @@ const app: Application = express()
 app.use(express.json())
 
 // Mount the route correctly
-app.post('/api/rescue/create-rescue', createRescueAccount)
+app.post('/api/rescue/create-rescue', createRescueAccountController)
 
 describe('Rescue Account Controller - createRescueAccount', () => {
   const userData = {

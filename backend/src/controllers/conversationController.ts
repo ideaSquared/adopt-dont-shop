@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import * as conversationService from '../services/conversationService'
 
-export const getAllConversations = async (req: Request, res: Response) => {
+export const getAllConversationsController = async (req: Request, res: Response) => {
   try {
     const conversations = await conversationService.getAllConversations()
     res.status(200).json(conversations)

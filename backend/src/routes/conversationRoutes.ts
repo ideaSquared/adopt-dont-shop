@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import * as conversationController from '../controllers/conversationController'
+import { getAllConversationsController } from '../controllers/conversationController'
 import { authenticateJWT } from '../middleware/authMiddleware'
 import { checkUserRole } from '../middleware/roleCheckMiddleware'
 
@@ -9,7 +9,7 @@ router.get(
   '/',
   authenticateJWT,
   checkUserRole('admin'),
-  conversationController.getAllConversations,
+  getAllConversationsController,
 )
 
 export default router

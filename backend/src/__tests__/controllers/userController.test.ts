@@ -1,7 +1,7 @@
 import express, { Application } from 'express'
 import jwt from 'jsonwebtoken'
 import request from 'supertest'
-import { login } from '../../controllers/userController'
+import { loginController } from '../../controllers/userController'
 import { loginUser } from '../../services/authService'
 
 // Mock services and dependencies
@@ -35,7 +35,7 @@ describe('User Controller', () => {
   })
 
   describe('login', () => {
-    app.post('/api/login', login)
+    app.post('/api/login', loginController)
 
     it('should return 200 and token on successful login', async () => {
       const mockUser = { user_id: 1, email: 'tester@test.com' }

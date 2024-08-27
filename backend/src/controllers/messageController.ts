@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import * as messageService from '../services/messageService'
 
-export const getAllMessages = async (req: Request, res: Response) => {
+export const getAllMessagesController = async (req: Request, res: Response) => {
   try {
     const messages = await messageService.getAllMessages()
     res.status(200).json(messages)
@@ -14,7 +14,7 @@ export const getAllMessages = async (req: Request, res: Response) => {
   }
 }
 
-export const getMessageById = async (req: Request, res: Response) => {
+export const getMessageByIdController = async (req: Request, res: Response) => {
   try {
     const message = await messageService.getMessageById(req.params.id)
     if (message) {
@@ -31,7 +31,7 @@ export const getMessageById = async (req: Request, res: Response) => {
   }
 }
 
-export const getMessagesByConversationId = async (
+export const getMessagesByConversationIdController = async (
   req: Request,
   res: Response,
 ) => {
@@ -53,7 +53,7 @@ export const getMessagesByConversationId = async (
   }
 }
 
-export const createMessage = async (req: Request, res: Response) => {
+export const createMessageController = async (req: Request, res: Response) => {
   try {
     const message = await messageService.createMessage(req.body)
     res.status(201).json(message)

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { getAllRescuesService } from '../services/rescueService'
 
-export const getAllRescues = async (
+export const getAllRescuesController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { AuditLogger } from '../services/auditLogService'
 
-export const getAllAuditLogs = async (
+export const getAllAuditLogsController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
