@@ -16,4 +16,9 @@ docker-compose down --volumes
 docker-compose up --build
 ```
 
+### Force sync the database (also seeds the database)
+
+1. Go to the Docker backend container
+2. Enter `npm run force-sync-db`
+
 _Note: You'll need to restart the backend as initialisation time is slower than the build/run of the backend container_
