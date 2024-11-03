@@ -1,10 +1,10 @@
+import * as Tooltip from '@radix-ui/react-tooltip'
 import React from 'react'
 import styled from 'styled-components'
-import * as Tooltip from '@radix-ui/react-tooltip'
 
 interface DateTimeProps {
   /* A ISO or similar timestamp */
-  timestamp: string
+  timestamp: string | Date
   localeOption?: 'en-GB' | 'en-US'
   showTooltip?: boolean
 }
@@ -14,7 +14,13 @@ const DateTime: React.FC<DateTimeProps> = ({
   localeOption = 'en-GB',
   showTooltip = false,
 }) => {
+  if (!timestamp) return
+
   const date = new Date(timestamp)
+
+  // Convert the date to an ISO string for dateTime attribute
+  const dateTimeString =
+    typeof timestamp === 'string' ? timestamp : date.toISOString()
 
   // Function to get the ordinal suffix for a day
   const getOrdinalSuffix = (day: number): string => {
@@ -58,7 +64,7 @@ const DateTime: React.FC<DateTimeProps> = ({
     <Tooltip.Provider>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <ClickableTime dateTime={timestamp}>
+          <ClickableTime dateTime={dateTimeString}>
             {showTooltip && (
               <span role="img" aria-label="clock">
                 🕒
@@ -115,9 +121,11 @@ const ClocksContainer = styled.div`
 const Clock: React.FC<{
   timezone: string
   label: string
-  timestamp: string
+  timestamp: string | Date
   localeOption: 'en-GB' | 'en-US'
 }> = ({ timezone, label, timestamp, localeOption }) => {
+  if (!timestamp) return
+
   const date = new Date(timestamp)
 
   const dateOptions: Intl.DateTimeFormatOptions = {
