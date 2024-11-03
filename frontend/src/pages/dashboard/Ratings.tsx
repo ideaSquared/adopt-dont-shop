@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react'
 import {
+  DateTime,
   FormInput,
   SelectInput,
-  TextInput,
   Table,
+  TextInput,
 } from '@adoptdontshop/components'
 import { Rating, RatingService, RatingType } from '@adoptdontshop/libs/ratings'
+import React, { useEffect, useState } from 'react'
 
 const Ratings: React.FC = () => {
   const [ratings, setRatings] = useState<Rating[]>([])
@@ -81,15 +82,13 @@ const Ratings: React.FC = () => {
         </thead>
         <tbody>
           {filteredRatings.map((rating) => (
-            <tr
-              key={`${rating.pet_id}-${
-                rating.user_id
-              }-${rating.timestamp.getTime()}`}
-            >
+            <tr key={rating.rating_id}>
               <td>{rating.pet_id}</td>
               <td>{rating.user_id}</td>
               <td>{handleTypeToSentenceCase(rating.type)}</td>
-              <td>{rating.timestamp.toLocaleString()}</td>
+              <td>
+                <DateTime timestamp={rating.timestamp} />
+              </td>
             </tr>
           ))}
         </tbody>
