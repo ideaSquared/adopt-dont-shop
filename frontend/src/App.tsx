@@ -11,6 +11,7 @@ import { Conversations } from '@adoptdontshop/pages/chat'
 import {
   Conversations as AdminConversations,
   Applications,
+  FeatureFlags,
   Logs,
   Pets,
   Ratings,
@@ -27,8 +28,17 @@ import {
   Role,
 } from '@adoptdontshop/permissions'
 import { UserProvider, useUser } from 'contexts/auth/UserContext'
+import {
+  FeatureFlagProvider,
+  useFeatureFlag,
+} from 'contexts/feature-flags/FeatureFlagContext'
 import React from 'react'
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
+import {
+  Navigate,
+  Route,
+  BrowserRouter as Router,
+  Routes,
+} from 'react-router-dom'
 import { ThemeProvider } from 'styled-components'
 import GlobalStyles from './styles/GlobalStyles'
 import { theme } from './styles/theme'
@@ -37,6 +47,8 @@ const AppContent: React.FC = () => {
   const { user } = useUser() // Retrieve the user from context
 
   const userRoles = user ? user.roles : [] // Extract roles from the user
+
+  const chatBetaEnabled = useFeatureFlag('chat_beta')
 
   return (
     <PermissionProvider roles={userRoles}>
@@ -57,7 +69,11 @@ const AppContent: React.FC = () => {
           >
             <Route path="/settings" element={<Settings />} />
             <Route path="/swipe" element={<Swipe />} />
-            <Route path="/chat" element={<Conversations />} />
+            {chatBetaEnabled ? (
+              <Route path="/chat" element={<Conversations />} />
+            ) : (
+              <Route path="/chat" element={<Navigate to="/" />} />
+            )}
           </Route>
 
           <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
@@ -76,8 +92,13 @@ const AppContent: React.FC = () => {
           <Route element={<ProtectedRoute requiredRoles={[Role.ADMIN]} />}>
             <Route path="/logs" element={<Logs />} />
             <Route path="/users" element={<Users />} />
-            <Route path="/conversations" element={<AdminConversations />} />
+            {chatBetaEnabled ? (
+              <Route path="/conversations" element={<AdminConversations />} />
+            ) : (
+              <Route path="/conversations" element={<Navigate to="/" />} />
+            )}
             <Route path="/rescues" element={<Rescues />} />
+            <Route path="/feature-flags" element={<FeatureFlags />} />
           </Route>
         </Routes>
       </Router>
@@ -87,12 +108,14 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ThemeProvider theme={theme}>
-      <UserProvider>
-        <GlobalStyles />
-        <AppContent />
-      </UserProvider>
-    </ThemeProvider>
+    <FeatureFlagProvider>
+      <ThemeProvider theme={theme}>
+        <UserProvider>
+          <GlobalStyles />
+          <AppContent />
+        </UserProvider>
+      </ThemeProvider>
+    </FeatureFlagProvider>
   )
 }
 

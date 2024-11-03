@@ -6,11 +6,12 @@ import errorHandler from './middleware/errorHandler'
 import adminRoutes from './routes/adminRoutes'
 import auditLogRoutes from './routes/auditLogRoutes'
 import authRoutes from './routes/authRoutes'
-import rescueRoutes from './routes/rescueRoutes'
-import { AuditLogger } from './services/auditLogService'
 import conversationRoutes from './routes/conversationRoutes'
+import featureFlagRoutes from './routes/featureFlagRoutes'
 import messageRoutes from './routes/messageRoutes'
 import participantRoutes from './routes/participantRoutes'
+import rescueRoutes from './routes/rescueRoutes'
+import { AuditLogger } from './services/auditLogService'
 
 dotenv.config()
 
@@ -64,6 +65,8 @@ AuditLogger.logAction('Server', 'Rescue routes setup complete', 'INFO')
 app.use('/api/conversations', conversationRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/participants', participantRoutes)
+
+app.use('/api/feature-flags', featureFlagRoutes)
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, TypeScript with Express!')

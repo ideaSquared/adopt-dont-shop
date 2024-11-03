@@ -1,5 +1,6 @@
 import { DropdownMenu } from '@adoptdontshop/components'
 import { Role, usePermissions } from '@adoptdontshop/permissions'
+import { useFeatureFlag } from 'contexts/feature-flags/FeatureFlagContext'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
@@ -36,6 +37,9 @@ const Navbar: React.FC = () => {
   const canViewRescueDashboard = hasRole(Role.STAFF)
   const canViewAdminDashboard = hasRole(Role.ADMIN)
 
+  const chatBetaEnabled = useFeatureFlag('chat_beta')
+  console.log(chatBetaEnabled)
+
   return (
     <StyledNavbar>
       <Nav>
@@ -70,7 +74,9 @@ const Navbar: React.FC = () => {
                   triggerLabel="Verified User"
                   items={[
                     { label: 'Swipe', to: '/swipe' },
-                    { label: 'Chat', to: '/chat' },
+                    ...(chatBetaEnabled
+                      ? [{ label: 'Chat', to: '/chat' }]
+                      : []),
                   ]}
                 />
               </NavItem>
@@ -97,9 +103,12 @@ const Navbar: React.FC = () => {
                 triggerLabel="Admin"
                 items={[
                   { label: 'Users', to: '/users' },
-                  { label: 'Conversations', to: '/conversations' },
+                  ...(chatBetaEnabled
+                    ? [{ label: 'Conversations', to: '/conversations' }]
+                    : []),
                   { label: 'Logs', to: '/logs' },
                   { label: 'Rescues', to: '/rescues' },
+                  { label: 'Feature flags', to: '/feature-flags' },
                 ]}
               />
             </NavItem>

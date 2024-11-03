@@ -2,6 +2,7 @@
 import Application from './Application'
 import { AuditLog } from './AuditLog'
 import Conversation from './Conversation'
+import { FeatureFlag } from './FeatureFlag'
 import Message from './Message'
 import Participant from './Participant'
 import Permission from './Permission'
@@ -76,6 +77,7 @@ export {
   Application,
   AuditLog,
   Conversation,
+  FeatureFlag,
   Message,
   Participant,
   Permission,
