@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react'
 import {
-  FormInput,
-  TextInput,
-  SelectInput,
-  CheckboxInput,
-  Table,
-  Button,
   Badge,
+  Button,
+  CheckboxInput,
+  FormInput,
+  SelectInput,
+  Table,
+  TextInput,
 } from '@adoptdontshop/components'
-import styled from 'styled-components'
-import { StaffMember } from '@adoptdontshop/libs/rescues'
-import { RescueService } from '@adoptdontshop/libs/rescues'
+import { RescueService, StaffMember } from '@adoptdontshop/libs/rescues'
 import { Role } from '@adoptdontshop/permissions'
+import React, { useEffect, useState } from 'react'
+import styled from 'styled-components'
 
 const BadgeWrapper = styled.div`
   display: flex;
@@ -26,9 +25,14 @@ const Staff: React.FC = () => {
   const [filterByVerified, setFilterByVerified] = useState<boolean>(false)
 
   useEffect(() => {
-    const fetchedStaff = RescueService.getStaffMembersByRescueId('1') || []
-    setStaff(fetchedStaff)
-    setFilteredStaff(fetchedStaff)
+    const fetchStaff = async () => {
+      const fetchedStaff =
+        (await RescueService.getStaffMembersByRescueId('1')) || []
+      setStaff(fetchedStaff)
+      setFilteredStaff(fetchedStaff)
+    }
+
+    fetchStaff()
   }, [])
 
   useEffect(() => {
