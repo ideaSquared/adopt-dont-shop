@@ -29,4 +29,12 @@ export interface OrganizationRescue {
   staff: StaffMember[]
 }
 
+export interface LimitedRescue {
+  rescue_id: string
+  rescue_name: string
+  rescue_type: string
+  city: string
+  country: string
+}
+
 export type Rescue = IndividualRescue | OrganizationRescue

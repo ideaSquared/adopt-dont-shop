@@ -40,6 +40,7 @@ class Rescue
   public postcode!: string
   public country!: string
   public location!: { type: string; coordinates: [number, number] }
+  StaffMembers: any //TODO: Fix the type here
 }
 
 Rescue.init(

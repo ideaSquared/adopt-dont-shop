@@ -1,5 +1,8 @@
 import express from 'express'
-import { getAllRescuesController } from '../controllers/rescueController'
+import {
+  getAllRescuesController,
+  getSingleRescueController,
+} from '../controllers/rescueController'
 import { createRescueAccountController } from '../controllers/userController'
 import { authenticateJWT } from '../middleware/authMiddleware'
 import { checkUserRole } from '../middleware/roleCheckMiddleware'
@@ -17,5 +20,9 @@ router.get(
   checkUserRole('admin'),
   getAllRescuesController,
 )
+
+// GET /api/rescue/:rescueId
+// Get a rescue and get all the data
+router.get('/rescues/:rescueId', authenticateJWT, getSingleRescueController)
 
 export default router

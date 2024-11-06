@@ -1,9 +1,10 @@
 import { NextFunction, Response } from 'express'
 import jwt from 'jsonwebtoken'
+import { User } from '../Models'
 import { AuditLogger } from '../services/auditLogService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
 
-export const authenticateJWT = (
+export const authenticateJWT = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
@@ -36,14 +37,26 @@ export const authenticateJWT = (
       return res.status(401).json({ message: 'Invalid token' })
     }
 
-    // Attach the user ID from the token to the request object
-    req.user = decoded.userId
+    // Fetch the full user object from the database
+    const user = await User.findByPk(decoded.userId)
+
+    if (!user) {
+      AuditLogger.logAction(
+        'AuthService',
+        `Authentication failed: User with ID ${decoded.userId} not found`,
+        'WARNING',
+      )
+      return res.status(401).json({ message: 'User not found' })
+    }
+
+    // Attach the full user object to req.user
+    req.user = user
 
     AuditLogger.logAction(
       'AuthService',
       `User authenticated successfully with ID: ${req.user}`,
       'INFO',
-      req.user,
+      user.user_id,
     )
 
     next()
