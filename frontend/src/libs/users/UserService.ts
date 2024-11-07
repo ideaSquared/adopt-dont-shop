@@ -1,3 +1,4 @@
+import { Rescue } from '../rescues'
 import { CreateRescuePayload, CreateUserPayload, User } from './User'
 
 const API_URL = 'http://localhost:5000/api/auth'
@@ -32,7 +33,7 @@ const getUserById = async (id: string): Promise<User | undefined> => {
 const login = async (
   email: string,
   password: string,
-): Promise<{ token: string; user: User } | null> => {
+): Promise<{ token: string; user: User; rescue?: Rescue } | null> => {
   try {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
@@ -46,12 +47,12 @@ const login = async (
       throw new Error('Login failed')
     }
 
-    const { token, user } = await response.json()
+    const { token, user, rescue } = await response.json()
 
     // Save token to localStorage or cookies
     localStorage.setItem('token', token)
 
-    return { token, user }
+    return { token, user, rescue }
   } catch (error) {
     console.error('Login failed:', error)
     return null
@@ -68,6 +69,9 @@ const logout = async (): Promise<void> => {
       },
     })
     localStorage.removeItem('token')
+
+    localStorage.removeItem('user')
+    localStorage.removeItem('rescue')
   }
 }
 
