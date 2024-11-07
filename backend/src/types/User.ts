@@ -1,8 +1,8 @@
 export interface User {
   user_id: string
   email: string
-  first_name: string
-  last_name: string
+  first_name?: string
+  last_name?: string
   city?: string
   country?: string
   description?: string
@@ -13,4 +13,8 @@ export interface User {
 
 export interface Role {
   role_name: string
+}
+
+export interface UserWithRoles extends Omit<User, 'password'> {
+  roles: string[]
 }

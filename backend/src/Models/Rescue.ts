@@ -1,6 +1,7 @@
 // src/models/Rescue.ts
 import { DataTypes, Model, Optional } from 'sequelize'
 import sequelize from '../sequelize'
+import StaffMember from './StaffMember' // Import StaffMember model
 
 interface RescueAttributes {
   rescue_id: string
@@ -40,9 +41,10 @@ class Rescue
   public postcode!: string
   public country!: string
   public location!: { type: string; coordinates: [number, number] }
-  StaffMembers: any //TODO: Fix the type here
+  public StaffMembers?: StaffMember[] // Define type for StaffMembers
 }
 
+// Initialize model
 Rescue.init(
   {
     rescue_id: {
@@ -102,5 +104,11 @@ Rescue.init(
     updatedAt: 'updated_at',
   },
 )
+
+// Define the association with an alias
+Rescue.hasMany(StaffMember, {
+  foreignKey: 'rescue_id',
+  as: 'staffMembersAlias', // Define the alias here
+})
 
 export default Rescue

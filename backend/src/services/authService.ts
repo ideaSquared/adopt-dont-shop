@@ -3,26 +3,18 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import { Op } from 'sequelize'
 import {
-  Rescue,
   RescueCreationAttributes,
+  Rescue as RescueModel,
   Role,
   StaffMember,
   User,
   UserCreationAttributes,
 } from '../Models/'
+import { Rescue, UserWithRoles } from '../types'
 import { generateUUID } from '../utils/generateUUID'
 import { AuditLogger } from './auditLogService'
 import { sendPasswordResetEmail, sendVerificationEmail } from './emailService'
 import { getRolesForUser } from './permissionService'
-
-interface UserWithRoles {
-  user_id: string
-  first_name: string
-  last_name: string
-  email: string
-  roles: string[]
-}
-
 interface UserResponse {
   users: UserWithRoles[]
 }
@@ -51,7 +43,7 @@ export const getAllUsersService = async (): Promise<UserResponse> => {
 export const loginUser = async (
   email: string,
   password: string,
-): Promise<{ token: string; user: any }> => {
+): Promise<{ token: string; user: UserWithRoles; rescue?: Rescue | null }> => {
   try {
     const user = await User.scope('withPassword').findOne({
       where: { email },
@@ -93,7 +85,28 @@ export const loginUser = async (
     })
 
     const { password: _, ...userWithoutPassword } = user.toJSON()
-    const userWithRoles = { ...userWithoutPassword, roles }
+    const userWithRoles: UserWithRoles = { ...userWithoutPassword, roles }
+
+    let rescue: Rescue | null = null
+    if (roles.includes('staff')) {
+      rescue = (await RescueModel.findOne({
+        include: [
+          {
+            model: StaffMember,
+            as: 'staffMembersAlias', // Use the same alias here
+            where: { user_id: user.user_id },
+            attributes: [], // Optional: Only include fields needed for filtering
+          },
+        ],
+        attributes: [
+          'rescue_id',
+          'rescue_name',
+          'rescue_type',
+          'city',
+          'country',
+        ],
+      })) as Rescue | null
+    }
 
     await AuditLogger.logAction(
       'AuthService',
@@ -102,7 +115,7 @@ export const loginUser = async (
       user.user_id,
     )
 
-    return { token, user: userWithRoles }
+    return { token, user: userWithRoles, rescue }
   } catch (error) {
     if (error instanceof Error) {
       await AuditLogger.logAction(
@@ -326,10 +339,11 @@ export const resetPassword = async (
   }
 }
 
+// TODO: Fix Rescue any
 export const createUser = async (
   userData: Omit<UserCreationAttributes, 'user_id'>,
   rescueData?: Partial<RescueCreationAttributes>,
-): Promise<{ user: User; rescue?: Rescue; staffMember?: StaffMember }> => {
+): Promise<{ user: User; rescue?: any; staffMember?: StaffMember }> => {
   try {
     const verificationToken = crypto.randomBytes(32).toString('hex')
 
@@ -365,7 +379,7 @@ export const createUser = async (
         location: rescueData.location ?? undefined,
       }
 
-      const rescue = await Rescue.create(completeRescueData)
+      const rescue = await RescueModel.create(completeRescueData)
 
       const staffMember = await StaffMember.create({
         user_id: user.user_id,

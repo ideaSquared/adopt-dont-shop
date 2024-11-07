@@ -15,7 +15,7 @@ export interface IndividualRescue {
   rescue_type: 'Individual'
   city: string
   country: string
-  staff: [StaffMember]
+  staff?: [StaffMember]
 }
 
 export interface OrganizationRescue {
@@ -26,7 +26,7 @@ export interface OrganizationRescue {
   country: string
   reference_number?: string
   reference_number_verified?: boolean
-  staff: StaffMember[]
+  staff?: StaffMember[]
 }
 
 export interface LimitedRescue {

@@ -59,6 +59,7 @@ describe('AuthService', () => {
       expect(result).toEqual({
         token: 'mocked-token',
         user: { user_id: 1, email: 'test@example.com', roles: mockRoles },
+        rescue: null,
       })
 
       expect(AuditLogger.logAction).toHaveBeenCalledWith(

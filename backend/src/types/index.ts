@@ -6,4 +6,4 @@ export {
   StaffMember,
 } from './Rescue'
 export { Role } from './Role'
-export { User } from './User'
+export { User, UserWithRoles } from './User'

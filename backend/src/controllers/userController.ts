@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import jwt from 'jsonwebtoken'
 import {
   changePassword,
   createUser,
@@ -10,6 +11,7 @@ import {
   verifyEmailToken,
 } from '../services/authService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
+import { LoginResponse } from '../types/LoginResponse'
 
 export const loginController = async (
   req: Request,
@@ -18,17 +20,25 @@ export const loginController = async (
   try {
     const { email, password } = req.body
 
-    // Check if email and password are provided
     if (!email || !password) {
       res.status(400).json({ message: 'Email and password are required' })
       return
     }
 
-    const { token, user } = await loginUser(email, password)
-    res.status(200).json({ token, user })
+    const { token, user, rescue } = await loginUser(email, password)
+
+    const response: LoginResponse = { token, user }
+    if (rescue) response['rescue'] = rescue
+
+    res.status(200).json(response)
   } catch (error) {
-    const typedError = error as Error
-    res.status(400).json({ message: 'Invalid email or password' })
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.status(401).json({ message: 'Invalid token' })
+    } else if ((error as Error).message === 'Invalid email or password') {
+      res.status(400).json({ message: 'Invalid email or password' })
+    } else {
+      res.status(500).json({ message: 'An unexpected error occurred' })
+    }
   }
 }
 
