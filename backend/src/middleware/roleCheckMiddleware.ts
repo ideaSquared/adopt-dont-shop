@@ -9,7 +9,8 @@ export const checkUserRole = (requiredRole: string) => {
     res: Response,
     next: NextFunction,
   ) => {
-    const userId = req.user
+    if (!req.user) return
+    const userId = req.user.user_id
 
     try {
       const hasRole = await verifyUserHasRole(userId, requiredRole)

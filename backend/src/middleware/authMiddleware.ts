@@ -54,35 +54,34 @@ export const authenticateJWT = async (
 
     AuditLogger.logAction(
       'AuthService',
-      `User authenticated successfully with ID: ${req.user}`,
+      `User authenticated successfully with ID: ${user.user_id}`,
       'INFO',
       user.user_id,
     )
 
-    next()
+    return next() // Proceed to the next middleware if token is valid
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('jwt')) {
-        AuditLogger.logAction(
-          'AuthService',
-          `Jwt authentication failed with error: ${error.message}`,
-          'ERROR',
-        )
-        res.status(401).json({ message: 'JWT token expired' })
-      }
-
+    if (error instanceof jwt.JsonWebTokenError) {
+      AuditLogger.logAction(
+        'AuthService',
+        `JWT authentication failed with error: ${error.message}`,
+        'ERROR',
+      )
+      return res.status(401).json({ message: 'JWT token expired or invalid' })
+    } else if (error instanceof Error) {
       AuditLogger.logAction(
         'AuthService',
         `Authentication failed with error: ${error.message}`,
         'ERROR',
       )
+      return res.status(403).json({ message: 'Forbidden' })
     } else {
       AuditLogger.logAction(
         'AuthService',
         'Authentication failed due to an unknown error',
         'ERROR',
       )
+      return res.status(403).json({ message: 'Forbidden' })
     }
-    res.status(403).json({ message: 'Forbidden' })
   }
 }

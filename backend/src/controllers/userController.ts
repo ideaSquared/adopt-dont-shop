@@ -11,7 +11,10 @@ import {
 } from '../services/authService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
 
-export const loginController = async (req: Request, res: Response): Promise<void> => {
+export const loginController = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { email, password } = req.body
 
@@ -37,8 +40,10 @@ export const updateUserController = async (
     const { userId } = req.params
     const updatedData = req.body
 
+    if (!req.user) return
+
     // Check if the logged-in user is trying to update their own details
-    if (req.user !== userId) {
+    if (req.user.user_id !== userId) {
       res.status(403).json({
         message: "You are not authorized to update this user's details",
       })
@@ -67,6 +72,8 @@ export const changePasswordController = async (
     const { userId } = req.params // Assuming userId is passed in the URL
     const { currentPassword, newPassword } = req.body
 
+    if (!req.user) return
+
     if (!currentPassword || !newPassword) {
       res
         .status(400)
@@ -75,7 +82,7 @@ export const changePasswordController = async (
     }
 
     // Ensure user is updating their own password
-    if (req.user !== userId.toString()) {
+    if (req.user.user_id !== userId.toString()) {
       res.status(403).json({
         message: "You are not authorized to change this user's password",
       })
@@ -118,7 +125,10 @@ export const resetPasswordController = async (
   }
 }
 
-export const createUserAccountController = async (req: Request, res: Response) => {
+export const createUserAccountController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const { first_name, last_name, email, password } = req.body
 
@@ -148,7 +158,10 @@ export const createUserAccountController = async (req: Request, res: Response) =
   }
 }
 
-export const createRescueAccountController = async (req: Request, res: Response) => {
+export const createRescueAccountController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const { user, rescue } = req.body
 
