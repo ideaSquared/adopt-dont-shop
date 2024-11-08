@@ -141,6 +141,22 @@ export const getSingleRescueService = async (
   }
 }
 
+export const updateRescueService = async (
+  id: string,
+  updatedData: Partial<Rescue>,
+) => {
+  const rescue = await RescueModel.findByPk(id)
+  if (!rescue) {
+    throw new Error('Rescue not found')
+  }
+
+  await rescue.update(updatedData)
+  return {
+    rescue_id: rescue.rescue_id,
+    ...updatedData,
+  }
+}
+
 // export const updateRescueService = async (
 //   rescueId: string,
 //   updateData: Partial<Rescue>,

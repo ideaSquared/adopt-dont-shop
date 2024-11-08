@@ -89,10 +89,34 @@ const deleteRescue = async (rescue_id: string) => {
   console.log(`Delete req for ${rescue_id}`)
 }
 
+// Update a specific rescue by ID
+const updateRescue = async (
+  id: string,
+  updateData: Partial<Rescue>,
+): Promise<Rescue | undefined> => {
+  const response = await fetch(`${API_URL}/rescue/rescues/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: JSON.stringify(updateData),
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to update rescue with ID ${id}: ${response.statusText}`,
+    )
+  }
+  const data = await response.json()
+  return data as Rescue
+}
+
 export default {
   getRescues,
   getRescueById,
   getStaffMembersByRescueId,
   getStaffMemberById,
   deleteRescue,
+  updateRescue,
 }

@@ -3,6 +3,7 @@ import { Response } from 'express'
 import {
   getAllRescuesService,
   getSingleRescueService,
+  updateRescueService,
 } from '../services/rescueService'
 import { AuthenticatedRequest } from '../types'
 
@@ -39,5 +40,20 @@ export const getSingleRescueController = async (
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Server error' })
+  }
+}
+
+export const updateRescueController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  try {
+    const rescueId = req.params.rescueId
+    const updatedData = req.body
+    const updatedRescue = await updateRescueService(rescueId, updatedData)
+    res.status(200).json(updatedRescue)
+  } catch (error) {
+    console.error('Failed to update rescue:', error)
+    res.status(500).json({ error: 'Failed to update rescue' })
   }
 }

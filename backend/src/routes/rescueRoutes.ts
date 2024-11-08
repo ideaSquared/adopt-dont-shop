@@ -2,6 +2,7 @@ import express from 'express'
 import {
   getAllRescuesController,
   getSingleRescueController,
+  updateRescueController,
 } from '../controllers/rescueController'
 import { createRescueAccountController } from '../controllers/userController'
 import { authenticateJWT } from '../middleware/authMiddleware'
@@ -24,5 +25,13 @@ router.get(
 // GET /api/rescue/:rescueId
 // Get a rescue and get all the data
 router.get('/rescues/:rescueId', authenticateJWT, getSingleRescueController)
+
+// PUT /api/rescue/rescue/:rescueId
+router.put(
+  '/rescues/:rescueId',
+  authenticateJWT,
+  checkUserRole('rescue_manager'),
+  updateRescueController,
+)
 
 export default router

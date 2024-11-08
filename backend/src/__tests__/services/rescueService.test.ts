@@ -2,6 +2,7 @@ import { Rescue as RescueModel } from '../../Models'
 import {
   getAllRescuesService,
   getSingleRescueService,
+  updateRescueService,
 } from '../../services/rescueService'
 import { User } from '../../types'
 
@@ -15,6 +16,7 @@ jest.mock('../../models', () => ({
   StaffMember: {},
   User: {},
 }))
+
 describe('Rescue Service', () => {
   afterEach(() => {
     jest.clearAllMocks()
@@ -190,5 +192,33 @@ describe('Rescue Service', () => {
         expect(result.staff).toHaveLength(2) // Organization rescue has multiple staff members
       }
     }
+  })
+
+  describe('Rescue Service - Update Rescue', () => {
+    afterEach(() => {
+      jest.clearAllMocks()
+    })
+
+    const rescueId = '1'
+    const updatedData = {
+      rescue_name: 'Updated Rescue Name',
+      country: 'Updated Country',
+    }
+
+    it('should update a rescue and return the updated data', async () => {
+      const mockRescue = {
+        rescue_id: rescueId,
+        update: jest
+          .fn()
+          .mockResolvedValue({ rescue_id: rescueId, ...updatedData }),
+      }
+      ;(RescueModel.findByPk as jest.Mock).mockResolvedValue(mockRescue)
+
+      const result = await updateRescueService(rescueId, updatedData)
+
+      expect(RescueModel.findByPk).toHaveBeenCalledWith(rescueId)
+      expect(mockRescue.update).toHaveBeenCalledWith(updatedData)
+      expect(result).toEqual({ rescue_id: rescueId, ...updatedData })
+    })
   })
 })
