@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import { Op } from 'sequelize'
 import {
+  Invitation,
   RescueCreationAttributes,
   Rescue as RescueModel,
   Role,
@@ -483,4 +484,43 @@ export const verifyEmailToken = async (token: string): Promise<User | null> => {
     }
     throw error
   }
+}
+
+export const completeAccountSetupService = async (
+  token: string,
+  password: string,
+) => {
+  // Verify token
+  const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+    email: string
+    rescue_id: string
+  }
+
+  // Find invitation by email and token
+  const invitation = await Invitation.findOne({
+    where: { email: decoded.email, token },
+  })
+
+  if (!invitation) {
+    throw new Error('Invalid or expired token')
+  }
+
+  // Hash password and create user
+  const hashedPassword = await bcrypt.hash(password, 10)
+  const user = await User.create({
+    email: decoded.email,
+    password: hashedPassword,
+  })
+
+  // Create a StaffMember entry linked to the user and the rescue
+  await StaffMember.create({
+    user_id: user.user_id,
+    rescue_id: decoded.rescue_id,
+    verified_by_rescue: false,
+  })
+
+  // Mark invitation as used
+  await invitation.destroy()
+
+  return { message: 'Account setup complete', user }
 }

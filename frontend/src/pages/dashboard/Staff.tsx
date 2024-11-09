@@ -27,6 +27,7 @@ const Staff: React.FC = () => {
   const [searchByEmailName, setSearchByEmailName] = useState<string | null>('')
   const [filterByRole, setFilterByRole] = useState<Role | 'all'>('all')
   const [filterByVerified, setFilterByVerified] = useState<boolean>(false)
+  const [inviteEmail, setInviteEmail] = useState<string>('')
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -91,6 +92,17 @@ const Staff: React.FC = () => {
     }
   }
 
+  const inviteUser = async () => {
+    try {
+      await RescueService.inviteUser(inviteEmail, rescue!.rescue_id)
+      alert('Invitation sent successfully')
+      setInviteEmail('') // Clear the input field after successful invite
+    } catch (error) {
+      console.error('Error inviting user:', error)
+      alert('Failed to send invitation')
+    }
+  }
+
   return (
     <div>
       <h1>Staff</h1>
@@ -119,6 +131,17 @@ const Staff: React.FC = () => {
           checked={filterByVerified}
           onChange={(e) => setFilterByVerified(e.target.checked)}
         />
+      </FormInput>
+      <FormInput label="Invite New Staff by Email">
+        <TextInput
+          type="email"
+          value={inviteEmail}
+          onChange={(e) => setInviteEmail(e.target.value)}
+          placeholder="Enter email to invite"
+        />
+        <Button type="button" onClick={inviteUser}>
+          Send Invite
+        </Button>
       </FormInput>
       <Table>
         <thead>

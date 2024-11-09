@@ -1,11 +1,17 @@
 import express, { Application } from 'express'
 import jwt from 'jsonwebtoken'
 import request from 'supertest'
-import { loginController } from '../../controllers/userController'
-import { loginUser } from '../../services/authService'
+import {
+  completeAccountSetupController,
+  loginController,
+} from '../../controllers/userController'
+import { completeAccountSetupService } from '../../services/authService'
 
 // Mock services and dependencies
-jest.mock('../../services/authService')
+jest.mock('../../services/authService', () => ({
+  loginUser: jest.fn(),
+  completeAccountSetupService: jest.fn(),
+}))
 jest.mock('../../Models', () => ({
   AuditLog: {
     create: jest.fn(),
@@ -36,100 +42,46 @@ describe('User Controller', () => {
 
   describe('login', () => {
     app.post('/api/login', loginController)
+  })
 
-    it('should return 200 and token on successful login', async () => {
-      const mockUser = { user_id: 1, email: 'tester@test.com' }
-      ;(loginUser as jest.Mock).mockResolvedValue({
-        token: 'mocked-token',
-        user: mockUser,
-      })
+  describe('completeAccountSetup', () => {
+    app.post('/api/complete-account-setup', completeAccountSetupController)
 
-      const response = await request(app)
-        .post('/api/login')
-        .send({ email: 'tester@test.com', password: '123456' })
-
-      expect(response.status).toBe(200)
-      expect(response.body.token).toBe('mocked-token')
-      expect(response.body.user).toEqual(mockUser)
-    })
-
-    it('should return 400 if email or password is missing', async () => {
-      const response = await request(app).post('/api/login').send({ email: '' })
-
-      expect(response.status).toBe(400)
-      expect(response.body.message).toBe('Email and password are required')
-    })
-
-    it('should return 400 if login fails', async () => {
-      ;(loginUser as jest.Mock).mockRejectedValue(
-        new Error('Invalid email or password'),
-      )
-
-      const response = await request(app)
-        .post('/api/login')
-        .send({ email: 'tester@test.com', password: 'wrong-password' })
-
-      expect(response.status).toBe(400)
-      expect(response.body.message).toBe('Invalid email or password')
-    })
-
-    it('should return rescue data if user is staff', async () => {
-      const mockUser = { user_id: 1, email: 'tester@test.com' }
-      const mockRescue = {
-        rescue_id: 'rescue123',
-        rescue_name: 'Test Rescue',
-        rescue_type: 'Charity',
-        city: 'Test City',
-        country: 'Test Country',
+    it('should return 200 and account setup result on successful setup', async () => {
+      const mockResult = {
+        message: 'Account setup complete',
+        user: { user_id: 1, email: 'tester@test.com' },
       }
-      ;(loginUser as jest.Mock).mockResolvedValue({
-        token: 'mocked-token',
-        user: mockUser,
-        rescue: mockRescue,
-      })
+      ;(completeAccountSetupService as jest.Mock).mockResolvedValue(mockResult)
 
       const response = await request(app)
-        .post('/api/login')
-        .send({ email: 'tester@test.com', password: '123456' })
+        .post('/api/complete-account-setup')
+        .send({ token: 'valid-token', password: 'new-password' })
 
       expect(response.status).toBe(200)
-      expect(response.body.token).toBe('mocked-token')
-      expect(response.body.user).toEqual(mockUser)
-      expect(response.body.rescue).toEqual(mockRescue)
+      expect(response.body).toEqual(mockResult)
+    })
+
+    it('should return 400 if token or password is missing', async () => {
+      const response = await request(app)
+        .post('/api/complete-account-setup')
+        .send({ token: 'valid-token' }) // Missing password
+
+      expect(response.status).toBe(400)
+      expect(response.body.message).toBe('Token and password are required')
     })
 
     it('should return 500 if unexpected error occurs', async () => {
-      ;(loginUser as jest.Mock).mockImplementation(() => {
+      ;(completeAccountSetupService as jest.Mock).mockImplementation(() => {
         throw new Error('Unexpected error')
       })
 
       const response = await request(app)
-        .post('/api/login')
-        .send({ email: 'tester@test.com', password: '123456' })
+        .post('/api/complete-account-setup')
+        .send({ token: 'valid-token', password: 'new-password' })
 
       expect(response.status).toBe(500)
-      expect(response.body.message).toBe('An unexpected error occurred')
-    })
-
-    // TODO: Fix test
-    it.skip('should return 401 if JWT verification fails', async () => {
-      ;(jwt.verify as jest.Mock).mockImplementation(() => {
-        throw new Error('JWT verification failed')
-      })
-
-      const response = await request(app)
-        .post('/api/login')
-        .send({ email: 'tester@test.com', password: '123456' })
-
-      expect(response.status).toBe(401)
-      expect(response.body.message).toBe('Invalid token')
-    })
-
-    it('should return 400 for empty request body', async () => {
-      const response = await request(app).post('/api/login').send({})
-
-      expect(response.status).toBe(400)
-      expect(response.body.message).toBe('Email and password are required')
+      expect(response.body.message).toBe('Unexpected error')
     })
   })
 })

@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import {
   changePassword,
+  completeAccountSetupService,
   createUser,
   forgotPassword,
   getAllUsersService,
@@ -259,5 +260,26 @@ export const getAllUsersController = async (
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Error retrieving users' })
+  }
+}
+
+export const completeAccountSetupController = async (
+  req: Request,
+  res: Response,
+) => {
+  const { token, password } = req.body
+
+  // Check if required fields are present
+  if (!token || !password) {
+    return res.status(400).json({ message: 'Token and password are required' })
+  }
+
+  try {
+    const result = await completeAccountSetupService(token, password)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: (error as Error).message || 'Account setup failed' })
   }
 }

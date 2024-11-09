@@ -87,6 +87,7 @@ async function isDatabaseEmpty(): Promise<boolean> {
         )
       } else {
         console.log('Database is not empty; skipping synchronization.')
+        await sequelize.sync({ alter: true })
         await AuditLogger.logAction(
           'DatabaseService',
           'Database is not empty; skipping synchronization.',

@@ -1,4 +1,6 @@
+import jwt from 'jsonwebtoken'
 import {
+  Invitation,
   Rescue as RescueModel,
   Role as RoleModel,
   StaffMember as StaffMemberModel,
@@ -12,6 +14,7 @@ import {
   Rescue,
   StaffMember,
 } from '../types/Rescue'
+import { sendInvitationEmail } from './emailService'
 
 export const getAllRescuesService = async (): Promise<{
   rescues: Rescue[]
@@ -206,4 +209,16 @@ export const deleteStaffService = async (userId: string): Promise<void> => {
   }
 
   await staffMember.destroy()
+}
+
+export const inviteUserService = async (email: string, rescue_id: string) => {
+  const secretKey = process.env.SECRET_KEY as string
+  const token = jwt.sign({ email, rescue_id }, secretKey, {
+    expiresIn: '48h',
+  })
+
+  // Save the invitation in the database
+  await Invitation.create({ email, token, rescue_id })
+
+  await sendInvitationEmail(email, token)
 }

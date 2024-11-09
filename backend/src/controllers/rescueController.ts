@@ -1,11 +1,12 @@
 // RescueController.ts
 import { Response } from 'express'
 import {
+  deleteStaffService,
   getAllRescuesService,
   getRescueStaffWithRoles,
   getSingleRescueService,
+  inviteUserService,
   updateRescueService,
-  deleteStaffService
 } from '../services/rescueService'
 import { AuthenticatedRequest } from '../types'
 
@@ -92,5 +93,20 @@ export const deleteStaffController = async (
   } catch (error) {
     console.error('Failed to delete staff member:', error)
     res.status(500).json({ message: 'Failed to delete staff member' })
+  }
+}
+
+export const inviteUserController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  const { email, rescueId } = req.body
+
+  try {
+    await inviteUserService(email, rescueId)
+    res.status(200).json({ message: 'Invitation sent successfully' })
+  } catch (error) {
+    console.error('Failed to send invitation:', error)
+    res.status(500).json({ message: 'Failed to send invitation' })
   }
 }

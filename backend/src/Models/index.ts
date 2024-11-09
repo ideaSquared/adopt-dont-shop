@@ -3,6 +3,7 @@ import Application from './Application'
 import { AuditLog } from './AuditLog'
 import Conversation from './Conversation'
 import { FeatureFlag } from './FeatureFlag'
+import Invitation from './Invitation'
 import Message from './Message'
 import Participant from './Participant'
 import Permission from './Permission'
@@ -73,11 +74,28 @@ Rescue.hasMany(StaffMember, {
 
 UserPreference.belongsTo(User, { foreignKey: 'user_id' })
 
+// Rescue has many Invitations
+Rescue.hasMany(Invitation, { as: 'invitations', foreignKey: 'rescue_id' })
+Invitation.belongsTo(Rescue, { as: 'rescue', foreignKey: 'rescue_id' })
+
+// User can be invited multiple times (optional, based on your requirements)
+// User.hasMany(Invitation, {
+//   as: 'invitations',
+//   foreignKey: 'email',
+//   sourceKey: 'email',
+// })
+// Invitation.belongsTo(User, {
+//   as: 'user',
+//   foreignKey: 'email',
+//   targetKey: 'email',
+// })
+
 export {
   Application,
   AuditLog,
   Conversation,
   FeatureFlag,
+  Invitation,
   Message,
   Participant,
   Permission,

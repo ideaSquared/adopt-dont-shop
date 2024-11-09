@@ -1,6 +1,7 @@
 import dotenv from 'dotenv'
 import nodemailer from 'nodemailer'
 import { AuditLogger } from './auditLogService'
+
 dotenv.config()
 
 // Create a reusable transporter object using the default SMTP transport
@@ -43,10 +44,6 @@ const sendEmail = async (
       'INFO',
       to,
     )
-
-    // Uncomment if you want to log details in the console
-    // console.log('Message sent: %s', info.messageId);
-    // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
   } catch (error) {
     if (error instanceof Error) {
       // Audit log for email sending failure
@@ -107,6 +104,28 @@ export const sendVerificationEmail = async (
   await AuditLogger.logAction(
     'EmailService',
     `Verification email sent to ${email}`,
+    'INFO',
+    email,
+  )
+}
+
+// Function to generate the invitation email
+export const sendInvitationEmail = async (
+  email: string,
+  invitationToken: string,
+) => {
+  const invitationUrl = `http://${process.env.FRONTEND_BASE_URL}/complete-account?token=${invitationToken}`
+
+  const text = `You have been invited to join AdoptDontShop. Please use the following link to complete your account setup: ${invitationUrl}`
+  const html = `<p>You have been invited to join AdoptDontShop. Please use the following link to complete your account setup:</p>
+                <p><a href="${invitationUrl}">Complete Account Setup</a></p>`
+
+  await sendEmail(email, 'Invitation to Join AdoptDontShop', text, html)
+
+  // Audit log for sending an invitation email
+  await AuditLogger.logAction(
+    'EmailService',
+    `Invitation email sent to ${email}`,
     'INFO',
     email,
   )

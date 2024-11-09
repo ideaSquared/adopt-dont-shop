@@ -98,10 +98,27 @@ const deleteStaffMember = async (userId: string): Promise<void> => {
   }
 }
 
+// Invite a new user to join the rescue by sending an invitation email
+const inviteUser = async (email: string, rescueId: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/rescue/staff/invite`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: JSON.stringify({ email, rescueId }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to send invitation: ${response.statusText}`)
+  }
+}
+
 export default {
   getRescues,
   getRescueById,
   getStaffMembersByRescueId,
   deleteRescue,
   deleteStaffMember,
+  inviteUser,
 }

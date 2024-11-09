@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import { AuditLogger } from '../../services/auditLogService'
 import {
+  sendInvitationEmail,
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from '../../services/emailService'
@@ -113,6 +114,69 @@ describe('Email Service', () => {
         'Verification email sent to user@test.com',
         'INFO',
         'user@test.com',
+      )
+    })
+  })
+
+  describe('sendInvitationEmail', () => {
+    it('should send an invitation email with the correct content and log the action', async () => {
+      const email = 'invitee@example.com'
+      const invitationToken = 'invitation-token'
+      const expectedInvitationUrl = `http://localhost:3001/complete-account?token=${invitationToken}`
+
+      await sendInvitationEmail(email, invitationToken)
+
+      expect(nodemailer.createTransport).toHaveBeenCalledWith({
+        host: 'smtp.test.com',
+        port: 587,
+        secure: false, // because MAIL_PORT is not 465
+        auth: {
+          user: 'testuser',
+          pass: 'testpass',
+        },
+      })
+
+      expect(mockSendMail).toHaveBeenCalledWith({
+        from: '"AdoptDontShop Support" <support@adoptdontshop.com>',
+        to: 'invitee@example.com',
+        subject: 'Invitation to Join AdoptDontShop',
+        text: `You have been invited to join AdoptDontShop. Please use the following link to complete your account setup: ${expectedInvitationUrl}`,
+        html: `<p>You have been invited to join AdoptDontShop. Please use the following link to complete your account setup:</p>
+                <p><a href="${expectedInvitationUrl}">Complete Account Setup</a></p>`,
+      })
+
+      expect(AuditLogger.logAction).toHaveBeenCalledWith(
+        'EmailService',
+        'Email sent successfully to invitee@example.com with subject: "Invitation to Join AdoptDontShop"',
+        'INFO',
+        'invitee@example.com',
+      )
+
+      expect(AuditLogger.logAction).toHaveBeenCalledWith(
+        'EmailService',
+        'Invitation email sent to invitee@example.com',
+        'INFO',
+        'invitee@example.com',
+      )
+    })
+
+    it('should log an error if sending the invitation email fails', async () => {
+      const email = 'invitee@example.com'
+      const invitationToken = 'invitation-token'
+
+      // Simulate sendEmail throwing an error
+      mockSendMail.mockRejectedValue(new Error('Email sending failed'))
+
+      await expect(sendInvitationEmail(email, invitationToken)).rejects.toThrow(
+        'Email sending failed',
+      )
+
+      // Verify the error is logged in the audit log
+      expect(AuditLogger.logAction).toHaveBeenCalledWith(
+        'EmailService',
+        'Failed to send email to invitee@example.com with subject: "Invitation to Join AdoptDontShop". Error: Email sending failed',
+        'ERROR',
+        'invitee@example.com',
       )
     })
   })

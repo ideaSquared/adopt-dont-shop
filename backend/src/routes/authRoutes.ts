@@ -2,6 +2,7 @@
 import express from 'express'
 import {
   changePasswordController,
+  completeAccountSetupController,
   createUserAccountController,
   forgotPasswordController,
   getAllUsersController,
@@ -43,5 +44,8 @@ router.get(
   checkUserRole('admin'),
   getAllUsersController,
 )
+
+// POST /api/users/complete-account-setup
+router.post('/complete-account-setup', completeAccountSetupController)
 
 export default router
