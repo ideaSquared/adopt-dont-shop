@@ -1,4 +1,6 @@
-export { default as PermissionProvider } from './PermissionContext'
-export { usePermissions } from './PermissionContext'
-export { Role, Permission, rolePermissions } from './Permission'
+export { Permission, Role, rolePermissions } from './Permission'
+export {
+  default as PermissionProvider,
+  usePermissions,
+} from './PermissionContext'
 export { default as ProtectedRoute } from './ProtectedRoute'

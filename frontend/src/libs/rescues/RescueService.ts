@@ -1,6 +1,8 @@
+// src/libs/rescues/RescueService.ts
+
 import { Rescue, StaffMember } from './Rescue'
 
-// Define the base URL for your API
+// Base URL for your API
 const API_URL = 'http://localhost:5000/api'
 
 // Fetch all rescues
@@ -9,7 +11,7 @@ const getRescues = async (): Promise<Rescue[]> => {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming JWT is stored in localStorage
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
     },
   })
 
@@ -26,7 +28,7 @@ const getRescueById = async (id: string): Promise<Rescue | undefined> => {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming JWT is stored in localStorage
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
     },
   })
 
@@ -39,84 +41,50 @@ const getRescueById = async (id: string): Promise<Rescue | undefined> => {
   return data as Rescue
 }
 
-// Fetch all staff members for a specific rescue
+// Fetch all staff members with roles for a specific rescue
 const getStaffMembersByRescueId = async (
   rescue_id: string,
 ): Promise<StaffMember[] | undefined> => {
-  const response = await fetch(`${API_URL}/rescue/rescues/${rescue_id}/staff`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming JWT is stored in localStorage
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch staff for rescue ID ${rescue_id}: ${response.statusText}`,
-    )
-  }
-  const data = await response.json()
-  return data as StaffMember[]
-}
-
-// Fetch a specific staff member by their ID within a specific rescue
-const getStaffMemberById = async (
-  rescue_id: string,
-  staff_id: string,
-): Promise<StaffMember | undefined> => {
   const response = await fetch(
-    `${API_URL}/rescue/rescues/${rescue_id}/staff/${staff_id}`,
+    `${API_URL}/rescue/rescues/${rescue_id}/staff-with-roles`,
     {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`, // Assuming JWT is stored in localStorage
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
     },
   )
 
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch staff member with ID ${staff_id} for rescue ID ${rescue_id}: ${response.statusText}`,
+      `Failed to fetch staff with roles for rescue ID ${rescue_id}: ${response.statusText}`,
     )
   }
   const data = await response.json()
-  return data as StaffMember
+  return data as StaffMember[]
 }
 
+// Delete a specific rescue by ID
 const deleteRescue = async (rescue_id: string) => {
-  console.log(`Delete req for ${rescue_id}`)
-}
-
-// Update a specific rescue by ID
-const updateRescue = async (
-  id: string,
-  updateData: Partial<Rescue>,
-): Promise<Rescue | undefined> => {
-  const response = await fetch(`${API_URL}/rescue/rescues/${id}`, {
-    method: 'PUT',
+  const response = await fetch(`${API_URL}/rescue/rescues/${rescue_id}`, {
+    method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${localStorage.getItem('token')}`,
     },
-    body: JSON.stringify(updateData),
   })
 
   if (!response.ok) {
     throw new Error(
-      `Failed to update rescue with ID ${id}: ${response.statusText}`,
+      `Failed to delete rescue with ID ${rescue_id}: ${response.statusText}`,
     )
   }
-  const data = await response.json()
-  return data as Rescue
 }
 
 export default {
   getRescues,
   getRescueById,
   getStaffMembersByRescueId,
-  getStaffMemberById,
   deleteRescue,
-  updateRescue,
 }

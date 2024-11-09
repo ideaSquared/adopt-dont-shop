@@ -1,11 +1,15 @@
 import { User } from '@adoptdontshop/libs/users'
-import { Role } from '@adoptdontshop/permissions'
+
+type RoleDisplay = {
+  role_id: string
+  role_name: string
+}
 
 export type RescueType = 'Individual' | 'Charity' | 'Company'
 
 export interface StaffMember extends User {
   user_id: string
-  role: Role[]
+  role: RoleDisplay[]
   verified_by_rescue: boolean
 }
 

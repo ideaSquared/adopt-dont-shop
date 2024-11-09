@@ -1,6 +1,7 @@
 import express from 'express'
 import {
   getAllRescuesController,
+  getRescueStaffWithRolesController,
   getSingleRescueController,
   updateRescueController,
 } from '../controllers/rescueController'
@@ -14,7 +15,7 @@ const router = express.Router()
 // POST /api/rescue/create-rescue
 router.post('/create-rescue', createRescueAccountController)
 
-// GET /api/rescue/rescues
+// GET /api/rescues/rescues
 router.get(
   '/rescues',
   authenticateJWT,
@@ -26,12 +27,19 @@ router.get(
 // Get a rescue and get all the data
 router.get('/rescues/:rescueId', authenticateJWT, getSingleRescueController)
 
-// PUT /api/rescue/rescue/:rescueId
+// PUT /api/rescues/rescue/:rescueId
 router.put(
   '/rescues/:rescueId',
   authenticateJWT,
   checkUserRole('rescue_manager'),
   updateRescueController,
+)
+
+// GET /api/rescues/:rescueId/staff-with-roles
+router.get(
+  '/rescues/:rescueId/staff-with-roles',
+  authenticateJWT,
+  getRescueStaffWithRolesController,
 )
 
 export default router

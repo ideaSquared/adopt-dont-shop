@@ -1,5 +1,6 @@
 import {
   Rescue as RescueModel,
+  Role as RoleModel,
   StaffMember as StaffMemberModel,
   User as UserModel,
 } from '../Models'
@@ -154,6 +155,44 @@ export const updateRescueService = async (
   return {
     rescue_id: rescue.rescue_id,
     ...updatedData,
+  }
+}
+
+export const getRescueStaffWithRoles = async (
+  rescueId: string,
+): Promise<StaffMember[]> => {
+  try {
+    // Fetch staff members for the given rescue, including roles
+    const staffMembers = await StaffMemberModel.findAll({
+      where: { rescue_id: rescueId },
+      include: [
+        {
+          model: UserModel,
+          as: 'user',
+          attributes: ['user_id', 'first_name', 'last_name', 'email'],
+          include: [
+            {
+              model: RoleModel,
+              as: 'Roles',
+              through: { attributes: [] },
+              attributes: ['role_id', 'role_name'],
+            },
+          ],
+        },
+      ],
+    })
+
+    return staffMembers.map((staff) => ({
+      user_id: staff.user_id,
+      first_name: (staff as any).user?.first_name || '', // Safely access nested User properties
+      last_name: (staff as any).user?.last_name || '',
+      email: (staff as any).user?.email || '',
+      role: (staff as any).user?.Roles || [], // Role array within the User association
+      verified_by_rescue: staff.verified_by_rescue,
+    }))
+  } catch (error) {
+    console.error('Error fetching staff members with roles:', error)
+    throw new Error('Failed to fetch staff members')
   }
 }
 

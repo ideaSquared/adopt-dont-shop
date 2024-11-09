@@ -1,3 +1,4 @@
+// src/components/Staff.tsx
 import {
   Badge,
   Button,
@@ -9,6 +10,7 @@ import {
 } from '@adoptdontshop/components'
 import { RescueService, StaffMember } from '@adoptdontshop/libs/rescues'
 import { Role } from '@adoptdontshop/permissions'
+import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 
@@ -18,6 +20,7 @@ const BadgeWrapper = styled.div`
 `
 
 const Staff: React.FC = () => {
+  const { rescue } = useUser()
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [filteredStaff, setFilteredStaff] = useState<StaffMember[]>([])
   const [searchByEmailName, setSearchByEmailName] = useState<string | null>('')
@@ -26,14 +29,19 @@ const Staff: React.FC = () => {
 
   useEffect(() => {
     const fetchStaff = async () => {
-      const fetchedStaff =
-        (await RescueService.getStaffMembersByRescueId('1')) || []
-      setStaff(fetchedStaff)
-      setFilteredStaff(fetchedStaff)
+      try {
+        if (!rescue) return
+        const fetchedStaff = await RescueService.getStaffMembersByRescueId(
+          rescue.rescue_id,
+        )
+        setStaff(fetchedStaff || [])
+        setFilteredStaff(fetchedStaff || [])
+      } catch (error) {
+        console.error('Failed to fetch staff:', error) // Use actual error handling in production
+      }
     }
-
     fetchStaff()
-  }, [])
+  }, [rescue])
 
   useEffect(() => {
     const filtered = staff.filter((member) => {
@@ -49,7 +57,8 @@ const Staff: React.FC = () => {
           false)
 
       const matchesRole =
-        filterByRole === 'all' || member.role.includes(filterByRole as Role)
+        filterByRole === 'all' ||
+        member.role.some((r) => r.role_name === filterByRole)
 
       const matchesVerified = !filterByVerified || member.verified_by_rescue
 
@@ -67,8 +76,8 @@ const Staff: React.FC = () => {
     setFilterByRole(e.target.value as Role | 'all')
   }
 
-  const handleFilterByVerified = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilterByVerified(e.target.checked)
+  const deleteStaff = (staff_member_id: string) => {
+    alert(`Deleting staff with ID ${staff_member_id}`) // Replace with actual deletion logic
   }
 
   return (
@@ -77,7 +86,7 @@ const Staff: React.FC = () => {
       <FormInput label="Search by name or email">
         <TextInput
           type="text"
-          value={searchByEmailName}
+          value={searchByEmailName || ''}
           onChange={handleSearchByEmailName}
         />
       </FormInput>
@@ -97,7 +106,7 @@ const Staff: React.FC = () => {
       <FormInput label="Verified Only">
         <CheckboxInput
           checked={filterByVerified}
-          onChange={handleFilterByVerified}
+          onChange={(e) => setFilterByVerified(e.target.checked)}
         />
       </FormInput>
       <Table>
@@ -122,13 +131,12 @@ const Staff: React.FC = () => {
               <td>
                 <BadgeWrapper>
                   {staff.role.map((role) => (
-                    <Badge key={role} variant="info">
-                      {role.replace(/_/g, ' ').toUpperCase()}
+                    <Badge key={role.role_id} variant="info">
+                      {role.role_name.replace(/_/g, ' ').toUpperCase()}
                     </Badge>
                   ))}
                 </BadgeWrapper>
               </td>
-
               <td>
                 {staff.verified_by_rescue ? (
                   <Badge variant="success">YES</Badge>
@@ -137,7 +145,12 @@ const Staff: React.FC = () => {
                 )}
               </td>
               <td>
-                <Button type="button">Delete</Button>
+                <Button
+                  type="button"
+                  onClick={() => deleteStaff(staff.user_id)}
+                >
+                  Delete
+                </Button>
               </td>
             </tr>
           ))}

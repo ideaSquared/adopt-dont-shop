@@ -2,6 +2,7 @@
 import { Response } from 'express'
 import {
   getAllRescuesService,
+  getRescueStaffWithRoles,
   getSingleRescueService,
   updateRescueService,
 } from '../services/rescueService'
@@ -55,5 +56,25 @@ export const updateRescueController = async (
   } catch (error) {
     console.error('Failed to update rescue:', error)
     res.status(500).json({ error: 'Failed to update rescue' })
+  }
+}
+
+export const getRescueStaffWithRolesController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  const { rescueId } = req.params
+
+  try {
+    const staffWithRoles = await getRescueStaffWithRoles(rescueId)
+
+    if (!staffWithRoles) {
+      return res.status(404).json({ message: 'Rescue or staff not found' })
+    }
+
+    return res.json(staffWithRoles)
+  } catch (error) {
+    console.error('Failed to get rescue staff with roles:', error)
+    return res.status(500).json({ message: 'Internal server error' })
   }
 }

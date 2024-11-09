@@ -65,3 +65,8 @@ export const rolePermissions: Record<Role, Permission[]> = {
   [Role.VERIFIED_USER]: [Permission.VIEW_CHAT],
   [Role.USER]: [Permission.EDIT_PROFILE],
 }
+
+export type RoleDisplay = {
+  role_id: string
+  role_name: string
+}
