@@ -90,6 +90,9 @@ Invitation.belongsTo(Rescue, { as: 'rescue', foreignKey: 'rescue_id' })
 //   targetKey: 'email',
 // })
 
+User.hasMany(Invitation, { foreignKey: 'user_id' })
+Invitation.belongsTo(User, { foreignKey: 'user_id' })
+
 export {
   Application,
   AuditLog,

@@ -9,9 +9,10 @@ import {
   Table,
   TextInput,
 } from '@adoptdontshop/components'
-import { RescueService, StaffMember } from '@adoptdontshop/libs/rescues'
+import { RescueService } from '@adoptdontshop/libs/rescues'
 import { Role } from '@adoptdontshop/permissions'
 import { useUser } from 'contexts/auth/UserContext'
+import { RoleDisplay } from 'contexts/permissions/Permission'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 
@@ -20,10 +21,21 @@ const BadgeWrapper = styled.div`
   gap: 0.5rem;
 `
 
+interface StaffWithInvite {
+  user_id: string
+  first_name: string
+  last_name: string
+  email: string
+  role: RoleDisplay[]
+  verified_by_rescue: boolean
+  isInvite?: boolean
+  invited_on?: Date
+  status?: string
+}
 const Staff: React.FC = () => {
   const { rescue } = useUser()
-  const [staff, setStaff] = useState<StaffMember[]>([])
-  const [filteredStaff, setFilteredStaff] = useState<StaffMember[]>([])
+  const [staff, setStaff] = useState<StaffWithInvite[]>([])
+  const [filteredStaff, setFilteredStaff] = useState<StaffWithInvite[]>([])
   const [searchByEmailName, setSearchByEmailName] = useState<string | null>('')
   const [filterByRole, setFilterByRole] = useState<Role | 'all'>('all')
   const [filterByVerified, setFilterByVerified] = useState<boolean>(false)
@@ -36,10 +48,11 @@ const Staff: React.FC = () => {
         const fetchedStaff = await RescueService.getStaffMembersByRescueId(
           rescue.rescue_id,
         )
+        console.log('Fetched staff:', fetchedStaff) // Debugging log
         setStaff(fetchedStaff || [])
         setFilteredStaff(fetchedStaff || [])
       } catch (error) {
-        console.error('Failed to fetch staff:', error) // Use actual error handling in production
+        console.error('Failed to fetch staff:', error)
       }
     }
     fetchStaff()
@@ -49,7 +62,7 @@ const Staff: React.FC = () => {
     const filtered = staff.filter((member) => {
       const matchesSearch =
         !searchByEmailName ||
-        member.user_id.includes(searchByEmailName) || // Added search by user_id
+        member.user_id.includes(searchByEmailName) ||
         member.email.toLowerCase().includes(searchByEmailName.toLowerCase()) ||
         member.first_name
           .toLowerCase()
@@ -68,6 +81,7 @@ const Staff: React.FC = () => {
       return matchesSearch && matchesRole && matchesVerified
     })
 
+    console.log('Filtered staff:', filtered) // Debugging log
     setFilteredStaff(filtered)
   }, [searchByEmailName, filterByRole, filterByVerified, staff])
 
@@ -96,7 +110,26 @@ const Staff: React.FC = () => {
     try {
       await RescueService.inviteUser(inviteEmail, rescue!.rescue_id)
       alert('Invitation sent successfully')
-      setInviteEmail('') // Clear the input field after successful invite
+
+      // Add the invited user to the `staff` and `filteredStaff` lists
+      const newInvite: StaffWithInvite = {
+        user_id: '', // No user ID for an invitation
+        first_name: '',
+        last_name: '',
+        email: inviteEmail,
+        role: [], // No roles assigned for invitations
+        verified_by_rescue: false,
+        isInvite: true,
+        invited_on: new Date(), // Set to current date and time
+        status: 'Pending', // Initial status for an invitation
+      }
+
+      // Update both `staff` and `filteredStaff` states
+      setStaff((prevStaff) => [...prevStaff, newInvite])
+      setFilteredStaff((prevFiltered) => [...prevFiltered, newInvite])
+
+      // Clear the email input after successful invitation
+      setInviteEmail('')
     } catch (error) {
       console.error('Error inviting user:', error)
       alert('Failed to send invitation')
@@ -152,42 +185,58 @@ const Staff: React.FC = () => {
             <th>Email</th>
             <th>Role</th>
             <th>Verified</th>
+            <th>Invited On</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {filteredStaff.map((staff) => (
-            <tr key={staff.user_id}>
-              <td>{staff.user_id}</td>
-              <td>{staff.first_name}</td>
-              <td>{staff.last_name}</td>
-              <td>{staff.email}</td>
-              <td>
-                <BadgeWrapper>
-                  {staff.role.map((role) => (
-                    <Badge key={role.role_id} variant="info">
-                      {role.role_name.replace(/_/g, ' ').toUpperCase()}
-                    </Badge>
-                  ))}
-                </BadgeWrapper>
-              </td>
-              <td>
-                {staff.verified_by_rescue ? (
-                  <Badge variant="success">YES</Badge>
-                ) : (
-                  <Badge variant="danger">NO</Badge>
-                )}
-              </td>
-              <td>
-                <Button
-                  type="button"
-                  onClick={() => deleteStaff(staff.user_id)}
-                >
-                  Delete
-                </Button>
-              </td>
+          {filteredStaff.length > 0 ? (
+            filteredStaff.map((staff) => (
+              <tr key={staff.user_id || staff.email}>
+                <td>{staff.isInvite ? '-' : staff.user_id}</td>
+                <td>{staff.isInvite ? '-' : staff.first_name}</td>
+                <td>{staff.isInvite ? '-' : staff.last_name}</td>
+                <td>{staff.email}</td>
+                <td>
+                  <BadgeWrapper>
+                    {staff.isInvite
+                      ? 'Pending Invitation'
+                      : staff.role.map((role) => (
+                          <Badge key={role.role_id} variant="info">
+                            {role.role_name.replace(/_/g, ' ').toUpperCase()}
+                          </Badge>
+                        ))}
+                  </BadgeWrapper>
+                </td>
+                <td>
+                  {staff.isInvite
+                    ? '-'
+                    : staff.verified_by_rescue
+                      ? 'YES'
+                      : 'NO'}
+                </td>
+                <td>
+                  {staff.isInvite ? staff.invited_on?.toLocaleString() : '-'}
+                </td>
+                <td>
+                  {staff.isInvite ? (
+                    <Badge variant="warning">Pending</Badge>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => deleteStaff(staff.user_id)}
+                    >
+                      Delete
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={8}>No staff or invitations to display</td>
             </tr>
-          ))}
+          )}
         </tbody>
       </Table>
     </div>

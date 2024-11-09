@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import {
-  Invitation,
+  Invitation as InvitationModel,
   Rescue as RescueModel,
   Role as RoleModel,
   StaffMember as StaffMemberModel,
@@ -163,9 +163,12 @@ export const updateRescueService = async (
 
 export const getRescueStaffWithRoles = async (
   rescueId: string,
-): Promise<StaffMember[]> => {
+): Promise<{
+  staffMembers: StaffMember[]
+  invitations: Array<Partial<InvitationModel> & { status: string }>
+}> => {
   try {
-    // Fetch staff members for the given rescue, including roles
+    // Fetch staff members with roles
     const staffMembers = await StaffMemberModel.findAll({
       where: { rescue_id: rescueId },
       include: [
@@ -185,17 +188,56 @@ export const getRescueStaffWithRoles = async (
       ],
     })
 
-    return staffMembers.map((staff) => ({
+    // Map staff members to match the expected frontend structure
+    const mappedStaffMembers = staffMembers.map((staff) => ({
       user_id: staff.user_id,
-      first_name: (staff as any).user?.first_name || '', // Safely access nested User properties
+      first_name: (staff as any).user?.first_name || '',
       last_name: (staff as any).user?.last_name || '',
       email: (staff as any).user?.email || '',
-      role: (staff as any).user?.Roles || [], // Role array within the User association
+      role: (staff as any).user?.Roles || [],
       verified_by_rescue: staff.verified_by_rescue,
+      isInvite: false, // Mark as non-invite entries
     }))
+
+    // Fetch invitations related to the rescue
+    const invitations = await InvitationModel.findAll({
+      where: { rescue_id: rescueId },
+      attributes: ['email', 'created_at', 'expiration', 'used'], // Fetch relevant attributes
+    })
+
+    // Map invitations to match the frontend structure, adding a derived 'status'
+    const mappedInvitations = invitations.map((invite) => {
+      // Calculate the status based on 'used' and 'expiration'
+      const status = invite.used
+        ? 'Accepted'
+        : invite.expiration < new Date()
+        ? 'Expired'
+        : 'Pending'
+
+      return {
+        user_id: '', // No user_id for invitations
+        first_name: '',
+        last_name: '',
+        email: invite.email,
+        role: [], // No roles for invitations
+        verified_by_rescue: false,
+        isInvite: true,
+        invited_on: invite.created_at,
+        status, // Dynamically add status based on conditions
+      }
+    })
+
+    // Return the combined response with both staff members and invitations
+    return {
+      staffMembers: mappedStaffMembers,
+      invitations: mappedInvitations,
+    }
   } catch (error) {
-    console.error('Error fetching staff members with roles:', error)
-    throw new Error('Failed to fetch staff members')
+    console.error(
+      'Error fetching staff members with roles and invitations:',
+      error,
+    )
+    throw new Error('Failed to fetch staff members and invitations')
   }
 }
 
@@ -217,8 +259,12 @@ export const inviteUserService = async (email: string, rescue_id: string) => {
     expiresIn: '48h',
   })
 
+  // Check if user already exists
+  const existingUser = await UserModel.findOne({ where: { email } })
+  const user_id = existingUser ? existingUser.user_id : null
+
   // Save the invitation in the database
-  await Invitation.create({ email, token, rescue_id })
+  await InvitationModel.create({ email, token, rescue_id, user_id })
 
   await sendInvitationEmail(email, token)
 }

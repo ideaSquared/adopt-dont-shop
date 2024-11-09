@@ -1,6 +1,7 @@
 // src/models/Invitation.ts
 
 import { DataTypes, Model, Optional } from 'sequelize'
+import { User } from '.'
 import sequelize from '../sequelize'
 
 interface InvitationAttributes {
@@ -8,6 +9,7 @@ interface InvitationAttributes {
   email: string
   token: string
   rescue_id: string // Foreign key to associate with the rescue
+  user_id?: string | null
   expiration: Date
   created_at?: Date
   updated_at?: Date
@@ -28,6 +30,7 @@ class Invitation
   public email!: string
   public token!: string
   public rescue_id!: string
+  public user_id?: string | null
   public expiration!: Date
   public created_at!: Date
   public updated_at!: Date
@@ -57,6 +60,14 @@ Invitation.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    user_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      references: {
+        model: User,
+        key: 'user_id',
+      },
+    },
     expiration: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -66,11 +77,23 @@ Invitation.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
   },
   {
     sequelize,
     tableName: 'invitations',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   },
 )
 

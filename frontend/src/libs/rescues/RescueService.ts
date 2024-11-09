@@ -5,6 +5,17 @@ import { Rescue, StaffMember } from './Rescue'
 // Base URL for your API
 const API_URL = 'http://localhost:5000/api'
 
+interface Invitation {
+  email: string
+  invited_on: Date
+  status: string // e.g., 'Pending'
+}
+
+// Extend StaffMember to include invitations
+interface StaffWithInvites extends StaffMember {
+  isInvite?: boolean // Flag to differentiate invites
+}
+
 // Fetch all rescues
 const getRescues = async (): Promise<Rescue[]> => {
   const response = await fetch(`${API_URL}/rescue/rescues`, {
@@ -44,7 +55,7 @@ const getRescueById = async (id: string): Promise<Rescue | undefined> => {
 // Fetch all staff members with roles for a specific rescue
 const getStaffMembersByRescueId = async (
   rescue_id: string,
-): Promise<StaffMember[] | undefined> => {
+): Promise<StaffWithInvites[]> => {
   const response = await fetch(
     `${API_URL}/rescue/rescues/${rescue_id}/staff-with-roles`,
     {
@@ -58,11 +69,37 @@ const getStaffMembersByRescueId = async (
 
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch staff with roles for rescue ID ${rescue_id}: ${response.statusText}`,
+      `Failed to fetch staff with roles and invitations for rescue ID ${rescue_id}: ${response.statusText}`,
     )
   }
+
   const data = await response.json()
-  return data as StaffMember[]
+
+  console.log(data)
+
+  // Destructure with default values to handle cases where invitations might be absent
+  const { staffMembers = [], invitations = [] } = data
+
+  // Combine staff members with invitations if they exist
+  const staffWithInvites = [
+    ...staffMembers.map((staff: StaffMember) => ({
+      ...staff,
+      isInvite: false, // Mark staff members as non-invite entries
+    })),
+    ...invitations.map((invite: Invitation) => ({
+      user_id: '', // Empty user_id for invitations
+      first_name: '',
+      last_name: '',
+      email: invite.email,
+      role: [], // No roles assigned for invitations
+      verified_by_rescue: false, // Unverified for invitations
+      isInvite: true,
+      invited_on: invite.invited_on,
+      status: invite.status,
+    })),
+  ]
+
+  return staffWithInvites
 }
 
 // Delete a specific rescue by ID
