@@ -1,5 +1,6 @@
 import express from 'express'
 import {
+  deleteStaffController,
   getAllRescuesController,
   getRescueStaffWithRolesController,
   getSingleRescueController,
@@ -40,6 +41,16 @@ router.get(
   '/rescues/:rescueId/staff-with-roles',
   authenticateJWT,
   getRescueStaffWithRolesController,
+
+  // DELETE /api/rescues/staff/:userId
+  router.delete(
+    '/rescues/staff/:userId',
+    authenticateJWT,
+    checkUserRole('rescue_manager'),
+    deleteStaffController,
+  ),
 )
+
+
 
 export default router

@@ -78,8 +78,17 @@ const Staff: React.FC = () => {
     setFilterByRole(e.target.value as Role | 'all')
   }
 
-  const deleteStaff = (staff_member_id: string) => {
-    alert(`Deleting staff with ID ${staff_member_id}`) // Replace with actual deletion logic
+  const deleteStaff = async (staff_member_id: string) => {
+    try {
+      await RescueService.deleteStaffMember(staff_member_id)
+      setStaff((prevStaff) =>
+        prevStaff.filter((staff) => staff.user_id !== staff_member_id),
+      )
+      alert('Staff member deleted successfully')
+    } catch (error) {
+      console.error('Error deleting staff member:', error)
+      alert('Failed to delete staff member')
+    }
   }
 
   return (

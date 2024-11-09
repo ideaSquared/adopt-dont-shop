@@ -5,6 +5,7 @@ import {
   getRescueStaffWithRoles,
   getSingleRescueService,
   updateRescueService,
+  deleteStaffService
 } from '../services/rescueService'
 import { AuthenticatedRequest } from '../types'
 
@@ -76,5 +77,20 @@ export const getRescueStaffWithRolesController = async (
   } catch (error) {
     console.error('Failed to get rescue staff with roles:', error)
     return res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
+export const deleteStaffController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  const { userId } = req.params
+
+  try {
+    await deleteStaffService(userId)
+    res.status(200).json({ message: 'Staff member deleted successfully' })
+  } catch (error) {
+    console.error('Failed to delete staff member:', error)
+    res.status(500).json({ message: 'Failed to delete staff member' })
   }
 }

@@ -196,72 +196,14 @@ export const getRescueStaffWithRoles = async (
   }
 }
 
-// export const updateRescueService = async (
-//   rescueId: string,
-//   updateData: Partial<Rescue>,
-// ): Promise<void> => {
-//   await RescueModel.update(updateData, {
-//     where: { rescue_id: rescueId },
-//   })
-// }
+export const deleteStaffService = async (userId: string): Promise<void> => {
+  const staffMember = await StaffMemberModel.findOne({
+    where: { user_id: userId },
+  })
 
-// export const deleteRescueService = async (rescueId: string): Promise<void> => {
-//   await RescueModel.destroy({
-//     where: { rescue_id: rescueId },
-//   })
-// }
+  if (!staffMember) {
+    throw new Error('Staff member not found')
+  }
 
-// export const getRescueByStaffUserIdService = async (
-//   userId: string,
-// ): Promise<Rescue[]> => {
-//   const rescues = await RescueModel.findAll({
-//     include: [
-//       {
-//         model: StaffMemberModel,
-//         as: 'staff',
-//         required: true,
-//         where: { user_id: userId },
-//         include: [
-//           {
-//             model: UserModel,
-//             as: 'user',
-//             attributes: ['first_name', 'email'],
-//           },
-//         ],
-//       },
-//     ],
-//   })
-
-//   return rescues.map((rescue: any) => {
-//     const staffMembers: StaffMember[] =
-//       rescue.staff?.map((staff: any) => ({
-//         user_id: staff.user_id,
-//         first_name: staff.user.first_name,
-//         email: staff.user.email,
-//         role: staff.role,
-//         verified_by_rescue: staff.verified_by_rescue,
-//       })) || []
-
-//     if (rescue.rescue_type === 'Individual') {
-//       return {
-//         rescue_id: rescue.rescue_id,
-//         rescue_name: rescue.rescue_name,
-//         rescue_type: 'Individual',
-//         city: rescue.city,
-//         country: rescue.country,
-//         staff: [staffMembers[0]], // Only one staff member for IndividualRescue
-//       } as IndividualRescue
-//     } else {
-//       return {
-//         rescue_id: rescue.rescue_id,
-//         rescue_name: rescue.rescue_name,
-//         rescue_type: rescue.rescue_type,
-//         city: rescue.city,
-//         country: rescue.country,
-//         reference_number: rescue.reference_number,
-//         reference_number_verified: rescue.reference_number_verified,
-//         staff: staffMembers,
-//       } as OrganizationRescue
-//     }
-//   })
-// }
+  await staffMember.destroy()
+}
