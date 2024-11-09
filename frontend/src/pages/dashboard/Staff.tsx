@@ -4,6 +4,7 @@ import {
   Badge,
   Button,
   CheckboxInput,
+  DateTime,
   FormInput,
   SelectInput,
   Table,
@@ -216,7 +217,11 @@ const Staff: React.FC = () => {
                       : 'NO'}
                 </td>
                 <td>
-                  {staff.isInvite ? staff.invited_on?.toLocaleString() : '-'}
+                  {staff.isInvite && staff.invited_on ? (
+                    <DateTime timestamp={staff.invited_on} />
+                  ) : (
+                    '-'
+                  )}
                 </td>
                 <td>
                   {staff.isInvite ? (
