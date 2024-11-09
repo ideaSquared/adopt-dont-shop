@@ -1,4 +1,5 @@
 // src/components/Staff.tsx
+
 import {
   Badge,
   Button,
@@ -47,6 +48,7 @@ const Staff: React.FC = () => {
     const filtered = staff.filter((member) => {
       const matchesSearch =
         !searchByEmailName ||
+        member.user_id.includes(searchByEmailName) || // Added search by user_id
         member.email.toLowerCase().includes(searchByEmailName.toLowerCase()) ||
         member.first_name
           .toLowerCase()
@@ -83,7 +85,7 @@ const Staff: React.FC = () => {
   return (
     <div>
       <h1>Staff</h1>
-      <FormInput label="Search by name or email">
+      <FormInput label="Search by name, email, or user ID">
         <TextInput
           type="text"
           value={searchByEmailName || ''}
@@ -112,7 +114,7 @@ const Staff: React.FC = () => {
       <Table>
         <thead>
           <tr>
-            <th>Staff ID</th>
+            <th>User ID</th>
             <th>First Name</th>
             <th>Last Name</th>
             <th>Email</th>
