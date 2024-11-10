@@ -6,7 +6,7 @@ import {
 } from '../../services/rescueService'
 import { User } from '../../types'
 
-jest.mock('../../models', () => ({
+jest.mock('../../Models', () => ({
   Rescue: {
     findAll: jest.fn(),
     findByPk: jest.fn(),
