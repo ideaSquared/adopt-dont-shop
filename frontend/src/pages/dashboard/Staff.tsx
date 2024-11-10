@@ -188,16 +188,17 @@ const Staff: React.FC = () => {
           onChange={(e) => setFilterByVerified(e.target.checked)}
         />
       </FormInput>
-      <FormInput label="Invite New Staff by Email">
+      <FormInput
+        label="Invite New Staff by Email"
+        buttonText="Send invite"
+        onButtonClick={inviteUser}
+      >
         <TextInput
           type="email"
           value={inviteEmail}
           onChange={(e) => setInviteEmail(e.target.value)}
           placeholder="Enter email to invite"
         />
-        <Button type="button" onClick={inviteUser}>
-          Send Invite
-        </Button>
       </FormInput>
       <Table>
         <thead>
