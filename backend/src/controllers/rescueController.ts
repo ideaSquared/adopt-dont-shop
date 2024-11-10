@@ -1,12 +1,14 @@
 // RescueController.ts
 import { Response } from 'express'
 import {
+  addRoleToUserService,
   cancelInvitationService,
   deleteStaffService,
   getAllRescuesService,
   getRescueStaffWithRoles,
   getSingleRescueService,
   inviteUserService,
+  removeRoleFromUserService,
   updateRescueService,
 } from '../services/rescueService'
 import { AuthenticatedRequest } from '../types'
@@ -123,5 +125,38 @@ export const cancelInvitationController = async (
     res.status(200).json({ message: 'Invitation canceled successfully' })
   } catch (error) {
     res.status(400).json({ message: 'Failed to cancel invitation', error })
+  }
+}
+
+// Controller to add a role to a user
+export const addRoleToUserController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  const { userId } = req.params
+  const { role } = req.body
+
+  try {
+    await addRoleToUserService(userId, role)
+    res.status(200).json({ message: 'Role added successfully' })
+  } catch (error) {
+    console.error('Failed to add role:', error)
+    res.status(500).json({ message: 'Failed to add role' })
+  }
+}
+
+// Controller to remove a role from a user
+export const removeRoleFromUserController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  const { userId, roleId } = req.params
+
+  try {
+    await removeRoleFromUserService(userId, roleId)
+    res.status(200).json({ message: 'Role removed successfully' })
+  } catch (error) {
+    console.error('Failed to remove role:', error)
+    res.status(500).json({ message: 'Failed to remove role' })
   }
 }

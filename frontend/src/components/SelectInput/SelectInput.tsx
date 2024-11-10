@@ -13,6 +13,7 @@ interface SelectInputProps {
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
   disabled?: boolean
   required?: boolean
+  placeholder?: string
 }
 
 const StyledSelect = styled.select`
@@ -39,6 +40,7 @@ const SelectInput: React.FC<SelectInputProps> = ({
   onChange,
   disabled = false,
   required = false,
+  placeholder = 'Select an option',
 }) => {
   return (
     <StyledSelect
@@ -47,6 +49,11 @@ const SelectInput: React.FC<SelectInputProps> = ({
       disabled={disabled}
       required={required}
     >
+      {placeholder && (
+        <option value="" disabled>
+          {placeholder}
+        </option>
+      )}
       {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}

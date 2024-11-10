@@ -6,7 +6,7 @@ import User from './User'
 
 class UserRole extends Model {
   public user_id!: string
-  public role_id!: number
+  public role_id!: string
   public created_at!: Date
   public updated_at!: Date
 }
@@ -22,7 +22,7 @@ UserRole.init(
       primaryKey: true,
     },
     role_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       references: {
         model: Role,
         key: 'role_id',

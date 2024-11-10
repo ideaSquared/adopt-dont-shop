@@ -1,11 +1,13 @@
 import express from 'express'
 import {
+  addRoleToUserController,
   cancelInvitationController,
   deleteStaffController,
   getAllRescuesController,
   getRescueStaffWithRolesController,
   getSingleRescueController,
   inviteUserController,
+  removeRoleFromUserController,
   updateRescueController,
 } from '../controllers/rescueController'
 import { createRescueAccountController } from '../controllers/userController'
@@ -67,6 +69,22 @@ router.post(
   authenticateJWT,
   checkUserRole('rescue_manager'),
   cancelInvitationController,
+)
+
+// POST /api/rescue/staff/:userId/add-role
+router.post(
+  '/staff/:userId/add-role',
+  authenticateJWT,
+  checkUserRole('rescue_manager'),
+  addRoleToUserController,
+)
+
+// DELETE /api/rescue/staff/:userId/roles/:roleId
+router.delete(
+  '/staff/:userId/roles/:roleId',
+  authenticateJWT,
+  checkUserRole('rescue_manager'),
+  removeRoleFromUserController,
 )
 
 export default router

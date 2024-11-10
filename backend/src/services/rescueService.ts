@@ -5,6 +5,7 @@ import {
   Role as RoleModel,
   StaffMember as StaffMemberModel,
   User as UserModel,
+  UserRole as UserRoleModel,
 } from '../Models'
 import { User } from '../types'
 import {
@@ -282,4 +283,57 @@ export const cancelInvitationService = async (
   }
 
   await invitation.destroy()
+}
+
+// Add a role to a specific user
+export const addRoleToUserService = async (
+  userId: string,
+  role: string,
+): Promise<void> => {
+  // Find the role to get the role_id
+  const roleRecord = await RoleModel.findOne({ where: { role_name: role } })
+  if (!roleRecord) {
+    throw new Error(`Role '${role}' does not exist`)
+  }
+
+  // Check if the user exists
+  const user = await UserModel.findByPk(userId)
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  // Add the role by creating a record in UserRole
+  await UserRoleModel.create({
+    user_id: userId,
+    role_id: roleRecord.role_id,
+  })
+}
+
+export const removeRoleFromUserService = async (
+  userId: string,
+  roleName: string,
+): Promise<void> => {
+  // Find the role to get the role_id
+  const roleRecord = await RoleModel.findOne({ where: { role_name: roleName } })
+  if (!roleRecord) {
+    throw new Error(`Role '${roleName}' does not exist`)
+  }
+
+  // Check if the user exists
+  const user = await UserModel.findByPk(userId)
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  // Remove the role by deleting the record in UserRole
+  const deletionCount = await UserRoleModel.destroy({
+    where: {
+      user_id: userId,
+      role_id: roleRecord.role_id,
+    },
+  })
+
+  if (deletionCount === 0) {
+    throw new Error(`Role '${roleName}' not assigned to user`)
+  }
 }

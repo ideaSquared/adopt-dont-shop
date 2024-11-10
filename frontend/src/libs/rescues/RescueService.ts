@@ -169,6 +169,42 @@ const cancelInvitation = async (
   }
 }
 
+// Add a new role to a staff member by user ID
+const addRoleToUser = async (userId: string, role: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/rescue/staff/${userId}/add-role`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: JSON.stringify({ role }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to add role: ${response.statusText}`)
+  }
+}
+
+const removeRoleFromUser = async (
+  userId: string,
+  roleId: string,
+): Promise<void> => {
+  const response = await fetch(
+    `${API_URL}/rescue/staff/${userId}/roles/${roleId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(`Failed to remove role: ${response.statusText}`)
+  }
+}
+
 export default {
   getRescues,
   getRescueById,
@@ -177,4 +213,6 @@ export default {
   deleteStaffMember,
   inviteUser,
   cancelInvitation,
+  addRoleToUser,
+  removeRoleFromUser,
 }

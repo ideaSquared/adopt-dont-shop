@@ -20,6 +20,7 @@ import styled from 'styled-components'
 const BadgeWrapper = styled.div`
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 `
 
 interface StaffWithInvite {
@@ -33,6 +34,16 @@ interface StaffWithInvite {
   invited_on?: Date
   status?: string
 }
+
+// Allowed roles for selection in the dropdown
+const ALLOWED_ROLES: Role[] = [
+  Role.RESCUE_MANAGER,
+  Role.STAFF_MANAGER,
+  Role.PET_MANAGER,
+  Role.APPLICATION_MANAGER,
+  Role.COMMUNICATIONS_MANAGER,
+]
+
 const Staff: React.FC = () => {
   const { rescue } = useUser()
   const [staff, setStaff] = useState<StaffWithInvite[]>([])
@@ -41,6 +52,7 @@ const Staff: React.FC = () => {
   const [filterByRole, setFilterByRole] = useState<Role | 'all'>('all')
   const [filterByVerified, setFilterByVerified] = useState<boolean>(false)
   const [inviteEmail, setInviteEmail] = useState<string>('')
+  const [showRoleDropdown, setShowRoleDropdown] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -159,6 +171,61 @@ const Staff: React.FC = () => {
     }
   }
 
+  const handleAddRoleClick = (userId: string) => {
+    setShowRoleDropdown(userId === showRoleDropdown ? null : userId)
+  }
+
+  const handleRoleSelect = async (userId: string, selectedRole: Role) => {
+    try {
+      await RescueService.addRoleToUser(userId, selectedRole)
+      setStaff((prevStaff) =>
+        prevStaff.map((member) =>
+          member.user_id === userId
+            ? {
+                ...member,
+                role: [
+                  ...member.role,
+                  { role_id: selectedRole, role_name: selectedRole },
+                ],
+              }
+            : member,
+        ),
+      )
+      setShowRoleDropdown(null)
+    } catch (error) {
+      console.error('Failed to assign role:', error)
+      alert('Failed to assign role')
+    }
+  }
+
+  const handleRemoveRole = async (userId: string, roleId: string) => {
+    try {
+      const role = staff
+        .find((member) => member.user_id === userId)
+        ?.role.find((r) => r.role_id === roleId)?.role_name
+
+      if (!role || !ALLOWED_ROLES.includes(role as Role)) {
+        alert('Role cannot be removed')
+        return
+      }
+
+      await RescueService.removeRoleFromUser(userId, roleId)
+      setStaff((prevStaff) =>
+        prevStaff.map((member) =>
+          member.user_id === userId
+            ? {
+                ...member,
+                role: member.role.filter((r) => r.role_id !== roleId),
+              }
+            : member,
+        ),
+      )
+    } catch (error) {
+      console.error('Failed to remove role:', error)
+      alert('Failed to remove role')
+    }
+  }
+
   return (
     <div>
       <h1>Staff</h1>
@@ -223,14 +290,43 @@ const Staff: React.FC = () => {
                 <td>{staff.email}</td>
                 <td>
                   <BadgeWrapper>
-                    {staff.isInvite ? (
-                      <Badge variant="warning">PENDING</Badge>
-                    ) : (
-                      staff.role.map((role) => (
-                        <Badge key={role.role_id} variant="info">
-                          {role.role_name.replace(/_/g, ' ').toUpperCase()}
-                        </Badge>
-                      ))
+                    {staff.role.map((role) => (
+                      <Badge
+                        key={role.role_id}
+                        variant="info"
+                        onActionClick={
+                          ALLOWED_ROLES.includes(role.role_name as Role)
+                            ? () =>
+                                handleRemoveRole(staff.user_id, role.role_id)
+                            : undefined
+                        }
+                        showAction={ALLOWED_ROLES.includes(
+                          role.role_name as Role,
+                        )}
+                      >
+                        {role.role_name.replace(/_/g, ' ').toUpperCase()}
+                      </Badge>
+                    ))}
+                    <Badge
+                      variant="success"
+                      onClick={() => handleAddRoleClick(staff.user_id)}
+                    >
+                      +
+                    </Badge>
+                    {showRoleDropdown === staff.user_id && (
+                      <SelectInput
+                        options={ALLOWED_ROLES.map((role) => ({
+                          value: role,
+                          label: role.replace(/_/g, ' ').toUpperCase(),
+                        }))}
+                        placeholder="Choose a role"
+                        onChange={(e) =>
+                          handleRoleSelect(
+                            staff.user_id,
+                            e.target.value as Role,
+                          )
+                        }
+                      />
                     )}
                   </BadgeWrapper>
                 </td>
