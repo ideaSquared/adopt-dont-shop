@@ -116,7 +116,6 @@ export const cancelInvitationController = async (
   req: AuthenticatedRequest,
   res: Response,
 ) => {
-  console.log('cancelInvitationController reached') // Debugging line
   const { email, rescueId } = req.body
 
   try {

@@ -273,7 +273,6 @@ export const cancelInvitationService = async (
   email: string,
   rescueId: string,
 ): Promise<void> => {
-  console.log('cancelInvitationService reached') // Debugging line
   const invitation = await InvitationModel.findOne({
     where: { email, rescue_id: rescueId, used: false },
   })

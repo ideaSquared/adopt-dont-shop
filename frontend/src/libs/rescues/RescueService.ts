@@ -164,8 +164,6 @@ const cancelInvitation = async (
     body: JSON.stringify({ email, rescueId }),
   })
 
-  console.log('Cancel invitation response:', response) // Add this line
-
   if (!response.ok) {
     throw new Error(`Failed to cancel invitation: ${response.statusText}`)
   }
