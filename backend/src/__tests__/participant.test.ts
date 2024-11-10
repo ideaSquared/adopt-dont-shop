@@ -1,7 +1,7 @@
 import Participant from '../Models/Participant'
 import * as participantService from '../services/participantService'
 
-jest.mock('../models/Participant')
+jest.mock('../Models/Participant')
 
 describe('Participant Service', () => {
   it('should get all participants', async () => {
