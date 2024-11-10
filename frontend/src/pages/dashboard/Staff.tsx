@@ -137,6 +137,28 @@ const Staff: React.FC = () => {
     }
   }
 
+  const cancelInvitation = async (email: string) => {
+    try {
+      if (!rescue) return
+      await RescueService.cancelInvitation(email, rescue.rescue_id)
+
+      // Remove the canceled invitation from the lists
+      setStaff((prevStaff) =>
+        prevStaff.filter((staff) => staff.email !== email || !staff.isInvite),
+      )
+      setFilteredStaff((prevFiltered) =>
+        prevFiltered.filter(
+          (staff) => staff.email !== email || !staff.isInvite,
+        ),
+      )
+
+      alert('Invitation canceled successfully')
+    } catch (error) {
+      console.error('Error canceling invitation:', error)
+      alert('Failed to cancel invitation')
+    }
+  }
+
   return (
     <div>
       <h1>Staff</h1>
@@ -200,13 +222,15 @@ const Staff: React.FC = () => {
                 <td>{staff.email}</td>
                 <td>
                   <BadgeWrapper>
-                    {staff.isInvite
-                      ? 'Pending Invitation'
-                      : staff.role.map((role) => (
-                          <Badge key={role.role_id} variant="info">
-                            {role.role_name.replace(/_/g, ' ').toUpperCase()}
-                          </Badge>
-                        ))}
+                    {staff.isInvite ? (
+                      <Badge variant="warning">PENDING</Badge>
+                    ) : (
+                      staff.role.map((role) => (
+                        <Badge key={role.role_id} variant="info">
+                          {role.role_name.replace(/_/g, ' ').toUpperCase()}
+                        </Badge>
+                      ))
+                    )}
                   </BadgeWrapper>
                 </td>
                 <td>
@@ -225,7 +249,14 @@ const Staff: React.FC = () => {
                 </td>
                 <td>
                   {staff.isInvite ? (
-                    <Badge variant="warning">Pending</Badge>
+                    <>
+                      <Button
+                        type="button"
+                        onClick={() => cancelInvitation(staff.email)}
+                      >
+                        Cancel
+                      </Button>
+                    </>
                   ) : (
                     <Button
                       type="button"

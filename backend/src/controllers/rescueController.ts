@@ -1,6 +1,7 @@
 // RescueController.ts
 import { Response } from 'express'
 import {
+  cancelInvitationService,
   deleteStaffService,
   getAllRescuesService,
   getRescueStaffWithRoles,
@@ -108,5 +109,20 @@ export const inviteUserController = async (
   } catch (error) {
     console.error('Failed to send invitation:', error)
     res.status(500).json({ message: 'Failed to send invitation' })
+  }
+}
+
+export const cancelInvitationController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  console.log('cancelInvitationController reached') // Debugging line
+  const { email, rescueId } = req.body
+
+  try {
+    await cancelInvitationService(email, rescueId)
+    res.status(200).json({ message: 'Invitation canceled successfully' })
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to cancel invitation', error })
   }
 }

@@ -268,3 +268,19 @@ export const inviteUserService = async (email: string, rescue_id: string) => {
 
   await sendInvitationEmail(email, token)
 }
+
+export const cancelInvitationService = async (
+  email: string,
+  rescueId: string,
+): Promise<void> => {
+  console.log('cancelInvitationService reached') // Debugging line
+  const invitation = await InvitationModel.findOne({
+    where: { email, rescue_id: rescueId, used: false },
+  })
+
+  if (!invitation) {
+    throw new Error('Invitation not found or already used')
+  }
+
+  await invitation.destroy()
+}

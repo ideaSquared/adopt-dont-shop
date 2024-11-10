@@ -75,8 +75,6 @@ const getStaffMembersByRescueId = async (
 
   const data = await response.json()
 
-  console.log(data)
-
   // Destructure with default values to handle cases where invitations might be absent
   const { staffMembers = [], invitations = [] } = data
 
@@ -86,17 +84,19 @@ const getStaffMembersByRescueId = async (
       ...staff,
       isInvite: false, // Mark staff members as non-invite entries
     })),
-    ...invitations.map((invite: Invitation) => ({
-      user_id: '', // Empty user_id for invitations
-      first_name: '',
-      last_name: '',
-      email: invite.email,
-      role: [], // No roles assigned for invitations
-      verified_by_rescue: false, // Unverified for invitations
-      isInvite: true,
-      invited_on: invite.invited_on,
-      status: invite.status,
-    })),
+    ...invitations
+      .filter((invite: Invitation) => invite.status != 'Accepted') // Exclude accepted invitations
+      .map((invite: Invitation) => ({
+        user_id: '', // Empty user_id for invitations
+        first_name: '',
+        last_name: '',
+        email: invite.email,
+        role: [], // No roles assigned for invitations
+        verified_by_rescue: false, // Unverified for invitations
+        isInvite: true,
+        invited_on: invite.invited_on,
+        status: invite.status,
+      })),
   ]
 
   return staffWithInvites
@@ -151,6 +151,26 @@ const inviteUser = async (email: string, rescueId: string): Promise<void> => {
   }
 }
 
+const cancelInvitation = async (
+  email: string,
+  rescueId: string,
+): Promise<void> => {
+  const response = await fetch(`${API_URL}/rescue/staff/cancel-invite`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: JSON.stringify({ email, rescueId }),
+  })
+
+  console.log('Cancel invitation response:', response) // Add this line
+
+  if (!response.ok) {
+    throw new Error(`Failed to cancel invitation: ${response.statusText}`)
+  }
+}
+
 export default {
   getRescues,
   getRescueById,
@@ -158,4 +178,5 @@ export default {
   deleteRescue,
   deleteStaffMember,
   inviteUser,
+  cancelInvitation,
 }

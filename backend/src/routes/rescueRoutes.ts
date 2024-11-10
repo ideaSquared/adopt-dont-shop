@@ -1,5 +1,6 @@
 import express from 'express'
 import {
+  cancelInvitationController,
   deleteStaffController,
   getAllRescuesController,
   getRescueStaffWithRolesController,
@@ -52,12 +53,20 @@ router.delete(
   deleteStaffController,
 )
 
-// DELETE /api/rescue/staff/:userId
+// POST /api/rescue/staff/:userId
 router.post(
   '/staff/invite',
   authenticateJWT,
   checkUserRole('rescue_manager'),
   inviteUserController,
+)
+
+// POST /api/rescue/staff/cancel-invite
+router.post(
+  '/staff/cancel-invite',
+  authenticateJWT,
+  checkUserRole('rescue_manager'),
+  cancelInvitationController,
 )
 
 export default router
