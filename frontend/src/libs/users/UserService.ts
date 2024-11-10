@@ -219,6 +219,25 @@ const verifyEmail = async (token: string): Promise<{ message: string }> => {
   return response.json()
 }
 
+export const completeAccountSetup = async (
+  token: string,
+  password: string,
+): Promise<{ message: string; user?: User }> => {
+  const response = await fetch(`${API_URL}/complete-account-setup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ token, password }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Account setup failed')
+  }
+
+  return response.json()
+}
+
 export default {
   getUsers,
   getUserById,
@@ -231,4 +250,5 @@ export default {
   updateUser,
   createRescueAccount,
   verifyEmail,
+  completeAccountSetup,
 }

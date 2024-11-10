@@ -50,7 +50,7 @@ const Navbar: React.FC = () => {
 
           <NavItem>
             <DropdownMenu
-              triggerLabel={user ? user.first_name : 'User'}
+              triggerLabel={user && user.first_name ? user.first_name : 'User'}
               items={
                 user
                   ? [

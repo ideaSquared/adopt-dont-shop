@@ -1,5 +1,6 @@
 import { Navbar } from '@adoptdontshop/components'
 import {
+  CompleteAccountSetup,
   CreateAccount,
   ForgotPassword,
   Login,
@@ -61,6 +62,7 @@ const AppContent: React.FC = () => {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/complete-account" element={<CompleteAccountSetup />} />
 
           <Route
             element={

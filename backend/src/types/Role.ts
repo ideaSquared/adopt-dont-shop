@@ -62,6 +62,6 @@ export const rolePermissions: Record<Role, Permission[]> = {
   ],
   [Role.STAFF]: [Permission.VIEW_DASHBOARD],
   [Role.ADMIN]: [],
-  [Role.VERIFIED_USER]: [Permission.VIEW_CHAT],
+  [Role.VERIFIED_USER]: [Permission.VIEW_CHAT, Permission.EDIT_PROFILE],
   [Role.USER]: [Permission.EDIT_PROFILE],
 }

@@ -491,7 +491,16 @@ export const completeAccountSetupService = async (
   password: string,
 ) => {
   // Verify token
-  const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+  const secretKey = process.env.SECRET_KEY as string
+  if (!secretKey) {
+    await AuditLogger.logAction(
+      'AuthService',
+      'Missing SECRET_KEY environment variable',
+      'ERROR',
+    )
+    throw new Error('Internal server error')
+  }
+  const decoded = jwt.verify(token, secretKey) as {
     email: string
     rescue_id: string
   }
@@ -512,6 +521,16 @@ export const completeAccountSetupService = async (
     password: hashedPassword,
   })
 
+  // Fetch both "verified_user" and "staff" roles
+  const rolesToAdd = await Role.findAll({
+    where: { role_name: ['verified_user', 'staff'] },
+  })
+
+  // Assign each role to the user
+  for (const role of rolesToAdd) {
+    await user.addRole(role)
+  }
+
   // Create a StaffMember entry linked to the user and the rescue
   await StaffMember.create({
     user_id: user.user_id,
@@ -519,8 +538,11 @@ export const completeAccountSetupService = async (
     verified_by_rescue: false,
   })
 
-  // Mark invitation as used
-  await invitation.destroy()
+  // Attach the user_id to the invitation and mark as used
+  await invitation.update({
+    user_id: user.user_id,
+    used: true,
+  })
 
   return { message: 'Account setup complete', user }
 }
