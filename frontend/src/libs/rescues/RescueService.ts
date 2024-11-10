@@ -120,7 +120,7 @@ const deleteRescue = async (rescue_id: string) => {
 }
 
 const deleteStaffMember = async (userId: string): Promise<void> => {
-  const response = await fetch(`${API_URL}/staff/${userId}`, {
+  const response = await fetch(`${API_URL}/rescue/staff/${userId}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
