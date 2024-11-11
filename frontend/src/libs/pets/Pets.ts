@@ -4,7 +4,7 @@ export interface Pet {
   name: string
   type: string
   status: string
-  age: number | string
+  age: number
   gender: string
   short_description: string
   long_description: string

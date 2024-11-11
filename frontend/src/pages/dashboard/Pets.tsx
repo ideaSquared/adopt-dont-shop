@@ -1,8 +1,13 @@
-import { FormInput, SelectInput, TextInput } from '@adoptdontshop/components'
+import {
+  Badge,
+  FormInput,
+  Modal,
+  SelectInput,
+  TextInput,
+} from '@adoptdontshop/components'
 import { PetRescue, PetsService } from '@adoptdontshop/libs/pets'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import EditPetModal from './PetsEditModal'
 
 const Container = styled.div`
   padding: 1rem;
@@ -22,6 +27,18 @@ const PetCard = styled.div`
   background: #fff;
 `
 
+const CardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+`
+
+const PetName = styled.h3`
+  margin: 0;
+  font-size: 1.2rem;
+`
+
 const PetImage = styled.img`
   width: 100%;
   height: auto;
@@ -29,29 +46,13 @@ const PetImage = styled.img`
   margin-bottom: 1rem;
 `
 
-const SectionTitle = styled.h4`
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-`
-
-const CollapseButton = styled.button`
-  background: none;
-  border: none;
-  color: #007bff;
-  cursor: pointer;
+const PetDescription = styled.p`
   font-size: 0.9rem;
-  margin-top: 0.5rem;
-`
-
-const CollapsibleContent = styled.div<{ isVisible: boolean }>`
-  max-height: ${({ isVisible }) => (isVisible ? '100%' : '0')};
-  overflow: hidden;
-  transition: max-height 0.3s ease;
+  color: #666;
 `
 
 const ActionButtons = styled.div`
   display: flex;
-  justify-content: flex-end;
   gap: 0.5rem;
 `
 
@@ -73,11 +74,15 @@ const DeleteButton = styled.button`
   cursor: pointer;
 `
 
-// Define types for props, including children
-interface CollapsibleSectionProps {
-  label: string
-  children: React.ReactNode
-}
+const SaveButton = styled.button`
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+`
 
 const Pets: React.FC = () => {
   const [pets, setPets] = useState<PetRescue[]>([])
@@ -87,6 +92,23 @@ const Pets: React.FC = () => {
   const [filterByStatus, setFilterByStatus] = useState<string | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedPet, setSelectedPet] = useState<PetRescue | null>(null)
+  const [name, setName] = useState('')
+  const [type, setType] = useState('')
+  const [status, setStatus] = useState('')
+  const [age, setAge] = useState<number>(0)
+  const [gender, setGender] = useState('')
+  const [breed, setBreed] = useState('')
+  const [vaccinationStatus, setVaccinationStatus] = useState('')
+  const [temperament, setTemperament] = useState('')
+  const [health, setHealth] = useState('')
+  const [size, setSize] = useState('')
+  const [groomingNeeds, setGroomingNeeds] = useState('')
+  const [trainingSocialization, setTrainingSocialization] = useState('')
+  const [commitmentLevel, setCommitmentLevel] = useState('')
+  const [otherPets, setOtherPets] = useState('')
+  const [household, setHousehold] = useState('')
+  const [energy, setEnergy] = useState('')
+  const [family, setFamily] = useState('')
 
   useEffect(() => {
     const fetchPets = async () => {
@@ -145,27 +167,68 @@ const Pets: React.FC = () => {
 
   const handleEdit = (pet: PetRescue) => {
     setSelectedPet(pet)
+    setName(pet.name)
+    setType(pet.type)
+    setStatus(pet.status)
+    setAge(pet.age)
+    setGender(pet.gender)
+    setBreed(pet.breed)
+    setVaccinationStatus(pet.vaccination_status)
+    setTemperament(pet.temperament)
+    setHealth(pet.health)
+    setSize(pet.size)
+    setGroomingNeeds(pet.grooming_needs)
+    setTrainingSocialization(pet.training_socialization)
+    setCommitmentLevel(pet.commitment_level)
+    setOtherPets(pet.other_pets)
+    setHousehold(pet.household)
+    setEnergy(pet.energy)
+    setFamily(pet.family)
     setIsEditModalOpen(true)
   }
 
-  const handleSave = (updatedPet: PetRescue) => {
-    // Update the `pets` and `filteredPets` states with the updated pet data
-    setPets((prevPets) =>
-      prevPets.map((pet) =>
-        pet.pet_id === updatedPet.pet_id ? updatedPet : pet,
-      ),
-    )
-    setFilteredPets((prevFilteredPets) =>
-      prevFilteredPets.map((pet) =>
-        pet.pet_id === updatedPet.pet_id ? updatedPet : pet,
-      ),
-    )
-    setIsEditModalOpen(false)
+  const handleSave = async () => {
+    if (selectedPet) {
+      try {
+        const updatedPet = await PetsService.updatePet(selectedPet.pet_id, {
+          name,
+          type,
+          status,
+          age,
+          gender,
+          breed,
+          vaccination_status: vaccinationStatus,
+          temperament,
+          health,
+          size,
+          grooming_needs: groomingNeeds,
+          training_socialization: trainingSocialization,
+          commitment_level: commitmentLevel,
+          other_pets: otherPets,
+          household,
+          energy,
+          family,
+        })
+        setPets((prevPets) =>
+          prevPets.map((pet) =>
+            pet.pet_id === updatedPet.pet_id ? updatedPet : pet,
+          ),
+        )
+        setFilteredPets((prevFilteredPets) =>
+          prevFilteredPets.map((pet) =>
+            pet.pet_id === updatedPet.pet_id ? updatedPet : pet,
+          ),
+        )
+        setIsEditModalOpen(false)
+      } catch (error) {
+        console.error('Failed to update pet:', error)
+      }
+    }
   }
 
   const handleDelete = async (petId: string) => {
     if (window.confirm('Are you sure you want to delete this pet?')) {
-      await PetsService.deletePet(petId) // Assumes PetsService has deletePet method
+      await PetsService.deletePet(petId)
       setPets((prevPets) => prevPets.filter((pet) => pet.pet_id !== petId))
       setFilteredPets((prevFilteredPets) =>
         prevFilteredPets.filter((pet) => pet.pet_id !== petId),
@@ -200,77 +263,156 @@ const Pets: React.FC = () => {
       <PetsGrid>
         {filteredPets.map((pet) => (
           <PetCard key={pet.pet_id}>
-            <ActionButtons>
-              <EditButton onClick={() => handleEdit(pet)}>Edit</EditButton>
-              <DeleteButton onClick={() => handleDelete(pet.pet_id)}>
-                Delete
-              </DeleteButton>
-            </ActionButtons>
+            <CardHeader>
+              <PetName>{pet.name}</PetName>
+              <Badge>{pet.status}</Badge>
+              <ActionButtons>
+                <EditButton onClick={() => handleEdit(pet)}>Edit</EditButton>
+                <DeleteButton onClick={() => handleDelete(pet.pet_id)}>
+                  Delete
+                </DeleteButton>
+              </ActionButtons>
+            </CardHeader>
             <PetImage
               src={pet.images?.[0] || 'https://placehold.jp/150x150.png'}
               alt={pet.name}
             />
-            <h3>{pet.name}</h3>
-            <p>Type: {pet.type}</p>
-            <p>Status: {pet.status}</p>
-            <SectionTitle>Basic Information</SectionTitle>
-            <p>Age: {pet.age} years</p>
-            <p>Gender: {pet.gender}</p>
-            <p>Breed: {pet.breed}</p>
-
-            <SectionTitle>Health & Care</SectionTitle>
-            <p>Vaccination: {pet.vaccination_status}</p>
-            <p>Health: {pet.health}</p>
-            <p>Grooming Needs: {pet.grooming_needs}</p>
-
-            <CollapsibleSection label="More Details">
-              <SectionTitle>Training & Temperament</SectionTitle>
-              <p>Temperament: {pet.temperament}</p>
-              <p>Training: {pet.training_socialization}</p>
-
-              <SectionTitle>Ratings</SectionTitle>
-              {pet.ratings ? (
-                <div>
-                  <div>Love: {pet.ratings.love}</div>
-                  <div>Like: {pet.ratings.like}</div>
-                  <div>Dislike: {pet.ratings.dislike}</div>
-                </div>
-              ) : (
-                <p>No Ratings</p>
-              )}
-              <p>Application Count: {pet.application_count || 0}</p>
-            </CollapsibleSection>
+            <PetDescription>
+              {pet.short_description || 'No description available'}
+            </PetDescription>
           </PetCard>
         ))}
       </PetsGrid>
-      {isEditModalOpen && selectedPet && (
-        <EditPetModal
-          pet={selectedPet}
+      {isEditModalOpen && (
+        <Modal
+          title="Edit Pet"
+          isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          onSave={handleSave}
-        />
+          size="large"
+        >
+          <FormInput label="Name">
+            <TextInput
+              onChange={(e) => setName(e.target.value)}
+              type="text"
+              value={name}
+            />
+          </FormInput>
+          <FormInput label="Type">
+            <TextInput
+              onChange={(e) => setType(e.target.value)}
+              type="text"
+              value={type}
+            />
+          </FormInput>
+          <FormInput label="Status">
+            <TextInput
+              onChange={(e) => setStatus(e.target.value)}
+              type="text"
+              value={status}
+            />
+          </FormInput>
+          <FormInput label="Age">
+            <TextInput
+              onChange={(e) => setAge(parseInt(e.target.value) || 0)}
+              type="number"
+              value={age}
+            />
+          </FormInput>
+          <FormInput label="Gender">
+            <TextInput
+              onChange={(e) => setGender(e.target.value)}
+              type="text"
+              value={gender}
+            />
+          </FormInput>
+          <FormInput label="Breed">
+            <TextInput
+              onChange={(e) => setBreed(e.target.value)}
+              type="text"
+              value={breed}
+            />
+          </FormInput>
+          <FormInput label="Vaccination Status">
+            <TextInput
+              onChange={(e) => setVaccinationStatus(e.target.value)}
+              type="text"
+              value={vaccinationStatus}
+            />
+          </FormInput>
+          <FormInput label="Temperament">
+            <TextInput
+              onChange={(e) => setTemperament(e.target.value)}
+              type="text"
+              value={temperament}
+            />
+          </FormInput>
+          <FormInput label="Health">
+            <TextInput
+              onChange={(e) => setHealth(e.target.value)}
+              type="text"
+              value={health}
+            />
+          </FormInput>
+          <FormInput label="Size">
+            <TextInput
+              onChange={(e) => setSize(e.target.value)}
+              type="text"
+              value={size}
+            />
+          </FormInput>
+          <FormInput label="Grooming Needs">
+            <TextInput
+              onChange={(e) => setGroomingNeeds(e.target.value)}
+              type="text"
+              value={groomingNeeds}
+            />
+          </FormInput>
+          <FormInput label="Training & Socialization">
+            <TextInput
+              onChange={(e) => setTrainingSocialization(e.target.value)}
+              type="text"
+              value={trainingSocialization}
+            />
+          </FormInput>
+          <FormInput label="Commitment Level">
+            <TextInput
+              onChange={(e) => setCommitmentLevel(e.target.value)}
+              type="text"
+              value={commitmentLevel}
+            />
+          </FormInput>
+          <FormInput label="Other Pets">
+            <TextInput
+              onChange={(e) => setOtherPets(e.target.value)}
+              type="text"
+              value={otherPets}
+            />
+          </FormInput>
+          <FormInput label="Household">
+            <TextInput
+              onChange={(e) => setHousehold(e.target.value)}
+              type="text"
+              value={household}
+            />
+          </FormInput>
+          <FormInput label="Energy">
+            <TextInput
+              onChange={(e) => setEnergy(e.target.value)}
+              type="text"
+              value={energy}
+            />
+          </FormInput>
+          <FormInput label="Family">
+            <TextInput
+              onChange={(e) => setFamily(e.target.value)}
+              type="text"
+              value={family}
+            />
+          </FormInput>
+          <SaveButton onClick={handleSave}>Save</SaveButton>
+        </Modal>
       )}
     </Container>
-  )
-}
-
-const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
-  label,
-  children,
-}) => {
-  const [isOpen, setIsOpen] = useState(false)
-
-  const toggleVisibility = () => {
-    setIsOpen(!isOpen)
-  }
-
-  return (
-    <div>
-      <CollapseButton onClick={toggleVisibility}>
-        {isOpen ? `Hide ${label}` : `Show ${label}`}
-      </CollapseButton>
-      <CollapsibleContent isVisible={isOpen}>{children}</CollapsibleContent>
-    </div>
   )
 }
 
