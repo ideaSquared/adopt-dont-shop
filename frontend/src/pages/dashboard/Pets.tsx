@@ -1,5 +1,6 @@
 import {
   Badge,
+  Button,
   FormInput,
   Modal,
   SelectInput,
@@ -54,24 +55,6 @@ const PetDescription = styled.p`
 const ActionButtons = styled.div`
   display: flex;
   gap: 0.5rem;
-`
-
-const EditButton = styled.button`
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-`
-
-const DeleteButton = styled.button`
-  background-color: #f44336;
-  color: white;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
 `
 
 const SaveButton = styled.button`
@@ -267,10 +250,20 @@ const Pets: React.FC = () => {
               <PetName>{pet.name}</PetName>
               <Badge>{pet.status}</Badge>
               <ActionButtons>
-                <EditButton onClick={() => handleEdit(pet)}>Edit</EditButton>
-                <DeleteButton onClick={() => handleDelete(pet.pet_id)}>
+                <Button
+                  type="button"
+                  variant="info"
+                  onClick={() => handleEdit(pet)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => handleDelete(pet.pet_id)}
+                >
                   Delete
-                </DeleteButton>
+                </Button>
               </ActionButtons>
             </CardHeader>
             <PetImage
