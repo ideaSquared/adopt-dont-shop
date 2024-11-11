@@ -37,9 +37,16 @@ const SaveButton = styled.button`
   margin-top: 1rem;
 `
 
-const EditPetModal: React.FC<{ pet: PetRescue; onClose: () => void }> = ({
+interface EditPetModalProps {
+  pet: PetRescue
+  onClose: () => void
+  onSave: (updatedPet: PetRescue) => void // New prop to pass updated pet back
+}
+
+const EditPetModal: React.FC<EditPetModalProps> = ({
   pet,
   onClose,
+  onSave,
 }) => {
   const [name, setName] = useState(pet.name)
   const [type, setType] = useState(pet.type)
@@ -47,8 +54,13 @@ const EditPetModal: React.FC<{ pet: PetRescue; onClose: () => void }> = ({
 
   const handleSave = async () => {
     try {
-      await PetsService.updatePet(pet.pet_id, { name, type, status })
-      onClose()
+      const updatedPet = await PetsService.updatePet(pet.pet_id, {
+        name,
+        type,
+        status,
+      })
+      onSave(updatedPet) // Pass the updated pet data to the parent component
+      onClose() // Close the modal
     } catch (error) {
       console.error('Failed to update pet:', error)
     }

@@ -148,10 +148,28 @@ const Pets: React.FC = () => {
     setIsEditModalOpen(true)
   }
 
+  const handleSave = (updatedPet: PetRescue) => {
+    // Update the `pets` and `filteredPets` states with the updated pet data
+    setPets((prevPets) =>
+      prevPets.map((pet) =>
+        pet.pet_id === updatedPet.pet_id ? updatedPet : pet,
+      ),
+    )
+    setFilteredPets((prevFilteredPets) =>
+      prevFilteredPets.map((pet) =>
+        pet.pet_id === updatedPet.pet_id ? updatedPet : pet,
+      ),
+    )
+    setIsEditModalOpen(false)
+  }
+
   const handleDelete = async (petId: string) => {
     if (window.confirm('Are you sure you want to delete this pet?')) {
       await PetsService.deletePet(petId) // Assumes PetsService has deletePet method
-      setPets(pets.filter((pet) => pet.pet_id !== petId))
+      setPets((prevPets) => prevPets.filter((pet) => pet.pet_id !== petId))
+      setFilteredPets((prevFilteredPets) =>
+        prevFilteredPets.filter((pet) => pet.pet_id !== petId),
+      )
     }
   }
 
@@ -229,6 +247,7 @@ const Pets: React.FC = () => {
         <EditPetModal
           pet={selectedPet}
           onClose={() => setIsEditModalOpen(false)}
+          onSave={handleSave}
         />
       )}
     </Container>
