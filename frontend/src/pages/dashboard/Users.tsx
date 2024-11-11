@@ -61,15 +61,20 @@ const Users: React.FC = () => {
     const filtered = users.filter((user) => {
       const matchesSearch =
         !searchByEmailName ||
-        user.email.toLowerCase().includes(searchByEmailName.toLowerCase()) ||
-        user.first_name
-          .toLowerCase()
-          .includes(searchByEmailName.toLowerCase()) ||
-        user.last_name.toLowerCase().includes(searchByEmailName.toLowerCase())
+        (user.email?.toLowerCase().includes(searchByEmailName.toLowerCase()) ??
+          false) ||
+        (user.first_name
+          ?.toLowerCase()
+          .includes(searchByEmailName.toLowerCase()) ??
+          false) ||
+        (user.last_name
+          ?.toLowerCase()
+          .includes(searchByEmailName.toLowerCase()) ??
+          false)
 
       const matchesRole =
         filterByRole === 'all' ||
-        user.roles.some((role) => role.role_name === filterByRole)
+        user.roles.some((role) => role.role_id === filterByRole)
 
       return matchesSearch && matchesRole
     })
