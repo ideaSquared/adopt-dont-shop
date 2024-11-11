@@ -57,16 +57,6 @@ const ActionButtons = styled.div`
   gap: 0.5rem;
 `
 
-const SaveButton = styled.button`
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 1rem;
-`
-
 const Pets: React.FC = () => {
   const [pets, setPets] = useState<PetRescue[]>([])
   const [filteredPets, setFilteredPets] = useState<PetRescue[]>([])
@@ -402,7 +392,9 @@ const Pets: React.FC = () => {
               value={family}
             />
           </FormInput>
-          <SaveButton onClick={handleSave}>Save</SaveButton>
+          <Button type="button" variant="success" onClick={handleSave}>
+            Save
+          </Button>
         </Modal>
       )}
     </Container>
