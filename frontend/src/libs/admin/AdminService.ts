@@ -19,7 +19,6 @@ const removeRoleFromUser = async (
   userId: string,
   roleId: string,
 ): Promise<void> => {
-  console.log('Assigning role:', roleId, 'to user:', userId)
   const response = await fetch(
     `${API_URL}/admin/users/${userId}/roles/${roleId}`,
     {
