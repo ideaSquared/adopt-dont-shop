@@ -45,7 +45,7 @@ const ALLOWED_ROLES: Role[] = [
 ]
 
 const Staff: React.FC = () => {
-  const { rescue } = useUser()
+  const { rescue, user } = useUser()
   const [staff, setStaff] = useState<StaffWithInvite[]>([])
   const [filteredStaff, setFilteredStaff] = useState<StaffWithInvite[]>([])
   const [searchByEmailName, setSearchByEmailName] = useState<string | null>('')
@@ -295,38 +295,46 @@ const Staff: React.FC = () => {
                         key={role.role_id}
                         variant="info"
                         onActionClick={
+                          user &&
+                          user.user_id !== staff.user_id &&
                           ALLOWED_ROLES.includes(role.role_name as Role)
                             ? () =>
                                 handleRemoveRole(staff.user_id, role.role_id)
                             : undefined
                         }
-                        showAction={ALLOWED_ROLES.includes(
-                          role.role_name as Role,
-                        )}
+                        showAction={
+                          user &&
+                          user.user_id !== staff.user_id &&
+                          ALLOWED_ROLES.includes(role.role_name as Role)
+                        }
                       >
                         {role.role_name.replace(/_/g, ' ').toUpperCase()}
                       </Badge>
                     ))}
-                    <Badge
-                      variant="success"
-                      onClick={() => handleAddRoleClick(staff.user_id)}
-                    >
-                      +
-                    </Badge>
-                    {showRoleDropdown === staff.user_id && (
-                      <SelectInput
-                        options={ALLOWED_ROLES.map((role) => ({
-                          value: role,
-                          label: role.replace(/_/g, ' ').toUpperCase(),
-                        }))}
-                        placeholder="Choose a role"
-                        onChange={(e) =>
-                          handleRoleSelect(
-                            staff.user_id,
-                            e.target.value as Role,
-                          )
-                        }
-                      />
+                    {user && user.user_id !== staff.user_id && (
+                      <>
+                        <Badge
+                          variant="success"
+                          onClick={() => handleAddRoleClick(staff.user_id)}
+                        >
+                          +
+                        </Badge>
+                        {showRoleDropdown === staff.user_id && (
+                          <SelectInput
+                            options={ALLOWED_ROLES.map((role) => ({
+                              value: role,
+                              label: role.replace(/_/g, ' ').toUpperCase(),
+                            }))}
+                            placeholder="Choose a role"
+                            onChange={(e) =>
+                              handleRoleSelect(
+                                staff.user_id,
+                                e.target.value as Role,
+                              )
+                            }
+                          />
+                        )}
+                      </>
                     )}
                   </BadgeWrapper>
                 </td>

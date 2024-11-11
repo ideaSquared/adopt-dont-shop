@@ -6,7 +6,7 @@ interface BadgeProps {
   variant?: 'content' | 'success' | 'danger' | 'warning' | 'info' | null
   onClick?: () => void // Optional onClick handler for the badge itself
   onActionClick?: () => void // Optional onClick handler for the action button
-  showAction?: boolean // Controls visibility of the action button
+  showAction?: boolean | null // Controls visibility of the action button
 }
 
 const BadgeContainer = styled.div<{ variant: BadgeProps['variant'] }>`
