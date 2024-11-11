@@ -363,12 +363,15 @@ const Staff: React.FC = () => {
                       </Button>
                     </>
                   ) : (
-                    <Button
-                      type="button"
-                      onClick={() => deleteStaff(staff.user_id)}
-                    >
-                      Delete
-                    </Button>
+                    user &&
+                    user.user_id !== staff.user_id && (
+                      <Button
+                        type="button"
+                        onClick={() => deleteStaff(staff.user_id)}
+                      >
+                        Delete
+                      </Button>
+                    )
                   )}
                 </td>
               </tr>
