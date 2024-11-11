@@ -2,7 +2,7 @@ import React from 'react'
 import styled from 'styled-components'
 
 interface TextInputProps {
-  value: string | null
+  value: string | number | null
   type: string
   name?: string
   // eslint-disable-next-line no-unused-vars
