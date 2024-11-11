@@ -94,7 +94,6 @@ const Staff: React.FC = () => {
       return matchesSearch && matchesRole && matchesVerified
     })
 
-    console.log('Filtered staff:', filtered) // Debugging log
     setFilteredStaff(filtered)
   }, [searchByEmailName, filterByRole, filterByVerified, staff])
 

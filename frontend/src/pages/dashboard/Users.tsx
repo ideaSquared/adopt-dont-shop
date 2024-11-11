@@ -1,15 +1,17 @@
 import {
   Badge,
   Button,
-  CheckboxInput,
   FormInput,
   SelectInput,
   Table,
   TextInput,
 } from '@adoptdontshop/components'
-import { User, UserService } from '@adoptdontshop/libs/users'
+import { AdminService } from '@adoptdontshop/libs/admin'
+import { UserService } from '@adoptdontshop/libs/users'
 import { Role } from '@adoptdontshop/permissions'
-import React, { useEffect, useMemo, useState } from 'react'
+import { useUser } from 'contexts/auth/UserContext'
+import { RoleDisplay } from 'contexts/permissions/Permission'
+import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 
 const BadgeWrapper = styled.div`
@@ -18,66 +20,106 @@ const BadgeWrapper = styled.div`
   flex-wrap: wrap;
 `
 
+interface UserWithRoles {
+  user_id: string
+  first_name: string
+  last_name: string
+  email: string
+  roles: RoleDisplay[]
+  email_verified: boolean
+}
+
 const Users: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([])
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const { user: currentUser } = useUser()
+  const [users, setUsers] = useState<UserWithRoles[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<UserWithRoles[]>([])
   const [searchByEmailName, setSearchByEmailName] = useState<string>('')
-  const [filterByAdmin, setFilterByAdmin] = useState<boolean>(false)
-  const [filterByVerified, setFilterByVerified] = useState<boolean>(false)
   const [filterByRole, setFilterByRole] = useState<Role | 'all'>('all')
+  const [showRoleDropdown, setShowRoleDropdown] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const fetchedUsers = await UserService.getUsers()
-        setUsers(fetchedUsers)
+        const users = await UserService.getUsers()
+        const transformedUsers = users.map((user) => ({
+          ...user,
+          roles: user.roles.map((role) => ({
+            role_id: role as Role,
+            role_name: role as RoleDisplay['role_name'],
+          })),
+        }))
+        setUsers(transformedUsers)
+        setFilteredUsers(transformedUsers)
       } catch (error) {
         console.error('Error fetching users:', error)
       }
     }
-
     fetchUsers()
   }, [])
 
-  const filtered = useMemo(() => {
-    return users.filter((user) => {
+  useEffect(() => {
+    const filtered = users.filter((user) => {
       const matchesSearch =
         !searchByEmailName ||
         user.email.toLowerCase().includes(searchByEmailName.toLowerCase()) ||
         user.first_name
           .toLowerCase()
           .includes(searchByEmailName.toLowerCase()) ||
-        (user.last_name
-          ?.toLowerCase()
-          .includes(searchByEmailName.toLowerCase()) ??
-          false)
-
-      const matchesVerified = !filterByVerified || user.reset_token_force_flag
+        user.last_name.toLowerCase().includes(searchByEmailName.toLowerCase())
 
       const matchesRole =
         filterByRole === 'all' ||
-        user.roles.some((role) => role === filterByRole)
+        user.roles.some((role) => role.role_name === filterByRole)
 
-      const matchesAdmin = !filterByAdmin || user.roles.includes(Role.ADMIN)
-
-      return matchesSearch && matchesVerified && matchesRole && matchesAdmin
+      return matchesSearch && matchesRole
     })
-  }, [searchByEmailName, filterByAdmin, filterByVerified, filterByRole, users])
-
-  useEffect(() => {
     setFilteredUsers(filtered)
-  }, [filtered])
+  }, [searchByEmailName, filterByRole, users])
 
-  const handleSearchByEmailName = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchByEmailName(e.target.value)
+  const handleAddRoleClick = (userId: string) => {
+    setShowRoleDropdown(userId === showRoleDropdown ? null : userId)
   }
 
-  const handleFilterByAdmin = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilterByAdmin(e.target.checked)
+  const handleRoleSelect = async (userId: string, selectedRole: Role) => {
+    try {
+      await AdminService.addRoleToUser(userId, selectedRole)
+      const updatedUsers = users.map((user) =>
+        user.user_id === userId
+          ? {
+              ...user,
+              roles: [
+                ...user.roles,
+                { role_id: selectedRole, role_name: selectedRole },
+              ],
+            }
+          : user,
+      )
+      setUsers(updatedUsers)
+      setFilteredUsers(updatedUsers)
+      setShowRoleDropdown(null)
+      alert('Role added')
+    } catch (error) {
+      console.error('Failed to assign role:', error)
+    }
   }
 
-  const handleFilterByVerified = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilterByVerified(e.target.checked)
+  const handleRemoveRole = async (userId: string, roleId: string) => {
+    try {
+      await AdminService.removeRoleFromUser(userId, roleId)
+      const updatedUsers = users.map((user) =>
+        user.user_id === userId
+          ? {
+              ...user,
+              roles: user.roles.filter((role) => role.role_id !== roleId),
+            }
+          : user,
+      )
+      setUsers(updatedUsers)
+      setFilteredUsers(updatedUsers)
+      alert('Role removed')
+    } catch (error) {
+      console.error('Failed to remove role:', error)
+    }
   }
 
   return (
@@ -87,16 +129,7 @@ const Users: React.FC = () => {
         <TextInput
           type="text"
           value={searchByEmailName}
-          onChange={handleSearchByEmailName}
-        />
-      </FormInput>
-      <FormInput label="Admin Only">
-        <CheckboxInput checked={filterByAdmin} onChange={handleFilterByAdmin} />
-      </FormInput>
-      <FormInput label="Verified Only">
-        <CheckboxInput
-          checked={filterByVerified}
-          onChange={handleFilterByVerified}
+          onChange={(e) => setSearchByEmailName(e.target.value)}
         />
       </FormInput>
       <FormInput label="Filter by Role">
@@ -127,35 +160,62 @@ const Users: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {Array.isArray(filteredUsers) && filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
-              <tr key={user.user_id}>
-                <td>{user.user_id}</td>
-                <td>{user.first_name}</td>
-                <td>{user.last_name}</td>
-                <td>{user.email}</td>
-                <td>
-                  <BadgeWrapper>
-                    {user.roles?.map((role) => (
-                      <Badge key={role} variant="info">
-                        {role.replace(/_/g, ' ').toUpperCase()}
+          {filteredUsers.map((user) => (
+            <tr key={user.user_id}>
+              <td>{user.user_id}</td>
+              <td>{user.first_name}</td>
+              <td>{user.last_name}</td>
+              <td>{user.email}</td>
+              <td>
+                <BadgeWrapper>
+                  {user.roles.map((role) => (
+                    <Badge
+                      key={role.role_id}
+                      variant="info"
+                      onActionClick={
+                        currentUser && currentUser.user_id !== user.user_id
+                          ? () => handleRemoveRole(user.user_id, role.role_id)
+                          : undefined
+                      }
+                      showAction={
+                        currentUser && currentUser.user_id !== user.user_id
+                      }
+                    >
+                      {role.role_name.replace(/_/g, ' ').toUpperCase()}
+                    </Badge>
+                  ))}
+                  {currentUser && currentUser.user_id !== user.user_id && (
+                    <>
+                      <Badge
+                        variant="success"
+                        onClick={() => handleAddRoleClick(user.user_id)}
+                      >
+                        +
                       </Badge>
-                    ))}
-                    {user.reset_token_force_flag && (
-                      <Badge variant="success">Force reset</Badge>
-                    )}
-                  </BadgeWrapper>
-                </td>
-                <td>
-                  <Button type="button">Delete</Button>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={6}>No users found</td>
+                      {showRoleDropdown === user.user_id && (
+                        <SelectInput
+                          options={Object.values(Role).map((role) => ({
+                            value: role,
+                            label: role.replace(/_/g, ' ').toUpperCase(),
+                          }))}
+                          placeholder="Choose a role"
+                          onChange={(e) =>
+                            handleRoleSelect(
+                              user.user_id,
+                              e.target.value as Role,
+                            )
+                          }
+                        />
+                      )}
+                    </>
+                  )}
+                </BadgeWrapper>
+              </td>
+              <td>
+                <Button type="button">Delete</Button>
+              </td>
             </tr>
-          )}
+          ))}
         </tbody>
       </Table>
     </div>
