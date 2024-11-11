@@ -10,6 +10,7 @@ import conversationRoutes from './routes/conversationRoutes'
 import featureFlagRoutes from './routes/featureFlagRoutes'
 import messageRoutes from './routes/messageRoutes'
 import participantRoutes from './routes/participantRoutes'
+import petRoutes from './routes/petRoutes'
 import rescueRoutes from './routes/rescueRoutes'
 import { AuditLogger } from './services/auditLogService'
 
@@ -65,6 +66,7 @@ AuditLogger.logAction('Server', 'Rescue routes setup complete', 'INFO')
 app.use('/api/conversations', conversationRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/participants', participantRoutes)
+app.use('/api/pets', petRoutes)
 
 app.use('/api/feature-flags', featureFlagRoutes)
 

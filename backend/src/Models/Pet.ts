@@ -2,7 +2,7 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import sequelize from '../sequelize'
 
-interface PetAttributes {
+export interface PetAttributes {
   pet_id: string
   name?: string
   owner_id?: string
@@ -30,7 +30,8 @@ interface PetAttributes {
   commitment_level?: string
 }
 
-interface PetCreationAttributes extends Optional<PetAttributes, 'pet_id'> {}
+export interface PetCreationAttributes
+  extends Optional<PetAttributes, 'pet_id'> {}
 
 class Pet
   extends Model<PetAttributes, PetCreationAttributes>
