@@ -25,7 +25,15 @@ export async function seed(queryInterface: QueryInterface) {
     },
     {
       email: 'rescue.manager@example.com',
-      roles: ['rescue_manager', 'verified_user', 'staff'],
+      roles: [
+        'rescue_manager',
+        'pet_manager',
+        'staff_manager',
+        'communications_manager',
+        'application_manager',
+        'verified_user',
+        'staff',
+      ],
     },
     {
       email: 'pet.manager@example.com',
@@ -49,7 +57,15 @@ export async function seed(queryInterface: QueryInterface) {
     },
     {
       email: 'rescue.manager2@example.com',
-      roles: ['rescue_manager', 'verified_user', 'staff'],
+      roles: [
+        'rescue_manager',
+        'pet_manager',
+        'staff_manager',
+        'communications_manager',
+        'application_manager',
+        'verified_user',
+        'staff',
+      ],
     },
   ]
 
