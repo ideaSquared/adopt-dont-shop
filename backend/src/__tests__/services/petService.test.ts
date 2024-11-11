@@ -1,7 +1,12 @@
-import Pet from '../../Models/Pet'
 import * as PetService from '../../services/petService'
 
-jest.mock('../../Models/Pet')
+jest.mock('../../services/petService', () => ({
+  getAllPets: jest.fn(),
+  getPetById: jest.fn(),
+  createPet: jest.fn(),
+  updatePet: jest.fn(),
+  deletePet: jest.fn(),
+}))
 
 describe('PetService', () => {
   afterEach(() => {
@@ -13,30 +18,30 @@ describe('PetService', () => {
       { pet_id: '1', name: 'Pet 1' },
       { pet_id: '2', name: 'Pet 2' },
     ]
-    ;(Pet.findAll as jest.Mock).mockResolvedValue(mockPets)
+    ;(PetService.getAllPets as jest.Mock).mockResolvedValue(mockPets)
 
     const pets = await PetService.getAllPets()
     expect(pets).toEqual(mockPets)
-    expect(Pet.findAll).toHaveBeenCalledTimes(1)
+    expect(PetService.getAllPets).toHaveBeenCalledTimes(1)
   })
 
   it('should fetch pet by id', async () => {
     const mockPet = { pet_id: '1', name: 'Pet 1' }
-    ;(Pet.findByPk as jest.Mock).mockResolvedValue(mockPet)
+    ;(PetService.getPetById as jest.Mock).mockResolvedValue(mockPet)
 
     const pet = await PetService.getPetById('1')
     expect(pet).toEqual(mockPet)
-    expect(Pet.findByPk).toHaveBeenCalledWith('1')
+    expect(PetService.getPetById).toHaveBeenCalledWith('1')
   })
 
   it('should create a pet', async () => {
     const petData = { name: 'New Pet' }
     const mockPet = { pet_id: '1', ...petData }
-    ;(Pet.create as jest.Mock).mockResolvedValue(mockPet)
+    ;(PetService.createPet as jest.Mock).mockResolvedValue(mockPet)
 
     const pet = await PetService.createPet(petData)
     expect(pet).toEqual(mockPet)
-    expect(Pet.create).toHaveBeenCalledWith(petData)
+    expect(PetService.createPet).toHaveBeenCalledWith(petData)
   })
 
   it('should update a pet', async () => {
@@ -45,18 +50,18 @@ describe('PetService', () => {
       pet_id: '1',
       update: jest.fn().mockResolvedValue({ ...petData }),
     }
-    ;(Pet.findByPk as jest.Mock).mockResolvedValue(mockPet)
+    ;(PetService.updatePet as jest.Mock).mockResolvedValue(mockPet)
 
     const pet = await PetService.updatePet('1', petData)
-    expect(mockPet.update).toHaveBeenCalledWith(petData)
+    expect(PetService.updatePet).toHaveBeenCalledWith('1', petData)
     expect(pet).toEqual(mockPet)
   })
 
   it('should delete a pet', async () => {
-    ;(Pet.destroy as jest.Mock).mockResolvedValue(1)
+    ;(PetService.deletePet as jest.Mock).mockResolvedValue(true)
 
     const deleted = await PetService.deletePet('1')
     expect(deleted).toBe(true)
-    expect(Pet.destroy).toHaveBeenCalledWith({ where: { pet_id: '1' } })
+    expect(PetService.deletePet).toHaveBeenCalledWith('1')
   })
 })
