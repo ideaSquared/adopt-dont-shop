@@ -1,6 +1,7 @@
 import {
   Badge,
   Button,
+  DateTime,
   FormInput,
   SelectInput,
   Table,
@@ -27,6 +28,9 @@ interface UserWithRoles {
   email: string
   roles: RoleDisplay[]
   email_verified: boolean
+  reset_token_force_flag?: boolean | null
+  created_at?: string
+  updated_at?: string
 }
 
 const Users: React.FC = () => {
@@ -160,6 +164,10 @@ const Users: React.FC = () => {
             <th>First Name</th>
             <th>Last Name</th>
             <th>Email</th>
+            <th>Email Verified</th>
+            <th>Reset Token Forced</th>
+            <th>Created At</th>
+            <th>Updated At</th>
             <th>Roles</th>
             <th>Actions</th>
           </tr>
@@ -171,6 +179,10 @@ const Users: React.FC = () => {
               <td>{user.first_name}</td>
               <td>{user.last_name}</td>
               <td>{user.email}</td>
+              <td>{user.email_verified ? 'Yes' : 'No'}</td>
+              <td>{user.reset_token_force_flag ? 'Yes' : 'No'}</td>
+              <td>{<DateTime timestamp={user.created_at || ''} />}</td>
+              <td>{<DateTime timestamp={user.updated_at || ''} />}</td>
               <td>
                 <BadgeWrapper>
                   {user.roles.map((role) => (

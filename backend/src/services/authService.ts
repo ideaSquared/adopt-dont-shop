@@ -31,6 +31,10 @@ export const getAllUsersService = async (): Promise<UserResponse> => {
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
+        email_verified: user.email_verified,
+        reset_token_force_flag: user.reset_token_force_flag,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
         roles,
       }
     }),

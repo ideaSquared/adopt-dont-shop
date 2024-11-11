@@ -8,6 +8,9 @@ export interface User {
   description?: string
   reset_token_force_flag?: boolean
   is_admin?: boolean
+  email_verified?: boolean
+  created_at?: Date
+  updated_at?: Date
   Roles?: Role[]
 }
 
