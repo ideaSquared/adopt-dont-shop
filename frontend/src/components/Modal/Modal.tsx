@@ -1,3 +1,4 @@
+import Button from 'components/Button'
 import React from 'react'
 import styled from 'styled-components'
 
@@ -6,10 +7,11 @@ interface ModalProps {
   children: React.ReactNode
   isOpen: boolean
   onClose: () => void
+  size?: 'small' | 'medium' | 'large'
 }
 
 const StyledModal = styled.div<{ isOpen: boolean }>`
-  display: ${(props: { isOpen: boolean }) => (props.isOpen ? 'block' : 'none')};
+  display: ${(props) => (props.isOpen ? 'block' : 'none')};
   position: fixed;
   top: 0;
   left: 0;
@@ -17,14 +19,22 @@ const StyledModal = styled.div<{ isOpen: boolean }>`
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 1050;
+  overflow-y: auto;
 `
 
-const StyledModalDialog = styled.div`
+const StyledModalDialog = styled.div<{ size: 'small' | 'medium' | 'large' }>`
   position: relative;
-  width: auto;
+  width: ${(props) =>
+    props.size === 'small'
+      ? '300px'
+      : props.size === 'medium'
+        ? '600px'
+        : '900px'};
   margin: 1.75rem auto;
   pointer-events: none;
-  max-width: 500px;
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
 `
 
 const StyledModalContent = styled.div`
@@ -38,6 +48,8 @@ const StyledModalContent = styled.div`
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 0.3rem;
   outline: 0;
+  max-height: 90vh;
+  overflow-y: auto;
 `
 
 const StyledModalHeader = styled.div`
@@ -66,33 +78,30 @@ const StyledModalFooter = styled.div`
   border-bottom-left-radius: 0.3rem;
 `
 
-const Modal: React.FC<ModalProps> = ({ title, children, isOpen, onClose }) => {
+const Modal: React.FC<ModalProps> = ({
+  title,
+  children,
+  isOpen,
+  onClose,
+  size = 'small',
+}) => {
   if (!isOpen) return null
 
   return (
     <StyledModal isOpen={isOpen}>
-      <StyledModalDialog role="dialog" aria-labelledby="modal-title">
+      <StyledModalDialog role="dialog" size={size}>
         <StyledModalContent>
           <StyledModalHeader>
-            <h5 id="modal-title" className="modal-title">
-              {title}
-            </h5>
-            <button
-              type="button"
-              className="btn-close"
-              aria-label="Close"
-              onClick={onClose}
-            ></button>
+            <h2>{title}</h2>
+            <Button type="button" aria-label="Close" onClick={onClose}>
+              &times;
+            </Button>
           </StyledModalHeader>
           <StyledModalBody>{children}</StyledModalBody>
           <StyledModalFooter>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onClose}
-            >
+            <Button type="button" onClick={onClose}>
               Close
-            </button>
+            </Button>
           </StyledModalFooter>
         </StyledModalContent>
       </StyledModalDialog>
