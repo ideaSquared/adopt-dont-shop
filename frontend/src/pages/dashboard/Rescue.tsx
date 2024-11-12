@@ -64,7 +64,6 @@ const Rescue: React.FC = () => {
         country,
         reference_number: referenceNumber,
       })
-      console.log('Rescue updated successfully:', updatedRescue)
     } catch (error) {
       console.error('Error updating rescue:', error)
     }
