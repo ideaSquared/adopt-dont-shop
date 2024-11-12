@@ -1,4 +1,5 @@
 import {
+  Button,
   FormInput,
   SelectInput,
   Table,
@@ -6,20 +7,6 @@ import {
 } from '@adoptdontshop/components'
 import { Rescue, RescueService } from '@adoptdontshop/libs/rescues'
 import React, { ChangeEvent, useEffect, useMemo, useState } from 'react'
-import styled from 'styled-components'
-
-const StyledButton = styled.button`
-  background: none;
-  border: none;
-  padding: 0;
-  text-decoration: underline;
-  color: blue;
-  cursor: pointer;
-
-  &:focus {
-    outline: 2px solid #007bff; /* Optional: for better accessibility */
-  }
-`
 
 const Rescues: React.FC = () => {
   const [rescues, setRescues] = useState<Rescue[]>([])
@@ -140,11 +127,12 @@ const Rescues: React.FC = () => {
                 ))}
               </td>
               <td>
-                <StyledButton
+                <Button
+                  variant="danger"
                   onClick={() => console.log(`Delete ${rescue.rescue_id}`)}
                 >
                   Delete
-                </StyledButton>
+                </Button>
               </td>
             </tr>
           ))}
