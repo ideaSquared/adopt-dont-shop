@@ -1,3 +1,4 @@
+// src/components/Ratings.tsx
 import {
   DateTime,
   FormInput,
@@ -15,9 +16,17 @@ const Ratings: React.FC = () => {
   const [filterByType, setFilterByType] = useState<RatingType | null>(null)
 
   useEffect(() => {
-    const fetchedRatings = RatingService.getRatings()
-    setRatings(fetchedRatings)
-    setFilteredRatings(fetchedRatings)
+    const fetchRatings = async () => {
+      try {
+        const fetchedRatings = await RatingService.getAllRatings()
+        console.log('Fetched Ratings:', fetchedRatings) // Log data here
+        setRatings(fetchedRatings)
+        setFilteredRatings(fetchedRatings)
+      } catch (error) {
+        console.error('Error fetching ratings:', error)
+      }
+    }
+    fetchRatings()
   }, [])
 
   useEffect(() => {
@@ -26,7 +35,7 @@ const Ratings: React.FC = () => {
         !searchTerm ||
         rating.pet_id.includes(searchTerm) ||
         rating.user_id.includes(searchTerm)
-      const matchesType = !filterByType || rating.type === filterByType
+      const matchesType = !filterByType || rating.rating_type === filterByType
       return matchesSearch && matchesType
     })
     setFilteredRatings(filtered)
@@ -40,7 +49,7 @@ const Ratings: React.FC = () => {
     setFilterByType(e.target.value as RatingType)
   }
 
-  const ratingTypes: RatingType[] = ['LIKE', 'LOVE', 'DISLIKE']
+  const ratingTypes: RatingType[] = ['like', 'love', 'dislike']
 
   const handleTypeToSentenceCase = (type: string) => {
     return type.charAt(0) + type.slice(1).toLowerCase()
@@ -77,7 +86,8 @@ const Ratings: React.FC = () => {
             <th>Pet ID</th>
             <th>User ID</th>
             <th>Rating Type</th>
-            <th>Timestamp</th>
+            <th>Created at</th>
+            <th>Updated at</th>
           </tr>
         </thead>
         <tbody>
@@ -85,9 +95,13 @@ const Ratings: React.FC = () => {
             <tr key={rating.rating_id}>
               <td>{rating.pet_id}</td>
               <td>{rating.user_id}</td>
-              <td>{handleTypeToSentenceCase(rating.type)}</td>
+              <td>{handleTypeToSentenceCase(rating.rating_type)}</td>
               <td>
-                <DateTime timestamp={rating.timestamp} />
+                <DateTime timestamp={rating.created_at} />
+              </td>
+
+              <td>
+                <DateTime timestamp={rating.updated_at} />
               </td>
             </tr>
           ))}

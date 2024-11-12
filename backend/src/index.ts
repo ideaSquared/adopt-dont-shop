@@ -11,6 +11,7 @@ import featureFlagRoutes from './routes/featureFlagRoutes'
 import messageRoutes from './routes/messageRoutes'
 import participantRoutes from './routes/participantRoutes'
 import petRoutes from './routes/petRoutes'
+import ratingRoutes from './routes/ratingRoutes'
 import rescueRoutes from './routes/rescueRoutes'
 import { AuditLogger } from './services/auditLogService'
 
@@ -67,6 +68,8 @@ app.use('/api/conversations', conversationRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/participants', participantRoutes)
 app.use('/api/pets', petRoutes)
+
+app.use('/api/ratings', ratingRoutes)
 
 app.use('/api/feature-flags', featureFlagRoutes)
 

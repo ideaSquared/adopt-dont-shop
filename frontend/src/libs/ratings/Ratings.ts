@@ -1,9 +1,10 @@
-export type RatingType = 'LIKE' | 'LOVE' | 'DISLIKE'
+export type RatingType = 'like' | 'love' | 'dislike'
 
 export interface Rating {
   rating_id: string
   pet_id: string
   user_id: string
-  type: RatingType
-  timestamp: Date
+  rating_type: RatingType
+  created_at: Date
+  updated_at: Date
 }

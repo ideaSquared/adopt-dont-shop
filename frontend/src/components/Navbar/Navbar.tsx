@@ -88,7 +88,6 @@ const Navbar: React.FC = () => {
                 triggerLabel="Staff"
                 items={[
                   { label: 'Applications', to: '/applications' },
-                  { label: 'Ratings', to: '/ratings' },
                   { label: 'Pets', to: '/pets' },
                   { label: 'Staff', to: '/staff' },
                   { label: 'Settings', to: '/rescue' },
@@ -109,6 +108,7 @@ const Navbar: React.FC = () => {
                   { label: 'Logs', to: '/logs' },
                   { label: 'Rescues', to: '/rescues' },
                   { label: 'Feature flags', to: '/feature-flags' },
+                  { label: 'Ratings', to: '/ratings' },
                 ]}
               />
             </NavItem>

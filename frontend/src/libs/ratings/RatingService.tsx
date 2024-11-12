@@ -1,81 +1,68 @@
+// src/services/RatingService.ts
 import { Rating, RatingType } from './Ratings'
 
-const ratings: Rating[] = [
-  {
-    pet_id: 'pet_001',
-    user_id: 'user_001',
-    type: 'LIKE',
-    timestamp: new Date('2024-08-01T10:20:30Z'),
-  },
-  {
-    pet_id: 'pet_002',
-    user_id: 'user_002',
-    type: 'LOVE',
-    timestamp: new Date('2024-08-02T11:21:31Z'),
-  },
-  {
-    pet_id: 'pet_003',
-    user_id: 'user_003',
-    type: 'DISLIKE',
-    timestamp: new Date('2024-08-03T12:22:32Z'),
-  },
-  {
-    pet_id: 'pet_004',
-    user_id: 'user_004',
-    type: 'LIKE',
-    timestamp: new Date('2024-08-04T13:23:33Z'),
-  },
-  {
-    pet_id: 'pet_005',
-    user_id: 'user_005',
-    type: 'LOVE',
-    timestamp: new Date('2024-08-05T14:24:34Z'),
-  },
-  {
-    pet_id: 'pet_006',
-    user_id: 'user_006',
-    type: 'DISLIKE',
-    timestamp: new Date('2024-08-06T15:25:35Z'),
-  },
-  {
-    pet_id: 'pet_007',
-    user_id: 'user_007',
-    type: 'LIKE',
-    timestamp: new Date('2024-08-07T16:26:36Z'),
-  },
-  {
-    pet_id: 'pet_008',
-    user_id: 'user_008',
-    type: 'LOVE',
-    timestamp: new Date('2024-08-08T17:27:37Z'),
-  },
-  {
-    pet_id: 'pet_009',
-    user_id: 'user_009',
-    type: 'DISLIKE',
-    timestamp: new Date('2024-08-09T18:28:38Z'),
-  },
-  {
-    pet_id: 'pet_010',
-    user_id: 'user_010',
-    type: 'LIKE',
-    timestamp: new Date('2024-08-10T19:29:39Z'),
-  },
-]
+const API_BASE_URL = 'http://localhost:5000/api'
 
-const getRatings = (): Rating[] => ratings
+export const getAllRatings = async (): Promise<Rating[]> => {
+  const response = await fetch(`${API_BASE_URL}/ratings`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  })
+  if (!response.ok) {
+    throw new Error('Failed to fetch ratings')
+  }
+  return response.json()
+}
 
-const getRatingsByPetId = (pet_id: string): Rating | undefined =>
-  ratings.find((rating) => rating.pet_id === pet_id)
+export const getRatingsByPetId = async (pet_id: string): Promise<Rating[]> => {
+  const response = await fetch(`${API_BASE_URL}/ratings/pet/${pet_id}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  })
+  if (!response.ok) {
+    throw new Error('Failed to fetch ratings by pet ID')
+  }
+  return response.json()
+}
 
-const getRatingsByUserId = (user_id: string): Rating | undefined =>
-  ratings.find((rating) => rating.user_id === user_id)
+export const getRatingsByUserId = async (
+  user_id: string,
+): Promise<Rating[]> => {
+  const response = await fetch(`${API_BASE_URL}/ratings/user/${user_id}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  })
+  if (!response.ok) {
+    throw new Error('Failed to fetch ratings by user ID')
+  }
+  return response.json()
+}
 
-const getRatingsByType = (type: RatingType): Rating[] =>
-  ratings.filter((rating) => rating.type === type)
+export const getRatingsByType = async (type: RatingType): Promise<Rating[]> => {
+  const response = await fetch(`${API_BASE_URL}/ratings?type=${type}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  })
+  if (!response.ok) {
+    throw new Error('Failed to fetch ratings by type')
+  }
+  return response.json()
+}
 
 export default {
-  getRatings,
+  getAllRatings,
   getRatingsByPetId,
   getRatingsByUserId,
   getRatingsByType,
