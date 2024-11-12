@@ -10,7 +10,7 @@ import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
 
 const Rescue: React.FC = () => {
-  const { rescue } = useUser()
+  const { rescue, setRescue } = useUser()
   const [rescueId, setRescueId] = useState('')
   const [rescueName, setRescueName] = useState('')
   const [rescueType, setRescueType] = useState<
@@ -18,21 +18,30 @@ const Rescue: React.FC = () => {
   >(undefined)
   const [referenceNumber, setReferenceNumber] = useState<string | undefined>()
   const [country, setCountry] = useState('United Kingdom')
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Populate fields with the rescue data from context
+  // Fetch the latest rescue data by ID on mount to ensure data persists
   useEffect(() => {
-    if (rescue) {
-      setRescueName(rescue.rescue_name || '')
-      setRescueType(rescue.rescue_type || '')
-      setCountry(rescue.country || 'United Kingdom')
-      setRescueId(rescue.rescue_id)
+    const fetchRescueData = async () => {
+      if (rescue && !isInitialized) {
+        const freshRescue = await RescueService.getRescueById(rescue.rescue_id)
+        if (freshRescue) {
+          setRescue(freshRescue) // Update the context with fresh data
+          setRescueName(freshRescue.rescue_name || '')
+          setRescueType(freshRescue.rescue_type || '')
+          setCountry(freshRescue.country || 'United Kingdom')
+          setRescueId(freshRescue.rescue_id)
 
-      // Check if the rescue is of type OrganizationRescue to set the reference number
-      if ('reference_number' in rescue) {
-        setReferenceNumber(rescue.reference_number)
+          // Set reference number if it's an OrganizationRescue
+          if ('reference_number' in freshRescue) {
+            setReferenceNumber(freshRescue.reference_number)
+          }
+          setIsInitialized(true) // Prevent further updates to form state
+        }
       }
     }
-  }, [rescue])
+    fetchRescueData()
+  }, [rescue, setRescue, isInitialized])
 
   const handleRescueNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRescueName(e.target.value)
@@ -64,6 +73,7 @@ const Rescue: React.FC = () => {
         country,
         reference_number: referenceNumber,
       })
+      setRescue(updatedRescue ?? null)
     } catch (error) {
       console.error('Error updating rescue:', error)
     }
@@ -72,27 +82,6 @@ const Rescue: React.FC = () => {
   return (
     <div>
       <h1>Rescue</h1>
-
-      {/* TODO: Turn this into a little info card showing the data we hold already */}
-      {/* <Card title="Rescue Information">
-        <p>
-          <strong>Rescue ID:</strong> {rescueId}
-        </p>
-        <p>
-          <strong>Rescue Name:</strong> {rescueName}
-        </p>
-        <p>
-          <strong>Rescue Type:</strong> {rescueType}
-        </p>
-        <p>
-          <strong>Country:</strong> {country}
-        </p>
-        {referenceNumber && (
-          <p>
-            <strong>Reference Number:</strong> {referenceNumber}
-          </p>
-        )}
-      </Card> */}
 
       <form onSubmit={handleSubmit}>
         <FormInput label="Rescue name">
@@ -123,9 +112,6 @@ const Rescue: React.FC = () => {
               onChange={handleReferenceNumberChange}
               placeholder="Enter reference number"
             />
-            {/* <Button type="button" onClick={handleSubmit}>
-              Submit for verification
-            </Button> */}
           </FormInput>
         )}
         <FormInput label="Country">
