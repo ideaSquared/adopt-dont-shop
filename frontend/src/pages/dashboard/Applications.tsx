@@ -1,27 +1,40 @@
-import React, { useState, useEffect } from 'react'
 import {
+  Badge,
+  Button,
+  CheckboxInput,
   FormInput,
   SelectInput,
-  TextInput,
-  CheckboxInput,
   Table,
-  Button,
+  TextInput,
 } from '@adoptdontshop/components'
 import {
   Application,
   ApplicationService,
 } from '@adoptdontshop/libs/applications'
+import { useUser } from 'contexts/auth/UserContext'
+import React, { useEffect, useState } from 'react'
 
 const Applications: React.FC = () => {
+  const { rescue } = useUser()
   const [applications, setApplications] = useState<Application[]>([])
   const [searchTerm, setSearchTerm] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
   const [onlyWaiting, setOnlyWaiting] = useState<boolean>(false)
 
+  // Fetch applications data from backend on component mount
   useEffect(() => {
-    const fetchedApplications = ApplicationService.getApplications()
-    setApplications(fetchedApplications)
-  }, [])
+    if (!rescue) return
+    const fetchApplications = async () => {
+      try {
+        const fetchedApplications =
+          await ApplicationService.getApplicationsByRescueId(rescue.rescue_id)
+        setApplications(fetchedApplications)
+      } catch (error) {
+        console.error('Error fetching applications:', error)
+      }
+    }
+    fetchApplications()
+  }, [rescue])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
@@ -37,6 +50,25 @@ const Applications: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setOnlyWaiting((prevState) => !prevState)
+  }
+
+  const handleStatusUpdate = async (
+    applicationId: string,
+    newStatus: string,
+  ) => {
+    try {
+      const updatedApplication = await ApplicationService.updateApplication(
+        applicationId,
+        { status: newStatus },
+      )
+      setApplications((prevApplications) =>
+        prevApplications.map((app) =>
+          app.application_id === applicationId ? updatedApplication : app,
+        ),
+      )
+    } catch (error) {
+      console.error(`Error updating application status:`, error)
+    }
   }
 
   const filteredApplications = applications.filter((application) => {
@@ -59,7 +91,7 @@ const Applications: React.FC = () => {
 
   return (
     <div>
-      <h1>Applications</h1>
+      <h1>Applications {rescue?.rescue_id}</h1>
       <FormInput label="Search by first name or pet name">
         <TextInput
           value={searchTerm || ''}
@@ -97,12 +129,49 @@ const Applications: React.FC = () => {
               <td>{application.first_name}</td>
               <td>{application.pet_name}</td>
               <td>{application.description}</td>
-              <td>{application.status}</td>
+              <td>
+                <Badge>
+                  {application.status.charAt(0).toUpperCase() +
+                    application.status.slice(1)}
+                </Badge>
+              </td>
               <td>{application.actioned_by || 'N/A'}</td>
               <td>
-                <Button type="button">View</Button>
-                <Button type="button">Approve</Button>
-                <Button type="button">Reject</Button>
+                {application.status === 'pending' ? (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        handleStatusUpdate(
+                          application.application_id,
+                          'approved',
+                        )
+                      }
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        handleStatusUpdate(
+                          application.application_id,
+                          'rejected',
+                        )
+                      }
+                    >
+                      Reject
+                    </Button>
+                  </>
+                ) : (
+                  <Badge
+                    variant={
+                      application.status === 'approved' ? 'success' : 'warning'
+                    }
+                  >
+                    {application.status.charAt(0).toUpperCase() +
+                      application.status.slice(1)}
+                  </Badge>
+                )}
               </td>
             </tr>
           ))}

@@ -4,6 +4,7 @@ import express, { Application, Request, Response } from 'express'
 import { connectToDatabase } from './DatabaseConnection'
 import errorHandler from './middleware/errorHandler'
 import adminRoutes from './routes/adminRoutes'
+import applicationRoutes from './routes/applicationRoutes'
 import auditLogRoutes from './routes/auditLogRoutes'
 import authRoutes from './routes/authRoutes'
 import conversationRoutes from './routes/conversationRoutes'
@@ -70,6 +71,7 @@ app.use('/api/participants', participantRoutes)
 app.use('/api/pets', petRoutes)
 
 app.use('/api/ratings', ratingRoutes)
+app.use('/api/applications', applicationRoutes)
 
 app.use('/api/feature-flags', featureFlagRoutes)
 
