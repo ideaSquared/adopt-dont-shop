@@ -6,6 +6,7 @@ import {
   SelectInput,
   Table,
   TextInput,
+  Tooltip,
 } from '@adoptdontshop/components'
 import {
   Application,
@@ -126,7 +127,11 @@ const Applications: React.FC = () => {
         <tbody>
           {filteredApplications.map((application) => (
             <tr key={application.application_id}>
-              <td>{application.first_name}</td>
+              <td>
+                <Tooltip content={application.user_id}>
+                  <span>{application.applicant_first_name || 'N/A'}</span>
+                </Tooltip>
+              </td>
               <td>{application.pet_name}</td>
               <td>{application.description}</td>
               <td>
@@ -135,7 +140,11 @@ const Applications: React.FC = () => {
                     application.status.slice(1)}
                 </Badge>
               </td>
-              <td>{application.actioned_by || 'N/A'}</td>
+              <td>
+                <Tooltip content={application.actioned_by}>
+                  <span>{application.actioned_by_first_name || 'N/A'}</span>
+                </Tooltip>
+              </td>
               <td>
                 {application.status === 'pending' ? (
                   <>

@@ -1,5 +1,5 @@
 import { Op } from 'sequelize'
-import { Application, Pet } from '../Models/'
+import { Application, Pet, User } from '../Models/'
 
 export const createApplication = async (data: any) => {
   return Application.create(data)
@@ -18,13 +18,11 @@ export const getApplicationsByRescueId = async (rescueId: string) => {
     // Step 1: Find all pets belonging to the specified rescue
     const pets = await Pet.findAll({
       where: { owner_id: rescueId },
-      attributes: ['pet_id'], // Only retrieve the pet_id field to keep it light
+      attributes: ['pet_id'],
     })
 
-    // Extract pet IDs from the result
     const petIds = pets.map((pet) => pet.pet_id)
 
-    // Skip Application.findAll if there are no pets
     if (petIds.length === 0) {
       return []
     }
@@ -34,18 +32,76 @@ export const getApplicationsByRescueId = async (rescueId: string) => {
       where: { pet_id: { [Op.in]: petIds } },
     })
 
-    return applications
+    if (applications.length === 0) {
+      return []
+    }
+
+    // Step 3: Extract unique IDs
+    const applicationPetIds = Array.from(
+      new Set(applications.map((app) => app.pet_id)),
+    )
+    const userIds = Array.from(new Set(applications.map((app) => app.user_id)))
+    const actionedByIds = Array.from(
+      new Set(
+        applications.map((app) => app.actioned_by).filter((id) => id != null),
+      ),
+    )
+
+    // Step 4: Fetch pet names
+    const petsData = await Pet.findAll({
+      where: { pet_id: { [Op.in]: applicationPetIds } },
+      attributes: ['pet_id', 'name'],
+    })
+
+    const petsMap: { [key: string]: string } = {}
+    petsData.forEach((pet) => {
+      petsMap[pet.pet_id] = pet.name
+    })
+
+    // Step 5: Fetch applicant user info
+    const usersData = await User.findAll({
+      where: { user_id: { [Op.in]: userIds } },
+      attributes: ['user_id', 'first_name'],
+    })
+
+    const usersMap: { [key: string]: string } = {}
+    usersData.forEach((user) => {
+      usersMap[user.user_id] = user.first_name
+    })
+
+    // Step 6: Fetch actioned_by user info
+    let actionedByMap: { [key: string]: string } = {}
+    if (actionedByIds.length > 0) {
+      const actionedByData = await User.findAll({
+        where: { user_id: { [Op.in]: actionedByIds } },
+        attributes: ['user_id', 'first_name'],
+      })
+      actionedByData.forEach((user) => {
+        actionedByMap[user.user_id] = user.first_name
+      })
+    }
+
+    // Step 7: Enrich applications with additional data
+    const enrichedApplications = applications.map((app) => ({
+      ...app.toJSON(),
+      pet_name: petsMap[app.pet_id] || null,
+      applicant_first_name: usersMap[app.user_id] || null,
+      actioned_by_first_name: app.actioned_by
+        ? actionedByMap[app.actioned_by] || null
+        : null,
+    }))
+
+    return enrichedApplications
   } catch (error) {
-    // Type assertion for error handling
     if (error instanceof Error) {
       throw new Error(
         `Error fetching applications for rescue: ${error.message}`,
       )
     }
-    // If error is not an instance of Error, throw a generic message
     throw new Error('An unknown error occurred while fetching applications')
   }
 }
+
 export const updateApplication = async (applicationId: string, data: any) => {
   const application = await Application.findByPk(applicationId)
   if (application) {
