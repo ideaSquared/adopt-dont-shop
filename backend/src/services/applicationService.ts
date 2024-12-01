@@ -102,10 +102,17 @@ export const getApplicationsByRescueId = async (rescueId: string) => {
   }
 }
 
-export const updateApplication = async (applicationId: string, data: any) => {
+export const updateApplication = async (
+  applicationId: string,
+  data: any,
+  userId: string,
+) => {
   const application = await Application.findByPk(applicationId)
   if (application) {
-    return application.update(data)
+    return application.update({
+      ...data,
+      actioned_by: userId,
+    })
   }
   return null
 }

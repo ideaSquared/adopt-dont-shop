@@ -58,15 +58,12 @@ const Applications: React.FC = () => {
     newStatus: string,
   ) => {
     try {
-      const updatedApplication = await ApplicationService.updateApplication(
-        applicationId,
-        { status: newStatus },
-      )
-      setApplications((prevApplications) =>
-        prevApplications.map((app) =>
-          app.application_id === applicationId ? updatedApplication : app,
-        ),
-      )
+      await ApplicationService.updateApplication(applicationId, {
+        status: newStatus,
+      })
+      const refreshedApplications =
+        await ApplicationService.getApplicationsByRescueId(rescue!.rescue_id)
+      setApplications(refreshedApplications)
     } catch (error) {
       console.error(`Error updating application status:`, error)
     }
@@ -135,7 +132,15 @@ const Applications: React.FC = () => {
               <td>{application.pet_name}</td>
               <td>{application.description}</td>
               <td>
-                <Badge>
+                <Badge
+                  variant={
+                    application.status === 'approved'
+                      ? 'success'
+                      : application.status === 'rejected'
+                        ? 'warning'
+                        : 'content'
+                  }
+                >
                   {application.status.charAt(0).toUpperCase() +
                     application.status.slice(1)}
                 </Badge>

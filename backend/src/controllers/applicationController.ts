@@ -49,10 +49,17 @@ export const updateApplication = async (
 ) => {
   try {
     const { id } = req.params
+    const { user } = req // Get the user object from the request
+    if (!user || !user.user_id) {
+      return res.status(403).json({ message: 'Unauthorized' })
+    }
+
     const updatedApplication = await ApplicationService.updateApplication(
       id,
       req.body,
+      user.user_id, // Pass the user_id to the service
     )
+
     if (updatedApplication) {
       res.status(200).json(updatedApplication)
     } else {
