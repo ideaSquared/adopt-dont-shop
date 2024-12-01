@@ -62,6 +62,15 @@ const Settings: React.FC = () => {
       {user ? (
         <>
           <form onSubmit={handleSubmit}>
+            <FormInput label="User ID">
+              <TextInput
+                type="text"
+                name="user_id"
+                value={user.user_id}
+                onChange={() => {}}
+                disabled
+              />
+            </FormInput>
             <FormInput label="First name">
               <TextInput
                 type="text"
