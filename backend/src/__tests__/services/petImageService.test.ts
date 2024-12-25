@@ -1,5 +1,5 @@
 import { Pet } from '../../Models'
-import * as PetService from '../../services/petImageService' // Assuming the service uses the Pet model now
+import * as PetService from '../../services/petImageService'
 
 // Mock the Pet model methods
 jest.mock('../../Models', () => ({
