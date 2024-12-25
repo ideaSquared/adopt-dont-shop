@@ -1,4 +1,3 @@
-// src/models/index.ts
 import Application from './Application'
 import { AuditLog } from './AuditLog'
 import Conversation from './Conversation'
@@ -8,6 +7,7 @@ import Message from './Message'
 import Participant from './Participant'
 import Permission from './Permission'
 import Pet from './Pet'
+import PetImage from './PetImage'
 import Rating from './Rating'
 import Rescue, { RescueCreationAttributes } from './Rescue'
 import Role from './Role'
@@ -18,6 +18,8 @@ import UserPreference from './UserPreference'
 import UserRole from './UserRole'
 
 // Associations
+
+// User & Role Associations
 User.belongsToMany(Role, {
   through: UserRole,
   foreignKey: 'user_id',
@@ -29,6 +31,7 @@ Role.belongsToMany(User, {
   as: 'Users',
 })
 
+// Role & Permission Associations
 Role.belongsToMany(Permission, {
   through: RolePermission,
   foreignKey: 'role_id',
@@ -43,11 +46,10 @@ Permission.belongsToMany(Role, {
 // Conversation Associations
 Conversation.belongsTo(User, { foreignKey: 'started_by', as: 'starter' })
 Conversation.belongsTo(Pet, { foreignKey: 'pet_id' })
-Conversation.hasMany(Message, { foreignKey: 'conversation_id' }) // If needed to access messages via Conversation
+Conversation.hasMany(Message, { foreignKey: 'conversation_id' })
 Conversation.hasMany(Participant, {
-  as: 'participants',
   foreignKey: 'conversation_id',
-  sourceKey: 'conversation_id',
+  as: 'participants',
 })
 
 // Participant Associations
@@ -59,39 +61,31 @@ Participant.belongsTo(Rescue, { foreignKey: 'rescue_id' })
 Message.belongsTo(Conversation, { foreignKey: 'conversation_id' })
 Message.belongsTo(User, { foreignKey: 'sender_id', as: 'User' })
 
+// Pet & Rescue Associations
 Pet.belongsTo(Rescue, { foreignKey: 'owner_id' })
+Pet.hasMany(PetImage, { foreignKey: 'pet_id', as: 'images' })
 
+// PetImage Associations
+PetImage.belongsTo(Pet, { foreignKey: 'pet_id', as: 'pet' })
+
+// Rating Associations
 Rating.belongsTo(User, { foreignKey: 'user_id' })
 Rating.belongsTo(Pet, { foreignKey: 'pet_id' })
 
+// StaffMember Associations
 StaffMember.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
 StaffMember.belongsTo(Rescue, { foreignKey: 'rescue_id' })
 
-Rescue.hasMany(StaffMember, {
-  foreignKey: 'rescue_id',
-  as: 'staff',
-})
+// Rescue Associations
+Rescue.hasMany(StaffMember, { foreignKey: 'rescue_id', as: 'staff' })
+Rescue.hasMany(Invitation, { foreignKey: 'rescue_id', as: 'invitations' })
 
-UserPreference.belongsTo(User, { foreignKey: 'user_id' })
-
-// Rescue has many Invitations
-Rescue.hasMany(Invitation, { as: 'invitations', foreignKey: 'rescue_id' })
-Invitation.belongsTo(Rescue, { as: 'rescue', foreignKey: 'rescue_id' })
-
-// User can be invited multiple times (optional, based on your requirements)
-// User.hasMany(Invitation, {
-//   as: 'invitations',
-//   foreignKey: 'email',
-//   sourceKey: 'email',
-// })
-// Invitation.belongsTo(User, {
-//   as: 'user',
-//   foreignKey: 'email',
-//   targetKey: 'email',
-// })
-
-User.hasMany(Invitation, { foreignKey: 'user_id' })
+// Invitation Associations
+Invitation.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' })
 Invitation.belongsTo(User, { foreignKey: 'user_id' })
+
+// UserPreference Associations
+UserPreference.belongsTo(User, { foreignKey: 'user_id' })
 
 export {
   Application,
@@ -103,6 +97,7 @@ export {
   Participant,
   Permission,
   Pet,
+  PetImage,
   Rating,
   Rescue,
   RescueCreationAttributes,

@@ -1,6 +1,7 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express, { Application, Request, Response } from 'express'
+import path from 'path'
 import { connectToDatabase } from './DatabaseConnection'
 import errorHandler from './middleware/errorHandler'
 import adminRoutes from './routes/adminRoutes'
@@ -11,6 +12,7 @@ import conversationRoutes from './routes/conversationRoutes'
 import featureFlagRoutes from './routes/featureFlagRoutes'
 import messageRoutes from './routes/messageRoutes'
 import participantRoutes from './routes/participantRoutes'
+import petImageRoutes from './routes/petImageRoutes'
 import petRoutes from './routes/petRoutes'
 import ratingRoutes from './routes/ratingRoutes'
 import rescueRoutes from './routes/rescueRoutes'
@@ -69,11 +71,14 @@ app.use('/api/conversations', conversationRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/participants', participantRoutes)
 app.use('/api/pets', petRoutes)
+app.use('/api/pets', petImageRoutes)
 
 app.use('/api/ratings', ratingRoutes)
 app.use('/api/applications', applicationRoutes)
 
 app.use('/api/feature-flags', featureFlagRoutes)
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, TypeScript with Express!')
