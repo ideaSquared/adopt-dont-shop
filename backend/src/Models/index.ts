@@ -7,7 +7,6 @@ import Message from './Message'
 import Participant from './Participant'
 import Permission from './Permission'
 import Pet from './Pet'
-import PetImage from './PetImage'
 import Rating from './Rating'
 import Rescue, { RescueCreationAttributes } from './Rescue'
 import Role from './Role'
@@ -63,10 +62,6 @@ Message.belongsTo(User, { foreignKey: 'sender_id', as: 'User' })
 
 // Pet & Rescue Associations
 Pet.belongsTo(Rescue, { foreignKey: 'owner_id' })
-Pet.hasMany(PetImage, { foreignKey: 'pet_id', as: 'images' })
-
-// PetImage Associations
-PetImage.belongsTo(Pet, { foreignKey: 'pet_id', as: 'pet' })
 
 // Rating Associations
 Rating.belongsTo(User, { foreignKey: 'user_id' })
@@ -97,7 +92,6 @@ export {
   Participant,
   Permission,
   Pet,
-  PetImage,
   Rating,
   Rescue,
   RescueCreationAttributes,
