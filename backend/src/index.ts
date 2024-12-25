@@ -61,21 +61,14 @@ AuditLogger.logAction('Server', 'Auth routes setup complete', 'INFO')
 
 app.use('/api/admin', adminRoutes)
 app.use('/api/admin', auditLogRoutes)
-AuditLogger.logAction('Server', 'Admin routes setup complete', 'INFO')
-
-// Use rescue routes
 app.use('/api/rescue', rescueRoutes)
-AuditLogger.logAction('Server', 'Rescue routes setup complete', 'INFO')
-
 app.use('/api/conversations', conversationRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/participants', participantRoutes)
 app.use('/api/pets', petRoutes)
 app.use('/api/pets', petImageRoutes)
-
 app.use('/api/ratings', ratingRoutes)
 app.use('/api/applications', applicationRoutes)
-
 app.use('/api/feature-flags', featureFlagRoutes)
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
