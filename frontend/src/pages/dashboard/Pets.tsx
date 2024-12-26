@@ -2,6 +2,7 @@ import {
   Badge,
   Button,
   FormInput,
+  ImageGallery,
   Modal,
   SelectInput,
   TextInput,
@@ -82,6 +83,7 @@ const Pets: React.FC = () => {
   const [household, setHousehold] = useState('')
   const [energy, setEnergy] = useState('')
   const [family, setFamily] = useState('')
+  const [images, setImages] = useState<string[]>([])
 
   useEffect(() => {
     const fetchPets = async () => {
@@ -157,6 +159,7 @@ const Pets: React.FC = () => {
     setHousehold(pet.household)
     setEnergy(pet.energy)
     setFamily(pet.family)
+    setImages(pet.images || [])
     setIsEditModalOpen(true)
   }
 
@@ -181,6 +184,7 @@ const Pets: React.FC = () => {
           household,
           energy,
           family,
+          images,
         })
         setPets((prevPets) =>
           prevPets.map((pet) =>
@@ -208,6 +212,44 @@ const Pets: React.FC = () => {
       )
     }
   }
+
+  const handleImageUpload = (file: File) => {
+    const reader = new FileReader()
+
+    // onload is triggered once FileReader finishes reading
+    reader.onload = (e) => {
+      // e.target?.result can be string | ArrayBuffer | null
+      const result = e.target?.result
+
+      // Ensure result is a string before updating state
+      if (typeof result === 'string') {
+        setImages((prevImages) => [...prevImages, result])
+      }
+    }
+
+    // Read the file as a data URL (base64)
+    reader.readAsDataURL(file)
+  }
+
+  const handleImageDelete = (index: number) => {
+    setImages((prevImages) => prevImages.filter((_, i) => i !== index))
+  }
+
+  const initialImages = [
+    'https://via.placeholder.com/150',
+    'https://via.placeholder.com/150/0000FF', // Blue
+    'https://via.placeholder.com/150/FF0000', // Red
+    'https://via.placeholder.com/150/008000', // Green
+    'https://via.placeholder.com/150/FFFF00', // Yellow
+    'https://via.placeholder.com/150/FFA500', // Orange
+    'https://via.placeholder.com/150/800080', // Purple
+    'https://via.placeholder.com/150/00FFFF', // Cyan
+    'https://via.placeholder.com/150/FFC0CB', // Pink
+    'https://via.placeholder.com/150/808080', // Gray
+    'https://via.placeholder.com/150/000000', // Black
+    'https://via.placeholder.com/150/FFFFFF', // White
+    'https://via.placeholder.com/150/8B4513', // Brown
+  ]
 
   return (
     <Container>
@@ -256,10 +298,7 @@ const Pets: React.FC = () => {
                 </Button>
               </ActionButtons>
             </CardHeader>
-            <PetImage
-              src={pet.images?.[0] || 'https://placehold.jp/150x150.png'}
-              alt={pet.name}
-            />
+            <ImageGallery viewMode="carousel" images={initialImages} />
             <PetDescription>
               {pet.short_description || 'No description available'}
             </PetDescription>
@@ -273,6 +312,12 @@ const Pets: React.FC = () => {
           onClose={() => setIsEditModalOpen(false)}
           size="large"
         >
+          <ImageGallery
+            viewMode="gallery"
+            images={initialImages}
+            onUpload={handleImageUpload}
+            onDelete={handleImageDelete}
+          />
           <FormInput label="Name">
             <TextInput
               onChange={(e) => setName(e.target.value)}
