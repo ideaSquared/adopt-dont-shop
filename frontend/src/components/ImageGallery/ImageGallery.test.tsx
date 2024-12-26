@@ -18,6 +18,7 @@ describe('ImageGallery Component', () => {
   it('renders images correctly in gallery view', () => {
     renderWithTheme(<ImageGallery images={initialImages} viewMode="gallery" />)
 
+    // Query all visible <img> elements
     const images = screen.getAllByRole('img')
     expect(images.length).toBe(initialImages.length)
 
@@ -43,6 +44,7 @@ describe('ImageGallery Component', () => {
     const file = new File(['dummy content'], 'example.png', {
       type: 'image/png',
     })
+
     const input = screen.getByLabelText(/upload image/i)
 
     // Simulate the upload
@@ -67,11 +69,16 @@ describe('ImageGallery Component', () => {
       />,
     )
 
-    const deleteButtons = screen.getAllByRole('button', { name: /x/i })
+    // Query all delete buttons
+    const deleteButtons = screen.getAllByRole('button', {
+      name: /delete image/i,
+    })
     expect(deleteButtons.length).toBe(initialImages.length)
 
+    // Click the first delete button
     fireEvent.click(deleteButtons[0])
 
+    // Verify the callback is called with correct index
     expect(mockOnDelete).toHaveBeenCalledTimes(1)
     expect(mockOnDelete).toHaveBeenCalledWith(0)
   })
@@ -86,7 +93,7 @@ describe('ImageGallery Component', () => {
       />,
     )
 
-    const deleteButton = screen.getByRole('button', { name: /x/i })
+    const deleteButton = screen.getByRole('button', { name: /delete image/i })
     expect(deleteButton).toBeInTheDocument()
 
     fireEvent.click(deleteButton)
@@ -98,7 +105,9 @@ describe('ImageGallery Component', () => {
   it('does not show delete button if onDelete is not provided', () => {
     renderWithTheme(<ImageGallery images={initialImages} viewMode="gallery" />)
 
-    const deleteButtons = screen.queryAllByRole('button', { name: /x/i })
+    const deleteButtons = screen.queryAllByRole('button', {
+      name: /delete image/i,
+    })
     expect(deleteButtons.length).toBe(0)
   })
 
@@ -112,7 +121,7 @@ describe('ImageGallery Component', () => {
   it('updates the image index when a dot is clicked in carousel view', () => {
     renderWithTheme(<ImageGallery images={initialImages} viewMode="carousel" />)
 
-    const dots = screen.getAllByRole('button', { name: '' }) // Navigation dots
+    const dots = screen.getAllByRole('button', { name: /dot/i }) // Ensure dots have accessible names
     expect(dots.length).toBe(initialImages.length)
 
     fireEvent.click(dots[1]) // Click the second dot

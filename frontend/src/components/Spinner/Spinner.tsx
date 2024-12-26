@@ -29,7 +29,7 @@ const SpinnerCircle = styled.div`
 
 const Spinner: React.FC = () => {
   return (
-    <SpinnerContainer>
+    <SpinnerContainer data-testid="spinner">
       <SpinnerCircle />
     </SpinnerContainer>
   )

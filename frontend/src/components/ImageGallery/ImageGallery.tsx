@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { Spinner } from '../'
 
@@ -149,13 +149,18 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     })
   }
 
+  useEffect(() => {
+    if (galleryImages.length === 0) {
+      setGalleryImages(['https://placehold.co/600x400?text=No+images'])
+    }
+  }, [galleryImages])
+
   return (
     <>
       {viewMode === 'gallery' ? (
         <GalleryContainer>
           {galleryImages.map((src, index) => (
             <ImageContainer key={index}>
-              {loadingImages[index] && <Spinner />}
               <Image
                 src={src}
                 alt={`Image ${index + 1}`}
@@ -163,8 +168,11 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 onLoad={() => handleImageLoad(index)}
               />
               {onDelete && (
-                <DeleteButton onClick={() => handleDelete(index)}>
-                  x
+                <DeleteButton
+                  onClick={() => handleDelete(index)}
+                  aria-label={`delete image ${index + 1}`}
+                >
+                  delete image
                 </DeleteButton>
               )}
             </ImageContainer>
@@ -182,8 +190,11 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 onLoad={() => handleImageLoad(currentImageIndex)}
               />
               {onDelete && (
-                <DeleteButton onClick={() => handleDelete(currentImageIndex)}>
-                  x
+                <DeleteButton
+                  onClick={() => handleDelete(currentImageIndex)}
+                  aria-label={`delete image ${currentImageIndex + 1}`}
+                >
+                  delete image
                 </DeleteButton>
               )}
             </ImageWrapper>
@@ -194,6 +205,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 key={index}
                 active={index === currentImageIndex}
                 onClick={() => handleDotClick(index)}
+                aria-label={`dot ${index + 1}`}
               />
             ))}
           </NavigationDots>

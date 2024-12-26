@@ -1,10 +1,10 @@
 import { DropdownMenu } from '@adoptdontshop/components'
 import { Role, usePermissions } from '@adoptdontshop/permissions'
-import { useFeatureFlag } from 'contexts/feature-flags/FeatureFlagContext'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { useUser } from '../../contexts/auth/UserContext'
+import { useFeatureFlag } from '../../contexts/feature-flags/FeatureFlagContext'
 
 const StyledNavbar = styled.header`
   background-color: ${(props) => props.theme.background.content};

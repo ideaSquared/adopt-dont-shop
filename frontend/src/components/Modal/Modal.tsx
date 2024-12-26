@@ -1,6 +1,6 @@
-import Button from 'components/Button'
 import React from 'react'
 import styled from 'styled-components'
+import { Button } from '../'
 
 interface ModalProps {
   title: string
