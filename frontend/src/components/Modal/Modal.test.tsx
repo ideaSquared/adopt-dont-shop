@@ -1,5 +1,6 @@
-import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { theme } from '@adoptdontshop/styles'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { ThemeProvider } from 'styled-components'
 import Modal from './Modal'
 
 describe('Modal', () => {
@@ -9,9 +10,11 @@ describe('Modal', () => {
 
   const renderModal = (isOpen: boolean) =>
     render(
-      <Modal title={title} isOpen={isOpen} onClose={mockOnClose}>
-        {content}
-      </Modal>,
+      <ThemeProvider theme={theme}>
+        <Modal title={title} isOpen={isOpen} onClose={mockOnClose}>
+          {content}
+        </Modal>
+      </ThemeProvider>,
     )
 
   beforeEach(() => {
@@ -35,7 +38,7 @@ describe('Modal', () => {
   it('calls onClose when the close button is clicked', () => {
     renderModal(true)
 
-    const closeButton = screen.getByLabelText('Close')
+    const closeButton = screen.getByTestId('modal-close-button')
     fireEvent.click(closeButton)
 
     expect(mockOnClose).toHaveBeenCalledTimes(1)

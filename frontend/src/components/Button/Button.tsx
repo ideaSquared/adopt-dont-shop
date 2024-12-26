@@ -1,9 +1,8 @@
 import React from 'react'
 import styled from 'styled-components'
 
-interface ButtonProps {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   type?: 'button' | 'submit' | 'reset'
-  // eslint-disable-next-line no-unused-vars
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
   children: React.ReactNode
   disabled?: boolean
@@ -93,6 +92,7 @@ const Button: React.FC<ButtonProps> = ({
   children,
   disabled = false,
   variant = 'content',
+  ...props
 }) => {
   return (
     <StyledButton
@@ -100,6 +100,7 @@ const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       variant={variant}
+      {...props}
     >
       {children}
     </StyledButton>

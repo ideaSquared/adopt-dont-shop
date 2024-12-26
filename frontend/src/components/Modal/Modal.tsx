@@ -93,7 +93,12 @@ const Modal: React.FC<ModalProps> = ({
         <StyledModalContent>
           <StyledModalHeader>
             <h2>{title}</h2>
-            <Button type="button" aria-label="Close" onClick={onClose}>
+            <Button
+              type="button"
+              aria-label="Close"
+              data-testid="modal-close-button"
+              onClick={onClose}
+            >
               &times;
             </Button>
           </StyledModalHeader>
