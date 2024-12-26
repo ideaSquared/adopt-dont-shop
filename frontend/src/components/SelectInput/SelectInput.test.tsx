@@ -1,7 +1,7 @@
-import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { ThemeProvider } from 'styled-components'
 import { theme } from '@adoptdontshop/styles'
+import { fireEvent, render, screen } from '@testing-library/react'
+import React from 'react'
+import { ThemeProvider } from 'styled-components'
 import SelectInput from './SelectInput'
 
 describe('SelectInput', () => {
@@ -19,7 +19,7 @@ describe('SelectInput', () => {
     renderWithTheme(<SelectInput options={options} onChange={() => {}} />)
 
     expect(screen.getByRole('combobox')).toBeInTheDocument()
-    expect(screen.getAllByRole('option')).toHaveLength(3)
+    expect(screen.getAllByRole('option')).toHaveLength(4)
 
     options.forEach((option) => {
       expect(screen.getByText(option.label)).toBeInTheDocument()

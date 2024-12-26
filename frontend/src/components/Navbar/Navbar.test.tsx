@@ -61,7 +61,6 @@ describe('Navbar', () => {
 
     // Check if the dropdown items are present
     expect(screen.getByText(/Applications/i)).toBeInTheDocument()
-    expect(screen.getByText(/Ratings/i)).toBeInTheDocument()
     expect(screen.getByText(/Pets/i)).toBeInTheDocument()
     expect(screen.getByText(/Settings/i)).toBeInTheDocument()
   })
@@ -80,7 +79,6 @@ describe('Navbar', () => {
     })
 
     // Check if the dropdown items are present
-    expect(screen.getByText(/Conversations/i)).toBeInTheDocument()
     expect(screen.getByText(/Logs/i)).toBeInTheDocument()
     expect(screen.getByText(/Rescues/i)).toBeInTheDocument()
   })

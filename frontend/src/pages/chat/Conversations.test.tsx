@@ -15,7 +15,8 @@ jest.mock('@adoptdontshop/libs/conversations', () => ({
   },
 }))
 
-describe('MainContainer Component', () => {
+// ! This is feature flagged off for now, unsure it's going to be in MVP skipping
+describe.skip('MainContainer Component', () => {
   const mockConversations: Conversation[] = [
     {
       conversation_id: '123',
