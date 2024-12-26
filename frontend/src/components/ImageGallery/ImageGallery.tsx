@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import styled from 'styled-components'
+import { Spinner } from '../'
 
 interface ImageGalleryProps {
   images: string[]
@@ -29,11 +30,13 @@ const ImageWrapper = styled.div`
   margin: 20px auto;
 `
 
-const Image = styled.img`
+const Image = styled.img<{ loading: boolean }>`
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 12px;
+  opacity: ${({ loading }) => (loading ? 0 : 1)};
+  transition: opacity 0.3s ease-in-out;
 `
 
 const DeleteButton = styled.button`
@@ -98,6 +101,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
 }) => {
   const [galleryImages, setGalleryImages] = useState<string[]>(images)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [loadingImages, setLoadingImages] = useState<boolean[]>(
+    new Array(images.length).fill(true),
+  )
 
   const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -107,6 +113,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       reader.onload = () => {
         if (reader.result && typeof reader.result === 'string') {
           setGalleryImages([...galleryImages, reader.result])
+          setLoadingImages([...loadingImages, true])
           if (onUpload) onUpload(file)
         }
       }
@@ -117,7 +124,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
 
   const handleDelete = (index: number) => {
     const updatedImages = galleryImages.filter((_, i) => i !== index)
+    const updatedLoading = loadingImages.filter((_, i) => i !== index)
     setGalleryImages(updatedImages)
+    setLoadingImages(updatedLoading)
 
     if (viewMode === 'carousel') {
       setCurrentImageIndex((prevIndex) =>
@@ -132,13 +141,27 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     setCurrentImageIndex(index)
   }
 
+  const handleImageLoad = (index: number) => {
+    setLoadingImages((prev) => {
+      const newLoadingState = [...prev]
+      newLoadingState[index] = false
+      return newLoadingState
+    })
+  }
+
   return (
     <>
       {viewMode === 'gallery' ? (
         <GalleryContainer>
           {galleryImages.map((src, index) => (
             <ImageContainer key={index}>
-              <Image src={src} alt={`Image ${index + 1}`} />
+              {loadingImages[index] && <Spinner />}
+              <Image
+                src={src}
+                alt={`Image ${index + 1}`}
+                loading={loadingImages[index]}
+                onLoad={() => handleImageLoad(index)}
+              />
               {onDelete && (
                 <DeleteButton onClick={() => handleDelete(index)}>
                   x
@@ -151,9 +174,12 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
         <>
           {galleryImages.length > 0 && (
             <ImageWrapper>
+              {loadingImages[currentImageIndex] && <Spinner />}
               <Image
                 src={galleryImages[currentImageIndex]}
                 alt="Gallery Image"
+                loading={loadingImages[currentImageIndex]}
+                onLoad={() => handleImageLoad(currentImageIndex)}
               />
               {onDelete && (
                 <DeleteButton onClick={() => handleDelete(currentImageIndex)}>
