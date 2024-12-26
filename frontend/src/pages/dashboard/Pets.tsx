@@ -159,7 +159,11 @@ const Pets: React.FC = () => {
     setHousehold(pet.household)
     setEnergy(pet.energy)
     setFamily(pet.family)
-    setImages(pet.images || [])
+    setImages(
+      pet.images && pet.images.length > 0
+        ? pet.images
+        : ['https://placehold.co/600x400?text=No+images'],
+    )
     setIsEditModalOpen(true)
   }
 
@@ -235,22 +239,6 @@ const Pets: React.FC = () => {
     setImages((prevImages) => prevImages.filter((_, i) => i !== index))
   }
 
-  const initialImages = [
-    'https://via.placeholder.com/150',
-    'https://via.placeholder.com/150/0000FF', // Blue
-    'https://via.placeholder.com/150/FF0000', // Red
-    'https://via.placeholder.com/150/008000', // Green
-    'https://via.placeholder.com/150/FFFF00', // Yellow
-    'https://via.placeholder.com/150/FFA500', // Orange
-    'https://via.placeholder.com/150/800080', // Purple
-    'https://via.placeholder.com/150/00FFFF', // Cyan
-    'https://via.placeholder.com/150/FFC0CB', // Pink
-    'https://via.placeholder.com/150/808080', // Gray
-    'https://via.placeholder.com/150/000000', // Black
-    'https://via.placeholder.com/150/FFFFFF', // White
-    'https://via.placeholder.com/150/8B4513', // Brown
-  ]
-
   return (
     <Container>
       <h1>Pets</h1>
@@ -298,7 +286,7 @@ const Pets: React.FC = () => {
                 </Button>
               </ActionButtons>
             </CardHeader>
-            <ImageGallery viewMode="carousel" images={initialImages} />
+            <ImageGallery viewMode="carousel" images={images} />
             <PetDescription>
               {pet.short_description || 'No description available'}
             </PetDescription>
@@ -314,7 +302,7 @@ const Pets: React.FC = () => {
         >
           <ImageGallery
             viewMode="gallery"
-            images={initialImages}
+            images={images}
             onUpload={handleImageUpload}
             onDelete={handleImageDelete}
           />
