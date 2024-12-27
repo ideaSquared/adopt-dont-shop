@@ -110,9 +110,39 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
 
   useEffect(() => {
     const validImages = images.filter((image) => typeof image === 'string')
-    setGalleryImages(validImages.length > 0 ? validImages : [noImage])
-    setLoadingImages(new Array(validImages.length || 1).fill(true))
+    const fallbackImages = validImages.length > 0 ? validImages : [noImage]
+
+    setGalleryImages(fallbackImages)
+    setLoadingImages(new Array(fallbackImages.length).fill(true))
+
+    fallbackImages.forEach((src, index) => {
+      const img = new window.Image()
+      img.src = src
+
+      // Handle local images explicitly
+      if (src === noImage && img.complete) {
+        handleImageLoad(index) // Ensure spinner hides for local default
+      } else if (img.complete) {
+        handleImageLoad(index)
+      } else {
+        img.onload = () => handleImageLoad(index)
+      }
+    })
+
+    return () => {
+      // Clean up event handlers
+      fallbackImages.forEach((src) => {
+        const img = new window.Image()
+        img.onload = null
+      })
+    }
   }, [images])
+
+  const handleImageLoad = (index: number) => {
+    setLoadingImages((prev) =>
+      prev.map((loading, i) => (i === index ? false : loading)),
+    )
+  }
 
   const handleDelete = (fileName: string) => {
     if (fileName === noImage) return
@@ -134,14 +164,6 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     if (onDelete) onDelete(fileName)
   }
 
-  const handleImageLoad = (index: number) => {
-    setLoadingImages((prev) => {
-      const newLoadingState = [...prev]
-      newLoadingState[index] = false
-      return newLoadingState
-    })
-  }
-
   return (
     <>
       {viewMode === 'gallery' ? (
@@ -150,6 +172,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
             const fileName = typeof src === 'string' ? src.split('/').pop() : ''
             return (
               <ImageContainer key={index}>
+                {loadingImages[index] && <Spinner />}
                 <Image
                   src={src}
                   alt={`Image ${index + 1}`}
