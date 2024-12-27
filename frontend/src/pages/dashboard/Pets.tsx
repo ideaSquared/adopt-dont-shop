@@ -85,12 +85,11 @@ const Pets: React.FC = () => {
   const [energy, setEnergy] = useState('')
   const [family, setFamily] = useState('')
   const [images, setImages] = useState<string[]>([])
+  const baseUrl = 'http://localhost:5000/api/uploads/'
 
   useEffect(() => {
     const fetchPets = async () => {
       try {
-        const baseUrl = 'http://localhost:5000/api/uploads/' // Replace with your actual base URL
-
         const fetchedPets = await PetsService.getPets()
 
         // Append base URL to each pet's images, handling null/undefined images
@@ -218,11 +217,31 @@ const Pets: React.FC = () => {
 
   const handleDelete = async (petId: string) => {
     if (window.confirm('Are you sure you want to delete this pet?')) {
-      await PetsService.deletePet(petId)
+      // Optimistically remove the pet from the state
       setPets((prevPets) => prevPets.filter((pet) => pet.pet_id !== petId))
       setFilteredPets((prevFilteredPets) =>
         prevFilteredPets.filter((pet) => pet.pet_id !== petId),
       )
+
+      try {
+        // Confirm deletion with the server
+        await PetsService.deletePet(petId)
+      } catch (error) {
+        console.error('Error deleting pet:', error)
+        alert('Failed to delete the pet. Rolling back changes.')
+
+        // Rollback the deletion if the API call fails
+        const fetchedPets = await PetsService.getPets()
+        const updatedPets = fetchedPets.map((pet) => ({
+          ...pet,
+          images: pet.images?.length
+            ? pet.images.map((image) => `${baseUrl}${image}`)
+            : [],
+        }))
+
+        setPets(updatedPets)
+        setFilteredPets(updatedPets)
+      }
     }
   }
 
@@ -234,12 +253,27 @@ const Pets: React.FC = () => {
           files,
         )
 
-        // Normalize response to an array
-        const normalizedImages = Array.isArray(uploadedImages)
-          ? uploadedImages
-          : [uploadedImages]
+        // Prefix the uploaded images with "/uploads/"
+        const normalizedImages = uploadedImages.map(
+          (image) => `${baseUrl}${image}`,
+        )
 
-        setImages((prevImages) => [...prevImages, ...normalizedImages])
+        // Update the images state with unique entries
+        setImages((prevImages) => [
+          ...new Set([...prevImages, ...normalizedImages]),
+        ])
+
+        // Update the pets array with unique and prefixed images
+        setPets((prevPets) =>
+          prevPets.map((pet) =>
+            pet.pet_id === selectedPet.pet_id
+              ? {
+                  ...pet,
+                  images: [...new Set([...pet.images, ...normalizedImages])],
+                }
+              : pet,
+          ),
+        )
       } catch (error) {
         console.error('Error uploading images:', error)
       }
@@ -247,11 +281,57 @@ const Pets: React.FC = () => {
   }
 
   const handleImageDelete = async (imageId: string, petId: string) => {
+    // Optimistically update the local state
+    setImages((prevImages) => prevImages.filter((image) => image !== imageId))
+
+    // Update the pet's images array in the `pets` state
+    setPets((prevPets) =>
+      prevPets.map((pet) =>
+        pet.pet_id === petId
+          ? {
+              ...pet,
+              images: pet.images.filter((image) => image !== imageId),
+            }
+          : pet,
+      ),
+    )
+
     try {
+      // Attempt to delete the image from the backend
       await PetsService.removePetImage(petId, imageId)
-      setImages((prevImages) => prevImages.filter((image) => image !== imageId))
+
+      // Optionally re-fetch the updated pet images to confirm the deletion
+      const updatedImages = await PetsService.fetchPetImages(petId)
+
+      // Sync the frontend state with the backend
+      setImages(updatedImages.map((image) => `${baseUrl}${image}`))
+      setPets((prevPets) =>
+        prevPets.map((pet) =>
+          pet.pet_id === petId
+            ? {
+                ...pet,
+                images: updatedImages.map((image) => `${baseUrl}${image}`),
+              }
+            : pet,
+        ),
+      )
     } catch (error) {
       console.error('Error deleting image:', error)
+      alert('Failed to delete the image. The UI will be rolled back.')
+
+      // Rollback the changes on failure
+      const updatedImages = await PetsService.fetchPetImages(petId)
+      setImages(updatedImages.map((image) => `${baseUrl}${image}`))
+      setPets((prevPets) =>
+        prevPets.map((pet) =>
+          pet.pet_id === petId
+            ? {
+                ...pet,
+                images: updatedImages.map((image) => `${baseUrl}${image}`),
+              }
+            : pet,
+        ),
+      )
     }
   }
 

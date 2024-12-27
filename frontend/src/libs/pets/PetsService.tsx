@@ -96,7 +96,14 @@ export const addPetImages = async (
     throw new Error('Failed to upload pet images')
   }
 
-  return await response.json()
+  const data = await response.json()
+
+  // Ensure `savedImages` exists and is an array before returning
+  if (!data.savedImages || !Array.isArray(data.savedImages)) {
+    throw new Error('Invalid response format: Missing or invalid "savedImages"')
+  }
+
+  return data.savedImages
 }
 
 // Fetch pet images
