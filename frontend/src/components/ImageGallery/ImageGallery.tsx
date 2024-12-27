@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { Spinner } from '../'
-import noImage from './no-image.png' // Import your fallback image
+import { Badge, Spinner } from '../'
+import noImage from './no-image.png'
 
 interface ImageGalleryProps {
   images: string[]
@@ -94,6 +94,12 @@ const HiddenInput = styled.input`
   display: none;
 `
 
+const CenteredBadgeContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+`
+
 const ImageGallery: React.FC<ImageGalleryProps> = ({
   images,
   viewMode,
@@ -119,9 +125,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       const img = new window.Image()
       img.src = src
 
-      // Handle local images explicitly
       if (src === noImage && img.complete) {
-        handleImageLoad(index) // Ensure spinner hides for local default
+        handleImageLoad(index)
       } else if (img.complete) {
         handleImageLoad(index)
       } else {
@@ -130,7 +135,6 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     })
 
     return () => {
-      // Clean up event handlers
       fallbackImages.forEach((src) => {
         const img = new window.Image()
         img.onload = null
@@ -162,6 +166,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     }
 
     if (onDelete) onDelete(fileName)
+  }
+
+  const handleUpload = (file: File) => {
+    if (galleryImages.length >= 3) {
+      alert('Maximum limit of 3 images reached.')
+      return
+    }
+    if (onUpload) onUpload(file)
   }
 
   return (
@@ -202,7 +214,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 loading={loadingImages[currentImageIndex]}
                 onLoad={() => handleImageLoad(currentImageIndex)}
               />
-              {onDelete && (
+              {onDelete && galleryImages[currentImageIndex] !== noImage && (
                 <DeleteButton
                   onClick={() => {
                     const currentImage = galleryImages[currentImageIndex]
@@ -232,7 +244,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
           </NavigationDots>
         </>
       )}
-      {onUpload && (
+      {onUpload && galleryImages.length < 3 && (
         <UploadButton>
           Upload Image
           <HiddenInput
@@ -240,11 +252,16 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
             accept="image/*"
             onChange={(event) => {
               if (event.target.files && event.target.files[0]) {
-                onUpload(event.target.files[0])
+                handleUpload(event.target.files[0])
               }
             }}
           />
         </UploadButton>
+      )}
+      {onUpload && galleryImages.length === 3 && (
+        <CenteredBadgeContainer>
+          <Badge variant="info">Maximum amount of images reached</Badge>
+        </CenteredBadgeContainer>
       )}
     </>
   )
