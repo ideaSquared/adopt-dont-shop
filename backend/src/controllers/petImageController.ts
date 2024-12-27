@@ -19,7 +19,7 @@ export const createPetImages = async (req: Request, res: Response) => {
     // Map uploaded files to their respective URLs or paths
     const images = req.files.map((file: Express.Multer.File) => {
       // Assuming you serve uploaded files statically from '/uploads'
-      const imageUrl = `/uploads/${file.filename}`
+      const imageUrl = `${file.filename}`
 
       return {
         image_url: imageUrl,

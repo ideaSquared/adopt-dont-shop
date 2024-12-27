@@ -7,7 +7,7 @@ interface ImageGalleryProps {
   images: string[]
   viewMode: 'carousel' | 'gallery'
   onUpload?: (file: File) => void
-  onDelete?: (index: string) => void
+  onDelete?: (fileName: string) => void
 }
 
 const GalleryContainer = styled.div`
@@ -109,15 +109,18 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   )
 
   useEffect(() => {
-    setGalleryImages(images.length > 0 ? images : [noImage])
-    setLoadingImages(new Array(images.length || 1).fill(true))
+    const validImages = images.filter((image) => typeof image === 'string')
+    setGalleryImages(validImages.length > 0 ? validImages : [noImage])
+    setLoadingImages(new Array(validImages.length || 1).fill(true))
   }, [images])
 
-  const handleDelete = (index: number) => {
-    if (galleryImages[index] === noImage) return
+  const handleDelete = (fileName: string) => {
+    if (fileName === noImage) return
 
-    const updatedImages = galleryImages.filter((_, i) => i !== index)
-    const updatedLoading = loadingImages.filter((_, i) => i !== index)
+    const updatedImages = galleryImages.filter(
+      (image) => !image.endsWith(fileName),
+    )
+    const updatedLoading = updatedImages.map((_, i) => loadingImages[i])
 
     setGalleryImages(updatedImages.length > 0 ? updatedImages : [noImage])
     setLoadingImages(updatedLoading)
@@ -128,7 +131,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       )
     }
 
-    if (onDelete) onDelete(index.toString())
+    if (onDelete) onDelete(fileName)
   }
 
   const handleImageLoad = (index: number) => {
@@ -143,25 +146,27 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     <>
       {viewMode === 'gallery' ? (
         <GalleryContainer>
-          {galleryImages.map((src, index) => (
-            <ImageContainer key={index}>
-              <Image
-                src={src}
-                alt={`Image ${index + 1}`}
-                loading={loadingImages[index]}
-                onLoad={() => handleImageLoad(index)}
-              />
-              {onDelete &&
-                src !== noImage && ( // Only show delete button if it's not the fallback image
+          {galleryImages.map((src, index) => {
+            const fileName = typeof src === 'string' ? src.split('/').pop() : ''
+            return (
+              <ImageContainer key={index}>
+                <Image
+                  src={src}
+                  alt={`Image ${index + 1}`}
+                  loading={loadingImages[index]}
+                  onLoad={() => handleImageLoad(index)}
+                />
+                {onDelete && fileName !== noImage && (
                   <DeleteButton
-                    onClick={() => handleDelete(index)}
-                    aria-label={`delete image ${index + 1}`}
+                    onClick={() => handleDelete(fileName!)}
+                    aria-label={`delete image ${fileName}`}
                   >
                     delete image
                   </DeleteButton>
                 )}
-            </ImageContainer>
-          ))}
+              </ImageContainer>
+            )
+          })}
         </GalleryContainer>
       ) : (
         <>
@@ -176,7 +181,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
               />
               {onDelete && (
                 <DeleteButton
-                  onClick={() => handleDelete(currentImageIndex)}
+                  onClick={() => {
+                    const currentImage = galleryImages[currentImageIndex]
+                    const fileName =
+                      typeof currentImage === 'string'
+                        ? currentImage.split('/').pop()
+                        : ''
+                    if (fileName) handleDelete(fileName)
+                  }}
                   aria-label={`delete image ${currentImageIndex + 1}`}
                 >
                   delete image
@@ -184,6 +196,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
               )}
             </ImageWrapper>
           )}
+
           <NavigationDots>
             {galleryImages.map((_, index) => (
               <Dot

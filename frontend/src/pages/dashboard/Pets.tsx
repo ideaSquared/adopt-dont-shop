@@ -88,7 +88,7 @@ const Pets: React.FC = () => {
   useEffect(() => {
     const fetchPets = async () => {
       try {
-        const baseUrl = 'http://localhost:5000/api' // Replace with your actual base URL
+        const baseUrl = 'http://localhost:5000/api/uploads/' // Replace with your actual base URL
 
         const fetchedPets = await PetsService.getPets()
 
