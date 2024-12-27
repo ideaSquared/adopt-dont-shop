@@ -53,7 +53,7 @@ router.post('/:petId/images', upload.array('files'), createPetImages)
 // GET: Retrieve all images for a pet
 router.get('/:petId/images', getPetImagesByPetId)
 
-// DELETE: Delete a specific pet image by ID
-router.delete('/images/:imageId', deletePetImage)
+// DELETE: Delete a specific pet image by petId and imageId
+router.delete('/:petId/images/:imageId', deletePetImage)
 
 export default router

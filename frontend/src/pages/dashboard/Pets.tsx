@@ -66,6 +66,7 @@ const Pets: React.FC = () => {
   const [filterByStatus, setFilterByStatus] = useState<string | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedPet, setSelectedPet] = useState<PetRescue | null>(null)
+  const [petId, setPetId] = useState('')
   const [name, setName] = useState('')
   const [type, setType] = useState('')
   const [status, setStatus] = useState('')
@@ -153,6 +154,7 @@ const Pets: React.FC = () => {
 
   const handleEdit = async (pet: PetRescue) => {
     setSelectedPet(pet)
+    setPetId(pet.pet_id)
     setName(pet.name)
     setType(pet.type)
     setStatus(pet.status)
@@ -244,9 +246,9 @@ const Pets: React.FC = () => {
     }
   }
 
-  const handleImageDelete = async (imageId: string) => {
+  const handleImageDelete = async (imageId: string, petId: string) => {
     try {
-      await PetsService.removePetImage(imageId)
+      await PetsService.removePetImage(petId, imageId)
       setImages((prevImages) => prevImages.filter((image) => image !== imageId))
     } catch (error) {
       console.error('Error deleting image:', error)
@@ -327,7 +329,7 @@ const Pets: React.FC = () => {
             viewMode="gallery"
             images={images}
             onUpload={(files) => handleImageUpload([files])}
-            onDelete={(imageId) => handleImageDelete(imageId)}
+            onDelete={(imageId) => handleImageDelete(imageId, petId)}
           />
           <FormInput label="Name">
             <TextInput

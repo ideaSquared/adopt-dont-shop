@@ -59,23 +59,49 @@ export const deletePetImage = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Image not found' })
     }
 
-    // Construct the file path to delete
-    const imagePath = path.join(__dirname, '../uploads', imageId)
+    // Construct the file path
+    const imagePath = path.join(__dirname, '../../uploads', imageId)
+    console.log(`Attempting to delete file at path: ${imagePath}`)
 
-    // Delete the image file from the container
+    // Check if the file exists before deleting
     try {
+      await fs.access(imagePath)
       await fs.unlink(imagePath)
       console.log(`File deleted: ${imagePath}`)
     } catch (err) {
-      console.error(`Failed to delete file: ${imagePath}. Error:`, err)
-      return res.status(500).json({
-        message: 'Image removed from database, but failed to delete file.',
-        error: err,
-      })
+      if (err instanceof Error) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+          console.warn(`File not found: ${imagePath}`)
+          return res.status(404).json({
+            message: 'Image removed from database, but file not found.',
+          })
+        } else {
+          console.error(`Failed to delete file: ${imagePath}. Error:`, err)
+          return res.status(500).json({
+            message: 'Image removed from database, but failed to delete file.',
+            error: err.message,
+          })
+        }
+      } else {
+        console.error(`Unexpected error while deleting file:`, err)
+        return res.status(500).json({
+          message: 'Image removed from database, but failed to delete file.',
+          error: 'Unexpected error occurred.',
+        })
+      }
     }
 
     res.status(200).json({ message: 'Image deleted successfully' })
   } catch (error) {
-    res.status(500).json({ message: 'Failed to delete image', error })
+    if (error instanceof Error) {
+      res
+        .status(500)
+        .json({ message: 'Failed to delete image', error: error.message })
+    } else {
+      res.status(500).json({
+        message: 'Failed to delete image',
+        error: 'Unexpected error occurred.',
+      })
+    }
   }
 }

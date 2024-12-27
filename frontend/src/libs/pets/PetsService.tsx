@@ -114,8 +114,11 @@ export const fetchPetImages = async (petId: string): Promise<string[]> => {
 }
 
 // Remove pet image
-export const removePetImage = async (imageId: string): Promise<void> => {
-  const response = await fetch(`${BASE_URL}/pets/images/${imageId}`, {
+export const removePetImage = async (
+  petId: string,
+  imageId: string,
+): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/pets/${petId}/images/${imageId}`, {
     method: 'DELETE',
     headers,
   })
