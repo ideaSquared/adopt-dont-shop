@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { Spinner } from '../'
+import noImage from './no-image.png' // Import your fallback image
 
 interface ImageGalleryProps {
   images: string[]
-  viewMode: 'carousel' | 'gallery' // Toggle between carousel and gallery view
+  viewMode: 'carousel' | 'gallery'
   onUpload?: (file: File) => void
-  onDelete?: (index: number) => void
+  onDelete?: (index: string) => void
 }
 
 const GalleryContainer = styled.div`
@@ -99,33 +100,26 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   onUpload,
   onDelete,
 }) => {
-  const [galleryImages, setGalleryImages] = useState<string[]>(images)
+  const [galleryImages, setGalleryImages] = useState<string[]>(
+    images.length > 0 ? images : [noImage],
+  )
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [loadingImages, setLoadingImages] = useState<boolean[]>(
-    new Array(images.length).fill(true),
+    new Array(images.length || 1).fill(true),
   )
 
-  const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0]
-      const reader = new FileReader()
-
-      reader.onload = () => {
-        if (reader.result && typeof reader.result === 'string') {
-          setGalleryImages([...galleryImages, reader.result])
-          setLoadingImages([...loadingImages, true])
-          if (onUpload) onUpload(file)
-        }
-      }
-
-      reader.readAsDataURL(file)
-    }
-  }
+  useEffect(() => {
+    setGalleryImages(images.length > 0 ? images : [noImage])
+    setLoadingImages(new Array(images.length || 1).fill(true))
+  }, [images])
 
   const handleDelete = (index: number) => {
+    if (galleryImages[index] === noImage) return
+
     const updatedImages = galleryImages.filter((_, i) => i !== index)
     const updatedLoading = loadingImages.filter((_, i) => i !== index)
-    setGalleryImages(updatedImages)
+
+    setGalleryImages(updatedImages.length > 0 ? updatedImages : [noImage])
     setLoadingImages(updatedLoading)
 
     if (viewMode === 'carousel') {
@@ -134,11 +128,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       )
     }
 
-    if (onDelete) onDelete(index)
-  }
-
-  const handleDotClick = (index: number) => {
-    setCurrentImageIndex(index)
+    if (onDelete) onDelete(index.toString())
   }
 
   const handleImageLoad = (index: number) => {
@@ -148,12 +138,6 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       return newLoadingState
     })
   }
-
-  useEffect(() => {
-    if (galleryImages.length === 0) {
-      setGalleryImages(['https://placehold.co/600x400?text=No+images'])
-    }
-  }, [galleryImages])
 
   return (
     <>
@@ -167,14 +151,15 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 loading={loadingImages[index]}
                 onLoad={() => handleImageLoad(index)}
               />
-              {onDelete && (
-                <DeleteButton
-                  onClick={() => handleDelete(index)}
-                  aria-label={`delete image ${index + 1}`}
-                >
-                  delete image
-                </DeleteButton>
-              )}
+              {onDelete &&
+                src !== noImage && ( // Only show delete button if it's not the fallback image
+                  <DeleteButton
+                    onClick={() => handleDelete(index)}
+                    aria-label={`delete image ${index + 1}`}
+                  >
+                    delete image
+                  </DeleteButton>
+                )}
             </ImageContainer>
           ))}
         </GalleryContainer>
@@ -204,7 +189,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
               <Dot
                 key={index}
                 active={index === currentImageIndex}
-                onClick={() => handleDotClick(index)}
+                onClick={() => setCurrentImageIndex(index)}
                 aria-label={`dot ${index + 1}`}
               />
             ))}
@@ -214,7 +199,15 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       {onUpload && (
         <UploadButton>
           Upload Image
-          <HiddenInput type="file" accept="image/*" onChange={handleUpload} />
+          <HiddenInput
+            type="file"
+            accept="image/*"
+            onChange={(event) => {
+              if (event.target.files && event.target.files[0]) {
+                onUpload(event.target.files[0])
+              }
+            }}
+          />
         </UploadButton>
       )}
     </>

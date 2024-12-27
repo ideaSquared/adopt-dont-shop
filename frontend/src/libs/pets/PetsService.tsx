@@ -76,10 +76,62 @@ export const deletePet = async (pet_id: string): Promise<void> => {
   }
 }
 
+// Add pet images
+export const addPetImages = async (
+  petId: string,
+  files: File[],
+): Promise<string[]> => {
+  const formData = new FormData()
+  files.forEach((file) => formData.append('files', file))
+
+  const response = await fetch(`${BASE_URL}/pets/${petId}/images`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to upload pet images')
+  }
+
+  return await response.json()
+}
+
+// Fetch pet images
+export const fetchPetImages = async (petId: string): Promise<string[]> => {
+  const response = await fetch(`${BASE_URL}/pets/${petId}/images`, {
+    method: 'GET',
+    headers,
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch pet images')
+  }
+
+  return await response.json()
+}
+
+// Remove pet image
+export const removePetImage = async (imageId: string): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/pets/images/${imageId}`, {
+    method: 'DELETE',
+    headers,
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to delete pet image')
+  }
+}
+
 export default {
   getPets,
   getPetById,
   getPetsByType,
   updatePet,
   deletePet,
+  addPetImages,
+  fetchPetImages,
+  removePetImage,
 }

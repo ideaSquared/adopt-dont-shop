@@ -12,11 +12,16 @@ export const addPetImages = async (
       throw new Error('Pet not found')
     }
 
+    // Ensure pet.images is an array
+    const existingImages = Array.isArray(pet.images) ? pet.images : []
+
+    // Create the updated images array
     const updatedImages = [
-      ...pet.images,
+      ...existingImages,
       ...images.map((image) => image.image_url),
     ]
 
+    // Update the images field
     pet.images = updatedImages
     await pet.save()
 

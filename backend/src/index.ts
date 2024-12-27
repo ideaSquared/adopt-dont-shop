@@ -3,7 +3,6 @@ import dotenv from 'dotenv'
 import express, { Application, Request, Response } from 'express'
 import path from 'path'
 import { connectToDatabase } from './DatabaseConnection'
-import errorHandler from './middleware/errorHandler'
 import adminRoutes from './routes/adminRoutes'
 import applicationRoutes from './routes/applicationRoutes'
 import auditLogRoutes from './routes/auditLogRoutes'
@@ -48,12 +47,13 @@ connectToDatabase()
   })
 
 // Middleware
-app.use(express.json())
 AuditLogger.logAction(
   'Server',
   'Express JSON middleware setup complete',
   'INFO',
 )
+
+app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')))
 
 // Routes
 app.use('/api/auth', authRoutes)
@@ -71,15 +71,27 @@ app.use('/api/ratings', ratingRoutes)
 app.use('/api/applications', applicationRoutes)
 app.use('/api/feature-flags', featureFlagRoutes)
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
-
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, TypeScript with Express!')
   AuditLogger.logAction('Server', 'Root route accessed', 'INFO')
 })
 
 // Global error handling middleware
-app.use(errorHandler)
+export default function errorHandler(
+  err: any,
+  req: Request,
+  res: Response,
+): void {
+  // Handle errors here
+  AuditLogger.logAction(
+    'Error',
+    err.message || 'An unknown error occurred',
+    'ERROR',
+  )
+  res
+    .status(err.status || 500)
+    .json({ error: err.message || 'Internal Server Error' })
+}
 AuditLogger.logAction('Server', 'Global error handler setup complete', 'INFO')
 
 app.listen(port, () => {

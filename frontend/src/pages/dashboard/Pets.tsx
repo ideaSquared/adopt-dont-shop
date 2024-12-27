@@ -88,9 +88,20 @@ const Pets: React.FC = () => {
   useEffect(() => {
     const fetchPets = async () => {
       try {
+        const baseUrl = 'http://localhost:5000/api' // Replace with your actual base URL
+
         const fetchedPets = await PetsService.getPets()
-        setPets(fetchedPets)
-        setFilteredPets(fetchedPets)
+
+        // Append base URL to each pet's images, handling null/undefined images
+        const updatedPets = fetchedPets.map((pet) => ({
+          ...pet,
+          images: pet.images?.length
+            ? pet.images.map((image) => `${baseUrl}${image}`)
+            : [], // Fallback to a default image
+        }))
+
+        setPets(updatedPets)
+        setFilteredPets(updatedPets)
       } catch (error) {
         console.error('Error fetching pets:', error)
       }
@@ -140,7 +151,7 @@ const Pets: React.FC = () => {
     })),
   ]
 
-  const handleEdit = (pet: PetRescue) => {
+  const handleEdit = async (pet: PetRescue) => {
     setSelectedPet(pet)
     setName(pet.name)
     setType(pet.type)
@@ -159,11 +170,7 @@ const Pets: React.FC = () => {
     setHousehold(pet.household)
     setEnergy(pet.energy)
     setFamily(pet.family)
-    setImages(
-      pet.images && pet.images.length > 0
-        ? pet.images
-        : ['https://placehold.co/600x400?text=No+images'],
-    )
+    setImages(pet.images)
     setIsEditModalOpen(true)
   }
 
@@ -217,26 +224,42 @@ const Pets: React.FC = () => {
     }
   }
 
-  const handleImageUpload = (file: File) => {
-    const reader = new FileReader()
+  const handleImageUpload = async (files: File[]) => {
+    if (selectedPet) {
+      try {
+        const uploadedImages = await PetsService.addPetImages(
+          selectedPet.pet_id,
+          files,
+        )
 
-    // onload is triggered once FileReader finishes reading
-    reader.onload = (e) => {
-      // e.target?.result can be string | ArrayBuffer | null
-      const result = e.target?.result
+        // Normalize response to an array
+        const normalizedImages = Array.isArray(uploadedImages)
+          ? uploadedImages
+          : [uploadedImages]
 
-      // Ensure result is a string before updating state
-      if (typeof result === 'string') {
-        setImages((prevImages) => [...prevImages, result])
+        setImages((prevImages) => [...prevImages, ...normalizedImages])
+      } catch (error) {
+        console.error('Error uploading images:', error)
       }
     }
-
-    // Read the file as a data URL (base64)
-    reader.readAsDataURL(file)
   }
 
-  const handleImageDelete = (index: number) => {
-    setImages((prevImages) => prevImages.filter((_, i) => i !== index))
+  const handleImageDelete = async (imageId: string) => {
+    try {
+      await PetsService.removePetImage(imageId)
+      setImages((prevImages) => prevImages.filter((image) => image !== imageId))
+    } catch (error) {
+      console.error('Error deleting image:', error)
+    }
+  }
+
+  const fetchPetImages = async (petId: string) => {
+    try {
+      const petImages = await PetsService.fetchPetImages(petId)
+      setImages(petImages)
+    } catch (error) {
+      console.error('Error fetching pet images:', error)
+    }
   }
 
   return (
@@ -286,7 +309,7 @@ const Pets: React.FC = () => {
                 </Button>
               </ActionButtons>
             </CardHeader>
-            <ImageGallery viewMode="carousel" images={images} />
+            <ImageGallery viewMode="carousel" images={pet.images} />
             <PetDescription>
               {pet.short_description || 'No description available'}
             </PetDescription>
@@ -303,8 +326,8 @@ const Pets: React.FC = () => {
           <ImageGallery
             viewMode="gallery"
             images={images}
-            onUpload={handleImageUpload}
-            onDelete={handleImageDelete}
+            onUpload={(files) => handleImageUpload([files])}
+            onDelete={(imageId) => handleImageDelete(imageId)}
           />
           <FormInput label="Name">
             <TextInput
