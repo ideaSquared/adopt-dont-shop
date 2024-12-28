@@ -15,37 +15,144 @@ import {
   Rescue,
   StaffMember,
 } from '../types/Rescue'
+import { AuditLogger } from './auditLogService'
 import { sendInvitationEmail } from './emailService'
 
 export const getAllRescuesService = async (): Promise<{
   rescues: Rescue[]
 }> => {
-  const rescues = await RescueModel.findAll({
-    include: [
-      {
-        model: StaffMemberModel,
-        as: 'staff',
-        required: false,
-        include: [
-          {
-            model: UserModel,
-            as: 'user',
-            attributes: ['first_name', 'email'],
-          },
-        ],
-      },
-    ],
-  })
+  await AuditLogger.logAction('RescueService', 'Fetching all rescues', 'INFO')
+  try {
+    const rescues = await RescueModel.findAll({
+      include: [
+        {
+          model: StaffMemberModel,
+          as: 'staff',
+          required: false,
+          include: [
+            {
+              model: UserModel,
+              as: 'user',
+              attributes: ['first_name', 'email'],
+            },
+          ],
+        },
+      ],
+    })
 
-  const formattedRescues: Rescue[] = rescues.map((rescue: any) => {
+    const formattedRescues: Rescue[] = rescues.map((rescue: any) => {
+      const staffMembers: StaffMember[] =
+        rescue.staff?.map((staff: any) => ({
+          user_id: staff.user_id,
+          first_name: staff.user.first_name,
+          email: staff.user.email,
+          role: staff.role,
+          verified_by_rescue: staff.verified_by_rescue,
+        })) || []
+
+      if (rescue.rescue_type === 'Individual') {
+        return {
+          rescue_id: rescue.rescue_id,
+          rescue_name: rescue.rescue_name,
+          rescue_type: 'Individual',
+          city: rescue.city,
+          country: rescue.country,
+          staff: [staffMembers[0]],
+        } as IndividualRescue
+      } else {
+        return {
+          rescue_id: rescue.rescue_id,
+          rescue_name: rescue.rescue_name,
+          rescue_type: rescue.rescue_type,
+          city: rescue.city,
+          country: rescue.country,
+          reference_number: rescue.reference_number,
+          reference_number_verified: rescue.reference_number_verified,
+          staff: staffMembers,
+        } as OrganizationRescue
+      }
+    })
+
+    await AuditLogger.logAction(
+      'RescueService',
+      'Successfully fetched all rescues',
+      'INFO',
+    )
+    return { rescues: formattedRescues }
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error fetching rescues - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to fetch rescues: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      'Unknown error while fetching rescues',
+      'ERROR',
+    )
+    throw new Error('An unknown error occurred while fetching rescues')
+  }
+}
+
+export const getSingleRescueService = async (
+  rescueId: string,
+  user: User,
+): Promise<Rescue | LimitedRescue | null> => {
+  await AuditLogger.logAction(
+    'RescueService',
+    `Fetching rescue with ID: ${rescueId}`,
+    'INFO',
+  )
+  try {
+    const rescue = await RescueModel.findByPk(rescueId, {
+      include: [
+        {
+          model: StaffMemberModel,
+          as: 'staff',
+          required: false,
+          include: [
+            {
+              model: UserModel,
+              as: 'user',
+              attributes: ['user_id', 'first_name', 'email'],
+            },
+          ],
+        },
+      ],
+    })
+
+    if (!rescue) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Rescue with ID: ${rescueId} not found`,
+        'WARNING',
+      )
+      return null
+    }
+
     const staffMembers: StaffMember[] =
-      rescue.staff?.map((staff: any) => ({
+      rescue.StaffMembers?.map((staff: any) => ({
         user_id: staff.user_id,
         first_name: staff.user.first_name,
         email: staff.user.email,
         role: staff.role,
         verified_by_rescue: staff.verified_by_rescue,
       })) || []
+
+    const isStaff = staffMembers.some((staff) => staff.user_id === user.user_id)
+
+    if (!isStaff) {
+      return {
+        rescue_id: rescue.rescue_id,
+        rescue_name: rescue.rescue_name,
+        rescue_type: rescue.rescue_type,
+        city: rescue.city,
+        country: rescue.country,
+      } as LimitedRescue
+    }
 
     if (rescue.rescue_type === 'Individual') {
       return {
@@ -54,7 +161,7 @@ export const getAllRescuesService = async (): Promise<{
         rescue_type: 'Individual',
         city: rescue.city,
         country: rescue.country,
-        staff: [staffMembers[0]], // Only one staff member for IndividualRescue
+        staff: [staffMembers[0]],
       } as IndividualRescue
     } else {
       return {
@@ -68,81 +175,21 @@ export const getAllRescuesService = async (): Promise<{
         staff: staffMembers,
       } as OrganizationRescue
     }
-  })
-
-  return { rescues: formattedRescues }
-}
-
-export const getSingleRescueService = async (
-  rescueId: string,
-  user: User,
-): Promise<Rescue | LimitedRescue | null> => {
-  const rescue = await RescueModel.findByPk(rescueId, {
-    include: [
-      {
-        model: StaffMemberModel,
-        as: 'staff',
-        required: false,
-        include: [
-          {
-            model: UserModel,
-            as: 'user',
-            attributes: ['user_id', 'first_name', 'email'],
-          },
-        ],
-      },
-    ],
-  })
-
-  if (!rescue) {
-    return null
-  }
-
-  // Format staff members for the response
-  const staffMembers: StaffMember[] =
-    rescue.StaffMembers?.map((staff: any) => ({
-      user_id: staff.user_id,
-      first_name: staff.user.first_name,
-      email: staff.user.email,
-      role: staff.role,
-      verified_by_rescue: staff.verified_by_rescue,
-    })) || []
-
-  // Check if the requesting user is a staff member of the rescue
-  const isStaff = staffMembers.some((staff) => staff.user_id === user.user_id)
-
-  if (!isStaff) {
-    // Return limited data if the user is not a staff member
-    return {
-      rescue_id: rescue.rescue_id,
-      rescue_name: rescue.rescue_name,
-      rescue_type: rescue.rescue_type,
-      city: rescue.city,
-      country: rescue.country,
-    } as LimitedRescue
-  }
-
-  // Return full data if the user is a staff member
-  if (rescue.rescue_type === 'Individual') {
-    return {
-      rescue_id: rescue.rescue_id,
-      rescue_name: rescue.rescue_name,
-      rescue_type: 'Individual',
-      city: rescue.city,
-      country: rescue.country,
-      staff: [staffMembers[0]], // Only one staff member for IndividualRescue
-    } as IndividualRescue
-  } else {
-    return {
-      rescue_id: rescue.rescue_id,
-      rescue_name: rescue.rescue_name,
-      rescue_type: rescue.rescue_type,
-      city: rescue.city,
-      country: rescue.country,
-      reference_number: rescue.reference_number,
-      reference_number_verified: rescue.reference_number_verified,
-      staff: staffMembers,
-    } as OrganizationRescue
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error fetching rescue with ID: ${rescueId} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to fetch rescue: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Unknown error while fetching rescue with ID: ${rescueId}`,
+      'ERROR',
+    )
+    throw new Error('An unknown error occurred while fetching the rescue')
   }
 }
 
@@ -150,15 +197,47 @@ export const updateRescueService = async (
   id: string,
   updatedData: Partial<Rescue>,
 ) => {
-  const rescue = await RescueModel.findByPk(id)
-  if (!rescue) {
-    throw new Error('Rescue not found')
-  }
+  await AuditLogger.logAction(
+    'RescueService',
+    `Updating rescue with ID: ${id}`,
+    'INFO',
+  )
+  try {
+    const rescue = await RescueModel.findByPk(id)
+    if (!rescue) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Rescue with ID: ${id} not found`,
+        'WARNING',
+      )
+      throw new Error('Rescue not found')
+    }
 
-  await rescue.update(updatedData)
-  return {
-    rescue_id: rescue.rescue_id,
-    ...updatedData,
+    await rescue.update(updatedData)
+    await AuditLogger.logAction(
+      'RescueService',
+      `Successfully updated rescue with ID: ${id}`,
+      'INFO',
+    )
+    return {
+      rescue_id: rescue.rescue_id,
+      ...updatedData,
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error updating rescue with ID: ${id} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to update rescue: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Unknown error while updating rescue with ID: ${id}`,
+      'ERROR',
+    )
+    throw new Error('An unknown error occurred while updating the rescue')
   }
 }
 
@@ -168,8 +247,12 @@ export const getRescueStaffWithRoles = async (
   staffMembers: StaffMember[]
   invitations: Array<Partial<InvitationModel> & { status: string }>
 }> => {
+  await AuditLogger.logAction(
+    'RescueService',
+    `Fetching staff and invitations for rescue ID: ${rescueId}`,
+    'INFO',
+  )
   try {
-    // Fetch staff members with roles
     const staffMembers = await StaffMemberModel.findAll({
       where: { rescue_id: rescueId },
       include: [
@@ -189,7 +272,6 @@ export const getRescueStaffWithRoles = async (
       ],
     })
 
-    // Map staff members to match the expected frontend structure
     const mappedStaffMembers = staffMembers.map((staff) => ({
       user_id: staff.user_id,
       first_name: (staff as any).user?.first_name || '',
@@ -197,18 +279,15 @@ export const getRescueStaffWithRoles = async (
       email: (staff as any).user?.email || '',
       role: (staff as any).user?.Roles || [],
       verified_by_rescue: staff.verified_by_rescue,
-      isInvite: false, // Mark as non-invite entries
+      isInvite: false,
     }))
 
-    // Fetch invitations related to the rescue
     const invitations = await InvitationModel.findAll({
       where: { rescue_id: rescueId },
-      attributes: ['email', 'created_at', 'expiration', 'used'], // Fetch relevant attributes
+      attributes: ['email', 'created_at', 'expiration', 'used'],
     })
 
-    // Map invitations to match the frontend structure, adding a derived 'status'
     const mappedInvitations = invitations.map((invite) => {
-      // Calculate the status based on 'used' and 'expiration'
       const status = invite.used
         ? 'Accepted'
         : invite.expiration < new Date()
@@ -216,124 +295,301 @@ export const getRescueStaffWithRoles = async (
         : 'Pending'
 
       return {
-        user_id: '', // No user_id for invitations
+        user_id: '',
         first_name: '',
         last_name: '',
         email: invite.email,
-        role: [], // No roles for invitations
+        role: [],
         verified_by_rescue: false,
         isInvite: true,
         invited_on: invite.created_at,
-        status, // Dynamically add status based on conditions
+        status,
       }
     })
 
-    // Return the combined response with both staff members and invitations
+    await AuditLogger.logAction(
+      'RescueService',
+      `Successfully fetched staff and invitations for rescue ID: ${rescueId}`,
+      'INFO',
+    )
     return {
       staffMembers: mappedStaffMembers,
       invitations: mappedInvitations,
     }
   } catch (error) {
-    console.error(
-      'Error fetching staff members with roles and invitations:',
-      error,
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error fetching staff and invitations for rescue ID: ${rescueId} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to fetch staff and invitations: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Unknown error while fetching staff and invitations for rescue ID: ${rescueId}`,
+      'ERROR',
     )
-    throw new Error('Failed to fetch staff members and invitations')
+    throw new Error(
+      'An unknown error occurred while fetching staff and invitations',
+    )
   }
 }
 
 export const deleteStaffService = async (userId: string): Promise<void> => {
-  const staffMember = await StaffMemberModel.findOne({
-    where: { user_id: userId },
-  })
+  await AuditLogger.logAction(
+    'RescueService',
+    `Deleting staff member with user ID: ${userId}`,
+    'INFO',
+  )
+  try {
+    const staffMember = await StaffMemberModel.findOne({
+      where: { user_id: userId },
+    })
 
-  if (!staffMember) {
-    throw new Error('Staff member not found')
+    if (!staffMember) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Staff member with user ID: ${userId} not found`,
+        'WARNING',
+      )
+      throw new Error('Staff member not found')
+    }
+
+    await staffMember.destroy()
+    await AuditLogger.logAction(
+      'RescueService',
+      `Successfully deleted staff member with user ID: ${userId}`,
+      'INFO',
+    )
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error deleting staff member with user ID: ${userId} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to delete staff member: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Unknown error while deleting staff member with user ID: ${userId}`,
+      'ERROR',
+    )
+    throw new Error('An unknown error occurred while deleting the staff member')
   }
-
-  await staffMember.destroy()
 }
 
 export const inviteUserService = async (email: string, rescue_id: string) => {
-  const secretKey = process.env.SECRET_KEY as string
-  const token = jwt.sign({ email, rescue_id }, secretKey, {
-    expiresIn: '48h',
-  })
+  await AuditLogger.logAction(
+    'RescueService',
+    `Inviting user with email: ${email} to rescue ID: ${rescue_id}`,
+    'INFO',
+  )
+  try {
+    const secretKey = process.env.SECRET_KEY as string
+    const token = jwt.sign({ email, rescue_id }, secretKey, {
+      expiresIn: '48h',
+    })
 
-  // Check if user already exists
-  const existingUser = await UserModel.findOne({ where: { email } })
-  const user_id = existingUser ? existingUser.user_id : null
+    const existingUser = await UserModel.findOne({ where: { email } })
+    const user_id = existingUser ? existingUser.user_id : null
 
-  // Save the invitation in the database
-  await InvitationModel.create({ email, token, rescue_id, user_id })
-
-  await sendInvitationEmail(email, token)
+    await InvitationModel.create({ email, token, rescue_id, user_id })
+    await sendInvitationEmail(email, token)
+    await AuditLogger.logAction(
+      'RescueService',
+      `Successfully invited user with email: ${email} to rescue ID: ${rescue_id}`,
+      'INFO',
+    )
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error inviting user with email: ${email} to rescue ID: ${rescue_id} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to invite user: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Unknown error while inviting user with email: ${email} to rescue ID: ${rescue_id}`,
+      'ERROR',
+    )
+    throw new Error('An unknown error occurred while inviting the user')
+  }
 }
 
 export const cancelInvitationService = async (
   email: string,
   rescueId: string,
 ): Promise<void> => {
-  const invitation = await InvitationModel.findOne({
-    where: { email, rescue_id: rescueId, used: false },
-  })
+  await AuditLogger.logAction(
+    'RescueService',
+    `Cancelling invitation for email: ${email} in rescue ID: ${rescueId}`,
+    'INFO',
+  )
+  try {
+    const invitation = await InvitationModel.findOne({
+      where: { email, rescue_id: rescueId, used: false },
+    })
 
-  if (!invitation) {
-    throw new Error('Invitation not found or already used')
+    if (!invitation) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Invitation for email: ${email} in rescue ID: ${rescueId} not found or already used`,
+        'WARNING',
+      )
+      throw new Error('Invitation not found or already used')
+    }
+
+    await invitation.destroy()
+    await AuditLogger.logAction(
+      'RescueService',
+      `Successfully cancelled invitation for email: ${email} in rescue ID: ${rescueId}`,
+      'INFO',
+    )
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error cancelling invitation for email: ${email} in rescue ID: ${rescueId} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to cancel invitation: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Unknown error while cancelling invitation for email: ${email} in rescue ID: ${rescueId}`,
+      'ERROR',
+    )
+    throw new Error('An unknown error occurred while cancelling the invitation')
   }
-
-  await invitation.destroy()
 }
 
-// Add a role to a specific user
 export const addRoleToUserService = async (
   userId: string,
   role: string,
 ): Promise<void> => {
-  // Find the role to get the role_id
-  const roleRecord = await RoleModel.findOne({ where: { role_name: role } })
-  if (!roleRecord) {
-    throw new Error(`Role '${role}' does not exist`)
-  }
+  await AuditLogger.logAction(
+    'RescueService',
+    `Adding role '${role}' to user with ID: ${userId}`,
+    'INFO',
+  )
+  try {
+    const roleRecord = await RoleModel.findOne({ where: { role_name: role } })
+    if (!roleRecord) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Role '${role}' not found`,
+        'WARNING',
+      )
+      throw new Error(`Role '${role}' does not exist`)
+    }
 
-  // Check if the user exists
-  const user = await UserModel.findByPk(userId)
-  if (!user) {
-    throw new Error('User not found')
-  }
+    const user = await UserModel.findByPk(userId)
+    if (!user) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `User with ID: ${userId} not found`,
+        'WARNING',
+      )
+      throw new Error('User not found')
+    }
 
-  // Add the role by creating a record in UserRole
-  await UserRoleModel.create({
-    user_id: userId,
-    role_id: roleRecord.role_id,
-  })
+    await UserRoleModel.create({
+      user_id: userId,
+      role_id: roleRecord.role_id,
+    })
+    await AuditLogger.logAction(
+      'RescueService',
+      `Successfully added role '${role}' to user with ID: ${userId}`,
+      'INFO',
+    )
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error adding role '${role}' to user with ID: ${userId} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to add role: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Unknown error while adding role '${role}' to user with ID: ${userId}`,
+      'ERROR',
+    )
+    throw new Error('An unknown error occurred while adding the role')
+  }
 }
 
 export const removeRoleFromUserService = async (
   userId: string,
   roleName: string,
 ): Promise<void> => {
-  // Find the role to get the role_id
-  const roleRecord = await RoleModel.findOne({ where: { role_name: roleName } })
-  if (!roleRecord) {
-    throw new Error(`Role '${roleName}' does not exist`)
-  }
+  await AuditLogger.logAction(
+    'RescueService',
+    `Removing role '${roleName}' from user with ID: ${userId}`,
+    'INFO',
+  )
+  try {
+    const roleRecord = await RoleModel.findOne({
+      where: { role_name: roleName },
+    })
+    if (!roleRecord) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Role '${roleName}' not found`,
+        'WARNING',
+      )
+      throw new Error(`Role '${roleName}' does not exist`)
+    }
 
-  // Check if the user exists
-  const user = await UserModel.findByPk(userId)
-  if (!user) {
-    throw new Error('User not found')
-  }
+    const user = await UserModel.findByPk(userId)
+    if (!user) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `User with ID: ${userId} not found`,
+        'WARNING',
+      )
+      throw new Error('User not found')
+    }
 
-  // Remove the role by deleting the record in UserRole
-  const deletionCount = await UserRoleModel.destroy({
-    where: {
-      user_id: userId,
-      role_id: roleRecord.role_id,
-    },
-  })
+    const deletionCount = await UserRoleModel.destroy({
+      where: {
+        user_id: userId,
+        role_id: roleRecord.role_id,
+      },
+    })
 
-  if (deletionCount === 0) {
-    throw new Error(`Role '${roleName}' not assigned to user`)
+    if (deletionCount === 0) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Role '${roleName}' not assigned to user with ID: ${userId}, cannot remove`,
+        'WARNING',
+      )
+      throw new Error(`Role '${roleName}' not assigned to user`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Successfully removed role '${roleName}' from user with ID: ${userId}`,
+      'INFO',
+    )
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error removing role '${roleName}' from user with ID: ${userId} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to remove role: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Unknown error while removing role '${roleName}' from user with ID: ${userId}`,
+      'ERROR',
+    )
+    throw new Error('An unknown error occurred while removing the role')
   }
 }

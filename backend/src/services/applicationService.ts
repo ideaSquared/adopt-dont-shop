@@ -1,19 +1,40 @@
 import { Op } from 'sequelize'
 import { Application, Pet, User } from '../Models/'
+import { AuditLogger } from './auditLogService'
 
 export const createApplication = async (data: any) => {
+  await AuditLogger.logAction(
+    'ApplicationService',
+    `Creating application with data: ${JSON.stringify(data)}`,
+    'INFO',
+  )
   return Application.create(data)
 }
 
 export const getAllApplications = async () => {
+  await AuditLogger.logAction(
+    'ApplicationService',
+    'Fetching all applications',
+    'INFO',
+  )
   return Application.findAll()
 }
 
 export const getApplicationById = async (applicationId: string) => {
+  await AuditLogger.logAction(
+    'ApplicationService',
+    `Fetching application by ID: ${applicationId}`,
+    'INFO',
+  )
   return Application.findByPk(applicationId)
 }
 
 export const getApplicationsByRescueId = async (rescueId: string) => {
+  await AuditLogger.logAction(
+    'ApplicationService',
+    `Fetching applications for rescue ID: ${rescueId}`,
+    'INFO',
+  )
   try {
     // Step 1: Find all pets belonging to the specified rescue
     const pets = await Pet.findAll({
@@ -24,6 +45,11 @@ export const getApplicationsByRescueId = async (rescueId: string) => {
     const petIds = pets.map((pet) => pet.pet_id)
 
     if (petIds.length === 0) {
+      await AuditLogger.logAction(
+        'ApplicationService',
+        `No pets found for rescue ID: ${rescueId}`,
+        'WARNING',
+      )
       return []
     }
 
@@ -33,6 +59,11 @@ export const getApplicationsByRescueId = async (rescueId: string) => {
     })
 
     if (applications.length === 0) {
+      await AuditLogger.logAction(
+        'ApplicationService',
+        `No applications found for pets belonging to rescue ID: ${rescueId}`,
+        'WARNING',
+      )
       return []
     }
 
@@ -94,10 +125,20 @@ export const getApplicationsByRescueId = async (rescueId: string) => {
     return enrichedApplications
   } catch (error) {
     if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'ApplicationService',
+        `Error fetching applications for rescue ID: ${rescueId} - ${error.message}`,
+        'ERROR',
+      )
       throw new Error(
         `Error fetching applications for rescue: ${error.message}`,
       )
     }
+    await AuditLogger.logAction(
+      'ApplicationService',
+      `Error fetching applications for rescue ID: ${rescueId} - Unknown error`,
+      'ERROR',
+    )
     throw new Error('An unknown error occurred while fetching applications')
   }
 }
@@ -107,21 +148,52 @@ export const updateApplication = async (
   data: any,
   userId: string,
 ) => {
+  await AuditLogger.logAction(
+    'ApplicationService',
+    `Updating application with ID: ${applicationId} by user ID: ${userId}`,
+    'INFO',
+  )
   const application = await Application.findByPk(applicationId)
   if (application) {
-    return application.update({
+    const updatedApplication = application.update({
       ...data,
       actioned_by: userId,
     })
+    await AuditLogger.logAction(
+      'ApplicationService',
+      `Application with ID: ${applicationId} successfully updated`,
+      'INFO',
+    )
+    return updatedApplication
   }
+  await AuditLogger.logAction(
+    'ApplicationService',
+    `Application with ID: ${applicationId} not found for update`,
+    'WARNING',
+  )
   return null
 }
 
 export const deleteApplication = async (applicationId: string) => {
+  await AuditLogger.logAction(
+    'ApplicationService',
+    `Attempting to delete application with ID: ${applicationId}`,
+    'INFO',
+  )
   const application = await Application.findByPk(applicationId)
   if (application) {
     await application.destroy()
+    await AuditLogger.logAction(
+      'ApplicationService',
+      `Application with ID: ${applicationId} successfully deleted`,
+      'INFO',
+    )
     return true
   }
+  await AuditLogger.logAction(
+    'ApplicationService',
+    `Application with ID: ${applicationId} not found for deletion`,
+    'WARNING',
+  )
   return false
 }
