@@ -191,7 +191,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                   loading={loadingImages[index]}
                   onLoad={() => handleImageLoad(index)}
                 />
-                {onDelete && fileName !== noImage && (
+                {onDelete && src !== noImage && (
                   <DeleteButton
                     onClick={() => handleDelete(fileName!)}
                     aria-label={`delete image ${fileName}`}
