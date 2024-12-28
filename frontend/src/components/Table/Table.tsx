@@ -6,6 +6,9 @@ interface StyledTableProps {
   striped?: boolean
   hasActions?: boolean
   rowsPerPage?: number
+  onPageChange?: (page: number) => void // Optional for flexibility
+  currentPage?: number
+  totalPages?: number
 }
 
 interface TablePaginationProps {
@@ -171,13 +174,31 @@ const Table: React.FC<StyledTableProps> = ({
   striped = false,
   hasActions = false,
   rowsPerPage = 10,
+  currentPage: externalCurrentPage,
+  totalPages,
+  onPageChange,
 }) => {
-  const [currentPage, setCurrentPage] = useState(1)
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1)
+
+  // Determine if we are using internal or external pagination
+  const isBackendPagination = !!totalPages
+
+  const currentPage = isBackendPagination
+    ? externalCurrentPage
+    : internalCurrentPage
+
+  const handlePageChange = (page: number) => {
+    if (isBackendPagination) {
+      onPageChange?.(page) // Use external onPageChange for backend
+    } else {
+      setInternalCurrentPage(page) // Update internal state for client-side
+    }
+  }
 
   // Ensure children is not undefined and is an array
   const childrenArray = React.Children.toArray(children)
 
-  // Separate the children into <thead>, <tbody>, and any other potential elements
+  // Separate the children into <thead>, <tbody>, and other elements
   const thead = childrenArray.find(
     (child) => React.isValidElement(child) && child.type === 'thead',
   )
@@ -196,12 +217,13 @@ const Table: React.FC<StyledTableProps> = ({
   }
 
   const rows = React.Children.toArray(tbody.props.children) as ReactElement[]
-  const totalPages = Math.ceil(rows.length / rowsPerPage)
-
-  const displayedRows = rows.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage,
-  )
+  const clientTotalPages = Math.ceil(rows.length / rowsPerPage)
+  const displayedRows = isBackendPagination
+    ? rows // For backend, assume rows are already paginated
+    : rows.slice(
+        (internalCurrentPage - 1) * rowsPerPage,
+        internalCurrentPage * rowsPerPage,
+      )
 
   return (
     <>
@@ -211,9 +233,9 @@ const Table: React.FC<StyledTableProps> = ({
         {otherElements}
       </StyledTable>
       <TablePagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
+        currentPage={currentPage!}
+        totalPages={totalPages || clientTotalPages}
+        onPageChange={handlePageChange}
       />
     </>
   )

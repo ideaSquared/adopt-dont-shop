@@ -28,20 +28,24 @@ const AuditLogs: React.FC = () => {
   const [filteredAuditLogs, setFilteredAuditLogs] = useState<AuditLog[]>([])
   const [searchTerm, setSearchTerm] = useState<string | null>(null)
   const [serviceTerm, setServiceTerm] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [totalPages, setTotalPages] = useState<number>(1)
+  const rowsPerPage = 10
 
-  // Fetch audit logs on component mount
-  useEffect(() => {
-    const fetchAuditLogs = async () => {
-      try {
-        const fetchedAuditLogs = await AuditLogsService.getAuditLogs()
-        setAuditLogs(fetchedAuditLogs)
-      } catch (error) {
-        console.error('Failed to fetch audit logs:', error)
-      }
+  // Fetch audit logs for the current page
+  const fetchAuditLogs = async (page: number) => {
+    try {
+      const response = await AuditLogsService.getAuditLogs(page, rowsPerPage)
+      setAuditLogs(response.logs) // Assumes API returns { logs, totalPages }
+      setTotalPages(response.totalPages)
+    } catch (error) {
+      console.error('Failed to fetch audit logs:', error)
     }
+  }
 
-    fetchAuditLogs()
-  }, [])
+  useEffect(() => {
+    fetchAuditLogs(currentPage)
+  }, [currentPage])
 
   const filtered = useMemo(() => {
     return auditLogs.filter((log) => {
@@ -127,7 +131,14 @@ const AuditLogs: React.FC = () => {
           options={serviceOptions}
         />
       </FormInput>
-      <Table>
+      <Table
+        striped
+        rowsPerPage={rowsPerPage}
+        hasActions
+        onPageChange={setCurrentPage}
+        currentPage={currentPage}
+        totalPages={totalPages}
+      >
         <thead>
           <tr>
             <th>ID</th>

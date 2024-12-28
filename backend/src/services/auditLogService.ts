@@ -21,31 +21,34 @@ export const AuditLogger = {
     }
   },
 
-  async getAllLogs(): Promise<any[]> {
-    // Adjust the return type based on your needs
+  async getAllLogs(
+    page: number,
+    limit: number,
+  ): Promise<{ logs: AuditLog[]; total: number }> {
     try {
-      const logs = await AuditLog.findAll({
+      const offset = (page - 1) * limit // Calculate offset for pagination
+      const { rows: logs, count: total } = await AuditLog.findAndCountAll({
         order: [['timestamp', 'DESC']],
+        offset,
+        limit,
       })
-      return logs
+
+      return { logs, total } // Return logs and total count
     } catch (error) {
       console.error('Failed to retrieve logs:', error)
       throw error
     }
   },
 
-  async getLogsByUserId(userId: string): Promise<any[]> {
-    // Adjust the return type based on your needs
+  async getLogsByUserId(userId: string): Promise<AuditLog[]> {
     try {
       const logs = await AuditLog.findAll({
         where: { user: userId },
+        order: [['timestamp', 'DESC']],
       })
       return logs
     } catch (error) {
-      console.error(
-        `Failed to retrieve logs for user with ID: ${userId}`,
-        error,
-      )
+      console.error(`Failed to retrieve logs for user ID: ${userId}`, error)
       throw error
     }
   },
