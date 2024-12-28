@@ -85,7 +85,6 @@ const TablePagination: React.FC<TablePaginationProps> = ({
   onPageChange,
 }) => {
   const pageNeighbors = 2 // Number of pages to show on either side of the current page
-  const totalPageNumbers = pageNeighbors * 2 + 3 // Pages + "First", "Last" + current page
 
   const range = (from: number, to: number, step = 1) => {
     let i = from
@@ -100,6 +99,10 @@ const TablePagination: React.FC<TablePaginationProps> = ({
   }
 
   const paginationRange = (): (number | string)[] => {
+    if (totalPages <= 1) {
+      return [1]
+    }
+
     const startPage = Math.max(2, currentPage - pageNeighbors)
     const endPage = Math.min(totalPages - 1, currentPage + pageNeighbors)
     const pages: (number | string)[] = range(startPage, endPage)
