@@ -48,7 +48,7 @@ class FeatureFlagController {
   public async deleteFlag(req: Request, res: Response) {
     const { id } = req.params
     try {
-      await FeatureFlagService.deleteFlag(Number(id))
+      await FeatureFlagService.deleteFlag(id)
       res.status(204).send()
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete feature flag' })
