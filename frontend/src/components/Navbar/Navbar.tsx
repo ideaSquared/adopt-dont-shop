@@ -38,7 +38,6 @@ const Navbar: React.FC = () => {
   const canViewAdminDashboard = hasRole(Role.ADMIN)
 
   const chatBetaEnabled = useFeatureFlag('chat_beta')
-  console.log(chatBetaEnabled)
 
   return (
     <StyledNavbar>

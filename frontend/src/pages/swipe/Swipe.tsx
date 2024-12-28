@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import { Pet, PetsService } from '@adoptdontshop/libs/pets'
+import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import {
-  SwipeCardDefault,
   SwipeCardBackground,
+  SwipeCardDefault,
   SwipeCardMinimal,
   SwipeCardNub,
 } from './components/'
-import { Pet, PetsService } from '@adoptdontshop/libs/pets'
 
 const SwipeContainer = styled.div`
   display: flex;
@@ -59,7 +59,6 @@ const Swipe: React.FC = () => {
     setPetCards((prevCards) =>
       prevCards.filter((petCard) => petCard.pet_id !== pet_id),
     )
-    console.log(direction)
   }
 
   const toggleCardDesign = () => {

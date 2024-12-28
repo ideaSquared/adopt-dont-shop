@@ -19,7 +19,6 @@ const Ratings: React.FC = () => {
     const fetchRatings = async () => {
       try {
         const fetchedRatings = await RatingService.getAllRatings()
-        console.log('Fetched Ratings:', fetchedRatings) // Log data here
         setRatings(fetchedRatings)
         setFilteredRatings(fetchedRatings)
       } catch (error) {

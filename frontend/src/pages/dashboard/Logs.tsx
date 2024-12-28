@@ -28,15 +28,15 @@ const AuditLogs: React.FC = () => {
   const [filteredAuditLogs, setFilteredAuditLogs] = useState<AuditLog[]>([])
   const [searchTerm, setSearchTerm] = useState<string | null>(null)
   const [serviceTerm, setServiceTerm] = useState<string | null>(null)
+  const [levelTerm, setLevelTerm] = useState<string | null>(null) // Added level state
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [totalPages, setTotalPages] = useState<number>(1)
   const rowsPerPage = 10
 
-  // Fetch audit logs for the current page
   const fetchAuditLogs = async (page: number) => {
     try {
       const response = await AuditLogsService.getAuditLogs(page, rowsPerPage)
-      setAuditLogs(response.logs) // Assumes API returns { logs, totalPages }
+      setAuditLogs(response.logs)
       setTotalPages(response.totalPages)
     } catch (error) {
       console.error('Failed to fetch audit logs:', error)
@@ -49,7 +49,7 @@ const AuditLogs: React.FC = () => {
 
   const filtered = useMemo(() => {
     return auditLogs.filter((log) => {
-      const logIdString = String(log.id) // Convert log.id to a string
+      const logIdString = String(log.id)
       const matchesSearch =
         !searchTerm ||
         logIdString.includes(searchTerm) ||
@@ -58,16 +58,17 @@ const AuditLogs: React.FC = () => {
 
       const matchesService = !serviceTerm || log.service.includes(serviceTerm)
 
-      return matchesSearch && matchesService
-    })
-  }, [searchTerm, serviceTerm, auditLogs])
+      const matchesLevel =
+        !levelTerm || log.level.toLowerCase() === levelTerm.toLowerCase()
 
-  // Update filteredAuditLogs state when filtered changes
+      return matchesSearch && matchesService && matchesLevel
+    })
+  }, [searchTerm, serviceTerm, levelTerm, auditLogs])
+
   useEffect(() => {
     setFilteredAuditLogs(filtered)
   }, [filtered])
 
-  // Event handlers for input changes
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
   }
@@ -76,7 +77,10 @@ const AuditLogs: React.FC = () => {
     setServiceTerm(e.target.value)
   }
 
-  // Click handler for user_id and service cells
+  const handleLevelFilterChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setLevelTerm(e.target.value)
+  }
+
   const handleUserClick = (userId: string) => {
     setSearchTerm(userId)
   }
@@ -85,7 +89,6 @@ const AuditLogs: React.FC = () => {
     setServiceTerm(service)
   }
 
-  // Generate options for service filter
   const serviceOptions = [
     { value: '', label: 'All Services' },
     ...Array.from(new Set(auditLogs.map((log) => log.service))).map(
@@ -96,7 +99,14 @@ const AuditLogs: React.FC = () => {
     ),
   ]
 
-  // Determine badge variant based on log level
+  const levelOptions = [
+    { value: '', label: 'All Levels' },
+    { value: 'info', label: 'Info' },
+    { value: 'warning', label: 'Warning' },
+    { value: 'success', label: 'Success' },
+    { value: 'error', label: 'Error' },
+  ] // Define level options
+
   const getLevelVariant = (
     level: string,
   ): 'info' | 'warning' | 'success' | 'danger' | null => {
@@ -129,6 +139,13 @@ const AuditLogs: React.FC = () => {
           onChange={handleServiceFilterChange}
           value={serviceTerm || ''}
           options={serviceOptions}
+        />
+      </FormInput>
+      <FormInput label="Filter by Level">
+        <SelectInput
+          onChange={handleLevelFilterChange}
+          value={levelTerm || ''}
+          options={levelOptions}
         />
       </FormInput>
       <Table
