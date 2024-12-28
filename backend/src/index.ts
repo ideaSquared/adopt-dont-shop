@@ -21,6 +21,13 @@ dotenv.config()
 
 const app: Application = express()
 app.use(express.json())
+// Middleware
+AuditLogger.logAction(
+  'Server',
+  'Express JSON middleware setup complete',
+  'INFO',
+)
+
 const port = process.env.PORT || 5000
 
 // Enable CORS
@@ -46,19 +53,10 @@ connectToDatabase()
     )
   })
 
-// Middleware
-AuditLogger.logAction(
-  'Server',
-  'Express JSON middleware setup complete',
-  'INFO',
-)
-
 app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')))
 
 // Routes
 app.use('/api/auth', authRoutes)
-AuditLogger.logAction('Server', 'Auth routes setup complete', 'INFO')
-
 app.use('/api/admin', adminRoutes)
 app.use('/api/admin', auditLogRoutes)
 app.use('/api/rescue', rescueRoutes)
@@ -70,6 +68,7 @@ app.use('/api/pets', petImageRoutes)
 app.use('/api/ratings', ratingRoutes)
 app.use('/api/applications', applicationRoutes)
 app.use('/api/feature-flags', featureFlagRoutes)
+AuditLogger.logAction('Server', 'All routes setup complete', 'INFO')
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, TypeScript with Express!')
