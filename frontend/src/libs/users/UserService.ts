@@ -1,57 +1,48 @@
+// src/services/AuthService.ts
+
+import { apiService } from '../api-service'
 import { Rescue } from '../rescues'
 import { CreateRescuePayload, CreateUserPayload, User } from './User'
 
-const API_URL = 'http://localhost:5000/api/auth'
+const API_BASE_URL = '/auth'
 
-const getUsers = async (): Promise<User[]> => {
-  const response = await fetch(`${API_URL}/users`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch users')
-  }
-
-  // Assuming the response JSON is structured as { users: User[] }
-  const data = await response.json()
-
-  return data.users
+/**
+ * Fetch all users.
+ * @returns Promise resolving to an array of User objects.
+ */
+export const getUsers = async (): Promise<User[]> => {
+  const { users } = await apiService.get<{ users: User[] }>(
+    `${API_BASE_URL}/users`,
+  )
+  return users
 }
 
-const getUserById = async (id: string): Promise<User | undefined> => {
-  const response = await fetch(`${API_URL}/users/${id}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch user')
-  }
-  return response.json()
+/**
+ * Fetch a user by ID.
+ * @param id - The ID of the user to fetch.
+ * @returns Promise resolving to a User object.
+ */
+export const getUserById = async (id: string): Promise<User | undefined> => {
+  return apiService.get<User>(`${API_BASE_URL}/users/${id}`)
 }
 
-const login = async (
+/**
+ * Log in a user.
+ * @param email - The user's email.
+ * @param password - The user's password.
+ * @returns Promise resolving to an object containing the token, user, and optional rescue.
+ */
+export const login = async (
   email: string,
   password: string,
 ): Promise<{ token: string; user: User; rescue?: Rescue } | null> => {
   try {
-    const response = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    })
+    const { token, user, rescue } = await apiService.post<
+      { email: string; password: string },
+      { token: string; user: User; rescue?: Rescue }
+    >(`${API_BASE_URL}/login`, { email, password })
 
-    if (!response.ok) {
-      throw new Error('Login failed')
-    }
-
-    const { token, user, rescue } = await response.json()
-
-    // Save token to localStorage or cookies
     localStorage.setItem('token', token)
-
     return { token, user, rescue }
   } catch (error) {
     console.error('Login failed:', error)
@@ -59,39 +50,34 @@ const login = async (
   }
 }
 
-const logout = async (): Promise<void> => {
+/**
+ * Log out the current user.
+ */
+export const logout = async (): Promise<void> => {
   const token = localStorage.getItem('token')
   if (token) {
-    await fetch(`${API_URL}/logout`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    await apiService.post<void, void>(`${API_BASE_URL}/logout`, undefined)
     localStorage.removeItem('token')
-
     localStorage.removeItem('user')
     localStorage.removeItem('rescue')
   }
 }
 
+/**
+ * Reset a user's password.
+ * @param resetToken - The reset token.
+ * @param newPassword - The new password.
+ * @returns Promise resolving to a boolean indicating success.
+ */
 export const resetPassword = async (
   resetToken: string,
   newPassword: string,
 ): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_URL}/reset-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ resetToken, newPassword }),
-    })
-
-    if (!response.ok) {
-      return false
-    }
-
+    await apiService.post<{ resetToken: string; newPassword: string }, void>(
+      `${API_BASE_URL}/reset-password`,
+      { resetToken, newPassword },
+    )
     return true
   } catch (error) {
     console.error('Reset password failed:', error)
@@ -99,77 +85,68 @@ export const resetPassword = async (
   }
 }
 
+/**
+ * Request a password reset email.
+ * @param email - The user's email.
+ * @returns Promise resolving to a boolean indicating success.
+ */
 export const forgotPassword = async (email: string): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_URL}/forgot-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    })
-
-    if (!response.ok) {
-      return false
-    }
-
+    await apiService.post<{ email: string }, void>(
+      `${API_BASE_URL}/forgot-password`,
+      { email },
+    )
     return true
   } catch (error) {
     console.error('Forgot password failed:', error)
     return false
   }
 }
-const createAccount = async (newUser: CreateUserPayload): Promise<User> => {
-  const response = await fetch(`${API_URL}/create-user`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(newUser),
-  })
 
-  if (!response.ok) {
-    throw new Error('Failed to create account')
-  }
-
-  return response.json()
+/**
+ * Create a new user account.
+ * @param newUser - The user payload.
+ * @returns Promise resolving to the created User object.
+ */
+export const createAccount = async (
+  newUser: CreateUserPayload,
+): Promise<User> => {
+  return apiService.post<CreateUserPayload, User>(
+    `${API_BASE_URL}/create-user`,
+    newUser,
+  )
 }
 
-const createRescueAccount = async (
+/**
+ * Create a new rescue account.
+ * @param newUser - The user payload.
+ * @param rescueDetails - The rescue details payload.
+ * @returns Promise resolving to the created User object.
+ */
+export const createRescueAccount = async (
   newUser: CreateUserPayload,
   rescueDetails: Omit<CreateRescuePayload, keyof CreateUserPayload>,
 ): Promise<User> => {
-  const response = await fetch(`${API_URL}/create-rescue`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  return apiService.post<
+    {
+      user: CreateUserPayload
+      rescue: Omit<CreateRescuePayload, keyof CreateUserPayload>
     },
-    body: JSON.stringify({ user: newUser, rescue: rescueDetails }),
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to create rescue account')
-  }
-
-  return response.json()
+    User
+  >(`${API_BASE_URL}/create-rescue`, { user: newUser, rescue: rescueDetails })
 }
 
-const updateUser = async (user: User): Promise<User | null> => {
+/**
+ * Update a user.
+ * @param user - The user payload.
+ * @returns Promise resolving to the updated User object.
+ */
+export const updateUser = async (user: User): Promise<User | null> => {
   try {
-    const response = await fetch(`${API_URL}/users/${user.user_id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify(user),
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to update user')
-    }
-
-    const updatedUser = await response.json()
+    const updatedUser = await apiService.put<User, User>(
+      `${API_BASE_URL}/users/${user.user_id}`,
+      user,
+    )
     localStorage.setItem('user', JSON.stringify(updatedUser))
     return updatedUser
   } catch (error) {
@@ -178,25 +155,26 @@ const updateUser = async (user: User): Promise<User | null> => {
   }
 }
 
+/**
+ * Change a user's password.
+ * @param userId - The user ID.
+ * @param currentPassword - The current password.
+ * @param newPassword - The new password.
+ * @returns Promise resolving to a boolean indicating success.
+ */
 export const changePassword = async (
   userId: string,
   currentPassword: string,
   newPassword: string,
 ): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_URL}/users/${userId}/change-password`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token if necessary
-      },
-      body: JSON.stringify({ currentPassword, newPassword }),
+    await apiService.put<
+      { currentPassword: string; newPassword: string },
+      void
+    >(`${API_BASE_URL}/users/${userId}/change-password`, {
+      currentPassword,
+      newPassword,
     })
-
-    if (!response.ok) {
-      throw new Error('Failed to change password')
-    }
-
     return true
   } catch (error) {
     console.error('Change password failed:', error)
@@ -204,38 +182,33 @@ export const changePassword = async (
   }
 }
 
-const verifyEmail = async (token: string): Promise<{ message: string }> => {
-  const response = await fetch(`${API_URL}/verify-email?token=${token}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error('Verification failed')
-  }
-
-  return response.json()
+/**
+ * Verify a user's email.
+ * @param token - The verification token.
+ * @returns Promise resolving to an object with a message.
+ */
+export const verifyEmail = async (
+  token: string,
+): Promise<{ message: string }> => {
+  return apiService.get<{ message: string }>(
+    `${API_BASE_URL}/verify-email?token=${token}`,
+  )
 }
 
+/**
+ * Complete account setup.
+ * @param token - The setup token.
+ * @param password - The new password.
+ * @returns Promise resolving to an object with a message and optional user.
+ */
 export const completeAccountSetup = async (
   token: string,
   password: string,
 ): Promise<{ message: string; user?: User }> => {
-  const response = await fetch(`${API_URL}/complete-account-setup`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ token, password }),
-  })
-
-  if (!response.ok) {
-    throw new Error('Account setup failed')
-  }
-
-  return response.json()
+  return apiService.post<
+    { token: string; password: string },
+    { message: string; user?: User }
+  >(`${API_BASE_URL}/complete-account-setup`, { token, password })
 }
 
 export default {
@@ -243,12 +216,12 @@ export default {
   getUserById,
   login,
   logout,
-  changePassword,
   resetPassword,
   forgotPassword,
   createAccount,
-  updateUser,
   createRescueAccount,
+  updateUser,
+  changePassword,
   verifyEmail,
   completeAccountSetup,
 }

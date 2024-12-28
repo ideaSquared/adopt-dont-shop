@@ -1,111 +1,44 @@
 // src/services/ApplicationService.ts
+import { apiService } from '../api-service'
 import { Application } from './Application'
 
-const API_BASE_URL = 'http://localhost:5000/api/applications'
+const API_BASE_URL = '/applications'
 
 export const getApplications = async (): Promise<Application[]> => {
-  const response = await fetch(API_BASE_URL, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token if authentication is required
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch applications')
-  }
-
-  return response.json()
+  return apiService.get<Application[]>(API_BASE_URL)
 }
 
 export const getApplicationById = async (
   id: string,
 ): Promise<Application | undefined> => {
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token if authentication is required
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch application by ID')
-  }
-
-  return response.json()
+  return apiService.get<Application>(`${API_BASE_URL}/${id}`)
 }
 
 export const createApplication = async (
   data: Partial<Application>,
 ): Promise<Application> => {
-  const response = await fetch(API_BASE_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token if authentication is required
-    },
-    body: JSON.stringify(data),
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to create application')
-  }
-
-  return response.json()
+  return apiService.post<Partial<Application>, Application>(API_BASE_URL, data)
 }
 
 export const updateApplication = async (
   id: string,
   data: Partial<Application>,
 ): Promise<Application> => {
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token if authentication is required
-    },
-    body: JSON.stringify(data),
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to update application')
-  }
-
-  return response.json()
+  return apiService.put<Partial<Application>, Application>(
+    `${API_BASE_URL}/${id}`,
+    data,
+  )
 }
 
 export const deleteApplication = async (id: string): Promise<boolean> => {
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token if authentication is required
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to delete application')
-  }
-
+  await apiService.delete<void>(`${API_BASE_URL}/${id}`)
   return true
 }
 
 export const getApplicationsByRescueId = async (
   rescueId: string,
 ): Promise<Application[]> => {
-  const response = await fetch(`${API_BASE_URL}/rescue/${rescueId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  })
-  if (!response.ok) {
-    throw new Error('Failed to fetch applications by rescue ID')
-  }
-  return response.json()
+  return apiService.get<Application[]>(`${API_BASE_URL}/rescue/${rescueId}`)
 }
 
 export default {

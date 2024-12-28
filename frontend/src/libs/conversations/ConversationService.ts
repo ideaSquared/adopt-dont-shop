@@ -1,61 +1,38 @@
+// src/services/ConversationService.ts
+
+import { apiService } from '../api-service'
 import { Conversation, Message } from './Conversation'
 
-const API_URL = 'http://localhost:5000/api' // Base API URL
+const API_BASE_URL = '/conversations'
 
-// Fetch all conversations from the API
-const getConversations = async (): Promise<Conversation[]> => {
-  const response = await fetch(`${API_URL}/conversations`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch conversations')
-  }
-
-  const data = await response.json()
-  return data // Assuming the response JSON is structured as { conversations: Conversation[] }
+/**
+ * Fetch all conversations from the API.
+ * @returns Promise resolving to an array of Conversation objects.
+ */
+export const getConversations = async (): Promise<Conversation[]> => {
+  return apiService.get<Conversation[]>(API_BASE_URL)
 }
 
-// Fetch a single conversation by its ID
-const getConversationById = async (
+/**
+ * Fetch a single conversation by its ID.
+ * @param id - The ID of the conversation to fetch.
+ * @returns Promise resolving to a Conversation object.
+ */
+export const getConversationById = async (
   id: string,
 ): Promise<Conversation | undefined> => {
-  const response = await fetch(`${API_URL}/conversations/${id}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch conversation with id: ${id}`)
-  }
-
-  const data = await response.json()
-  return data // Assuming the response JSON is structured as { conversation: Conversation }
+  return apiService.get<Conversation>(`${API_BASE_URL}/${id}`)
 }
 
-// Fetch all messages by conversation ID from the API
-const getMessagesByConversationId = async (id: string): Promise<Message[]> => {
-  const response = await fetch(`${API_URL}/messages/conversation/${id}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch messages for conversation with id: ${id}`)
-  }
-
-  const data = await response.json()
-  return data // Assuming the response JSON is structured as { messages: Message[] }
+/**
+ * Fetch all messages by conversation ID.
+ * @param id - The ID of the conversation whose messages to fetch.
+ * @returns Promise resolving to an array of Message objects.
+ */
+export const getMessagesByConversationId = async (
+  id: string,
+): Promise<Message[]> => {
+  return apiService.get<Message[]>(`/messages/conversation/${id}`)
 }
 
 export default {

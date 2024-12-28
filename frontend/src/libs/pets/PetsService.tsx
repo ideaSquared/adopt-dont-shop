@@ -1,138 +1,117 @@
+// src/services/PetService.ts
+
+import { apiService } from '../api-service'
 import { PetRescue } from './Pets'
 
-// Base URL for the backend API
-const BASE_URL = 'http://localhost:5000/api' // adjust the URL as needed
+const API_BASE_URL = '/pets'
 
-const headers = {
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-}
-
-// Fetch all pets
+/**
+ * Fetch all pets.
+ * @returns Promise resolving to an array of PetRescue objects.
+ */
 export const getPets = async (): Promise<PetRescue[]> => {
-  const response = await fetch(`${BASE_URL}/pets`, {
-    method: 'GET',
-    headers,
-  })
-  if (!response.ok) {
-    throw new Error('Failed to fetch pets')
-  }
-  return await response.json()
+  return apiService.get<PetRescue[]>(API_BASE_URL)
 }
 
-// Fetch a pet by ID
+/**
+ * Fetch a pet by its ID.
+ * @param pet_id - The ID of the pet to fetch.
+ * @returns Promise resolving to a PetRescue object.
+ */
 export const getPetById = async (
   pet_id: string,
 ): Promise<PetRescue | undefined> => {
-  const response = await fetch(`${BASE_URL}/pets/${pet_id}`, {
-    method: 'GET',
-    headers,
-  })
-  if (!response.ok) {
-    throw new Error(`Failed to fetch pet with id ${pet_id}`)
-  }
-  return await response.json()
+  return apiService.get<PetRescue>(`${API_BASE_URL}/${pet_id}`)
 }
 
-// Fetch pets by type
+/**
+ * Fetch pets by type.
+ * @param type - The type of pets to fetch.
+ * @returns Promise resolving to an array of PetRescue objects.
+ */
 export const getPetsByType = async (type: string): Promise<PetRescue[]> => {
-  const response = await fetch(
-    `${BASE_URL}/pets?type=${encodeURIComponent(type)}`,
-    {
-      method: 'GET',
-      headers,
-    },
+  return apiService.get<PetRescue[]>(
+    `${API_BASE_URL}?type=${encodeURIComponent(type)}`,
   )
-  if (!response.ok) {
-    throw new Error(`Failed to fetch pets of type ${type}`)
-  }
-  return await response.json()
 }
 
-// Update a pet by ID
+/**
+ * Update a pet by its ID.
+ * @param pet_id - The ID of the pet to update.
+ * @param updatedData - Partial data to update the pet.
+ * @returns Promise resolving to the updated PetRescue object.
+ */
 export const updatePet = async (
   pet_id: string,
   updatedData: Partial<PetRescue>,
 ): Promise<PetRescue> => {
-  const response = await fetch(`${BASE_URL}/pets/${pet_id}`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(updatedData),
-  })
-  if (!response.ok) {
-    throw new Error(`Failed to update pet with id ${pet_id}`)
-  }
-  return await response.json()
+  return apiService.put<Partial<PetRescue>, PetRescue>(
+    `${API_BASE_URL}/${pet_id}`,
+    updatedData,
+  )
 }
 
-// Delete a pet by ID
+/**
+ * Delete a pet by its ID.
+ * @param pet_id - The ID of the pet to delete.
+ */
 export const deletePet = async (pet_id: string): Promise<void> => {
-  const response = await fetch(`${BASE_URL}/pets/${pet_id}`, {
-    method: 'DELETE',
-    headers,
-  })
-  if (!response.ok) {
-    throw new Error(`Failed to delete pet with id ${pet_id}`)
-  }
+  await apiService.delete<void>(`${API_BASE_URL}/${pet_id}`)
 }
 
-// Add pet images
+/**
+ * Add images for a pet.
+ * @param petId - The ID of the pet.
+ * @param files - An array of image files to upload.
+ * @returns Promise resolving to an array of saved image URLs.
+ */
 export const addPetImages = async (
   petId: string,
   files: File[],
 ): Promise<string[]> => {
+  if (files.length === 0) {
+    throw new Error('No images to upload')
+  }
+
   const formData = new FormData()
   files.forEach((file) => formData.append('files', file))
 
-  const response = await fetch(`${BASE_URL}/pets/${petId}/images`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: formData,
-  })
+  const response = await apiService.post<FormData, { savedImages: string[] }>(
+    `/pets/${petId}/images`,
+    formData,
+    true, // Requires authentication
+  )
 
-  if (!response.ok) {
-    throw new Error('Failed to upload pet images')
-  }
-
-  const data = await response.json()
-
-  // Ensure `savedImages` exists and is an array before returning
-  if (!data.savedImages || !Array.isArray(data.savedImages)) {
+  if (
+    !response ||
+    !response.savedImages ||
+    !Array.isArray(response.savedImages)
+  ) {
     throw new Error('Invalid response format: Missing or invalid "savedImages"')
   }
 
-  return data.savedImages
+  return response.savedImages
 }
 
-// Fetch pet images
+/**
+ * Fetch all images for a pet.
+ * @param petId - The ID of the pet.
+ * @returns Promise resolving to an array of image URLs.
+ */
 export const fetchPetImages = async (petId: string): Promise<string[]> => {
-  const response = await fetch(`${BASE_URL}/pets/${petId}/images`, {
-    method: 'GET',
-    headers,
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch pet images')
-  }
-
-  return await response.json()
+  return apiService.get<string[]>(`${API_BASE_URL}/${petId}/images`)
 }
 
-// Remove pet image
+/**
+ * Remove an image for a pet.
+ * @param petId - The ID of the pet.
+ * @param imageId - The ID of the image to remove.
+ */
 export const removePetImage = async (
   petId: string,
   imageId: string,
 ): Promise<void> => {
-  const response = await fetch(`${BASE_URL}/pets/${petId}/images/${imageId}`, {
-    method: 'DELETE',
-    headers,
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to delete pet image')
-  }
+  await apiService.delete<void>(`${API_BASE_URL}/${petId}/images/${imageId}`)
 }
 
 export default {

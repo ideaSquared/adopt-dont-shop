@@ -1,9 +1,7 @@
-// src/libs/rescues/RescueService.ts
+// src/services/RescueService.ts
 
+import { apiService } from '../api-service'
 import { Rescue, StaffMember } from './Rescue'
-
-// Base URL for your API
-const API_URL = 'http://localhost:5000/api'
 
 interface Invitation {
   email: string
@@ -16,214 +14,152 @@ interface StaffWithInvites extends StaffMember {
   isInvite?: boolean // Flag to differentiate invites
 }
 
-// Fetch all rescues
-const getRescues = async (): Promise<Rescue[]> => {
-  const response = await fetch(`${API_URL}/rescue/rescues`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch rescues: ${response.statusText}`)
-  }
-  const data = await response.json()
-  return data.rescues || []
+/**
+ * Fetch all rescues.
+ * @returns Promise resolving to an array of Rescue objects.
+ */
+export const getRescues = async (): Promise<Rescue[]> => {
+  return apiService.get<Rescue[]>('/rescue/rescues')
 }
 
-// Fetch a specific rescue by ID
-const getRescueById = async (id: string): Promise<Rescue | undefined> => {
-  const response = await fetch(`${API_URL}/rescue/rescues/${id}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch rescue with ID ${id}: ${response.statusText}`,
-    )
-  }
-  const data = await response.json()
-  return data as Rescue
+/**
+ * Fetch a specific rescue by ID.
+ * @param id - The ID of the rescue to fetch.
+ * @returns Promise resolving to a Rescue object.
+ */
+export const getRescueById = async (
+  id: string,
+): Promise<Rescue | undefined> => {
+  return apiService.get<Rescue>(`/rescue/rescues/${id}`)
 }
 
-// Fetch all staff members with roles for a specific rescue
-const getStaffMembersByRescueId = async (
+/**
+ * Fetch all staff members with roles for a specific rescue.
+ * @param rescue_id - The ID of the rescue.
+ * @returns Promise resolving to an array of StaffWithInvites objects.
+ */
+export const getStaffMembersByRescueId = async (
   rescue_id: string,
 ): Promise<StaffWithInvites[]> => {
-  const response = await fetch(
-    `${API_URL}/rescue/rescues/${rescue_id}/staff-with-roles`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    },
-  )
+  const data = await apiService.get<{
+    staffMembers: StaffMember[]
+    invitations: Invitation[]
+  }>(`/rescue/rescues/${rescue_id}/staff-with-roles`)
 
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch staff with roles and invitations for rescue ID ${rescue_id}: ${response.statusText}`,
-    )
-  }
-
-  const data = await response.json()
-
-  // Destructure with default values to handle cases where invitations might be absent
   const { staffMembers = [], invitations = [] } = data
 
-  // Combine staff members with invitations if they exist
-  const staffWithInvites = [
-    ...staffMembers.map((staff: StaffMember) => ({
+  const staffWithInvites: StaffWithInvites[] = [
+    ...staffMembers.map((staff) => ({
       ...staff,
-      isInvite: false, // Mark staff members as non-invite entries
+      isInvite: false,
     })),
     ...invitations
-      .filter((invite: Invitation) => invite.status != 'Accepted') // Exclude accepted invitations
-      .map((invite: Invitation) => ({
-        user_id: '', // Empty user_id for invitations
+      .filter((invite) => invite.status !== 'Accepted')
+      .map((invite) => ({
+        user_id: '',
         first_name: '',
         last_name: '',
         email: invite.email,
-        role: [], // No roles assigned for invitations
-        verified_by_rescue: false, // Unverified for invitations
+        role: [],
+        verified_by_rescue: false,
         isInvite: true,
         invited_on: invite.invited_on,
         status: invite.status,
+        email_verified: false,
+        roles: [],
       })),
   ]
 
   return staffWithInvites
 }
 
-// Delete a specific rescue by ID
-const deleteRescue = async (rescue_id: string) => {
-  const response = await fetch(`${API_URL}/rescue/rescues/${rescue_id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to delete rescue with ID ${rescue_id}: ${response.statusText}`,
-    )
-  }
+/**
+ * Delete a specific rescue by ID.
+ * @param rescue_id - The ID of the rescue to delete.
+ */
+export const deleteRescue = async (rescue_id: string): Promise<void> => {
+  await apiService.delete<void>(`/rescue/rescues/${rescue_id}`)
 }
 
-const deleteStaffMember = async (userId: string): Promise<void> => {
-  const response = await fetch(`${API_URL}/rescue/staff/${userId}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to delete staff member with ID ${userId}: ${response.statusText}`,
-    )
-  }
+/**
+ * Delete a staff member by user ID.
+ * @param userId - The ID of the staff member to delete.
+ */
+export const deleteStaffMember = async (userId: string): Promise<void> => {
+  await apiService.delete<void>(`/rescue/staff/${userId}`)
 }
 
-// Invite a new user to join the rescue by sending an invitation email
-const inviteUser = async (email: string, rescueId: string): Promise<void> => {
-  const response = await fetch(`${API_URL}/rescue/staff/invite`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify({ email, rescueId }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to send invitation: ${response.statusText}`)
-  }
-}
-
-const cancelInvitation = async (
+/**
+ * Invite a new user to join the rescue.
+ * @param email - The email address of the user to invite.
+ * @param rescueId - The ID of the rescue.
+ */
+export const inviteUser = async (
   email: string,
   rescueId: string,
 ): Promise<void> => {
-  const response = await fetch(`${API_URL}/rescue/staff/cancel-invite`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify({ email, rescueId }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to cancel invitation: ${response.statusText}`)
-  }
+  await apiService.post<{ email: string; rescueId: string }, void>(
+    '/rescue/staff/invite',
+    { email, rescueId },
+  )
 }
 
-// Add a new role to a staff member by user ID
-const addRoleToUser = async (userId: string, role: string): Promise<void> => {
-  const response = await fetch(`${API_URL}/rescue/staff/${userId}/add-role`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify({ role }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to add role: ${response.statusText}`)
-  }
+/**
+ * Cancel an invitation for a user.
+ * @param email - The email address of the user.
+ * @param rescueId - The ID of the rescue.
+ */
+export const cancelInvitation = async (
+  email: string,
+  rescueId: string,
+): Promise<void> => {
+  await apiService.post<{ email: string; rescueId: string }, void>(
+    '/rescue/staff/cancel-invite',
+    { email, rescueId },
+  )
 }
 
-const removeRoleFromUser = async (
+/**
+ * Add a role to a staff member by user ID.
+ * @param userId - The ID of the user.
+ * @param role - The role to assign.
+ */
+export const addRoleToUser = async (
+  userId: string,
+  role: string,
+): Promise<void> => {
+  await apiService.post<{ role: string }, void>(
+    `/rescue/staff/${userId}/add-role`,
+    { role },
+  )
+}
+
+/**
+ * Remove a role from a staff member by user ID.
+ * @param userId - The ID of the user.
+ * @param roleId - The ID of the role to remove.
+ */
+export const removeRoleFromUser = async (
   userId: string,
   roleId: string,
 ): Promise<void> => {
-  const response = await fetch(
-    `${API_URL}/rescue/staff/${userId}/roles/${roleId}`,
-    {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    },
-  )
-
-  if (!response.ok) {
-    throw new Error(`Failed to remove role: ${response.statusText}`)
-  }
+  await apiService.delete<void>(`/rescue/staff/${userId}/roles/${roleId}`)
 }
 
-const updateRescue = async (
+/**
+ * Update a specific rescue by ID.
+ * @param id - The ID of the rescue to update.
+ * @param updateData - Partial data to update the rescue.
+ * @returns Promise resolving to the updated Rescue object.
+ */
+export const updateRescue = async (
   id: string,
   updateData: Partial<Rescue>,
 ): Promise<Rescue | undefined> => {
-  const response = await fetch(`${API_URL}/rescue/rescues/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify(updateData),
-  })
-  if (!response.ok) {
-    throw new Error(
-      `Failed to update rescue with ID ${id}: ${response.statusText}`,
-    )
-  }
-  const data = await response.json()
-  return data as Rescue
+  return apiService.put<Partial<Rescue>, Rescue>(
+    `/rescue/rescues/${id}`,
+    updateData,
+  )
 }
 
 export default {

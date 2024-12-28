@@ -1,41 +1,20 @@
-const API_URL = 'http://localhost:5000/api'
+import { apiService } from '../api-service'
 
 const addRoleToUser = async (userId: string, role: string): Promise<void> => {
-  const response = await fetch(`${API_URL}/admin/users/${userId}/add-role`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify({ role }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to add role: ${response.statusText}`)
-  }
+  await apiService.post<{ role: string }, void>(
+    `/admin/users/${userId}/add-role`,
+    { role },
+  )
 }
 
 const removeRoleFromUser = async (
   userId: string,
   roleId: string,
 ): Promise<void> => {
-  const response = await fetch(
-    `${API_URL}/admin/users/${userId}/roles/${roleId}`,
-    {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    },
-  )
-
-  if (!response.ok) {
-    throw new Error(`Failed to remove role: ${response.statusText}`)
-  }
+  await apiService.delete<void>(`/admin/users/${userId}/roles/${roleId}`)
 }
 
 export default {
-  removeRoleFromUser,
   addRoleToUser,
+  removeRoleFromUser,
 }

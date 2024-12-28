@@ -10,8 +10,8 @@ export interface User {
   reset_token?: string | null
   reset_token_expiration?: string | null
   reset_token_force_flag?: boolean | null
-  created_at: string
-  updated_at: string
+  created_at?: string
+  updated_at?: string
   country?: string | null
   city?: string | null
   location?: string | null
