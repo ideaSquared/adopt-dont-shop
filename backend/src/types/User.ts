@@ -12,6 +12,7 @@ export interface User {
   created_at?: Date
   updated_at?: Date
   Roles?: Role[]
+  rescue_id?: string | null
 }
 
 export interface Role {

@@ -14,6 +14,29 @@ export const getAllPets = async (
   }
 }
 
+/**
+ * Get pets for a specific rescue.
+ * @param req - Express request object.
+ * @param res - Express response object.
+ */
+export const getAllPetsByRescueId = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  const rescueId = req.user?.rescue_id // Assuming the rescue ID is available in the authenticated user
+  if (!rescueId) {
+    res.status(400).json({ error: 'Rescue ID is required' })
+    return
+  }
+
+  try {
+    const pets = await PetService.getAllPetsByRescueId(rescueId)
+    res.status(200).json(pets)
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message })
+  }
+}
+
 export const getPetById = async (
   req: AuthenticatedRequest,
   res: Response,

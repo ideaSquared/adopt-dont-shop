@@ -6,11 +6,19 @@ import { PetRescue } from './Pets'
 const API_BASE_URL = '/pets'
 
 /**
+ * Fetch all pets that a user can access based on rescue
+ * @returns Promise resolving to an array of PetRescue objects.
+ */
+export const getPetsByRescueId = async (): Promise<PetRescue[]> => {
+  return apiService.get<PetRescue[]>(API_BASE_URL)
+}
+
+/**
  * Fetch all pets.
  * @returns Promise resolving to an array of PetRescue objects.
  */
-export const getPets = async (): Promise<PetRescue[]> => {
-  return apiService.get<PetRescue[]>(API_BASE_URL)
+export const getAllPets = async (): Promise<PetRescue[]> => {
+  return apiService.get<PetRescue[]>(`${API_BASE_URL}/admin`)
 }
 
 /**
@@ -115,7 +123,8 @@ export const removePetImage = async (
 }
 
 export default {
-  getPets,
+  getPetsByRescueId,
+  getAllPets,
   getPetById,
   getPetsByType,
   updatePet,

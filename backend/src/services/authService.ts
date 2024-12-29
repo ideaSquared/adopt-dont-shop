@@ -550,3 +550,4 @@ export const completeAccountSetupService = async (
 
   return { message: 'Account setup complete', user }
 }
+

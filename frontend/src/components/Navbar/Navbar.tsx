@@ -106,6 +106,7 @@ const Navbar: React.FC = () => {
                     : []),
                   { label: 'Logs', to: '/logs' },
                   { label: 'Rescues', to: '/rescues' },
+                  { label: 'Pets (Admin)', to: '/admin/pets' },
                   { label: 'Feature flags', to: '/feature-flags' },
                   { label: 'Ratings', to: '/ratings' },
                 ]}

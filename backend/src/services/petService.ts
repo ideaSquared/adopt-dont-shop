@@ -30,6 +30,47 @@ export const getAllPets = async (): Promise<Pet[]> => {
   }
 }
 
+/**
+ * Fetch pets by rescue ID.
+ * @param rescueId - The rescue ID to filter pets.
+ * @returns Promise resolving to an array of pets for the specified rescue.
+ */
+export const getAllPetsByRescueId = async (rescueId: string): Promise<Pet[]> => {
+  await AuditLogger.logAction(
+    'PetService',
+    `Fetching pets for rescue ID: ${rescueId}`,
+    'INFO',
+  )
+  try {
+    const pets = await Pet.findAll({ where: { owner_id: rescueId } })
+    await AuditLogger.logAction(
+      'PetService',
+      `Successfully fetched pets for rescue ID: ${rescueId}`,
+      'INFO',
+    )
+    return pets
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'PetService',
+        `Error fetching pets for rescue ID ${rescueId} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(
+        `Failed to fetch pets for rescue ID ${rescueId}: ${error.message}`,
+      )
+    }
+    await AuditLogger.logAction(
+      'PetService',
+      `Unknown error while fetching pets for rescue ID: ${rescueId}`,
+      'ERROR',
+    )
+    throw new Error(
+      `An unknown error occurred while fetching pets for rescue ID: ${rescueId}`,
+    )
+  }
+}
+
 export const getPetById = async (petId: string): Promise<Pet | null> => {
   await AuditLogger.logAction(
     'PetService',

@@ -82,7 +82,7 @@ const AppContent: React.FC = () => {
             <Route path="/applications" element={<Applications />} />
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
-            <Route path="/pets" element={<Pets />} />
+            <Route path="/pets" element={<Pets isAdminView={false} />} />
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route path="/staff" element={<Staff />} />
@@ -101,6 +101,7 @@ const AppContent: React.FC = () => {
             <Route path="/rescues" element={<Rescues />} />
             <Route path="/feature-flags" element={<FeatureFlags />} />
             <Route path="/ratings" element={<Ratings />} />
+            <Route path="/admin/pets" element={<Pets isAdminView={true} />} />
           </Route>
         </Routes>
       </Router>

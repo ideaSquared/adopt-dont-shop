@@ -593,3 +593,26 @@ export const removeRoleFromUserService = async (
     throw new Error('An unknown error occurred while removing the role')
   }
 }
+
+/**
+ * Retrieve the rescue_id associated with a user by their user ID.
+ * @param userId - The ID of the user.
+ * @returns Promise resolving to the rescue_id or null if not found.
+ */
+export const getRescueIdByUserId = async (
+  userId: string,
+): Promise<string | null> => {
+  try {
+    // Fetch the staff record linked to the user
+    const staffMember = await StaffMemberModel.findOne({
+      where: { user_id: userId },
+      attributes: ['rescue_id'], // Only fetch rescue_id to reduce overhead
+    })
+
+    // Return the rescue_id if found, otherwise null
+    return staffMember?.rescue_id || null
+  } catch (error) {
+    console.error(`Error fetching rescue_id for user ID ${userId}:`, error)
+    throw new Error('Failed to fetch rescue_id')
+  }
+}

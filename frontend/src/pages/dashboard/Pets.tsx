@@ -58,7 +58,7 @@ const ActionButtons = styled.div`
   gap: 0.5rem;
 `
 
-const Pets: React.FC = () => {
+const Pets: React.FC<{ isAdminView?: boolean }> = ({ isAdminView = false }) => {
   const [pets, setPets] = useState<PetRescue[]>([])
   const [filteredPets, setFilteredPets] = useState<PetRescue[]>([])
   const [searchTerm, setSearchTerm] = useState<string | null>(null)
@@ -90,14 +90,15 @@ const Pets: React.FC = () => {
   useEffect(() => {
     const fetchPets = async () => {
       try {
-        const fetchedPets = await PetsService.getPets()
+        const fetchedPets = isAdminView
+          ? await PetsService.getAllPets()
+          : await PetsService.getPetsByRescueId()
 
-        // Append base URL to each pet's images, handling null/undefined images
         const updatedPets = fetchedPets.map((pet) => ({
           ...pet,
           images: pet.images?.length
             ? pet.images.map((image) => `${baseUrl}${image}`)
-            : [], // Fallback to a default image
+            : [],
         }))
 
         setPets(updatedPets)
@@ -108,7 +109,7 @@ const Pets: React.FC = () => {
     }
 
     fetchPets()
-  }, [])
+  }, [isAdminView])
 
   useEffect(() => {
     const filtered = pets.filter((pet) => {
@@ -231,7 +232,9 @@ const Pets: React.FC = () => {
         alert('Failed to delete the pet. Rolling back changes.')
 
         // Rollback the deletion if the API call fails
-        const fetchedPets = await PetsService.getPets()
+        const fetchedPets = isAdminView
+          ? await PetsService.getAllPets()
+          : await PetsService.getPetsByRescueId()
         const updatedPets = fetchedPets.map((pet) => ({
           ...pet,
           images: pet.images?.length
@@ -346,7 +349,7 @@ const Pets: React.FC = () => {
 
   return (
     <Container>
-      <h1>Pets</h1>
+      <h1>{isAdminView ? 'All Pets (Admin)' : 'Pets'}</h1>
       <FormInput label="Search by pet name">
         <TextInput
           onChange={handleSearchChange}
