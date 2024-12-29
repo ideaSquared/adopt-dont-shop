@@ -69,6 +69,17 @@ export const verifyUserHasRole = async (
     const roles = await getRolesForUser(userId)
     const hasRole = roles.includes(roleName)
 
+    // Admin override
+    if (roles.includes('admin')) {
+      await AuditLogger.logAction(
+        'PermissionService',
+        `User with ID: ${userId} has the admin role, overriding check for role: ${roleName}`,
+        'INFO',
+        userId,
+      )
+      return true // Admins automatically pass
+    }
+
     await AuditLogger.logAction(
       'PermissionService',
       `User with ID: ${userId} ${

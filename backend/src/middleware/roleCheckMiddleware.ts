@@ -3,18 +3,24 @@ import { AuditLogger } from '../services/auditLogService'
 import { verifyUserHasRole } from '../services/permissionService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
 
-export const checkUserRole = (requiredRole: string) => {
+export const checkUserRole = (
+  requiredRole: string,
+  ownershipCheck?: (req: AuthenticatedRequest) => Promise<boolean>,
+) => {
   return async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
   ) => {
-    if (!req.user) return
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' })
+    }
+
     const userId = req.user.user_id
 
     try {
+      // Check if user has the required role
       const hasRole = await verifyUserHasRole(userId, requiredRole)
-
       if (!hasRole) {
         await AuditLogger.logAction(
           'RoleCheckMiddleware',
@@ -27,6 +33,22 @@ export const checkUserRole = (requiredRole: string) => {
           .json({ message: 'Forbidden: insufficient permissions' })
       }
 
+      // Perform additional ownership validation if callback is provided
+      if (ownershipCheck) {
+        const ownsResource = await ownershipCheck(req)
+        if (!ownsResource) {
+          await AuditLogger.logAction(
+            'RoleCheckMiddleware',
+            `User with ID: ${userId} attempted to access a resource they do not own`,
+            'WARNING',
+            userId,
+          )
+          return res
+            .status(403)
+            .json({ message: 'Forbidden: insufficient ownership' })
+        }
+      }
+
       await AuditLogger.logAction(
         'RoleCheckMiddleware',
         `User with ID: ${userId} accessed a resource requiring role: ${requiredRole}`,
@@ -35,7 +57,7 @@ export const checkUserRole = (requiredRole: string) => {
       )
       next()
     } catch (error) {
-      // Narrow down the error type to handle it appropriately
+      // Handle errors
       if (error instanceof Error) {
         console.error(error.message)
         await AuditLogger.logAction(
@@ -46,7 +68,6 @@ export const checkUserRole = (requiredRole: string) => {
         )
         return res.status(500).json({ message: 'Internal server error' })
       } else {
-        // Handle cases where the error might not be an instance of Error
         console.error('Unknown error occurred during role check')
         await AuditLogger.logAction(
           'RoleCheckMiddleware',

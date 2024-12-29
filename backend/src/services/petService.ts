@@ -35,7 +35,9 @@ export const getAllPets = async (): Promise<Pet[]> => {
  * @param rescueId - The rescue ID to filter pets.
  * @returns Promise resolving to an array of pets for the specified rescue.
  */
-export const getAllPetsByRescueId = async (rescueId: string): Promise<Pet[]> => {
+export const getAllPetsByRescueId = async (
+  rescueId: string,
+): Promise<Pet[]> => {
   await AuditLogger.logAction(
     'PetService',
     `Fetching pets for rescue ID: ${rescueId}`,
@@ -231,4 +233,15 @@ export const deletePet = async (petId: string): Promise<boolean> => {
     )
     throw new Error('An unknown error occurred while deleting the pet')
   }
+}
+
+export const verifyPetOwnership = async (
+  userRescueId: string | null,
+  petId: string,
+): Promise<boolean> => {
+  const pet = await Pet.findByPk(petId)
+  if (!pet) {
+    return false // Pet not found
+  }
+  return pet.owner_id === userRescueId // Check ownership
 }
