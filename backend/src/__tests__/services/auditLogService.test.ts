@@ -33,7 +33,7 @@ describe('AuditLogger Service', () => {
     const mockLogs = [{ id: 1, action: 'Test action' }]
     ;(AuditLogger.getAllLogs as jest.Mock).mockResolvedValue(mockLogs)
 
-    const logs = await AuditLogger.getAllLogs()
+    const logs = await AuditLogger.getAllLogs(1, 10)
 
     expect(logs).toEqual(mockLogs)
     expect(AuditLogger.getAllLogs).toHaveBeenCalled()
