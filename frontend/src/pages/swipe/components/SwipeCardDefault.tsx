@@ -2,6 +2,7 @@ import { Pet } from '@adoptdontshop/libs/pets'
 import { SwipeControls, useSwipe } from '@adoptdontshop/pages/swipe/components'
 import React from 'react'
 import styled, { css } from 'styled-components'
+import noImage from './no-image.png'
 
 type SwipeCardProps = {
   card: Pet
@@ -87,10 +88,12 @@ const SwipeCardDefault: React.FC<SwipeCardProps> = ({ card, onSwipe }) => {
   const { swipeDirection, handleSwipe } = useSwipe((direction) => {
     onSwipe(card.pet_id, direction)
   })
+  const baseUrl = 'http://localhost:5000/api/uploads/'
+  const imageUrl = card.images?.[0] ? `${baseUrl}${card.images[0]}` : noImage
 
   return (
     <Card swipeDirection={swipeDirection}>
-      <CardImage src={card.images[0]} alt={card.name} />
+      <CardImage src={imageUrl} alt={card.name} />
       <CardInfo>
         <h2>{card.name}</h2>
         <p>{card.breed}</p>

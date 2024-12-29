@@ -1,4 +1,4 @@
-import { Pet, PetsService } from '@adoptdontshop/libs/pets'
+import { PetRescue, PetsService } from '@adoptdontshop/libs/pets'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import {
@@ -47,12 +47,20 @@ const ToggleButton = styled.button`
   }
 `
 const Swipe: React.FC = () => {
-  const [petCards, setPetCards] = useState<Pet[]>([])
+  const [petCards, setPetCards] = useState<PetRescue[]>([])
   const [cardDesign, setCardDesign] = useState('default') // Default card design
 
   useEffect(() => {
-    const fetchedPets = PetsService.getPets() as Pet[]
-    setPetCards(fetchedPets)
+    const fetchPets = async () => {
+      try {
+        const fetchedPets = await PetsService.getPets()
+        setPetCards(fetchedPets)
+      } catch (error) {
+        console.error('Error fetching pets:', error)
+      }
+    }
+
+    fetchPets()
   }, [])
 
   const handleSwipe = (pet_id: string, direction: 'left' | 'right') => {
@@ -75,11 +83,16 @@ const Swipe: React.FC = () => {
   const renderCard = () => {
     if (!currentCard) return <DefaultCard>No more pets available</DefaultCard>
 
+    const safeCard = {
+      ...currentCard,
+      images: currentCard.images || [], // Ensure images is always an array
+    }
+
     if (cardDesign === 'default') {
       return (
         <SwipeCardDefault
           key={currentCard.pet_id}
-          card={currentCard}
+          card={safeCard}
           onSwipe={handleSwipe}
         />
       )
@@ -89,7 +102,7 @@ const Swipe: React.FC = () => {
       return (
         <SwipeCardBackground
           key={currentCard.pet_id}
-          card={currentCard}
+          card={safeCard}
           onSwipe={handleSwipe}
         />
       )
@@ -99,7 +112,7 @@ const Swipe: React.FC = () => {
       return (
         <SwipeCardNub
           key={currentCard.pet_id}
-          card={currentCard}
+          card={safeCard}
           onSwipe={handleSwipe}
         />
       )
@@ -108,7 +121,7 @@ const Swipe: React.FC = () => {
     return (
       <SwipeCardMinimal
         key={currentCard.pet_id}
-        card={currentCard}
+        card={safeCard}
         onSwipe={handleSwipe}
       />
     )
