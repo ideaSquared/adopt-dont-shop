@@ -35,10 +35,8 @@ export const deleteApplication = async (id: string): Promise<boolean> => {
   return true
 }
 
-export const getApplicationsByRescueId = async (
-  rescueId: string,
-): Promise<Application[]> => {
-  return apiService.get<Application[]>(`${API_BASE_URL}/rescue/${rescueId}`)
+export const getApplicationsByRescueId = async (): Promise<Application[]> => {
+  return apiService.get<Application[]>(`${API_BASE_URL}/rescue`)
 }
 
 export default {

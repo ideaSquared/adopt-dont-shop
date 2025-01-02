@@ -14,8 +14,9 @@ import {
 } from '@adoptdontshop/libs/applications'
 import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
-
-const Applications: React.FC = () => {
+const Applications: React.FC<{ isAdminView?: boolean }> = ({
+  isAdminView = false,
+}) => {
   const { rescue } = useUser()
   const [applications, setApplications] = useState<Application[]>([])
   const [searchTerm, setSearchTerm] = useState<string | null>(null)
@@ -24,18 +25,18 @@ const Applications: React.FC = () => {
 
   // Fetch applications data from backend on component mount
   useEffect(() => {
-    if (!rescue) return
     const fetchApplications = async () => {
       try {
-        const fetchedApplications =
-          await ApplicationService.getApplicationsByRescueId(rescue.rescue_id)
+        const fetchedApplications = isAdminView
+          ? await ApplicationService.getApplications()
+          : await ApplicationService.getApplicationsByRescueId()
         setApplications(fetchedApplications)
       } catch (error) {
         console.error('Error fetching applications:', error)
       }
     }
     fetchApplications()
-  }, [rescue])
+  }, [isAdminView])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
@@ -61,8 +62,9 @@ const Applications: React.FC = () => {
       await ApplicationService.updateApplication(applicationId, {
         status: newStatus,
       })
-      const refreshedApplications =
-        await ApplicationService.getApplicationsByRescueId(rescue!.rescue_id)
+      const refreshedApplications = isAdminView
+        ? await ApplicationService.getApplications()
+        : await ApplicationService.getApplicationsByRescueId()
       setApplications(refreshedApplications)
     } catch (error) {
       console.error(`Error updating application status:`, error)

@@ -63,7 +63,6 @@ const AppContent: React.FC = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/complete-account" element={<CompleteAccountSetup />} />
-
           <Route
             element={
               <ProtectedRoute requiredRoles={[Role.USER, Role.VERIFIED_USER]} />
@@ -77,10 +76,13 @@ const AppContent: React.FC = () => {
               <Route path="/chat" element={<Navigate to="/" />} />
             )}
           </Route>
-
           <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
-            <Route path="/applications" element={<Applications />} />
-          </Route>
+            <Route
+              path="/applications"
+              element={<Applications isAdminView={false} />}
+            />
+          </Route>{' '}
+          isAdminView
           <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route path="/pets" element={<Pets isAdminView={false} />} />
           </Route>
@@ -102,6 +104,11 @@ const AppContent: React.FC = () => {
             <Route path="/feature-flags" element={<FeatureFlags />} />
             <Route path="/ratings" element={<Ratings />} />
             <Route path="/admin/pets" element={<Pets isAdminView={true} />} />
+
+            <Route
+              path="/admin/applications"
+              element={<Applications isAdminView={true} />}
+            />
           </Route>
         </Routes>
       </Router>

@@ -109,6 +109,7 @@ const Navbar: React.FC = () => {
                   { label: 'Pets (Admin)', to: '/admin/pets' },
                   { label: 'Feature flags', to: '/feature-flags' },
                   { label: 'Ratings', to: '/ratings' },
+                  { label: 'Applications (Admin)', to: '/admin/applications' },
                 ]}
               />
             </NavItem>
