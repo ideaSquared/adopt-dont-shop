@@ -23,7 +23,7 @@ export const getAllPetsByRescueId = async (
   req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
-  const rescueId = req.user?.rescue_id // Assuming the rescue ID is available in the authenticated user
+  const rescueId = req.user?.rescue_id
   if (!rescueId) {
     res.status(400).json({ error: 'Rescue ID is required' })
     return
