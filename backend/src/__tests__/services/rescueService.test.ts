@@ -53,8 +53,8 @@ describe('Rescue Service', () => {
     const result = await getAllRescuesService()
 
     expect(RescueModel.findAll).toHaveBeenCalled()
-    expect(result.rescues).toHaveLength(1)
-    expect(result.rescues[0].rescue_name).toBe('Rescue1')
+    expect(result).toHaveLength(1)
+    expect(result[0].rescue_name).toBe('Rescue1')
   })
 
   it('should get a single rescue with full data for staff user', async () => {
