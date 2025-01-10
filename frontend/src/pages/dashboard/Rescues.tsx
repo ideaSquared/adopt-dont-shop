@@ -31,15 +31,14 @@ const Rescues: React.FC = () => {
   }, [])
 
   const filteredRescues = useMemo(() => {
+    if (!Array.isArray(rescues)) return []
     return rescues.filter((rescue) => {
       const matchesType = !filterByType || rescue.rescue_type === filterByType
-
       const matchesRescueName =
         !searchTerm ||
         (rescue.rescue_name?.toLowerCase() || '').includes(
           searchTerm.toLowerCase(),
         )
-
       const matchesStaffEmail =
         !staffEmailSearchTerm ||
         rescue.staff.some((staff) =>
@@ -47,7 +46,6 @@ const Rescues: React.FC = () => {
             .toLowerCase()
             .includes(staffEmailSearchTerm.toLowerCase()),
         )
-
       return matchesType && matchesRescueName && matchesStaffEmail
     })
   }, [filterByType, searchTerm, staffEmailSearchTerm, rescues])
@@ -67,12 +65,16 @@ const Rescues: React.FC = () => {
 
   const rescuesOptions = [
     { value: '', label: 'All types' },
-    ...Array.from(new Set(rescues.map((rescue) => rescue.rescue_type))).map(
-      (rescue_type) => ({
-        value: rescue_type,
-        label: rescue_type,
-      }),
-    ),
+    ...Array.from(
+      new Set(
+        Array.isArray(rescues)
+          ? rescues.map((rescue) => rescue.rescue_type)
+          : [],
+      ),
+    ).map((rescue_type) => ({
+      value: rescue_type,
+      label: rescue_type,
+    })),
   ]
 
   return (

@@ -18,9 +18,7 @@ import {
 import { AuditLogger } from './auditLogService'
 import { sendInvitationEmail } from './emailService'
 
-export const getAllRescuesService = async (): Promise<{
-  rescues: Rescue[]
-}> => {
+export const getAllRescuesService = async (): Promise<Rescue[]> => {
   await AuditLogger.logAction('RescueService', 'Fetching all rescues', 'INFO')
   try {
     const rescues = await RescueModel.findAll({
@@ -78,7 +76,7 @@ export const getAllRescuesService = async (): Promise<{
       'Successfully fetched all rescues',
       'INFO',
     )
-    return { rescues: formattedRescues }
+    return formattedRescues
   } catch (error) {
     if (error instanceof Error) {
       await AuditLogger.logAction(
