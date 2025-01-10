@@ -2,7 +2,6 @@ import jwt from 'jsonwebtoken'
 import { Invitation, User } from '../../Models'
 import { sendInvitationEmail } from '../../services/emailService'
 import { inviteUserService } from '../../services/rescueService'
-import { AuditLogger } from '../../services/auditLogService'
 
 jest.mock('jsonwebtoken')
 jest.mock('../../Models', () => ({

@@ -1,6 +1,9 @@
 import { Role, User } from '../../Models'
 import { AuditLogger } from '../../services/auditLogService'
-import { getRolesForUser, verifyUserHasRole } from '../../services/permissionService'
+import {
+  getRolesForUser,
+  verifyUserHasRole,
+} from '../../services/permissionService'
 
 jest.mock('../../Models', () => ({
   User: {
