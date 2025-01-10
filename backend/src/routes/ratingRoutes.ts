@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import express from 'express'
 import {
   createRatingController,
   deleteRatingController,
@@ -8,16 +8,24 @@ import {
   getRatingsByUserIdController,
   updateRatingController,
 } from '../controllers/ratingController'
-import { authenticateJWT } from '../middleware/authMiddleware'
+import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
-const router = Router()
+const router = express.Router()
 
-router.post('/', authenticateJWT, createRatingController)
-router.get('/', authenticateJWT, getAllRatingsController)
-router.get('/:id', authenticateJWT, getRatingByIdController)
-router.get('/user/:userId', authenticateJWT, getRatingsByUserIdController)
-router.get('/pet/:petId', authenticateJWT, getRatingsByPetIdController)
-router.put('/:id', authenticateJWT, updateRatingController)
-router.delete('/:id', authenticateJWT, deleteRatingController)
+router.post('/', authRoleOwnershipMiddleware(), createRatingController)
+router.get('/', authRoleOwnershipMiddleware(), getAllRatingsController)
+router.get('/:id', authRoleOwnershipMiddleware(), getRatingByIdController)
+router.get(
+  '/user/:userId',
+  authRoleOwnershipMiddleware(),
+  getRatingsByUserIdController,
+)
+router.get(
+  '/pet/:petId',
+  authRoleOwnershipMiddleware(),
+  getRatingsByPetIdController,
+)
+router.put('/:id', authRoleOwnershipMiddleware(), updateRatingController)
+router.delete('/:id', authRoleOwnershipMiddleware(), deleteRatingController)
 
 export default router

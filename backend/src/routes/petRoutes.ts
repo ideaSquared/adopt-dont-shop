@@ -1,37 +1,60 @@
-import { Router } from 'express'
+import express from 'express'
 import {
   createPet,
   deletePet,
-  getAllPets,
   getAllPetsByRescueId,
   getPetById,
   updatePet,
 } from '../controllers/petController'
 import { attachRescueId } from '../middleware/attachRescueId'
-import { authenticateJWT } from '../middleware/authMiddleware'
-import { checkRoleAndOwnership } from '../middleware/checkRoleAndOwnership'
-import { checkUserRole } from '../middleware/roleCheckMiddleware'
+import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
+import { verifyPetOwnership } from '../services/petService'
 
-const router = Router()
+const router = express.Router()
 
-router.get('/', authenticateJWT, attachRescueId, getAllPetsByRescueId)
-router.get('/admin', authenticateJWT, checkUserRole('admin'), getAllPets)
-// TODO: Verify role
-router.get('/:id', authenticateJWT, getPetById)
-router.post('/', authenticateJWT, createPet)
+// Get all pets for a rescue
+router.get(
+  '/',
+  authRoleOwnershipMiddleware(),
+  attachRescueId,
+  getAllPetsByRescueId,
+)
+
+// Get single pet
+router.get('/:id', authRoleOwnershipMiddleware(), getPetById)
+
+// Create new pet (requires rescue_manager role)
+router.post(
+  '/',
+  authRoleOwnershipMiddleware({ requiredRole: 'rescue_manager' }),
+  attachRescueId,
+  createPet,
+)
+
+// Update pet (requires rescue_manager role and ownership)
 router.put(
   '/:id',
-  authenticateJWT,
-  attachRescueId,
-  checkRoleAndOwnership('pet_manager'),
+  authRoleOwnershipMiddleware({
+    requiredRole: 'rescue_manager',
+    ownershipCheck: async (req) => {
+      if (!req.user?.rescue_id) return false
+      return verifyPetOwnership(req.user.rescue_id, req.params.id)
+    },
+  }),
   updatePet,
 )
 
+// Delete pet (requires rescue_manager role and ownership)
 router.delete(
   '/:id',
-  authenticateJWT,
-  attachRescueId,
-  checkRoleAndOwnership('pet_manager'),
+  authRoleOwnershipMiddleware({
+    requiredRole: 'rescue_manager',
+    ownershipCheck: async (req) => {
+      if (!req.user?.rescue_id) return false
+      return verifyPetOwnership(req.user.rescue_id, req.params.id)
+    },
+  }),
   deletePet,
 )
+
 export default router

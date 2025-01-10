@@ -5,29 +5,39 @@ import {
   removeRoleFromUserController,
 } from '../controllers/adminController'
 import * as applicationController from '../controllers/applicationController'
-import { authenticateJWT } from '../middleware/authMiddleware'
-import { checkUserRole } from '../middleware/roleCheckMiddleware'
+import { getAllPets } from '../controllers/petController'
+import { getAllRescuesController } from '../controllers/rescueController'
+import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
 const router = express.Router()
 
 router.post(
   '/users/:userId/add-role',
-  authenticateJWT,
-  checkUserRole('admin'),
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   addRoleToUserController,
 )
 router.delete(
   '/users/:userId/roles/:roleId',
-  authenticateJWT,
-  checkUserRole('admin'),
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   removeRoleFromUserController,
 )
 
 router.get(
-  'applications',
-  authenticateJWT,
-  checkUserRole('admin'),
+  '/applications',
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   applicationController.getAllApplications,
+)
+
+router.get(
+  '/rescues',
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
+  getAllRescuesController,
+)
+
+router.get(
+  '/pets',
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
+  getAllPets,
 )
 
 export default router

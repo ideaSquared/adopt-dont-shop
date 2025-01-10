@@ -9,10 +9,23 @@ export const attachRescueId = async (
   next: NextFunction,
 ) => {
   try {
+    console.log('attachRescueId - User:', req.user)
     if (req.user) {
-      // Assume a database/service call to fetch rescue_id
-      const rescueId = await getRescueIdByUserId(req.user.user_id) // Replace with actual logic
+      // Fetch rescue_id from staff_members table
+      const rescueId = await getRescueIdByUserId(req.user.user_id)
+      console.log('attachRescueId - Found rescueId:', rescueId)
+
+      if (!rescueId) {
+        return res.status(400).json({
+          error:
+            'No rescue association found. User must be a staff member of a rescue.',
+          details: 'No record found in staff_members table for this user.',
+        })
+      }
+
       req.user.rescue_id = rescueId
+    } else {
+      return res.status(401).json({ error: 'User not authenticated' })
     }
     next()
   } catch (error) {

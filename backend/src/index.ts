@@ -58,7 +58,7 @@ app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')))
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/admin', adminRoutes)
-app.use('/api/admin', auditLogRoutes)
+app.use('/api/admin/audit-logs', auditLogRoutes)
 app.use('/api/rescue', rescueRoutes)
 app.use('/api/conversations', conversationRoutes)
 app.use('/api/messages', messageRoutes)

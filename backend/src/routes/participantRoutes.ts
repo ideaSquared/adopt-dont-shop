@@ -4,18 +4,16 @@ import {
   getAllParticipantsController,
   getParticipantByIdController,
 } from '../controllers/participantController'
-import { authenticateJWT } from '../middleware/authMiddleware'
-import { checkUserRole } from '../middleware/roleCheckMiddleware'
+import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
 const router = Router()
 
 router.get(
   '/',
-  authenticateJWT,
-  checkUserRole('admin'),
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   getAllParticipantsController,
 )
-router.get('/:id', authenticateJWT, getParticipantByIdController)
-router.post('/', authenticateJWT, createParticipantController)
+router.get('/:id', authRoleOwnershipMiddleware(), getParticipantByIdController)
+router.post('/', authRoleOwnershipMiddleware(), createParticipantController)
 
 export default router

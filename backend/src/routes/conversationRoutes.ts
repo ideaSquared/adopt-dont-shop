@@ -1,14 +1,13 @@
-import { Router } from 'express'
+import express from 'express'
 import { getAllConversationsController } from '../controllers/conversationController'
-import { authenticateJWT } from '../middleware/authMiddleware'
-import { checkUserRole } from '../middleware/roleCheckMiddleware'
+import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
-const router = Router()
+const router = express.Router()
 
+// Get all conversations (admin only)
 router.get(
   '/',
-  authenticateJWT,
-  checkUserRole('admin'),
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   getAllConversationsController,
 )
 

@@ -1,26 +1,42 @@
-import { Router } from 'express'
-import * as applicationController from '../controllers/applicationController'
+import express from 'express'
+import {
+  createApplication,
+  deleteApplication,
+  getAllApplications,
+  getApplicationById,
+  getApplicationsByRescueId,
+  updateApplication,
+} from '../controllers/applicationController'
 import { attachRescueId } from '../middleware/attachRescueId'
-import { authenticateJWT } from '../middleware/authMiddleware'
-import { checkUserRole } from '../middleware/roleCheckMiddleware'
+import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
-const router = Router()
+const router = express.Router()
 
-router.post('/', authenticateJWT, applicationController.createApplication)
+// Create application
+router.post('/', authRoleOwnershipMiddleware(), createApplication)
+
+// Get all applications (admin only)
 router.get(
   '/',
-  authenticateJWT,
-  checkUserRole('admin'),
-  applicationController.getAllApplications,
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
+  getAllApplications,
 )
+
+// Get applications for a rescue
 router.get(
   '/rescue',
-  authenticateJWT,
+  authRoleOwnershipMiddleware({ verifyRescueOwnership: true }),
   attachRescueId,
-  applicationController.getApplicationsByRescueId,
+  getApplicationsByRescueId,
 )
-router.get('/:id', authenticateJWT, applicationController.getApplicationById)
-router.put('/:id', authenticateJWT, applicationController.updateApplication)
-router.delete('/:id', authenticateJWT, applicationController.deleteApplication)
+
+// Get application by ID
+router.get('/:id', authRoleOwnershipMiddleware(), getApplicationById)
+
+// Update application
+router.put('/:id', authRoleOwnershipMiddleware(), updateApplication)
+
+// Delete application
+router.delete('/:id', authRoleOwnershipMiddleware(), deleteApplication)
 
 export default router

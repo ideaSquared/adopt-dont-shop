@@ -1,27 +1,27 @@
-import { Router } from 'express'
+import express from 'express'
 import {
   createMessageController,
   getAllMessagesController,
   getMessageByIdController,
-  getMessagesByConversationIdController,
 } from '../controllers/messageController'
-import { authenticateJWT } from '../middleware/authMiddleware'
-import { checkUserRole } from '../middleware/roleCheckMiddleware'
+import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
-const router = Router()
+const router = express.Router()
 
+// Get all messages (admin only)
 router.get(
   '/',
-  authenticateJWT,
-  checkUserRole('admin'),
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   getAllMessagesController,
 )
-router.get('/:id', authenticateJWT, getMessageByIdController)
-router.post('/', authenticateJWT, createMessageController)
-router.get(
-  '/conversation/:conversationId',
-  authenticateJWT,
-  getMessagesByConversationIdController,
-)
+
+// Get message by ID
+router.get('/:id', authRoleOwnershipMiddleware(), getMessageByIdController)
+
+// Create message
+router.post('/', authRoleOwnershipMiddleware(), createMessageController)
+
+// Delete message
+// router.delete('/:id', authRoleOwnershipMiddleware(), deleteMessageController)
 
 export default router

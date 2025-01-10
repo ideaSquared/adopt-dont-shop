@@ -18,7 +18,7 @@ export const getPetsByRescueId = async (): Promise<PetRescue[]> => {
  * @returns Promise resolving to an array of PetRescue objects.
  */
 export const getAllPets = async (): Promise<PetRescue[]> => {
-  return apiService.get<PetRescue[]>(`${API_BASE_URL}/admin`)
+  return apiService.get<PetRescue[]>('/admin/pets')
 }
 
 /**

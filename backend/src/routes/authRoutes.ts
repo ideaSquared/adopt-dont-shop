@@ -11,41 +11,35 @@ import {
   updateUserController,
   verifyEmailController,
 } from '../controllers/userController'
-import { authenticateJWT } from '../middleware/authMiddleware'
-import { checkUserRole } from '../middleware/roleCheckMiddleware'
+import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
 const router = express.Router()
 
-// POST /api/auth/login
+// Public routes
 router.post('/login', loginController)
-
-// GET /api/auth/verify-email
 router.get('/verify-email', verifyEmailController)
+router.post('/forgot-password', forgotPasswordController)
+router.post('/reset-password', resetPasswordController)
+router.post('/create-user', createUserAccountController)
+router.post('/complete-account-setup', completeAccountSetupController)
 
-// PUT /api/users/:userId
-router.put('/users/:userId', authenticateJWT, updateUserController)
+// Protected routes
+router.put(
+  '/users/:userId',
+  authRoleOwnershipMiddleware(),
+  updateUserController,
+)
 
-// PUT /api/users/:userId/change-password
 router.put(
   '/users/:userId/change-password',
-  authenticateJWT,
+  authRoleOwnershipMiddleware(),
   changePasswordController,
 )
 
-router.post('/forgot-password', forgotPasswordController)
-router.post('/reset-password', resetPasswordController)
-
-// Route for creating a user account
-router.post('/create-user', createUserAccountController)
-
 router.get(
   '/users',
-  authenticateJWT,
-  checkUserRole('admin'),
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   getAllUsersController,
 )
-
-// POST /api/users/complete-account-setup
-router.post('/complete-account-setup', completeAccountSetupController)
 
 export default router

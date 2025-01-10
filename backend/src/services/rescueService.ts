@@ -601,16 +601,34 @@ export const getRescueIdByUserId = async (
   userId: string,
 ): Promise<string | null> => {
   try {
-    // Fetch the staff record linked to the user
+    // Check StaffMember model for rescue_id
     const staffMember = await StaffMemberModel.findOne({
       where: { user_id: userId },
-      attributes: ['rescue_id'], // Only fetch rescue_id to reduce overhead
+      attributes: ['rescue_id'],
     })
 
-    // Return the rescue_id if found, otherwise null
     return staffMember?.rescue_id || null
   } catch (error) {
     console.error(`Error fetching rescue_id for user ID ${userId}:`, error)
     throw new Error('Failed to fetch rescue_id')
+  }
+}
+
+export const verifyRescueOwnership = async (
+  userId: string,
+  targetRescueId: string,
+): Promise<boolean> => {
+  try {
+    const staffMember = await StaffMemberModel.findOne({
+      where: {
+        user_id: userId,
+        rescue_id: targetRescueId,
+      },
+    })
+
+    return !!staffMember
+  } catch (error) {
+    console.error(`Error verifying rescue ownership for user ${userId}:`, error)
+    return false
   }
 }

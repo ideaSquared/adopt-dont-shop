@@ -1,14 +1,13 @@
 import express from 'express'
 import { getAllAuditLogsController } from '../controllers/auditLogController'
-import { authenticateJWT } from '../middleware/authMiddleware'
-import { checkUserRole } from '../middleware/roleCheckMiddleware'
+import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
 const router = express.Router()
 
+// Get all audit logs (admin only)
 router.get(
-  '/audit-logs',
-  authenticateJWT,
-  checkUserRole('admin'),
+  '/',
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   getAllAuditLogsController,
 )
 

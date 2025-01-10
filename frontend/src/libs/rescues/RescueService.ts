@@ -15,11 +15,11 @@ interface StaffWithInvites extends StaffMember {
 }
 
 /**
- * Fetch all rescues.
+ * Fetch all rescues (admin only).
  * @returns Promise resolving to an array of Rescue objects.
  */
 export const getRescues = async (): Promise<Rescue[]> => {
-  return apiService.get<Rescue[]>('/rescue/rescues')
+  return apiService.get<Rescue[]>('/admin/rescues')
 }
 
 /**
@@ -30,7 +30,7 @@ export const getRescues = async (): Promise<Rescue[]> => {
 export const getRescueById = async (
   id: string,
 ): Promise<Rescue | undefined> => {
-  return apiService.get<Rescue>(`/rescue/rescues/${id}`)
+  return apiService.get<Rescue>(`/rescue/${id}`)
 }
 
 /**
@@ -44,7 +44,7 @@ export const getStaffMembersByRescueId = async (
   const data = await apiService.get<{
     staffMembers: StaffMember[]
     invitations: Invitation[]
-  }>(`/rescue/rescues/${rescue_id}/staff-with-roles`)
+  }>(`/rescue/${rescue_id}/staff-with-roles`)
 
   const { staffMembers = [], invitations = [] } = data
 
@@ -78,7 +78,7 @@ export const getStaffMembersByRescueId = async (
  * @param rescue_id - The ID of the rescue to delete.
  */
 export const deleteRescue = async (rescue_id: string): Promise<void> => {
-  await apiService.delete<void>(`/rescue/rescues/${rescue_id}`)
+  await apiService.delete<void>(`/rescue/${rescue_id}`)
 }
 
 /**
@@ -90,7 +90,7 @@ export const deleteStaffMember = async (userId: string): Promise<void> => {
 }
 
 /**
- * Invite a new user to join the rescue.
+ * Invite a user to join the rescue.
  * @param email - The email address of the user to invite.
  * @param rescueId - The ID of the rescue.
  */
@@ -99,7 +99,7 @@ export const inviteUser = async (
   rescueId: string,
 ): Promise<void> => {
   await apiService.post<{ email: string; rescueId: string }, void>(
-    '/rescue/staff/invite',
+    `/rescue/${rescueId}/invite`,
     { email, rescueId },
   )
 }
@@ -114,36 +114,42 @@ export const cancelInvitation = async (
   rescueId: string,
 ): Promise<void> => {
   await apiService.post<{ email: string; rescueId: string }, void>(
-    '/rescue/staff/cancel-invite',
+    `/rescue/${rescueId}/cancel-invite`,
     { email, rescueId },
   )
 }
 
 /**
- * Add a role to a staff member by user ID.
+ * Add a role to a staff member.
+ * @param rescueId - The ID of the rescue.
  * @param userId - The ID of the user.
  * @param role - The role to assign.
  */
 export const addRoleToUser = async (
+  rescueId: string,
   userId: string,
   role: string,
 ): Promise<void> => {
   await apiService.post<{ role: string }, void>(
-    `/rescue/staff/${userId}/add-role`,
+    `/rescue/${rescueId}/users/${userId}/roles`,
     { role },
   )
 }
 
 /**
- * Remove a role from a staff member by user ID.
+ * Remove a role from a staff member.
+ * @param rescueId - The ID of the rescue.
  * @param userId - The ID of the user.
  * @param roleId - The ID of the role to remove.
  */
 export const removeRoleFromUser = async (
+  rescueId: string,
   userId: string,
   roleId: string,
 ): Promise<void> => {
-  await apiService.delete<void>(`/rescue/staff/${userId}/roles/${roleId}`)
+  await apiService.delete<void>(
+    `/rescue/${rescueId}/users/${userId}/roles/${roleId}`,
+  )
 }
 
 /**
@@ -156,10 +162,7 @@ export const updateRescue = async (
   id: string,
   updateData: Partial<Rescue>,
 ): Promise<Rescue | undefined> => {
-  return apiService.put<Partial<Rescue>, Rescue>(
-    `/rescue/rescues/${id}`,
-    updateData,
-  )
+  return apiService.put<Partial<Rescue>, Rescue>(`/rescue/${id}`, updateData)
 }
 
 export default {
