@@ -5,6 +5,12 @@ import { cancelInvitationService } from '../../services/rescueService'
 
 // Mock dependencies
 jest.mock('../../Models', () => ({
+  User: {
+    findByPk: jest.fn(),
+  },
+  AuditLog: {
+    create: jest.fn(),
+  },
   Invitation: {
     findOne: jest.fn(),
   },

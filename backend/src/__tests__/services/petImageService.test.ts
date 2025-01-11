@@ -6,6 +6,14 @@ jest.mock('../../Models', () => ({
   Pet: {
     findByPk: jest.fn(),
   },
+  PetImage: {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    destroy: jest.fn(),
+  },
+  AuditLog: {
+    create: jest.fn(),
+  },
 }))
 
 describe('PetService', () => {

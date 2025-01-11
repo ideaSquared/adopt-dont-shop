@@ -19,8 +19,10 @@ type AuthOptions = {
 const checkRescueOwnership = async (
   req: AuthenticatedRequest,
 ): Promise<boolean> => {
-  if (!req.user?.user_id || !req.params.rescueId) return false
-  return verifyRescueOwnership(req.user.user_id, req.params.rescueId)
+  if (!req.user?.user_id) return false
+  const rescueId = req.params.rescueId
+  if (!rescueId) return false
+  return verifyRescueOwnership(req.user.user_id, rescueId)
 }
 
 export const authRoleOwnershipMiddleware = ({
@@ -76,19 +78,8 @@ export const authRoleOwnershipMiddleware = ({
       req.user = user
       const userId = user.user_id
 
-      // If no role is required, proceed with just authentication
-      if (!requiredRole) {
-        await AuditLogger.logAction(
-          'AuthService',
-          `User authenticated successfully with ID: ${userId}`,
-          'INFO',
-          userId,
-        )
-        return next()
-      }
-
-      const hasRole = await verifyUserHasRole(userId, requiredRole)
-      if (!hasRole) {
+      // Check role if required
+      if (requiredRole && !(await verifyUserHasRole(userId, requiredRole))) {
         await AuditLogger.logAction(
           'RoleCheckMiddleware',
           `User with ID: ${userId} attempted to access a resource requiring role: ${requiredRole} but does not have this role`,
@@ -98,56 +89,40 @@ export const authRoleOwnershipMiddleware = ({
         return res.status(403).json({ message: 'Forbidden: Insufficient role' })
       }
 
-      const roles = await getRolesForUser(userId)
-
-      if (roles.includes('admin')) {
-        await AuditLogger.logAction(
-          'OwnershipMiddleware',
-          `User with ID: ${userId} has the admin role, bypassing ownership check`,
-          'INFO',
-          userId,
-        )
-        return next()
-      }
-
-      // Check role if required
-      if (
-        requiredRole &&
-        !(await verifyUserHasRole(decoded.userId, requiredRole))
-      ) {
-        AuditLogger.logAction(
-          'AuthService',
-          `User ${decoded.userId} attempted to access resource requiring role ${requiredRole}`,
-          'WARNING',
-        )
-        return res.status(403).json({ message: 'Insufficient permissions' })
-      }
-
       // Check rescue ownership if required
-      if (shouldVerifyRescue && !(await checkRescueOwnership(req))) {
-        AuditLogger.logAction(
-          'AuthService',
-          `User ${decoded.userId} attempted to access rescue they don't own`,
-          'WARNING',
-        )
-        return res
-          .status(403)
-          .json({ message: 'Insufficient permissions for this rescue' })
+      if (shouldVerifyRescue) {
+        const hasOwnership = await checkRescueOwnership(req)
+        if (!hasOwnership) {
+          const roles = await getRolesForUser(userId)
+          // Only allow admin to bypass ownership check
+          if (!roles.includes('admin')) {
+            await AuditLogger.logAction(
+              'AuthService',
+              `User ${userId} attempted to access rescue they don't own`,
+              'WARNING',
+              userId,
+            )
+            return res
+              .status(403)
+              .json({ message: 'Insufficient permissions for this rescue' })
+          }
+        }
       }
 
       // Check custom ownership if provided
       if (ownershipCheck && !(await ownershipCheck(req))) {
-        AuditLogger.logAction(
+        await AuditLogger.logAction(
           'AuthService',
-          `User ${decoded.userId} failed ownership check`,
+          `User ${userId} failed ownership check`,
           'WARNING',
+          userId,
         )
         return res.status(403).json({ message: 'Insufficient permissions' })
       }
 
       await AuditLogger.logAction(
         'RoleOwnershipMiddleware',
-        `User with ID: ${userId} has role: ${requiredRole} and ownership of the resource`,
+        `User with ID: ${userId} passed all authorization checks`,
         'INFO',
         userId,
       )

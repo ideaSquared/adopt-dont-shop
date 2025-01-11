@@ -7,6 +7,12 @@ import {
 import { User } from '../../types'
 
 jest.mock('../../Models', () => ({
+  User: {
+    findByPk: jest.fn(),
+  },
+  AuditLog: {
+    create: jest.fn(),
+  },
   Rescue: {
     findAll: jest.fn(),
     findByPk: jest.fn(),
@@ -14,7 +20,6 @@ jest.mock('../../Models', () => ({
     destroy: jest.fn(),
   },
   StaffMember: {},
-  User: {},
 }))
 
 describe('Rescue Service', () => {

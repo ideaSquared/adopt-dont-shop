@@ -20,6 +20,9 @@ jest.mock('../../Models', () => ({
     create: jest.fn(),
     destroy: jest.fn(),
   },
+  AuditLog: {
+    create: jest.fn(),
+  },
 }))
 
 describe('Role Service - Add and Remove Roles', () => {
