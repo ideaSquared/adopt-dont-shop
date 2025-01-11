@@ -1,3 +1,5 @@
+import { logout } from '../users/UserService'
+
 const API_BASE_URL = 'http://localhost:5000/api'
 
 interface ApiRequestOptions<Req> {
@@ -43,6 +45,10 @@ async function apiRequest<Req = undefined, Res = unknown>(
   })
 
   if (!response.ok) {
+    if (response.status === 401) {
+      await logout()
+      throw new Error('Session expired. Please login again.')
+    }
     const errorMessage = await response.text()
     throw new Error(`Error ${response.status}: ${errorMessage}`)
   }

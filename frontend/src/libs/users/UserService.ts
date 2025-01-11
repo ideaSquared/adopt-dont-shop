@@ -54,12 +54,18 @@ export const login = async (
  * Log out the current user.
  */
 export const logout = async (): Promise<void> => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    await apiService.post<void, void>(`${API_BASE_URL}/logout`, undefined)
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    localStorage.removeItem('rescue')
+  try {
+    const token = localStorage.getItem('token')
+    if (token) {
+      await apiService.post<void, void>(`${API_BASE_URL}/logout`, undefined)
+    }
+  } catch (error) {
+    console.error('Error during logout:', error)
+  } finally {
+    // Clear all storage regardless of API call success
+    localStorage.clear()
+    // Force redirect to login page
+    window.location.replace('/login')
   }
 }
 
