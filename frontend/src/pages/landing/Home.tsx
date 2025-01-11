@@ -1,11 +1,35 @@
 import React from 'react'
 
-const Home: React.FC = () => {
-  return (
-    <div>
-      <h1>Welcome to the Home Page</h1>
-    </div>
-  )
+// Third-party imports
+import styled from 'styled-components'
+
+// Style definitions
+const HomeContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+`
+
+const Title = styled.h1`
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+  text-align: center;
+`
+
+// Types
+type HomeProps = {
+  // No props needed currently
 }
 
-export default Home
+export const Home: React.FC<HomeProps> = () => {
+  // Render
+  return (
+    <HomeContainer>
+      <Title>Welcome to the Pet Adoption Platform</Title>
+    </HomeContainer>
+  )
+}

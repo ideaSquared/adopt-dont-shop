@@ -1,25 +1,20 @@
-import { Message } from '@adoptdontshop/libs/conversations'
 import React, { useState } from 'react'
+
+// Third-party imports
 import styled, { css } from 'styled-components'
 
-interface ChatProps {
-  messages: Message[]
-  conversationId: string
-  onSendMessage: (message: Message) => void
-}
+// Internal imports
+import { Message } from '@adoptdontshop/libs/conversations'
 
-interface MessageItemProps {
-  isCurrentUser: boolean
-}
-
+// Style definitions
 const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 10px; /* Add some padding for mobile */
+  padding: 10px;
 
   @media (min-width: 768px) {
-    padding: 0; /* Remove padding on larger screens */
+    padding: 0;
   }
 `
 
@@ -35,7 +30,7 @@ const MessageItem = styled.div<MessageItemProps>`
   padding: 8px;
   border-radius: 4px;
   background-color: #e1ffc7;
-  max-width: 90%; /* Adjust for mobile */
+  max-width: 90%;
 
   ${(props) =>
     props.isCurrentUser
@@ -49,10 +44,6 @@ const MessageItem = styled.div<MessageItemProps>`
           background-color: #e1ffc7;
           margin-right: auto;
         `}
-
-  @media (min-width: 768px) {
-    max-width: 60%; /* Retain original styling on larger screens */
-  }
 `
 
 const MessageSender = styled.div`
@@ -69,6 +60,7 @@ const MessageTimestamp = styled.div`
   color: #666;
   text-align: right;
 `
+
 const InputContainer = styled.div`
   display: flex;
   padding: 10px;
@@ -108,15 +100,30 @@ const Button = styled.button`
   }
 `
 
-const Chat: React.FC<ChatProps> = ({
+// Types
+type MessageItemProps = {
+  isCurrentUser: boolean
+}
+
+type ChatProps = {
+  messages: Message[]
+  conversationId: string
+  onSendMessage: (message: Message) => void
+}
+
+export const Chat: React.FC<ChatProps> = ({
   messages,
   conversationId,
   onSendMessage,
 }) => {
+  // State
   const [newMessage, setNewMessage] = useState<string>('')
-  const currentUserId = '1' // Assume the current user has an ID of '1'
+
+  // Constants
+  const currentUserId = '1' // TODO: Get from auth context
   const isMessageValid = newMessage.trim().length > 0
 
+  // Event handlers
   const handleSendMessage = () => {
     if (newMessage.trim()) {
       const newMsg: Message = {
@@ -133,6 +140,7 @@ const Chat: React.FC<ChatProps> = ({
     }
   }
 
+  // Render
   return (
     <ChatContainer>
       <MessageList>
@@ -163,5 +171,3 @@ const Chat: React.FC<ChatProps> = ({
     </ChatContainer>
   )
 }
-
-export default Chat

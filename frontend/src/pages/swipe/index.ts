@@ -1,1 +1,1 @@
-export { default as Swipe } from './Swipe'
+export { Swipe } from './Swipe'

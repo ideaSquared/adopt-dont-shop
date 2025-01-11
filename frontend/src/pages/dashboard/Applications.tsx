@@ -14,8 +14,73 @@ import {
 } from '@adoptdontshop/libs/applications'
 import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
+import styled from 'styled-components'
 
-const Applications: React.FC<{ isAdminView?: boolean }> = ({
+// Style definitions
+const Container = styled.div`
+  padding: 1rem;
+`
+
+const Title = styled.h1`
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+`
+
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+`
+
+const TableContainer = styled.div`
+  margin-top: 2rem;
+`
+
+const StatusBadge = styled(Badge)`
+  text-transform: capitalize;
+`
+
+const LoadingMessage = styled.div`
+  padding: 2rem;
+  text-align: center;
+  font-size: 1.2rem;
+  color: #666;
+`
+
+const ErrorMessage = styled.div`
+  padding: 2rem;
+  text-align: center;
+  color: #d32f2f;
+  font-size: 1.2rem;
+`
+
+const NoDataMessage = styled.div`
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-size: 1.2rem;
+`
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`
+
+// Types
+type ApplicationsProps = {
+  isAdminView?: boolean
+}
+
+// Constants
+const FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+]
+
+// Component
+export const Applications: React.FC<ApplicationsProps> = ({
   isAdminView = false,
 }) => {
   const { rescue } = useUser()
@@ -26,15 +91,8 @@ const Applications: React.FC<{ isAdminView?: boolean }> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch applications data from backend on component mount
   useEffect(() => {
     const fetchApplications = async () => {
-      if (!rescue?.rescue_id && !isAdminView) {
-        setError('No rescue ID found')
-        setIsLoading(false)
-        return
-      }
-
       try {
         setIsLoading(true)
         setError(null)
@@ -74,7 +132,7 @@ const Applications: React.FC<{ isAdminView?: boolean }> = ({
     applicationId: string,
     newStatus: string,
   ) => {
-    if (!rescue?.rescue_id && !isAdminView) {
+    if (!rescue?.rescue_id) {
       setError('No rescue ID found')
       return
     }
@@ -84,9 +142,8 @@ const Applications: React.FC<{ isAdminView?: boolean }> = ({
       await ApplicationService.updateApplication(applicationId, {
         status: newStatus,
       })
-      const refreshedApplications = isAdminView
-        ? await ApplicationService.getApplications()
-        : await ApplicationService.getApplicationsByRescueId(rescue!.rescue_id)
+      const refreshedApplications =
+        await ApplicationService.getApplicationsByRescueId(rescue!.rescue_id)
       setApplications(refreshedApplications)
     } catch (error) {
       console.error(`Error updating application status:`, error)
@@ -107,25 +164,18 @@ const Applications: React.FC<{ isAdminView?: boolean }> = ({
     return matchesSearch && matchesStatus && matchesWaiting
   })
 
-  const filterOptions = [
-    { value: '', label: 'All' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Rejected' },
-  ]
-
   if (isLoading) {
-    return <div>Loading applications...</div>
+    return <LoadingMessage>Loading applications...</LoadingMessage>
   }
 
   if (error) {
-    return <div className="error-message">{error}</div>
+    return <ErrorMessage>{error}</ErrorMessage>
   }
 
   return (
-    <div>
-      <h1>Applications {rescue?.rescue_name}</h1>
-      <div className="filters">
+    <Container>
+      <Title>Applications {rescue?.rescue_name}</Title>
+      <FilterContainer>
         <FormInput label="Search by first name or pet name">
           <TextInput
             value={searchTerm || ''}
@@ -136,7 +186,7 @@ const Applications: React.FC<{ isAdminView?: boolean }> = ({
         </FormInput>
         <FormInput label="Filter by status">
           <SelectInput
-            options={filterOptions}
+            options={FILTER_OPTIONS}
             value={filterStatus || ''}
             onChange={handleStatusFilterChange}
           />
@@ -147,97 +197,97 @@ const Applications: React.FC<{ isAdminView?: boolean }> = ({
             onChange={handleOnlyWaitingBooleanChange}
           />
         </FormInput>
-      </div>
+      </FilterContainer>
 
       {filteredApplications.length === 0 ? (
-        <div>No applications found</div>
+        <NoDataMessage>No applications found</NoDataMessage>
       ) : (
-        <Table hasActions>
-          <thead>
-            <tr>
-              <th>First name</th>
-              <th>Pet name</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th>Actioned by</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredApplications.map((application) => (
-              <tr key={application.application_id}>
-                <td>
-                  <Tooltip content={application.user_id}>
-                    <span>{application.applicant_first_name || 'N/A'}</span>
-                  </Tooltip>
-                </td>
-                <td>{application.pet_name}</td>
-                <td>{application.description}</td>
-                <td>
-                  <Badge
-                    variant={
-                      application.status === 'approved'
-                        ? 'success'
-                        : application.status === 'rejected'
-                          ? 'warning'
-                          : 'content'
-                    }
-                  >
-                    {application.status.charAt(0).toUpperCase() +
-                      application.status.slice(1)}
-                  </Badge>
-                </td>
-                <td>
-                  <Tooltip content={application.actioned_by}>
-                    <span>{application.actioned_by_first_name || 'N/A'}</span>
-                  </Tooltip>
-                </td>
-                <td>
-                  {application.status === 'pending' ? (
-                    <>
-                      <Button
-                        type="button"
-                        onClick={() =>
-                          handleStatusUpdate(
-                            application.application_id,
-                            'approved',
-                          )
-                        }
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() =>
-                          handleStatusUpdate(
-                            application.application_id,
-                            'rejected',
-                          )
-                        }
-                      >
-                        Reject
-                      </Button>
-                    </>
-                  ) : (
-                    <Badge
+        <TableContainer>
+          <Table hasActions>
+            <thead>
+              <tr>
+                <th>First name</th>
+                <th>Pet name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Actioned by</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredApplications.map((application) => (
+                <tr key={application.application_id}>
+                  <td>
+                    <Tooltip content={application.user_id}>
+                      <span>{application.applicant_first_name || 'N/A'}</span>
+                    </Tooltip>
+                  </td>
+                  <td>{application.pet_name}</td>
+                  <td>{application.description}</td>
+                  <td>
+                    <StatusBadge
                       variant={
                         application.status === 'approved'
                           ? 'success'
-                          : 'warning'
+                          : application.status === 'rejected'
+                            ? 'warning'
+                            : 'content'
                       }
                     >
                       {application.status.charAt(0).toUpperCase() +
                         application.status.slice(1)}
-                    </Badge>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+                    </StatusBadge>
+                  </td>
+                  <td>
+                    <Tooltip content={application.actioned_by}>
+                      <span>{application.actioned_by_first_name || 'N/A'}</span>
+                    </Tooltip>
+                  </td>
+                  <td>
+                    {application.status === 'pending' ? (
+                      <ActionButtons>
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            handleStatusUpdate(
+                              application.application_id,
+                              'approved',
+                            )
+                          }
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            handleStatusUpdate(
+                              application.application_id,
+                              'rejected',
+                            )
+                          }
+                        >
+                          Reject
+                        </Button>
+                      </ActionButtons>
+                    ) : (
+                      <StatusBadge
+                        variant={
+                          application.status === 'approved'
+                            ? 'success'
+                            : 'warning'
+                        }
+                      >
+                        {application.status.charAt(0).toUpperCase() +
+                          application.status.slice(1)}
+                      </StatusBadge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </TableContainer>
       )}
-    </div>
+    </Container>
   )
 }
-
-export default Applications

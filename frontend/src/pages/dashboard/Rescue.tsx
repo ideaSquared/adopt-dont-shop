@@ -8,8 +8,34 @@ import {
 import { RescueService, RescueType } from '@adoptdontshop/libs/rescues'
 import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
+import styled from 'styled-components'
 
-const Rescue: React.FC = () => {
+// Style definitions
+const Container = styled.div`
+  padding: 1rem;
+`
+
+const Title = styled.h1`
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+`
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 600px;
+`
+
+const ButtonContainer = styled.div`
+  margin-top: 2rem;
+`
+
+// Types
+type RescueProps = Record<string, never>
+
+// Component
+export const Rescue: React.FC<RescueProps> = () => {
   const { rescue, setRescue } = useUser()
   const [rescueId, setRescueId] = useState('')
   const [rescueName, setRescueName] = useState('')
@@ -80,10 +106,10 @@ const Rescue: React.FC = () => {
   }
 
   return (
-    <div>
-      <h1>Rescue</h1>
+    <Container>
+      <Title>Rescue</Title>
 
-      <form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit}>
         <FormInput label="Rescue name">
           <TextInput
             type="text"
@@ -120,10 +146,10 @@ const Rescue: React.FC = () => {
             countryValue={country}
           />
         </FormInput>
-        <Button type="submit">Save</Button>
-      </form>
-    </div>
+        <ButtonContainer>
+          <Button type="submit">Save</Button>
+        </ButtonContainer>
+      </Form>
+    </Container>
   )
 }
-
-export default Rescue

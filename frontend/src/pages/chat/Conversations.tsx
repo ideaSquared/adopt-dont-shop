@@ -1,13 +1,18 @@
+import React, { useEffect, useState } from 'react'
+
+// Third-party imports
+import styled from 'styled-components'
+
+// Internal imports
 import {
   Conversation,
   ConversationService,
   Message,
 } from '@adoptdontshop/libs/conversations'
-import React, { useEffect, useState } from 'react'
-import styled from 'styled-components'
-import Chat from './Chat'
-import MessageSidebar from './MessageSidebar'
+import { Chat } from './Chat'
+import { MessageSidebar } from './MessageSidebar'
 
+// Style definitions
 const OuterContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -45,13 +50,20 @@ const ChatArea = styled.div`
   overflow: hidden;
 `
 
-const MainContainer: React.FC = () => {
+// Types
+type ConversationsProps = {
+  // No props needed currently
+}
+
+export const Conversations: React.FC<ConversationsProps> = () => {
+  // State
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(null)
   const [messages, setMessages] = useState<Message[]>([])
 
+  // Effects
   useEffect(() => {
     const fetchConversations = async () => {
       try {
@@ -84,6 +96,7 @@ const MainContainer: React.FC = () => {
     fetchMessages()
   }, [selectedConversationId])
 
+  // Event handlers
   const handleSelectConversation = (id: string) => {
     setSelectedConversationId(id)
   }
@@ -92,6 +105,7 @@ const MainContainer: React.FC = () => {
     setMessages((prevMessages) => [...prevMessages, newMessage])
   }
 
+  // Render
   return (
     <OuterContainer>
       <Container>
@@ -113,5 +127,3 @@ const MainContainer: React.FC = () => {
     </OuterContainer>
   )
 }
-
-export default MainContainer

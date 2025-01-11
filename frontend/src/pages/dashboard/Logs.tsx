@@ -1,3 +1,9 @@
+import React, { ChangeEvent, useEffect, useMemo, useState } from 'react'
+
+// Third-party imports
+import styled from 'styled-components'
+
+// Internal imports
 import {
   Badge,
   DateTime,
@@ -7,8 +13,17 @@ import {
   TextInput,
 } from '@adoptdontshop/components'
 import { AuditLog, AuditLogsService } from '@adoptdontshop/libs/audit-logs/'
-import React, { ChangeEvent, useEffect, useMemo, useState } from 'react'
-import styled from 'styled-components'
+
+// Style definitions
+const Container = styled.div`
+  padding: 2rem;
+`
+
+const Title = styled.h1`
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 2rem;
+`
 
 const StyledButton = styled.button`
   background: none;
@@ -19,20 +34,27 @@ const StyledButton = styled.button`
   cursor: pointer;
 
   &:focus {
-    outline: 2px solid #007bff; /* Optional: for better accessibility */
+    outline: 2px solid #007bff;
   }
 `
 
-const AuditLogs: React.FC = () => {
+// Types
+type LogsProps = Record<string, never>
+
+type LevelVariant = 'info' | 'warning' | 'success' | 'danger' | null
+
+export const Logs: React.FC<LogsProps> = () => {
+  // State
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [filteredAuditLogs, setFilteredAuditLogs] = useState<AuditLog[]>([])
   const [searchTerm, setSearchTerm] = useState<string | null>(null)
   const [serviceTerm, setServiceTerm] = useState<string | null>(null)
-  const [levelTerm, setLevelTerm] = useState<string | null>(null) // Added level state
+  const [levelTerm, setLevelTerm] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [totalPages, setTotalPages] = useState<number>(1)
   const rowsPerPage = 10
 
+  // Data fetching
   const fetchAuditLogs = async (page: number) => {
     try {
       const response = await AuditLogsService.getAuditLogs(page, rowsPerPage)
@@ -43,6 +65,7 @@ const AuditLogs: React.FC = () => {
     }
   }
 
+  // Effects
   useEffect(() => {
     fetchAuditLogs(currentPage)
   }, [currentPage])
@@ -69,6 +92,7 @@ const AuditLogs: React.FC = () => {
     setFilteredAuditLogs(filtered)
   }, [filtered])
 
+  // Event handlers
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
   }
@@ -89,6 +113,7 @@ const AuditLogs: React.FC = () => {
     setServiceTerm(service)
   }
 
+  // Options
   const serviceOptions = [
     { value: '', label: 'All Services' },
     ...Array.from(new Set(auditLogs.map((log) => log.service))).map(
@@ -105,11 +130,10 @@ const AuditLogs: React.FC = () => {
     { value: 'warning', label: 'Warning' },
     { value: 'success', label: 'Success' },
     { value: 'error', label: 'Error' },
-  ] // Define level options
+  ]
 
-  const getLevelVariant = (
-    level: string,
-  ): 'info' | 'warning' | 'success' | 'danger' | null => {
+  // Helper functions
+  const getLevelVariant = (level: string): LevelVariant => {
     switch (level.toLowerCase()) {
       case 'info':
         return 'info'
@@ -124,9 +148,10 @@ const AuditLogs: React.FC = () => {
     }
   }
 
+  // Render
   return (
-    <div>
-      <h1>Audit Logs</h1>
+    <Container>
+      <Title>Audit Logs</Title>
       <FormInput label="Search by ID, User ID, or Message">
         <TextInput
           onChange={handleSearchChange}
@@ -197,8 +222,6 @@ const AuditLogs: React.FC = () => {
           ))}
         </tbody>
       </Table>
-    </div>
+    </Container>
   )
 }
-
-export default AuditLogs

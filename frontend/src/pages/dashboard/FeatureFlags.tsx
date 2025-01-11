@@ -1,8 +1,27 @@
-import { Button, DateTime, Table } from '@adoptdontshop/components'
-import { FeatureFlagService } from '@adoptdontshop/libs/feature-flags/'
 import React, { useEffect, useState } from 'react'
 
-interface FeatureFlag {
+// Third-party imports
+import styled from 'styled-components'
+
+// Internal imports
+import { Button, DateTime, Table } from '@adoptdontshop/components'
+import { FeatureFlagService } from '@adoptdontshop/libs/feature-flags/'
+
+// Style definitions
+const Container = styled.div`
+  padding: 2rem;
+`
+
+const Title = styled.h1`
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 2rem;
+`
+
+// Types
+type FeatureFlagsProps = Record<string, never>
+
+type FeatureFlag = {
   flag_id: string
   name: string
   enabled: boolean
@@ -11,9 +30,11 @@ interface FeatureFlag {
   created_at: string
 }
 
-const FeatureFlags: React.FC = () => {
+export const FeatureFlags: React.FC<FeatureFlagsProps> = () => {
+  // State
   const [flags, setFlags] = useState<FeatureFlag[]>([])
 
+  // Effects
   useEffect(() => {
     const loadFlags = async () => {
       const flags = await FeatureFlagService.fetchFeatureFlags()
@@ -22,6 +43,7 @@ const FeatureFlags: React.FC = () => {
     loadFlags()
   }, [])
 
+  // Event handlers
   const toggleFlag = async (flag_id: string, enabled: boolean) => {
     const updatedFlag = await FeatureFlagService.updateFeatureFlag(
       flag_id,
@@ -32,15 +54,18 @@ const FeatureFlags: React.FC = () => {
     )
   }
 
+  // Render
   return (
-    <div>
-      <h1>Feature Flags</h1>
+    <Container>
+      <Title>Feature Flags</Title>
       <Table>
         <thead>
           <tr>
             <th>Flag ID</th>
             <th>Name</th>
             <th>Description</th>
+            <th>Created At</th>
+            <th>Updated At</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -65,8 +90,6 @@ const FeatureFlags: React.FC = () => {
           ))}
         </tbody>
       </Table>
-    </div>
+    </Container>
   )
 }
-
-export default FeatureFlags

@@ -1,3 +1,9 @@
+import React, { useEffect, useMemo, useState } from 'react'
+
+// Third-party imports
+import styled from 'styled-components'
+
+// Internal imports
 import {
   Badge,
   BaseSidebar,
@@ -13,9 +19,8 @@ import {
   ConversationService,
   Message,
 } from '@adoptdontshop/libs/conversations/'
-import React, { useEffect, useMemo, useState } from 'react'
-import styled from 'styled-components'
 
+// Style definitions
 const ParticipantsTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 500;
@@ -56,7 +61,10 @@ const TimeStamp = styled.p`
   margin-top: 0.25rem;
 `
 
-const Conversations: React.FC = () => {
+// Types
+type ConversationsProps = Record<string, never>
+
+export const Conversations: React.FC<ConversationsProps> = () => {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null)
@@ -249,5 +257,3 @@ const Conversations: React.FC = () => {
     </div>
   )
 }
-
-export default Conversations

@@ -11,8 +11,14 @@ import { PetRescue, PetsService } from '@adoptdontshop/libs/pets'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 
+// Style definitions
 const Container = styled.div`
   padding: 1rem;
+`
+
+const Title = styled.h1`
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
 `
 
 const PetsGrid = styled.div`
@@ -58,7 +64,19 @@ const ActionButtons = styled.div`
   gap: 0.5rem;
 `
 
-const Pets: React.FC<{ isAdminView?: boolean }> = ({ isAdminView = false }) => {
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+`
+
+// Types
+type PetsProps = {
+  isAdminView?: boolean
+}
+
+// Component
+export const Pets: React.FC<PetsProps> = ({ isAdminView = false }) => {
   const [pets, setPets] = useState<PetRescue[]>([])
   const [filteredPets, setFilteredPets] = useState<PetRescue[]>([])
   const [searchTerm, setSearchTerm] = useState<string | null>(null)
@@ -349,28 +367,30 @@ const Pets: React.FC<{ isAdminView?: boolean }> = ({ isAdminView = false }) => {
 
   return (
     <Container>
-      <h1>{isAdminView ? 'All Pets (Admin)' : 'Pets'}</h1>
-      <FormInput label="Search by pet name">
-        <TextInput
-          onChange={handleSearchChange}
-          type="text"
-          value={searchTerm || ''}
-        />
-      </FormInput>
-      <FormInput label="Filter by type">
-        <SelectInput
-          onChange={handleFilterTypeChange}
-          value={filterByType}
-          options={serviceOptions}
-        />
-      </FormInput>
-      <FormInput label="Filter by status">
-        <SelectInput
-          onChange={handleFilterStatusChange}
-          value={filterByStatus}
-          options={statusOptions}
-        />
-      </FormInput>
+      <Title>{isAdminView ? 'All Pets (Admin)' : 'Pets'}</Title>
+      <FilterContainer>
+        <FormInput label="Search by pet name">
+          <TextInput
+            onChange={handleSearchChange}
+            type="text"
+            value={searchTerm || ''}
+          />
+        </FormInput>
+        <FormInput label="Filter by type">
+          <SelectInput
+            onChange={handleFilterTypeChange}
+            value={filterByType}
+            options={serviceOptions}
+          />
+        </FormInput>
+        <FormInput label="Filter by status">
+          <SelectInput
+            onChange={handleFilterStatusChange}
+            value={filterByStatus}
+            options={statusOptions}
+          />
+        </FormInput>
+      </FilterContainer>
       <PetsGrid>
         {filteredPets.map((pet) => (
           <PetCard key={pet.pet_id}>

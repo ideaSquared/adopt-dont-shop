@@ -1,18 +1,58 @@
+import React, { useEffect, useState } from 'react'
+
+// Third-party imports
+import { useLocation } from 'react-router-dom'
+import styled from 'styled-components'
+
+// Internal imports
 import { Button, FormInput, TextInput } from '@adoptdontshop/components'
 import { UserService } from '@adoptdontshop/libs/users/'
-import React, { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
 
+// Style definitions
+const Container = styled.div`
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+`
+
+const Title = styled.h1`
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 2rem;
+`
+
+const Message = styled.p<{ isError?: boolean }>`
+  color: ${({ isError }) => (isError ? '#dc3545' : '#28a745')};
+  margin: 1rem 0;
+  padding: 0.5rem;
+  border-radius: 4px;
+  background-color: ${({ isError }) => (isError ? '#f8d7da' : '#d4edda')};
+`
+
+const Form = styled.form`
+  margin-bottom: 2rem;
+`
+
+// Types
+type ResetPasswordProps = {
+  // No props needed currently
+}
+
+// Hooks
 const useQuery = () => {
   return new URLSearchParams(useLocation().search)
 }
 
-const ResetPassword: React.FC = () => {
+export const ResetPassword: React.FC<ResetPasswordProps> = () => {
+  // Hooks
   const query = useQuery()
+
+  // State
   const [resetToken, setResetToken] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [message, setMessage] = useState('')
 
+  // Effects
   useEffect(() => {
     const token = query.get('token')
     if (token) {
@@ -22,6 +62,7 @@ const ResetPassword: React.FC = () => {
     }
   }, [query])
 
+  // Event handlers
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!resetToken) {
@@ -35,10 +76,11 @@ const ResetPassword: React.FC = () => {
     )
   }
 
+  // Render
   return (
-    <div>
-      <h1>Reset Password</h1>
-      <form onSubmit={handleSubmit}>
+    <Container>
+      <Title>Reset Password</Title>
+      <Form onSubmit={handleSubmit}>
         <FormInput label="New Password">
           <TextInput
             value={newPassword}
@@ -51,10 +93,14 @@ const ResetPassword: React.FC = () => {
         </FormInput>
 
         <Button type="submit">Reset Password</Button>
-      </form>
-      {message && <p>{message}</p>}
-    </div>
+      </Form>
+      {message && (
+        <Message
+          isError={message.includes('Invalid') || message.includes('No reset')}
+        >
+          {message}
+        </Message>
+      )}
+    </Container>
   )
 }
-
-export default ResetPassword

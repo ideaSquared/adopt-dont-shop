@@ -1,4 +1,4 @@
-// src/components/Staff.tsx
+import React, { useEffect, useState } from 'react'
 
 import {
   Badge,
@@ -14,8 +14,23 @@ import { RescueService } from '@adoptdontshop/libs/rescues'
 import { Role } from '@adoptdontshop/permissions'
 import { useUser } from 'contexts/auth/UserContext'
 import { RoleDisplay } from 'contexts/permissions/Permission'
-import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
+
+// Style definitions
+const Container = styled.div`
+  padding: 1rem;
+`
+
+const Title = styled.h1`
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+`
+
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+`
 
 const BadgeWrapper = styled.div`
   display: flex;
@@ -23,7 +38,18 @@ const BadgeWrapper = styled.div`
   flex-wrap: wrap;
 `
 
-interface StaffWithInvite {
+const InviteContainer = styled.div`
+  margin: 2rem 0;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+`
+
+const TableContainer = styled.div`
+  margin-top: 2rem;
+`
+
+type StaffWithInvite = {
   user_id: string
   first_name: string
   last_name: string
@@ -44,7 +70,7 @@ const ALLOWED_ROLES: Role[] = [
   Role.COMMUNICATIONS_MANAGER,
 ]
 
-const Staff: React.FC = () => {
+export const Staff: React.FC = () => {
   const { rescue, user } = useUser()
   const [staff, setStaff] = useState<StaffWithInvite[]>([])
   const [filteredStaff, setFilteredStaff] = useState<StaffWithInvite[]>([])
@@ -227,164 +253,168 @@ const Staff: React.FC = () => {
   }
 
   return (
-    <div>
-      <h1>Staff</h1>
-      <FormInput label="Search by name, email, or user ID">
-        <TextInput
-          type="text"
-          value={searchByEmailName || ''}
-          onChange={handleSearchByEmailName}
-        />
-      </FormInput>
-      <FormInput label="Filter by Role">
-        <SelectInput
-          value={filterByRole}
-          onChange={handleFilterByRole}
-          options={[
-            { value: 'all', label: 'Filter by all roles' },
-            ...Object.values(Role).map((role) => ({
-              value: role,
-              label: role.replace(/_/g, ' ').toLowerCase(),
-            })),
-          ]}
-        />
-      </FormInput>
-      <FormInput label="Verified Only">
-        <CheckboxInput
-          checked={filterByVerified}
-          onChange={(e) => setFilterByVerified(e.target.checked)}
-        />
-      </FormInput>
-      <FormInput
-        label="Invite New Staff by Email"
-        buttonText="Send invite"
-        onButtonClick={inviteUser}
-      >
-        <TextInput
-          type="email"
-          value={inviteEmail}
-          onChange={(e) => setInviteEmail(e.target.value)}
-          placeholder="Enter email to invite"
-        />
-      </FormInput>
-      <Table>
-        <thead>
-          <tr>
-            <th>User ID</th>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Verified</th>
-            <th>Invited On</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredStaff.length > 0 ? (
-            filteredStaff.map((staff) => (
-              <tr key={staff.user_id || staff.email}>
-                <td>{staff.isInvite ? '-' : staff.user_id}</td>
-                <td>{staff.isInvite ? '-' : staff.first_name}</td>
-                <td>{staff.isInvite ? '-' : staff.last_name}</td>
-                <td>{staff.email}</td>
-                <td>
-                  <BadgeWrapper>
-                    {staff.role.map((role) => (
-                      <Badge
-                        key={role.role_id}
-                        variant="info"
-                        onActionClick={
-                          user &&
-                          user.user_id !== staff.user_id &&
-                          ALLOWED_ROLES.includes(role.role_name as Role)
-                            ? () =>
-                                handleRemoveRole(staff.user_id, role.role_id)
-                            : undefined
-                        }
-                        showAction={
-                          user &&
-                          user.user_id !== staff.user_id &&
-                          ALLOWED_ROLES.includes(role.role_name as Role)
-                        }
-                      >
-                        {role.role_name.replace(/_/g, ' ').toUpperCase()}
-                      </Badge>
-                    ))}
-                    {user && user.user_id !== staff.user_id && (
-                      <>
-                        <Badge
-                          variant="success"
-                          onClick={() => handleAddRoleClick(staff.user_id)}
-                        >
-                          +
-                        </Badge>
-                        {showRoleDropdown === staff.user_id && (
-                          <SelectInput
-                            options={ALLOWED_ROLES.map((role) => ({
-                              value: role,
-                              label: role.replace(/_/g, ' ').toUpperCase(),
-                            }))}
-                            placeholder="Choose a role"
-                            onChange={(e) =>
-                              handleRoleSelect(
-                                staff.user_id,
-                                e.target.value as Role,
-                              )
-                            }
-                          />
-                        )}
-                      </>
-                    )}
-                  </BadgeWrapper>
-                </td>
-                <td>
-                  {staff.isInvite
-                    ? '-'
-                    : staff.verified_by_rescue
-                      ? 'YES'
-                      : 'NO'}
-                </td>
-                <td>
-                  {staff.isInvite && staff.invited_on ? (
-                    <DateTime timestamp={staff.invited_on} />
-                  ) : (
-                    '-'
-                  )}
-                </td>
-                <td>
-                  {staff.isInvite ? (
-                    <>
-                      <Button
-                        type="button"
-                        onClick={() => cancelInvitation(staff.email)}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    user &&
-                    user.user_id !== staff.user_id && (
-                      <Button
-                        type="button"
-                        onClick={() => deleteStaff(staff.user_id)}
-                      >
-                        Delete
-                      </Button>
-                    )
-                  )}
-                </td>
-              </tr>
-            ))
-          ) : (
+    <Container>
+      <Title>Staff</Title>
+      <FilterContainer>
+        <FormInput label="Search by name, email, or user ID">
+          <TextInput
+            type="text"
+            value={searchByEmailName || ''}
+            onChange={handleSearchByEmailName}
+          />
+        </FormInput>
+        <FormInput label="Filter by Role">
+          <SelectInput
+            value={filterByRole}
+            onChange={handleFilterByRole}
+            options={[
+              { value: 'all', label: 'Filter by all roles' },
+              ...Object.values(Role).map((role) => ({
+                value: role,
+                label: role.replace(/_/g, ' ').toLowerCase(),
+              })),
+            ]}
+          />
+        </FormInput>
+        <FormInput label="Verified Only">
+          <CheckboxInput
+            checked={filterByVerified}
+            onChange={(e) => setFilterByVerified(e.target.checked)}
+          />
+        </FormInput>
+      </FilterContainer>
+      <InviteContainer>
+        <FormInput
+          label="Invite New Staff by Email"
+          buttonText="Send invite"
+          onButtonClick={inviteUser}
+        >
+          <TextInput
+            type="email"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            placeholder="Enter email to invite"
+          />
+        </FormInput>
+      </InviteContainer>
+      <TableContainer>
+        <Table>
+          <thead>
             <tr>
-              <td colSpan={8}>No staff or invitations to display</td>
+              <th>User ID</th>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Verified</th>
+              <th>Invited On</th>
+              <th>Actions</th>
             </tr>
-          )}
-        </tbody>
-      </Table>
-    </div>
+          </thead>
+          <tbody>
+            {filteredStaff.length > 0 ? (
+              filteredStaff.map((staff) => (
+                <tr key={staff.user_id || staff.email}>
+                  <td>{staff.isInvite ? '-' : staff.user_id}</td>
+                  <td>{staff.isInvite ? '-' : staff.first_name}</td>
+                  <td>{staff.isInvite ? '-' : staff.last_name}</td>
+                  <td>{staff.email}</td>
+                  <td>
+                    <BadgeWrapper>
+                      {staff.role.map((role) => (
+                        <Badge
+                          key={role.role_id}
+                          variant="info"
+                          onActionClick={
+                            user &&
+                            user.user_id !== staff.user_id &&
+                            ALLOWED_ROLES.includes(role.role_name as Role)
+                              ? () =>
+                                  handleRemoveRole(staff.user_id, role.role_id)
+                              : undefined
+                          }
+                          showAction={
+                            user &&
+                            user.user_id !== staff.user_id &&
+                            ALLOWED_ROLES.includes(role.role_name as Role)
+                          }
+                        >
+                          {role.role_name.replace(/_/g, ' ').toUpperCase()}
+                        </Badge>
+                      ))}
+                      {user && user.user_id !== staff.user_id && (
+                        <>
+                          <Badge
+                            variant="success"
+                            onClick={() => handleAddRoleClick(staff.user_id)}
+                          >
+                            +
+                          </Badge>
+                          {showRoleDropdown === staff.user_id && (
+                            <SelectInput
+                              options={ALLOWED_ROLES.map((role) => ({
+                                value: role,
+                                label: role.replace(/_/g, ' ').toUpperCase(),
+                              }))}
+                              placeholder="Choose a role"
+                              onChange={(e) =>
+                                handleRoleSelect(
+                                  staff.user_id,
+                                  e.target.value as Role,
+                                )
+                              }
+                            />
+                          )}
+                        </>
+                      )}
+                    </BadgeWrapper>
+                  </td>
+                  <td>
+                    {staff.isInvite
+                      ? '-'
+                      : staff.verified_by_rescue
+                        ? 'YES'
+                        : 'NO'}
+                  </td>
+                  <td>
+                    {staff.isInvite && staff.invited_on ? (
+                      <DateTime timestamp={staff.invited_on} />
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                  <td>
+                    {staff.isInvite ? (
+                      <>
+                        <Button
+                          type="button"
+                          onClick={() => cancelInvitation(staff.email)}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      user &&
+                      user.user_id !== staff.user_id && (
+                        <Button
+                          type="button"
+                          onClick={() => deleteStaff(staff.user_id)}
+                        >
+                          Delete
+                        </Button>
+                      )
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={8}>No staff or invitations to display</td>
+              </tr>
+            )}
+          </tbody>
+        </Table>
+      </TableContainer>
+    </Container>
   )
 }
-
-export default Staff

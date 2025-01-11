@@ -1,13 +1,18 @@
-import { PetRescue, PetsService } from '@adoptdontshop/libs/pets'
 import React, { useEffect, useState } from 'react'
+
+// Third-party imports
 import styled from 'styled-components'
+
+// Internal imports
+import { PetRescue, PetsService } from '@adoptdontshop/libs/pets'
 import {
   SwipeCardBackground,
   SwipeCardDefault,
   SwipeCardMinimal,
   SwipeCardNub,
-} from './components/'
+} from './components'
 
+// Style definitions
 const SwipeContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -46,14 +51,24 @@ const ToggleButton = styled.button`
     background-color: #0056b3;
   }
 `
-const Swipe: React.FC = () => {
-  const [petCards, setPetCards] = useState<PetRescue[]>([])
-  const [cardDesign, setCardDesign] = useState('default') // Default card design
 
+// Types
+type SwipeProps = {
+  // No props needed for this component currently
+}
+
+type CardDesign = 'default' | 'background' | 'minimal' | 'nub'
+
+export const Swipe: React.FC<SwipeProps> = () => {
+  // State
+  const [petCards, setPetCards] = useState<PetRescue[]>([])
+  const [cardDesign, setCardDesign] = useState<CardDesign>('default')
+
+  // Effects
   useEffect(() => {
     const fetchPets = async () => {
       try {
-        const fetchedPets = await PetsService.getPets()
+        const fetchedPets = await PetsService.getAllPets()
         setPetCards(fetchedPets)
       } catch (error) {
         console.error('Error fetching pets:', error)
@@ -63,6 +78,7 @@ const Swipe: React.FC = () => {
     fetchPets()
   }, [])
 
+  // Event handlers
   const handleSwipe = (pet_id: string, direction: 'left' | 'right') => {
     setPetCards((prevCards) =>
       prevCards.filter((petCard) => petCard.pet_id !== pet_id),
@@ -78,9 +94,9 @@ const Swipe: React.FC = () => {
     })
   }
 
-  const currentCard = petCards[0]
-
+  // Helper functions
   const renderCard = () => {
+    const currentCard = petCards[0]
     if (!currentCard) return <DefaultCard>No more pets available</DefaultCard>
 
     const safeCard = {
@@ -88,45 +104,43 @@ const Swipe: React.FC = () => {
       images: currentCard.images || [], // Ensure images is always an array
     }
 
-    if (cardDesign === 'default') {
-      return (
-        <SwipeCardDefault
-          key={currentCard.pet_id}
-          card={safeCard}
-          onSwipe={handleSwipe}
-        />
-      )
+    switch (cardDesign) {
+      case 'background':
+        return (
+          <SwipeCardBackground
+            key={currentCard.pet_id}
+            card={safeCard}
+            onSwipe={handleSwipe}
+          />
+        )
+      case 'minimal':
+        return (
+          <SwipeCardMinimal
+            key={currentCard.pet_id}
+            card={safeCard}
+            onSwipe={handleSwipe}
+          />
+        )
+      case 'nub':
+        return (
+          <SwipeCardNub
+            key={currentCard.pet_id}
+            card={safeCard}
+            onSwipe={handleSwipe}
+          />
+        )
+      default:
+        return (
+          <SwipeCardDefault
+            key={currentCard.pet_id}
+            card={safeCard}
+            onSwipe={handleSwipe}
+          />
+        )
     }
-
-    if (cardDesign === 'background') {
-      return (
-        <SwipeCardBackground
-          key={currentCard.pet_id}
-          card={safeCard}
-          onSwipe={handleSwipe}
-        />
-      )
-    }
-
-    if (cardDesign === 'nub') {
-      return (
-        <SwipeCardNub
-          key={currentCard.pet_id}
-          card={safeCard}
-          onSwipe={handleSwipe}
-        />
-      )
-    }
-
-    return (
-      <SwipeCardMinimal
-        key={currentCard.pet_id}
-        card={safeCard}
-        onSwipe={handleSwipe}
-      />
-    )
   }
 
+  // Render
   return (
     <SwipeContainer>
       <ToggleButton onClick={toggleCardDesign}>
@@ -136,5 +150,3 @@ const Swipe: React.FC = () => {
     </SwipeContainer>
   )
 }
-
-export default Swipe

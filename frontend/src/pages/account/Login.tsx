@@ -3,7 +3,11 @@ import { useUser } from 'contexts/auth/UserContext'
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-const Login: React.FC = () => {
+type LoginProps = {
+  // No props needed for this component, but maintaining consistent structure
+}
+
+export const Login: React.FC<LoginProps> = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
@@ -60,5 +64,3 @@ const Login: React.FC = () => {
     </div>
   )
 }
-
-export default Login

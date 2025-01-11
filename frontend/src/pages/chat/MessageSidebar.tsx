@@ -1,7 +1,12 @@
-import { Conversation } from '@adoptdontshop/libs/conversations'
 import React from 'react'
+
+// Third-party imports
 import styled from 'styled-components'
 
+// Internal imports
+import { Conversation } from '@adoptdontshop/libs/conversations'
+
+// Style definitions
 const SidebarContainer = styled.div`
   width: 100%;
   height: 200px;
@@ -41,17 +46,19 @@ const ConversationLastMessage = styled.div`
   color: #666;
 `
 
-interface MessageSidebarProps {
+// Types
+type MessageSidebarProps = {
   conversations: Conversation[]
   selectedConversationId: string | null
   onSelectConversation: (id: string) => void
 }
 
-const MessageSidebar: React.FC<MessageSidebarProps> = ({
+export const MessageSidebar: React.FC<MessageSidebarProps> = ({
   conversations,
   selectedConversationId,
   onSelectConversation,
 }) => {
+  // Render
   return (
     <SidebarContainer>
       {conversations.map((conversation) => (
@@ -69,5 +76,3 @@ const MessageSidebar: React.FC<MessageSidebarProps> = ({
     </SidebarContainer>
   )
 }
-
-export default MessageSidebar
