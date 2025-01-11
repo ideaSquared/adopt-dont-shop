@@ -1,6 +1,10 @@
 import express from 'express'
 import {
   addRoleToUserController,
+  cancelInvitationController,
+  deleteRescueController,
+  deleteStaffController,
+  getRescueStaffWithRolesController,
   getSingleRescueController,
   inviteUserController,
   removeRoleFromUserController,
@@ -35,6 +39,26 @@ router.put(
   updateRescueController,
 )
 
+// Delete rescue (rescue_manager and ownership required)
+router.delete(
+  '/:rescueId',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'rescue_manager',
+    verifyRescueOwnership: true,
+  }),
+  deleteRescueController,
+)
+
+// Delete staff member (rescue_manager and ownership required)
+router.delete(
+  '/staff/:userId',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'rescue_manager',
+    verifyRescueOwnership: true,
+  }),
+  deleteStaffController,
+)
+
 // Invite user to rescue (rescue_manager and ownership required)
 router.post(
   '/:rescueId/invite',
@@ -43,6 +67,16 @@ router.post(
     verifyRescueOwnership: true,
   }),
   inviteUserController,
+)
+
+// Cancel invitation (rescue_manager and ownership required)
+router.post(
+  '/:rescueId/cancel-invite',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'rescue_manager',
+    verifyRescueOwnership: true,
+  }),
+  cancelInvitationController,
 )
 
 // Add role to user (rescue_manager and ownership required)
@@ -63,6 +97,15 @@ router.delete(
     verifyRescueOwnership: true,
   }),
   removeRoleFromUserController,
+)
+
+router.get(
+  '/:rescueId/staff-with-roles',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'rescue_manager',
+    verifyRescueOwnership: true,
+  }),
+  getRescueStaffWithRolesController,
 )
 
 export default router

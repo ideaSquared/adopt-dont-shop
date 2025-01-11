@@ -176,7 +176,7 @@ const Staff: React.FC = () => {
 
   const handleRoleSelect = async (userId: string, selectedRole: Role) => {
     try {
-      await RescueService.addRoleToUser(userId, selectedRole)
+      await RescueService.addRoleToUser(rescue!.rescue_id, userId, selectedRole)
       setStaff((prevStaff) =>
         prevStaff.map((member) =>
           member.user_id === userId
@@ -208,7 +208,7 @@ const Staff: React.FC = () => {
         return
       }
 
-      await RescueService.removeRoleFromUser(userId, roleId)
+      await RescueService.removeRoleFromUser(rescue!.rescue_id, userId, roleId)
       setStaff((prevStaff) =>
         prevStaff.map((member) =>
           member.user_id === userId

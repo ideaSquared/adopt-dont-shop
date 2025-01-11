@@ -92,7 +92,7 @@ export const getApplicationsByRescueId = async (
   res: Response,
 ) => {
   try {
-    const rescueId = req.user?.rescue_id
+    const { rescueId } = req.params
     if (!rescueId) {
       res.status(400).json({ error: 'Rescue ID is required' })
       return

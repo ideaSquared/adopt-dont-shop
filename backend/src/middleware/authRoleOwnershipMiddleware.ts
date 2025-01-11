@@ -6,13 +6,18 @@ import {
   getRolesForUser,
   verifyUserHasRole,
 } from '../services/permissionService'
-import { verifyRescueOwnership } from '../services/rescueService'
+import { verifyPetOwnership } from '../services/petService'
+import {
+  getRescueIdByUserId,
+  verifyRescueOwnership,
+} from '../services/rescueService'
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
 
 type AuthOptions = {
   requiredRole?: string
   ownershipCheck?: (req: AuthenticatedRequest) => Promise<boolean>
   verifyRescueOwnership?: boolean
+  verifyPetOwnership?: boolean
 }
 
 // Helper function to check rescue ownership
@@ -25,10 +30,29 @@ const checkRescueOwnership = async (
   return verifyRescueOwnership(req.user.user_id, rescueId)
 }
 
+// Helper function to check pet ownership
+const checkPetOwnership = async (
+  req: AuthenticatedRequest,
+): Promise<boolean> => {
+  if (!req.user?.user_id) return false
+  const petId = req.params.pet_id
+  if (!petId) return false
+
+  // Get the rescue_id for this user
+  const rescueId = await getRescueIdByUserId(req.user.user_id)
+  if (!rescueId) return false
+
+  // Set the rescue_id on the user object for later use
+  req.user.rescue_id = rescueId
+
+  return verifyPetOwnership(rescueId, petId)
+}
+
 export const authRoleOwnershipMiddleware = ({
   requiredRole,
   ownershipCheck,
   verifyRescueOwnership: shouldVerifyRescue,
+  verifyPetOwnership: shouldVerifyPet,
 }: AuthOptions = {}) => {
   return async (
     req: AuthenticatedRequest,
@@ -105,6 +129,26 @@ export const authRoleOwnershipMiddleware = ({
             return res
               .status(403)
               .json({ message: 'Insufficient permissions for this rescue' })
+          }
+        }
+      }
+
+      // Check pet ownership if required
+      if (shouldVerifyPet) {
+        const hasOwnership = await checkPetOwnership(req)
+        if (!hasOwnership) {
+          const roles = await getRolesForUser(userId)
+          // Only allow admin to bypass ownership check
+          if (!roles.includes('admin')) {
+            await AuditLogger.logAction(
+              'AuthService',
+              `User ${userId} attempted to access pet they don't own`,
+              'WARNING',
+              userId,
+            )
+            return res
+              .status(403)
+              .json({ message: 'Insufficient permissions for this pet' })
           }
         }
       }

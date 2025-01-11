@@ -42,7 +42,7 @@ export const getPetById = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const pet = await PetService.getPetById(req.params.id)
+    const pet = await PetService.getPetById(req.params.pet_id)
     if (pet) {
       res.status(200).json(pet)
     } else {
@@ -70,7 +70,7 @@ export const updatePet = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const updatedPet = await PetService.updatePet(req.params.id, req.body)
+    const updatedPet = await PetService.updatePet(req.params.pet_id, req.body)
     if (updatedPet) {
       res.status(200).json(updatedPet)
     } else {
@@ -86,7 +86,7 @@ export const deletePet = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const deleted = await PetService.deletePet(req.params.id)
+    const deleted = await PetService.deletePet(req.params.pet_id)
     if (deleted) {
       res.status(204).send()
     } else {

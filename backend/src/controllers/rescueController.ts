@@ -3,6 +3,7 @@ import { Response } from 'express'
 import {
   addRoleToUserService,
   cancelInvitationService,
+  deleteRescueService,
   deleteStaffService,
   getAllRescuesService,
   getRescueStaffWithRoles,
@@ -158,5 +159,20 @@ export const removeRoleFromUserController = async (
   } catch (error) {
     console.error('Failed to remove role:', error)
     res.status(500).json({ message: 'Failed to remove role' })
+  }
+}
+
+export const deleteRescueController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  const { rescueId } = req.params
+
+  try {
+    await deleteRescueService(rescueId)
+    res.status(200).json({ message: 'Rescue deleted successfully' })
+  } catch (error) {
+    console.error('Failed to delete rescue:', error)
+    res.status(500).json({ message: 'Failed to delete rescue' })
   }
 }

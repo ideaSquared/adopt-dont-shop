@@ -7,7 +7,6 @@ import {
   getApplicationsByRescueId,
   updateApplication,
 } from '../controllers/applicationController'
-import { attachRescueId } from '../middleware/attachRescueId'
 import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
 const router = express.Router()
@@ -24,9 +23,11 @@ router.get(
 
 // Get applications for a rescue
 router.get(
-  '/rescue',
-  authRoleOwnershipMiddleware({ verifyRescueOwnership: true }),
-  attachRescueId,
+  '/rescue/:rescueId',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'rescue_manager',
+    verifyRescueOwnership: true,
+  }),
   getApplicationsByRescueId,
 )
 

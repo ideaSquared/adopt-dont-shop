@@ -8,7 +8,6 @@ import {
 } from '../controllers/petController'
 import { attachRescueId } from '../middleware/attachRescueId'
 import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
-import { verifyPetOwnership } from '../services/petService'
 
 const router = express.Router()
 
@@ -21,7 +20,7 @@ router.get(
 )
 
 // Get single pet
-router.get('/:id', authRoleOwnershipMiddleware(), getPetById)
+router.get('/:pet_id', authRoleOwnershipMiddleware(), getPetById)
 
 // Create new pet (requires rescue_manager role)
 router.post(
@@ -33,26 +32,20 @@ router.post(
 
 // Update pet (requires rescue_manager role and ownership)
 router.put(
-  '/:id',
+  '/:pet_id',
   authRoleOwnershipMiddleware({
     requiredRole: 'rescue_manager',
-    ownershipCheck: async (req) => {
-      if (!req.user?.rescue_id) return false
-      return verifyPetOwnership(req.user.rescue_id, req.params.id)
-    },
+    verifyPetOwnership: true,
   }),
   updatePet,
 )
 
 // Delete pet (requires rescue_manager role and ownership)
 router.delete(
-  '/:id',
+  '/:pet_id',
   authRoleOwnershipMiddleware({
     requiredRole: 'rescue_manager',
-    ownershipCheck: async (req) => {
-      if (!req.user?.rescue_id) return false
-      return verifyPetOwnership(req.user.rescue_id, req.params.id)
-    },
+    verifyPetOwnership: true,
   }),
   deletePet,
 )

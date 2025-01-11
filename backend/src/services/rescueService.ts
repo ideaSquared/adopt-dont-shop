@@ -632,3 +632,44 @@ export const verifyRescueOwnership = async (
     return false
   }
 }
+
+export const deleteRescueService = async (rescueId: string): Promise<void> => {
+  await AuditLogger.logAction(
+    'RescueService',
+    `Deleting rescue with ID: ${rescueId}`,
+    'INFO',
+  )
+  try {
+    const rescue = await RescueModel.findByPk(rescueId)
+    if (!rescue) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Rescue with ID: ${rescueId} not found`,
+        'WARNING',
+      )
+      throw new Error('Rescue not found')
+    }
+
+    await rescue.destroy()
+    await AuditLogger.logAction(
+      'RescueService',
+      `Successfully deleted rescue with ID: ${rescueId}`,
+      'INFO',
+    )
+  } catch (error) {
+    if (error instanceof Error) {
+      await AuditLogger.logAction(
+        'RescueService',
+        `Error deleting rescue with ID: ${rescueId} - ${error.message}`,
+        'ERROR',
+      )
+      throw new Error(`Failed to delete rescue: ${error.message}`)
+    }
+    await AuditLogger.logAction(
+      'RescueService',
+      `Unknown error while deleting rescue with ID: ${rescueId}`,
+      'ERROR',
+    )
+    throw new Error('An unknown error occurred while deleting the rescue')
+  }
+}
