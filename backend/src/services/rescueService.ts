@@ -334,21 +334,27 @@ export const getRescueStaffWithRoles = async (
   }
 }
 
-export const deleteStaffService = async (userId: string): Promise<void> => {
+export const deleteStaffService = async (
+  userId: string,
+  rescueId: string,
+): Promise<void> => {
   await AuditLogger.logAction(
     'RescueService',
-    `Deleting staff member with user ID: ${userId}`,
+    `Deleting staff member with user ID: ${userId} from rescue ID: ${rescueId}`,
     'INFO',
   )
   try {
     const staffMember = await StaffMemberModel.findOne({
-      where: { user_id: userId },
+      where: {
+        user_id: userId,
+        rescue_id: rescueId,
+      },
     })
 
     if (!staffMember) {
       await AuditLogger.logAction(
         'RescueService',
-        `Staff member with user ID: ${userId} not found`,
+        `Staff member with user ID: ${userId} and rescue ID: ${rescueId} not found`,
         'WARNING',
       )
       throw new Error('Staff member not found')
@@ -357,21 +363,21 @@ export const deleteStaffService = async (userId: string): Promise<void> => {
     await staffMember.destroy()
     await AuditLogger.logAction(
       'RescueService',
-      `Successfully deleted staff member with user ID: ${userId}`,
+      `Successfully deleted staff member with user ID: ${userId} from rescue ID: ${rescueId}`,
       'INFO',
     )
   } catch (error) {
     if (error instanceof Error) {
       await AuditLogger.logAction(
         'RescueService',
-        `Error deleting staff member with user ID: ${userId} - ${error.message}`,
+        `Error deleting staff member with user ID: ${userId} from rescue ID: ${rescueId} - ${error.message}`,
         'ERROR',
       )
       throw new Error(`Failed to delete staff member: ${error.message}`)
     }
     await AuditLogger.logAction(
       'RescueService',
-      `Unknown error while deleting staff member with user ID: ${userId}`,
+      `Unknown error while deleting staff member with user ID: ${userId} from rescue ID: ${rescueId}`,
       'ERROR',
     )
     throw new Error('An unknown error occurred while deleting the staff member')

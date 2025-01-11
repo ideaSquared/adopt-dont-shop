@@ -84,9 +84,13 @@ export const deleteRescue = async (rescue_id: string): Promise<void> => {
 /**
  * Delete a staff member by user ID.
  * @param userId - The ID of the staff member to delete.
+ * @param rescueId - The ID of the rescue.
  */
-export const deleteStaffMember = async (userId: string): Promise<void> => {
-  await apiService.delete<void>(`/rescue/staff/${userId}`)
+export const deleteStaffMember = async (
+  userId: string,
+  rescueId: string,
+): Promise<void> => {
+  await apiService.delete<void>(`/rescue/${rescueId}/staff/${userId}`)
 }
 
 /**

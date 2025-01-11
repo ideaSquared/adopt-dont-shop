@@ -51,7 +51,7 @@ router.delete(
 
 // Delete staff member (rescue_manager and ownership required)
 router.delete(
-  '/staff/:userId',
+  '/:rescueId/staff/:userId',
   authRoleOwnershipMiddleware({
     requiredRole: 'rescue_manager',
     verifyRescueOwnership: true,

@@ -107,7 +107,8 @@ const Staff: React.FC = () => {
 
   const deleteStaff = async (staff_member_id: string) => {
     try {
-      await RescueService.deleteStaffMember(staff_member_id)
+      if (!rescue) return
+      await RescueService.deleteStaffMember(staff_member_id, rescue.rescue_id)
       setStaff((prevStaff) =>
         prevStaff.filter((staff) => staff.user_id !== staff_member_id),
       )

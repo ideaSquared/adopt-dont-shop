@@ -89,10 +89,10 @@ export const deleteStaffController = async (
   req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
-  const { userId } = req.params
+  const { userId, rescueId } = req.params
 
   try {
-    await deleteStaffService(userId)
+    await deleteStaffService(userId, rescueId)
     res.status(200).json({ message: 'Staff member deleted successfully' })
   } catch (error) {
     console.error('Failed to delete staff member:', error)
