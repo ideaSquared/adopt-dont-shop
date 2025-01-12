@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import styled from 'styled-components'
 
 // Internal imports
-import { Button, FormInput, TextInput } from '@adoptdontshop/components'
+import { Alert, Button, FormInput, TextInput } from '@adoptdontshop/components'
 import { User, UserService } from '@adoptdontshop/libs/users/'
 
 // Style definitions
@@ -24,14 +24,6 @@ const SubTitle = styled.h2`
   font-size: 1.5rem;
   color: #444;
   margin: 2rem 0 1rem;
-`
-
-const Message = styled.p<{ isError?: boolean }>`
-  color: ${({ isError }) => (isError ? '#dc3545' : '#28a745')};
-  margin: 1rem 0;
-  padding: 0.5rem;
-  border-radius: 4px;
-  background-color: ${({ isError }) => (isError ? '#f8d7da' : '#d4edda')};
 `
 
 const Form = styled.form`
@@ -101,7 +93,7 @@ export const Settings: React.FC<SettingsProps> = () => {
   if (!user) {
     return (
       <SettingsContainer>
-        <Message isError>Loading...</Message>
+        <Alert variant="info">Loading...</Alert>
       </SettingsContainer>
     )
   }
@@ -146,7 +138,17 @@ export const Settings: React.FC<SettingsProps> = () => {
 
         <Button type="submit">Save Settings</Button>
         {message && (
-          <Message isError={message.includes('failed')}>{message}</Message>
+          <Alert
+            variant={
+              message.includes('successfully')
+                ? 'success'
+                : message.includes('failed')
+                  ? 'error'
+                  : 'info'
+            }
+          >
+            {message}
+          </Alert>
         )}
       </Form>
 
@@ -170,9 +172,18 @@ export const Settings: React.FC<SettingsProps> = () => {
         </FormInput>
         <Button type="submit">Change Password</Button>
         {passwordMessage && (
-          <Message isError={passwordMessage.includes('failed')}>
+          <Alert
+            variant={
+              passwordMessage.includes('successfully')
+                ? 'success'
+                : passwordMessage.includes('failed') ||
+                    passwordMessage.includes('not found')
+                  ? 'error'
+                  : 'info'
+            }
+          >
             {passwordMessage}
-          </Message>
+          </Alert>
         )}
       </Form>
     </SettingsContainer>

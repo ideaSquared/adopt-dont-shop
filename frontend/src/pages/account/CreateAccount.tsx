@@ -5,6 +5,7 @@ import styled from 'styled-components'
 
 // Internal imports
 import {
+  Alert,
   Button,
   CountrySelectInput,
   FormInput,
@@ -24,14 +25,6 @@ const Title = styled.h1`
   font-size: 2rem;
   color: #333;
   margin-bottom: 2rem;
-`
-
-const Message = styled.p<{ isError?: boolean }>`
-  color: ${({ isError }) => (isError ? '#dc3545' : '#28a745')};
-  margin: 1rem 0;
-  padding: 0.5rem;
-  border-radius: 4px;
-  background-color: ${({ isError }) => (isError ? '#f8d7da' : '#d4edda')};
 `
 
 const Form = styled.form`
@@ -287,7 +280,19 @@ export const CreateAccount: React.FC<CreateAccountProps> = () => {
         </Button>
       </Form>
       {message && (
-        <Message isError={message.includes('Failed')}>{message}</Message>
+        <Alert
+          variant={
+            message.includes('created')
+              ? 'success'
+              : message.includes('Failed') ||
+                  message.includes('not match') ||
+                  message.includes("don't support")
+                ? 'error'
+                : 'info'
+          }
+        >
+          {message}
+        </Alert>
       )}
       <ToggleContainer>
         {isRescueForm ? 'Not a rescue?' : 'Are you a rescue?'}{' '}

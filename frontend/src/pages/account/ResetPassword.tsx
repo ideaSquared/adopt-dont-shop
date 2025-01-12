@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom'
 import styled from 'styled-components'
 
 // Internal imports
-import { Button, FormInput, TextInput } from '@adoptdontshop/components'
+import { Alert, Button, FormInput, TextInput } from '@adoptdontshop/components'
 import { UserService } from '@adoptdontshop/libs/users/'
 
 // Style definitions
@@ -19,14 +19,6 @@ const Title = styled.h1`
   font-size: 2rem;
   color: #333;
   margin-bottom: 2rem;
-`
-
-const Message = styled.p<{ isError?: boolean }>`
-  color: ${({ isError }) => (isError ? '#dc3545' : '#28a745')};
-  margin: 1rem 0;
-  padding: 0.5rem;
-  border-radius: 4px;
-  background-color: ${({ isError }) => (isError ? '#f8d7da' : '#d4edda')};
 `
 
 const Form = styled.form`
@@ -95,11 +87,17 @@ export const ResetPassword: React.FC<ResetPasswordProps> = () => {
         <Button type="submit">Reset Password</Button>
       </Form>
       {message && (
-        <Message
-          isError={message.includes('Invalid') || message.includes('No reset')}
+        <Alert
+          variant={
+            message.includes('successful')
+              ? 'success'
+              : message.includes('Invalid') || message.includes('No reset')
+                ? 'error'
+                : 'info'
+          }
         >
           {message}
-        </Message>
+        </Alert>
       )}
     </Container>
   )
