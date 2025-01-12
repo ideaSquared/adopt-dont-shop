@@ -1,4 +1,3 @@
-import { Navbar } from '@adoptdontshop/components'
 import {
   CompleteAccountSetup,
   CreateAccount,
@@ -28,11 +27,6 @@ import {
   ProtectedRoute,
   Role,
 } from '@adoptdontshop/permissions'
-import { UserProvider, useUser } from 'contexts/auth/UserContext'
-import {
-  FeatureFlagProvider,
-  useFeatureFlag,
-} from 'contexts/feature-flags/FeatureFlagContext'
 import React from 'react'
 import {
   Navigate,
@@ -40,15 +34,18 @@ import {
   BrowserRouter as Router,
   Routes,
 } from 'react-router-dom'
-import { ThemeProvider } from 'styled-components'
+import Navbar from './components/Navbar/Navbar'
+import { UserProvider, useUser } from './contexts/auth/UserContext'
+import {
+  FeatureFlagProvider,
+  useFeatureFlag,
+} from './contexts/feature-flags/FeatureFlagContext'
+import { ThemeProvider } from './contexts/theme/ThemeContext'
 import GlobalStyles from './styles/GlobalStyles'
-import { theme } from './styles/theme'
 
 const AppContent: React.FC = () => {
-  const { user } = useUser() // Retrieve the user from context
-
-  const userRoles = user ? user.roles : [] // Extract roles from the user
-
+  const { user } = useUser()
+  const userRoles = user ? user.roles : []
   const chatBetaEnabled = useFeatureFlag('chat_beta')
 
   return (
@@ -81,8 +78,7 @@ const AppContent: React.FC = () => {
               path="/applications"
               element={<Applications isAdminView={false} />}
             />
-          </Route>{' '}
-          isAdminView
+          </Route>
           <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route path="/pets" element={<Pets isAdminView={false} />} />
           </Route>
@@ -104,7 +100,6 @@ const AppContent: React.FC = () => {
             <Route path="/feature-flags" element={<FeatureFlags />} />
             <Route path="/ratings" element={<Ratings />} />
             <Route path="/admin/pets" element={<Pets isAdminView={true} />} />
-
             <Route
               path="/admin/applications"
               element={<Applications isAdminView={true} />}
@@ -118,14 +113,14 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <FeatureFlagProvider>
-      <ThemeProvider theme={theme}>
+    <ThemeProvider>
+      <GlobalStyles />
+      <FeatureFlagProvider>
         <UserProvider>
-          <GlobalStyles />
           <AppContent />
         </UserProvider>
-      </ThemeProvider>
-    </FeatureFlagProvider>
+      </FeatureFlagProvider>
+    </ThemeProvider>
   )
 }
 

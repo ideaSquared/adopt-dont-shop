@@ -25,8 +25,7 @@ const StyledInput = styled.input`
   box-sizing: border-box;
 
   &:disabled {
-    background-color: ${(props) =>
-      props.theme.background.disabled || '#e9ecef'};
+    background-color: ${(props) => props.theme.background.disabled};
     border-color: #ced4da;
     opacity: 0.65;
     cursor: not-allowed;

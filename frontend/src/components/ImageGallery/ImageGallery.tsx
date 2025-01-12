@@ -63,30 +63,35 @@ const NavigationDots = styled.div`
 `
 
 const Dot = styled.button<{ active: boolean }>`
-  width: 12px;
-  height: 12px;
-  margin: 0 5px;
-  background-color: ${({ active }) => (active ? '#007bff' : '#ccc')};
+  width: ${({ theme }) => theme.spacing.xs};
+  height: ${({ theme }) => theme.spacing.xs};
+  margin: 0 ${({ theme }) => theme.spacing.xs};
+  background-color: ${({ active, theme }) =>
+    active ? theme.text.link : theme.text.dim};
   border: none;
-  border-radius: 50%;
+  border-radius: ${({ theme }) => theme.border.radius.full};
   cursor: pointer;
+  transition: background-color ${({ theme }) => theme.transitions.fast};
+
   &:hover {
-    background-color: #0056b3;
+    background-color: ${({ theme }) => theme.text.highlight};
   }
 `
 
 const UploadButton = styled.label`
   display: block;
-  background-color: #007bff;
-  color: white;
-  padding: 10px 20px;
-  margin: 20px auto;
+  background-color: ${({ theme }) => theme.text.link};
+  color: ${({ theme }) => theme.text.light};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  margin: ${({ theme }) => theme.spacing.md} auto;
   text-align: center;
-  border-radius: 5px;
+  border-radius: ${({ theme }) => theme.border.radius.md};
   cursor: pointer;
-  font-size: 16px;
+  font-size: ${({ theme }) => theme.typography.size.base};
+  transition: background-color ${({ theme }) => theme.transitions.fast};
+
   &:hover {
-    background-color: #0056b3;
+    background-color: ${({ theme }) => theme.text.highlight};
   }
 `
 
@@ -97,7 +102,7 @@ const HiddenInput = styled.input`
 const CenteredBadgeContainer = styled.div`
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: ${({ theme }) => theme.spacing.md};
 `
 
 const ImageGallery: React.FC<ImageGalleryProps> = ({

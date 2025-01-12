@@ -54,17 +54,25 @@ const StyledBadge = styled.span`
 `
 
 const ActionButton = styled.span`
-  font-size: 1rem;
+  font-size: ${({ theme }) => theme.typography.size.base};
   cursor: pointer;
-  font-weight: bold;
-  padding: 0 0.5rem;
+  font-weight: ${({ theme }) => theme.typography.weight.bold};
+  padding: 0 ${({ theme }) => theme.spacing.sm};
   display: inline-flex;
   align-items: center;
   height: 100%;
-  background-color: ${(props) => props.theme.background.danger};
-  color: red;
+  background-color: ${({ theme }) => theme.background.danger};
+  color: ${({ theme }) => theme.text.light};
+  transition: all ${({ theme }) => theme.transitions.fast};
+
   &:hover {
-    color: darkred;
+    background-color: ${({ theme }) => theme.text.danger};
+  }
+
+  &:focus-visible {
+    outline: ${({ theme }) => theme.border.width.normal} solid
+      ${({ theme }) => theme.border.color.focus};
+    outline-offset: 2px;
   }
 `
 

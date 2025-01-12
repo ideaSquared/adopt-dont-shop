@@ -11,23 +11,24 @@ import { User, UserService } from '@adoptdontshop/libs/users/'
 const SettingsContainer = styled.div`
   max-width: 600px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: ${({ theme }) => theme.spacing.lg};
 `
 
 const Title = styled.h1`
-  font-size: 2rem;
-  color: #333;
-  margin-bottom: 2rem;
+  font-size: ${({ theme }) => theme.typography.size['3xl']};
+  color: ${({ theme }) => theme.text.dark};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
 `
 
 const SubTitle = styled.h2`
-  font-size: 1.5rem;
-  color: #444;
-  margin: 2rem 0 1rem;
+  font-size: ${({ theme }) => theme.typography.size.xl};
+  color: ${({ theme }) => theme.text.body};
+  margin: ${({ theme }) => theme.spacing.lg} 0
+    ${({ theme }) => theme.spacing.md};
 `
 
 const Form = styled.form`
-  margin-bottom: 2rem;
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
 `
 
 // Types

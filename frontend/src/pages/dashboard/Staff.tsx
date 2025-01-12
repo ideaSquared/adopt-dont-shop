@@ -18,35 +18,37 @@ import styled from 'styled-components'
 
 // Style definitions
 const Container = styled.div`
-  padding: 1rem;
+  padding: ${({ theme }) => theme.spacing.md};
 `
 
 const Title = styled.h1`
-  margin-bottom: 2rem;
-  font-size: 1.8rem;
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  font-size: ${({ theme }) => theme.typography.size['3xl']};
+  font-weight: ${({ theme }) => theme.typography.weight.bold};
 `
 
 const FilterContainer = styled.div`
   display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
 `
 
 const BadgeWrapper = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: ${({ theme }) => theme.spacing.xs};
   flex-wrap: wrap;
 `
 
 const InviteContainer = styled.div`
-  margin: 2rem 0;
-  padding: 1rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  margin: ${({ theme }) => theme.spacing.lg} 0;
+  padding: ${({ theme }) => theme.spacing.md};
+  border: ${({ theme }) => theme.border.width.thin} solid
+    ${({ theme }) => theme.border.color.default};
+  border-radius: ${({ theme }) => theme.border.radius.md};
 `
 
 const TableContainer = styled.div`
-  margin-top: 2rem;
+  margin-top: ${({ theme }) => theme.spacing.lg};
 `
 
 type StaffWithInvite = {
@@ -398,6 +400,7 @@ export const Staff: React.FC = () => {
                       user.user_id !== staff.user_id && (
                         <Button
                           type="button"
+                          variant="danger"
                           onClick={() => deleteStaff(staff.user_id)}
                         >
                           Delete

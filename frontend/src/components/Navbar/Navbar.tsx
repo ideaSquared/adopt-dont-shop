@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { useUser } from '../../contexts/auth/UserContext'
 import { useFeatureFlag } from '../../contexts/feature-flags/FeatureFlagContext'
+import { ThemeToggle } from '../ThemeToggle/ThemeToggle'
 
 const StyledNavbar = styled.header`
   background-color: ${(props) => props.theme.background.content};
@@ -28,6 +29,12 @@ const NavList = styled.ul`
 
 const NavItem = styled.li`
   margin: 0 1rem;
+`
+
+const NavbarRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
 `
 
 const Navbar: React.FC = () => {
@@ -114,6 +121,10 @@ const Navbar: React.FC = () => {
               />
             </NavItem>
           )}
+
+          <NavbarRight>
+            <ThemeToggle />
+          </NavbarRight>
         </NavList>
       </Nav>
     </StyledNavbar>

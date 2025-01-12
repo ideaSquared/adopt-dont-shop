@@ -18,7 +18,7 @@ const StyledModal = styled.div<{ isOpen: boolean }>`
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1050;
+  z-index: ${({ theme }) => theme.zIndex.modal};
   overflow-y: auto;
 `
 
@@ -30,7 +30,7 @@ const StyledModalDialog = styled.div<{ size: 'small' | 'medium' | 'large' }>`
       : props.size === 'medium'
         ? '600px'
         : '900px'};
-  margin: 1.75rem auto;
+  margin: ${({ theme }) => theme.spacing.lg} auto;
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -43,13 +43,15 @@ const StyledModalContent = styled.div`
   flex-direction: column;
   width: 100%;
   pointer-events: auto;
-  background-color: #fff;
+  background-color: ${({ theme }) => theme.background.content};
   background-clip: padding-box;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 0.3rem;
+  border: ${({ theme }) => theme.border.width.thin} solid
+    ${({ theme }) => theme.border.color.default};
+  border-radius: ${({ theme }) => theme.border.radius.md};
   outline: 0;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: ${({ theme }) => theme.shadows.lg};
 `
 
 const StyledModalHeader = styled.div`

@@ -53,15 +53,15 @@ const StyledAlert = styled.div<{ $variant: AlertVariant }>`
     ${({ theme, $variant }) => {
       switch ($variant) {
         case 'success':
-          return theme.border.success
+          return theme.border.color.success
         case 'error':
-          return theme.border.danger
+          return theme.border.color.danger
         case 'warning':
-          return theme.border.warning
+          return theme.border.color.warning
         case 'info':
-          return theme.border.info
+          return theme.border.color.info
         default:
-          return theme.border.success
+          return theme.border.color.default
       }
     }};
 `

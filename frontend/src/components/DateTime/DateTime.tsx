@@ -155,23 +155,23 @@ const Clock: React.FC<{
 }
 
 const ClockContainer = styled.div`
-  background-color: #f9fafb;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: ${({ theme }) => theme.background.contrast};
+  padding: ${({ theme }) => theme.spacing.sm};
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  box-shadow: ${({ theme }) => theme.shadows.sm};
 `
 
 const TooltipContent = styled(Tooltip.Content)`
-  background-color: white;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  font-size: 14px;
-  z-index: 10;
+  background-color: ${({ theme }) => theme.background.content};
+  padding: ${({ theme }) => theme.spacing.sm};
+  border-radius: ${({ theme }) => theme.border.radius.lg};
+  box-shadow: ${({ theme }) => theme.shadows.md};
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  z-index: ${({ theme }) => theme.zIndex.tooltip};
 `
 
 const TooltipArrow = styled(Tooltip.Arrow)`
-  fill: white;
+  fill: ${({ theme }) => theme.background.content};
 `
 
 export default DateTime

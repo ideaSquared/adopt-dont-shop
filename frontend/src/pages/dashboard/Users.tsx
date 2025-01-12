@@ -256,7 +256,9 @@ export const Users: React.FC<UsersProps> = () => {
                   </BadgeWrapper>
                 </td>
                 <td>
-                  <Button type="button">Delete</Button>
+                  <Button variant="danger" type="button">
+                    Delete
+                  </Button>
                 </td>
               </tr>
             ))}

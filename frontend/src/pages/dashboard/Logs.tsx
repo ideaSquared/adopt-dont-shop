@@ -21,7 +21,7 @@ const Container = styled.div`
 
 const Title = styled.h1`
   font-size: 2rem;
-  color: #333;
+
   margin-bottom: 2rem;
 `
 
@@ -30,11 +30,17 @@ const StyledButton = styled.button`
   border: none;
   padding: 0;
   text-decoration: underline;
-  color: blue;
+  color: ${({ theme }) => theme.text.link};
   cursor: pointer;
 
-  &:focus {
-    outline: 2px solid #007bff;
+  &:hover {
+    color: ${({ theme }) => theme.text.highlight};
+  }
+
+  &:focus-visible {
+    outline: ${({ theme }) => theme.border.width.normal} solid
+      ${({ theme }) => theme.border.color.focus};
+    outline-offset: 2px;
   }
 `
 

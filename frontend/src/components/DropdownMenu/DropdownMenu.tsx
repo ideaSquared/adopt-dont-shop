@@ -13,40 +13,52 @@ interface DropdownProps {
   items: DropdownItem[]
 }
 const Trigger = styled.span`
-  color: ${(props) => props.theme.text.body};
-  font-weight: bold;
+  color: ${({ theme }) => theme.text.body};
+  font-weight: ${({ theme }) => theme.typography.weight.bold};
   cursor: pointer;
+  transition: all ${({ theme }) => theme.transitions.fast};
 
   &:hover {
-    color: ${(props) => props.theme.text.highlight};
-    text-decoration: underline;
+    color: ${({ theme }) => theme.text.highlight};
+  }
+
+  &:focus-visible {
+    outline: ${({ theme }) => theme.border.width.normal} solid
+      ${({ theme }) => theme.border.color.focus};
+    outline-offset: 2px;
   }
 `
 
 const DropdownContent = styled(DropdownMenu.Content)`
-  background-color: ${(props) => props.theme.background.content};
-  border: 1px solid ${(props) => props.theme.border.content};
-  border-radius: 4px;
-  padding: 0.5rem 0;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  display: flex;
-  flex-direction: column; /* Ensure items are stacked vertically */
+  background-color: ${({ theme }) => theme.background.content};
+  border: ${({ theme }) => theme.border.width.thin} solid
+    ${({ theme }) => theme.border.color.default};
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  padding: ${({ theme }) => theme.spacing.xs} 0;
   min-width: 150px;
-  z-index: 1000;
+  z-index: ${({ theme }) => theme.zIndex.dropdown};
+  box-shadow: ${({ theme }) => theme.shadows.md};
 `
 
 const DropdownItem = styled(DropdownMenu.Item)`
-  padding: 0.5rem 1rem;
-  color: ${(props) => props.theme.text.body};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.text.body};
   text-decoration: none;
   cursor: pointer;
-  display: block; /* Ensure it takes up full width */
+  display: block;
+  transition: all ${({ theme }) => theme.transitions.fast};
 
-  &:hover {
-    background-color: ${(props) => props.theme.background.highlight};
-    color: ${(props) => props.theme.text.highlight};
+  &:hover,
+  &:focus {
+    background-color: ${({ theme }) => theme.background.contrast};
+    color: ${({ theme }) => theme.text.dark};
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: ${({ theme }) => theme.border.width.normal} solid
+      ${({ theme }) => theme.border.color.focus};
+    outline-offset: -2px;
   }
 `
 
