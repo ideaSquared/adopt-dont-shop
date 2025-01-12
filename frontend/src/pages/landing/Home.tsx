@@ -29,7 +29,7 @@ export const Home: React.FC<HomeProps> = () => {
   // Render
   return (
     <HomeContainer>
-      <Title>Welcome to the Pet Adoption Platform</Title>
+      <Title>Welcome to the AdoptDontShop</Title>
     </HomeContainer>
   )
 }
