@@ -23,6 +23,14 @@ const StyledInput = styled.input`
   background-color: ${(props) => props.theme.background.content};
   color: ${(props) => props.theme.text.body};
   box-sizing: border-box;
+
+  &:disabled {
+    background-color: ${(props) =>
+      props.theme.background.disabled || '#e9ecef'};
+    border-color: #ced4da;
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
 `
 
 const TextInput: React.FC<TextInputProps> = ({
