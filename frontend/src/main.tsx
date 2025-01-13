@@ -1,23 +1,17 @@
-/// <reference types="vite/client" />
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App'
+import './styles/globals.css'
 
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { AuthProvider } from './contexts/AuthContext';
-import App from './app/App';
-import axios from 'axios';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
+const rootElement = document.getElementById('root')
 
-axios.defaults.baseURL = import.meta.env.VITE_APP_API_BASE_URL as string;
-axios.defaults.withCredentials = true;
-
-const container = document.getElementById('root') as HTMLElement;
-const root = createRoot(container);
-
-root.render(
-	<React.StrictMode>
-		<AuthProvider>
-			<App />
-		</AuthProvider>
-	</React.StrictMode>
-);
+if (rootElement) {
+  const root = createRoot(rootElement)
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+} else {
+  console.error('Root element not found')
+}

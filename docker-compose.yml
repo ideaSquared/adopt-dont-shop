@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build: ./backend
@@ -8,38 +6,46 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - ./uploads:/app/uploads 
     environment:
-      - NODE_ENV=development
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=mydb
+      NODE_ENV: ${NODE_ENV}
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${DEV_DB_NAME} # Default to development DB
+      POSTGRES_HOST: database
+      POSTGRES_PORT: 5432
     depends_on:
-      - db
+      - database
+    entrypoint: >
+      sh -c "
+      npm run sync-db 
+      && npm run dev
+      "
 
   frontend:
     build: ./frontend
     ports:
-      - '3000:3000'
+      - '3001:3001'
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV}
+      - CHOKIDAR_USEPOLLING=true
     stdin_open: true
     tty: true
 
-  db:
-    image: postgres:14
+  database:
+    image: postgres:16.4
     restart: always
     ports:
       - '5432:5432'
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydb
+      POSTGRES_DB: ${DEV_DB_NAME} # Default to development DB
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
   postgres_data:
