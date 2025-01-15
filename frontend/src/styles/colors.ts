@@ -14,16 +14,30 @@ export const palette = {
   // Status colors
   brightRed: '#DC3545', // Bootstrap danger
   lightRed: '#F8D7DA', // Bootstrap danger-light
+  darkRed: '#842029', // Bootstrap danger-dark
+
   brightGreen: '#198754', // Bootstrap success
   lightGreen: '#D1E7DD', // Bootstrap success-light
+  darkGreen: '#0F5132', // Bootstrap success-dark
+
   brightBlue: '#0D6EFD', // Bootstrap primary
   lightBlue: '#CFE2FF', // Bootstrap primary-light
+  darkBlue: '#084298', // Bootstrap primary-dark
+
   brightSkyBlue: '#0DCAF0', // Bootstrap info
   lightSkyBlue: '#CFF4FC', // Bootstrap info-light
+  darkSkyBlue: '#055160', // Bootstrap info-dark
+
   brightOrange: '#FD7E14', // Bootstrap warning
+  lightOrange: '#ffbe8a', // Bootstrap warning-light variant
   lightOrangeYellow: '#FFF3CD', // Bootstrap warning-light
+  darkOrange: '#664D03', // Bootstrap warning-dark
+
   brightYellow: '#FFC107', // Bootstrap warning
+  darkYellow: '#997404', // Bootstrap warning-dark
+
   brightAmber: '#FFC107', // Bootstrap warning
+  darkAmber: '#997404', // Bootstrap warning-dark
 }
 
 export const font = {

@@ -28,20 +28,7 @@ const BadgeContainer = styled.div<{ variant: BadgeProps['variant'] }>`
         return props.theme.background.contrast
     }
   }};
-  color: ${(props) => {
-    switch (props.variant) {
-      case 'success':
-        return props.theme.text.success
-      case 'danger':
-        return props.theme.text.danger
-      case 'warning':
-        return props.theme.text.warning
-      case 'info':
-        return props.theme.text.info
-      default:
-        return props.theme.text.body
-    }
-  }};
+  color: ${(props) => props.theme.text.body};
   font-size: 0.875rem;
   font-weight: 500;
   cursor: ${(props) => (props.onClick ? 'pointer' : 'default')};
