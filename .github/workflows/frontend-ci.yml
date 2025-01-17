@@ -3,16 +3,20 @@ name: Frontend CI
 on:
   push:
     paths:
-      - 'frontend/new/**/*.js'
-      - 'frontend/new/**/*.jsx'
-      - 'frontend/new/package.json'
-      - 'frontend/new/package-lock.json'
+      - 'frontend/**/*.js'
+      - 'frontend/**/*.jsx'
+      - 'frontend/**/*.ts'
+      - 'frontend/**/*.tsx'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
   pull_request:
     paths:
-      - 'frontend/new/**/*.js'
-      - 'frontend/new/**/*.jsx'
-      - 'frontend/new/package.json'
-      - 'frontend/new/package-lock.json'
+      - 'frontend/**/*.js'
+      - 'frontend/**/*.jsx'
+      - 'frontend/**/*.ts'
+      - 'frontend/**/*.tsx'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
 
 jobs:
   build-and-test:
