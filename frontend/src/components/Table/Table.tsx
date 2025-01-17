@@ -66,6 +66,7 @@ const PaginationWrapper = styled.div`
 const PageButton = styled.button<{ active?: boolean }>`
   margin: 0 0.25rem;
   padding: 0.5rem 0.75rem;
+  color: ${(props) => props.theme.text.body};
   background-color: ${(props) =>
     props.active ? props.theme.background.content : 'transparent'};
   border: 1px solid ${(props) => props.theme.border.color.default};
