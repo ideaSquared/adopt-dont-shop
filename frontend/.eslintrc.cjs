@@ -35,6 +35,7 @@ module.exports = {
     ],
     '@typescript-eslint/no-empty-object-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn',
     'react/prop-types': 'off', // Since you're using TypeScript for type checking
     'jsx-a11y/no-autofocus': 'warn', // Accessibility rule, adjust as needed
     '@typescript-eslint/no-unused-vars': 'warn',

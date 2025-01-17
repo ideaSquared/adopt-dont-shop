@@ -1,10 +1,8 @@
-// src/components/Ratings.tsx
 import {
   DateTime,
-  FormInput,
-  SelectInput,
+  FilterConfig,
+  GenericFilters,
   Table,
-  TextInput,
 } from '@adoptdontshop/components'
 import { Rating, RatingService, RatingType } from '@adoptdontshop/libs/ratings'
 import React, { useEffect, useState } from 'react'
@@ -18,12 +16,6 @@ const Container = styled.div`
 const Title = styled.h1`
   margin-bottom: 2rem;
   font-size: 1.8rem;
-`
-
-const FilterContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
 `
 
 const TableContainer = styled.div`
@@ -40,9 +32,34 @@ const RATING_TYPES: RatingType[] = ['like', 'love', 'dislike']
 export const Ratings: React.FC<RatingsProps> = () => {
   const [ratings, setRatings] = useState<Rating[]>([])
   const [filteredRatings, setFilteredRatings] = useState<Rating[]>([])
-  const [searchTerm, setSearchTerm] = useState<string | null>(null)
-  const [filterByType, setFilterByType] = useState<RatingType | null>(null)
+  const [filters, setFilters] = useState({
+    search: '',
+    type: 'all',
+  })
 
+  // Filter configuration
+  const filterConfig: FilterConfig[] = [
+    {
+      name: 'search',
+      label: 'Search by pet ID or user ID',
+      type: 'text',
+      placeholder: 'Enter pet ID or user ID',
+    },
+    {
+      name: 'type',
+      label: 'Filter by rating type',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Types' },
+        ...RATING_TYPES.map((type) => ({
+          value: type,
+          label: type.charAt(0) + type.slice(1).toLowerCase(),
+        })),
+      ],
+    },
+  ]
+
+  // Fetch ratings on component mount
   useEffect(() => {
     const fetchRatings = async () => {
       try {
@@ -56,57 +73,34 @@ export const Ratings: React.FC<RatingsProps> = () => {
     fetchRatings()
   }, [])
 
+  // Filter ratings based on the filters state
   useEffect(() => {
     const filtered = ratings.filter((rating) => {
       const matchesSearch =
-        !searchTerm ||
-        rating.pet_id.includes(searchTerm) ||
-        rating.user_id.includes(searchTerm)
-      const matchesType = !filterByType || rating.rating_type === filterByType
+        !filters.search ||
+        rating.pet_id.includes(filters.search) ||
+        rating.user_id.includes(filters.search)
+
+      const matchesType =
+        filters.type === 'all' || rating.rating_type === filters.type
+
       return matchesSearch && matchesType
     })
     setFilteredRatings(filtered)
-  }, [searchTerm, filterByType, ratings])
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-  }
-
-  const handleFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFilterByType(e.target.value as RatingType)
-  }
-
-  const handleTypeToSentenceCase = (type: string) => {
-    return type.charAt(0) + type.slice(1).toLowerCase()
-  }
-
-  const typeOptions = [
-    { value: '', label: 'All types' },
-    ...RATING_TYPES.map((type) => ({
-      value: type,
-      label: handleTypeToSentenceCase(type),
-    })),
-  ]
+  }, [filters, ratings])
 
   return (
     <Container>
       <Title>Ratings</Title>
-      <FilterContainer>
-        <FormInput label="Search by pet ID or user ID">
-          <TextInput
-            onChange={handleSearchChange}
-            type="text"
-            value={searchTerm || ''}
-          />
-        </FormInput>
-        <FormInput label="Filter by rating type">
-          <SelectInput
-            onChange={handleFilterTypeChange}
-            value={filterByType || ''}
-            options={typeOptions}
-          />
-        </FormInput>
-      </FilterContainer>
+
+      <GenericFilters
+        filters={filters}
+        onFilterChange={(name: string, value: string | boolean) =>
+          setFilters((prev) => ({ ...prev, [name]: value }))
+        }
+        filterConfig={filterConfig}
+      />
+
       <TableContainer>
         <Table striped>
           <thead>
@@ -123,7 +117,10 @@ export const Ratings: React.FC<RatingsProps> = () => {
               <tr key={rating.rating_id}>
                 <td>{rating.pet_id}</td>
                 <td>{rating.user_id}</td>
-                <td>{handleTypeToSentenceCase(rating.rating_type)}</td>
+                <td>
+                  {rating.rating_type.charAt(0) +
+                    rating.rating_type.slice(1).toLowerCase()}
+                </td>
                 <td>
                   <DateTime timestamp={rating.created_at} />
                 </td>

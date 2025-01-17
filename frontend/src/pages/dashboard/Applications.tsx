@@ -1,11 +1,9 @@
 import {
   Badge,
   Button,
-  CheckboxInput,
-  FormInput,
-  SelectInput,
+  FilterConfig,
+  GenericFilters,
   Table,
-  TextInput,
   Tooltip,
 } from '@adoptdontshop/components'
 import {
@@ -24,12 +22,6 @@ const Container = styled.div`
 const Title = styled.h1`
   margin-bottom: 2rem;
   font-size: 1.8rem;
-`
-
-const FilterContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
 `
 
 const TableContainer = styled.div`
@@ -72,24 +64,49 @@ type ApplicationsProps = {
 }
 
 // Constants
-const FILTER_OPTIONS = [
-  { value: '', label: 'All' },
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All' },
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
 ]
 
-// Component
 export const Applications: React.FC<ApplicationsProps> = ({
   isAdminView = false,
 }) => {
   const { rescue } = useUser()
   const [applications, setApplications] = useState<Application[]>([])
-  const [searchTerm, setSearchTerm] = useState<string | null>(null)
-  const [filterStatus, setFilterStatus] = useState<string | null>(null)
-  const [onlyWaiting, setOnlyWaiting] = useState<boolean>(false)
+  const [filteredApplications, setFilteredApplications] = useState<
+    Application[]
+  >([])
+  const [filters, setFilters] = useState({
+    search: '',
+    status: 'all',
+    waitingOnly: false,
+  })
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Filter configuration
+  const filterConfig: FilterConfig[] = [
+    {
+      name: 'search',
+      label: 'Search by first name or pet name',
+      type: 'text',
+      placeholder: 'Enter applicant or pet name',
+    },
+    {
+      name: 'status',
+      label: 'Filter by status',
+      type: 'select',
+      options: STATUS_OPTIONS,
+    },
+    {
+      name: 'waitingOnly',
+      label: 'Show only waiting applications',
+      type: 'checkbox',
+    },
+  ]
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -102,6 +119,7 @@ export const Applications: React.FC<ApplicationsProps> = ({
               rescue!.rescue_id,
             )
         setApplications(fetchedApplications)
+        setFilteredApplications(fetchedApplications)
       } catch (error) {
         console.error('Error fetching applications:', error)
         setError('Failed to fetch applications')
@@ -112,31 +130,32 @@ export const Applications: React.FC<ApplicationsProps> = ({
     fetchApplications()
   }, [isAdminView, rescue])
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-  }
+  useEffect(() => {
+    const filtered = applications.filter((application) => {
+      const matchesSearch =
+        !filters.search ||
+        application.applicant_first_name
+          ?.toLowerCase()
+          .includes(filters.search.toLowerCase()) ||
+        application.pet_name
+          ?.toLowerCase()
+          .includes(filters.search.toLowerCase())
 
-  const handleStatusFilterChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
-    setFilterStatus(e.target.value)
-  }
+      const matchesStatus =
+        filters.status === 'all' || application.status === filters.status
 
-  const handleOnlyWaitingBooleanChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setOnlyWaiting((prevState) => !prevState)
-  }
+      const matchesWaiting =
+        !filters.waitingOnly || application.status === 'pending'
+
+      return matchesSearch && matchesStatus && matchesWaiting
+    })
+    setFilteredApplications(filtered)
+  }, [filters, applications])
 
   const handleStatusUpdate = async (
     applicationId: string,
     newStatus: string,
   ) => {
-    if (!rescue?.rescue_id) {
-      setError('No rescue ID found')
-      return
-    }
-
     try {
       setError(null)
       await ApplicationService.updateApplication(applicationId, {
@@ -151,19 +170,6 @@ export const Applications: React.FC<ApplicationsProps> = ({
     }
   }
 
-  const filteredApplications = applications.filter((application) => {
-    const matchesSearch =
-      !searchTerm ||
-      application.applicant_first_name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      application.pet_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = !filterStatus || application.status === filterStatus
-    const matchesWaiting = !onlyWaiting || application.status === 'pending'
-
-    return matchesSearch && matchesStatus && matchesWaiting
-  })
-
   if (isLoading) {
     return <LoadingMessage>Loading applications...</LoadingMessage>
   }
@@ -175,29 +181,14 @@ export const Applications: React.FC<ApplicationsProps> = ({
   return (
     <Container>
       <Title>Applications {rescue?.rescue_name}</Title>
-      <FilterContainer>
-        <FormInput label="Search by first name or pet name">
-          <TextInput
-            value={searchTerm || ''}
-            type="text"
-            onChange={handleSearchChange}
-            placeholder="Search applications..."
-          />
-        </FormInput>
-        <FormInput label="Filter by status">
-          <SelectInput
-            options={FILTER_OPTIONS}
-            value={filterStatus || ''}
-            onChange={handleStatusFilterChange}
-          />
-        </FormInput>
-        <FormInput label="Show only waiting applications">
-          <CheckboxInput
-            checked={onlyWaiting}
-            onChange={handleOnlyWaitingBooleanChange}
-          />
-        </FormInput>
-      </FilterContainer>
+
+      <GenericFilters
+        filters={filters}
+        onFilterChange={(name: string, value: any) =>
+          setFilters((prev) => ({ ...prev, [name]: value }))
+        }
+        filterConfig={filterConfig}
+      />
 
       {filteredApplications.length === 0 ? (
         <NoDataMessage>No applications found</NoDataMessage>

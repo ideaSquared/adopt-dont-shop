@@ -1,12 +1,11 @@
 import {
   Button,
-  FormInput,
-  SelectInput,
+  FilterConfig,
+  GenericFilters,
   Table,
-  TextInput,
 } from '@adoptdontshop/components'
 import { Rescue, RescueService } from '@adoptdontshop/libs/rescues'
-import React, { ChangeEvent, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 
 // Style definitions
@@ -19,12 +18,6 @@ const Title = styled.h1`
   font-size: 1.8rem;
 `
 
-const FilterContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-`
-
 const TableContainer = styled.div`
   margin-top: 2rem;
 `
@@ -35,11 +28,42 @@ type RescuesProps = Record<string, never>
 // Component
 export const Rescues: React.FC<RescuesProps> = () => {
   const [rescues, setRescues] = useState<Rescue[]>([])
-  const [searchTerm, setSearchTerm] = useState<string | null>(null)
-  const [filterByType, setFilterByType] = useState<string | null>(null)
-  const [staffEmailSearchTerm, setStaffEmailSearchTerm] = useState<
-    string | null
-  >(null)
+  const [filteredRescues, setFilteredRescues] = useState<Rescue[]>([])
+  const [filters, setFilters] = useState({
+    search: '',
+    type: 'all',
+    staffEmail: '',
+  })
+
+  // Filter configuration
+  const filterConfig: FilterConfig[] = [
+    {
+      name: 'search',
+      label: 'Search by rescue name',
+      type: 'text',
+      placeholder: 'Enter rescue name',
+    },
+    {
+      name: 'type',
+      label: 'Filter by type',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Types' },
+        ...Array.from(new Set(rescues.map((rescue) => rescue.rescue_type))).map(
+          (rescueType) => ({
+            value: rescueType,
+            label: rescueType,
+          }),
+        ),
+      ],
+    },
+    {
+      name: 'staffEmail',
+      label: 'Search by staff email',
+      type: 'text',
+      placeholder: 'Enter staff email',
+    },
+  ]
 
   // Fetch rescues on component mount
   useEffect(() => {
@@ -47,6 +71,7 @@ export const Rescues: React.FC<RescuesProps> = () => {
       try {
         const fetchedRescues = await RescueService.getRescues()
         setRescues(fetchedRescues)
+        setFilteredRescues(fetchedRescues)
       } catch (error) {
         console.error('Failed to fetch rescues:', error)
       }
@@ -55,79 +80,42 @@ export const Rescues: React.FC<RescuesProps> = () => {
     fetchRescues()
   }, [])
 
-  const filteredRescues = useMemo(() => {
-    if (!Array.isArray(rescues)) return []
-    return rescues.filter((rescue) => {
-      const matchesType = !filterByType || rescue.rescue_type === filterByType
-      const matchesRescueName =
-        !searchTerm ||
+  // Filter rescues based on the filters state
+  useEffect(() => {
+    const filtered = rescues.filter((rescue) => {
+      const matchesSearch =
+        !filters.search ||
         (rescue.rescue_name?.toLowerCase() || '').includes(
-          searchTerm.toLowerCase(),
+          filters.search.toLowerCase(),
         )
+
+      const matchesType =
+        filters.type === 'all' || rescue.rescue_type === filters.type
+
       const matchesStaffEmail =
-        !staffEmailSearchTerm ||
+        !filters.staffEmail ||
         rescue.staff.some((staff) =>
-          staff.email
-            .toLowerCase()
-            .includes(staffEmailSearchTerm.toLowerCase()),
+          staff.email.toLowerCase().includes(filters.staffEmail.toLowerCase()),
         )
-      return matchesType && matchesRescueName && matchesStaffEmail
+
+      return matchesSearch && matchesType && matchesStaffEmail
     })
-  }, [filterByType, searchTerm, staffEmailSearchTerm, rescues])
 
-  // Event handlers for input changes
-  const handleSearchTermChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-  }
-
-  const handleStaffEmailSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setStaffEmailSearchTerm(e.target.value)
-  }
-
-  const handleFilterByTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setFilterByType(e.target.value)
-  }
-
-  const rescuesOptions = [
-    { value: '', label: 'All types' },
-    ...Array.from(
-      new Set(
-        Array.isArray(rescues)
-          ? rescues.map((rescue) => rescue.rescue_type)
-          : [],
-      ),
-    ).map((rescue_type) => ({
-      value: rescue_type,
-      label: rescue_type,
-    })),
-  ]
+    setFilteredRescues(filtered)
+  }, [filters, rescues])
 
   return (
     <Container>
       <Title>Rescues</Title>
-      <FilterContainer>
-        <FormInput label="Search by rescue name">
-          <TextInput
-            onChange={handleSearchTermChange}
-            type="text"
-            value={searchTerm || ''}
-          />
-        </FormInput>
-        <FormInput label="Search by staff email">
-          <TextInput
-            onChange={handleStaffEmailSearchChange}
-            type="text"
-            value={staffEmailSearchTerm || ''}
-          />
-        </FormInput>
-        <FormInput label="Filter by type">
-          <SelectInput
-            options={rescuesOptions}
-            onChange={handleFilterByTypeChange}
-            value={filterByType || ''}
-          />
-        </FormInput>
-      </FilterContainer>
+
+      <GenericFilters
+        filters={filters}
+        onFilterChange={(name: string, value: string | boolean) =>
+          setFilters((prev) => ({ ...prev, [name]: value }))
+        }
+        filterConfig={filterConfig}
+      />
+
       <TableContainer>
         <Table>
           <thead>

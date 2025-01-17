@@ -2,10 +2,9 @@ import {
   Badge,
   Button,
   DateTime,
-  FormInput,
-  SelectInput,
+  FilterConfig,
+  GenericFilters,
   Table,
-  TextInput,
 } from '@adoptdontshop/components'
 import { AdminService } from '@adoptdontshop/libs/admin'
 import { UserService } from '@adoptdontshop/libs/users'
@@ -25,20 +24,14 @@ const Title = styled.h1`
   font-size: 1.8rem;
 `
 
-const FilterContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+const TableContainer = styled.div`
+  margin-top: 2rem;
 `
 
 const BadgeWrapper = styled.div`
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-`
-
-const TableContainer = styled.div`
-  margin-top: 2rem;
 `
 
 // Types
@@ -61,10 +54,36 @@ export const Users: React.FC<UsersProps> = () => {
   const { user: currentUser } = useUser()
   const [users, setUsers] = useState<UserWithRoles[]>([])
   const [filteredUsers, setFilteredUsers] = useState<UserWithRoles[]>([])
-  const [searchByEmailName, setSearchByEmailName] = useState<string>('')
-  const [filterByRole, setFilterByRole] = useState<Role | 'all'>('all')
+  const [filters, setFilters] = useState({
+    search: '',
+    role: 'all',
+  })
+
   const [showRoleDropdown, setShowRoleDropdown] = useState<string | null>(null)
 
+  // Filter configuration
+  const filterConfig: FilterConfig[] = [
+    {
+      name: 'search',
+      label: 'Search by name or email',
+      type: 'text',
+      placeholder: 'Enter name or email',
+    },
+    {
+      name: 'role',
+      label: 'Filter by Role',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Roles' },
+        ...Object.values(Role).map((role) => ({
+          value: role,
+          label: role.replace(/_/g, ' ').toLowerCase(),
+        })),
+      ],
+    },
+  ]
+
+  // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -85,29 +104,28 @@ export const Users: React.FC<UsersProps> = () => {
     fetchUsers()
   }, [])
 
+  // Filter users based on the filters state
   useEffect(() => {
     const filtered = users.filter((user) => {
       const matchesSearch =
-        !searchByEmailName ||
-        (user.email?.toLowerCase().includes(searchByEmailName.toLowerCase()) ??
+        !filters.search ||
+        (user.email?.toLowerCase().includes(filters.search.toLowerCase()) ??
           false) ||
         (user.first_name
           ?.toLowerCase()
-          .includes(searchByEmailName.toLowerCase()) ??
+          .includes(filters.search.toLowerCase()) ??
           false) ||
-        (user.last_name
-          ?.toLowerCase()
-          .includes(searchByEmailName.toLowerCase()) ??
+        (user.last_name?.toLowerCase().includes(filters.search.toLowerCase()) ??
           false)
 
       const matchesRole =
-        filterByRole === 'all' ||
-        user.roles.some((role) => role.role_id === filterByRole)
+        filters.role === 'all' ||
+        user.roles.some((role) => role.role_id === filters.role)
 
       return matchesSearch && matchesRole
     })
     setFilteredUsers(filtered)
-  }, [searchByEmailName, filterByRole, users])
+  }, [filters, users])
 
   const handleAddRoleClick = (userId: string) => {
     setShowRoleDropdown(userId === showRoleDropdown ? null : userId)
@@ -158,30 +176,14 @@ export const Users: React.FC<UsersProps> = () => {
   return (
     <Container>
       <Title>Users</Title>
-      <FilterContainer>
-        <FormInput label="Search by name or email">
-          <TextInput
-            type="text"
-            value={searchByEmailName}
-            onChange={(e) => setSearchByEmailName(e.target.value)}
-          />
-        </FormInput>
-        <FormInput label="Filter by Role">
-          <SelectInput
-            value={filterByRole}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setFilterByRole(e.target.value as Role | 'all')
-            }
-            options={[
-              { value: 'all', label: 'All Roles' },
-              ...Object.values(Role).map((role) => ({
-                value: role,
-                label: role.replace(/_/g, ' ').toLowerCase(),
-              })),
-            ]}
-          />
-        </FormInput>
-      </FilterContainer>
+
+      <GenericFilters
+        filters={filters}
+        onFilterChange={(name: string, value: string | boolean) =>
+          setFilters((prev) => ({ ...prev, [name]: value }))
+        }
+        filterConfig={filterConfig}
+      />
 
       <TableContainer>
         <Table>
@@ -237,19 +239,20 @@ export const Users: React.FC<UsersProps> = () => {
                           +
                         </Badge>
                         {showRoleDropdown === user.user_id && (
-                          <SelectInput
-                            options={Object.values(Role).map((role) => ({
-                              value: role,
-                              label: role.replace(/_/g, ' ').toUpperCase(),
-                            }))}
-                            placeholder="Choose a role"
+                          <select
                             onChange={(e) =>
                               handleRoleSelect(
                                 user.user_id,
                                 e.target.value as Role,
                               )
                             }
-                          />
+                          >
+                            {Object.values(Role).map((role) => (
+                              <option key={role} value={role}>
+                                {role.replace(/_/g, ' ').toUpperCase()}
+                              </option>
+                            ))}
+                          </select>
                         )}
                       </>
                     )}
