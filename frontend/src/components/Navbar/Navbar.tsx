@@ -11,7 +11,7 @@ const StyledNavbar = styled.header`
   background-color: ${(props) => props.theme.background.content};
   color: ${(props) => props.theme.text.body};
   padding: 1rem 2rem;
-  border-bottom: 1px solid ${(props) => props.theme.border.content};
+  border-bottom: 1px solid ${(props) => props.theme.border.color.default};
 `
 
 const Nav = styled.nav`

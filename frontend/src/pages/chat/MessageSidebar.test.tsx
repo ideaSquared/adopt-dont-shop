@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import MessageSidebar from './MessageSidebar'
+import { MessageSidebar } from './MessageSidebar'
 
 // ! This is feature flagged off for now, unsure it's going to be in MVP skipping
 describe.skip('MessageSidebar Component', () => {

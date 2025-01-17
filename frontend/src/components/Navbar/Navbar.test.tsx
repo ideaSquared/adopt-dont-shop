@@ -1,11 +1,10 @@
 import { Role, usePermissions } from '@adoptdontshop/permissions'
-import { theme } from '@adoptdontshop/styles'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
 import { BrowserRouter as Router } from 'react-router-dom'
-import { ThemeProvider } from 'styled-components'
 import { UserProvider } from '../../contexts/auth/UserContext'
+import { ThemeProvider } from '../../contexts/theme/ThemeContext'
 import Navbar from './Navbar'
 
 // Mock the usePermissions hook
@@ -20,7 +19,7 @@ jest.mock('@adoptdontshop/permissions', () => ({
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
     <UserProvider>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider>
         <Router>{ui}</Router>
       </ThemeProvider>
     </UserProvider>,

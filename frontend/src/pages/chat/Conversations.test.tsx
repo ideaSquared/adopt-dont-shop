@@ -4,7 +4,7 @@ import {
   Message,
 } from '@adoptdontshop/libs/conversations'
 import { fireEvent, render, screen } from '@testing-library/react'
-import MainContainer from './Conversations'
+import { Conversations } from './Conversations'
 
 // Mocking the ConversationService methods
 jest.mock('@adoptdontshop/libs/conversations', () => ({
@@ -16,7 +16,7 @@ jest.mock('@adoptdontshop/libs/conversations', () => ({
 }))
 
 // ! This is feature flagged off for now, unsure it's going to be in MVP skipping
-describe.skip('MainContainer Component', () => {
+describe.skip('Conversations Component', () => {
   const mockConversations: Conversation[] = [
     {
       conversation_id: '123',
@@ -79,14 +79,14 @@ describe.skip('MainContainer Component', () => {
   })
 
   it('should render sidebar with conversations', () => {
-    render(<MainContainer />)
+    render(<Conversations />)
 
     expect(screen.getByText('Alice')).toBeInTheDocument()
     expect(screen.getByText('Bob')).toBeInTheDocument()
   })
 
   it('should display messages when a conversation is selected', () => {
-    render(<MainContainer />)
+    render(<Conversations />)
 
     // Simulate clicking on a conversation
     fireEvent.click(screen.getByText('Alice'))
@@ -96,7 +96,7 @@ describe.skip('MainContainer Component', () => {
   })
 
   it('should add a new message when send button is clicked', () => {
-    render(<MainContainer />)
+    render(<Conversations />)
 
     // Simulate clicking on a conversation
     fireEvent.click(screen.getByText('Alice'))

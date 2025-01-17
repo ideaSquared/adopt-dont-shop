@@ -48,65 +48,41 @@ const StyledButton = styled.button<ButtonProps>`
       case 'success':
         return `
           background-color: ${props.theme.background.success};
-          color: ${props.theme.text.light};
-          border-color: ${props.theme.background.success};
+          color: ${props.theme.text.success};
+          border-color: ${props.theme.border.color.success};
           
           &:hover {
-            background-color: ${props.theme.text.success};
-            border-color: ${props.theme.text.success};
-          }
-          
-          &:active {
-            background-color: ${props.theme.text.success};
-            opacity: 0.9;
+            background-color: ${props.theme.background.mouseHighlight};
           }
         `
       case 'danger':
         return `
           background-color: ${props.theme.background.danger};
-          color: ${props.theme.text.light};
-          border-color: ${props.theme.background.danger};
+          color: ${props.theme.text.danger};
+          border-color: ${props.theme.border.color.danger};
           
           &:hover {
-            background-color: ${props.theme.text.danger};
-            border-color: ${props.theme.text.danger};
-          }
-          
-          &:active {
-            background-color: ${props.theme.text.danger};
-            opacity: 0.9;
+            background-color: ${props.theme.background.mouseHighlight};
           }
         `
       case 'warning':
         return `
           background-color: ${props.theme.background.warning};
-          color: ${props.theme.text.dark};
-          border-color: ${props.theme.background.warning};
+          color: ${props.theme.text.warning};
+          border-color: ${props.theme.border.color.warning};
           
           &:hover {
-            background-color: ${props.theme.text.warning};
-            border-color: ${props.theme.text.warning};
-          }
-          
-          &:active {
-            background-color: ${props.theme.text.warning};
-            opacity: 0.9;
+            background-color: ${props.theme.background.mouseHighlight};
           }
         `
       case 'info':
         return `
           background-color: ${props.theme.background.info};
-          color: ${props.theme.text.light};
-          border-color: ${props.theme.background.info};
+          color: ${props.theme.text.info};
+          border-color: ${props.theme.border.color.info};
           
           &:hover {
-            background-color: ${props.theme.text.info};
-            border-color: ${props.theme.text.info};
-          }
-          
-          &:active {
-            background-color: ${props.theme.text.info};
-            opacity: 0.9;
+            background-color: ${props.theme.background.mouseHighlight};
           }
         `
       default:
@@ -116,32 +92,15 @@ const StyledButton = styled.button<ButtonProps>`
           border-color: ${props.theme.border.color.default};
           
           &:hover {
-            background-color: ${props.theme.background.contrast};
-            border-color: ${props.theme.border.color.default};
-          }
-          
-          &:active {
             background-color: ${props.theme.background.mouseHighlight};
           }
         `
     }
   }}
 
-  &:focus-visible {
-    outline: ${({ theme }) => theme.border.width.normal} solid
-      ${({ theme }) => theme.border.color.focus};
-    outline-offset: 2px;
-    box-shadow: ${({ theme }) => theme.shadows.md};
-  }
-
   &:disabled {
-    background-color: ${({ theme }) => theme.background.disabled};
-    color: ${({ theme }) => theme.text.dim};
-    border-color: ${({ theme }) => theme.border.color.default};
     cursor: not-allowed;
-    box-shadow: none;
-    opacity: 0.7;
-    pointer-events: none;
+    opacity: 0.6;
   }
 `
 

@@ -1,8 +1,8 @@
+import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
-import CheckboxInput from '../CheckboxInput'
 import { ThemeProvider } from 'styled-components'
-import { theme } from '@adoptdontshop/styles'
+import CheckboxInput from '../CheckboxInput'
+import { lightTheme as theme } from '@adoptdontshop/styles'
 
 describe('CheckboxInput', () => {
   const renderWithTheme = (ui: React.ReactElement) => {

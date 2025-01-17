@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { lightTheme as theme } from '@adoptdontshop/styles'
+import { fireEvent, render, screen } from '@testing-library/react'
+import React from 'react'
 import { ThemeProvider } from 'styled-components'
 import TextInput from './TextInput'
-import { theme } from '@adoptdontshop/styles'
 
 describe('<TextInput/>', () => {
   const mockOnChange = jest.fn()

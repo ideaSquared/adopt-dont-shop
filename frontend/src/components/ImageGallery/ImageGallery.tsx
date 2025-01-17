@@ -170,7 +170,10 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       )
     }
 
-    if (onDelete) onDelete(fileName)
+    if (onDelete) {
+      const fullUrl = galleryImages.find((image) => image.endsWith(fileName))
+      onDelete(fullUrl || fileName)
+    }
   }
 
   const handleUpload = (file: File) => {

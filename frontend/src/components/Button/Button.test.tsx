@@ -1,8 +1,8 @@
+import { lightTheme as theme } from '@adoptdontshop/styles'
+import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
-import Button from '../Button'
 import { ThemeProvider } from 'styled-components'
-import { theme } from '@adoptdontshop/styles'
+import Button from '../Button'
 
 describe('Button', () => {
   const renderWithTheme = (ui: React.ReactElement) => {

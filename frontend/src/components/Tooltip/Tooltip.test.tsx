@@ -1,4 +1,4 @@
-import { theme } from '@adoptdontshop/styles'
+import { lightTheme as theme } from '@adoptdontshop/styles'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ThemeProvider } from 'styled-components'

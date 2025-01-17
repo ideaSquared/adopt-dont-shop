@@ -9,15 +9,15 @@ interface BaseSidebarProps {
   children: React.ReactNode
 }
 
-const SidebarContainer = styled.div<{ show: boolean; size: string }>`
+const SidebarContainer = styled.div<{ $show: boolean; $size: string }>`
   position: fixed;
   top: 0;
   right: 0;
   height: 100%;
-  width: ${(props) => props.size};
+  width: ${(props) => props.$size};
   background-color: white;
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
-  transform: ${(props) => (props.show ? 'translateX(0)' : 'translateX(100%)')};
+  transform: ${(props) => (props.$show ? 'translateX(0)' : 'translateX(100%)')};
   transition: transform 0.3s ease-in-out;
   z-index: 1000;
   display: flex;
@@ -29,7 +29,7 @@ const SidebarHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid ${(props) => props.theme.border.content};
+  border-bottom: 1px solid ${(props) => props.theme.border.color.default};
 `
 
 const SidebarTitle = styled.h2`
@@ -64,7 +64,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
   children,
 }) => {
   return (
-    <SidebarContainer show={show} size={size}>
+    <SidebarContainer $show={show} $size={size}>
       <SidebarHeader>
         <SidebarTitle>{title}</SidebarTitle>
         <CloseButton onClick={handleClose}>&times;</CloseButton>

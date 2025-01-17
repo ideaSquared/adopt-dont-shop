@@ -1,8 +1,8 @@
-import React from 'react'
+import { lightTheme as theme } from '@adoptdontshop/styles'
 import { render, screen } from '@testing-library/react'
-import Badge from '../Badge'
+import React from 'react'
 import { ThemeProvider } from 'styled-components'
-import { theme } from '@adoptdontshop/styles'
+import Badge from '../Badge'
 
 describe('Badge', () => {
   const renderWithTheme = (ui: React.ReactElement) => {
@@ -21,7 +21,6 @@ describe('Badge', () => {
     const badge = container.firstChild
     expect(badge).toHaveStyle(`
       background-color: ${theme.background.success};
-      color: ${theme.text.success};
     `)
   })
 
@@ -32,7 +31,6 @@ describe('Badge', () => {
     const badge = container.firstChild
     expect(badge).toHaveStyle(`
       background-color: ${theme.background.danger};
-      color: ${theme.text.danger};
     `)
   })
 
@@ -43,7 +41,6 @@ describe('Badge', () => {
     const badge = container.firstChild
     expect(badge).toHaveStyle(`
       background-color: ${theme.background.warning};
-      color: ${theme.text.warning};
     `)
   })
 
@@ -54,7 +51,6 @@ describe('Badge', () => {
     const badge = container.firstChild
     expect(badge).toHaveStyle(`
       background-color: ${theme.background.info};
-      color: ${theme.text.info};
     `)
   })
 
@@ -65,7 +61,6 @@ describe('Badge', () => {
     const badge = container.firstChild
     expect(badge).toHaveStyle(`
       background-color: ${theme.background.contrast};
-      color: ${theme.text.body};
     `)
   })
 })

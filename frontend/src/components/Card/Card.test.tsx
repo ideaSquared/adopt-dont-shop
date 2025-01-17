@@ -1,8 +1,8 @@
-import React from 'react'
+import { lightTheme as theme } from '@adoptdontshop/styles'
 import { render, screen } from '@testing-library/react'
-import Card from '../Card'
+import React from 'react'
 import { ThemeProvider } from 'styled-components'
-import { theme } from '@adoptdontshop/styles'
+import Card from '../Card'
 
 describe('Card', () => {
   const renderWithTheme = (ui: React.ReactElement) => {
@@ -27,7 +27,7 @@ describe('Card', () => {
     )
     const card = container.firstChild
     expect(card).toHaveStyle(`
-      border: 1px solid ${theme.border.content};
+      border: 1px solid ${theme.border.color.default};
       border-radius: 0.25rem;
       margin-bottom: 1rem;
     `)
@@ -43,7 +43,7 @@ describe('Card', () => {
     expect(header).toHaveStyle(`
       background-color: ${theme.background.contrast};
       padding: 0.75rem 1.25rem;
-      border-bottom: 1px solid ${theme.border.content};
+      border-bottom: 1px solid ${theme.border.color.default};
     `)
   })
 

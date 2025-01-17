@@ -1,8 +1,8 @@
+import { lightTheme as theme } from '@adoptdontshop/styles'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ThemeProvider } from 'styled-components'
 import Dropdown from './DropdownMenu'
-import { theme } from '@adoptdontshop/styles'
 
 describe('Dropdown', () => {
   const renderWithTheme = (ui: React.ReactElement) => {

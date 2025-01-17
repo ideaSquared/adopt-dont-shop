@@ -1,4 +1,4 @@
-import { theme } from '@adoptdontshop/styles'
+import { lightTheme as theme } from '@adoptdontshop/styles'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ThemeProvider } from 'styled-components'
@@ -78,9 +78,9 @@ describe('ImageGallery Component', () => {
     // Click the first delete button
     fireEvent.click(deleteButtons[0])
 
-    // Verify the callback is called with correct index
+    // Verify the callback is called with correct filename
     expect(mockOnDelete).toHaveBeenCalledTimes(1)
-    expect(mockOnDelete).toHaveBeenCalledWith(0)
+    expect(mockOnDelete).toHaveBeenCalledWith(initialImages[0])
   })
 
   it('calls onDelete when an image is deleted in carousel view', () => {
@@ -99,7 +99,7 @@ describe('ImageGallery Component', () => {
     fireEvent.click(deleteButton)
 
     expect(mockOnDelete).toHaveBeenCalledTimes(1)
-    expect(mockOnDelete).toHaveBeenCalledWith(0)
+    expect(mockOnDelete).toHaveBeenCalledWith(initialImages[0])
   })
 
   it('does not show delete button if onDelete is not provided', () => {

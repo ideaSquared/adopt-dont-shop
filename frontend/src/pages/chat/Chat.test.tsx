@@ -1,6 +1,6 @@
 import { Message } from '@adoptdontshop/libs/conversations'
 import { fireEvent, render, screen } from '@testing-library/react'
-import Chat from './Chat'
+import { Chat } from './Chat'
 
 describe('Chat Component', () => {
   const mockMessages: Message[] = [

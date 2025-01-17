@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useRef, useEffect } from 'react'
-import styled from 'styled-components'
+import React, { useEffect, useRef, useState } from 'react'
 import Flag from 'react-world-flags'
+import styled from 'styled-components'
 import countries from './CountryList.json'
 
 interface CountrySelectProps {
@@ -26,7 +26,7 @@ const StyledButton = styled.button`
 
   &:disabled {
     background-color: ${(props) => props.theme.background.disabled};
-    color: ${(props) => props.theme.text.disabled};
+    color: ${(props) => props.theme.text.dim};
   }
 `
 
@@ -52,15 +52,15 @@ const DropdownMenu = styled.ul`
     cursor: pointer;
 
     &:hover {
-      background-color: ${(props) => props.theme.background.hover};
+      background-color: ${(props) => props.theme.background.mouseHighlight};
     }
 
     &.selected {
-      background-color: ${(props) => props.theme.background.selected};
+      background-color: ${(props) => props.theme.background.highlight};
     }
 
     &.highlighted {
-      background-color: ${(props) => props.theme.background.highlighted};
+      background-color: ${(props) => props.theme.background.contrast};
     }
   }
 `
