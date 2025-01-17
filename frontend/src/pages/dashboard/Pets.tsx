@@ -28,11 +28,11 @@ const PetsGrid = styled.div`
 `
 
 const PetCard = styled.div`
-  border: 1px solid #ccc;
+  border: 1px solid ${(props) => props.theme.border.color.default};
+  background-color: ${(props) => props.theme.background.content};
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  background: #fff;
 `
 
 const CardHeader = styled.div`
@@ -56,7 +56,7 @@ const PetImage = styled.img`
 
 const PetDescription = styled.p`
   font-size: 0.9rem;
-  color: #666;
+  color: ${(props) => props.theme.text.body};
 `
 
 const ActionButtons = styled.div`
