@@ -1,8 +1,9 @@
-import { Request, Response } from 'express'
+import { Response } from 'express'
 import { AuditLogger } from '../services/auditLogService'
+import { AuthenticatedRequest } from '../types'
 
 export const getAllAuditLogsController = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
   try {
@@ -23,8 +24,24 @@ export const getAllAuditLogsController = async (
       search: req.query.search as string | undefined,
     }
 
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Attempting to fetch audit logs with filters: ${JSON.stringify(filters)}`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
+
     const { logs, total } = await AuditLogger.getAllLogs(page, limit, filters)
     const totalPages = Math.ceil(total / limit)
+
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Successfully fetched ${logs.length} audit logs (page ${page}/${totalPages})`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
 
     res.status(200).json({
       logs,
@@ -34,19 +51,35 @@ export const getAllAuditLogsController = async (
       filters,
     })
   } catch (error) {
-    console.error('Error retrieving audit logs:', error)
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Failed to fetch audit logs: ${errorMessage}`,
+      'ERROR',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
     res.status(500).json({ message: 'Error retrieving audit logs' })
   }
 }
 
 export const getLogsByUserIdController = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
+  const userId = req.params.userId
+  const page = parseInt(req.query.page as string) || 1
+  const limit = parseInt(req.query.limit as string) || 10
+
   try {
-    const userId = req.params.userId
-    const page = parseInt(req.query.page as string) || 1
-    const limit = parseInt(req.query.limit as string) || 10
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Attempting to fetch audit logs for user: ${userId}`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
 
     const { logs, total } = await AuditLogger.getLogsByUserId(
       userId,
@@ -55,6 +88,14 @@ export const getLogsByUserIdController = async (
     )
     const totalPages = Math.ceil(total / limit)
 
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Successfully fetched ${logs.length} audit logs for user ${userId} (page ${page}/${totalPages})`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
+
     res.status(200).json({
       logs,
       totalPages,
@@ -62,13 +103,21 @@ export const getLogsByUserIdController = async (
       totalRecords: total,
     })
   } catch (error) {
-    console.error('Error retrieving user audit logs:', error)
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Failed to fetch audit logs for user ${userId}: ${errorMessage}`,
+      'ERROR',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
     res.status(500).json({ message: 'Error retrieving user audit logs' })
   }
 }
 
 export const getLogsByDateRangeController = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
   try {
@@ -76,6 +125,14 @@ export const getLogsByDateRangeController = async (
     const endDate = new Date(req.query.endDate as string)
     const page = parseInt(req.query.page as string) || 1
     const limit = parseInt(req.query.limit as string) || 10
+
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Attempting to fetch audit logs between ${startDate} and ${endDate}`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
 
     const { logs, total } = await AuditLogger.getLogsByDateRange(
       startDate,
@@ -85,6 +142,14 @@ export const getLogsByDateRangeController = async (
     )
     const totalPages = Math.ceil(total / limit)
 
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Successfully fetched ${logs.length} audit logs for date range (page ${page}/${totalPages})`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
+
     res.status(200).json({
       logs,
       totalPages,
@@ -93,7 +158,15 @@ export const getLogsByDateRangeController = async (
       dateRange: { startDate, endDate },
     })
   } catch (error) {
-    console.error('Error retrieving audit logs by date range:', error)
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Failed to fetch audit logs by date range: ${errorMessage}`,
+      'ERROR',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
     res
       .status(500)
       .json({ message: 'Error retrieving audit logs by date range' })
@@ -101,13 +174,21 @@ export const getLogsByDateRangeController = async (
 }
 
 export const getLogsByCategoryController = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
+  const category = req.params.category
+  const page = parseInt(req.query.page as string) || 1
+  const limit = parseInt(req.query.limit as string) || 10
+
   try {
-    const category = req.params.category
-    const page = parseInt(req.query.page as string) || 1
-    const limit = parseInt(req.query.limit as string) || 10
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Attempting to fetch audit logs for category: ${category}`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
 
     const { logs, total } = await AuditLogger.getLogsByCategory(
       category,
@@ -115,6 +196,14 @@ export const getLogsByCategoryController = async (
       limit,
     )
     const totalPages = Math.ceil(total / limit)
+
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Successfully fetched ${logs.length} audit logs for category ${category} (page ${page}/${totalPages})`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
 
     res.status(200).json({
       logs,
@@ -124,7 +213,15 @@ export const getLogsByCategoryController = async (
       category,
     })
   } catch (error) {
-    console.error('Error retrieving audit logs by category:', error)
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'AuditLogController',
+      `Failed to fetch audit logs for category ${category}: ${errorMessage}`,
+      'ERROR',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'AUDIT_LOG_MANAGEMENT'),
+    )
     res.status(500).json({ message: 'Error retrieving audit logs by category' })
   }
 }
