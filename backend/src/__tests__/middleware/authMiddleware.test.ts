@@ -13,6 +13,7 @@ import { verifyRescueOwnership } from '../../services/rescueService'
 jest.mock('jsonwebtoken')
 jest.mock('../../services/auditLogService', () => ({
   AuditLogger: {
+    getAuditOptions: jest.fn().mockReturnValue({}),
     logAction: jest.fn(),
   },
 }))

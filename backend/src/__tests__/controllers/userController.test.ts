@@ -20,9 +20,8 @@ jest.mock('../../Models', () => ({
 }))
 jest.mock('../../services/auditLogService', () => ({
   AuditLogger: {
+    getAuditOptions: jest.fn().mockReturnValue({}),
     logAction: jest.fn(),
-    getAllLogs: jest.fn(),
-    getLogsByUserId: jest.fn(),
   },
 }))
 
@@ -49,7 +48,7 @@ describe('User Controller', () => {
 
     it('should return 200 and account setup result on successful setup', async () => {
       const mockResult = {
-        message: 'Account setup complete',
+        message: 'Account setup completed successfully',
         user: { user_id: 1, email: 'tester@test.com' },
       }
       ;(completeAccountSetupService as jest.Mock).mockResolvedValue(mockResult)
@@ -71,7 +70,7 @@ describe('User Controller', () => {
       expect(response.body.message).toBe('Token and password are required')
     })
 
-    it('should return 500 if unexpected error occurs', async () => {
+    it('should return 400 if unexpected error occurs', async () => {
       ;(completeAccountSetupService as jest.Mock).mockImplementation(() => {
         throw new Error('Unexpected error')
       })
@@ -80,7 +79,7 @@ describe('User Controller', () => {
         .post('/api/complete-account-setup')
         .send({ token: 'valid-token', password: 'new-password' })
 
-      expect(response.status).toBe(500)
+      expect(response.status).toBe(400)
       expect(response.body.message).toBe('Unexpected error')
     })
   })

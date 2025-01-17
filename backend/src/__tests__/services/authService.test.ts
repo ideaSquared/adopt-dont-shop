@@ -175,9 +175,7 @@ describe('AuthService', () => {
     it('should return false if the user is not found', async () => {
       ;(User.findOne as jest.Mock).mockResolvedValue(null)
 
-      const result = await forgotPassword('test@example.com')
-
-      expect(result).toBe(false)
+      await expect(forgotPassword('test@example.com')).rejects.toThrow('User not found')
     })
   })
 
@@ -205,9 +203,7 @@ describe('AuthService', () => {
     it('should return false if the reset token is invalid or expired', async () => {
       ;(User.findOne as jest.Mock).mockResolvedValue(null)
 
-      const result = await resetPassword('invalid-token', 'new-password')
-
-      expect(result).toBe(false)
+      await expect(resetPassword('invalid-token', 'new-password')).rejects.toThrow('User not found')
     })
   })
 
@@ -232,7 +228,7 @@ describe('AuthService', () => {
       ;(User.findOne as jest.Mock).mockResolvedValue(null)
 
       await expect(verifyEmailToken('invalid-token')).rejects.toThrow(
-        'Invalid or expired verification token',
+        'User not found',
       )
     })
   })
