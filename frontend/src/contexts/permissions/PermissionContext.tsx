@@ -17,7 +17,7 @@ interface PermissionProviderProps {
 }
 
 const PermissionProvider: React.FC<PermissionProviderProps> = ({
-  roles,
+  roles = [],
   children,
 }) => {
   const hasPermission = (permission: Permission) => {
