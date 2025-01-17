@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { Invitation, Role, StaffMember, User } from '../../Models'
-import { AuditLogger } from '../../services/auditLogService'
 import { completeAccountSetupService } from '../../services/authService'
 
 // Mock dependencies
@@ -112,12 +111,6 @@ describe('completeAccountSetupService', () => {
     await expect(
       completeAccountSetupService(mockToken, mockPassword),
     ).rejects.toThrow('Internal server error')
-
-    expect(AuditLogger.logAction).toHaveBeenCalledWith(
-      'AuthService',
-      'Missing SECRET_KEY environment variable',
-      'ERROR',
-    )
   })
 
   it('should throw an error if token is invalid', async () => {

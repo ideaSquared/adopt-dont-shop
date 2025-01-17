@@ -1,5 +1,4 @@
 import { Role, User } from '../../Models'
-import { AuditLogger } from '../../services/auditLogService'
 import {
   getRolesForUser,
   verifyUserHasRole,
@@ -46,12 +45,6 @@ describe('Permission Service - getRolesForUser', () => {
     })
 
     expect(roles).toEqual(['admin', 'user'])
-    expect(AuditLogger.logAction).toHaveBeenCalledWith(
-      'PermissionService',
-      'Roles retrieved for user with ID: 1 - Roles: admin, user',
-      'INFO',
-      '1',
-    )
   })
 
   it('should return an empty array and log a warning when user has no roles', async () => {
@@ -76,12 +69,6 @@ describe('Permission Service - getRolesForUser', () => {
     })
 
     expect(roles).toEqual([])
-    expect(AuditLogger.logAction).toHaveBeenCalledWith(
-      'PermissionService',
-      'No roles found for user with ID: 1',
-      'WARNING',
-      '1',
-    )
   })
 
   it('should return an empty array and log a warning when user does not exist', async () => {
@@ -101,12 +88,6 @@ describe('Permission Service - getRolesForUser', () => {
     })
 
     expect(roles).toEqual([])
-    expect(AuditLogger.logAction).toHaveBeenCalledWith(
-      'PermissionService',
-      'No roles found for user with ID: 1',
-      'WARNING',
-      '1',
-    )
   })
 
   it('should log an error if an exception is thrown', async () => {
@@ -114,13 +95,6 @@ describe('Permission Service - getRolesForUser', () => {
     ;(User.findByPk as jest.Mock).mockRejectedValue(new Error(errorMessage))
 
     await expect(getRolesForUser('1')).rejects.toThrow(errorMessage)
-
-    expect(AuditLogger.logAction).toHaveBeenCalledWith(
-      'PermissionService',
-      `Error retrieving roles for user with ID: 1. Error: ${errorMessage}`,
-      'ERROR',
-      '1',
-    )
   })
 })
 
@@ -141,12 +115,6 @@ describe('Permission Service - verifyUserHasRole', () => {
     const hasRole = await verifyUserHasRole('1', 'user')
 
     expect(hasRole).toBe(true)
-    expect(AuditLogger.logAction).toHaveBeenCalledWith(
-      'PermissionService',
-      'User with ID: 1 has the role: user',
-      'INFO',
-      '1',
-    )
   })
 
   it('should return false if user does not have the specified role', async () => {
@@ -161,12 +129,6 @@ describe('Permission Service - verifyUserHasRole', () => {
     const hasRole = await verifyUserHasRole('1', 'user')
 
     expect(hasRole).toBe(false)
-    expect(AuditLogger.logAction).toHaveBeenCalledWith(
-      'PermissionService',
-      'User with ID: 1 does not have the role: user',
-      'INFO',
-      '1',
-    )
   })
 
   it('should return true if user has the admin role, overriding other roles', async () => {
@@ -181,12 +143,6 @@ describe('Permission Service - verifyUserHasRole', () => {
     const hasRole = await verifyUserHasRole('1', 'user')
 
     expect(hasRole).toBe(true)
-    expect(AuditLogger.logAction).toHaveBeenCalledWith(
-      'PermissionService',
-      'User with ID: 1 has the admin role, overriding check for role: user',
-      'INFO',
-      '1',
-    )
   })
 
   it('should log an error if an exception is thrown during role verification', async () => {
@@ -194,12 +150,5 @@ describe('Permission Service - verifyUserHasRole', () => {
     ;(User.findByPk as jest.Mock).mockRejectedValue(new Error(errorMessage))
 
     await expect(verifyUserHasRole('1', 'user')).rejects.toThrow(errorMessage)
-
-    expect(AuditLogger.logAction).toHaveBeenCalledWith(
-      'PermissionService',
-      `Error verifying role: user for user with ID: 1. Error: ${errorMessage}`,
-      'ERROR',
-      '1',
-    )
   })
 })

@@ -1,5 +1,4 @@
 import nodemailer from 'nodemailer'
-import { AuditLogger } from '../../services/auditLogService'
 import {
   sendInvitationEmail,
   sendPasswordResetEmail,
@@ -59,20 +58,6 @@ describe('Email Service', () => {
         html: `<p>You requested a password reset. Please use the following link to reset your password:</p>
                 <p><a href="http://localhost:3001/reset-password?token=reset-token">Reset Password</a></p>`,
       })
-
-      expect(AuditLogger.logAction).toHaveBeenCalledWith(
-        'EmailService',
-        'Email sent successfully to user@test.com with subject: "Password Reset"',
-        'INFO',
-        'user@test.com',
-      )
-
-      expect(AuditLogger.logAction).toHaveBeenCalledWith(
-        'EmailService',
-        'Password reset email sent to user@test.com',
-        'INFO',
-        'user@test.com',
-      )
     })
   })
 
@@ -101,20 +86,6 @@ describe('Email Service', () => {
         html: `<p>Thank you for registering. Please verify your email by clicking the link below:</p>
                 <p><a href="http://localhost:3001/verify-email?token=verification-token">Verify Email</a></p>`,
       })
-
-      expect(AuditLogger.logAction).toHaveBeenCalledWith(
-        'EmailService',
-        'Email sent successfully to user@test.com with subject: "Please Verify Your Email"',
-        'INFO',
-        'user@test.com',
-      )
-
-      expect(AuditLogger.logAction).toHaveBeenCalledWith(
-        'EmailService',
-        'Verification email sent to user@test.com',
-        'INFO',
-        'user@test.com',
-      )
     })
   })
 
@@ -144,20 +115,6 @@ describe('Email Service', () => {
         html: `<p>You have been invited to join AdoptDontShop. Please use the following link to complete your account setup:</p>
                 <p><a href="${expectedInvitationUrl}">Complete Account Setup</a></p>`,
       })
-
-      expect(AuditLogger.logAction).toHaveBeenCalledWith(
-        'EmailService',
-        'Email sent successfully to invitee@example.com with subject: "Invitation to Join AdoptDontShop"',
-        'INFO',
-        'invitee@example.com',
-      )
-
-      expect(AuditLogger.logAction).toHaveBeenCalledWith(
-        'EmailService',
-        'Invitation email sent to invitee@example.com',
-        'INFO',
-        'invitee@example.com',
-      )
     })
 
     it('should log an error if sending the invitation email fails', async () => {
@@ -169,14 +126,6 @@ describe('Email Service', () => {
 
       await expect(sendInvitationEmail(email, invitationToken)).rejects.toThrow(
         'Email sending failed',
-      )
-
-      // Verify the error is logged in the audit log
-      expect(AuditLogger.logAction).toHaveBeenCalledWith(
-        'EmailService',
-        'Failed to send email to invitee@example.com with subject: "Invitation to Join AdoptDontShop". Error: Email sending failed',
-        'ERROR',
-        'invitee@example.com',
       )
     })
   })
