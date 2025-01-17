@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import express, { Application, Request, Response } from 'express'
 import path from 'path'
 import { connectToDatabase } from './DatabaseConnection'
+import { auditContextMiddleware } from './middleware/auditContextMiddleware'
 import adminRoutes from './routes/adminRoutes'
 import applicationRoutes from './routes/applicationRoutes'
 import auditLogRoutes from './routes/auditLogRoutes'
@@ -16,7 +17,6 @@ import petRoutes from './routes/petRoutes'
 import ratingRoutes from './routes/ratingRoutes'
 import rescueRoutes from './routes/rescueRoutes'
 import { AuditLogger } from './services/auditLogService'
-
 dotenv.config()
 
 const app: Application = express()
@@ -27,6 +27,8 @@ AuditLogger.logAction(
   'Express JSON middleware setup complete',
   'INFO',
 )
+
+app.use(auditContextMiddleware)
 
 const port = process.env.PORT || 5000
 

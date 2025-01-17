@@ -1,3 +1,4 @@
+import { Request } from 'express'
 import { Op } from 'sequelize'
 import { AuditLog } from '../Models'
 
@@ -11,6 +12,19 @@ interface LogActionOptions {
 }
 
 export const AuditLogger = {
+  getAuditOptions(
+    req: Request,
+    category: string = 'GENERAL',
+    metadata?: Record<string, any>,
+  ): LogActionOptions {
+    return {
+      category,
+      ip_address: req.auditContext.ip_address || undefined,
+      user_agent: req.auditContext.user_agent || undefined,
+      metadata,
+    }
+  },
+
   async logAction(
     service: string,
     action: string,

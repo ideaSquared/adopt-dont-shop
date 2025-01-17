@@ -66,6 +66,8 @@ export const authRoleOwnershipMiddleware = ({
         'AuthService',
         'Authentication failed due to missing or invalid token',
         'WARNING',
+        null,
+        AuditLogger.getAuditOptions(req, 'AUTHENTICATION'),
       )
       return res
         .status(401)
@@ -83,6 +85,8 @@ export const authRoleOwnershipMiddleware = ({
           'AuthService',
           'Authentication failed due to missing user ID in token',
           'WARNING',
+          null,
+          AuditLogger.getAuditOptions(req, 'AUTHENTICATION'),
         )
         return res.status(401).json({ message: 'Invalid token' })
       }
@@ -94,6 +98,8 @@ export const authRoleOwnershipMiddleware = ({
           'AuthService',
           `Authentication failed: User with ID ${decoded.userId} not found`,
           'WARNING',
+          null,
+          AuditLogger.getAuditOptions(req, 'AUTHENTICATION'),
         )
         return res.status(401).json({ message: 'User not found' })
       }
@@ -104,11 +110,12 @@ export const authRoleOwnershipMiddleware = ({
 
       // Check role if required
       if (requiredRole && !(await verifyUserHasRole(userId, requiredRole))) {
-        await AuditLogger.logAction(
+        AuditLogger.logAction(
           'RoleCheckMiddleware',
           `User with ID: ${userId} attempted to access a resource requiring role: ${requiredRole} but does not have this role`,
           'WARNING',
           userId,
+          AuditLogger.getAuditOptions(req, 'AUTHORIZATION'),
         )
         return res.status(403).json({ message: 'Forbidden: Insufficient role' })
       }
@@ -120,11 +127,12 @@ export const authRoleOwnershipMiddleware = ({
           const roles = await getRolesForUser(userId)
           // Only allow admin to bypass ownership check
           if (!roles.includes('admin')) {
-            await AuditLogger.logAction(
+            AuditLogger.logAction(
               'AuthService',
               `User ${userId} attempted to access rescue they don't own`,
               'WARNING',
               userId,
+              AuditLogger.getAuditOptions(req, 'OWNERSHIP'),
             )
             return res
               .status(403)
@@ -140,11 +148,12 @@ export const authRoleOwnershipMiddleware = ({
           const roles = await getRolesForUser(userId)
           // Only allow admin to bypass ownership check
           if (!roles.includes('admin')) {
-            await AuditLogger.logAction(
+            AuditLogger.logAction(
               'AuthService',
               `User ${userId} attempted to access pet they don't own`,
               'WARNING',
               userId,
+              AuditLogger.getAuditOptions(req, 'OWNERSHIP'),
             )
             return res
               .status(403)
@@ -155,20 +164,22 @@ export const authRoleOwnershipMiddleware = ({
 
       // Check custom ownership if provided
       if (ownershipCheck && !(await ownershipCheck(req))) {
-        await AuditLogger.logAction(
+        AuditLogger.logAction(
           'AuthService',
           `User ${userId} failed ownership check`,
           'WARNING',
           userId,
+          AuditLogger.getAuditOptions(req, 'OWNERSHIP'),
         )
         return res.status(403).json({ message: 'Insufficient permissions' })
       }
 
-      await AuditLogger.logAction(
+      AuditLogger.logAction(
         'RoleOwnershipMiddleware',
         `User with ID: ${userId} passed all authorization checks`,
         'INFO',
         userId,
+        AuditLogger.getAuditOptions(req, 'AUTHORIZATION'),
       )
       next()
     } catch (error) {
@@ -177,6 +188,8 @@ export const authRoleOwnershipMiddleware = ({
           'AuthService',
           `JWT authentication failed with error: ${error.message}`,
           'ERROR',
+          null,
+          AuditLogger.getAuditOptions(req, 'AUTHENTICATION'),
         )
         return res.status(401).json({ message: 'JWT token expired or invalid' })
       } else if (error instanceof Error) {
@@ -184,6 +197,8 @@ export const authRoleOwnershipMiddleware = ({
           'AuthService',
           `Authentication failed with error: ${error.message}`,
           'ERROR',
+          null,
+          AuditLogger.getAuditOptions(req, 'AUTHENTICATION'),
         )
         return res.status(403).json({ message: 'Forbidden' })
       } else {
@@ -191,6 +206,8 @@ export const authRoleOwnershipMiddleware = ({
           'AuthService',
           'Authentication failed due to an unknown error',
           'ERROR',
+          null,
+          AuditLogger.getAuditOptions(req, 'AUTHENTICATION'),
         )
         return res.status(403).json({ message: 'Forbidden' })
       }
