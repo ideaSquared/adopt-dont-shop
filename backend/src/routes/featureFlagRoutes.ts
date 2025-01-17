@@ -1,12 +1,18 @@
 import { Router } from 'express'
-import FeatureFlagController from '../controllers/featureFlagController'
+import {
+  createFeatureFlag,
+  deleteFeatureFlag,
+  getAllFeatureFlags,
+  //   getFlagByName,
+  updateFeatureFlag,
+} from '../controllers/featureFlagController'
 
 const router = Router()
 
-router.get('/', FeatureFlagController.getAllFlags)
-router.get('/:id', FeatureFlagController.getFlagByName)
-router.post('/', FeatureFlagController.createFlag)
-router.put('/', FeatureFlagController.updateFlag)
-router.delete('/:id', FeatureFlagController.deleteFlag)
+router.get('/', getAllFeatureFlags)
+// router.get('/:id', getFlagByName)
+router.post('/', createFeatureFlag)
+router.put('/', updateFeatureFlag)
+router.delete('/:id', deleteFeatureFlag)
 
 export default router
