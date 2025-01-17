@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
+import { runInContext } from '../utils/RequestContext'
 
 export interface AuditContext {
   ip_address: string | null
@@ -15,7 +16,7 @@ declare global {
   }
 }
 
-export const auditContextMiddleware = (
+export const auditContextMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -26,11 +27,20 @@ export const auditContextMiddleware = (
     return ip.startsWith('::ffff:') ? ip.split(':').pop() || ip : ip
   }
 
-  req.auditContext = {
+  const auditContext: AuditContext = {
     ip_address: normalizeIp(req.ip),
     user_agent: req.get('User-Agent') || null,
     user_id: (req as any).user?.user_id || null,
   }
 
-  next()
+  // Attach to request object for backward compatibility
+  req.auditContext = auditContext
+
+  // Run the rest of the request in the context
+  await runInContext({ auditContext }, async () => {
+    await new Promise<void>((resolve) => {
+      next()
+      resolve()
+    })
+  })
 }

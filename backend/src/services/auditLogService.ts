@@ -1,6 +1,7 @@
 import { Request } from 'express'
 import { Op } from 'sequelize'
 import { AuditLog } from '../Models'
+import { getAuditContext } from '../utils/RequestContext'
 
 type LogLevel = 'INFO' | 'WARNING' | 'ERROR'
 
@@ -33,24 +34,29 @@ export const AuditLogger = {
     options: LogActionOptions = {},
   ): Promise<void> {
     try {
+      // Get audit context from request context if available
+      const auditContext = getAuditContext()
+
       // Normalize the IP address if provided
-      const normalizeIp = (ip: string | undefined): string | null => {
+      const normalizeIp = (ip: string | undefined | null): string | null => {
         if (!ip) return null
         return ip.startsWith('::ffff:') ? ip.split(':').pop() || ip : ip
       }
 
-      const normalizedIp = normalizeIp(options.ip_address)
+      const normalizedIp = normalizeIp(
+        options.ip_address || auditContext?.ip_address,
+      )
 
       await AuditLog.create({
         service,
-        user,
+        user: user || auditContext?.user_id || null,
         action,
         level,
         timestamp: new Date(),
         metadata: options.metadata || null,
         category: options.category || 'GENERAL',
         ip_address: normalizedIp || null,
-        user_agent: options.user_agent || null,
+        user_agent: options.user_agent || auditContext?.user_agent || null,
       })
       console.log(`[${level}] ${service}: ${action} - User: ${user || 'N/A'}`)
     } catch (error) {
