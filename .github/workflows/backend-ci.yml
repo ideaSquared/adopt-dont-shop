@@ -35,7 +35,6 @@ jobs:
         run: npm test
         working-directory: ./backend
         env:
-          MONGO_URL: mongodb://localhost:27017/yourdbname
           CHARITY_COMMISSION_API_KEY: ${{ secrets.CHARITY_COMMISSION_API_KEY }}
           COMPANIES_HOUSE_API_KEY: ${{ secrets.COMPANIES_HOUSE_API_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}

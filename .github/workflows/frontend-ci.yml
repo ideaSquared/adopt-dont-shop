@@ -29,9 +29,9 @@ jobs:
         with:
           node-version: '20'
       - name: Install Dependencies
-        run: npm install --prefix frontend/new
+        run: npm install --prefix frontend
       - name: Run Tests
-        run: npm run test --prefix frontend/new
+        run: npm run test --prefix frontend
       # Uncomment the following lines if you want to upload coverage reports to Codecov
       # - name: Upload coverage reports to Codecov
       #   uses: codecov/codecov-action@v4.0.1
