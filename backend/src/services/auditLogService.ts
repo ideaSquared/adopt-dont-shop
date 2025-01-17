@@ -19,6 +19,14 @@ export const AuditLogger = {
     options: LogActionOptions = {},
   ): Promise<void> {
     try {
+      // Normalize the IP address if provided
+      const normalizeIp = (ip: string | undefined): string | null => {
+        if (!ip) return null
+        return ip.startsWith('::ffff:') ? ip.split(':').pop() || ip : ip
+      }
+
+      const normalizedIp = normalizeIp(options.ip_address)
+
       await AuditLog.create({
         service,
         user,
@@ -27,7 +35,7 @@ export const AuditLogger = {
         timestamp: new Date(),
         metadata: options.metadata || null,
         category: options.category || 'GENERAL',
-        ip_address: options.ip_address || null,
+        ip_address: normalizedIp || null,
         user_agent: options.user_agent || null,
       })
       console.log(`[${level}] ${service}: ${action} - User: ${user || 'N/A'}`)
