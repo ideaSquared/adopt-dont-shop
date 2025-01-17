@@ -8,6 +8,10 @@ export class AuditLog extends Model {
   public action!: string
   public level!: 'INFO' | 'WARNING' | 'ERROR'
   public timestamp!: Date
+  public metadata!: Record<string, any> | null
+  public category!: string
+  public ip_address!: string | null
+  public user_agent!: string | null
 }
 
 AuditLog.init(
@@ -38,10 +42,44 @@ AuditLog.init(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    metadata: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    category: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'GENERAL',
+    },
+    ip_address: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    user_agent: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     sequelize,
     tableName: 'audit_logs',
     timestamps: false,
+    indexes: [
+      {
+        fields: ['timestamp'],
+      },
+      {
+        fields: ['service'],
+      },
+      {
+        fields: ['level'],
+      },
+      {
+        fields: ['category'],
+      },
+      {
+        fields: ['user'],
+      },
+    ],
   },
 )

@@ -1,2 +1,3 @@
 export * from './AuditLogs'
-export { default as AuditLogsService } from './AuditLogsService'
+export { AuditLogsService } from './AuditLogsService'
+export type { AuditLogFilters } from './AuditLogsService'

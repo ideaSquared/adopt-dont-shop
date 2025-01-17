@@ -12,7 +12,7 @@ import {
   Conversations as AdminConversations,
   Applications,
   FeatureFlags,
-  Logs,
+  AuditLogs,
   Pets,
   Ratings,
   Rescue,
@@ -89,7 +89,7 @@ const AppContent: React.FC = () => {
             <Route path="/rescue" element={<Rescue />} />
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[Role.ADMIN]} />}>
-            <Route path="/logs" element={<Logs />} />
+            <Route path="/logs" element={<AuditLogs />} />
             <Route path="/users" element={<Users />} />
             {chatBetaEnabled ? (
               <Route path="/conversations" element={<AdminConversations />} />
