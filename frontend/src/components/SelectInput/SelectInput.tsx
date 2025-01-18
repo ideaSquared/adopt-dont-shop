@@ -33,6 +33,12 @@ const StyledSelect = styled.select`
     background-color: ${(props) => props.theme.background.content};
     color: ${(props) => props.theme.text.body};
   }
+
+  &:disabled {
+    background-color: ${(props) => props.theme.background.disabled};
+    color: ${(props) => props.theme.text.dim};
+    cursor: not-allowed;
+  }
 `
 
 const SelectInput: React.FC<SelectInputProps> = ({
