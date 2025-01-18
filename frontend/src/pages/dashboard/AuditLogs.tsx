@@ -1,11 +1,11 @@
+import { Badge, DateTime, Table } from '@adoptdontshop/components'
 import React, { useCallback, useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { AuditLogFilters as AuditLogFiltersComponent } from '../../components/AuditLogs/AuditLogFilters'
-import { AuditLogTable } from '../../components/AuditLogs/AuditLogTable'
+import { FilterConfig, GenericFilters } from '../../components'
 import { useDebounce } from '../../hooks'
 import {
   AuditLog,
-  AuditLogFilters,
+  AuditLogFilters as AuditLogFiltersType,
   AuditLogsService,
 } from '../../libs/audit-logs'
 import { logger } from '../../utils/logger'
@@ -34,7 +34,84 @@ const LoadingWrapper = styled.div`
   color: ${({ theme }) => theme.text.dim};
 `
 
+const MetadataCell = styled.td`
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    white-space: normal;
+    word-wrap: break-word;
+  }
+`
+
+const StyledButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  color: ${({ theme }) => theme.text.link};
+  cursor: pointer;
+
+  &:hover {
+    color: ${({ theme }) => theme.text.highlight};
+  }
+`
+
 const ROWS_PER_PAGE = 10
+
+const levelOptions = [
+  { value: '', label: 'All Levels' },
+  { value: 'INFO', label: 'Info' },
+  { value: 'WARNING', label: 'Warning' },
+  { value: 'ERROR', label: 'Error' },
+]
+
+const auditLogFilterConfig: FilterConfig[] = [
+  {
+    name: 'search',
+    label: 'Search',
+    type: 'text',
+    placeholder: 'Search actions or services...',
+  },
+  { name: 'startDate', label: 'Start Date', type: 'date' },
+  { name: 'endDate', label: 'End Date', type: 'date' },
+  { name: 'level', label: 'Level', type: 'select', options: levelOptions },
+  {
+    name: 'service',
+    label: 'Service',
+    type: 'text',
+    placeholder: 'Filter by service...',
+  },
+  {
+    name: 'category',
+    label: 'Category',
+    type: 'text',
+    placeholder: 'Filter by category...',
+  },
+  {
+    name: 'user',
+    label: 'User',
+    type: 'text',
+    placeholder: 'Filter by user...',
+  },
+]
+
+const getLevelVariant = (
+  level: string,
+): 'info' | 'warning' | 'success' | 'danger' | null => {
+  switch (level.toLowerCase()) {
+    case 'info':
+      return 'info'
+    case 'warning':
+      return 'warning'
+    case 'error':
+      return 'danger'
+    default:
+      return null
+  }
+}
 
 export const AuditLogs: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([])
@@ -42,7 +119,7 @@ export const AuditLogs: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [filters, setFilters] = useState<AuditLogFilters>({})
+  const [filters, setFilters] = useState<AuditLogFiltersType>({})
 
   // Debounce filter changes to prevent too many API calls
   const debouncedFilters = useDebounce(filters, 500)
@@ -75,8 +152,8 @@ export const AuditLogs: React.FC = () => {
     fetchLogs()
   }, [fetchLogs])
 
-  const handleFilterChange = (name: string, value: string) => {
-    setFilters((prev: AuditLogFilters) => ({
+  const handleFilterChange = (name: string, value: string | boolean) => {
+    setFilters((prev: AuditLogFiltersType) => ({
       ...prev,
       [name]: value || undefined, // Remove empty strings
     }))
@@ -95,21 +172,74 @@ export const AuditLogs: React.FC = () => {
     <Container>
       <Title>Audit Logs</Title>
 
-      <AuditLogFiltersComponent
+      <GenericFilters
         filters={filters}
         onFilterChange={handleFilterChange}
+        filterConfig={auditLogFilterConfig}
       />
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
-      <AuditLogTable
-        logs={logs}
+      <Table
+        striped
+        hasActions
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
-        onUserClick={handleUserClick}
-        onServiceClick={handleServiceClick}
-      />
+      >
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Timestamp</th>
+            <th>Level</th>
+            <th>Service</th>
+            <th>User</th>
+            <th>Category</th>
+            <th>Action</th>
+            <th>Metadata</th>
+            <th>IP Address</th>
+            <th>User Agent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {logs.map((log) => (
+            <tr key={log.id}>
+              <td>{log.id}</td>
+              <td>
+                <DateTime timestamp={log.timestamp} showTooltip />
+              </td>
+              <td>
+                <Badge variant={getLevelVariant(log.level)}>{log.level}</Badge>
+              </td>
+              <td>
+                {handleServiceClick ? (
+                  <StyledButton onClick={() => handleServiceClick(log.service)}>
+                    {log.service}
+                  </StyledButton>
+                ) : (
+                  log.service
+                )}
+              </td>
+              <td>
+                {log.user && handleUserClick ? (
+                  <StyledButton onClick={() => handleUserClick(log.user!)}>
+                    {log.user}
+                  </StyledButton>
+                ) : (
+                  log.user || 'N/A'
+                )}
+              </td>
+              <td>{log.category}</td>
+              <td>{log.action}</td>
+              <MetadataCell>
+                {log.metadata ? JSON.stringify(log.metadata) : 'N/A'}
+              </MetadataCell>
+              <td>{log.ip_address || 'N/A'}</td>
+              <td>{log.user_agent || 'N/A'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
 
       {loading && <LoadingWrapper>Loading...</LoadingWrapper>}
     </Container>
