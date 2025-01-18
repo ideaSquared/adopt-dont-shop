@@ -191,7 +191,10 @@ export const Rescue: React.FC<RescueProps> = () => {
           />
         </FormInput>
 
-        <FormInput label="Rescue type">
+        <FormInput
+          label="Rescue type"
+          description={'To change this please contact help@adoptdontshop.app'}
+        >
           <SelectInput
             value={rescueType}
             onChange={handleRescueTypeChange}

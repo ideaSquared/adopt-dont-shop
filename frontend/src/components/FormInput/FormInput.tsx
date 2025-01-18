@@ -10,9 +10,7 @@ type FormInputProps = {
   id?: string
 }
 
-const Container = styled.div`
-  margin-bottom: 1rem;
-`
+const Container = styled.div``
 
 const Label = styled.label`
   display: block;
@@ -22,8 +20,8 @@ const Label = styled.label`
 
 const Description = styled.span`
   display: block;
-  margin-bottom: 0.5rem;
-  color: #6c757d;
+  margin-top: 0.5rem;
+  color: ${(props) => props.theme.text.dim};
   font-size: 0.875rem;
 `
 
@@ -65,9 +63,6 @@ export const FormInput: React.FC<FormInputProps> = ({
   return (
     <Container>
       <Label htmlFor={inputId}>{label}</Label>
-      {description && (
-        <Description id={`${inputId}-description`}>{description}</Description>
-      )}
       <InputGroup>
         <InputContainer>
           {/* Wrap children in a div with aria-labelledby to maintain accessibility */}
@@ -80,8 +75,12 @@ export const FormInput: React.FC<FormInputProps> = ({
             {children}
           </div>
         </InputContainer>
+
         {buttonText && <Button onClick={onButtonClick}>{buttonText}</Button>}
       </InputGroup>
+      {description && (
+        <Description id={`${inputId}-description`}>{description}</Description>
+      )}
     </Container>
   )
 }
