@@ -5,13 +5,20 @@ import {
   SelectInput,
   TextInput,
 } from '@adoptdontshop/components'
+
 import { RescueService, RescueType } from '@adoptdontshop/libs/rescues'
+
 import { useUser } from 'contexts/auth/UserContext'
+
 import React, { useEffect, useState } from 'react'
+
 import styled from 'styled-components'
 
 // Style definitions
+
 const Container = styled.div`
+  max-width: 600px;
+  margin: 0 auto;
   padding: 1rem;
 `
 
@@ -27,8 +34,31 @@ const Form = styled.form`
   max-width: 600px;
 `
 
-const ButtonContainer = styled.div`
-  margin-top: 2rem;
+const VerificationBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  font-size: ${(props) => props.theme.typography.size.sm};
+  white-space: nowrap;
+`
+
+const VerifyButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: ${(props) => props.theme.typography.size.sm};
+  color: inherit;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `
 
 // Types
@@ -43,14 +73,20 @@ export const Rescue: React.FC<RescueProps> = () => {
     'Individual' | 'Charity' | 'Company' | undefined
   >(undefined)
   const [referenceNumber, setReferenceNumber] = useState<string | undefined>()
+  const [referenceNumberVerified, setReferenceNumberVerified] = useState(false)
+  const [verificationError, setVerificationError] = useState<string | null>(
+    null,
+  )
   const [country, setCountry] = useState('United Kingdom')
   const [isInitialized, setIsInitialized] = useState(false)
 
   // Fetch the latest rescue data by ID on mount to ensure data persists
+
   useEffect(() => {
     const fetchRescueData = async () => {
       if (rescue && !isInitialized) {
         const freshRescue = await RescueService.getRescueById(rescue.rescue_id)
+
         if (freshRescue) {
           setRescue(freshRescue) // Update the context with fresh data
           setRescueName(freshRescue.rescue_name || '')
@@ -61,11 +97,15 @@ export const Rescue: React.FC<RescueProps> = () => {
           // Set reference number if it's an OrganizationRescue
           if ('reference_number' in freshRescue) {
             setReferenceNumber(freshRescue.reference_number)
+            setReferenceNumberVerified(
+              freshRescue.reference_number_verified || false,
+            )
           }
           setIsInitialized(true) // Prevent further updates to form state
         }
       }
     }
+
     fetchRescueData()
   }, [rescue, setRescue, isInitialized])
 
@@ -99,9 +139,41 @@ export const Rescue: React.FC<RescueProps> = () => {
         country,
         reference_number: referenceNumber,
       })
+
       setRescue(updatedRescue ?? null)
     } catch (error) {
       console.error('Error updating rescue:', error)
+    }
+  }
+
+  const handleVerifyReference = async () => {
+    if (!rescue || !referenceNumber) return
+
+    try {
+      setVerificationError(null)
+      const response = await RescueService.verifyReferenceNumber(
+        rescue.rescue_id,
+        referenceNumber,
+      )
+
+      setReferenceNumberVerified(response.isVerified)
+
+      // Update the rescue context if needed
+      if (rescue && 'reference_number' in rescue) {
+        setRescue({
+          ...rescue,
+          reference_number: referenceNumber,
+          reference_number_verified: response.isVerified,
+        })
+      }
+
+      if (!response.isVerified) {
+        setVerificationError(response.message)
+      }
+    } catch (error) {
+      console.error('Error verifying reference number:', error)
+      setVerificationError('Failed to verify reference number')
+      setReferenceNumberVerified(false)
     }
   }
 
@@ -118,6 +190,7 @@ export const Rescue: React.FC<RescueProps> = () => {
             placeholder="Enter rescue name"
           />
         </FormInput>
+
         <FormInput label="Rescue type">
           <SelectInput
             value={rescueType}
@@ -130,25 +203,53 @@ export const Rescue: React.FC<RescueProps> = () => {
             disabled
           />
         </FormInput>
-        {rescue && rescue.rescue_type != 'Individual' && (
-          <FormInput label="Reference number">
+
+        {rescue && rescue.rescue_type !== 'Individual' && (
+          <FormInput
+            label="Reference number"
+            description={verificationError || undefined}
+          >
             <TextInput
               type="text"
               value={referenceNumber || ''}
               onChange={handleReferenceNumberChange}
               placeholder="Enter reference number"
+              endAddons={[
+                {
+                  content: (
+                    <VerificationBadge>
+                      {referenceNumberVerified
+                        ? 'Verified ✅'
+                        : 'Not verified ❌'}
+                    </VerificationBadge>
+                  ),
+                  variant: referenceNumberVerified ? 'success' : 'error',
+                },
+                {
+                  content: (
+                    <VerifyButton
+                      onClick={handleVerifyReference}
+                      disabled={!referenceNumber}
+                      type="button"
+                    >
+                      Verify
+                    </VerifyButton>
+                  ),
+                  variant: 'content',
+                },
+              ]}
             />
           </FormInput>
         )}
+
         <FormInput label="Country">
           <CountrySelectInput
             onCountryChange={handleCountryChange}
             countryValue={country}
           />
         </FormInput>
-        <ButtonContainer>
-          <Button type="submit">Save</Button>
-        </ButtonContainer>
+
+        <Button type="submit">Save</Button>
       </Form>
     </Container>
   )

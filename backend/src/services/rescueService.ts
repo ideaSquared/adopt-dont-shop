@@ -15,6 +15,8 @@ import {
   Rescue,
   StaffMember,
 } from '../types/Rescue'
+import CharityService from './charityRegisterService'
+import CompanyHouseService from './companyHouseService'
 import { sendInvitationEmail } from './emailService'
 
 export const getAllRescuesService = async (): Promise<Rescue[]> => {
@@ -112,6 +114,8 @@ export const getSingleRescueService = async (
       rescue_id: rescue.rescue_id,
       rescue_name: rescue.rescue_name,
       rescue_type: rescue.rescue_type,
+      reference_number: rescue.reference_number,
+      reference_number_verified: rescue.reference_number_verified,
       city: rescue.city,
       country: rescue.country,
     } as LimitedRescue
@@ -365,4 +369,34 @@ export const deleteRescueService = async (rescueId: string): Promise<void> => {
   }
 
   await rescue.destroy()
+}
+
+export const verifyReferenceNumberService = async (
+  rescueId: string,
+  referenceNumber: string,
+): Promise<{ isVerified: boolean }> => {
+  // Get the rescue to determine its type
+  const rescue = await RescueModel.findByPk(rescueId)
+  if (!rescue) {
+    throw new Error('Rescue not found')
+  }
+
+  let isValid = false
+
+  // Verify based on rescue type
+  if (rescue.rescue_type.toLowerCase() === 'charity') {
+    isValid = await CharityService.fetchAndValidateCharity(referenceNumber)
+  } else if (rescue.rescue_type.toLowerCase() === 'company') {
+    isValid = await CompanyHouseService.fetchAndValidateCompany(referenceNumber)
+  } else {
+    throw new Error('Invalid rescue type for reference number verification')
+  }
+
+  // Update the rescue with verification result
+  await rescue.update({
+    reference_number: referenceNumber,
+    reference_number_verified: isValid,
+  })
+
+  return { isVerified: isValid }
 }

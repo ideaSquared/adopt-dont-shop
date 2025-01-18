@@ -12,6 +12,7 @@ import {
   inviteUserService,
   removeRoleFromUserService,
   updateRescueService,
+  verifyReferenceNumberService,
 } from '../services/rescueService'
 import { AuthenticatedRequest } from '../types'
 
@@ -445,5 +446,56 @@ export const deleteRescueController = async (
       AuditLogger.getAuditOptions(req, 'RESCUE_MANAGEMENT'),
     )
     res.status(500).json({ message: 'Failed to delete rescue' })
+  }
+}
+
+export const verifyReferenceNumberController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  const { rescueId } = req.params
+  const { reference_number } = req.body
+
+  try {
+    AuditLogger.logAction(
+      'RescueController',
+      `Attempting to verify reference number for rescue: ${rescueId}`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'RESCUE_MANAGEMENT'),
+    )
+
+    const { isVerified } = await verifyReferenceNumberService(
+      rescueId,
+      reference_number,
+    )
+
+    AuditLogger.logAction(
+      'RescueController',
+      `Reference number verification completed for rescue: ${rescueId} - Status: ${
+        isVerified ? 'Verified' : 'Not Verified'
+      }`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'RESCUE_MANAGEMENT'),
+    )
+
+    res.status(200).json({
+      message: isVerified
+        ? 'Reference number verified successfully'
+        : 'Reference number could not be verified',
+      isVerified,
+    })
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'RescueController',
+      `Failed to verify reference number for rescue ${rescueId}: ${errorMessage}`,
+      'ERROR',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'RESCUE_MANAGEMENT'),
+    )
+    res.status(500).json({ message: 'Failed to verify reference number' })
   }
 }

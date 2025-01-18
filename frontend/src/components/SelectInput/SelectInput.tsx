@@ -19,7 +19,7 @@ interface SelectInputProps {
 
 const StyledSelect = styled.select`
   padding: 0.375rem 0.75rem;
-  border: 1px solid #ced4da;
+  border: 1px solid ${(props) => props.theme.border.color.default};
   border-radius: 0.25rem;
   font-size: 1rem;
   line-height: 1.5;

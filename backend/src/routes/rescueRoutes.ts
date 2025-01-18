@@ -9,6 +9,7 @@ import {
   inviteUserController,
   removeRoleFromUserController,
   updateRescueController,
+  verifyReferenceNumberController,
 } from '../controllers/rescueController'
 import { createRescueAccountController } from '../controllers/userController'
 import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
@@ -108,4 +109,15 @@ router.get(
   getRescueStaffWithRolesController,
 )
 
+// Verify reference number endpoint
+router.post(
+  '/:rescueId/verify-reference',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'rescue_manager',
+    verifyRescueOwnership: true,
+  }),
+  verifyReferenceNumberController,
+)
+
 export default router
+

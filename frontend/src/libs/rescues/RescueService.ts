@@ -169,6 +169,21 @@ export const updateRescue = async (
   return apiService.put<Partial<Rescue>, Rescue>(`/rescue/${id}`, updateData)
 }
 
+export type VerificationResponse = {
+  isVerified: boolean
+  message: string
+}
+
+export async function verifyReferenceNumber(
+  rescueId: string,
+  referenceNumber: string,
+): Promise<VerificationResponse> {
+  return apiService.post<{ reference_number: string }, VerificationResponse>(
+    `/rescue/${rescueId}/verify-reference`,
+    { reference_number: referenceNumber },
+  )
+}
+
 export default {
   getRescues,
   getRescueById,
@@ -180,4 +195,5 @@ export default {
   addRoleToUser,
   removeRoleFromUser,
   updateRescue,
+  verifyReferenceNumber,
 }
