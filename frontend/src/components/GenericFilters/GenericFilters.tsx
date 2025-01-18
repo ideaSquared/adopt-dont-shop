@@ -9,13 +9,20 @@ import styled from 'styled-components'
 import { DateInput } from '../DateInput'
 
 const FiltersContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 1rem;
   background: ${(props) => props.theme.background.content};
   border-radius: ${(props) => props.theme.border.radius.md};
+
+  /* Ensure filters have a reasonable minimum width while allowing them to grow */
+  > * {
+    flex: 1 1 300px;
+    min-width: 200px;
+    max-width: 100%;
+  }
 `
 
 export type FilterConfig = {
