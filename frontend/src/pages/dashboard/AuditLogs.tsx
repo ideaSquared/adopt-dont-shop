@@ -96,6 +96,18 @@ const auditLogFilterConfig: FilterConfig[] = [
     type: 'text',
     placeholder: 'Filter by user...',
   },
+  {
+    name: 'ip_address',
+    label: 'IP Address',
+    type: 'text',
+    placeholder: 'Filter by IP address...',
+  },
+  {
+    name: 'user_agent',
+    label: 'User Agent',
+    type: 'text',
+    placeholder: 'Filter by user agent...',
+  },
 ]
 
 const getLevelVariant = (
@@ -168,6 +180,14 @@ export const AuditLogs: React.FC = () => {
     handleFilterChange('service', service)
   }
 
+  const handleIpAddressClick = (ipAddress: string) => {
+    handleFilterChange('ip_address', ipAddress)
+  }
+
+  const handleUserAgentClick = (userAgent: string) => {
+    handleFilterChange('user_agent', userAgent)
+  }
+
   return (
     <Container>
       <Title>Audit Logs</Title>
@@ -234,8 +254,28 @@ export const AuditLogs: React.FC = () => {
               <MetadataCell>
                 {log.metadata ? JSON.stringify(log.metadata) : 'N/A'}
               </MetadataCell>
-              <td>{log.ip_address || 'N/A'}</td>
-              <td>{log.user_agent || 'N/A'}</td>
+              <td>
+                {log.ip_address ? (
+                  <StyledButton
+                    onClick={() => handleIpAddressClick(log.ip_address!)}
+                  >
+                    {log.ip_address}
+                  </StyledButton>
+                ) : (
+                  'N/A'
+                )}
+              </td>
+              <td>
+                {log.user_agent ? (
+                  <StyledButton
+                    onClick={() => handleUserAgentClick(log.user_agent!)}
+                  >
+                    {log.user_agent}
+                  </StyledButton>
+                ) : (
+                  'N/A'
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
