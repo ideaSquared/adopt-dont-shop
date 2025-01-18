@@ -2,6 +2,12 @@ import { ClientRequest, IncomingMessage, RequestOptions } from 'http'
 import { request } from 'https'
 import CharityService from '../services/charityRegisterService'
 
+/**
+ * CAT RESCUE WEST WALES
+ * Company House Number: CE014279
+ * Charity Commission Number: 1178615
+ */
+
 jest.mock('https', () => ({
   request: jest.fn(
     (
