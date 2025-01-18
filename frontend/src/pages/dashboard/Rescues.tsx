@@ -122,6 +122,7 @@ export const Rescues: React.FC<RescuesProps> = () => {
             <tr>
               <th>Rescue ID</th>
               <th>Rescue Name</th>
+              <th>Reference Number</th>
               <th>Type</th>
               <th>City</th>
               <th>Country</th>
@@ -134,6 +135,11 @@ export const Rescues: React.FC<RescuesProps> = () => {
               <tr key={rescue.rescue_id}>
                 <td>{rescue.rescue_id}</td>
                 <td>{rescue.rescue_name}</td>
+                <td>
+                  {rescue.rescue_type != 'Individual'
+                    ? rescue.reference_number
+                    : 'N/A'}
+                </td>
                 <td>{rescue.rescue_type}</td>
                 <td>{rescue.city}</td>
                 <td>{rescue.country}</td>
