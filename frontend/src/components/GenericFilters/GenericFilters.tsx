@@ -14,8 +14,8 @@ const FiltersContainer = styled.div`
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 1rem;
-  background: ${({ theme }) => theme.background.content};
-  border-radius: ${({ theme }) => theme.border.radius.md};
+  background: ${(props) => props.theme.background.content};
+  border-radius: ${(props) => props.theme.border.radius.md};
 `
 
 export type FilterConfig = {
@@ -44,45 +44,52 @@ const GenericFilters = <T extends Record<string, any>>({
     (name: string, type: 'text' | 'date' | 'select' | 'checkbox') =>
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       if (type === 'checkbox') {
-        onFilterChange(name, (e.target as HTMLInputElement).checked) // For checkboxes
+        onFilterChange(name, (e.target as HTMLInputElement).checked)
       } else {
-        onFilterChange(name, e.target.value) // For other inputs
+        onFilterChange(name, e.target.value)
       }
     }
 
   return (
-    <FiltersContainer>
-      {filterConfig.map(({ name, label, type, placeholder, options }) => (
-        <FormInput key={name} label={label}>
-          {type === 'text' && (
-            <TextInput
-              value={filters[name] || ''}
-              onChange={handleChange(name, type)}
-              placeholder={placeholder || ''}
-              type="text"
-            />
-          )}
-          {type === 'date' && (
-            <DateInput
-              value={filters[name] || ''}
-              onChange={handleChange(name, type)}
-            />
-          )}
-          {type === 'select' && options && (
-            <SelectInput
-              value={filters[name] || ''}
-              onChange={handleChange(name, type)}
-              options={options}
-            />
-          )}
-          {type === 'checkbox' && (
-            <CheckboxInput
-              checked={!!filters[name]}
-              onChange={handleChange(name, type)}
-            />
-          )}
-        </FormInput>
-      ))}
+    <FiltersContainer role="search" aria-label="Filter options">
+      {filterConfig.map(({ name, label, type, placeholder, options }) => {
+        const inputId = `filter-${name}`
+        return (
+          <FormInput key={name} label={label} id={inputId}>
+            {type === 'text' && (
+              <TextInput
+                id={inputId}
+                value={filters[name] || ''}
+                onChange={handleChange(name, type)}
+                placeholder={placeholder || ''}
+                type="text"
+              />
+            )}
+            {type === 'date' && (
+              <DateInput
+                id={inputId}
+                value={filters[name] || ''}
+                onChange={handleChange(name, type)}
+              />
+            )}
+            {type === 'select' && options && (
+              <SelectInput
+                id={inputId}
+                value={filters[name] || ''}
+                onChange={handleChange(name, type)}
+                options={options}
+              />
+            )}
+            {type === 'checkbox' && (
+              <CheckboxInput
+                id={inputId}
+                checked={!!filters[name]}
+                onChange={handleChange(name, type)}
+              />
+            )}
+          </FormInput>
+        )
+      })}
     </FiltersContainer>
   )
 }

@@ -27,6 +27,7 @@ type DateInputProps = {
   disabled?: boolean
   min?: string
   max?: string
+  id?: string
 }
 
 export const DateInput: React.FC<DateInputProps> = ({
@@ -35,6 +36,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   disabled,
   min,
   max,
+  id,
 }) => {
   return (
     <StyledInput
@@ -44,6 +46,7 @@ export const DateInput: React.FC<DateInputProps> = ({
       disabled={disabled}
       min={min}
       max={max}
+      id={id}
     />
   )
 }

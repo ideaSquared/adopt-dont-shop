@@ -5,7 +5,7 @@ interface TextInputProps {
   value: string | number | null
   type: string
   name?: string
-  // eslint-disable-next-line no-unused-vars
+  id?: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   placeholder?: string
   disabled?: boolean
@@ -36,6 +36,7 @@ const TextInput: React.FC<TextInputProps> = ({
   value,
   name,
   type,
+  id,
   onChange,
   placeholder = '',
   disabled = false,
@@ -45,6 +46,7 @@ const TextInput: React.FC<TextInputProps> = ({
     <StyledInput
       type={type}
       name={name}
+      id={id}
       value={value || ''}
       onChange={onChange}
       placeholder={placeholder}

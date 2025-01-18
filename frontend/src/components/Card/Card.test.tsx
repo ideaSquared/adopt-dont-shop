@@ -41,7 +41,7 @@ describe('Card', () => {
     )
     const header = container.querySelector('div > h5.card-title')?.parentElement
     expect(header).toHaveStyle(`
-      background-color: ${theme.background.contrast};
+      background-color: ${theme.background.content};
       padding: 0.75rem 1.25rem;
       border-bottom: 1px solid ${theme.border.color.default};
     `)

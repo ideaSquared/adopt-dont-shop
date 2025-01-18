@@ -1,12 +1,13 @@
 import React from 'react'
 import styled from 'styled-components'
 
-interface FormInputProps {
+type FormInputProps = {
   label: string
   description?: string
   children: React.ReactNode
   buttonText?: string
   onButtonClick?: () => void
+  id?: string
 }
 
 const Container = styled.div`
@@ -50,19 +51,35 @@ const Button = styled.button`
   }
 `
 
-const FormInput: React.FC<FormInputProps> = ({
+export const FormInput: React.FC<FormInputProps> = ({
   label,
   description,
   children,
   buttonText,
   onButtonClick,
+  id,
 }) => {
+  // Generate a unique ID if none provided
+  const inputId = id || `form-input-${label.toLowerCase().replace(/\s+/g, '-')}`
+
   return (
     <Container>
-      <Label>{label}</Label>
-      {description && <Description>{description}</Description>}
+      <Label htmlFor={inputId}>{label}</Label>
+      {description && (
+        <Description id={`${inputId}-description`}>{description}</Description>
+      )}
       <InputGroup>
-        <InputContainer>{children}</InputContainer>
+        <InputContainer>
+          {/* Wrap children in a div with aria-labelledby to maintain accessibility */}
+          <div
+            aria-labelledby={inputId}
+            aria-describedby={
+              description ? `${inputId}-description` : undefined
+            }
+          >
+            {children}
+          </div>
+        </InputContainer>
         {buttonText && <Button onClick={onButtonClick}>{buttonText}</Button>}
       </InputGroup>
     </Container>

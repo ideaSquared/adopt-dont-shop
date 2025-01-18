@@ -3,9 +3,9 @@ import styled from 'styled-components'
 
 interface CheckboxProps {
   checked: boolean
-  // eslint-disable-next-line no-unused-vars
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   disabled?: boolean
+  id?: string
 }
 
 const StyledCheckbox = styled.input.attrs({ type: 'checkbox' })`
@@ -21,9 +21,15 @@ const CheckboxInput: React.FC<CheckboxProps> = ({
   checked,
   onChange,
   disabled = false,
+  id,
 }) => {
   return (
-    <StyledCheckbox checked={checked} onChange={onChange} disabled={disabled} />
+    <StyledCheckbox
+      checked={checked}
+      onChange={onChange}
+      disabled={disabled}
+      id={id}
+    />
   )
 }
 
