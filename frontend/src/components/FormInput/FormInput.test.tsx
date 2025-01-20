@@ -1,10 +1,16 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import FormInput from './FormInput'
+import { lightTheme as theme } from '@adoptdontshop/styles'
+import { ThemeProvider } from 'styled-components'
 
 describe('FormInput', () => {
+  const renderWithTheme = (ui: React.ReactElement) => {
+    return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>)
+  }
+
   it('renders correctly with label and children', () => {
-    render(
+    renderWithTheme(
       <FormInput label="Test Label">
         <input type="text" />
       </FormInput>,
@@ -16,7 +22,7 @@ describe('FormInput', () => {
   })
 
   it('renders the description when provided', () => {
-    render(
+    renderWithTheme(
       <FormInput label="Test Label" description="This is a description">
         <input type="text" />
       </FormInput>,
@@ -30,7 +36,7 @@ describe('FormInput', () => {
   })
 
   it('does not render the description when not provided', () => {
-    render(
+    renderWithTheme(
       <FormInput label="Test Label">
         <input type="text" />
       </FormInput>,
