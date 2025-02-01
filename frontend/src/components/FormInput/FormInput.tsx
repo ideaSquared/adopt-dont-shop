@@ -10,7 +10,9 @@ type FormInputProps = {
   id?: string
 }
 
-const Container = styled.div``
+const Container = styled.div`
+  margin-bottom: 1rem;
+`
 
 const Label = styled.label`
   display: block;
@@ -36,6 +38,7 @@ const InputContainer = styled.div`
 
 const Button = styled.button`
   margin-left: 0.5rem;
+
   padding: 0.5rem 1rem;
   font-size: 1rem;
   background-color: #007bff;

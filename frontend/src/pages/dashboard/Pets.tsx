@@ -2,9 +2,11 @@ import {
   Badge,
   Button,
   FilterConfig,
+  FormInput,
   GenericFilters,
   ImageGallery,
   Modal,
+  TextInput,
 } from '@adoptdontshop/components'
 import { PetRescue, PetsService } from '@adoptdontshop/libs/pets'
 import React, { useEffect, useState } from 'react'
@@ -71,6 +73,25 @@ export const Pets: React.FC<PetsProps> = ({ isAdminView = false }) => {
   })
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedPet, setSelectedPet] = useState<PetRescue | null>(null)
+  const [petId, setPetId] = useState('')
+  const [name, setName] = useState('')
+  const [type, setType] = useState('')
+  const [status, setStatus] = useState('')
+  const [age, setAge] = useState<number>(0)
+  const [gender, setGender] = useState('')
+  const [breed, setBreed] = useState('')
+  const [vaccinationStatus, setVaccinationStatus] = useState('')
+  const [temperament, setTemperament] = useState('')
+  const [health, setHealth] = useState('')
+  const [size, setSize] = useState('')
+  const [groomingNeeds, setGroomingNeeds] = useState('')
+  const [trainingSocialization, setTrainingSocialization] = useState('')
+  const [commitmentLevel, setCommitmentLevel] = useState('')
+  const [otherPets, setOtherPets] = useState('')
+  const [household, setHousehold] = useState('')
+  const [energy, setEnergy] = useState('')
+  const [family, setFamily] = useState('')
+  const [images, setImages] = useState<string[]>([])
   const baseUrl = 'http://localhost:5000/api/uploads/'
 
   // Filter configuration
@@ -146,9 +167,68 @@ export const Pets: React.FC<PetsProps> = ({ isAdminView = false }) => {
     setFilteredPets(filtered)
   }, [filters, pets])
 
-  const handleEdit = (pet: PetRescue) => {
+  const handleEdit = async (pet: PetRescue) => {
     setSelectedPet(pet)
+    setPetId(pet.pet_id)
+    setName(pet.name)
+    setType(pet.type)
+    setStatus(pet.status)
+    setAge(pet.age)
+    setGender(pet.gender)
+    setBreed(pet.breed)
+    setVaccinationStatus(pet.vaccination_status)
+    setTemperament(pet.temperament)
+    setHealth(pet.health)
+    setSize(pet.size)
+    setGroomingNeeds(pet.grooming_needs)
+    setTrainingSocialization(pet.training_socialization)
+    setCommitmentLevel(pet.commitment_level)
+    setOtherPets(pet.other_pets)
+    setHousehold(pet.household)
+    setEnergy(pet.energy)
+    setFamily(pet.family)
+    setImages(pet.images)
     setIsEditModalOpen(true)
+  }
+
+  const handleSave = async () => {
+    if (selectedPet) {
+      try {
+        const updatedPet = await PetsService.updatePet(selectedPet.pet_id, {
+          name,
+          type,
+          status,
+          age,
+          gender,
+          breed,
+          vaccination_status: vaccinationStatus,
+          temperament,
+          health,
+          size,
+          grooming_needs: groomingNeeds,
+          training_socialization: trainingSocialization,
+          commitment_level: commitmentLevel,
+          other_pets: otherPets,
+          household,
+          energy,
+          family,
+          images,
+        })
+        setPets((prevPets) =>
+          prevPets.map((pet) =>
+            pet.pet_id === updatedPet.pet_id ? updatedPet : pet,
+          ),
+        )
+        setFilteredPets((prevFilteredPets) =>
+          prevFilteredPets.map((pet) =>
+            pet.pet_id === updatedPet.pet_id ? updatedPet : pet,
+          ),
+        )
+        setIsEditModalOpen(false)
+      } catch (error) {
+        console.error('Failed to update pet:', error)
+      }
+    }
   }
 
   const handleDelete = async (petId: string) => {
@@ -163,6 +243,96 @@ export const Pets: React.FC<PetsProps> = ({ isAdminView = false }) => {
       } catch (error) {
         console.error('Error deleting pet:', error)
       }
+    }
+  }
+
+  const handleImageUpload = async (files: File[]) => {
+    if (selectedPet) {
+      try {
+        const uploadedImages = await PetsService.addPetImages(
+          selectedPet.pet_id,
+          files,
+        )
+
+        // Prefix the uploaded images with "/uploads/"
+        const normalizedImages = uploadedImages.map(
+          (image) => `${baseUrl}${image}`,
+        )
+
+        // Update the images state with unique entries
+        setImages((prevImages) => [
+          ...new Set([...prevImages, ...normalizedImages]),
+        ])
+
+        // Update the pets array with unique and prefixed images
+        setPets((prevPets) =>
+          prevPets.map((pet) =>
+            pet.pet_id === selectedPet.pet_id
+              ? {
+                  ...pet,
+                  images: [...new Set([...pet.images, ...normalizedImages])],
+                }
+              : pet,
+          ),
+        )
+      } catch (error) {
+        console.error('Error uploading images:', error)
+      }
+    }
+  }
+
+  const handleImageDelete = async (imageId: string, petId: string) => {
+    // Optimistically update the local state
+    setImages((prevImages) => prevImages.filter((image) => image !== imageId))
+
+    // Update the pet's images array in the `pets` state
+    setPets((prevPets) =>
+      prevPets.map((pet) =>
+        pet.pet_id === petId
+          ? {
+              ...pet,
+              images: pet.images.filter((image) => image !== imageId),
+            }
+          : pet,
+      ),
+    )
+
+    try {
+      // Attempt to delete the image from the backend
+      await PetsService.removePetImage(petId, imageId)
+
+      // Optionally re-fetch the updated pet images to confirm the deletion
+      const updatedImages = await PetsService.fetchPetImages(petId)
+
+      // Sync the frontend state with the backend
+      setImages(updatedImages.map((image) => `${baseUrl}${image}`))
+      setPets((prevPets) =>
+        prevPets.map((pet) =>
+          pet.pet_id === petId
+            ? {
+                ...pet,
+                images: updatedImages.map((image) => `${baseUrl}${image}`),
+              }
+            : pet,
+        ),
+      )
+    } catch (error) {
+      console.error('Error deleting image:', error)
+      alert('Failed to delete the image. The UI will be rolled back.')
+
+      // Rollback the changes on failure
+      const updatedImages = await PetsService.fetchPetImages(petId)
+      setImages(updatedImages.map((image) => `${baseUrl}${image}`))
+      setPets((prevPets) =>
+        prevPets.map((pet) =>
+          pet.pet_id === petId
+            ? {
+                ...pet,
+                images: updatedImages.map((image) => `${baseUrl}${image}`),
+              }
+            : pet,
+        ),
+      )
     }
   }
 
@@ -216,7 +386,134 @@ export const Pets: React.FC<PetsProps> = ({ isAdminView = false }) => {
           onClose={() => setIsEditModalOpen(false)}
           size="large"
         >
-          <div>Edit form goes here...</div>
+          <ImageGallery
+            viewMode="gallery"
+            images={images}
+            onUpload={(files) => handleImageUpload([files])}
+            onDelete={(imageId) => handleImageDelete(imageId, petId)}
+          />
+          <FormInput label="Name">
+            <TextInput
+              onChange={(e) => setName(e.target.value)}
+              type="text"
+              value={name}
+            />
+          </FormInput>
+          <FormInput label="Type">
+            <TextInput
+              onChange={(e) => setType(e.target.value)}
+              type="text"
+              value={type}
+            />
+          </FormInput>
+          <FormInput label="Status">
+            <TextInput
+              onChange={(e) => setStatus(e.target.value)}
+              type="text"
+              value={status}
+            />
+          </FormInput>
+          <FormInput label="Age">
+            <TextInput
+              onChange={(e) => setAge(parseInt(e.target.value) || 0)}
+              type="number"
+              value={age}
+            />
+          </FormInput>
+          <FormInput label="Gender">
+            <TextInput
+              onChange={(e) => setGender(e.target.value)}
+              type="text"
+              value={gender}
+            />
+          </FormInput>
+          <FormInput label="Breed">
+            <TextInput
+              onChange={(e) => setBreed(e.target.value)}
+              type="text"
+              value={breed}
+            />
+          </FormInput>
+          <FormInput label="Vaccination Status">
+            <TextInput
+              onChange={(e) => setVaccinationStatus(e.target.value)}
+              type="text"
+              value={vaccinationStatus}
+            />
+          </FormInput>
+          <FormInput label="Temperament">
+            <TextInput
+              onChange={(e) => setTemperament(e.target.value)}
+              type="text"
+              value={temperament}
+            />
+          </FormInput>
+          <FormInput label="Health">
+            <TextInput
+              onChange={(e) => setHealth(e.target.value)}
+              type="text"
+              value={health}
+            />
+          </FormInput>
+          <FormInput label="Size">
+            <TextInput
+              onChange={(e) => setSize(e.target.value)}
+              type="text"
+              value={size}
+            />
+          </FormInput>
+          <FormInput label="Grooming Needs">
+            <TextInput
+              onChange={(e) => setGroomingNeeds(e.target.value)}
+              type="text"
+              value={groomingNeeds}
+            />
+          </FormInput>
+          <FormInput label="Training & Socialization">
+            <TextInput
+              onChange={(e) => setTrainingSocialization(e.target.value)}
+              type="text"
+              value={trainingSocialization}
+            />
+          </FormInput>
+          <FormInput label="Commitment Level">
+            <TextInput
+              onChange={(e) => setCommitmentLevel(e.target.value)}
+              type="text"
+              value={commitmentLevel}
+            />
+          </FormInput>
+          <FormInput label="Other Pets">
+            <TextInput
+              onChange={(e) => setOtherPets(e.target.value)}
+              type="text"
+              value={otherPets}
+            />
+          </FormInput>
+          <FormInput label="Household">
+            <TextInput
+              onChange={(e) => setHousehold(e.target.value)}
+              type="text"
+              value={household}
+            />
+          </FormInput>
+          <FormInput label="Energy">
+            <TextInput
+              onChange={(e) => setEnergy(e.target.value)}
+              type="text"
+              value={energy}
+            />
+          </FormInput>
+          <FormInput label="Family">
+            <TextInput
+              onChange={(e) => setFamily(e.target.value)}
+              type="text"
+              value={family}
+            />
+          </FormInput>
+          <Button type="button" variant="success" onClick={handleSave}>
+            Save
+          </Button>
         </Modal>
       )}
     </Container>

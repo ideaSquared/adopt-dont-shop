@@ -9,6 +9,7 @@ import applicationRoutes from './routes/applicationRoutes'
 import auditLogRoutes from './routes/auditLogRoutes'
 import authRoutes from './routes/authRoutes'
 import conversationRoutes from './routes/conversationRoutes'
+import dashboardRoutes from './routes/dashboardRoutes'
 import featureFlagRoutes from './routes/featureFlagRoutes'
 import messageRoutes from './routes/messageRoutes'
 import participantRoutes from './routes/participantRoutes'
@@ -70,6 +71,7 @@ app.use('/api/pets', petImageRoutes)
 app.use('/api/ratings', ratingRoutes)
 app.use('/api/applications', applicationRoutes)
 app.use('/api/feature-flags', featureFlagRoutes)
+app.use('/api/dashboard', dashboardRoutes)
 AuditLogger.logAction('Server', 'All routes setup complete', 'INFO')
 
 app.get('/', (req: Request, res: Response) => {

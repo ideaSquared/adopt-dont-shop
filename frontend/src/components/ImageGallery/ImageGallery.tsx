@@ -80,7 +80,7 @@ const Dot = styled.button<{ active: boolean }>`
 
 const UploadButton = styled.label`
   display: block;
-  background-color: ${({ theme }) => theme.text.link};
+  background-color: ${({ theme }) => theme.background.info};
   color: ${({ theme }) => theme.text.light};
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
   margin: ${({ theme }) => theme.spacing.md} auto;

@@ -93,6 +93,7 @@ const Navbar: React.FC = () => {
               <DropdownMenu
                 triggerLabel="Staff"
                 items={[
+                  { label: 'Dashboard', to: '/dashboard' },
                   { label: 'Applications', to: '/applications' },
                   { label: 'Pets', to: '/pets' },
                   { label: 'Staff', to: '/staff' },
@@ -107,6 +108,7 @@ const Navbar: React.FC = () => {
               <DropdownMenu
                 triggerLabel="Admin"
                 items={[
+                  { label: 'Dashboard', to: '/admin/dashboard' },
                   { label: 'Users', to: '/users' },
                   ...(chatBetaEnabled
                     ? [{ label: 'Conversations', to: '/conversations' }]

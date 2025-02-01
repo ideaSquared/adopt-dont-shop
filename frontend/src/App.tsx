@@ -11,8 +11,8 @@ import { Conversations } from '@adoptdontshop/pages/chat'
 import {
   Conversations as AdminConversations,
   Applications,
-  FeatureFlags,
   AuditLogs,
+  FeatureFlags,
   Pets,
   Ratings,
   Rescue,
@@ -41,6 +41,7 @@ import {
   useFeatureFlag,
 } from './contexts/feature-flags/FeatureFlagContext'
 import { ThemeProvider } from './contexts/theme/ThemeContext'
+import { Dashboard } from './pages/dashboard/Dashboard'
 import GlobalStyles from './styles/GlobalStyles'
 
 const AppContent: React.FC = () => {
@@ -78,17 +79,19 @@ const AppContent: React.FC = () => {
               path="/applications"
               element={<Applications isAdminView={false} />}
             />
-          </Route>
-          <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route path="/pets" element={<Pets isAdminView={false} />} />
-          </Route>
-          <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route path="/staff" element={<Staff />} />
-          </Route>
-          <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
+            <Route
+              path="/dashboard"
+              element={<Dashboard isAdminView={false} />}
+            />
             <Route path="/rescue" element={<Rescue />} />
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[Role.ADMIN]} />}>
+            <Route
+              path="/admin/dashboard"
+              element={<Dashboard isAdminView={true} />}
+            />
             <Route path="/logs" element={<AuditLogs />} />
             <Route path="/users" element={<Users />} />
             {chatBetaEnabled ? (
