@@ -301,10 +301,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </MetricCard>
 
           <MetricCard>
-            <MetricValue aria-label="Platform Uptime">
-              {adminData.platformUptime}%
+            <MetricValue aria-label="Total Pets">
+              {adminData.totalPets.toLocaleString()}
             </MetricValue>
-            <MetricLabel>Platform Uptime</MetricLabel>
+            <MetricLabel>Total Pets</MetricLabel>
+          </MetricCard>
+
+          <MetricCard>
+            <MetricValue aria-label="Total Applications">
+              {adminData.totalApplications.toLocaleString()}
+            </MetricValue>
+            <MetricLabel>Total Applications</MetricLabel>
+          </MetricCard>
+
+          <MetricCard>
+            <MetricValue aria-label="Platform Adoption Rate">
+              {adminData.platformAdoptionRate}%
+            </MetricValue>
+            <MetricLabel>Platform Adoption Rate</MetricLabel>
+          </MetricCard>
+
+          <MetricCard>
+            <MetricValue aria-label="Average Application Response Time">
+              {adminData.averagePlatformResponseTime}h
+            </MetricValue>
+            <MetricLabel>Average Application Response Time</MetricLabel>
           </MetricCard>
 
           <ChartCard>
@@ -470,22 +491,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </ChartCard>
 
           <ChartCard>
-            <ChartTitle>Pet Status Distribution</ChartTitle>
+            <ChartTitle>Pet Type Distribution</ChartTitle>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={rescueData.petStatusDistribution}
+                  data={rescueData.petTypeDistribution}
+                  dataKey="value"
+                  nameKey="name"
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
+                  outerRadius={80}
+                  label
                 >
-                  {rescueData.petStatusDistribution.map((entry, index) => (
+                  {rescueData.petTypeDistribution.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
@@ -496,6 +514,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </PieChart>
             </ResponsiveContainer>
           </ChartCard>
+
+          <MetricCard>
+            <MetricValue aria-label="Total Applications">
+              {rescueData.totalApplications}
+            </MetricValue>
+            <MetricLabel>Total Applications</MetricLabel>
+          </MetricCard>
+
+          <MetricCard>
+            <MetricValue aria-label="Adoption Rate">
+              {rescueData.adoptionRate}%
+            </MetricValue>
+            <MetricLabel>Adoption Rate</MetricLabel>
+          </MetricCard>
+
+          <MetricCard>
+            <MetricValue aria-label="Average Response Time">
+              {rescueData.averageResponseTime}h
+            </MetricValue>
+            <MetricLabel>Average Response Time</MetricLabel>
+          </MetricCard>
         </DashboardGrid>
       </DashboardContainer>
     )

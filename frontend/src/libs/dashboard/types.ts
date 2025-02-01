@@ -20,6 +20,11 @@ export type UserDistribution = {
   value: number
 }
 
+export type PetTypeDistribution = {
+  name: string
+  value: number
+}
+
 export type RescueDashboardData = {
   totalPets: number
   successfulAdoptions: number
@@ -27,6 +32,10 @@ export type RescueDashboardData = {
   averageRating: number
   monthlyAdoptions: MonthlyAdoption[]
   petStatusDistribution: PetStatus[]
+  petTypeDistribution: PetTypeDistribution[]
+  totalApplications: number
+  adoptionRate: number
+  averageResponseTime: number
 }
 
 export type AdminDashboardData = {
@@ -36,6 +45,11 @@ export type AdminDashboardData = {
   platformUptime: number
   platformMetrics: PlatformMetric[]
   userDistribution: UserDistribution[]
+  totalPets: number
+  totalApplications: number
+  totalAdoptions: number
+  platformAdoptionRate: number
+  averagePlatformResponseTime: number
   systemAlerts: {
     pendingVerifications: number
     reportedContent: number
