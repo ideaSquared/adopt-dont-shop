@@ -3,6 +3,7 @@ import {
   getAdminDashboard,
   getRescueDashboard,
 } from '../controllers/dashboardController'
+import { attachRescueId } from '../middleware/attachRescueId'
 import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
 const router = express.Router()
@@ -12,8 +13,8 @@ router.get(
   '/rescue',
   authRoleOwnershipMiddleware({
     requiredRole: 'staff',
-    verifyRescueOwnership: true,
   }),
+  attachRescueId,
   getRescueDashboard,
 )
 

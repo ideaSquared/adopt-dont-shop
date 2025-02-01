@@ -62,12 +62,7 @@ export const getRescueDashboardData = async (
             'AVG',
             sequelize.fn(
               'EXTRACT',
-              'EPOCH',
-              sequelize.fn(
-                'AGE',
-                sequelize.col('updated_at'),
-                sequelize.col('created_at'),
-              ),
+              sequelize.literal('EPOCH FROM (updated_at - created_at)'),
             ),
           ),
           'avg_response_time',
