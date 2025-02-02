@@ -29,9 +29,22 @@ export type ApplicationQuestionConfig = {
   options?: string[]
 }
 
-export type ApplicationAnswer = {
-  question_key: string
-  value: any
+export interface ApplicationAnswers {
+  home_type: string
+  own_or_rent: string
+  landlord_permission?: boolean
+  yard_size: string
+  household_members: number
+  children_ages?: string
+  current_pets: boolean
+  current_pet_details?: string
+  pet_experience: string[]
+  veterinarian: boolean
+  vet_name?: string
+  exercise_plan: string
+  daily_schedule: string
+  time_alone: number
+  emergency_contact: string
 }
 
 export interface Application {
@@ -41,7 +54,7 @@ export interface Application {
   rescue_id: string
   status: 'pending' | 'approved' | 'rejected'
   actioned_by: string | null
-  answers: Record<string, any>
+  answers: ApplicationAnswers
   applicant_first_name?: string
   pet_name?: string
   actioned_by_first_name?: string

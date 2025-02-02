@@ -12,6 +12,7 @@ import {
 } from '@adoptdontshop/libs/applications'
 import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
 // Style definitions
@@ -58,9 +59,36 @@ const ActionButtons = styled.div`
   gap: 0.5rem;
 `
 
+const AnswerPreview = styled.div`
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`
+
 // Types
 type ApplicationsProps = {
   isAdminView?: boolean
+}
+
+type ApplicationStatus = 'pending' | 'approved' | 'rejected'
+
+interface ApplicationAnswers {
+  home_type: string
+  own_or_rent: string
+  landlord_permission?: boolean
+  yard_size: string
+  household_members: number
+  children_ages?: string
+  current_pets: boolean
+  current_pet_details?: string
+  pet_experience: string[]
+  veterinarian: boolean
+  vet_name?: string
+  exercise_plan: string
+  daily_schedule: string
+  time_alone: number
+  emergency_contact: string
 }
 
 // Constants
@@ -69,6 +97,14 @@ const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
+]
+
+const HOME_TYPE_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'House', label: 'House' },
+  { value: 'Apartment', label: 'Apartment' },
+  { value: 'Condo', label: 'Condo' },
+  { value: 'Other', label: 'Other' },
 ]
 
 export const Applications: React.FC<ApplicationsProps> = ({
@@ -82,6 +118,8 @@ export const Applications: React.FC<ApplicationsProps> = ({
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
+    homeType: 'all',
+    hasPets: 'all',
     waitingOnly: false,
   })
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -91,15 +129,31 @@ export const Applications: React.FC<ApplicationsProps> = ({
   const filterConfig: FilterConfig[] = [
     {
       name: 'search',
-      label: 'Search by first name or pet name',
+      label: 'Search by pet name or emergency contact',
       type: 'text',
-      placeholder: 'Enter applicant or pet name',
+      placeholder: 'Enter search term',
     },
     {
       name: 'status',
       label: 'Filter by status',
       type: 'select',
       options: STATUS_OPTIONS,
+    },
+    {
+      name: 'homeType',
+      label: 'Filter by home type',
+      type: 'select',
+      options: HOME_TYPE_OPTIONS,
+    },
+    {
+      name: 'hasPets',
+      label: 'Filter by current pets',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All' },
+        { value: 'yes', label: 'Has pets' },
+        { value: 'no', label: "Doesn't have pets" },
+      ],
     },
     {
       name: 'waitingOnly',
@@ -120,8 +174,7 @@ export const Applications: React.FC<ApplicationsProps> = ({
             )
         setApplications(fetchedApplications)
         setFilteredApplications(fetchedApplications)
-      } catch (error) {
-        console.error('Error fetching applications:', error)
+      } catch (err) {
         setError('Failed to fetch applications')
       } finally {
         setIsLoading(false)
@@ -132,29 +185,45 @@ export const Applications: React.FC<ApplicationsProps> = ({
 
   useEffect(() => {
     const filtered = applications.filter((application) => {
+      const answers = application.answers as unknown as ApplicationAnswers
+
       const matchesSearch =
         !filters.search ||
-        application.applicant_first_name
-          ?.toLowerCase()
-          .includes(filters.search.toLowerCase()) ||
         application.pet_name
           ?.toLowerCase()
+          .includes(filters.search.toLowerCase()) ||
+        answers.emergency_contact
+          .toLowerCase()
           .includes(filters.search.toLowerCase())
 
       const matchesStatus =
         filters.status === 'all' || application.status === filters.status
 
+      const matchesHomeType =
+        filters.homeType === 'all' || answers.home_type === filters.homeType
+
+      const matchesHasPets =
+        filters.hasPets === 'all' ||
+        (filters.hasPets === 'yes' && answers.current_pets) ||
+        (filters.hasPets === 'no' && !answers.current_pets)
+
       const matchesWaiting =
         !filters.waitingOnly || application.status === 'pending'
 
-      return matchesSearch && matchesStatus && matchesWaiting
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesHomeType &&
+        matchesHasPets &&
+        matchesWaiting
+      )
     })
     setFilteredApplications(filtered)
   }, [filters, applications])
 
   const handleStatusUpdate = async (
     applicationId: string,
-    newStatus: string,
+    newStatus: ApplicationStatus,
   ) => {
     try {
       setError(null)
@@ -164,10 +233,15 @@ export const Applications: React.FC<ApplicationsProps> = ({
       const refreshedApplications =
         await ApplicationService.getApplicationsByRescueId(rescue!.rescue_id)
       setApplications(refreshedApplications)
-    } catch (error) {
-      console.error(`Error updating application status:`, error)
+    } catch (err) {
       setError('Failed to update application status')
     }
+  }
+
+  const getAnswerSummary = (answers: ApplicationAnswers): string => {
+    return `${answers.home_type} home, ${
+      answers.current_pets ? 'Has pets' : 'No pets'
+    }, ${answers.household_members} household members`
   }
 
   if (isLoading) {
@@ -184,7 +258,7 @@ export const Applications: React.FC<ApplicationsProps> = ({
 
       <GenericFilters
         filters={filters}
-        onFilterChange={(name: string, value: any) =>
+        onFilterChange={(name: string, value: unknown) =>
           setFilters((prev) => ({ ...prev, [name]: value }))
         }
         filterConfig={filterConfig}
@@ -197,84 +271,88 @@ export const Applications: React.FC<ApplicationsProps> = ({
           <Table hasActions>
             <thead>
               <tr>
-                <th>First name</th>
-                <th>Pet name</th>
-                <th>Description</th>
+                <th>Pet Name</th>
+                <th>Application Summary</th>
                 <th>Status</th>
-                <th>Actioned by</th>
+                <th>Contact</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredApplications.map((application) => (
-                <tr key={application.application_id}>
-                  <td>
-                    <Tooltip content={application.user_id}>
-                      <span>{application.applicant_first_name || 'N/A'}</span>
-                    </Tooltip>
-                  </td>
-                  <td>{application.pet_name}</td>
-                  <td>{application.description}</td>
-                  <td>
-                    <StatusBadge
-                      variant={
-                        application.status === 'approved'
-                          ? 'success'
-                          : application.status === 'rejected'
-                            ? 'warning'
-                            : 'content'
-                      }
-                    >
-                      {application.status.charAt(0).toUpperCase() +
-                        application.status.slice(1)}
-                    </StatusBadge>
-                  </td>
-                  <td>
-                    <Tooltip content={application.actioned_by}>
-                      <span>{application.actioned_by_first_name || 'N/A'}</span>
-                    </Tooltip>
-                  </td>
-                  <td>
-                    {application.status === 'pending' ? (
-                      <ActionButtons>
-                        <Button
-                          type="button"
-                          onClick={() =>
-                            handleStatusUpdate(
-                              application.application_id,
-                              'approved',
-                            )
-                          }
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() =>
-                            handleStatusUpdate(
-                              application.application_id,
-                              'rejected',
-                            )
-                          }
-                        >
-                          Reject
-                        </Button>
-                      </ActionButtons>
-                    ) : (
+              {filteredApplications.map((application) => {
+                const answers =
+                  application.answers as unknown as ApplicationAnswers
+                return (
+                  <tr key={application.application_id}>
+                    <td>{application.pet_name}</td>
+                    <td>
+                      <Tooltip content={JSON.stringify(answers, null, 2)}>
+                        <AnswerPreview>
+                          {getAnswerSummary(answers)}
+                        </AnswerPreview>
+                      </Tooltip>
+                    </td>
+                    <td>
                       <StatusBadge
                         variant={
                           application.status === 'approved'
                             ? 'success'
-                            : 'warning'
+                            : application.status === 'rejected'
+                              ? 'danger'
+                              : 'warning'
                         }
                       >
                         {application.status.charAt(0).toUpperCase() +
                           application.status.slice(1)}
                       </StatusBadge>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>
+                      <Tooltip content={answers.emergency_contact}>
+                        <span>{answers.emergency_contact}</span>
+                      </Tooltip>
+                    </td>
+                    <td>
+                      <ActionButtons>
+                        <Link
+                          to={
+                            isAdminView
+                              ? `/admin/applications/${application.application_id}`
+                              : `/applications/${application.application_id}`
+                          }
+                        >
+                          <Button variant="info">View</Button>
+                        </Link>
+                        {application.status === 'pending' && (
+                          <>
+                            <Button
+                              variant="success"
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  application.application_id,
+                                  'approved',
+                                )
+                              }
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="danger"
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  application.application_id,
+                                  'rejected',
+                                )
+                              }
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </ActionButtons>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </Table>
         </TableContainer>

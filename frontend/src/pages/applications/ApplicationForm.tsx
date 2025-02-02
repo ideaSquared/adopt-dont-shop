@@ -7,6 +7,8 @@ import {
   TextInput,
 } from '@adoptdontshop/components'
 import {
+  Application,
+  ApplicationAnswers as IApplicationAnswers,
   QuestionCategory,
   ApplicationQuestionConfig as QuestionConfig,
 } from '@adoptdontshop/libs/applications'
@@ -22,6 +24,10 @@ type ApplicationFormProps = {
   petId: string
 }
 
+type FormAnswers = {
+  [key: string]: string | boolean | string[] | number
+}
+
 const Container = styled.div`
   padding: 2rem;
   max-width: 800px;
@@ -34,7 +40,7 @@ const CategorySection = styled.section`
 
 const CategoryHeading = styled.h2`
   margin-bottom: 1rem;
-  color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.text.body};
 `
 
 const FormGroup = styled.div`
@@ -50,7 +56,7 @@ const CheckboxLabel = styled.label`
 `
 
 const ErrorText = styled.span`
-  color: ${({ theme }) => theme.colors.error};
+  color: ${({ theme }) => theme.text.danger};
   font-size: 0.875rem;
   margin-top: 0.25rem;
   display: block;
@@ -68,7 +74,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   petId,
 }) => {
   const [questions, setQuestions] = useState<QuestionConfig[]>([])
-  const [answers, setAnswers] = useState<Record<string, any>>({})
+  const [answers, setAnswers] = useState<FormAnswers>({})
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -99,7 +105,10 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
     fetchQuestions()
   }, [rescueId])
 
-  const handleAnswerChange = (questionKey: string, value: any) => {
+  const handleAnswerChange = (
+    questionKey: string,
+    value: string | boolean | string[] | number,
+  ) => {
     setAnswers((prev) => ({
       ...prev,
       [questionKey]: value,
@@ -133,9 +142,9 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
         rescue_id: rescueId,
         pet_id: petId,
         user_id: user!.user_id,
-        answers,
+        answers: answers as unknown as IApplicationAnswers,
         status: 'pending',
-      })
+      } as Partial<Application>)
 
       // Redirect to applications list
       navigate('/applications')
@@ -153,7 +162,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
           <FormInput label={question.question_text}>
             <TextInput
               type="text"
-              value={answers[question.question_key] || ''}
+              value={answers[question.question_key]?.toString() || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleAnswerChange(question.question_key, e.target.value)
               }
@@ -166,7 +175,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
           <FormInput label={question.question_text}>
             <TextInput
               type="email"
-              value={answers[question.question_key] || ''}
+              value={answers[question.question_key]?.toString() || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleAnswerChange(question.question_key, e.target.value)
               }
@@ -179,7 +188,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
           <FormInput label={question.question_text}>
             <TextInput
               type="tel"
-              value={answers[question.question_key] || ''}
+              value={answers[question.question_key]?.toString() || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleAnswerChange(question.question_key, e.target.value)
               }
@@ -192,9 +201,12 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
           <FormInput label={question.question_text}>
             <TextInput
               type="number"
-              value={answers[question.question_key] || ''}
+              value={answers[question.question_key]?.toString() || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleAnswerChange(question.question_key, e.target.value)
+                handleAnswerChange(
+                  question.question_key,
+                  parseInt(e.target.value, 10),
+                )
               }
               required={question.is_required}
             />
@@ -204,7 +216,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
         return (
           <CheckboxLabel>
             <CheckboxInput
-              checked={answers[question.question_key] || false}
+              checked={Boolean(answers[question.question_key])}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleAnswerChange(question.question_key, e.target.checked)
               }
@@ -222,7 +234,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   label: option,
                 })) || []
               }
-              value={answers[question.question_key] || null}
+              value={answers[question.question_key]?.toString() || ''}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 handleAnswerChange(question.question_key, e.target.value)
               }
@@ -235,61 +247,29 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
         return question.options?.map((option) => (
           <CheckboxLabel key={option}>
             <CheckboxInput
-              checked={(answers[question.question_key] || []).includes(option)}
+              checked={(
+                (answers[question.question_key] as string[]) || []
+              ).includes(option)}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const currentValues = answers[question.question_key] || []
+                const currentValues =
+                  (answers[question.question_key] as string[]) || []
                 const newValues = e.target.checked
                   ? [...currentValues, option]
-                  : currentValues.filter((v: string) => v !== option)
+                  : currentValues.filter((v) => v !== option)
                 handleAnswerChange(question.question_key, newValues)
               }}
             />
             {option}
           </CheckboxLabel>
         ))
-      case 'ADDRESS':
-        return (
-          <FormInput label={question.question_text}>
-            <TextInput
-              type="text"
-              value={answers[question.question_key] || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleAnswerChange(question.question_key, e.target.value)
-              }
-              required={question.is_required}
-            />
-          </FormInput>
-        )
       default:
-        return (
-          <FormInput label={question.question_text}>
-            <TextInput
-              type="text"
-              value={answers[question.question_key] || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleAnswerChange(question.question_key, e.target.value)
-              }
-              required={question.is_required}
-            />
-          </FormInput>
-        )
+        return null
     }
   }
 
   if (loading) {
     return <div>Loading application form...</div>
   }
-
-  const questionsByCategory = questions.reduce(
-    (acc, question) => {
-      if (!acc[question.category]) {
-        acc[question.category] = []
-      }
-      acc[question.category].push(question)
-      return acc
-    },
-    {} as Record<QuestionCategory, QuestionConfig[]>,
-  )
 
   return (
     <Container>
@@ -303,25 +283,34 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
       {error && <Alert variant="error">{error}</Alert>}
 
       <form onSubmit={handleSubmit}>
-        {Object.entries(questionsByCategory).map(
-          ([category, categoryQuestions]) => (
-            <CategorySection key={category}>
-              <CategoryHeading>
-                {formatCategoryName(category as QuestionCategory)}
-              </CategoryHeading>
-              <hr />
-
-              {categoryQuestions.map((question) => (
-                <FormGroup key={question.config_id}>
-                  {renderQuestionInput(question)}
-                  {validationErrors.some(
-                    (error) => error.question_key === question.question_key,
-                  ) && <ErrorText>This field is required</ErrorText>}
-                </FormGroup>
-              ))}
-            </CategorySection>
+        {Object.entries(
+          questions.reduce(
+            (acc, question) => {
+              if (!acc[question.category]) {
+                acc[question.category] = []
+              }
+              acc[question.category].push(question)
+              return acc
+            },
+            {} as Record<QuestionCategory, QuestionConfig[]>,
           ),
-        )}
+        ).map(([category, categoryQuestions]) => (
+          <CategorySection key={category}>
+            <CategoryHeading>
+              {formatCategoryName(category as QuestionCategory)}
+            </CategoryHeading>
+            <hr />
+
+            {categoryQuestions.map((question) => (
+              <FormGroup key={question.config_id}>
+                {renderQuestionInput(question)}
+                {validationErrors.some(
+                  (error) => error.question_key === question.question_key,
+                ) && <ErrorText>This field is required</ErrorText>}
+              </FormGroup>
+            ))}
+          </CategorySection>
+        ))}
 
         <Button type="submit" disabled={submitting} variant="success">
           {submitting ? 'Submitting...' : 'Submit Application'}

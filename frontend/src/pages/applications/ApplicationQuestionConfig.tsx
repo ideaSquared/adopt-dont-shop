@@ -53,7 +53,7 @@ const SaveButton = styled(Button)`
 
 const CategoryHeading = styled.h2`
   margin-bottom: 1rem;
-  color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.text.body};
 `
 
 const formatCategoryName = (category: QuestionCategory): string => {
@@ -219,3 +219,5 @@ export const ApplicationQuestionConfig: React.FC<
     </Container>
   )
 }
+
+export default ApplicationQuestionConfig

@@ -2,10 +2,7 @@ import { NextFunction, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import { User } from '../Models'
 import { AuditLogger } from '../services/auditLogService'
-import {
-  getRolesForUser,
-  verifyUserHasRole,
-} from '../services/permissionService'
+import { getRolesForUser } from '../services/permissionService'
 import { verifyPetOwnership } from '../services/petService'
 import {
   getRescueIdByUserId,
@@ -14,7 +11,7 @@ import {
 import { AuthenticatedRequest } from '../types/AuthenticatedRequest'
 
 type AuthOptions = {
-  requiredRole?: string
+  requiredRole?: string | string[]
   ownershipCheck?: (req: AuthenticatedRequest) => Promise<boolean>
   verifyRescueOwnership?: boolean
   verifyPetOwnership?: boolean
@@ -46,6 +43,25 @@ const checkPetOwnership = async (
   req.user.rescue_id = rescueId
 
   return verifyPetOwnership(rescueId, petId)
+}
+
+// Helper function to check if user has any of the required roles
+const checkRoles = async (
+  userId: string,
+  requiredRoles: string | string[],
+): Promise<boolean> => {
+  const userRoles = await getRolesForUser(userId)
+
+  // Admin override
+  if (userRoles.includes('admin')) {
+    return true
+  }
+
+  if (Array.isArray(requiredRoles)) {
+    return requiredRoles.some((role) => userRoles.includes(role))
+  }
+
+  return userRoles.includes(requiredRoles)
 }
 
 export const authRoleOwnershipMiddleware = ({
@@ -109,10 +125,13 @@ export const authRoleOwnershipMiddleware = ({
       const userId = user.user_id
 
       // Check role if required
-      if (requiredRole && !(await verifyUserHasRole(userId, requiredRole))) {
+      if (requiredRole && !(await checkRoles(userId, requiredRole))) {
+        const roleStr = Array.isArray(requiredRole)
+          ? requiredRole.join(' or ')
+          : requiredRole
         AuditLogger.logAction(
           'RoleCheckMiddleware',
-          `User with ID: ${userId} attempted to access a resource requiring role: ${requiredRole} but does not have this role`,
+          `User with ID: ${userId} attempted to access a resource requiring role: ${roleStr} but does not have this role`,
           'WARNING',
           userId,
           AuditLogger.getAuditOptions(req, 'AUTHORIZATION'),

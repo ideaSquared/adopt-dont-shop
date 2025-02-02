@@ -9,17 +9,17 @@ import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMidd
 
 const router = express.Router()
 
-// Get question configs for a rescue
+// Get question configs for a rescue - allow staff and admins to view
 router.get(
   '/rescue/:rescueId',
   authRoleOwnershipMiddleware({
-    requiredRole: 'rescue_manager',
-    verifyRescueOwnership: true,
+    requiredRole: ['rescue_manager', 'staff', 'admin'],
+    verifyRescueOwnership: false,
   }),
   getQuestionConfigsByRescueId,
 )
 
-// Update a single question config
+// Update a single question config - only rescue managers can update
 router.put(
   '/:configId',
   authRoleOwnershipMiddleware({
@@ -29,7 +29,7 @@ router.put(
   updateQuestionConfig,
 )
 
-// Bulk update question configs for a rescue
+// Bulk update question configs for a rescue - only rescue managers can update
 router.put(
   '/rescue/:rescueId/bulk',
   authRoleOwnershipMiddleware({
@@ -39,7 +39,7 @@ router.put(
   bulkUpdateQuestionConfigs,
 )
 
-// Validate application answers
+// Validate application answers - no specific role required, just authentication
 router.post(
   '/rescue/:rescueId/validate',
   authRoleOwnershipMiddleware(),

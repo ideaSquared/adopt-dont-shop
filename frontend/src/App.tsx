@@ -33,6 +33,7 @@ import {
   Route,
   BrowserRouter as Router,
   Routes,
+  useParams,
 } from 'react-router-dom'
 import Navbar from './components/Navbar/Navbar'
 import { UserProvider, useUser } from './contexts/auth/UserContext'
@@ -41,8 +42,22 @@ import {
   useFeatureFlag,
 } from './contexts/feature-flags/FeatureFlagContext'
 import { ThemeProvider } from './contexts/theme/ThemeContext'
+import { ApplicationForm, ApplicationReview } from './pages/applications'
 import { Dashboard } from './pages/dashboard/Dashboard'
 import GlobalStyles from './styles/GlobalStyles'
+
+// Wrapper components for routes that need URL parameters
+const ApplicationFormWrapper: React.FC = () => {
+  const { rescueId, petId } = useParams<{ rescueId: string; petId: string }>()
+  if (!rescueId || !petId) return <Navigate to="/" />
+  return <ApplicationForm rescueId={rescueId} petId={petId} />
+}
+
+const ApplicationReviewWrapper: React.FC = () => {
+  const { applicationId } = useParams<{ applicationId: string }>()
+  if (!applicationId) return <Navigate to="/applications" />
+  return <ApplicationReview applicationId={applicationId} />
+}
 
 const AppContent: React.FC = () => {
   const { user } = useUser()
@@ -73,11 +88,19 @@ const AppContent: React.FC = () => {
             ) : (
               <Route path="/chat" element={<Navigate to="/" />} />
             )}
+            <Route
+              path="/apply/:rescueId/:petId"
+              element={<ApplicationFormWrapper />}
+            />
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route
               path="/applications"
               element={<Applications isAdminView={false} />}
+            />
+            <Route
+              path="/applications/:applicationId"
+              element={<ApplicationReviewWrapper />}
             />
             <Route path="/pets" element={<Pets isAdminView={false} />} />
             <Route path="/staff" element={<Staff />} />
@@ -106,6 +129,10 @@ const AppContent: React.FC = () => {
             <Route
               path="/admin/applications"
               element={<Applications isAdminView={true} />}
+            />
+            <Route
+              path="/admin/applications/:applicationId"
+              element={<ApplicationReviewWrapper />}
             />
           </Route>
         </Routes>

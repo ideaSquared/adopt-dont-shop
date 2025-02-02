@@ -1,4 +1,4 @@
-import { QueryInterface, DataTypes } from 'sequelize'
+import { DataTypes, QueryInterface } from 'sequelize'
 
 export async function up(queryInterface: QueryInterface) {
   await queryInterface.changeColumn('audit_logs', 'action', {
@@ -12,4 +12,4 @@ export async function down(queryInterface: QueryInterface) {
     type: DataTypes.STRING(255),
     allowNull: false,
   })
-} 
+}
