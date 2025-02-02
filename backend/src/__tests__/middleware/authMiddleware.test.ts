@@ -125,14 +125,14 @@ describe('authRoleOwnershipMiddleware', () => {
     ;(jwt.verify as jest.Mock).mockImplementation(() => ({ userId: '123' }))
     ;(User.findByPk as jest.Mock).mockResolvedValue(mockUser)
     ;(verifyUserHasRole as jest.Mock).mockResolvedValue(true)
-    ;(getRolesForUser as jest.Mock).mockResolvedValue(['user'])
+    ;(getRolesForUser as jest.Mock).mockResolvedValue(['admin'])
 
     const response = await request(app)
       .get('/protected-with-role')
       .set('Authorization', 'Bearer validtoken')
 
     expect(response.status).toBe(200)
-    expect(verifyUserHasRole).toHaveBeenCalledWith('123', 'admin')
+    expect(getRolesForUser).toHaveBeenCalledWith('123')
   })
 
   it('should check rescue ownership when verifyRescueOwnership is true', async () => {
