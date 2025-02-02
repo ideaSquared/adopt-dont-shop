@@ -1,15 +1,14 @@
 import { Alert, Badge, Button, Card, DateTime } from '@adoptdontshop/components'
-import {
-  Application,
-  ApplicationAnswers,
-  QuestionCategory,
-  ApplicationQuestionConfig as QuestionConfig,
-} from '@adoptdontshop/libs/applications'
-import ApplicationQuestionConfigService from '@adoptdontshop/libs/applications/ApplicationQuestionConfigService'
 import ApplicationService from '@adoptdontshop/libs/applications/ApplicationService'
 import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
+import { Application } from '../../libs/applications/Application'
+import * as RescueQuestionConfigService from '../../services/rescueQuestionConfigService'
+import {
+  QuestionCategory,
+  RescueQuestionConfig,
+} from '../../types/applicationTypes'
 
 type ApplicationReviewProps = {
   applicationId: string
@@ -17,7 +16,7 @@ type ApplicationReviewProps = {
 
 type AnswerValue = string | boolean | string[] | number | undefined
 
-interface DynamicAnswers extends ApplicationAnswers {
+interface DynamicAnswers {
   [key: string]: AnswerValue
 }
 
@@ -149,7 +148,7 @@ const formatDate = (date: string | Date | undefined): string => {
 
 const formatAnswer = (
   value: AnswerValue,
-  type: QuestionConfig['question_type'],
+  type: RescueQuestionConfig['rescueCoreQuestion']['question_type'],
 ): string => {
   if (value === undefined) {
     return 'No answer provided'
@@ -169,7 +168,7 @@ export const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   applicationId,
 }) => {
   const [application, setApplication] = useState<Application | null>(null)
-  const [questions, setQuestions] = useState<QuestionConfig[]>([])
+  const [questions, setQuestions] = useState<RescueQuestionConfig[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
@@ -195,7 +194,7 @@ export const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         // Then fetch the question configs using the rescue_id from the application
         try {
           const questionsData =
-            await ApplicationQuestionConfigService.getQuestionConfigsByRescueId(
+            await RescueQuestionConfigService.getRescueQuestionConfigs(
               applicationData.rescue_id,
             )
           setQuestions(questionsData)
@@ -263,16 +262,17 @@ export const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   const questionsByCategory = questions.reduce(
     (acc, question) => {
-      if (!acc[question.category]) {
-        acc[question.category] = []
+      const category = question.rescueCoreQuestion.category
+      if (!acc[category]) {
+        acc[category] = []
       }
-      acc[question.category].push(question)
+      acc[category].push(question)
       return acc
     },
-    {} as Record<QuestionCategory, QuestionConfig[]>,
+    {} as Record<QuestionCategory, RescueQuestionConfig[]>,
   )
 
-  const answers = application.answers as DynamicAnswers
+  const answers = application?.answers as DynamicAnswers
 
   return (
     <Container role="main" aria-labelledby="application-review-title">
@@ -284,45 +284,33 @@ export const ApplicationReview: React.FC<ApplicationReviewProps> = ({
             <MetaLabel>Status</MetaLabel>
             <StatusBadge
               variant={
-                application.status === 'approved'
+                application?.status === 'approved'
                   ? 'success'
-                  : application.status === 'rejected'
+                  : application?.status === 'rejected'
                     ? 'danger'
                     : 'warning'
               }
             >
-              {application.status}
+              {application?.status}
             </StatusBadge>
           </MetaItem>
           <MetaItem>
-            <MetaLabel>Applicant</MetaLabel>
-            <MetaValue>{application.applicant_first_name || 'N/A'}</MetaValue>
-          </MetaItem>
-          <MetaItem>
-            <MetaLabel>Pet Name</MetaLabel>
-            <MetaValue>{application.pet_name || 'N/A'}</MetaValue>
+            <MetaLabel>Application ID</MetaLabel>
+            <MetaValue>{application?.application_id}</MetaValue>
           </MetaItem>
           <MetaItem>
             <MetaLabel>Submitted</MetaLabel>
             <MetaValue>
-              <DateTime timestamp={application.created_at || 'N/A'} />
+              <DateTime timestamp={application?.created_at || 'N/A'} />
             </MetaValue>
           </MetaItem>
-          {application.actioned_by && (
-            <>
-              <MetaItem>
-                <MetaLabel>Reviewed By</MetaLabel>
-                <MetaValue>
-                  {application.actioned_by_first_name || 'N/A'}
-                </MetaValue>
-              </MetaItem>
-              <MetaItem>
-                <MetaLabel>Review Date</MetaLabel>
-                <MetaValue>
-                  <DateTime timestamp={application.updated_at || 'N/A'} />
-                </MetaValue>
-              </MetaItem>
-            </>
+          {application?.updated_at && (
+            <MetaItem>
+              <MetaLabel>Last Updated</MetaLabel>
+              <MetaValue>
+                <DateTime timestamp={application.updated_at} />
+              </MetaValue>
+            </MetaItem>
           )}
         </ApplicationMeta>
 
@@ -362,10 +350,10 @@ export const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               {categoryQuestions.map((question) => (
                 <QuestionCard
                   key={question.config_id}
-                  title={question.question_text}
+                  title={question.rescueCoreQuestion.question_text}
                 >
                   <QuestionText id={`question-${question.config_id}`}>
-                    {question.question_text}
+                    {question.rescueCoreQuestion.question_text}
                     {question.is_required && (
                       <span style={{ color: 'red', marginLeft: '0.25rem' }}>
                         *
@@ -375,7 +363,7 @@ export const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <AnswerText>
                     {formatAnswer(
                       answers[question.question_key],
-                      question.question_type,
+                      question.rescueCoreQuestion.question_type,
                     )}
                   </AnswerText>
                 </QuestionCard>

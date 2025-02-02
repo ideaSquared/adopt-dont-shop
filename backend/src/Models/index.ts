@@ -1,5 +1,4 @@
 import Application from './Application'
-import ApplicationQuestionConfig from './ApplicationQuestionConfig'
 import { AuditLog } from './AuditLog'
 import Conversation from './Conversation'
 import CoreApplicationQuestion from './CoreApplicationQuestion'
@@ -18,18 +17,6 @@ import StaffMember from './StaffMember'
 import User, { UserCreationAttributes } from './User'
 import UserPreference from './UserPreference'
 import UserRole from './UserRole'
-
-// Associations
-
-// Core Question & Application Question Config Associations
-ApplicationQuestionConfig.belongsTo(CoreApplicationQuestion, {
-  foreignKey: 'question_key',
-  as: 'coreQuestion',
-})
-CoreApplicationQuestion.hasMany(ApplicationQuestionConfig, {
-  foreignKey: 'question_key',
-  as: 'rescueConfigs',
-})
 
 // User & Role Associations
 User.belongsToMany(Role, {
@@ -97,7 +84,6 @@ UserPreference.belongsTo(User, { foreignKey: 'user_id' })
 
 export {
   Application,
-  ApplicationQuestionConfig,
   AuditLog,
   Conversation,
   CoreApplicationQuestion,

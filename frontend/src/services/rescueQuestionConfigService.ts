@@ -15,6 +15,14 @@ type BulkUpdateRequest = Array<{
   is_required: boolean
 }>
 
+type ValidationResponse = {
+  isValid: boolean
+  missingRequiredAnswers: Array<{
+    question_key: string
+    question_text: string
+  }>
+}
+
 export const getRescueQuestionConfigs = async (rescueId: string) => {
   return await apiService.get<RescueQuestionConfig[]>(
     `/rescue-question-configs/rescue/${rescueId}`,
@@ -41,8 +49,19 @@ export const bulkUpdateRescueQuestionConfigs = async (
   )
 }
 
+export const validateApplicationAnswers = async (
+  rescueId: string,
+  answers: Record<string, any>,
+) => {
+  return await apiService.post<
+    { answers: Record<string, any> },
+    ValidationResponse
+  >(`/rescue-question-configs/rescue/${rescueId}/validate`, { answers })
+}
+
 export default {
   getRescueQuestionConfigs,
   updateRescueQuestionConfig,
   bulkUpdateRescueQuestionConfigs,
+  validateApplicationAnswers,
 }

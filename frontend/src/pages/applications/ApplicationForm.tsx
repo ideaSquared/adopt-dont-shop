@@ -6,27 +6,23 @@ import {
   SelectInput,
   TextInput,
 } from '@adoptdontshop/components'
-import {
-  Application,
-  ApplicationAnswers as IApplicationAnswers,
-  QuestionCategory,
-  ApplicationQuestionConfig as QuestionConfig,
-} from '@adoptdontshop/libs/applications'
-import ApplicationQuestionConfigService from '@adoptdontshop/libs/applications/ApplicationQuestionConfigService'
 import ApplicationService from '@adoptdontshop/libs/applications/ApplicationService'
 import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
+import * as RescueQuestionConfigService from '../../services/rescueQuestionConfigService'
+import {
+  QuestionCategory,
+  RescueQuestionConfig,
+} from '../../types/applicationTypes'
 
 type ApplicationFormProps = {
   rescueId: string
   petId: string
 }
 
-type FormAnswers = {
-  [key: string]: string | boolean | string[] | number
-}
+type FormAnswers = Record<string, any>
 
 const Container = styled.div`
   padding: 2rem;
@@ -73,7 +69,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   rescueId,
   petId,
 }) => {
-  const [questions, setQuestions] = useState<QuestionConfig[]>([])
+  const [questions, setQuestions] = useState<RescueQuestionConfig[]>([])
   const [answers, setAnswers] = useState<FormAnswers>({})
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -91,9 +87,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
     const fetchQuestions = async () => {
       try {
         const configs =
-          await ApplicationQuestionConfigService.getQuestionConfigsByRescueId(
-            rescueId,
-          )
+          await RescueQuestionConfigService.getRescueQuestionConfigs(rescueId)
         setQuestions(configs.filter((q) => q.is_enabled))
       } catch (error) {
         setError('Failed to load application questions')
@@ -105,171 +99,187 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
     fetchQuestions()
   }, [rescueId])
 
-  const handleAnswerChange = (
-    questionKey: string,
-    value: string | boolean | string[] | number,
-  ) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionKey]: value,
-    }))
-    setValidationErrors((prev) =>
-      prev.filter((error) => error.question_key !== questionKey),
-    )
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
+    setValidationErrors([])
 
     try {
       // Validate answers
       const validation =
-        await ApplicationQuestionConfigService.validateApplicationAnswers(
+        await RescueQuestionConfigService.validateApplicationAnswers(
           rescueId,
           answers,
         )
 
       if (!validation.isValid) {
         setValidationErrors(validation.missingRequiredAnswers)
-        setError('Please fill in all required fields')
         return
       }
 
-      // Submit application
-      await ApplicationService.createApplication({
+      // Create application
+      const application = await ApplicationService.createApplication({
         rescue_id: rescueId,
         pet_id: petId,
-        user_id: user!.user_id,
-        answers: answers as unknown as IApplicationAnswers,
-        status: 'pending',
-      } as Partial<Application>)
+        answers,
+      })
 
-      // Redirect to applications list
-      navigate('/applications')
-    } catch (err) {
-      setError('Failed to submit application')
+      // Navigate to success page
+      navigate(`/applications/${application.application_id}`)
+    } catch (error: any) {
+      if (error.response?.data?.missingRequiredAnswers) {
+        setValidationErrors(error.response.data.missingRequiredAnswers)
+      } else {
+        setError('Failed to submit application')
+      }
     } finally {
       setSubmitting(false)
     }
   }
 
-  const renderQuestionInput = (question: QuestionConfig) => {
-    switch (question.question_type) {
+  const handleAnswerChange = (questionKey: string, value: any) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionKey]: value,
+    }))
+  }
+
+  const renderQuestionInput = (question: RescueQuestionConfig) => {
+    if (!question.rescueCoreQuestion) {
+      console.error('Missing rescueCoreQuestion data for question:', question)
+      return null
+    }
+
+    switch (question.rescueCoreQuestion.question_type) {
       case 'TEXT':
         return (
-          <FormInput label={question.question_text}>
+          <FormInput label={question.rescueCoreQuestion.question_text}>
             <TextInput
               type="text"
-              value={answers[question.question_key]?.toString() || ''}
+              value={answers[question.question_key] || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleAnswerChange(question.question_key, e.target.value)
               }
-              required={question.is_required}
             />
           </FormInput>
         )
       case 'EMAIL':
         return (
-          <FormInput label={question.question_text}>
+          <FormInput label={question.rescueCoreQuestion.question_text}>
             <TextInput
               type="email"
-              value={answers[question.question_key]?.toString() || ''}
+              value={answers[question.question_key] || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleAnswerChange(question.question_key, e.target.value)
               }
-              required={question.is_required}
             />
           </FormInput>
         )
       case 'PHONE':
         return (
-          <FormInput label={question.question_text}>
+          <FormInput label={question.rescueCoreQuestion.question_text}>
             <TextInput
               type="tel"
-              value={answers[question.question_key]?.toString() || ''}
+              value={answers[question.question_key] || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleAnswerChange(question.question_key, e.target.value)
               }
-              required={question.is_required}
             />
           </FormInput>
         )
       case 'NUMBER':
         return (
-          <FormInput label={question.question_text}>
+          <FormInput label={question.rescueCoreQuestion.question_text}>
             <TextInput
               type="number"
-              value={answers[question.question_key]?.toString() || ''}
+              value={answers[question.question_key] || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleAnswerChange(
-                  question.question_key,
-                  parseInt(e.target.value, 10),
-                )
+                handleAnswerChange(question.question_key, e.target.value)
               }
-              required={question.is_required}
             />
           </FormInput>
         )
       case 'BOOLEAN':
         return (
-          <CheckboxLabel>
+          <FormInput label={question.rescueCoreQuestion.question_text}>
             <CheckboxInput
               checked={Boolean(answers[question.question_key])}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleAnswerChange(question.question_key, e.target.checked)
               }
             />
-            {question.question_text}
-          </CheckboxLabel>
+          </FormInput>
         )
       case 'SELECT':
         return (
-          <FormInput label={question.question_text}>
+          <FormInput label={question.rescueCoreQuestion.question_text}>
             <SelectInput
               options={
-                question.options?.map((option) => ({
+                question.rescueCoreQuestion.options?.map((option: string) => ({
                   value: option,
                   label: option,
                 })) || []
               }
-              value={answers[question.question_key]?.toString() || ''}
+              value={answers[question.question_key] || ''}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 handleAnswerChange(question.question_key, e.target.value)
               }
-              required={question.is_required}
               placeholder="Select an option"
             />
           </FormInput>
         )
       case 'MULTI_SELECT':
-        return question.options?.map((option) => (
-          <CheckboxLabel key={option}>
-            <CheckboxInput
-              checked={(
-                (answers[question.question_key] as string[]) || []
-              ).includes(option)}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const currentValues =
-                  (answers[question.question_key] as string[]) || []
-                const newValues = e.target.checked
-                  ? [...currentValues, option]
-                  : currentValues.filter((v) => v !== option)
-                handleAnswerChange(question.question_key, newValues)
-              }}
-            />
-            {option}
-          </CheckboxLabel>
-        ))
+        return (
+          <FormInput label={question.rescueCoreQuestion.question_text}>
+            <div>
+              {question.rescueCoreQuestion.options?.map((option: string) => (
+                <div key={option}>
+                  <CheckboxInput
+                    checked={(answers[question.question_key] || []).includes(
+                      option,
+                    )}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const currentValues = answers[question.question_key] || []
+                      const newValues = e.target.checked
+                        ? [...currentValues, option]
+                        : currentValues.filter((v: string) => v !== option)
+                      handleAnswerChange(question.question_key, newValues)
+                    }}
+                  />
+                  <span>{option}</span>
+                </div>
+              ))}
+            </div>
+          </FormInput>
+        )
       default:
         return null
     }
   }
 
   if (loading) {
-    return <div>Loading application form...</div>
+    return <div>Loading...</div>
   }
+
+  const questionsByCategory = questions.reduce<
+    Record<QuestionCategory, RescueQuestionConfig[]>
+  >(
+    (acc, question) => {
+      if (!question.rescueCoreQuestion) {
+        console.error('Missing rescueCoreQuestion data for question:', question)
+        return acc
+      }
+
+      const category = question.rescueCoreQuestion.category
+      if (!acc[category]) {
+        acc[category] = []
+      }
+      acc[category].push(question)
+      return acc
+    },
+    {} as Record<QuestionCategory, RescueQuestionConfig[]>,
+  )
 
   return (
     <Container>
@@ -283,36 +293,43 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
       {error && <Alert variant="error">{error}</Alert>}
 
       <form onSubmit={handleSubmit}>
-        {Object.entries(
-          questions.reduce(
-            (acc, question) => {
-              if (!acc[question.category]) {
-                acc[question.category] = []
-              }
-              acc[question.category].push(question)
-              return acc
-            },
-            {} as Record<QuestionCategory, QuestionConfig[]>,
+        {validationErrors.length > 0 && (
+          <Alert variant="error">
+            Please fill in the following required fields:
+            <ul>
+              {validationErrors.map((error) => (
+                <li key={error.question_key}>{error.question_text}</li>
+              ))}
+            </ul>
+          </Alert>
+        )}
+
+        {Object.entries(questionsByCategory).map(
+          ([category, categoryQuestions]) => (
+            <CategorySection key={category}>
+              <CategoryHeading>
+                {formatCategoryName(category as QuestionCategory)}
+              </CategoryHeading>
+              <hr />
+
+              {categoryQuestions.map((question) => (
+                <FormGroup key={question.question_key}>
+                  {question.rescueCoreQuestion ? (
+                    <label>
+                      {question.rescueCoreQuestion.question_text}
+                      {question.is_required && ' *'}
+                    </label>
+                  ) : (
+                    <Alert variant="error">Missing question data</Alert>
+                  )}
+                  {renderQuestionInput(question)}
+                </FormGroup>
+              ))}
+            </CategorySection>
           ),
-        ).map(([category, categoryQuestions]) => (
-          <CategorySection key={category}>
-            <CategoryHeading>
-              {formatCategoryName(category as QuestionCategory)}
-            </CategoryHeading>
-            <hr />
+        )}
 
-            {categoryQuestions.map((question) => (
-              <FormGroup key={question.config_id}>
-                {renderQuestionInput(question)}
-                {validationErrors.some(
-                  (error) => error.question_key === question.question_key,
-                ) && <ErrorText>This field is required</ErrorText>}
-              </FormGroup>
-            ))}
-          </CategorySection>
-        ))}
-
-        <Button type="submit" disabled={submitting} variant="success">
+        <Button type="submit" disabled={submitting}>
           {submitting ? 'Submitting...' : 'Submit Application'}
         </Button>
       </form>

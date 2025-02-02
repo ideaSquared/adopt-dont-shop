@@ -1,23 +1,23 @@
 import { apiService } from '../api-service'
-import { ApplicationQuestionConfig } from './Application'
+import { CoreApplicationQuestion } from './Application'
 
 const API_BASE_URL = '/application-question-configs'
 
 export const getQuestionConfigsByRescueId = async (
   rescueId: string,
-): Promise<ApplicationQuestionConfig[]> => {
-  return apiService.get<ApplicationQuestionConfig[]>(
+): Promise<CoreApplicationQuestion[]> => {
+  return apiService.get<CoreApplicationQuestion[]>(
     `${API_BASE_URL}/rescue/${rescueId}`,
   )
 }
 
 export const updateQuestionConfig = async (
   configId: string,
-  data: Partial<ApplicationQuestionConfig>,
-): Promise<ApplicationQuestionConfig> => {
+  data: Partial<CoreApplicationQuestion>,
+): Promise<CoreApplicationQuestion> => {
   return apiService.put<
-    Partial<ApplicationQuestionConfig>,
-    ApplicationQuestionConfig
+    Partial<CoreApplicationQuestion>,
+    CoreApplicationQuestion
   >(`${API_BASE_URL}/${configId}`, data)
 }
 

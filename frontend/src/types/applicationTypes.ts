@@ -35,7 +35,7 @@ export type RescueQuestionConfig = {
   is_required: boolean
   created_at: string
   updated_at: string
-  coreQuestion: CoreApplicationQuestion
+  rescueCoreQuestion: CoreApplicationQuestion
 }
 
 export type QuestionUsageStats = {

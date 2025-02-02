@@ -1,12 +1,12 @@
 import { Alert, Button, Card, CheckboxInput } from '@adoptdontshop/components'
-import {
-  QuestionCategory,
-  ApplicationQuestionConfig as QuestionConfig,
-} from '@adoptdontshop/libs/applications'
-import ApplicationQuestionConfigService from '@adoptdontshop/libs/applications/ApplicationQuestionConfigService'
 import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
+import * as RescueQuestionConfigService from '../../services/rescueQuestionConfigService'
+import {
+  QuestionCategory,
+  RescueQuestionConfig,
+} from '../../types/applicationTypes'
 
 type ApplicationQuestionConfigProps = {
   rescueId: string
@@ -153,7 +153,7 @@ const formatCategoryName = (category: QuestionCategory): string => {
 export const ApplicationQuestionConfig: React.FC<
   ApplicationQuestionConfigProps
 > = ({ rescueId }) => {
-  const [questions, setQuestions] = useState<QuestionConfig[]>([])
+  const [questions, setQuestions] = useState<RescueQuestionConfig[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
@@ -167,9 +167,7 @@ export const ApplicationQuestionConfig: React.FC<
         setLoading(true)
         setError(null)
         const configs =
-          await ApplicationQuestionConfigService.getQuestionConfigsByRescueId(
-            rescueId,
-          )
+          await RescueQuestionConfigService.getRescueQuestionConfigs(rescueId)
         setQuestions(configs)
       } catch (error) {
         setError('Failed to load application questions')
@@ -208,7 +206,7 @@ export const ApplicationQuestionConfig: React.FC<
       }))
 
       const results =
-        await ApplicationQuestionConfigService.bulkUpdateQuestionConfigs(
+        await RescueQuestionConfigService.bulkUpdateRescueQuestionConfigs(
           rescueId,
           updates,
         )
@@ -237,13 +235,14 @@ export const ApplicationQuestionConfig: React.FC<
 
   const questionsByCategory = questions.reduce(
     (acc, question) => {
-      if (!acc[question.category]) {
-        acc[question.category] = []
+      const category = question.rescueCoreQuestion.category
+      if (!acc[category]) {
+        acc[category] = []
       }
-      acc[question.category].push(question)
+      acc[category].push(question)
       return acc
     },
-    {} as Record<QuestionCategory, QuestionConfig[]>,
+    {} as Record<QuestionCategory, RescueQuestionConfig[]>,
   )
 
   return (
@@ -280,10 +279,12 @@ export const ApplicationQuestionConfig: React.FC<
             {categoryQuestions.map((question) => (
               <QuestionCard
                 key={question.config_id}
-                title={question.question_text}
+                title={question.rescueCoreQuestion.question_text}
               >
                 <QuestionHeader>
-                  <QuestionText>{question.question_text}</QuestionText>
+                  <QuestionText>
+                    {question.rescueCoreQuestion.question_text}
+                  </QuestionText>
                   <QuestionControls>
                     <CheckboxLabel>
                       <CheckboxInput
@@ -295,7 +296,7 @@ export const ApplicationQuestionConfig: React.FC<
                             e.target.checked,
                           )
                         }
-                        aria-label={`Enable ${question.question_text}`}
+                        aria-label={`Enable ${question.rescueCoreQuestion.question_text}`}
                       />
                       Enable
                     </CheckboxLabel>
@@ -310,7 +311,7 @@ export const ApplicationQuestionConfig: React.FC<
                               e.target.checked,
                             )
                           }
-                          aria-label={`Make ${question.question_text} required`}
+                          aria-label={`Make ${question.rescueCoreQuestion.question_text} required`}
                         />
                         Required
                       </CheckboxLabel>
@@ -318,9 +319,9 @@ export const ApplicationQuestionConfig: React.FC<
                   </QuestionControls>
                 </QuestionHeader>
                 <QuestionMeta>
-                  Type: {question.question_type}
-                  {question.options &&
-                    ` (Options: ${question.options.join(', ')})`}
+                  Type: {question.rescueCoreQuestion.question_type}
+                  {question.rescueCoreQuestion.options &&
+                    ` (Options: ${question.rescueCoreQuestion.options.join(', ')})`}
                 </QuestionMeta>
               </QuestionCard>
             ))}

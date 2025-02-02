@@ -26,7 +26,7 @@ async function runSeeders() {
     const orderedSeeders = [
       '20240818132703-rescues.ts', // First create rescues
       '20240205-core-questions.ts', // Then create core questions
-      '20240818132715-application-question-configs.ts', // Finally create rescue-specific configs
+      '20240818132715-rescue-question-configs', // Finally create rescue-specific configs
     ]
 
     console.log('Running critical seeders in sequence...')
