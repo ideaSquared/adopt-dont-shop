@@ -6,9 +6,10 @@ interface ApplicationAttributes {
   application_id: string
   user_id: string
   pet_id: string
-  description?: string
+  rescue_id: string
   status: string
   actioned_by?: string
+  answers: Record<string, any> // Stores answers to application questions
   created_at?: Date
   updated_at?: Date
 }
@@ -23,9 +24,10 @@ class Application
   public application_id!: string
   public user_id!: string
   public pet_id!: string
-  public description!: string
+  public rescue_id!: string
   public status!: string
   public actioned_by!: string
+  public answers!: Record<string, any>
   public created_at!: Date
   public updated_at!: Date
 }
@@ -47,8 +49,14 @@ Application.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    description: {
-      type: DataTypes.TEXT,
+    rescue_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    answers: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: {},
     },
     status: {
       type: DataTypes.STRING,

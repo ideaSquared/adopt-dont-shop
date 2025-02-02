@@ -1,12 +1,34 @@
-export interface Application {
-  user_id: ReactNode
-  actioned_by_first_name: string
-  applicant_first_name: ReactNode
+import { QuestionCategory, QuestionType } from '../../types/applicationTypes'
+
+export type CoreApplicationQuestion = {
+  question_key: string
+  category: QuestionCategory
+  question_type: QuestionType
+  question_text: string
+  options?: string[]
+  created_at: string
+  updated_at: string
+}
+
+export type RescueQuestionConfig = {
+  config_id: string
+  rescue_id: string
+  question_key: string
+  is_enabled: boolean
+  is_required: boolean
+  created_at: string
+  updated_at: string
+  rescueCoreQuestion: CoreApplicationQuestion
+}
+
+export type Application = {
+  pet_name: any
   application_id: string
-  first_name: string
+  rescue_id: string
   pet_id: string
-  pet_name: string
-  description: string
-  status: string
-  actioned_by: string | null
+  user_id: string
+  status: 'pending' | 'approved' | 'rejected'
+  answers: Record<string, any>
+  created_at: string
+  updated_at: string
 }

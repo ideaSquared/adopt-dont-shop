@@ -30,7 +30,7 @@ AuditLog.init(
       allowNull: true,
     },
     action: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
     },
     level: {
