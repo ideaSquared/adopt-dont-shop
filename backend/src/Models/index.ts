@@ -1,4 +1,5 @@
 import Application from './Application'
+import ApplicationQuestionConfig from './ApplicationQuestionConfig'
 import { AuditLog } from './AuditLog'
 import Conversation from './Conversation'
 import { FeatureFlag } from './FeatureFlag'
@@ -84,6 +85,7 @@ UserPreference.belongsTo(User, { foreignKey: 'user_id' })
 
 export {
   Application,
+  ApplicationQuestionConfig,
   AuditLog,
   Conversation,
   FeatureFlag,
