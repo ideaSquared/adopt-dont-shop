@@ -1,4 +1,15 @@
-import ApplicationQuestionConfig from '../Models/ApplicationQuestionConfig'
+import ApplicationQuestionConfig, { QuestionCategory, QuestionType } from '../Models/ApplicationQuestionConfig'
+
+type QuestionConfigCreationAttributes = {
+  rescue_id: string
+  question_key: string
+  question_text: string
+  question_type: QuestionType
+  category: QuestionCategory
+  is_enabled: boolean
+  is_required: boolean
+  options?: string[]
+}
 
 export const getQuestionConfigsByRescueId = async (rescueId: string) => {
   return ApplicationQuestionConfig.findAll({
@@ -76,9 +87,40 @@ export const validateApplicationAnswers = async (
   }
 }
 
+export const createQuestionConfig = async (data: QuestionConfigCreationAttributes) => {
+  return ApplicationQuestionConfig.create(data)
+}
+
+export const getAllQuestionConfigs = async () => {
+  return ApplicationQuestionConfig.findAll({
+    order: [
+      ['rescue_id', 'ASC'],
+      ['category', 'ASC'],
+      ['question_key', 'ASC'],
+    ],
+  })
+}
+
+export const getQuestionConfigById = async (configId: string) => {
+  return ApplicationQuestionConfig.findByPk(configId)
+}
+
+export const deleteQuestionConfig = async (configId: string) => {
+  const config = await ApplicationQuestionConfig.findByPk(configId)
+  if (config) {
+    await config.destroy()
+    return true
+  }
+  return false
+}
+
 export default {
   getQuestionConfigsByRescueId,
   updateQuestionConfig,
   bulkUpdateQuestionConfigs,
   validateApplicationAnswers,
+  createQuestionConfig,
+  getAllQuestionConfigs,
+  getQuestionConfigById,
+  deleteQuestionConfig,
 }

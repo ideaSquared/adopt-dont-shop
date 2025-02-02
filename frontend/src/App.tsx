@@ -36,16 +36,24 @@ import {
   useParams,
 } from 'react-router-dom'
 import Navbar from './components/Navbar/Navbar'
+import { AlertProvider } from './contexts/alert/AlertContext'
 import { UserProvider, useUser } from './contexts/auth/UserContext'
 import {
   FeatureFlagProvider,
   useFeatureFlag,
 } from './contexts/feature-flags/FeatureFlagContext'
 import { ThemeProvider } from './contexts/theme/ThemeContext'
-import { ApplicationForm, ApplicationReview } from './pages/applications'
+import {
+  AdminQuestionConfigForm,
+  AdminQuestionConfigList,
+} from './pages/admin/ApplicationQuestionConfig'
+import {
+  ApplicationForm,
+  ApplicationQuestionConfig,
+  ApplicationReview,
+} from './pages/applications'
 import { Dashboard } from './pages/dashboard/Dashboard'
 import GlobalStyles from './styles/GlobalStyles'
-import { ApplicationQuestionConfig } from './pages/applications'
 
 // Wrapper components for routes that need URL parameters
 const ApplicationFormWrapper: React.FC = () => {
@@ -76,6 +84,7 @@ const AppContent: React.FC = () => {
       <Router>
         <Navbar />
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/create-account" element={<CreateAccount />} />
@@ -83,6 +92,8 @@ const AppContent: React.FC = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/complete-account" element={<CompleteAccountSetup />} />
+
+          {/* User routes */}
           <Route
             element={
               <ProtectedRoute requiredRoles={[Role.USER, Role.VERIFIED_USER]} />
@@ -90,16 +101,16 @@ const AppContent: React.FC = () => {
           >
             <Route path="/settings" element={<Settings />} />
             <Route path="/swipe" element={<Swipe />} />
-            {chatBetaEnabled ? (
+            {chatBetaEnabled && (
               <Route path="/chat" element={<Conversations />} />
-            ) : (
-              <Route path="/chat" element={<Navigate to="/" />} />
             )}
             <Route
               path="/apply/:rescueId/:petId"
               element={<ApplicationFormWrapper />}
             />
           </Route>
+
+          {/* Staff routes */}
           <Route element={<ProtectedRoute requiredRoles={[Role.STAFF]} />}>
             <Route
               path="/applications"
@@ -121,21 +132,24 @@ const AppContent: React.FC = () => {
             />
             <Route path="/rescue" element={<Rescue />} />
           </Route>
+
+          {/* Admin routes */}
           <Route element={<ProtectedRoute requiredRoles={[Role.ADMIN]} />}>
             <Route
               path="/admin/dashboard"
               element={<Dashboard isAdminView={true} />}
             />
-            <Route path="/logs" element={<AuditLogs />} />
-            <Route path="/users" element={<Users />} />
-            {chatBetaEnabled ? (
-              <Route path="/conversations" element={<AdminConversations />} />
-            ) : (
-              <Route path="/conversations" element={<Navigate to="/" />} />
+            <Route path="/admin/logs" element={<AuditLogs />} />
+            <Route path="/admin/users" element={<Users />} />
+            {chatBetaEnabled && (
+              <Route
+                path="/admin/conversations"
+                element={<AdminConversations />}
+              />
             )}
-            <Route path="/rescues" element={<Rescues />} />
-            <Route path="/feature-flags" element={<FeatureFlags />} />
-            <Route path="/ratings" element={<Ratings />} />
+            <Route path="/admin/rescues" element={<Rescues />} />
+            <Route path="/admin/feature-flags" element={<FeatureFlags />} />
+            <Route path="/admin/ratings" element={<Ratings />} />
             <Route path="/admin/pets" element={<Pets isAdminView={true} />} />
             <Route
               path="/admin/applications"
@@ -144,6 +158,18 @@ const AppContent: React.FC = () => {
             <Route
               path="/admin/applications/:applicationId"
               element={<ApplicationReviewWrapper />}
+            />
+            <Route
+              path="/admin/applications/questions"
+              element={<AdminQuestionConfigList />}
+            />
+            <Route
+              path="/admin/applications/questions/create"
+              element={<AdminQuestionConfigForm />}
+            />
+            <Route
+              path="/admin/applications/questions/:configId"
+              element={<AdminQuestionConfigForm />}
             />
           </Route>
         </Routes>
@@ -158,7 +184,9 @@ const App: React.FC = () => {
       <GlobalStyles />
       <FeatureFlagProvider>
         <UserProvider>
-          <AppContent />
+          <AlertProvider>
+            <AppContent />
+          </AlertProvider>
         </UserProvider>
       </FeatureFlagProvider>
     </ThemeProvider>

@@ -197,3 +197,187 @@ export const validateApplicationAnswers = async (
       .json({ message: 'Error validating application answers', error })
   }
 }
+
+export const createQuestionConfig = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  const configData = req.body
+
+  try {
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      'Attempting to create new question config',
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+
+    const newConfig =
+      await ApplicationQuestionConfigService.createQuestionConfig(configData)
+
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      `Successfully created question config with ID: ${newConfig.config_id}`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+
+    res.status(201).json(newConfig)
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      `Failed to create question config: ${errorMessage}`,
+      'ERROR',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+    res.status(500).json({ message: 'Error creating question config', error })
+  }
+}
+
+export const getAllQuestionConfigs = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  try {
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      'Attempting to fetch all question configs',
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+
+    const configs =
+      await ApplicationQuestionConfigService.getAllQuestionConfigs()
+
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      `Successfully fetched ${configs.length} question configs`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+
+    res.status(200).json(configs)
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      `Failed to fetch all question configs: ${errorMessage}`,
+      'ERROR',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+    res.status(500).json({ message: 'Error fetching question configs', error })
+  }
+}
+
+export const getQuestionConfigById = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  const { configId } = req.params
+
+  try {
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      `Attempting to fetch question config: ${configId}`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+
+    const config = await ApplicationQuestionConfigService.getQuestionConfigById(
+      configId,
+    )
+
+    if (config) {
+      AuditLogger.logAction(
+        'ApplicationQuestionConfigController',
+        `Successfully fetched question config: ${configId}`,
+        'INFO',
+        req.user?.user_id || null,
+        AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+      )
+      res.status(200).json(config)
+    } else {
+      AuditLogger.logAction(
+        'ApplicationQuestionConfigController',
+        `Question config not found: ${configId}`,
+        'WARNING',
+        req.user?.user_id || null,
+        AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+      )
+      res.status(404).json({ message: 'Question config not found' })
+    }
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      `Failed to fetch question config ${configId}: ${errorMessage}`,
+      'ERROR',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+    res.status(500).json({ message: 'Error fetching question config', error })
+  }
+}
+
+export const deleteQuestionConfig = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  const { configId } = req.params
+
+  try {
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      `Attempting to delete question config: ${configId}`,
+      'INFO',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+
+    const deleted = await ApplicationQuestionConfigService.deleteQuestionConfig(
+      configId,
+    )
+
+    if (deleted) {
+      AuditLogger.logAction(
+        'ApplicationQuestionConfigController',
+        `Successfully deleted question config: ${configId}`,
+        'INFO',
+        req.user?.user_id || null,
+        AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+      )
+      res.status(200).json({ message: 'Question config deleted successfully' })
+    } else {
+      AuditLogger.logAction(
+        'ApplicationQuestionConfigController',
+        `Question config not found: ${configId}`,
+        'WARNING',
+        req.user?.user_id || null,
+        AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+      )
+      res.status(404).json({ message: 'Question config not found' })
+    }
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'ApplicationQuestionConfigController',
+      `Failed to delete question config ${configId}: ${errorMessage}`,
+      'ERROR',
+      req.user?.user_id || null,
+      AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
+    )
+    res.status(500).json({ message: 'Error deleting question config', error })
+  }
+}

@@ -1,6 +1,10 @@
 import express from 'express'
 import {
   bulkUpdateQuestionConfigs,
+  createQuestionConfig,
+  deleteQuestionConfig,
+  getAllQuestionConfigs,
+  getQuestionConfigById,
   getQuestionConfigsByRescueId,
   updateQuestionConfig,
   validateApplicationAnswers,
@@ -8,6 +12,39 @@ import {
 import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
 const router = express.Router()
+
+// Admin routes - require admin role
+router.get(
+  '/admin/all',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'admin',
+  }),
+  getAllQuestionConfigs,
+)
+
+router.post(
+  '/admin/create',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'admin',
+  }),
+  createQuestionConfig,
+)
+
+router.get(
+  '/admin/:configId',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'admin',
+  }),
+  getQuestionConfigById,
+)
+
+router.delete(
+  '/admin/:configId',
+  authRoleOwnershipMiddleware({
+    requiredRole: 'admin',
+  }),
+  deleteQuestionConfig,
+)
 
 // Get question configs for a rescue - allow staff and admins to view
 router.get(

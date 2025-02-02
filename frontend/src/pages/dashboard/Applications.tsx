@@ -264,8 +264,18 @@ export const Applications: React.FC<ApplicationsProps> = ({
           marginBottom: '2rem',
         }}
       >
-        <Link to="/applications/questions">
-          <Button variant="info">Configure Application Questions</Button>
+        <Link
+          to={
+            isAdminView
+              ? '/admin/applications/questions'
+              : '/applications/questions'
+          }
+        >
+          <Button variant="info">
+            {isAdminView
+              ? 'Manage Application Questions'
+              : 'View Application Questions'}
+          </Button>
         </Link>
       </div>
 
