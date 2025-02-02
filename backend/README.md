@@ -60,25 +60,31 @@ Authorization: Bearer <your_token>
 
 ### API Routes Overview
 
-| Method | Endpoint              | Description                  | Auth Required | Role Required |
-| ------ | --------------------- | ---------------------------- | ------------- | ------------- |
-| POST   | /api/auth/login       | User login                   | No            | None          |
-| POST   | /api/auth/register    | User registration            | No            | None          |
-| GET    | /api/pets             | Get all pets                 | No            | None          |
-| GET    | /api/pets/:id         | Get pet by ID                | No            | None          |
-| POST   | /api/pets             | Create new pet listing       | Yes           | rescue        |
-| PUT    | /api/pets/:id         | Update pet listing           | Yes           | rescue        |
-| DELETE | /api/pets/:id         | Delete pet listing           | Yes           | rescue        |
-| POST   | /api/applications     | Submit adoption application  | Yes           | user          |
-| GET    | /api/applications     | Get all applications         | Yes           | rescue        |
-| PUT    | /api/applications/:id | Update application status    | Yes           | rescue        |
-| GET    | /api/rescue           | Get rescue organization info | No            | None          |
-| POST   | /api/rescue           | Create rescue organization   | Yes           | admin         |
-| GET    | /api/messages         | Get user messages            | Yes           | Any           |
-| POST   | /api/messages         | Send a message               | Yes           | Any           |
-| GET    | /api/conversations    | Get user conversations       | Yes           | Any           |
-| POST   | /api/ratings          | Submit a rating              | Yes           | user          |
-| GET    | /api/admin/audit-logs | Get audit logs               | Yes           | admin         |
+| Method | Endpoint                                 | Description                  | Auth Required | Role Required              |
+| ------ | ---------------------------------------- | ---------------------------- | ------------- | -------------------------- |
+| POST   | /api/auth/login                          | User login                   | No            | None                       |
+| POST   | /api/auth/register                       | User registration            | No            | None                       |
+| GET    | /api/pets                                | Get all pets                 | No            | None                       |
+| GET    | /api/pets/:id                            | Get pet by ID                | No            | None                       |
+| POST   | /api/pets                                | Create new pet listing       | Yes           | rescue                     |
+| PUT    | /api/pets/:id                            | Update pet listing           | Yes           | rescue                     |
+| DELETE | /api/pets/:id                            | Delete pet listing           | Yes           | rescue                     |
+| POST   | /api/applications                        | Submit adoption application  | Yes           | user                       |
+| GET    | /api/applications                        | Get all applications         | Yes           | rescue                     |
+| PUT    | /api/applications/:id                    | Update application status    | Yes           | rescue                     |
+| GET    | /api/rescue                              | Get rescue organization info | No            | None                       |
+| POST   | /api/rescue                              | Create rescue organization   | Yes           | admin                      |
+| GET    | /api/messages                            | Get user messages            | Yes           | Any                        |
+| POST   | /api/messages                            | Send a message               | Yes           | Any                        |
+| GET    | /api/conversations                       | Get user conversations       | Yes           | Any                        |
+| POST   | /api/ratings                             | Submit a rating              | Yes           | user                       |
+| GET    | /api/admin/audit-logs                    | Get audit logs               | Yes           | admin                      |
+| GET    | /api/dashboard/rescue                    | Get rescue dashboard data    | Yes           | staff                      |
+| GET    | /api/dashboard/admin                     | Get admin dashboard data     | Yes           | admin                      |
+| GET    | /api/question-config/rescue/:id          | Get rescue question configs  | Yes           | rescue_manager/staff/admin |
+| PUT    | /api/question-config/:id                 | Update question config       | Yes           | rescue_manager             |
+| PUT    | /api/question-config/rescue/:id/bulk     | Bulk update question configs | Yes           | rescue_manager             |
+| POST   | /api/question-config/rescue/:id/validate | Validate application answers | Yes           | Any                        |
 
 ## 🧪 Testing
 
