@@ -1,3 +1,4 @@
+import { Alert, Button, Card, CheckboxInput } from '@adoptdontshop/components'
 import {
   QuestionCategory,
   ApplicationQuestionConfig as QuestionConfig,
@@ -6,7 +7,6 @@ import ApplicationQuestionConfigService from '@adoptdontshop/libs/applications/A
 import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { Alert, Button, Card, CheckboxInput } from '../../components'
 
 type ApplicationQuestionConfigProps = {
   rescueId: string
@@ -18,26 +18,82 @@ const Container = styled.div`
   margin: 0 auto;
 `
 
-const CategorySection = styled.section`
+const Header = styled.div`
   margin-bottom: 2rem;
+`
+
+const Title = styled.h1`
+  margin-bottom: 1rem;
+  color: ${({ theme }) => theme.text.body};
+  font-size: 1.8rem;
+`
+
+const Description = styled.p`
+  color: ${({ theme }) => theme.text.dim};
+  margin-bottom: 2rem;
+`
+
+const CategorySection = styled.section`
+  margin-bottom: 3rem;
+  background: ${({ theme }) => theme.background.content};
+  padding: 2rem;
+  border-radius: ${({ theme }) => theme.border.radius.lg};
+  box-shadow: ${({ theme }) => theme.shadows.md};
+`
+
+const CategoryHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+`
+
+const CategoryTitle = styled.h2`
+  color: ${({ theme }) => theme.text.body};
+  font-size: 1.4rem;
+  font-weight: 600;
+`
+
+const CategoryDescription = styled.p`
+  color: ${({ theme }) => theme.text.dim};
+  margin-bottom: 1.5rem;
 `
 
 const QuestionCard = styled(Card)`
   margin-bottom: 1rem;
-  padding: 1rem;
+  padding: 1.5rem;
+  border: 1px solid ${({ theme }) => theme.border.color.default};
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    box-shadow: ${({ theme }) => theme.shadows.md};
+  }
 `
 
 const QuestionHeader = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1rem;
+  gap: 2rem;
+`
+
+const QuestionText = styled.div`
+  flex: 1;
+  font-weight: 600;
+  color: ${({ theme }) => theme.text.body};
 `
 
 const QuestionControls = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
   align-items: center;
+`
+
+const QuestionMeta = styled.div`
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.text.dim};
+  margin-top: 0.5rem;
 `
 
 const CheckboxLabel = styled.label`
@@ -45,16 +101,47 @@ const CheckboxLabel = styled.label`
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+  user-select: none;
+  color: ${({ theme }) => theme.text.body};
 `
 
 const SaveButton = styled(Button)`
-  margin-top: 2rem;
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 10;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
 `
 
-const CategoryHeading = styled.h2`
-  margin-bottom: 1rem;
-  color: ${({ theme }) => theme.text.body};
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  color: ${({ theme }) => theme.text.dim};
 `
+
+const getCategoryDescription = (category: QuestionCategory): string => {
+  switch (category) {
+    case 'PERSONAL_INFORMATION':
+      return 'Basic information about the applicant'
+    case 'HOUSEHOLD_INFORMATION':
+      return 'Details about the living situation and home environment'
+    case 'PET_OWNERSHIP_EXPERIENCE':
+      return 'Past and current experience with pets'
+    case 'LIFESTYLE_COMPATIBILITY':
+      return 'Information about daily routines and lifestyle'
+    case 'PET_CARE_COMMITMENT':
+      return 'Understanding of pet care responsibilities'
+    case 'REFERENCES_VERIFICATION':
+      return 'References and verification details'
+    case 'FINAL_ACKNOWLEDGMENTS':
+      return 'Final agreements and acknowledgments'
+    default:
+      return ''
+  }
+}
 
 const formatCategoryName = (category: QuestionCategory): string => {
   return category
@@ -71,11 +158,14 @@ export const ApplicationQuestionConfig: React.FC<
   const [saving, setSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const { rescue } = useUser()
 
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
+        setLoading(true)
+        setError(null)
         const configs =
           await ApplicationQuestionConfigService.getQuestionConfigsByRescueId(
             rescueId,
@@ -97,17 +187,21 @@ export const ApplicationQuestionConfig: React.FC<
     value: boolean,
   ) => {
     setQuestions((prev) =>
-      prev.map((q: QuestionConfig) =>
+      prev.map((q) =>
         q.config_id === configId ? { ...q, [field]: value } : q,
       ),
     )
     setHasChanges(true)
+    setSuccessMessage(null)
   }
 
   const handleSave = async () => {
     setSaving(true)
+    setError(null)
+    setSuccessMessage(null)
+
     try {
-      const updates = questions.map((q: QuestionConfig) => ({
+      const updates = questions.map((q) => ({
         question_key: q.question_key,
         is_enabled: q.is_enabled,
         is_required: q.is_required,
@@ -119,11 +213,9 @@ export const ApplicationQuestionConfig: React.FC<
           updates,
         )
 
-      const allSuccessful = results.every(
-        (r: { success: boolean }) => r.success,
-      )
+      const allSuccessful = results.every((r) => r.success)
       if (allSuccessful) {
-        setError(null)
+        setSuccessMessage('Questions updated successfully')
         setHasChanges(false)
       } else {
         setError('Some questions failed to update')
@@ -136,7 +228,11 @@ export const ApplicationQuestionConfig: React.FC<
   }
 
   if (loading) {
-    return <div>Loading questions...</div>
+    return (
+      <LoadingContainer role="status" aria-live="polite">
+        Loading questions...
+      </LoadingContainer>
+    )
   }
 
   const questionsByCategory = questions.reduce(
@@ -152,68 +248,94 @@ export const ApplicationQuestionConfig: React.FC<
 
   return (
     <Container>
-      <h1>Application Questions Configuration</h1>
-      <p>
-        Configure which questions to include in your adoption application and
-        whether they are required.
-      </p>
-
-      {error && <Alert variant="error">{error}</Alert>}
+      <Header>
+        <Title>Application Questions Configuration</Title>
+        <Description>
+          Customize your adoption application by enabling or disabling questions
+          and marking them as required or optional. Changes will be applied to
+          all new applications.
+        </Description>
+        {error && <Alert variant="error">{error}</Alert>}
+        {successMessage && <Alert variant="success">{successMessage}</Alert>}
+      </Header>
 
       {Object.entries(questionsByCategory).map(
         ([category, categoryQuestions]) => (
-          <CategorySection key={category}>
-            <h2>{formatCategoryName(category as QuestionCategory)}</h2>
-            <hr />
+          <CategorySection
+            key={category}
+            role="region"
+            aria-labelledby={`category-${category}`}
+          >
+            <CategoryHeader>
+              <div>
+                <CategoryTitle id={`category-${category}`}>
+                  {formatCategoryName(category as QuestionCategory)}
+                </CategoryTitle>
+                <CategoryDescription>
+                  {getCategoryDescription(category as QuestionCategory)}
+                </CategoryDescription>
+              </div>
+            </CategoryHeader>
 
             {categoryQuestions.map((question) => (
-              <Card key={question.config_id} title={question.question_text}>
+              <QuestionCard
+                key={question.config_id}
+                title={question.question_text}
+              >
                 <QuestionHeader>
-                  <div>{question.question_text}</div>
+                  <QuestionText>{question.question_text}</QuestionText>
                   <QuestionControls>
                     <CheckboxLabel>
                       <CheckboxInput
                         checked={question.is_enabled}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        onChange={(e) =>
                           handleQuestionChange(
                             question.config_id,
                             'is_enabled',
                             e.target.checked,
                           )
                         }
+                        aria-label={`Enable ${question.question_text}`}
                       />
-                      Enabled
+                      Enable
                     </CheckboxLabel>
                     {question.is_enabled && (
                       <CheckboxLabel>
                         <CheckboxInput
                           checked={question.is_required}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          onChange={(e) =>
                             handleQuestionChange(
                               question.config_id,
                               'is_required',
                               e.target.checked,
                             )
                           }
+                          aria-label={`Make ${question.question_text} required`}
                         />
                         Required
                       </CheckboxLabel>
                     )}
                   </QuestionControls>
                 </QuestionHeader>
-                <small>
+                <QuestionMeta>
                   Type: {question.question_type}
-                  {question.options && ` (${question.options.join(', ')})`}
-                </small>
-              </Card>
+                  {question.options &&
+                    ` (Options: ${question.options.join(', ')})`}
+                </QuestionMeta>
+              </QuestionCard>
             ))}
           </CategorySection>
         ),
       )}
 
       {hasChanges && (
-        <SaveButton onClick={handleSave} disabled={saving} variant="success">
-          {saving ? 'Saving...' : 'Save Changes'}
+        <SaveButton
+          onClick={handleSave}
+          disabled={saving}
+          variant="success"
+          aria-live="polite"
+        >
+          {saving ? 'Saving Changes...' : 'Save Changes'}
         </SaveButton>
       )}
     </Container>

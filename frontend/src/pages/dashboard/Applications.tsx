@@ -256,6 +256,19 @@ export const Applications: React.FC<ApplicationsProps> = ({
     <Container>
       <Title>Applications {rescue?.rescue_name}</Title>
 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '2rem',
+        }}
+      >
+        <Link to="/applications/questions">
+          <Button variant="info">Configure Application Questions</Button>
+        </Link>
+      </div>
+
       <GenericFilters
         filters={filters}
         onFilterChange={(name: string, value: unknown) =>

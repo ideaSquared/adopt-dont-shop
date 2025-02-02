@@ -45,6 +45,7 @@ import { ThemeProvider } from './contexts/theme/ThemeContext'
 import { ApplicationForm, ApplicationReview } from './pages/applications'
 import { Dashboard } from './pages/dashboard/Dashboard'
 import GlobalStyles from './styles/GlobalStyles'
+import { ApplicationQuestionConfig } from './pages/applications'
 
 // Wrapper components for routes that need URL parameters
 const ApplicationFormWrapper: React.FC = () => {
@@ -57,6 +58,12 @@ const ApplicationReviewWrapper: React.FC = () => {
   const { applicationId } = useParams<{ applicationId: string }>()
   if (!applicationId) return <Navigate to="/applications" />
   return <ApplicationReview applicationId={applicationId} />
+}
+
+const ApplicationQuestionConfigWrapper: React.FC = () => {
+  const { rescue } = useUser()
+  if (!rescue) return <Navigate to="/applications" />
+  return <ApplicationQuestionConfig rescueId={rescue.rescue_id} />
 }
 
 const AppContent: React.FC = () => {
@@ -101,6 +108,10 @@ const AppContent: React.FC = () => {
             <Route
               path="/applications/:applicationId"
               element={<ApplicationReviewWrapper />}
+            />
+            <Route
+              path="/applications/questions"
+              element={<ApplicationQuestionConfigWrapper />}
             />
             <Route path="/pets" element={<Pets isAdminView={false} />} />
             <Route path="/staff" element={<Staff />} />
