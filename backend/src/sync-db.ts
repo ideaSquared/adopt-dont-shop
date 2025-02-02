@@ -1,6 +1,5 @@
 import fs from 'fs'
 import path from 'path'
-import { QueryInterface } from 'sequelize'
 import './Models' // Ensure all models are registered
 import { AuditLog } from './Models/AuditLog' // Explicitly import the AuditLog model
 import sequelize from './sequelize'
@@ -17,6 +16,64 @@ async function isDatabaseEmpty(): Promise<boolean> {
   )
 
   return filteredTables.length === 0
+}
+
+async function runSeeders() {
+  try {
+    const seedersPath = path.join(__dirname, 'Seeders')
+
+    // First run the critical seeders in order
+    const orderedSeeders = [
+      '20240818132703-rescues.ts', // First create rescues
+      '20240205-core-questions.ts', // Then create core questions
+      '20240818132715-application-question-configs.ts', // Finally create rescue-specific configs
+    ]
+
+    console.log('Running critical seeders in sequence...')
+    for (const file of orderedSeeders) {
+      const seeder = await import(path.join(seedersPath, file))
+      const seedFunction = seeder.seed || seeder.up
+
+      if (typeof seedFunction === 'function') {
+        await seedFunction(sequelize.getQueryInterface())
+        console.log(`Critical seeder ${file} completed successfully`)
+      } else {
+        console.warn(
+          `Warning: Seeder ${file} does not export a 'seed' or 'up' function`,
+        )
+      }
+    }
+
+    // Then run any remaining seeders
+    const remainingSeederFiles = fs
+      .readdirSync(seedersPath)
+      .filter((file) => file.endsWith('.ts'))
+      .filter((file) => !orderedSeeders.includes(file))
+      .sort()
+
+    if (remainingSeederFiles.length > 0) {
+      console.log('Running remaining seeders:', remainingSeederFiles)
+
+      for (const file of remainingSeederFiles) {
+        const seeder = await import(path.join(seedersPath, file))
+        const seedFunction = seeder.seed || seeder.up
+
+        if (typeof seedFunction === 'function') {
+          await seedFunction(sequelize.getQueryInterface())
+          console.log(`Seeder ${file} completed successfully`)
+        } else {
+          console.warn(
+            `Warning: Seeder ${file} does not export a 'seed' or 'up' function`,
+          )
+        }
+      }
+    }
+
+    console.log('All seeders completed successfully')
+  } catch (error) {
+    console.error('Error running seeders:', error)
+    throw error
+  }
 }
 
 // Main function to handle database sync
@@ -48,32 +105,8 @@ async function isDatabaseEmpty(): Promise<boolean> {
         'INFO',
       )
 
-      // Force seed the database
-      console.log('Starting database seeding...')
-      const seedersPath = path.resolve(__dirname, 'Seeders')
-      const queryInterface: QueryInterface = sequelize.getQueryInterface()
-
-      for (const file of fs.readdirSync(seedersPath)) {
-        const seederModule = require(path.join(seedersPath, file))
-        const seedFunction = seederModule.seed || seederModule.default
-
-        if (typeof seedFunction === 'function') {
-          await seedFunction(queryInterface)
-          console.log(`Seeder ${file} executed successfully`)
-        } else {
-          console.warn(
-            `Seeder in file ${file} does not export a 'seed' function`,
-          )
-        }
-      }
-      console.log('Database seeding completed.')
-
-      // Log the seeding action
-      await AuditLogger.logAction(
-        'DatabaseService',
-        'Database seeding completed',
-        'INFO',
-      )
+      // Run seeders after force sync
+      await runSeeders()
     } else {
       const databaseEmpty = await isDatabaseEmpty()
 

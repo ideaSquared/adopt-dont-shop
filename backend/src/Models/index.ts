@@ -2,6 +2,7 @@ import Application from './Application'
 import ApplicationQuestionConfig from './ApplicationQuestionConfig'
 import { AuditLog } from './AuditLog'
 import Conversation from './Conversation'
+import CoreApplicationQuestion from './CoreApplicationQuestion'
 import { FeatureFlag } from './FeatureFlag'
 import Invitation from './Invitation'
 import Message from './Message'
@@ -10,6 +11,7 @@ import Permission from './Permission'
 import Pet from './Pet'
 import Rating from './Rating'
 import Rescue, { RescueCreationAttributes } from './Rescue'
+import RescueQuestionConfig from './RescueQuestionConfig'
 import Role from './Role'
 import RolePermission from './RolePermission'
 import StaffMember from './StaffMember'
@@ -18,6 +20,16 @@ import UserPreference from './UserPreference'
 import UserRole from './UserRole'
 
 // Associations
+
+// Core Question & Application Question Config Associations
+ApplicationQuestionConfig.belongsTo(CoreApplicationQuestion, {
+  foreignKey: 'question_key',
+  as: 'coreQuestion',
+})
+CoreApplicationQuestion.hasMany(ApplicationQuestionConfig, {
+  foreignKey: 'question_key',
+  as: 'rescueConfigs',
+})
 
 // User & Role Associations
 User.belongsToMany(Role, {
@@ -88,6 +100,7 @@ export {
   ApplicationQuestionConfig,
   AuditLog,
   Conversation,
+  CoreApplicationQuestion,
   FeatureFlag,
   Invitation,
   Message,
@@ -97,6 +110,7 @@ export {
   Rating,
   Rescue,
   RescueCreationAttributes,
+  RescueQuestionConfig,
   Role,
   RolePermission,
   StaffMember,

@@ -3,7 +3,7 @@ import { QuestionConfig } from '../types/applicationTypes'
 
 export const getQuestionConfigsByRescueId = async (rescueId: string) => {
   return await apiService.get<QuestionConfig[]>(
-    `/application-question-configs/rescue/${rescueId}`,
+    `/rescue-question-configs/rescue/${rescueId}`,
   )
 }
 
@@ -12,7 +12,7 @@ export const updateQuestionConfig = async (
   data: Partial<QuestionConfig>,
 ) => {
   return await apiService.put<Partial<QuestionConfig>, QuestionConfig>(
-    `/application-question-configs/${configId}`,
+    `/rescue-question-configs/${configId}`,
     data,
   )
 }
@@ -45,7 +45,7 @@ export const bulkUpdateQuestionConfigs = async (
       question_key: string
       success: boolean
     }>
-  >(`/application-question-configs/rescue/${rescueId}/bulk`, updates)
+  >(`/rescue-question-configs/rescue/${rescueId}/bulk`, updates)
 }
 
 type ValidateAnswersRequest = {
@@ -67,19 +67,19 @@ export const validateApplicationAnswers = async (
   return await apiService.post<
     Record<string, unknown>,
     Record<string, string | null>
-  >(`/application-question-configs/rescue/${rescueId}/validate`, answers)
+  >(`/rescue-question-configs/rescue/${rescueId}/validate`, answers)
 }
 
 // Admin-specific operations
 export const getAllQuestionConfigs = async () => {
   return await apiService.get<QuestionConfig[]>(
-    '/application-question-configs/admin/all',
+    '/rescue-question-configs/admin/all',
   )
 }
 
 export const getQuestionConfigById = async (configId: string) => {
   return await apiService.get<QuestionConfig>(
-    `/application-question-configs/admin/${configId}`,
+    `/rescue-question-configs/admin/${configId}`,
   )
 }
 
@@ -89,7 +89,7 @@ export const createQuestionConfig = async (
   data: CreateQuestionConfigRequest,
 ) => {
   return await apiService.post<CreateQuestionConfigRequest, QuestionConfig>(
-    '/application-question-configs/admin/create',
+    '/rescue-question-configs/admin/create',
     data,
   )
 }
@@ -100,6 +100,6 @@ type DeleteQuestionConfigResponse = {
 
 export const deleteQuestionConfig = async (configId: string) => {
   return await apiService.delete<DeleteQuestionConfigResponse>(
-    `/application-question-configs/admin/${configId}`,
+    `/rescue-question-configs/admin/${configId}`,
   )
 }

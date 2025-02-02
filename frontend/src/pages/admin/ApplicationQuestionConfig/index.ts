@@ -1,2 +1,2 @@
+export { AdminQuestionConfigForm } from './AdminQuestionConfigForm'
 export { AdminQuestionConfigList } from './AdminQuestionConfigList'
-export { AdminQuestionConfigForm } from './AdminQuestionConfigForm' 

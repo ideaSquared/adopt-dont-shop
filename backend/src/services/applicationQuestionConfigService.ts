@@ -1,4 +1,7 @@
-import ApplicationQuestionConfig, { QuestionCategory, QuestionType } from '../Models/ApplicationQuestionConfig'
+import ApplicationQuestionConfig, {
+  QuestionCategory,
+  QuestionType,
+} from '../Models/ApplicationQuestionConfig'
 
 type QuestionConfigCreationAttributes = {
   rescue_id: string
@@ -87,7 +90,9 @@ export const validateApplicationAnswers = async (
   }
 }
 
-export const createQuestionConfig = async (data: QuestionConfigCreationAttributes) => {
+export const createQuestionConfig = async (
+  data: QuestionConfigCreationAttributes,
+) => {
   return ApplicationQuestionConfig.create(data)
 }
 

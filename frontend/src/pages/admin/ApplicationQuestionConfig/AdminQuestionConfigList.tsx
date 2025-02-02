@@ -1,144 +1,242 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Button, Table, Tooltip } from '@adoptdontshop/components'
+import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import styled from 'styled-components'
-import { Button, Card, Table } from '../../../components'
-import { useAlert } from '../../../contexts/alert/AlertContext'
+import { Modal } from '../../../components'
+import * as coreQuestionService from '../../../services/coreQuestionService'
 import {
-  deleteQuestionConfig,
-  getAllQuestionConfigs,
-} from '../../../services/applicationQuestionConfigService'
-import { QuestionConfig } from '../../../types/applicationTypes'
+  CoreApplicationQuestion,
+  QuestionUsageStats,
+} from '../../../types/applicationTypes'
 
 const Container = styled.div`
-  padding: 2rem;
-
-  margin: 0 auto;
+  padding: 1rem;
 `
 
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+const Title = styled.h1`
   margin-bottom: 2rem;
+  font-size: 1.8rem;
 `
 
-const Title = styled.h2`
-  margin: 0;
-  color: ${(props) => props.theme.text.body};
+const TableContainer = styled.div`
+  margin-top: 2rem;
 `
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
+`
+
+const CategoryBadge = styled.span`
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background-color: ${(props) => props.theme.background.info};
+  color: ${(props) => props.theme.text.info};
+  font-size: 0.875rem;
+`
+
+const TypeBadge = styled.span`
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background-color: ${(props) => props.theme.background.success};
+  color: ${(props) => props.theme.text.success};
+  font-size: 0.875rem;
+`
+
+const UsageStats = styled.div`
+  font-size: 0.875rem;
+  color: ${(props) => props.theme.text.dim};
+`
+
+const ErrorMessage = styled.div`
+  color: ${(props) => props.theme.text.danger};
+  margin-bottom: 1rem;
+`
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
 `
 
 export const AdminQuestionConfigList: React.FC = () => {
-  const [configs, setConfigs] = useState<QuestionConfig[]>([])
+  const [questions, setQuestions] = useState<CoreApplicationQuestion[]>([])
+  const [usageStats, setUsageStats] = useState<
+    Record<string, QuestionUsageStats>
+  >({})
   const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
-  const rowsPerPage = 10
-  const navigate = useNavigate()
-  const { showAlert } = useAlert()
+  const [error, setError] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedQuestion, setSelectedQuestion] =
+    useState<CoreApplicationQuestion | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const fetchConfigs = useCallback(async () => {
+  const fetchQuestions = async () => {
     try {
-      const response = await getAllQuestionConfigs()
-      setConfigs(response)
-    } catch (error) {
-      showAlert('Failed to fetch question configurations', 'error')
+      setLoading(true)
+      setError(null)
+      const fetchedQuestions = await coreQuestionService.getAllCoreQuestions()
+      setQuestions(fetchedQuestions)
+
+      // Fetch usage stats for each question
+      const stats: Record<string, QuestionUsageStats> = {}
+      await Promise.all(
+        fetchedQuestions.map(async (question) => {
+          const usage = await coreQuestionService.getCoreQuestionUsage(
+            question.question_key,
+          )
+          stats[question.question_key] = usage
+        }),
+      )
+      setUsageStats(stats)
+    } catch (err) {
+      setError('Failed to fetch questions')
+      console.error('Error fetching questions:', err)
     } finally {
       setLoading(false)
     }
-  }, [showAlert])
-
-  useEffect(() => {
-    fetchConfigs()
-  }, [fetchConfigs])
-
-  const handleEdit = (configId: string) => {
-    navigate(`/admin/applications/questions/${configId}`)
   }
 
-  const handleDelete = async (configId: string) => {
-    if (window.confirm('Are you sure you want to delete this configuration?')) {
-      try {
-        await deleteQuestionConfig(configId)
-        showAlert('Question configuration deleted successfully', 'success')
-        fetchConfigs()
-      } catch (error) {
-        showAlert('Failed to delete question configuration', 'error')
-      }
+  useEffect(() => {
+    fetchQuestions()
+  }, [])
+
+  const handleDelete = async () => {
+    if (!selectedQuestion) return
+
+    try {
+      setDeleteError(null)
+      await coreQuestionService.deleteCoreQuestion(
+        selectedQuestion.question_key,
+      )
+      await fetchQuestions()
+      setDeleteDialogOpen(false)
+      setSelectedQuestion(null)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setDeleteError(
+        errorMessage.includes('in use by rescues')
+          ? 'Cannot delete question that is being used by rescues'
+          : 'Failed to delete question',
+      )
     }
   }
 
-  const handleCreate = () => {
-    navigate('/admin/applications/questions/create')
-  }
-
   if (loading) {
-    return <div>Loading...</div>
+    return <div>Loading questions...</div>
   }
 
-  const totalPages = Math.ceil(configs.length / rowsPerPage)
+  if (error) {
+    return <div>Error: {error}</div>
+  }
 
   return (
     <Container>
-      <Card title="Application Question Configurations">
-        <Header>
-          <Button onClick={handleCreate} variant="content">
-            Create New Configuration
-          </Button>
-        </Header>
+      <Title>Application Questions</Title>
 
-        <Table
-          striped
-          hasActions
-          rowsPerPage={rowsPerPage}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        >
+      <Link to="/admin/applications/questions/new">
+        <Button variant="success">Create New Question</Button>
+      </Link>
+
+      <TableContainer>
+        <Table hasActions>
           <thead>
             <tr>
-              <th>Rescue ID</th>
+              <th>Question</th>
               <th>Category</th>
-              <th>Question Key</th>
-              <th>Question Text</th>
               <th>Type</th>
-              <th>Status</th>
+              <th>Usage</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {configs.map((config) => (
-              <tr key={config.config_id}>
-                <td>{config.rescue_id}</td>
-                <td>{config.category}</td>
-                <td>{config.question_key}</td>
-                <td>{config.question_text}</td>
-                <td>{config.question_type}</td>
-                <td>{config.is_enabled ? 'Enabled' : 'Disabled'}</td>
-                <td>
-                  <ActionButtons>
-                    <Button
-                      onClick={() => handleEdit(config.config_id)}
-                      variant="content"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(config.config_id)}
-                      variant="danger"
-                    >
-                      Delete
-                    </Button>
-                  </ActionButtons>
-                </td>
-              </tr>
-            ))}
+            {questions.map((question) => {
+              const usage = usageStats[question.question_key]
+              return (
+                <tr key={question.question_key}>
+                  <td>{question.question_text}</td>
+                  <td>
+                    <CategoryBadge>
+                      {question.category.replace(/_/g, ' ')}
+                    </CategoryBadge>
+                  </td>
+                  <td>
+                    <TypeBadge>{question.question_type}</TypeBadge>
+                  </td>
+                  <td>
+                    <UsageStats>
+                      Used by {usage?.total_rescues || 0} rescues
+                      <br />
+                      Enabled: {usage?.enabled_count || 0}
+                      <br />
+                      Required: {usage?.required_count || 0}
+                    </UsageStats>
+                  </td>
+                  <td>
+                    <ActionButtons>
+                      <Link
+                        to={`/admin/applications/questions/${question.question_key}/edit`}
+                      >
+                        <Button variant="info">Edit</Button>
+                      </Link>
+                      <Button
+                        variant="danger"
+                        onClick={() => {
+                          setSelectedQuestion(question)
+                          setDeleteDialogOpen(true)
+                        }}
+                        disabled={usage?.total_rescues > 0}
+                      >
+                        <Tooltip
+                          content={
+                            usage?.total_rescues > 0
+                              ? 'Cannot delete question that is in use'
+                              : 'Delete question'
+                          }
+                        >
+                          <span>Delete</span>
+                        </Tooltip>
+                      </Button>
+                    </ActionButtons>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </Table>
-      </Card>
+      </TableContainer>
+
+      <Modal
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false)
+          setSelectedQuestion(null)
+          setDeleteError(null)
+        }}
+        title="Delete Question"
+      >
+        <div>
+          <p>
+            Are you sure you want to delete the question "
+            {selectedQuestion?.question_text}"?
+          </p>
+          {deleteError && <ErrorMessage>{deleteError}</ErrorMessage>}
+          <ButtonGroup>
+            <Button variant="danger" onClick={handleDelete}>
+              Delete
+            </Button>
+            <Button
+              variant="info"
+              onClick={() => {
+                setDeleteDialogOpen(false)
+                setSelectedQuestion(null)
+                setDeleteError(null)
+              }}
+            >
+              Cancel
+            </Button>
+          </ButtonGroup>
+        </div>
+      </Modal>
     </Container>
   )
 }

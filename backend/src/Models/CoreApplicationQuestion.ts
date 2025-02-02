@@ -1,6 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import sequelize from '../sequelize'
-import CoreApplicationQuestion from './CoreApplicationQuestion'
 
 export type QuestionCategory =
   | 'PERSONAL_INFORMATION'
@@ -21,63 +20,45 @@ export type QuestionType =
   | 'MULTI_SELECT'
   | 'ADDRESS'
 
-interface ApplicationQuestionConfigAttributes {
-  config_id: string
-  rescue_id: string
+interface CoreApplicationQuestionAttributes {
   question_key: string
   category: QuestionCategory
   question_type: QuestionType
   question_text: string
+  options?: string[]
   is_enabled: boolean
   is_required: boolean
-  options?: string[] // For SELECT and MULTI_SELECT types
   created_at?: Date
   updated_at?: Date
 }
 
-interface ApplicationQuestionConfigCreationAttributes
-  extends Optional<ApplicationQuestionConfigAttributes, 'config_id'> {}
+interface CoreApplicationQuestionCreationAttributes
+  extends Optional<CoreApplicationQuestionAttributes, 'question_key'> {}
 
-class ApplicationQuestionConfig
+class CoreApplicationQuestion
   extends Model<
-    ApplicationQuestionConfigAttributes,
-    ApplicationQuestionConfigCreationAttributes
+    CoreApplicationQuestionAttributes,
+    CoreApplicationQuestionCreationAttributes
   >
-  implements ApplicationQuestionConfigAttributes
+  implements CoreApplicationQuestionAttributes
 {
-  public config_id!: string
-  public rescue_id!: string
   public question_key!: string
   public category!: QuestionCategory
   public question_type!: QuestionType
   public question_text!: string
+  public options?: string[]
   public is_enabled!: boolean
   public is_required!: boolean
-  public options?: string[]
   public created_at!: Date
   public updated_at!: Date
 }
 
-ApplicationQuestionConfig.init(
+CoreApplicationQuestion.init(
   {
-    config_id: {
-      type: DataTypes.STRING,
-      primaryKey: true,
-      defaultValue: sequelize.literal(
-        `'config_' || left(md5(random()::text), 12)`,
-      ),
-    },
-    rescue_id: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
     question_key: {
       type: DataTypes.STRING,
-      allowNull: false,
-      references: {
-        model: CoreApplicationQuestion,
-        key: 'question_key',
-      },
+      primaryKey: true,
+      defaultValue: sequelize.literal(`'q_' || left(md5(random()::text), 12)`),
     },
     category: {
       type: DataTypes.ENUM(
@@ -108,6 +89,10 @@ ApplicationQuestionConfig.init(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    options: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
+      allowNull: true,
+    },
     is_enabled: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -118,31 +103,23 @@ ApplicationQuestionConfig.init(
       allowNull: false,
       defaultValue: false,
     },
-    options: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-    },
     created_at: {
       type: DataTypes.DATE,
+      allowNull: false,
       defaultValue: DataTypes.NOW,
     },
     updated_at: {
       type: DataTypes.DATE,
+      allowNull: false,
       defaultValue: DataTypes.NOW,
     },
   },
   {
     sequelize,
-    tableName: 'application_question_configs',
+    tableName: 'core_application_questions',
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
+    underscored: true,
   },
 )
 
-ApplicationQuestionConfig.belongsTo(CoreApplicationQuestion, {
-  foreignKey: 'question_key',
-  targetKey: 'question_key',
-  as: 'applicationCoreQuestion',
-})
-
-export default ApplicationQuestionConfig
+export default CoreApplicationQuestion
