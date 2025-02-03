@@ -3,7 +3,7 @@ import {
   bulkUpdateRescueQuestionConfigs,
   getRescueQuestionConfigs,
   updateRescueQuestionConfig,
-} from '../controllers/rescueQuestionConfigController'
+} from '../controllers/applicationRescueQuestionConfigController'
 import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
 const router = express.Router()

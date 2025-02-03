@@ -1,4 +1,4 @@
-import { QuestionCategory, QuestionType } from '../../types/applicationTypes'
+import { QuestionCategory, QuestionType } from './applicationTypes'
 
 export type CoreApplicationQuestion = {
   question_key: string

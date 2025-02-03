@@ -4,11 +4,11 @@ import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { Application } from '../../libs/applications/Application'
-import * as RescueQuestionConfigService from '../../services/rescueQuestionConfigService'
 import {
   QuestionCategory,
   RescueQuestionConfig,
-} from '../../types/applicationTypes'
+} from '../../libs/applications/applicationTypes'
+import * as RescueQuestionConfigService from '../../libs/applications/rescueQuestionConfigService'
 
 type ApplicationReviewProps = {
   applicationId: string

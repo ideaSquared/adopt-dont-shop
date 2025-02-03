@@ -2,11 +2,11 @@ import { Alert, Button, Card, CheckboxInput } from '@adoptdontshop/components'
 import { useUser } from 'contexts/auth/UserContext'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import * as RescueQuestionConfigService from '../../services/rescueQuestionConfigService'
 import {
   QuestionCategory,
   RescueQuestionConfig,
-} from '../../types/applicationTypes'
+} from '../../libs/applications/applicationTypes'
+import * as RescueQuestionConfigService from '../../libs/applications/rescueQuestionConfigService'
 
 type ApplicationQuestionConfigProps = {
   rescueId: string

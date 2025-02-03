@@ -1,8 +1,8 @@
 import CoreApplicationQuestion, {
   QuestionCategory,
   QuestionType,
-} from '../Models/CoreApplicationQuestion'
-import RescueQuestionConfig from '../Models/RescueQuestionConfig'
+} from '../Models/ApplicationCoreQuestions'
+import RescueQuestionConfig from '../Models/ApplicationRescueQuestionConfig'
 
 type CreateCoreQuestionRequest = {
   question_key?: string

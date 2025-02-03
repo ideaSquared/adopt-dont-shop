@@ -3,11 +3,11 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { Modal } from '../../../components'
-import * as coreQuestionService from '../../../services/coreQuestionService'
 import {
   CoreApplicationQuestion,
   QuestionUsageStats,
-} from '../../../types/applicationTypes'
+} from '../../../libs/applications/applicationTypes'
+import * as coreQuestionService from '../../../libs/applications/coreQuestionService'
 
 const Container = styled.div`
   padding: 1rem;

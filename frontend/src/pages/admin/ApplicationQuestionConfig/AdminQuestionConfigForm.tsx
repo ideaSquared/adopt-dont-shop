@@ -8,8 +8,11 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { useAlert } from '../../../contexts/alert/AlertContext'
-import * as coreQuestionService from '../../../services/coreQuestionService'
-import { QuestionCategory, QuestionType } from '../../../types/applicationTypes'
+import {
+  QuestionCategory,
+  QuestionType,
+} from '../../../libs/applications/applicationTypes'
+import * as coreQuestionService from '../../../libs/applications/coreQuestionService'
 
 const Container = styled.div`
   padding: 1rem;

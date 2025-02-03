@@ -1,8 +1,8 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import sequelize from '../sequelize'
-import CoreApplicationQuestion from './CoreApplicationQuestion'
+import ApplicationCoreQuestion from './ApplicationCoreQuestions'
 
-interface RescueQuestionConfigAttributes {
+interface ApplicationRescueQuestionConfigAttributes {
   config_id: string
   rescue_id: string
   question_key: string
@@ -12,15 +12,15 @@ interface RescueQuestionConfigAttributes {
   updated_at?: Date
 }
 
-interface RescueQuestionConfigCreationAttributes
-  extends Optional<RescueQuestionConfigAttributes, 'config_id'> {}
+interface ApplicationRescueQuestionConfigCreationAttributes
+  extends Optional<ApplicationRescueQuestionConfigAttributes, 'config_id'> {}
 
-class RescueQuestionConfig
+class ApplicationRescueQuestionConfig
   extends Model<
-    RescueQuestionConfigAttributes,
-    RescueQuestionConfigCreationAttributes
+    ApplicationRescueQuestionConfigAttributes,
+    ApplicationRescueQuestionConfigCreationAttributes
   >
-  implements RescueQuestionConfigAttributes
+  implements ApplicationRescueQuestionConfigAttributes
 {
   public config_id!: string
   public rescue_id!: string
@@ -31,7 +31,7 @@ class RescueQuestionConfig
   public updated_at!: Date
 }
 
-RescueQuestionConfig.init(
+ApplicationRescueQuestionConfig.init(
   {
     config_id: {
       type: DataTypes.STRING,
@@ -48,7 +48,7 @@ RescueQuestionConfig.init(
       type: DataTypes.STRING,
       allowNull: false,
       references: {
-        model: CoreApplicationQuestion,
+        model: ApplicationCoreQuestion,
         key: 'question_key',
       },
     },
@@ -75,7 +75,7 @@ RescueQuestionConfig.init(
   },
   {
     sequelize,
-    tableName: 'rescue_question_configs',
+    tableName: 'application_rescue_question_configs',
     timestamps: true,
     underscored: true,
     indexes: [
@@ -88,16 +88,16 @@ RescueQuestionConfig.init(
 )
 
 // Set up associations
-RescueQuestionConfig.belongsTo(CoreApplicationQuestion, {
+ApplicationRescueQuestionConfig.belongsTo(ApplicationCoreQuestion, {
   foreignKey: 'question_key',
   targetKey: 'question_key',
   as: 'rescueCoreQuestion',
 })
 
-CoreApplicationQuestion.hasMany(RescueQuestionConfig, {
+ApplicationCoreQuestion.hasMany(ApplicationRescueQuestionConfig, {
   foreignKey: 'question_key',
   sourceKey: 'question_key',
-  as: 'rescueQuestionConfigs',
+  as: 'ApplicationRescueQuestionConfigs',
 })
 
-export default RescueQuestionConfig
+export default ApplicationRescueQuestionConfig

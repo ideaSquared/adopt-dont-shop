@@ -1,5 +1,5 @@
-import CoreApplicationQuestion from '../Models/CoreApplicationQuestion'
-import RescueQuestionConfig from '../Models/RescueQuestionConfig'
+import CoreApplicationQuestion from '../Models/ApplicationCoreQuestions'
+import RescueQuestionConfig from '../Models/ApplicationRescueQuestionConfig'
 
 type UpdateConfigRequest = {
   is_enabled?: boolean

@@ -1,10 +1,10 @@
-import { apiService } from '../libs/api-service'
+import { apiService } from '../api-service'
 import {
   CoreApplicationQuestion,
   QuestionCategory,
   QuestionType,
   QuestionUsageStats,
-} from '../types/applicationTypes'
+} from './applicationTypes'
 
 type CreateCoreQuestionRequest = {
   category: QuestionCategory

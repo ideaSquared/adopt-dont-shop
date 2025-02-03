@@ -23,11 +23,8 @@ async function runSeeders() {
     const seedersPath = path.join(__dirname, 'Seeders')
 
     // First run the critical seeders in order
-    const orderedSeeders = [
-      '20240818132703-rescues.ts', // First create rescues
-      '20240205-core-questions.ts', // Then create core questions
-      '20240818132715-rescue-question-configs', // Finally create rescue-specific configs
-    ]
+    // Empty as renaming the files with numerical prefixes resolves this
+    const orderedSeeders: string[] = []
 
     console.log('Running critical seeders in sequence...')
     for (const file of orderedSeeders) {
@@ -49,7 +46,23 @@ async function runSeeders() {
       .readdirSync(seedersPath)
       .filter((file) => file.endsWith('.ts'))
       .filter((file) => !orderedSeeders.includes(file))
-      .sort()
+      .sort((a, b) => {
+        // Extract the numeric prefix if it exists
+        const aMatch = a.match(/^(\d+)-/)
+        const bMatch = b.match(/^(\d+)-/)
+
+        // If both have numeric prefixes, sort by number
+        if (aMatch && bMatch) {
+          return parseInt(aMatch[1]) - parseInt(bMatch[1])
+        }
+
+        // If only one has a numeric prefix, put it first
+        if (aMatch) return -1
+        if (bMatch) return 1
+
+        // Otherwise, sort alphabetically
+        return a.localeCompare(b)
+      })
 
     if (remainingSeederFiles.length > 0) {
       console.log('Running remaining seeders:', remainingSeederFiles)

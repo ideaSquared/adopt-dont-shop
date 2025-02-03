@@ -6,7 +6,7 @@ import {
   getCoreQuestionByKey,
   getCoreQuestionUsage,
   updateCoreQuestion,
-} from '../controllers/coreApplicationQuestionController'
+} from '../controllers/applicationCoreQuestionController'
 import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
 
 const router = express.Router()

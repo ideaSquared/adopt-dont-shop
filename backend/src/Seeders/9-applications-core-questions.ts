@@ -2,7 +2,7 @@ import { QueryInterface } from 'sequelize'
 
 export async function up(queryInterface: QueryInterface) {
   await queryInterface.sequelize.query(`
-    INSERT INTO core_application_questions 
+    INSERT INTO application_core_questions 
     (question_key, category, question_type, question_text, options, is_enabled, is_required, created_at, updated_at)
     VALUES
     -- Personal Information
@@ -48,5 +48,5 @@ export async function up(queryInterface: QueryInterface) {
 }
 
 export async function down(queryInterface: QueryInterface) {
-  await queryInterface.bulkDelete('core_application_questions', {})
+  await queryInterface.bulkDelete('application_core_questions', {})
 }

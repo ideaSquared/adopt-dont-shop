@@ -1,7 +1,8 @@
 import Application from './Application'
+import ApplicationCoreQuestion from './ApplicationCoreQuestions'
+import ApplicationRescueQuestionConfig from './ApplicationRescueQuestionConfig'
 import { AuditLog } from './AuditLog'
 import Conversation from './Conversation'
-import CoreApplicationQuestion from './CoreApplicationQuestion'
 import { FeatureFlag } from './FeatureFlag'
 import Invitation from './Invitation'
 import Message from './Message'
@@ -10,7 +11,6 @@ import Permission from './Permission'
 import Pet from './Pet'
 import Rating from './Rating'
 import Rescue, { RescueCreationAttributes } from './Rescue'
-import RescueQuestionConfig from './RescueQuestionConfig'
 import Role from './Role'
 import RolePermission from './RolePermission'
 import StaffMember from './StaffMember'
@@ -84,9 +84,10 @@ UserPreference.belongsTo(User, { foreignKey: 'user_id' })
 
 export {
   Application,
+  ApplicationCoreQuestion,
+  ApplicationRescueQuestionConfig,
   AuditLog,
   Conversation,
-  CoreApplicationQuestion,
   FeatureFlag,
   Invitation,
   Message,
@@ -96,7 +97,6 @@ export {
   Rating,
   Rescue,
   RescueCreationAttributes,
-  RescueQuestionConfig,
   Role,
   RolePermission,
   StaffMember,

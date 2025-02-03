@@ -20,7 +20,7 @@ export type QuestionType =
   | 'MULTI_SELECT'
   | 'ADDRESS'
 
-interface CoreApplicationQuestionAttributes {
+interface ApplicationCoreQuestionAttributes {
   question_key: string
   category: QuestionCategory
   question_type: QuestionType
@@ -32,15 +32,15 @@ interface CoreApplicationQuestionAttributes {
   updated_at?: Date
 }
 
-interface CoreApplicationQuestionCreationAttributes
-  extends Optional<CoreApplicationQuestionAttributes, 'question_key'> {}
+interface ApplicationCoreQuestionCreationAttributes
+  extends Optional<ApplicationCoreQuestionAttributes, 'question_key'> {}
 
-class CoreApplicationQuestion
+class ApplicationCoreQuestion
   extends Model<
-    CoreApplicationQuestionAttributes,
-    CoreApplicationQuestionCreationAttributes
+    ApplicationCoreQuestionAttributes,
+    ApplicationCoreQuestionCreationAttributes
   >
-  implements CoreApplicationQuestionAttributes
+  implements ApplicationCoreQuestionAttributes
 {
   public question_key!: string
   public category!: QuestionCategory
@@ -53,7 +53,7 @@ class CoreApplicationQuestion
   public updated_at!: Date
 }
 
-CoreApplicationQuestion.init(
+ApplicationCoreQuestion.init(
   {
     question_key: {
       type: DataTypes.STRING,
@@ -116,10 +116,10 @@ CoreApplicationQuestion.init(
   },
   {
     sequelize,
-    tableName: 'core_application_questions',
+    tableName: 'application_core_questions',
     timestamps: true,
     underscored: true,
   },
 )
 
-export default CoreApplicationQuestion
+export default ApplicationCoreQuestion

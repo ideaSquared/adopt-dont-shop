@@ -10,7 +10,7 @@ export async function up(queryInterface: QueryInterface) {
   // Get all core questions
   const coreQuestions = await queryInterface.sequelize.query<{
     question_key: string
-  }>(`SELECT question_key FROM core_application_questions`, {
+  }>(`SELECT question_key FROM application_core_questions`, {
     type: QueryTypes.SELECT,
   })
 
@@ -18,9 +18,12 @@ export async function up(queryInterface: QueryInterface) {
   const existingConfigs = await queryInterface.sequelize.query<{
     rescue_id: string
     question_key: string
-  }>(`SELECT rescue_id, question_key FROM rescue_question_configs`, {
-    type: QueryTypes.SELECT,
-  })
+  }>(
+    `SELECT rescue_id, question_key FROM application_rescue_question_configs`,
+    {
+      type: QueryTypes.SELECT,
+    },
+  )
 
   // Create configurations for each rescue and question combination that doesn't exist yet
   const configs = []
@@ -48,10 +51,13 @@ export async function up(queryInterface: QueryInterface) {
   }
 
   if (configs.length > 0) {
-    await queryInterface.bulkInsert('rescue_question_configs', configs)
+    await queryInterface.bulkInsert(
+      'application_rescue_question_configs',
+      configs,
+    )
   }
 }
 
 export async function down(queryInterface: QueryInterface) {
-  await queryInterface.bulkDelete('rescue_question_configs', {})
+  await queryInterface.bulkDelete('application_rescue_question_configs', {})
 }

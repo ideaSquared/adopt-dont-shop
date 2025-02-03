@@ -1,6 +1,6 @@
 import { Response } from 'express'
 import { AuditLogger } from '../services/auditLogService'
-import * as CoreApplicationQuestionService from '../services/coreApplicationQuestionService'
+import * as CoreApplicationQuestionService from '../services/applicationCoreQuestionService'
 import { AuthenticatedRequest } from '../types'
 
 export const getAllCoreQuestions = async (
