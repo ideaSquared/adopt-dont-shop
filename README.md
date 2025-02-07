@@ -30,7 +30,6 @@ The Pet Adoption Platform is a full-stack web application designed to facilitate
 - TypeScript
 - PostgreSQL with Sequelize ORM
 - JWT for authentication
-- AWS SDK for S3 integration
 
 ## 🚀 Getting Started
 
