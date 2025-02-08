@@ -15,17 +15,36 @@ import styled from 'styled-components'
 // Style definitions
 const Container = styled.div`
   padding: 1rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+  }
 `
 
 const Title = styled.h1`
   margin-bottom: 2rem;
   font-size: 1.8rem;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
 `
 
 const PetsGrid = styled.div`
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  max-width: 100%;
+  overflow-x: hidden;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
 `
 
 const PetCard = styled.div`
@@ -34,6 +53,10 @@ const PetCard = styled.div`
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 768px) {
+    padding: 0.75rem;
+  }
 `
 
 const CardHeader = styled.div`
@@ -41,11 +64,22 @@ const CardHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `
 
 const PetName = styled.h3`
   margin: 0;
   font-size: 1.2rem;
+
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+  }
 `
 
 const PetDescription = styled.p`
@@ -56,6 +90,15 @@ const PetDescription = styled.p`
 const ActionButtons = styled.div`
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 480px) {
+    width: 100%;
+
+    button {
+      flex: 1;
+    }
+  }
 `
 
 // Types
@@ -386,134 +429,159 @@ export const Pets: React.FC<PetsProps> = ({ isAdminView = false }) => {
           onClose={() => setIsEditModalOpen(false)}
           size="large"
         >
-          <ImageGallery
-            viewMode="gallery"
-            images={images}
-            onUpload={(files) => handleImageUpload([files])}
-            onDelete={(imageId) => handleImageDelete(imageId, petId)}
-          />
-          <FormInput label="Name">
-            <TextInput
-              onChange={(e) => setName(e.target.value)}
-              type="text"
-              value={name}
+          <div
+            style={{
+              display: 'grid',
+              gap: '1rem',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              padding: '1rem',
+            }}
+          >
+            <ImageGallery
+              viewMode="gallery"
+              images={images}
+              onUpload={(files) => handleImageUpload([files])}
+              onDelete={(imageId) => handleImageDelete(imageId, petId)}
             />
-          </FormInput>
-          <FormInput label="Type">
-            <TextInput
-              onChange={(e) => setType(e.target.value)}
-              type="text"
-              value={type}
-            />
-          </FormInput>
-          <FormInput label="Status">
-            <TextInput
-              onChange={(e) => setStatus(e.target.value)}
-              type="text"
-              value={status}
-            />
-          </FormInput>
-          <FormInput label="Age">
-            <TextInput
-              onChange={(e) => setAge(parseInt(e.target.value) || 0)}
-              type="number"
-              value={age}
-            />
-          </FormInput>
-          <FormInput label="Gender">
-            <TextInput
-              onChange={(e) => setGender(e.target.value)}
-              type="text"
-              value={gender}
-            />
-          </FormInput>
-          <FormInput label="Breed">
-            <TextInput
-              onChange={(e) => setBreed(e.target.value)}
-              type="text"
-              value={breed}
-            />
-          </FormInput>
-          <FormInput label="Vaccination Status">
-            <TextInput
-              onChange={(e) => setVaccinationStatus(e.target.value)}
-              type="text"
-              value={vaccinationStatus}
-            />
-          </FormInput>
-          <FormInput label="Temperament">
-            <TextInput
-              onChange={(e) => setTemperament(e.target.value)}
-              type="text"
-              value={temperament}
-            />
-          </FormInput>
-          <FormInput label="Health">
-            <TextInput
-              onChange={(e) => setHealth(e.target.value)}
-              type="text"
-              value={health}
-            />
-          </FormInput>
-          <FormInput label="Size">
-            <TextInput
-              onChange={(e) => setSize(e.target.value)}
-              type="text"
-              value={size}
-            />
-          </FormInput>
-          <FormInput label="Grooming Needs">
-            <TextInput
-              onChange={(e) => setGroomingNeeds(e.target.value)}
-              type="text"
-              value={groomingNeeds}
-            />
-          </FormInput>
-          <FormInput label="Training & Socialization">
-            <TextInput
-              onChange={(e) => setTrainingSocialization(e.target.value)}
-              type="text"
-              value={trainingSocialization}
-            />
-          </FormInput>
-          <FormInput label="Commitment Level">
-            <TextInput
-              onChange={(e) => setCommitmentLevel(e.target.value)}
-              type="text"
-              value={commitmentLevel}
-            />
-          </FormInput>
-          <FormInput label="Other Pets">
-            <TextInput
-              onChange={(e) => setOtherPets(e.target.value)}
-              type="text"
-              value={otherPets}
-            />
-          </FormInput>
-          <FormInput label="Household">
-            <TextInput
-              onChange={(e) => setHousehold(e.target.value)}
-              type="text"
-              value={household}
-            />
-          </FormInput>
-          <FormInput label="Energy">
-            <TextInput
-              onChange={(e) => setEnergy(e.target.value)}
-              type="text"
-              value={energy}
-            />
-          </FormInput>
-          <FormInput label="Family">
-            <TextInput
-              onChange={(e) => setFamily(e.target.value)}
-              type="text"
-              value={family}
-            />
-          </FormInput>
-          <Button type="button" variant="success" onClick={handleSave}>
-            Save
-          </Button>
+
+            <div
+              style={{
+                display: 'grid',
+                gap: '1rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              }}
+            >
+              <FormInput label="Name">
+                <TextInput
+                  onChange={(e) => setName(e.target.value)}
+                  type="text"
+                  value={name}
+                />
+              </FormInput>
+              <FormInput label="Type">
+                <TextInput
+                  onChange={(e) => setType(e.target.value)}
+                  type="text"
+                  value={type}
+                />
+              </FormInput>
+              <FormInput label="Status">
+                <TextInput
+                  onChange={(e) => setStatus(e.target.value)}
+                  type="text"
+                  value={status}
+                />
+              </FormInput>
+              <FormInput label="Age">
+                <TextInput
+                  onChange={(e) => setAge(parseInt(e.target.value) || 0)}
+                  type="number"
+                  value={age}
+                />
+              </FormInput>
+              <FormInput label="Gender">
+                <TextInput
+                  onChange={(e) => setGender(e.target.value)}
+                  type="text"
+                  value={gender}
+                />
+              </FormInput>
+              <FormInput label="Breed">
+                <TextInput
+                  onChange={(e) => setBreed(e.target.value)}
+                  type="text"
+                  value={breed}
+                />
+              </FormInput>
+              <FormInput label="Vaccination Status">
+                <TextInput
+                  onChange={(e) => setVaccinationStatus(e.target.value)}
+                  type="text"
+                  value={vaccinationStatus}
+                />
+              </FormInput>
+              <FormInput label="Temperament">
+                <TextInput
+                  onChange={(e) => setTemperament(e.target.value)}
+                  type="text"
+                  value={temperament}
+                />
+              </FormInput>
+              <FormInput label="Health">
+                <TextInput
+                  onChange={(e) => setHealth(e.target.value)}
+                  type="text"
+                  value={health}
+                />
+              </FormInput>
+              <FormInput label="Size">
+                <TextInput
+                  onChange={(e) => setSize(e.target.value)}
+                  type="text"
+                  value={size}
+                />
+              </FormInput>
+              <FormInput label="Grooming Needs">
+                <TextInput
+                  onChange={(e) => setGroomingNeeds(e.target.value)}
+                  type="text"
+                  value={groomingNeeds}
+                />
+              </FormInput>
+              <FormInput label="Training & Socialization">
+                <TextInput
+                  onChange={(e) => setTrainingSocialization(e.target.value)}
+                  type="text"
+                  value={trainingSocialization}
+                />
+              </FormInput>
+              <FormInput label="Commitment Level">
+                <TextInput
+                  onChange={(e) => setCommitmentLevel(e.target.value)}
+                  type="text"
+                  value={commitmentLevel}
+                />
+              </FormInput>
+              <FormInput label="Other Pets">
+                <TextInput
+                  onChange={(e) => setOtherPets(e.target.value)}
+                  type="text"
+                  value={otherPets}
+                />
+              </FormInput>
+              <FormInput label="Household">
+                <TextInput
+                  onChange={(e) => setHousehold(e.target.value)}
+                  type="text"
+                  value={household}
+                />
+              </FormInput>
+              <FormInput label="Energy">
+                <TextInput
+                  onChange={(e) => setEnergy(e.target.value)}
+                  type="text"
+                  value={energy}
+                />
+              </FormInput>
+              <FormInput label="Family">
+                <TextInput
+                  onChange={(e) => setFamily(e.target.value)}
+                  type="text"
+                  value={family}
+                />
+              </FormInput>
+            </div>
+
+            <Button
+              type="button"
+              variant="success"
+              onClick={handleSave}
+              style={{ marginTop: '1rem' }}
+            >
+              Save
+            </Button>
+          </div>
         </Modal>
       )}
     </Container>
