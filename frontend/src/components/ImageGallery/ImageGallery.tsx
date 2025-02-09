@@ -13,22 +13,38 @@ interface ImageGalleryProps {
 const GalleryContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   justify-content: center;
-  margin: 20px;
+  margin: 12px;
+
+  @media (max-width: 480px) {
+    gap: 8px;
+    margin: 8px;
+  }
 `
 
 const ImageContainer = styled.div`
   position: relative;
   width: 150px;
   height: 150px;
+
+  @media (max-width: 480px) {
+    width: 120px;
+    height: 120px;
+  }
 `
 
 const ImageWrapper = styled.div`
   position: relative;
-  width: 300px;
+  width: 100%;
+  max-width: 300px;
   height: 300px;
   margin: 20px auto;
+
+  @media (max-width: 480px) {
+    height: 250px;
+    margin: 12px auto;
+  }
 `
 
 const Image = styled.img<{ loading: boolean }>`
@@ -51,6 +67,14 @@ const DeleteButton = styled.button`
   border-radius: 50%;
   cursor: pointer;
   font-size: 12px;
+
+  @media (max-width: 480px) {
+    padding: 4px 8px;
+    font-size: 10px;
+    top: 5px;
+    right: 5px;
+  }
+
   &:hover {
     background-color: red;
   }
@@ -59,7 +83,11 @@ const DeleteButton = styled.button`
 const NavigationDots = styled.div`
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 16px;
+
+  @media (max-width: 480px) {
+    margin-top: 12px;
+  }
 `
 
 const Dot = styled.button<{ active: boolean }>`
