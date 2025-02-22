@@ -6,7 +6,7 @@ import {
   QuestionCategory,
   RescueQuestionConfig,
 } from '../../libs/applications/applicationTypes'
-import * as RescueQuestionConfigService from '../../libs/applications/rescueQuestionConfigService'
+import * as RescueQuestionConfigService from '../../libs/applications/RescueQuestionConfigService'
 
 type ApplicationQuestionConfigProps = {
   rescueId: string
