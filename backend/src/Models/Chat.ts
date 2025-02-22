@@ -5,7 +5,7 @@ interface ChatAttributes {
   chat_id: string
   application_id?: string // Optional - links to adoption application if chat was initiated from one
   rescue_id: string // Add rescue_id to attributes
-  status: 'active' | 'archived'
+  status: 'active' | 'locked' | 'archived'
   created_at?: Date
   updated_at?: Date
 }
@@ -19,7 +19,7 @@ export class Chat
   public chat_id!: string
   public application_id?: string
   public rescue_id!: string // Add rescue_id to class
-  public status!: 'active' | 'archived'
+  public status!: 'active' | 'locked' | 'archived'
   public readonly created_at!: Date
   public readonly updated_at!: Date
 
@@ -39,7 +39,8 @@ export class Chat
       foreignKey: 'application_id',
       as: 'application',
     })
-    Chat.belongsTo(models.Rescue, { // Add rescue association
+    Chat.belongsTo(models.Rescue, {
+      // Add rescue association
       foreignKey: 'rescue_id',
       as: 'rescue',
     })
@@ -63,7 +64,8 @@ Chat.init(
         key: 'application_id',
       },
     },
-    rescue_id: { // Add rescue_id field
+    rescue_id: {
+      // Add rescue_id field
       type: DataTypes.STRING,
       allowNull: false,
       references: {
@@ -72,9 +74,12 @@ Chat.init(
       },
     },
     status: {
-      type: DataTypes.ENUM('active', 'archived'),
+      type: DataTypes.ENUM('active', 'locked', 'archived'),
       allowNull: false,
       defaultValue: 'active',
+      validate: {
+        isIn: [['active', 'locked', 'archived']],
+      },
     },
   },
   {

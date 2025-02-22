@@ -80,4 +80,29 @@ router.delete(
   participantController.deleteParticipant,
 )
 
+// Admin chat management routes
+router.patch(
+  '/:chat_id/status',
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
+  chatController.updateChat,
+)
+
+router.delete(
+  '/messages/:message_id',
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
+  chatController.deleteMessageController,
+)
+
+router.delete(
+  '/:chat_id',
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
+  chatController.deleteChat,
+)
+
+router.post(
+  '/messages/bulk-delete',
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
+  chatController.bulkDeleteMessagesController,
+)
+
 export default router

@@ -124,6 +124,16 @@ const Button = styled.button`
   }
 `
 
+const LockedChatMessage = styled.div`
+  background-color: ${(props) => props.theme.background.warning};
+  color: ${(props) => props.theme.text.warning};
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: 500;
+`
+
 // Types
 type MessageItemProps = {
   isCurrentUser: boolean
@@ -133,6 +143,7 @@ type ChatProps = {
   messages: ExtendedMessage[]
   conversationId: string
   onSendMessage: (message: ExtendedMessage) => void
+  status?: 'active' | 'locked' | 'archived'
 }
 
 type MessageFormat = 'plain' | 'markdown' | 'html'
@@ -145,14 +156,16 @@ export const Chat: React.FC<ChatProps> = ({
   messages,
   conversationId,
   onSendMessage,
+  status = 'active',
 }) => {
   const [newMessage, setNewMessage] = useState('')
   const [messageFormat, setMessageFormat] = useState<MessageFormat>('html')
   const currentUserId = '1' // TODO: Get from auth context
   const isMessageValid = newMessage.trim().length > 0
+  const isLocked = status === 'locked' || status === 'archived'
 
   const handleSendMessage = () => {
-    if (newMessage.trim()) {
+    if (newMessage.trim() && !isLocked) {
       const newMsg: ExtendedMessage = {
         message_id: '', // Will be set by the server
         chat_id: conversationId,
@@ -191,6 +204,12 @@ export const Chat: React.FC<ChatProps> = ({
   return (
     <ChatContainer>
       <MessageList>
+        {isLocked && (
+          <LockedChatMessage>
+            This chat is {status === 'locked' ? 'locked' : 'archived'} and no
+            new messages can be sent.
+          </LockedChatMessage>
+        )}
         {messages.map((message) => (
           <MessageItem
             key={message.message_id}
@@ -206,19 +225,21 @@ export const Chat: React.FC<ChatProps> = ({
           </MessageItem>
         ))}
       </MessageList>
-      <InputContainer>
-        <RichTextEditor
-          value={newMessage}
-          onChange={(content, format) => {
-            setNewMessage(content)
-            setMessageFormat(format)
-          }}
-          placeholder="Type your message..."
-        />
-        <Button onClick={handleSendMessage} disabled={!isMessageValid}>
-          Send
-        </Button>
-      </InputContainer>
+      {!isLocked && (
+        <InputContainer>
+          <RichTextEditor
+            value={newMessage}
+            onChange={(content, format) => {
+              setNewMessage(content)
+              setMessageFormat(format)
+            }}
+            placeholder="Type your message..."
+          />
+          <Button onClick={handleSendMessage} disabled={!isMessageValid}>
+            Send
+          </Button>
+        </InputContainer>
+      )}
     </ChatContainer>
   )
 }

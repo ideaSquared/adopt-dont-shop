@@ -3,7 +3,6 @@ import {
   BaseSidebar,
   Button,
   DateTime,
-  FormInput,
   SelectInput,
   Table,
   TextInput,
@@ -18,6 +17,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { useUser } from '../../contexts/auth/UserContext'
+import { ChatActions } from './Conversations/ChatActions'
+import { MessageActions as MessageActionsComponent } from './Conversations/MessageActions'
 
 // Style definitions
 const ParticipantsTitle = styled.h3`
@@ -94,7 +95,7 @@ const TimeStamp = styled.p`
   margin: 0;
 `
 
-const MessageActions = styled.div`
+const MessageActionsWrapper = styled.div`
   display: flex;
   justify-content: flex-end;
   margin-top: 0.5rem;
@@ -110,10 +111,46 @@ const ActionButtons = styled.div`
   gap: 0.5rem;
 `
 
+const MessageItemHeader = styled(MessageHeader)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`
+
+const MessageHeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`
+
+const MessageHeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`
+
 // Remove all type definitions here and keep only the component props type
 
 type ConversationsProps = {
   isAdminView?: boolean
+}
+
+interface MessageResponse {
+  messages: Message[]
+}
+
+// Add type for status
+const getBadgeVariant = (
+  status: ConversationStatus,
+): 'success' | 'warning' | 'danger' => {
+  switch (status) {
+    case 'active':
+      return 'success'
+    case 'archived':
+      return 'danger'
+    default:
+      return 'danger'
+  }
 }
 
 export const Conversations: React.FC<ConversationsProps> = ({
@@ -198,10 +235,10 @@ export const Conversations: React.FC<ConversationsProps> = ({
       // Extract messages from the response
       const fetchedMessages = Array.isArray(response)
         ? response
-        : (response as any).messages || []
+        : (response as MessageResponse).messages || []
       setMessages(fetchedMessages)
     } catch (error) {
-      console.error('Failed to fetch messages:', error)
+      setError('Failed to fetch messages')
       setMessages([])
     }
   }
@@ -270,30 +307,47 @@ export const Conversations: React.FC<ConversationsProps> = ({
     { value: 'archived', label: 'Archived' },
   ]
 
+  const handleRefreshConversations = async () => {
+    try {
+      setLoading(true)
+      let fetchedConversations
+      if (isAdminView) {
+        fetchedConversations = await ConversationService.getAllConversations()
+      } else if (rescue?.rescue_id) {
+        fetchedConversations =
+          await ConversationService.getConversationsByRescueId()
+      }
+      setConversations(fetchedConversations || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div>
       <h1>{isAdminView ? 'All Conversations' : 'Rescue Conversations'}</h1>
-      <FormInput label="Search by participant name or email">
+      <div style={{ marginBottom: '1rem' }}>
         <TextInput
-          value={searchTerm}
           type="text"
-          onChange={handleSearchChange}
           placeholder="Search conversations..."
+          value={searchTerm}
+          onChange={handleSearchChange}
         />
-      </FormInput>
-      <FormInput label="Filter by status">
         <SelectInput
-          options={filterOptions}
           value={filterStatus}
           onChange={handleStatusFilterChange}
+          options={filterOptions}
         />
-      </FormInput>
-      <Table hasActions>
+      </div>
+
+      <Table>
         <thead>
           <tr>
             <th>ID</th>
-            <th>Started By</th>
-            <th>Created At</th>
+            <th>User</th>
+            <th>Created</th>
             <th>Last Message</th>
             <th>Status</th>
             <th>Actions</th>
@@ -338,11 +392,7 @@ export const Conversations: React.FC<ConversationsProps> = ({
                 </td>
                 <td>{conversation.Messages[0]?.content || 'No messages'}</td>
                 <td>
-                  <Badge
-                    variant={
-                      conversation.status === 'active' ? 'success' : 'danger'
-                    }
-                  >
+                  <Badge variant={getBadgeVariant(conversation.status)}>
                     {conversation.status}
                   </Badge>
                 </td>
@@ -362,15 +412,22 @@ export const Conversations: React.FC<ConversationsProps> = ({
                     >
                       View Details
                     </Button>
-                    {!isAdminView && conversation.status === 'active' && (
-                      <Button
-                        variant="warning"
-                        onClick={() =>
-                          handleUpdateStatus(conversation.chat_id, 'archived')
-                        }
-                      >
-                        Archive
-                      </Button>
+                    {isAdminView ? (
+                      <ChatActions
+                        chatId={conversation.chat_id}
+                        status={conversation.status}
+                        onStatusChange={handleRefreshConversations}
+                        isAdmin={true}
+                      />
+                    ) : (
+                      conversation.status === 'active' && (
+                        <ChatActions
+                          chatId={conversation.chat_id}
+                          status={conversation.status}
+                          onStatusChange={handleRefreshConversations}
+                          isAdmin={false}
+                        />
+                      )
                     )}
                   </ActionButtons>
                 </td>
@@ -411,27 +468,29 @@ export const Conversations: React.FC<ConversationsProps> = ({
                   )
                   .map((message) => (
                     <MessageItem key={message.message_id}>
-                      <MessageHeader>
-                        <SenderInfo>
-                          {message.User.first_name} {message.User.last_name}
-                        </SenderInfo>
-                        <TimeStamp>
-                          {new Date(message.created_at).toLocaleString()}
-                        </TimeStamp>
-                      </MessageHeader>
+                      <MessageItemHeader>
+                        <MessageHeaderLeft>
+                          <SenderInfo>
+                            {message.User.first_name} {message.User.last_name}
+                          </SenderInfo>
+                          <TimeStamp>
+                            {new Date(message.created_at).toLocaleString()}
+                          </TimeStamp>
+                        </MessageHeaderLeft>
+                        <MessageHeaderRight>
+                          <MessageActionsComponent
+                            messageId={message.message_id}
+                            onMessageDeleted={() => {
+                              if (selectedConversation) {
+                                handleViewConversation(selectedConversation)
+                              }
+                            }}
+                            isAdmin={isAdminView}
+                            canDelete={canDeleteMessage(message)}
+                          />
+                        </MessageHeaderRight>
+                      </MessageItemHeader>
                       <MessageContent>{message.content}</MessageContent>
-                      {canDeleteMessage(message) && (
-                        <MessageActions>
-                          <Button
-                            variant="danger"
-                            onClick={() =>
-                              handleDeleteMessage(message.message_id)
-                            }
-                          >
-                            Delete
-                          </Button>
-                        </MessageActions>
-                      )}
                     </MessageItem>
                   ))}
               </MessageList>

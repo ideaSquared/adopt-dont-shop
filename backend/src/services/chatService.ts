@@ -1,3 +1,4 @@
+import { Op } from 'sequelize'
 import { Chat, ChatParticipant, Message, User } from '../Models'
 import sequelize from '../sequelize'
 import { AuditLogger } from './auditLogService'
@@ -154,57 +155,127 @@ export const getChatById = async (chatId: string) => {
 }
 
 /**
- * Update a chat's status
+ * Update chat status
+ * @param chatId - The ID of the chat to update
+ * @param status - The new status
+ * @param userId - The ID of the user performing the action
+ * @param auditOptions - Audit logging options
  */
-export const updateChatStatus = async (chatId: string, status: ChatStatus) => {
-  try {
-    const chat = await Chat.findByPk(chatId)
+export const updateChatStatus = async (
+  chatId: string,
+  status: 'active' | 'locked' | 'archived',
+  userId: string,
+  auditOptions: any,
+) => {
+  const chat = await Chat.findByPk(chatId)
 
-    if (!chat) {
-      throw new Error('Chat not found')
-    }
-
-    await chat.update({ status })
-
-    AuditLogger.logAction(
-      'Chat',
-      `Chat ${chatId} updated - Status: ${status}`,
-      'INFO',
-    )
-
-    return chat
-  } catch (error) {
-    AuditLogger.logAction(
-      'Chat',
-      `Failed to update chat: ${(error as Error).message}`,
-      'ERROR',
-    )
-    throw error
+  if (!chat) {
+    throw new Error('Chat not found')
   }
+
+  await chat.update({ status })
+
+  AuditLogger.logAction(
+    'Chat',
+    `Chat ${chatId} status updated to ${status}`,
+    'INFO',
+    userId,
+    auditOptions,
+  )
+
+  return chat
 }
 
 /**
- * Delete a chat
+ * Delete a message
+ * @param messageId - The ID of the message to delete
+ * @param userId - The ID of the user performing the action
+ * @param auditOptions - Audit logging options
  */
-export const deleteChat = async (chatId: string) => {
-  try {
-    const chat = await Chat.findByPk(chatId)
+export const deleteMessage = async (
+  messageId: string,
+  userId: string,
+  auditOptions: any,
+) => {
+  const message = await Message.findByPk(messageId)
 
-    if (!chat) {
-      throw new Error('Chat not found')
-    }
-
-    await chat.destroy()
-
-    AuditLogger.logAction('Chat', `Chat ${chatId} deleted`, 'INFO')
-  } catch (error) {
-    AuditLogger.logAction(
-      'Chat',
-      `Failed to delete chat: ${(error as Error).message}`,
-      'ERROR',
-    )
-    throw error
+  if (!message) {
+    throw new Error('Message not found')
   }
+
+  await message.destroy()
+
+  AuditLogger.logAction(
+    'Chat',
+    `Message ${messageId} deleted`,
+    'INFO',
+    userId,
+    auditOptions,
+  )
+}
+
+/**
+ * Delete a chat and all its messages
+ * @param chatId - The ID of the chat to delete
+ * @param userId - The ID of the user performing the action
+ * @param auditOptions - Audit logging options
+ */
+export const deleteChat = async (
+  chatId: string,
+  userId: string,
+  auditOptions: any,
+) => {
+  const chat = await Chat.findByPk(chatId)
+
+  if (!chat) {
+    throw new Error('Chat not found')
+  }
+
+  // Delete all messages in the chat
+  await Message.destroy({
+    where: {
+      chat_id: chatId,
+    },
+  })
+
+  // Delete the chat
+  await chat.destroy()
+
+  AuditLogger.logAction(
+    'Chat',
+    `Chat ${chatId} and all its messages deleted`,
+    'INFO',
+    userId,
+    auditOptions,
+  )
+}
+
+/**
+ * Bulk delete messages
+ * @param messageIds - Array of message IDs to delete
+ * @param userId - The ID of the user performing the action
+ * @param auditOptions - Audit logging options
+ */
+export const bulkDeleteMessages = async (
+  messageIds: string[],
+  userId: string,
+  auditOptions: any,
+) => {
+  await Message.destroy({
+    where: {
+      message_id: {
+        [Op.in]: messageIds,
+      },
+    },
+  })
+
+  AuditLogger.logAction(
+    'Chat',
+    `Bulk deleted ${messageIds.length} messages`,
+    'INFO',
+    userId,
+    auditOptions,
+  )
 }
 
 /**

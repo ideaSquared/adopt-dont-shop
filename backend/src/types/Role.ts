@@ -14,6 +14,8 @@ export enum Permission {
   DELETE_PET = 'delete_pet',
   CREATE_MESSAGES = 'create_messages',
   VIEW_MESSAGES = 'view_messages',
+  DELETE_MESSAGES = 'delete_messages',
+  MANAGE_CHATS = 'manage_chats',
   VIEW_APPLICATIONS = 'view_applications',
   ACTION_APPLICATIONS = 'action_applications',
   VIEW_DASHBOARD = 'view_dashboard',

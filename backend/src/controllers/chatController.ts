@@ -1,9 +1,59 @@
 import { Response } from 'express'
 import { AuditLogger } from '../services/auditLogService'
 import * as chatService from '../services/chatService'
+import { bulkDeleteMessages } from '../services/chatService'
 import { AuthenticatedRequest } from '../types'
 
 type ChatStatus = 'active' | 'archived'
+
+// Helper function to check authentication
+const checkAuthentication = (
+  req: AuthenticatedRequest,
+  res: Response,
+  action: string,
+): string | null => {
+  const userId = req.user?.user_id
+  if (!userId) {
+    AuditLogger.logAction(
+      'ChatController',
+      `Attempt to ${action} without authentication`,
+      'WARNING',
+      null,
+      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+    )
+    res.status(401).json({ error: 'Not authenticated' })
+    return null
+  }
+  return userId
+}
+
+// Helper function to handle errors
+const handleError = (
+  error: unknown,
+  userId: string,
+  action: string,
+  identifier: string,
+  req: AuthenticatedRequest,
+  res: Response,
+): void => {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+  AuditLogger.logAction(
+    'ChatController',
+    `Failed to ${action} ${identifier}: ${errorMessage}`,
+    'ERROR',
+    userId,
+    AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+  )
+
+  if (
+    errorMessage === 'Chat not found' ||
+    errorMessage === 'Message not found'
+  ) {
+    res.status(404).json({ error: `${identifier} not found` })
+  } else {
+    res.status(500).json({ error: `Failed to ${action}` })
+  }
+}
 
 export const createChat = async (
   req: AuthenticatedRequest,
@@ -225,6 +275,8 @@ export const updateChat = async (
     const chat = await chatService.updateChatStatus(
       chatId,
       status as ChatStatus,
+      userId,
+      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
     )
 
     AuditLogger.logAction(
@@ -246,12 +298,7 @@ export const updateChat = async (
       userId,
       AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
     )
-
-    if (errorMessage === 'Chat not found') {
-      res.status(404).json({ error: 'Chat not found' })
-    } else {
-      res.status(500).json({ error: 'Failed to update chat' })
-    }
+    res.status(500).json({ error: 'Failed to update chat' })
   }
 }
 
@@ -259,20 +306,10 @@ export const deleteChat = async (
   req: AuthenticatedRequest,
   res: Response,
 ): Promise<void> => {
-  const userId = req.user?.user_id
-  const chatId = req.params.chat_id
+  const userId = checkAuthentication(req, res, 'delete chat')
+  if (!userId) return
 
-  if (!userId) {
-    AuditLogger.logAction(
-      'ChatController',
-      'Attempt to delete chat without authentication',
-      'WARNING',
-      null,
-      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
-    )
-    res.status(401).json({ error: 'Not authenticated' })
-    return
-  }
+  const chatId = req.params.chat_id
 
   try {
     AuditLogger.logAction(
@@ -283,7 +320,11 @@ export const deleteChat = async (
       AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
     )
 
-    await chatService.deleteChat(chatId)
+    await chatService.deleteChat(
+      chatId,
+      userId,
+      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+    )
 
     AuditLogger.logAction(
       'ChatController',
@@ -295,21 +336,7 @@ export const deleteChat = async (
 
     res.status(204).send()
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error'
-    AuditLogger.logAction(
-      'ChatController',
-      `Failed to delete chat ${chatId}: ${errorMessage}`,
-      'ERROR',
-      userId,
-      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
-    )
-
-    if (errorMessage === 'Chat not found') {
-      res.status(404).json({ error: 'Chat not found' })
-    } else {
-      res.status(500).json({ error: 'Failed to delete chat' })
-    }
+    handleError(error, userId, 'delete', `chat ${chatId}`, req, res)
   }
 }
 
@@ -423,5 +450,47 @@ export const getChatsByRescueId = async (
       AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
     )
     res.status(500).json({ error: 'Failed to fetch chats' })
+  }
+}
+
+export const deleteMessageController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  const userId = checkAuthentication(req, res, 'delete message')
+  if (!userId) return
+
+  const messageId = req.params.message_id
+
+  try {
+    await chatService.deleteMessage(
+      messageId,
+      userId,
+      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+    )
+    res.status(204).send()
+  } catch (error) {
+    handleError(error, userId, 'delete', `message ${messageId}`, req, res)
+  }
+}
+
+export const bulkDeleteMessagesController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  const userId = checkAuthentication(req, res, 'bulk delete messages')
+  if (!userId) return
+
+  const { messageIds } = req.body
+
+  try {
+    await bulkDeleteMessages(
+      messageIds,
+      userId,
+      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+    )
+    res.status(204).send()
+  } catch (error) {
+    handleError(error, userId, 'bulk delete', 'messages', req, res)
   }
 }

@@ -5,6 +5,7 @@ import { Conversation, ConversationStatus, Message } from './Conversation'
 
 const API_BASE_URL = '/chats'
 const ADMIN_BASE_URL = '/admin'
+const CHAT_MANAGEMENT_URL = '/chat-management'
 
 /**
  * Fetch all conversations from the API.
@@ -93,6 +94,48 @@ export const deleteMessage = async (
   await apiService.delete(endpoint)
 }
 
+/**
+ * Update chat status (admin only)
+ * @param chatId - The ID of the chat to update
+ * @param status - The new status
+ */
+export const updateChatStatus = async (
+  chatId: string,
+  status: 'active' | 'locked' | 'archived',
+): Promise<void> => {
+  await apiService.patch(`${CHAT_MANAGEMENT_URL}/chats/${chatId}/status`, {
+    status,
+  })
+}
+
+/**
+ * Delete a chat and all its messages (admin only)
+ * @param chatId - The ID of the chat to delete
+ */
+export const deleteChat = async (chatId: string): Promise<void> => {
+  await apiService.delete(`${CHAT_MANAGEMENT_URL}/chats/${chatId}`)
+}
+
+/**
+ * Delete a message (admin only)
+ * @param messageId - The ID of the message to delete
+ */
+export const deleteMessageAdmin = async (messageId: string): Promise<void> => {
+  await apiService.delete(`${CHAT_MANAGEMENT_URL}/messages/${messageId}`)
+}
+
+/**
+ * Bulk delete messages (admin only)
+ * @param messageIds - Array of message IDs to delete
+ */
+export const bulkDeleteMessages = async (
+  messageIds: string[],
+): Promise<void> => {
+  await apiService.post(`${CHAT_MANAGEMENT_URL}/messages/bulk-delete`, {
+    messageIds,
+  })
+}
+
 export default {
   getConversations,
   getAllConversations,
@@ -101,4 +144,8 @@ export default {
   getMessagesByConversationId,
   updateConversationStatus,
   deleteMessage,
+  updateChatStatus,
+  deleteChat,
+  deleteMessageAdmin,
+  bulkDeleteMessages,
 }

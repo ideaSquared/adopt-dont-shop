@@ -43,20 +43,33 @@ export const ChatContainer: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [socket, setSocket] = useState<Socket | null>(null)
+  const [chatStatus, setChatStatus] = useState<
+    'active' | 'locked' | 'archived'
+  >('active')
 
-  // Fetch initial messages
-  const fetchMessages = useCallback(async () => {
+  // Fetch chat status and initial messages
+  const fetchChatData = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/chats/${conversationId}/messages`)
-      if (!response.ok) throw new Error('Failed to fetch messages')
-      const data = await response.json()
+      const [messagesResponse, chatResponse] = await Promise.all([
+        fetch(`/api/chats/${conversationId}/messages`),
+        fetch(`/api/chats/${conversationId}`),
+      ])
+
+      if (!messagesResponse.ok || !chatResponse.ok) {
+        throw new Error('Failed to fetch chat data')
+      }
+
+      const messagesData = await messagesResponse.json()
+      const chatData = await chatResponse.json()
+
       setMessages(
-        data.messages.map((msg: Message) => ({
+        messagesData.messages.map((msg: Message) => ({
           ...msg,
           content_format: msg.content_format || ('plain' as MessageFormat),
         })),
       )
+      setChatStatus(chatData.status)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -104,6 +117,13 @@ export const ChatContainer: React.FC = () => {
       setMessages((prev) => prev.filter((msg) => msg.chat_id !== messageId))
     })
 
+    newSocket.on(
+      'chat_status_updated',
+      (status: 'active' | 'locked' | 'archived') => {
+        setChatStatus(status)
+      },
+    )
+
     setSocket(newSocket)
 
     return () => {
@@ -112,12 +132,17 @@ export const ChatContainer: React.FC = () => {
     }
   }, [conversationId])
 
-  // Load initial messages
+  // Load initial data
   useEffect(() => {
-    fetchMessages()
-  }, [fetchMessages])
+    fetchChatData()
+  }, [fetchChatData])
 
   const handleSendMessage = async (message: ExtendedMessage) => {
+    if (chatStatus !== 'active') {
+      setError('Cannot send messages in a locked or archived chat')
+      return
+    }
+
     try {
       const formData = new FormData()
       formData.append('content', message.content)
@@ -150,6 +175,7 @@ export const ChatContainer: React.FC = () => {
         messages={messages}
         conversationId={conversationId || ''}
         onSendMessage={handleSendMessage}
+        status={chatStatus}
       />
     </Container>
   )
