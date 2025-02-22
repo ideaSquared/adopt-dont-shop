@@ -1,0 +1,326 @@
+---
+description: Guidelines for witing backend ExpressJS Typescript
+globs: backend/*.ts
+---
+# Express Best Practices  
+
+## Middleware  
+
+- Use middleware to keep routes clean and modular.  
+- Separate concerns by using dedicated middleware for authentication, validation, logging, and error handling.  
+- Order middleware properly to ensure correct execution flow.  
+
+### Example:  
+
+```ts  
+app.use(express.json()); // Parse incoming JSON requests  
+app.use(helmet()); // Set security headers  
+app.use('/api', apiRoutes); // Route grouping  
+app.use(errorHandler); // Centralized error handling middleware
+```
+
+### Error Handling
+
+- Implement a global error-handling middleware.
+- Use next() to pass errors properly through the middleware chain.
+- Structure errors with meaningful messages and HTTP status codes.
+
+#### Example:
+
+```ts
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {  
+console.error(err.stack);  
+res.status(500).json({ error: 'Internal Server Error' });  
+});  
+```
+
+## Security
+
+- Use helmet to set security-related HTTP headers.
+- Implement rate limiting to prevent abuse.
+- Use proper authentication and authorization strategies.
+
+### Example:
+
+```ts
+import helmet from 'helmet';  
+import rateLimit from 'express-rate-limit';  
+app.use(helmet());  
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 })); // 100 requests per 15 min  
+```
+
+## Sequelize Best Practices
+
+### Model Definitions
+- Define models with proper constraints (e.g., allowNull, unique, defaultValue).
+- Use proper associations with hasOne, hasMany, and belongsToMany.
+
+#### Example:
+```ts
+User.hasMany(Post, { foreignKey: 'user_id' });  
+Post.belongsTo(User, { foreignKey: 'user_id' });  
+```
+
+###  Transactions
+- Use transactions when multiple database operations need atomicity.
+- Always handle transaction rollbacks properly.
+
+#### Example:
+```ts
+import { sequelize } from '../models';  
+const transaction = await sequelize.transaction();  
+try {  
+    const user = await User.create({ name: 'John' }, { transaction });  
+    await Profile.create({ userId: user.id }, { transaction });  
+    await transaction.commit();  
+} catch (error) {  
+    await transaction.rollback();  
+}  
+```
+
+## PostgreSQL (pg) Best Practices
+
+### Query Security
+- Use parameterized queries to prevent SQL injection.
+
+#### Example:
+```ts
+const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);  
+```
+
+### Indexing
+- Regularly update and optimize database indexes.
+- Use appropriate indexing for frequent queries.
+
+#### Example:
+```ts
+CREATE INDEX idx_users_email ON users(email);  
+```
+
+## bcryptjs Best Practices
+
+### Password Security
+- Use a sufficient work factor (saltRounds).
+- Never store plain-text passwords.
+
+#### Example:
+```ts
+import bcrypt from 'bcryptjs';  
+const saltRounds = 12;  
+const hash = await bcrypt.hash(password, saltRounds);  
+```
+
+## JSON Web Token (jsonwebtoken) Best Practices
+### Token Security
+- Use short-lived access tokens and refresh tokens.
+- Store sensitive data securely.
+
+#### Example:
+```ts
+import jwt from 'jsonwebtoken';  
+const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '15m' });  
+```
+
+## UUID Best Practices
+### Unique Identifiers
+- Use UUID v4 for generating unique IDs.
+
+Example:
+```ts
+import { v4 as uuidv4 } from 'uuid';  
+const id = uuidv4();  
+```
+
+## Multer Best Practices
+
+### File Uploads
+- Validate file types and sizes.
+- Use disk storage for temporary files.
+
+#### Example:
+```ts
+import multer from 'multer';  
+const upload = multer({ dest: 'uploads/', limits: { fileSize: 5 * 1024 * 1024 } });  
+```
+
+## Nodemailer Best Practices
+### Email Configuration
+- Store email credentials in environment variables.
+- Use proper error handling.
+
+#### Example:
+```ts
+import nodemailer from 'nodemailer';  
+const transporter = nodemailer.createTransport({  
+    service: 'gmail',  
+    auth: {  
+        user: process.env.EMAIL_USER,  
+        pass: process.env.EMAIL_PASS  
+    }  
+});  
+```
+## CORS Best Practices
+### Cross-Origin Security
+- Implement proper CORS policies.
+- Restrict allowed origins.
+
+#### Example:
+```ts
+import cors from 'cors';  
+app.use(cors({ origin: 'https://example.com', credentials: true }));  
+```
+
+## dotenv Best Practices
+### Environment Variables
+    Store sensitive configurations in .env.
+    Never commit .env to version control.
+
+Example:
+```
+DATABASE_URL=your_database_url
+JWT_SECRET=your_jwt_secret
+EMAIL_USER=your_email
+EMAIL_PASS=your_password
+```
+
+## Sequelize Best Practices  
+
+### General  
+- Keep models, migrations, and seeders organized in separate directories.  
+- Use environment variables to configure database connections.  
+- Enable logging only in development mode.  
+- Keep database migrations up-to-date and version-controlled.  
+- Use singular names and avoid generic names like 'id'.
+- For references to foreign tables, use the singular of the table name with the `_id` suffix. For example `user_id` to reference the `users` table
+- Avoid SQL reserved words and ensure names are unique and under 63 characters.
+- Use snake_case for tables and columns.
+- Prefer plurals for table names
+- Prefer singular names for columns.
+
+#### Example:  
+```ts  
+const sequelize = new Sequelize(process.env.DB_URI, {  
+    logging: process.env.NODE_ENV === 'development' ? console.log : false  
+});  
+```
+
+### Model Definitions
+- Define models with proper constraints (allowNull, unique, defaultValue).
+- Use underscored: true for snake_case column names in PostgreSQL.
+- Specify field types explicitly (STRING(255), TEXT, INTEGER, etc.).
+- Use timestamps (createdAt, updatedAt) for data tracking.
+
+#### Example:
+```ts
+import { DataTypes, Model } from 'sequelize';  
+import { sequelize } from '../config/database';  
+
+class User extends Model {}  
+
+User.init({  
+    id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },  
+    email: { type: DataTypes.STRING, allowNull: false, unique: true },  
+    password: { type: DataTypes.STRING, allowNull: false },  
+    createdAt: { type: DataTypes.DATE, allowNull: false },  
+    updatedAt: { type: DataTypes.DATE, allowNull: false }  
+}, {  
+    sequelize,  
+    modelName: 'User',  
+    tableName: 'users',  
+    timestamps: true,  
+    underscored: true  
+});  
+```
+
+### Associations
+- Use explicit foreign keys to maintain clarity.
+- Define associations at the model level.
+- Always specify onDelete: 'CASCADE' for dependent entities when necessary.
+- Use as for aliasing relationships to avoid conflicts.
+
+#### Example:
+```ts
+User.hasMany(Post, { foreignKey: 'user_id', as: 'posts', onDelete: 'CASCADE' });  
+Post.belongsTo(User, { foreignKey: 'user_id', as: 'author' });  
+```
+
+###  Queries & Fetching Data
+- Use eager loading (include) to reduce query count.
+- Use attributes to select only necessary fields.
+- Prefer findOne over findByPk when filtering by conditions.
+
+#### Example:
+```ts
+const userWithPosts = await User.findOne({  
+    where: { email: 'test@example.com' },  
+    include: [{ model: Post, as: 'posts' }],  
+    attributes: ['id', 'email']  
+});  
+```
+
+### Transactions
+- Use transactions for operations requiring atomicity.
+- Always handle transaction rollbacks to prevent data inconsistency.
+
+#### Example:
+```ts
+import { sequelize } from '../models';  
+
+const transaction = await sequelize.transaction();  
+try {  
+    const user = await User.create({ email: 'test@example.com' }, { transaction });  
+    await Profile.create({ userId: user.id }, { transaction });  
+    await transaction.commit();  
+} catch (error) {  
+    await transaction.rollback();  
+}  
+```
+
+### Hooks (Lifecycle Events)
+- Use hooks (beforeCreate, afterUpdate, etc.) for automating tasks.
+- Hash passwords before saving users.
+
+#### Example:
+```ts
+import bcrypt from 'bcryptjs';  
+
+User.beforeCreate(async (user) => {  
+    user.password = await bcrypt.hash(user.password, 12);  
+});  
+```
+
+### Indexing & Performance
+- Add indexes to frequently queried columns.
+- Optimize queries using EXPLAIN ANALYZE in PostgreSQL.
+
+Example:
+```ts
+CREATE INDEX idx_users_email ON users(email);  
+```
+
+### Migrations & Seeders
+- Always create migrations for schema changes.
+- Ensure seeders insert only non-duplicate records.
+- Use up and down methods properly for reversible migrations.
+
+#### Example Migration:
+```ts
+import { QueryInterface, DataTypes } from 'sequelize';  
+
+export const up = async (queryInterface: QueryInterface): Promise<void> => {  
+    await queryInterface.createTable('users', {  
+        id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },  
+        email: { type: DataTypes.STRING, allowNull: false, unique: true },  
+        password: { type: DataTypes.STRING, allowNull: false },  
+        created_at: { type: DataTypes.DATE, allowNull: false },  
+        updated_at: { type: DataTypes.DATE, allowNull: false }  
+    });  
+};  
+
+export const down = async (queryInterface: QueryInterface): Promise<void> => {  
+    await queryInterface.dropTable('users');  
+};  
+
+```
+
+

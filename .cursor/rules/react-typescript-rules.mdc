@@ -1,0 +1,38 @@
+---
+description: Guidelines for writing React Typescript
+globs: frontend/*.ts, frontend/*.tsx
+---
+# React Typescript Rules
+
+## General
+- Use functional components and hooks instead of class components
+- Implement proper React memo and useMemo for performance optimization
+- Follow the React hooks rules strictly
+- Utilize React.lazy and Suspense for code-splitting and better performance
+- Implement proper error boundaries to handle errors gracefully
+- Use context API or state management libraries for global state management
+- Use types over interfaces when declaring component properties 
+- VERY IMPORTANT: Make use of React's composition model creating small ,reusable component that be passed as "children" to each other.
+- When creating or modifying React components, always use this structure if the component does not have it already:
+- IMPORTANT: Use internal components in /components first, if there is none to match the use case then ask to make a new component or amend another. DO NOT create components without being directed to do so.
+
+```
+tsx
+import React from 'react'
+
+type MyComponentProps = {
+
+}
+
+export const MyComponent: React.FC<MyComponentProps> = ({ children }) => {
+    return <div />
+}
+```
+
+### Styled Components
+
+Use styled-components for efficient and maintainable CSS-in-JS
+Implement proper component scoping for better performance
+Utilize the theme prop for consistent theming across the application
+Implement proper prop-based styling for dynamic styles
+Use the css prop for conditional styling and better performance
