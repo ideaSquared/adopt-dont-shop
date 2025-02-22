@@ -5,6 +5,7 @@ import {
   removeRoleFromUserController,
 } from '../controllers/adminController'
 import * as applicationController from '../controllers/applicationController'
+import * as chatController from '../controllers/chatController'
 import { getAllPets } from '../controllers/petController'
 import { getAllRescuesController } from '../controllers/rescueController'
 import { authRoleOwnershipMiddleware } from '../middleware/authRoleOwnershipMiddleware'
@@ -38,6 +39,12 @@ router.get(
   '/pets',
   authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   getAllPets,
+)
+
+router.get(
+  '/conversations',
+  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
+  chatController.getAllConversationsAdmin,
 )
 
 export default router

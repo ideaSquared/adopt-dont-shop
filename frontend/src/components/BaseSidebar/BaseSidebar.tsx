@@ -15,7 +15,7 @@ const SidebarContainer = styled.div<{ $show: boolean; $size: string }>`
   right: 0;
   height: 100%;
   width: ${(props) => props.$size};
-  background-color: white;
+  background-color: ${(props) => props.theme.background.content};
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
   transform: ${(props) => (props.$show ? 'translateX(0)' : 'translateX(100%)')};
   transition: transform 0.3s ease-in-out;

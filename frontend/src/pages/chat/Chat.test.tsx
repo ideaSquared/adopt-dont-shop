@@ -2,37 +2,57 @@ import { Message } from '@adoptdontshop/libs/conversations'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { Chat } from './Chat'
 
-describe('Chat Component', () => {
-  const mockMessages: Message[] = [
+type MessageFormat = 'plain' | 'markdown' | 'html'
+
+interface ExtendedMessage extends Message {
+  content_format: MessageFormat
+}
+
+describe('Chat', () => {
+  const mockMessages: ExtendedMessage[] = [
     {
+      message_id: '1',
+      chat_id: '123',
       sender_id: '1',
-      sender_name: 'John Doe',
-      message_text: 'Hello!',
-      sent_at: new Date().toISOString(),
-      status: 'sent',
-      conversation_id: '12345',
+      content: 'Hello!',
+      content_format: 'plain',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      User: {
+        user_id: '1',
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john@example.com',
+      },
     },
     {
+      message_id: '2',
+      chat_id: '123',
       sender_id: '2',
-      sender_name: 'Jane Smith',
-      message_text: 'Hi there!',
-      sent_at: new Date().toISOString(),
-      status: 'sent',
-      conversation_id: '12345',
+      content: '<p>Hi there!</p>',
+      content_format: 'html',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      User: {
+        user_id: '2',
+        first_name: 'Jane',
+        last_name: 'Smith',
+        email: 'jane@example.com',
+      },
     },
   ]
 
   const mockOnSendMessage = jest.fn()
 
-  afterEach(() => {
+  beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  it('should render messages', () => {
+  it('renders message list', () => {
     render(
       <Chat
         messages={mockMessages}
-        conversationId="12345"
+        conversationId="123"
         onSendMessage={mockOnSendMessage}
       />,
     )
@@ -43,11 +63,11 @@ describe('Chat Component', () => {
     expect(screen.getByText('Hi there!')).toBeInTheDocument()
   })
 
-  it('should call onSendMessage with the correct message when send button is clicked', () => {
+  it('handles sending new message', () => {
     render(
       <Chat
         messages={mockMessages}
-        conversationId="12345"
+        conversationId="123"
         onSendMessage={mockOnSendMessage}
       />,
     )
@@ -55,39 +75,85 @@ describe('Chat Component', () => {
     const input = screen.getByPlaceholderText('Type your message...')
     const sendButton = screen.getByText('Send')
 
-    // Simulate user typing a message
-    fireEvent.change(input, { target: { value: 'This is a test message' } })
+    fireEvent.change(input, { target: { value: 'New message' } })
     fireEvent.click(sendButton)
 
-    expect(mockOnSendMessage).toHaveBeenCalledTimes(1)
     expect(mockOnSendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        sender_name: 'John Doe',
-        message_text: 'This is a test message',
-        conversation_id: '12345',
+        chat_id: '123',
+        content: 'New message',
+        content_format: 'html',
       }),
     )
-
-    // Ensure input is cleared after sending
-    expect(input).toHaveValue('')
   })
 
-  it('should not send an empty message', () => {
+  it('disables send button when message is empty', () => {
     render(
       <Chat
         messages={mockMessages}
-        conversationId="12345"
+        conversationId="123"
         onSendMessage={mockOnSendMessage}
       />,
     )
 
-    const input = screen.getByPlaceholderText('Type your message...')
     const sendButton = screen.getByText('Send')
+    expect(sendButton).toBeDisabled()
+  })
 
-    // Simulate user clicking send with empty input
-    fireEvent.change(input, { target: { value: '' } })
-    fireEvent.click(sendButton)
+  it('renders messages with correct styling based on sender', () => {
+    render(
+      <Chat
+        messages={mockMessages}
+        conversationId="123"
+        onSendMessage={mockOnSendMessage}
+      />,
+    )
 
-    expect(mockOnSendMessage).not.toHaveBeenCalled()
+    const currentUserMessage = screen.getByText('Hello!').closest('div')
+    const otherUserMessage = screen.getByText('Hi there!').closest('div')
+
+    expect(currentUserMessage).toHaveStyle({ backgroundColor: '#007bff' })
+    expect(otherUserMessage).toHaveStyle({ backgroundColor: '#e1ffc7' })
+  })
+
+  it('sanitizes HTML content in messages', () => {
+    const messagesWithMaliciousContent: ExtendedMessage[] = [
+      {
+        ...mockMessages[0],
+        content: '<script>alert("xss")</script><p>Safe content</p>',
+        content_format: 'html',
+      },
+    ]
+
+    render(
+      <Chat
+        messages={messagesWithMaliciousContent}
+        conversationId="123"
+        onSendMessage={mockOnSendMessage}
+      />,
+    )
+
+    expect(screen.queryByText('alert("xss")')).not.toBeInTheDocument()
+    expect(screen.getByText('Safe content')).toBeInTheDocument()
+  })
+
+  it('displays message timestamps', () => {
+    const now = new Date()
+    const messagesWithTime: ExtendedMessage[] = [
+      {
+        ...mockMessages[0],
+        created_at: now.toISOString(),
+      },
+    ]
+
+    render(
+      <Chat
+        messages={messagesWithTime}
+        conversationId="123"
+        onSendMessage={mockOnSendMessage}
+      />,
+    )
+
+    expect(screen.getByText(now.toLocaleTimeString())).toBeInTheDocument()
   })
 })

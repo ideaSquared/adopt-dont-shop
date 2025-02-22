@@ -1,10 +1,8 @@
-import React, { useState } from 'react'
-
-// Third-party imports
-import styled, { css } from 'styled-components'
-
-// Internal imports
 import { Message } from '@adoptdontshop/libs/conversations'
+import DOMPurify from 'dompurify'
+import React, { useState } from 'react'
+import styled, { css } from 'styled-components'
+import RichTextEditor from '../../components/RichTextEditor/RichTextEditor'
 
 // Style definitions
 const ChatContainer = styled.div`
@@ -51,8 +49,34 @@ const MessageSender = styled.div`
   margin-bottom: 5px;
 `
 
-const MessageText = styled.div`
+const MessageContent = styled.div`
   margin-bottom: 5px;
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  pre {
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+
+  code {
+    font-family: monospace;
+    background-color: #f8f9fa;
+    padding: 2px 4px;
+    border-radius: 2px;
+  }
+
+  blockquote {
+    border-left: 3px solid #ccc;
+    margin: 0;
+    padding-left: 1em;
+    color: #666;
+  }
 `
 
 const MessageTimestamp = styled.div`
@@ -106,9 +130,15 @@ type MessageItemProps = {
 }
 
 type ChatProps = {
-  messages: Message[]
+  messages: ExtendedMessage[]
   conversationId: string
-  onSendMessage: (message: Message) => void
+  onSendMessage: (message: ExtendedMessage) => void
+}
+
+type MessageFormat = 'plain' | 'markdown' | 'html'
+
+interface ExtendedMessage extends Message {
+  content_format: MessageFormat
 }
 
 export const Chat: React.FC<ChatProps> = ({
@@ -116,23 +146,27 @@ export const Chat: React.FC<ChatProps> = ({
   conversationId,
   onSendMessage,
 }) => {
-  // State
-  const [newMessage, setNewMessage] = useState<string>('')
-
-  // Constants
+  const [newMessage, setNewMessage] = useState('')
+  const [messageFormat, setMessageFormat] = useState<MessageFormat>('html')
   const currentUserId = '1' // TODO: Get from auth context
   const isMessageValid = newMessage.trim().length > 0
 
-  // Event handlers
   const handleSendMessage = () => {
     if (newMessage.trim()) {
-      const newMsg: Message = {
+      const newMsg: ExtendedMessage = {
+        message_id: '', // Will be set by the server
+        chat_id: conversationId,
         sender_id: currentUserId,
-        sender_name: 'John Doe',
-        message_text: newMessage,
-        sent_at: new Date().toISOString(),
-        status: 'sent',
-        conversation_id: conversationId,
+        content: newMessage,
+        content_format: messageFormat,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        User: {
+          user_id: currentUserId,
+          first_name: 'John',
+          last_name: 'Doe',
+          email: 'john@example.com',
+        },
       }
 
       onSendMessage(newMsg)
@@ -140,29 +174,46 @@ export const Chat: React.FC<ChatProps> = ({
     }
   }
 
-  // Render
+  const renderMessageContent = (message: ExtendedMessage) => {
+    const sanitizedContent = DOMPurify.sanitize(message.content)
+
+    if (message.content_format === 'html') {
+      return (
+        <MessageContent
+          dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+        />
+      )
+    }
+
+    return <MessageContent>{sanitizedContent}</MessageContent>
+  }
+
   return (
     <ChatContainer>
       <MessageList>
-        {messages.map((message, index) => (
+        {messages.map((message) => (
           <MessageItem
-            key={index}
+            key={message.message_id}
             isCurrentUser={message.sender_id === currentUserId}
           >
-            <MessageSender>{message.sender_name}</MessageSender>
-            <MessageText>{message.message_text}</MessageText>
+            <MessageSender>
+              {message.User.first_name} {message.User.last_name}
+            </MessageSender>
+            {renderMessageContent(message)}
             <MessageTimestamp>
-              {new Date(message.sent_at).toLocaleTimeString()}
+              {new Date(message.created_at).toLocaleTimeString()}
             </MessageTimestamp>
           </MessageItem>
         ))}
       </MessageList>
       <InputContainer>
-        <Input
-          type="text"
-          placeholder="Type your message..."
+        <RichTextEditor
           value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
+          onChange={(content, format) => {
+            setNewMessage(content)
+            setMessageFormat(format)
+          }}
+          placeholder="Type your message..."
         />
         <Button onClick={handleSendMessage} disabled={!isMessageValid}>
           Send

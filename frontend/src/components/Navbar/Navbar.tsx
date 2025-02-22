@@ -169,6 +169,7 @@ const Navbar: React.FC = () => {
                   { label: 'Pets', to: '/pets' },
                   { label: 'Staff', to: '/staff' },
                   { label: 'Settings', to: '/rescue' },
+                  { label: 'Chat', to: '/chat' },
                 ]}
               />
             </NavItem>
@@ -190,6 +191,7 @@ const Navbar: React.FC = () => {
                   { label: 'Feature flags', to: '/feature-flags' },
                   { label: 'Ratings', to: '/ratings' },
                   { label: 'Applications (Admin)', to: '/admin/applications' },
+                  { label: 'Chat (Admin)', to: '/admin/chat' },
                 ]}
               />
             </NavItem>

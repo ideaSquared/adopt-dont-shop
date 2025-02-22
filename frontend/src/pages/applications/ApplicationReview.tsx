@@ -8,7 +8,7 @@ import {
   QuestionCategory,
   RescueQuestionConfig,
 } from '../../libs/applications/applicationTypes'
-import * as RescueQuestionConfigService from '../../libs/applications/RescueQuestionConfigService'
+import * as RescueQuestionConfigService from '../../libs/applications/rescueQuestionConfigService'
 
 type ApplicationReviewProps = {
   applicationId: string

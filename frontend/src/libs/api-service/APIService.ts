@@ -4,7 +4,7 @@ const API_BASE_URL = 'http://localhost:5000/api'
 
 interface ApiRequestOptions<Req> {
   endpoint: string
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
   body?: Req
   requiresAuth?: boolean
 }
@@ -132,6 +132,28 @@ const apiService = {
     return apiRequest<undefined, Res>({
       endpoint,
       method: 'DELETE',
+      requiresAuth,
+    }) as Promise<Res>
+  },
+
+  /**
+   * Generic PATCH request.
+   * @template Req - Request body type.
+   * @template Res - Response type.
+   * @param endpoint - API endpoint.
+   * @param body - Request payload.
+   * @param requiresAuth - Whether authentication is required.
+   * @returns Promise resolving to the response data or undefined.
+   */
+  patch<Req, Res>(
+    endpoint: string,
+    body: Req,
+    requiresAuth = true,
+  ): Promise<Res> {
+    return apiRequest<Req, Res>({
+      endpoint,
+      method: 'PATCH',
+      body,
       requiresAuth,
     }) as Promise<Res>
   },

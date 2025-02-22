@@ -1,9 +1,3 @@
-import React, { useEffect, useMemo, useState } from 'react'
-
-// Third-party imports
-import styled from 'styled-components'
-
-// Internal imports
 import {
   Badge,
   BaseSidebar,
@@ -14,11 +8,16 @@ import {
   Table,
   TextInput,
 } from '@adoptdontshop/components'
-import {
+import { ConversationService } from '@adoptdontshop/libs/conversations'
+import type {
   Conversation,
-  ConversationService,
+  ConversationStatus,
   Message,
-} from '@adoptdontshop/libs/conversations/'
+} from '@adoptdontshop/libs/conversations/Conversation'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import styled from 'styled-components'
+import { useUser } from '../../contexts/auth/UserContext'
 
 // Style definitions
 const ParticipantsTitle = styled.h3`
@@ -43,50 +42,119 @@ const MessagesTitle = styled.h3`
 
 const MessageList = styled.ul`
   list-style-type: none;
-  padding: 0;
+  padding: 1rem;
   margin: 0;
+  max-height: 500px;
+  overflow-y: auto;
+  background-color: ${(props) => props.theme.background.body};
+  border-radius: 0.5rem;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 `
 
 const MessageItem = styled.li`
   background-color: ${(props) => props.theme.background.contrast};
-  padding: 0.5rem;
-  border-radius: 0.25rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateX(2px);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`
+
+const MessageContent = styled.div`
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+`
+
+const MessageHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`
+
+const SenderInfo = styled.div`
+  font-weight: 600;
+  color: ${(props) => props.theme.text.body};
 `
 
 const TimeStamp = styled.p`
   font-size: 0.75rem;
   color: ${(props) => props.theme.text.dim};
-  margin-top: 0.25rem;
+  margin: 0;
 `
 
-// Types
-type ConversationsProps = Record<string, never>
+const MessageActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
 
-export const Conversations: React.FC<ConversationsProps> = () => {
+  button {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+  }
+`
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`
+
+// Remove all type definitions here and keep only the component props type
+
+type ConversationsProps = {
+  isAdminView?: boolean
+}
+
+export const Conversations: React.FC<ConversationsProps> = ({
+  isAdminView = false,
+}) => {
+  const navigate = useNavigate()
+  const { user, rescue } = useUser()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false)
-  const [searchTerm, setSearchTerm] = useState<string | null>(null)
-  const [filterStatus, setFilterStatus] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState<string>('')
+  const [filterStatus, setFilterStatus] = useState<string>('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Fetch conversations on component mount
+  // Fetch conversations
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const fetchedConversations =
-          await ConversationService.getConversations()
-        setConversations(fetchedConversations)
-      } catch (error) {
-        console.error('Failed to fetch conversations:', error)
+        setLoading(true)
+        let fetchedConversations
+        if (isAdminView) {
+          fetchedConversations = await ConversationService.getAllConversations()
+        } else if (rescue?.rescue_id) {
+          fetchedConversations =
+            await ConversationService.getConversationsByRescueId()
+        }
+        setConversations(fetchedConversations || [])
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+      } finally {
+        setLoading(false)
       }
     }
 
-    fetchConversations()
-  }, [])
+    if (isAdminView || rescue?.rescue_id) {
+      fetchConversations()
+    }
+  }, [isAdminView, rescue?.rescue_id])
 
   const filteredConversations = useMemo(() => {
     if (!conversations) return []
@@ -95,10 +163,12 @@ export const Conversations: React.FC<ConversationsProps> = () => {
         !searchTerm ||
         conversation.participants.some(
           (participant) =>
-            participant.email
+            participant.participant.email
               .toLowerCase()
               .includes(searchTerm.toLowerCase()) ||
-            participant.name.toLowerCase().includes(searchTerm.toLowerCase()),
+            `${participant.participant.first_name} ${participant.participant.last_name}`
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()),
         )
       const matchesStatus =
         !filterStatus || conversation.status === filterStatus
@@ -107,7 +177,6 @@ export const Conversations: React.FC<ConversationsProps> = () => {
     })
   }, [searchTerm, filterStatus, conversations])
 
-  // Event handlers for input changes
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
   }
@@ -118,20 +187,27 @@ export const Conversations: React.FC<ConversationsProps> = () => {
     setFilterStatus(e.target.value)
   }
 
-  // Handle viewing a conversation and fetching related messages
   const handleViewConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation)
     setIsSidebarOpen(true)
 
     try {
-      const fetchedMessages =
-        await ConversationService.getMessagesByConversationId(
-          conversation.conversation_id,
-        )
+      const response = await ConversationService.getMessagesByConversationId(
+        conversation.chat_id,
+      )
+      // Extract messages from the response
+      const fetchedMessages = Array.isArray(response)
+        ? response
+        : (response as any).messages || []
       setMessages(fetchedMessages)
     } catch (error) {
       console.error('Failed to fetch messages:', error)
+      setMessages([])
     }
+  }
+
+  const handleJoinChat = (conversationId: string) => {
+    navigate(`/chat/${conversationId}`)
   }
 
   const handleCloseSidebar = () => {
@@ -140,20 +216,69 @@ export const Conversations: React.FC<ConversationsProps> = () => {
     setMessages([])
   }
 
+  const handleUpdateStatus = async (
+    chatId: string,
+    newStatus: ConversationStatus,
+  ) => {
+    try {
+      await ConversationService.updateConversationStatus(
+        chatId,
+        newStatus,
+        isAdminView ? undefined : rescue?.rescue_id,
+      )
+
+      // Refresh conversations after status update
+      const updatedConversations = isAdminView
+        ? await ConversationService.getAllConversations()
+        : await ConversationService.getConversationsByRescueId()
+
+      setConversations(updatedConversations)
+    } catch (error) {
+      console.error('Failed to update conversation status:', error)
+    }
+  }
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await ConversationService.deleteMessage(
+        messageId,
+        isAdminView ? undefined : rescue?.rescue_id,
+      )
+
+      // Refresh messages after deletion
+      if (selectedConversation) {
+        const updatedMessages =
+          await ConversationService.getMessagesByConversationId(
+            selectedConversation.chat_id,
+          )
+        setMessages(updatedMessages)
+      }
+    } catch (error) {
+      console.error('Failed to delete message:', error)
+    }
+  }
+
+  const canDeleteMessage = (message: Message) => {
+    if (isAdminView) return true
+    if (!rescue) return false
+    return message.sender_id === user?.user_id
+  }
+
   const filterOptions = [
     { value: '', label: 'All' },
-    { value: 'open', label: 'Open' },
-    { value: 'closed', label: 'Closed' },
+    { value: 'active', label: 'Active' },
+    { value: 'archived', label: 'Archived' },
   ]
 
   return (
     <div>
-      <h1>Conversations</h1>
+      <h1>{isAdminView ? 'All Conversations' : 'Rescue Conversations'}</h1>
       <FormInput label="Search by participant name or email">
         <TextInput
-          value={searchTerm || ''}
+          value={searchTerm}
           type="text"
           onChange={handleSearchChange}
+          placeholder="Search conversations..."
         />
       </FormInput>
       <FormInput label="Filter by status">
@@ -171,43 +296,87 @@ export const Conversations: React.FC<ConversationsProps> = () => {
             <th>Created At</th>
             <th>Last Message</th>
             <th>Status</th>
-            <th>Unread Messages</th>
-            <th>Participants</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {filteredConversations.map((conversation) => (
-            <tr key={conversation.conversation_id}>
-              <td>{conversation.conversation_id}</td>
-              <td>{conversation.started_by}</td>
-              <td>
-                <DateTime timestamp={conversation.created_at} />
-              </td>
-              <td>{conversation.last_message}</td>
-              <td>{conversation.status}</td>
-              <td>{conversation.unread_messages}</td>
-              <td>
-                <div>
-                  {conversation.participants &&
-                  conversation.participants.length > 0
-                    ? conversation.participants
-                        .map((p) => `${p.name} (${p.email})`)
-                        .join(', ')
-                    : 'No participants'}
-                </div>
-              </td>
-              <td>
-                <Button
-                  type="button"
-                  onClick={() => handleViewConversation(conversation)}
-                >
-                  View
-                </Button>
-                <Button type="button">Close</Button>
+          {loading ? (
+            <tr>
+              <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>
+                Loading conversations...
               </td>
             </tr>
-          ))}
+          ) : error ? (
+            <tr>
+              <td
+                colSpan={6}
+                style={{
+                  textAlign: 'center',
+                  padding: '2rem',
+                  color: '#dc3545',
+                }}
+              >
+                {error}
+              </td>
+            </tr>
+          ) : filteredConversations.length === 0 ? (
+            <tr>
+              <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>
+                No conversations found
+              </td>
+            </tr>
+          ) : (
+            filteredConversations.map((conversation) => (
+              <tr key={conversation.chat_id}>
+                <td>{conversation.chat_id}</td>
+                <td>
+                  {conversation.participants.find((p) => p.role === 'user')
+                    ?.participant.first_name || 'Unknown'}
+                </td>
+                <td>
+                  <DateTime timestamp={conversation.created_at} />
+                </td>
+                <td>{conversation.Messages[0]?.content || 'No messages'}</td>
+                <td>
+                  <Badge
+                    variant={
+                      conversation.status === 'active' ? 'success' : 'danger'
+                    }
+                  >
+                    {conversation.status}
+                  </Badge>
+                </td>
+                <td>
+                  <ActionButtons>
+                    {!isAdminView && (
+                      <Button
+                        variant="success"
+                        onClick={() => handleJoinChat(conversation.chat_id)}
+                      >
+                        Join Chat
+                      </Button>
+                    )}
+                    <Button
+                      variant="info"
+                      onClick={() => handleViewConversation(conversation)}
+                    >
+                      View Details
+                    </Button>
+                    {!isAdminView && conversation.status === 'active' && (
+                      <Button
+                        variant="warning"
+                        onClick={() =>
+                          handleUpdateStatus(conversation.chat_id, 'archived')
+                        }
+                      >
+                        Archive
+                      </Button>
+                    )}
+                  </ActionButtons>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </Table>
 
@@ -221,9 +390,11 @@ export const Conversations: React.FC<ConversationsProps> = () => {
           <div>
             <ParticipantsTitle>Participants</ParticipantsTitle>
             <ParticipantsContainer>
-              {selectedConversation.participants.map((participant, index) => (
-                <Badge key={index} variant="info">
-                  {participant.name} ({participant.email})
+              {selectedConversation.participants.map((participant) => (
+                <Badge key={participant.chat_participant_id} variant="info">
+                  {participant.participant.first_name}{' '}
+                  {participant.participant.last_name} (
+                  {participant.participant.email})
                 </Badge>
               ))}
             </ParticipantsContainer>
@@ -232,21 +403,35 @@ export const Conversations: React.FC<ConversationsProps> = () => {
               <p>No messages found.</p>
             ) : (
               <MessageList>
-                {messages
+                {[...messages]
                   .sort(
                     (a, b) =>
-                      new Date(b.sent_at).getTime() -
-                      new Date(a.sent_at).getTime(),
+                      new Date(b.created_at).getTime() -
+                      new Date(a.created_at).getTime(),
                   )
-                  .map((message, index) => (
-                    <MessageItem key={index}>
-                      <p>
-                        <strong>{message.sender_name}:</strong>{' '}
-                        {message.message_text}
-                      </p>
-                      <TimeStamp>
-                        {new Date(message.sent_at).toLocaleString()}
-                      </TimeStamp>
+                  .map((message) => (
+                    <MessageItem key={message.message_id}>
+                      <MessageHeader>
+                        <SenderInfo>
+                          {message.User.first_name} {message.User.last_name}
+                        </SenderInfo>
+                        <TimeStamp>
+                          {new Date(message.created_at).toLocaleString()}
+                        </TimeStamp>
+                      </MessageHeader>
+                      <MessageContent>{message.content}</MessageContent>
+                      {canDeleteMessage(message) && (
+                        <MessageActions>
+                          <Button
+                            variant="danger"
+                            onClick={() =>
+                              handleDeleteMessage(message.message_id)
+                            }
+                          >
+                            Delete
+                          </Button>
+                        </MessageActions>
+                      )}
                     </MessageItem>
                   ))}
               </MessageList>

@@ -2,11 +2,11 @@ import Application from './Application'
 import ApplicationCoreQuestion from './ApplicationCoreQuestions'
 import ApplicationRescueQuestionConfig from './ApplicationRescueQuestionConfig'
 import { AuditLog } from './AuditLog'
-import Conversation from './Conversation'
+import Chat from './Chat'
+import ChatParticipant from './ChatParticipant'
 import { FeatureFlag } from './FeatureFlag'
 import Invitation from './Invitation'
 import Message from './Message'
-import Participant from './Participant'
 import Permission from './Permission'
 import Pet from './Pet'
 import Rating from './Rating'
@@ -42,22 +42,24 @@ Permission.belongsToMany(Role, {
   as: 'Roles',
 })
 
-// Conversation Associations
-Conversation.belongsTo(User, { foreignKey: 'started_by', as: 'starter' })
-Conversation.belongsTo(Pet, { foreignKey: 'pet_id' })
-Conversation.hasMany(Message, { foreignKey: 'conversation_id' })
-Conversation.hasMany(Participant, {
-  foreignKey: 'conversation_id',
+// Chat Associations
+Chat.belongsTo(Application, { foreignKey: 'application_id' })
+Chat.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' })
+Chat.hasMany(Message, { foreignKey: 'chat_id' })
+Chat.hasMany(ChatParticipant, {
+  foreignKey: 'chat_id',
   as: 'participants',
 })
 
-// Participant Associations
-Participant.belongsTo(User, { foreignKey: 'user_id' })
-Participant.belongsTo(Conversation, { foreignKey: 'conversation_id' })
-Participant.belongsTo(Rescue, { foreignKey: 'rescue_id' })
+// ChatParticipant Associations
+ChatParticipant.belongsTo(User, {
+  foreignKey: 'participant_id',
+  as: 'participant',
+})
+ChatParticipant.belongsTo(Chat, { foreignKey: 'chat_id' })
 
 // Message Associations
-Message.belongsTo(Conversation, { foreignKey: 'conversation_id' })
+Message.belongsTo(Chat, { foreignKey: 'chat_id' })
 Message.belongsTo(User, { foreignKey: 'sender_id', as: 'User' })
 
 // Pet & Rescue Associations
@@ -73,6 +75,7 @@ StaffMember.belongsTo(Rescue, { foreignKey: 'rescue_id' })
 
 // Rescue Associations
 Rescue.hasMany(StaffMember, { foreignKey: 'rescue_id', as: 'staff' })
+Rescue.hasMany(Chat, { foreignKey: 'rescue_id', as: 'chats' })
 Rescue.hasMany(Invitation, { foreignKey: 'rescue_id', as: 'invitations' })
 
 // Invitation Associations
@@ -87,11 +90,11 @@ export {
   ApplicationCoreQuestion,
   ApplicationRescueQuestionConfig,
   AuditLog,
-  Conversation,
+  Chat,
+  ChatParticipant,
   FeatureFlag,
   Invitation,
   Message,
-  Participant,
   Permission,
   Pet,
   Rating,
