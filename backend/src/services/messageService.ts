@@ -1,11 +1,5 @@
-import { Op } from 'sequelize'
-import {
-  Chat,
-  ChatParticipant,
-  Message,
-  MessageReadStatus,
-  User,
-} from '../Models'
+import { Chat, ChatParticipant, Message, User } from '../Models'
+import { ReadStatusService } from './readStatusService'
 
 interface MessageInput {
   chat_id: string
@@ -108,88 +102,27 @@ export const markMessageAsRead = async (
   messageId: string,
   userId: string,
 ): Promise<void> => {
-  await MessageReadStatus.create({
-    message_id: messageId,
-    user_id: userId,
-  })
+  await ReadStatusService.markMessageAsRead(messageId, userId)
 }
 
 export const markAllMessagesAsRead = async (
   chatId: string,
   userId: string,
 ): Promise<void> => {
-  const messages = await Message.findAll({
-    where: { chat_id: chatId },
-    attributes: ['message_id'],
-  })
-
-  const messageIds = messages.map((m) => m.message_id)
-
-  // Create read status for all unread messages
-  await Promise.all(
-    messageIds.map((messageId) =>
-      MessageReadStatus.findOrCreate({
-        where: {
-          message_id: messageId,
-          user_id: userId,
-        },
-      }),
-    ),
-  )
+  await ReadStatusService.markAllMessagesAsRead(chatId, userId)
 }
 
 export const getUnreadMessageCount = async (
   chatId: string,
   userId: string,
 ): Promise<number> => {
-  const messages = await Message.findAll({
-    where: {
-      chat_id: chatId,
-      sender_id: { [Op.ne]: userId }, // Don't count user's own messages
-    },
-    include: [
-      {
-        model: MessageReadStatus,
-        as: 'readStatus',
-        where: { user_id: userId },
-        required: false,
-      },
-    ],
-  })
-
-  return messages.filter((message) => !message.readStatus?.length).length
+  return await ReadStatusService.getUnreadCount(chatId, userId)
 }
 
 export const getUnreadMessagesForUser = async (
   userId: string,
 ): Promise<{ chatId: string; unreadCount: number }[]> => {
-  const chats = await Chat.findAll({
-    include: [
-      {
-        model: Message,
-        as: 'Messages',
-        where: {
-          sender_id: { [Op.ne]: userId },
-        },
-        required: false,
-        include: [
-          {
-            model: MessageReadStatus,
-            as: 'readStatus',
-            where: { user_id: userId },
-            required: false,
-          },
-        ],
-      },
-    ],
-  })
-
-  return chats.map((chat) => ({
-    chatId: chat.chat_id,
-    unreadCount:
-      chat.Messages?.filter((message: Message) => !message.readStatus?.length)
-        .length || 0,
-  }))
+  return await ReadStatusService.getUnreadMessagesForUser(userId)
 }
 
 export const getUserConversations = async (userId: string): Promise<Chat[]> => {

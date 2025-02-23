@@ -1,8 +1,9 @@
 import { Server } from 'http'
 import jwt from 'jsonwebtoken'
-import { Server as SocketIOServer } from 'socket.io'
+import { Op } from 'sequelize'
+import { Socket, Server as SocketIOServer } from 'socket.io'
 import { socketRateLimiter, typingRateLimiter } from '../middleware/rateLimiter'
-import { Chat, Message, User } from '../Models'
+import { Chat, Message, MessageReadStatus, User } from '../Models'
 import { AuditLogger } from './auditLogService'
 
 interface JwtPayload {
@@ -423,16 +424,112 @@ export class SocketService {
   // Emit read status updates
   public async emitReadStatusUpdate(
     chatId: string,
-    update: any,
+    update: {
+      user_id: string
+      message_ids: string[]
+      read_at: Date
+    },
   ): Promise<void> {
-    if (update.participant_id) {
+    if (update.user_id) {
       const allowed = await socketRateLimiter(
-        update.participant_id,
+        update.user_id,
         'read_status_update',
       )
       if (!allowed) return
     }
-    this.io.to(`chat_${chatId}`).emit('read_status_updated', update)
+
+    // Emit to all users in the chat except the one who marked as read
+    this.io
+      .to(`chat_${chatId}`)
+      .except(`user_${update.user_id}`)
+      .emit('read_status_updated', {
+        chat_id: chatId,
+        user_id: update.user_id,
+        message_ids: update.message_ids,
+        read_at: update.read_at,
+      })
+  }
+
+  // Handle new message read status
+  public async handleMessageRead(socket: Socket, data: any): Promise<void> {
+    try {
+      const { chat_id, message_id, user_id } = data
+      if (!chat_id || !message_id || !user_id) {
+        throw new Error('Missing required data for message read status')
+      }
+
+      await MessageReadStatus.create({
+        message_id,
+        user_id,
+        read_at: new Date(),
+      })
+
+      await this.emitReadStatusUpdate(chat_id, {
+        user_id,
+        message_ids: [message_id],
+        read_at: new Date(),
+      })
+    } catch (error) {
+      console.error('Error handling message read status:', error)
+      socket.emit('error', {
+        message: 'Failed to update message read status',
+      })
+    }
+  }
+
+  // Handle marking all messages as read
+  public async handleMarkAllRead(socket: Socket, data: any): Promise<void> {
+    try {
+      const { chat_id, user_id } = data
+      if (!chat_id || !user_id) {
+        throw new Error('Missing required data for marking all as read')
+      }
+
+      const messages = await Message.findAll({
+        where: {
+          chat_id,
+          sender_id: { [Op.ne]: user_id },
+        },
+        include: [
+          {
+            model: MessageReadStatus,
+            as: 'readStatus',
+            where: { user_id },
+            required: false,
+          },
+        ],
+      })
+
+      const unreadMessages = messages.filter(
+        (message) =>
+          !message.readStatus?.some((status) => status.user_id === user_id),
+      )
+
+      if (unreadMessages.length > 0) {
+        const readAt = new Date()
+        await MessageReadStatus.bulkCreate(
+          unreadMessages.map((message) => ({
+            message_id: message.message_id,
+            user_id,
+            read_at: readAt,
+          })),
+          {
+            updateOnDuplicate: ['read_at', 'updated_at'],
+          },
+        )
+
+        await this.emitReadStatusUpdate(chat_id, {
+          user_id,
+          message_ids: unreadMessages.map((msg) => msg.message_id),
+          read_at: readAt,
+        })
+      }
+    } catch (error) {
+      console.error('Error marking all messages as read:', error)
+      socket.emit('error', {
+        message: 'Failed to mark all messages as read',
+      })
+    }
   }
 
   // Send notification to specific user

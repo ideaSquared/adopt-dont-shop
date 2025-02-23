@@ -251,20 +251,79 @@ export const UserConversations: React.FC = () => {
     if (user?.user_id) {
       fetchData()
     }
+
+    // Set up interval to periodically check for new messages
+    const interval = setInterval(fetchData, 30000) // Check every 30 seconds
+
+    return () => clearInterval(interval)
   }, [user?.user_id])
 
-  const handleSelectChat = async (chatId: string) => {
-    navigate(`/chat/${chatId}`)
-    // Mark all messages in this chat as read when selected
-    try {
-      await ConversationService.markAllMessagesAsRead(chatId)
-      setUnreadCounts((prev) => ({
-        ...prev,
-        [chatId]: 0,
-      }))
-    } catch (error) {
-      console.error('Failed to mark messages as read:', error)
+  useEffect(() => {
+    const handleUnreadCountsUpdate = (
+      event: CustomEvent<Record<string, number>>,
+    ) => {
+      setUnreadCounts(event.detail)
     }
+
+    window.addEventListener(
+      'unreadCountsUpdated',
+      handleUnreadCountsUpdate as EventListener,
+    )
+
+    return () => {
+      window.removeEventListener(
+        'unreadCountsUpdated',
+        handleUnreadCountsUpdate as EventListener,
+      )
+    }
+  }, [])
+
+  const handleSelectChat = (chatId: string) => {
+    // Immediately update the UI by setting unread count to 0 for this chat
+    setUnreadCounts((prev) => ({
+      ...prev,
+      [chatId]: 0,
+    }))
+
+    // Navigate to the chat
+    navigate(`/chat/${chatId}`)
+
+    // Mark messages as read in the backend and refresh all unread counts
+    ConversationService.markAllMessagesAsRead(chatId)
+      .then(() => ConversationService.getUnreadMessagesForUser())
+      .then((unreadMessages) => {
+        const counts = unreadMessages.reduce(
+          (acc, { chatId, unreadCount }) => ({
+            ...acc,
+            [chatId]: unreadCount,
+          }),
+          {},
+        )
+        setUnreadCounts(counts)
+
+        // Notify other components about the update
+        window.dispatchEvent(
+          new CustomEvent('unreadCountsUpdated', {
+            detail: counts,
+          }),
+        )
+      })
+      .catch((error) => {
+        console.error('Failed to mark messages as read:', error)
+        // Revert the optimistic update on error
+        ConversationService.getUnreadMessagesForUser().then(
+          (unreadMessages) => {
+            const counts = unreadMessages.reduce(
+              (acc, { chatId, unreadCount }) => ({
+                ...acc,
+                [chatId]: unreadCount,
+              }),
+              {},
+            )
+            setUnreadCounts(counts)
+          },
+        )
+      })
   }
 
   if (!user?.user_id) {

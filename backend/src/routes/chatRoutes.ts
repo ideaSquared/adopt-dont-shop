@@ -25,7 +25,7 @@ router.get('/user/conversations', chatController.getUserConversations)
 // Unread messages routes
 router.get(
   '/unread-messages',
-  messageController.getUnreadMessagesForUserController
+  messageController.getUnreadMessagesForUserController,
 )
 
 // Rescue dashboard routes
@@ -121,6 +121,13 @@ router.post(
   '/messages/bulk-delete',
   authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
   chatController.bulkDeleteMessagesController,
+)
+
+// Message read status routes
+router.post(
+  '/:chat_id/read-all',
+  validateChatAccess,
+  messageController.markAllMessagesAsReadController,
 )
 
 export default router

@@ -1,10 +1,48 @@
 import { ConversationService, Message } from '@adoptdontshop/libs/conversations'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import styled, { css } from 'styled-components'
 import MarkdownEditor from '../../components/MarkdownEditor/MarkdownEditor'
 import { useUser } from '../../contexts/auth/UserContext'
+
+// Custom debounce hook
+const useDebounce = <T extends (...args: any[]) => any>(
+  callback: T,
+  delay: number,
+) => {
+  const timeoutRef = useRef<NodeJS.Timeout>()
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
+
+  const debouncedCallback = useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        callback(...args)
+      }, delay)
+    },
+    [callback, delay],
+  )
+
+  return {
+    callback: debouncedCallback,
+    cancel: () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    },
+  }
+}
 
 // Style definitions
 const ChatContainer = styled.div`
@@ -237,8 +275,78 @@ type ChatProps = {
 
 type MessageFormat = 'plain' | 'markdown' | 'html'
 
+interface MessageReadStatus {
+  user_id: string
+  read_at: Date
+}
+
 interface ExtendedMessage extends Message {
   content_format: MessageFormat
+  readStatus?: MessageReadStatus[]
+}
+
+// Custom hook for handling read status
+const useReadStatus = (
+  conversationId: string,
+  messages: ExtendedMessage[],
+  isVisible: boolean,
+) => {
+  const { user } = useUser()
+  const [isProcessing, setIsProcessing] = useState(false)
+  const processedMessagesRef = useRef<Set<string>>(new Set())
+
+  const markMessagesAsRead = useCallback(async () => {
+    if (!user?.user_id || !conversationId || !isVisible || isProcessing) return
+
+    try {
+      setIsProcessing(true)
+      const unreadMessages = messages.filter(
+        (msg) =>
+          msg.sender_id !== user.user_id &&
+          !msg.readStatus?.some(
+            (status: MessageReadStatus) => status.user_id === user.user_id,
+          ) &&
+          !processedMessagesRef.current.has(msg.message_id),
+      )
+
+      if (unreadMessages.length > 0) {
+        await ConversationService.markAllMessagesAsRead(conversationId)
+
+        // Update processed messages set
+        unreadMessages.forEach((msg) => {
+          processedMessagesRef.current.add(msg.message_id)
+        })
+
+        // Get updated unread counts
+        const unreadCounts =
+          await ConversationService.getUnreadMessagesForUser()
+
+        // Dispatch update event
+        window.dispatchEvent(
+          new CustomEvent('unreadCountsUpdated', {
+            detail: unreadCounts.reduce(
+              (acc, { chatId, unreadCount }) => ({
+                ...acc,
+                [chatId]: unreadCount,
+              }),
+              {},
+            ),
+          }),
+        )
+      }
+    } catch (error) {
+      console.error('Failed to mark messages as read:', error)
+    } finally {
+      setIsProcessing(false)
+    }
+  }, [conversationId, user?.user_id, isVisible, messages, isProcessing])
+
+  // Reset processed messages when conversation changes
+  useEffect(() => {
+    processedMessagesRef.current = new Set()
+  }, [conversationId])
+
+  return { markMessagesAsRead, isProcessing }
 }
 
 export const Chat: React.FC<ChatProps> = ({
@@ -251,11 +359,48 @@ export const Chat: React.FC<ChatProps> = ({
   const [messageFormat, setMessageFormat] = useState<MessageFormat>('html')
   const [sendingMessage, setSendingMessage] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isVisible, setIsVisible] = useState(true)
   const messageListRef = useRef<HTMLDivElement>(null)
   const { user } = useUser()
   const isMessageValid = newMessage.trim().length > 0
   const isLocked = status === 'locked' || status === 'archived'
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const { markMessagesAsRead, isProcessing } = useReadStatus(
+    conversationId,
+    messages,
+    isVisible,
+  )
+
+  // Handle visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const newIsVisible = !document.hidden
+      setIsVisible(newIsVisible)
+      if (newIsVisible && messages.length > 0) {
+        markMessagesAsRead()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [messages.length, markMessagesAsRead])
+
+  // Mark messages as read when component mounts, messages change, or visibility changes
+  useEffect(() => {
+    if (isVisible && messages.length > 0 && !isProcessing) {
+      markMessagesAsRead()
+    }
+  }, [messages, isVisible, markMessagesAsRead, isProcessing])
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages])
 
   // Clear error when message changes
   useEffect(() => {
@@ -268,24 +413,6 @@ export const Chat: React.FC<ChatProps> = ({
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight
     }
   }, [messages])
-
-  useEffect(() => {
-    // Scroll to bottom when new messages arrive
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-
-    // Mark messages as read when they are viewed
-    const markMessagesAsRead = async () => {
-      if (!user?.user_id) return
-
-      try {
-        await ConversationService.markAllMessagesAsRead(conversationId)
-      } catch (error) {
-        console.error('Failed to mark messages as read:', error)
-      }
-    }
-
-    markMessagesAsRead()
-  }, [messages, conversationId, user?.user_id])
 
   const handleSendMessage = async () => {
     if (!isMessageValid || isLocked || !user?.user_id || sendingMessage) return

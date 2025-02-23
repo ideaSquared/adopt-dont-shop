@@ -36,10 +36,12 @@ export class MessageReadStatus
     MessageReadStatus.belongsTo(models.Message, {
       foreignKey: 'message_id',
       as: 'message',
+      onDelete: 'CASCADE',
     })
     MessageReadStatus.belongsTo(models.User, {
       foreignKey: 'user_id',
       as: 'user',
+      onDelete: 'CASCADE',
     })
   }
 }
@@ -98,12 +100,19 @@ MessageReadStatus.init(
       {
         fields: ['message_id', 'user_id'],
         unique: true,
+        name: 'message_read_status_unique_constraint',
       },
       {
         fields: ['user_id'],
+        name: 'message_read_status_user_id_idx',
       },
       {
         fields: ['read_at'],
+        name: 'message_read_status_read_at_idx',
+      },
+      {
+        fields: ['message_id'],
+        name: 'message_read_status_message_id_idx',
       },
     ],
   },

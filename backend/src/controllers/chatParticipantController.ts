@@ -1,5 +1,6 @@
 import { Response } from 'express'
-import { ChatParticipant } from '../Models'
+import { Op } from 'sequelize'
+import { ChatParticipant, Message, MessageReadStatus } from '../Models'
 import { AuditLogger } from '../services/auditLogService'
 import SocketService from '../services/socketService'
 import { AuthenticatedRequest } from '../types'
@@ -113,11 +114,49 @@ export const updateLastRead = async (
 
     await participant.update({ last_read_at: new Date() })
 
-    // Emit read status update
-    SocketService.getInstance().emitReadStatusUpdate(participant.chat_id, {
-      participant_id: participant.participant_id,
-      last_read_at: participant.last_read_at,
+    // Find all unread messages in this chat
+    const unreadMessages = await Message.findAll({
+      where: {
+        chat_id: participant.chat_id,
+        sender_id: { [Op.ne]: userId },
+      },
+      include: [
+        {
+          model: MessageReadStatus,
+          as: 'readStatus',
+          where: { user_id: userId },
+          required: false,
+        },
+      ],
     })
+
+    const messagesToMark = unreadMessages.filter(
+      (message) =>
+        !message.readStatus?.some((status) => status.user_id === userId),
+    )
+
+    if (messagesToMark.length > 0) {
+      const readAt = new Date()
+
+      // Create read status records
+      await MessageReadStatus.bulkCreate(
+        messagesToMark.map((message) => ({
+          message_id: message.message_id,
+          user_id: userId,
+          read_at: readAt,
+        })),
+        {
+          updateOnDuplicate: ['read_at', 'updated_at'],
+        },
+      )
+
+      // Emit read status update with correct structure
+      SocketService.getInstance().emitReadStatusUpdate(participant.chat_id, {
+        user_id: userId,
+        message_ids: messagesToMark.map((msg) => msg.message_id),
+        read_at: readAt,
+      })
+    }
 
     AuditLogger.logAction(
       'ChatParticipant',

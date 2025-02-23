@@ -203,8 +203,14 @@ const LoadingOverlay = styled.div`
 
 type MessageFormat = 'plain' | 'markdown' | 'html'
 
+interface MessageReadStatus {
+  user_id: string
+  read_at: Date
+}
+
 interface ExtendedMessage extends Message {
   content_format: MessageFormat
+  readStatus?: MessageReadStatus[]
 }
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
@@ -303,6 +309,35 @@ export const ChatContainer: React.FC = () => {
           prev.filter((msg) => msg.message_id !== data.message_id),
         )
       })
+
+      newSocket.on(
+        'read_status_updated',
+        (data: {
+          chat_id: string
+          user_id: string
+          message_ids: string[]
+          read_at: Date
+        }) => {
+          // Update messages with new read status
+          setMessages((prev) =>
+            prev.map((msg) => {
+              if (data.message_ids.includes(msg.message_id)) {
+                return {
+                  ...msg,
+                  readStatus: [
+                    ...(msg.readStatus || []),
+                    {
+                      user_id: data.user_id,
+                      read_at: data.read_at,
+                    },
+                  ],
+                }
+              }
+              return msg
+            }),
+          )
+        },
+      )
 
       newSocket.on('error', (error: { message: string }) => {
         console.error('Socket error:', error)

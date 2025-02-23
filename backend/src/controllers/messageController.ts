@@ -554,15 +554,19 @@ export const markAllMessagesAsReadController = async (
   req: AuthenticatedRequest,
   res: Response,
 ) => {
-  const { chatId } = req.params
+  const chat_id = req.params.chatId || req.params.chat_id
   const userId = req.user?.user_id
 
   if (!userId) {
     return res.status(401).json({ error: 'Not authenticated' })
   }
 
+  if (!chat_id) {
+    return res.status(400).json({ error: 'Chat ID is required' })
+  }
+
   try {
-    await messageService.markAllMessagesAsRead(chatId, userId)
+    await messageService.markAllMessagesAsRead(chat_id, userId)
     res.status(200).json({ message: 'All messages marked as read' })
   } catch (error) {
     AuditLogger.logAction(
