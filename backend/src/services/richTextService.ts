@@ -103,11 +103,14 @@ export class RichTextService {
       text = marked(content)
     }
     if (format === 'markdown' || format === 'html') {
+      // Add spaces between block-level elements before sanitizing
+      text = text.replace(/<\/(h[1-6]|p|div|li)>/gi, '$& ')
       text = sanitizeHtml(text, {
         allowedTags: [],
         allowedAttributes: {},
       })
     }
-    return text.trim()
+    // Normalize spaces and trim
+    return text.replace(/\s+/g, ' ').trim()
   }
 }

@@ -1,192 +1,292 @@
 import { Op } from 'sequelize'
-import Application from '../../Models/Application'
-import Pet from '../../Models/Pet'
+import { Application, Pet, User } from '../../Models'
 import * as applicationService from '../../services/applicationService'
 
-jest.mock('../../Models/Application')
-jest.mock('../../Models/Pet')
-jest.mock('../../Models/Conversation')
-jest.mock('../../Models/Participant')
-jest.mock('../../Models/Message')
-jest.mock('../../Models/Rating')
+// Mock the models
+jest.mock('../../Models', () => ({
+  Application: {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findByPk: jest.fn(),
+  },
+  Pet: {
+    findAll: jest.fn(),
+  },
+  User: {
+    findAll: jest.fn(),
+  },
+}))
 
-// TODO: Fix
-describe.skip('Application Service', () => {
+describe('ApplicationService', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  it('should create an application', async () => {
-    const applicationData = {
-      user_id: 'user1',
-      pet_id: 'pet1',
-      description: 'Test description',
-      status: 'pending',
-    }
-
-    const createdApplication = {
-      application_id: 'app1',
-      ...applicationData,
-    }
-
-    ;(Application.create as jest.Mock).mockResolvedValue(createdApplication)
-
-    const result = await applicationService.createApplication(applicationData)
-
-    expect(Application.create).toHaveBeenCalledWith(applicationData)
-    expect(result).toEqual(createdApplication)
-  })
-
-  it('should get all applications', async () => {
-    const applications = [
-      {
-        application_id: 'app1',
-        user_id: 'user1',
-        pet_id: 'pet1',
+  describe('createApplication', () => {
+    it('should create an application', async () => {
+      const mockApplication = {
+        application_id: 'app_123',
+        user_id: 'user_123',
+        pet_id: 'pet_123',
+        rescue_id: 'rescue_123',
         status: 'pending',
-      },
-      {
-        application_id: 'app2',
-        user_id: 'user2',
-        pet_id: 'pet2',
-        status: 'approved',
-      },
-    ]
+        answers: {
+          home_type: 'house',
+          own_or_rent: 'own',
+        },
+      }
 
-    ;(Application.findAll as jest.Mock).mockResolvedValue(applications)
+      ;(Application.create as jest.Mock).mockResolvedValue(mockApplication)
 
-    const result = await applicationService.getAllApplications()
+      const result = await applicationService.createApplication(mockApplication)
 
-    expect(Application.findAll).toHaveBeenCalled()
-    expect(result).toEqual(applications)
-  })
-
-  it('should get an application by ID', async () => {
-    const application = {
-      application_id: 'app1',
-      user_id: 'user1',
-      pet_id: 'pet1',
-      status: 'pending',
-    }
-
-    ;(Application.findByPk as jest.Mock).mockResolvedValue(application)
-
-    const result = await applicationService.getApplicationById('app1')
-
-    expect(Application.findByPk).toHaveBeenCalledWith('app1')
-    expect(result).toEqual(application)
-  })
-
-  it('should update an application', async () => {
-    const applicationData = {
-      description: 'Updated description',
-      status: 'approved',
-    }
-    const application = {
-      application_id: 'app1',
-      user_id: 'user1',
-      pet_id: 'pet1',
-      status: 'pending',
-      actioned_by: 'user1',
-      update: jest.fn().mockResolvedValue({
-        ...applicationData,
-        actioned_by: 'user1',
-      }),
-    }
-
-    ;(Application.findByPk as jest.Mock).mockResolvedValue(application)
-
-    const result = await applicationService.updateApplication(
-      'app1',
-      applicationData,
-      'user1',
-    )
-
-    expect(Application.findByPk).toHaveBeenCalledWith('app1')
-    expect(application.update).toHaveBeenCalledWith({
-      ...applicationData,
-      actioned_by: 'user1',
+      expect(Application.create).toHaveBeenCalledWith(mockApplication)
+      expect(result).toEqual(mockApplication)
     })
-    expect(result).toEqual({
-      ...applicationData,
-      actioned_by: 'user1',
+
+    it('should handle errors during application creation', async () => {
+      const error = new Error('Database error')
+      ;(Application.create as jest.Mock).mockRejectedValue(error)
+
+      await expect(
+        applicationService.createApplication({
+          user_id: 'user_123',
+          pet_id: 'pet_123',
+        }),
+      ).rejects.toThrow()
     })
   })
 
-  it('should delete an application', async () => {
-    const application = {
-      application_id: 'app1',
-      user_id: 'user1',
-      pet_id: 'pet1',
-      status: 'pending',
-      destroy: jest.fn().mockResolvedValue(true),
-    }
+  describe('getAllApplications', () => {
+    it('should return all applications', async () => {
+      const mockApplications = [
+        {
+          application_id: 'app_123',
+          user_id: 'user_123',
+          pet_id: 'pet_123',
+          status: 'pending',
+        },
+        {
+          application_id: 'app_124',
+          user_id: 'user_124',
+          pet_id: 'pet_124',
+          status: 'approved',
+        },
+      ]
 
-    ;(Application.findByPk as jest.Mock).mockResolvedValue(application)
+      ;(Application.findAll as jest.Mock).mockResolvedValue(mockApplications)
 
-    const result = await applicationService.deleteApplication('app1')
+      const result = await applicationService.getAllApplications()
 
-    expect(Application.findByPk).toHaveBeenCalledWith('app1')
-    expect(application.destroy).toHaveBeenCalled()
-    expect(result).toEqual(true)
+      expect(Application.findAll).toHaveBeenCalled()
+      expect(result).toEqual(mockApplications)
+    })
+
+    it('should handle errors when fetching applications', async () => {
+      const error = new Error('Database error')
+      ;(Application.findAll as jest.Mock).mockRejectedValue(error)
+
+      await expect(applicationService.getAllApplications()).rejects.toThrow()
+    })
   })
 
-  it('should return false when deleting a non-existent application', async () => {
-    ;(Application.findByPk as jest.Mock).mockResolvedValue(null)
-
-    const result = await applicationService.deleteApplication('app_nonexistent')
-
-    expect(Application.findByPk).toHaveBeenCalledWith('app_nonexistent')
-    expect(result).toBe(false)
-  })
-
-  // TODO: Fix
-  it.skip('should get all applications for a rescue by rescueId', async () => {
-    const rescueId = 'rescue1'
-    const pets = [{ pet_id: 'pet1' }, { pet_id: 'pet2' }]
-    const applications = [
-      {
-        application_id: 'app1',
-        user_id: 'user1',
-        pet_id: 'pet1',
+  describe('getApplicationById', () => {
+    it('should return an application by ID', async () => {
+      const mockApplication = {
+        application_id: 'app_123',
+        user_id: 'user_123',
+        pet_id: 'pet_123',
         status: 'pending',
-      },
-      {
-        application_id: 'app2',
-        user_id: 'user2',
-        pet_id: 'pet2',
-        status: 'approved',
-      },
-    ]
+      }
 
-    ;(Pet.findAll as jest.Mock).mockResolvedValue(pets)
-    ;(Application.findAll as jest.Mock).mockResolvedValue(applications)
+      ;(Application.findByPk as jest.Mock).mockResolvedValue(mockApplication)
 
-    const result = await applicationService.getApplicationsByRescueId(rescueId)
+      const result = await applicationService.getApplicationById('app_123')
 
-    expect(Pet.findAll).toHaveBeenCalledWith({
-      where: { owner_id: rescueId },
-      attributes: ['pet_id'],
+      expect(Application.findByPk).toHaveBeenCalledWith('app_123')
+      expect(result).toEqual(mockApplication)
     })
-    expect(Application.findAll).toHaveBeenCalledWith({
-      where: { pet_id: { [Op.in]: ['pet1', 'pet2'] } },
+
+    it('should return null for non-existent application', async () => {
+      ;(Application.findByPk as jest.Mock).mockResolvedValue(null)
+
+      const result = await applicationService.getApplicationById('non_existent')
+
+      expect(result).toBeNull()
     })
-    expect(result).toEqual(applications)
   })
 
-  it('should return an empty array if no pets are found for a rescue', async () => {
-    const rescueId = 'rescue1'
+  describe('getApplicationsByRescueId', () => {
+    it('should return enriched applications for a rescue', async () => {
+      const mockPets = [
+        { pet_id: 'pet_123', name: 'Fluffy' },
+        { pet_id: 'pet_124', name: 'Buddy' },
+      ]
 
-    ;(Pet.findAll as jest.Mock).mockResolvedValue([]) // No pets found
-    ;(Application.findAll as jest.Mock).mockResolvedValue([])
+      const mockApplications = [
+        {
+          application_id: 'app_123',
+          user_id: 'user_123',
+          pet_id: 'pet_123',
+          status: 'pending',
+          actioned_by: 'user_789',
+          toJSON: () => ({
+            application_id: 'app_123',
+            user_id: 'user_123',
+            pet_id: 'pet_123',
+            status: 'pending',
+            actioned_by: 'user_789',
+          }),
+        },
+        {
+          application_id: 'app_124',
+          user_id: 'user_124',
+          pet_id: 'pet_124',
+          status: 'approved',
+          actioned_by: null,
+          toJSON: () => ({
+            application_id: 'app_124',
+            user_id: 'user_124',
+            pet_id: 'pet_124',
+            status: 'approved',
+            actioned_by: null,
+          }),
+        },
+      ]
 
-    const result = await applicationService.getApplicationsByRescueId(rescueId)
+      const mockUsers = [
+        { user_id: 'user_123', first_name: 'John' },
+        { user_id: 'user_124', first_name: 'Jane' },
+        { user_id: 'user_789', first_name: 'Admin' },
+      ]
 
-    expect(Pet.findAll).toHaveBeenCalledWith({
-      where: { owner_id: rescueId },
-      attributes: ['pet_id'],
+      ;(Pet.findAll as jest.Mock).mockResolvedValue(mockPets)
+      ;(Application.findAll as jest.Mock).mockResolvedValue(mockApplications)
+      ;(User.findAll as jest.Mock)
+        .mockResolvedValueOnce(mockUsers.slice(0, 2)) // For applicants
+        .mockResolvedValueOnce([mockUsers[2]]) // For actioned_by
+
+      const result = await applicationService.getApplicationsByRescueId(
+        'rescue_123',
+      )
+
+      expect(Pet.findAll).toHaveBeenCalledWith({
+        where: { owner_id: 'rescue_123' },
+        attributes: ['pet_id'],
+      })
+
+      expect(Application.findAll).toHaveBeenCalledWith({
+        where: { pet_id: { [Op.in]: ['pet_123', 'pet_124'] } },
+      })
+
+      expect(result).toEqual([
+        {
+          application_id: 'app_123',
+          user_id: 'user_123',
+          pet_id: 'pet_123',
+          status: 'pending',
+          actioned_by: 'user_789',
+          pet_name: 'Fluffy',
+          applicant_first_name: 'John',
+          actioned_by_first_name: 'Admin',
+        },
+        {
+          application_id: 'app_124',
+          user_id: 'user_124',
+          pet_id: 'pet_124',
+          status: 'approved',
+          actioned_by: null,
+          pet_name: 'Buddy',
+          applicant_first_name: 'Jane',
+          actioned_by_first_name: null,
+        },
+      ])
     })
-    expect(Application.findAll).not.toHaveBeenCalled() // Application.findAll should not be called if no pets found
-    expect(result).toEqual([]) // Expect an empty result if no pets are found
+
+    it('should return empty array when rescue has no pets', async () => {
+      ;(Pet.findAll as jest.Mock).mockResolvedValue([])
+
+      const result = await applicationService.getApplicationsByRescueId(
+        'rescue_123',
+      )
+
+      expect(result).toEqual([])
+    })
+
+    it('should return empty array when no applications found for pets', async () => {
+      const mockPets = [{ pet_id: 'pet_123' }]
+      ;(Pet.findAll as jest.Mock).mockResolvedValue(mockPets)
+      ;(Application.findAll as jest.Mock).mockResolvedValue([])
+
+      const result = await applicationService.getApplicationsByRescueId(
+        'rescue_123',
+      )
+
+      expect(result).toEqual([])
+    })
+  })
+
+  describe('updateApplication', () => {
+    it('should update an application', async () => {
+      const mockApplication = {
+        application_id: 'app_123',
+        status: 'pending',
+        update: jest.fn().mockImplementation(function (this: any, data: any) {
+          Object.assign(this, data)
+          return this
+        }),
+      }
+
+      ;(Application.findByPk as jest.Mock).mockResolvedValue(mockApplication)
+
+      const updateData = { status: 'approved' }
+      const result = await applicationService.updateApplication(
+        'app_123',
+        updateData,
+        'user_123',
+      )
+
+      expect(mockApplication.update).toHaveBeenCalledWith({
+        ...updateData,
+        actioned_by: 'user_123',
+      })
+      expect(result?.status).toBe('approved')
+    })
+
+    it('should return null for non-existent application', async () => {
+      ;(Application.findByPk as jest.Mock).mockResolvedValue(null)
+
+      const result = await applicationService.updateApplication(
+        'non_existent',
+        { status: 'approved' },
+        'user_123',
+      )
+
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('deleteApplication', () => {
+    it('should delete an application', async () => {
+      const mockApplication = {
+        application_id: 'app_123',
+        destroy: jest.fn().mockResolvedValue(undefined),
+      }
+
+      ;(Application.findByPk as jest.Mock).mockResolvedValue(mockApplication)
+
+      const result = await applicationService.deleteApplication('app_123')
+
+      expect(mockApplication.destroy).toHaveBeenCalled()
+      expect(result).toBe(true)
+    })
+
+    it('should return false for non-existent application', async () => {
+      ;(Application.findByPk as jest.Mock).mockResolvedValue(null)
+
+      const result = await applicationService.deleteApplication('non_existent')
+
+      expect(result).toBe(false)
+    })
   })
 })
