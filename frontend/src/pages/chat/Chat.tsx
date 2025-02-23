@@ -3,6 +3,7 @@ import DOMPurify from 'dompurify'
 import React, { useEffect, useRef, useState } from 'react'
 import styled, { css } from 'styled-components'
 import RichTextEditor from '../../components/RichTextEditor/RichTextEditor'
+import { useUser } from '../../contexts/auth/UserContext'
 
 // Style definitions
 const ChatContainer = styled.div`
@@ -181,6 +182,15 @@ const LockedChatMessage = styled.div`
   font-weight: ${(props) => props.theme.typography.weight.medium};
 `
 
+const ErrorMessage = styled.div`
+  padding: ${(props) => props.theme.spacing.md};
+  background-color: ${(props) => props.theme.background.warning};
+  color: ${(props) => props.theme.text.warning};
+  border-radius: ${(props) => props.theme.border.radius.md};
+  margin: ${(props) => props.theme.spacing.md} 0;
+  text-align: center;
+`
+
 // Types
 type MessageItemProps = {
   isCurrentUser: boolean
@@ -207,10 +217,17 @@ export const Chat: React.FC<ChatProps> = ({
 }) => {
   const [newMessage, setNewMessage] = useState('')
   const [messageFormat, setMessageFormat] = useState<MessageFormat>('html')
+  const [sendingMessage, setSendingMessage] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const messageListRef = useRef<HTMLDivElement>(null)
-  const currentUserId = '1' // TODO: Get from auth context
+  const { user } = useUser()
   const isMessageValid = newMessage.trim().length > 0
   const isLocked = status === 'locked' || status === 'archived'
+
+  // Clear error when message changes
+  useEffect(() => {
+    if (error) setError(null)
+  }, [newMessage, error])
 
   // Scroll to bottom when messages change or component mounts
   useEffect(() => {
@@ -219,27 +236,41 @@ export const Chat: React.FC<ChatProps> = ({
     }
   }, [messages])
 
-  const handleSendMessage = () => {
-    if (newMessage.trim() && !isLocked) {
+  const handleSendMessage = async () => {
+    if (!isMessageValid || isLocked || !user?.user_id || sendingMessage) return
+
+    try {
+      setSendingMessage(true)
+      setError(null)
+
       const newMsg: ExtendedMessage = {
-        message_id: '', // Will be set by the server
+        message_id: Date.now().toString(),
         chat_id: conversationId,
-        sender_id: currentUserId,
-        content: newMessage,
+        sender_id: user.user_id,
+        content: newMessage.trim(),
         content_format: messageFormat,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         User: {
-          user_id: currentUserId,
-          first_name: 'John',
-          last_name: 'Doe',
-          email: 'john@example.com',
+          user_id: user.user_id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          email: user.email,
         },
       }
 
-      onSendMessage(newMsg)
+      await onSendMessage(newMsg)
       setNewMessage('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send message')
+    } finally {
+      setSendingMessage(false)
     }
+  }
+
+  const handleEditorChange = (content: string, format: MessageFormat) => {
+    setNewMessage(content)
+    setMessageFormat(format)
   }
 
   const renderMessageContent = (message: ExtendedMessage) => {
@@ -279,7 +310,7 @@ export const Chat: React.FC<ChatProps> = ({
           {groupedMessages.map((group, groupIndex) => (
             <MessageGroup
               key={groupIndex}
-              isCurrentUser={group[0].sender_id === currentUserId}
+              isCurrentUser={group[0].sender_id === user?.user_id}
             >
               <MessageSender>
                 {group[0].User.first_name} {group[0].User.last_name}
@@ -287,7 +318,7 @@ export const Chat: React.FC<ChatProps> = ({
               {group.map((message) => (
                 <MessageItem
                   key={message.message_id}
-                  isCurrentUser={message.sender_id === currentUserId}
+                  isCurrentUser={message.sender_id === user?.user_id}
                 >
                   {renderMessageContent(message)}
                   <MessageTimestamp>
@@ -300,6 +331,8 @@ export const Chat: React.FC<ChatProps> = ({
         </MessagesWrapper>
       </MessageList>
 
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+
       {isLocked && (
         <LockedChatMessage>
           This chat is {status === 'locked' ? 'locked' : 'archived'} and no new
@@ -310,16 +343,15 @@ export const Chat: React.FC<ChatProps> = ({
         <InputContainer>
           <RichTextEditor
             value={newMessage}
-            onChange={(content, format) => {
-              setNewMessage(content)
-              setMessageFormat(format)
-            }}
+            onChange={handleEditorChange}
             placeholder="Type your message..."
+            readOnly={sendingMessage}
           />
           <SendButton
             onClick={handleSendMessage}
-            disabled={!isMessageValid}
-            aria-label="Send message"
+            disabled={!isMessageValid || sendingMessage}
+            aria-label={sendingMessage ? 'Sending message...' : 'Send message'}
+            type="button"
           >
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />

@@ -133,7 +133,7 @@ const AppContent: React.FC = () => {
             />
             <Route path="/rescue" element={<Rescue />} />
             <Route
-              path="/chat"
+              path="/rescue/chat"
               element={<Conversations isAdminView={false} />}
             />
           </Route>

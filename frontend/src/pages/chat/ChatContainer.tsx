@@ -207,6 +207,8 @@ interface ExtendedMessage extends Message {
   content_format: MessageFormat
 }
 
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
+
 export const ChatContainer: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>()
   const [messages, setMessages] = useState<ExtendedMessage[]>([])
@@ -227,91 +229,103 @@ export const ChatContainer: React.FC = () => {
       return
     }
 
-    const newSocket = io(
-      import.meta.env.REACT_APP_SOCKET_URL || 'http://localhost:5000',
-      {
-        auth: {
-          token: token,
+    let newSocket: Socket
+    try {
+      newSocket = io(SOCKET_URL, {
+        auth: { token },
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      })
+
+      newSocket.on('connect', () => {
+        console.log('Socket connected')
+        setError(null)
+        // Join chat room immediately after connection
+        newSocket.emit('join_chat', conversationId)
+        // Request initial messages
+        newSocket.emit('get_messages', { chatId: conversationId })
+        // Request chat status
+        newSocket.emit('get_chat_status', { chatId: conversationId })
+      })
+
+      newSocket.on('connect_error', (err) => {
+        console.error('Socket connection error:', err)
+        setError('Failed to connect to chat server. Please try again.')
+      })
+
+      newSocket.on('messages', (data: ExtendedMessage[]) => {
+        console.log('Received initial messages:', data)
+        setMessages(
+          data.map((msg) => ({
+            ...msg,
+            content_format: msg.content_format || ('plain' as MessageFormat),
+          })),
+        )
+        setLoading(false)
+      })
+
+      newSocket.on(
+        'chat_status',
+        (data: { status: 'active' | 'locked' | 'archived' }) => {
+          console.log('Received chat status:', data)
+          setChatStatus(data.status)
         },
-      },
-    )
-
-    newSocket.on('connect', () => {
-      console.log('Socket connected')
-      // Join chat room immediately after connection
-      newSocket.emit('join_chat', conversationId)
-      // Request initial messages
-      newSocket.emit('get_messages', { chatId: conversationId })
-      // Request chat status
-      newSocket.emit('get_chat_status', { chatId: conversationId })
-    })
-
-    newSocket.on('messages', (data: ExtendedMessage[]) => {
-      console.log('Received initial messages:', data)
-      setMessages(
-        data.map((msg) => ({
-          ...msg,
-          content_format: msg.content_format || ('plain' as MessageFormat),
-        })),
       )
-      setLoading(false)
-    })
 
-    newSocket.on(
-      'chat_status',
-      (data: { status: 'active' | 'locked' | 'archived' }) => {
-        console.log('Received chat status:', data)
-        setChatStatus(data.status)
-      },
-    )
+      newSocket.on('new_message', (message: ExtendedMessage) => {
+        console.log('Received new message:', message)
+        setMessages((prev) => [
+          ...prev,
+          {
+            ...message,
+            content_format:
+              message.content_format || ('plain' as MessageFormat),
+          },
+        ])
+      })
 
-    newSocket.on('new_message', (message: ExtendedMessage) => {
-      console.log('Received new message:', message)
-      setMessages((prev) => [
-        ...prev,
-        {
-          ...message,
-          content_format: message.content_format || ('plain' as MessageFormat),
-        },
-      ])
-    })
+      newSocket.on('message_updated', (updatedMessage: ExtendedMessage) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.message_id === updatedMessage.message_id
+              ? {
+                  ...updatedMessage,
+                  content_format: updatedMessage.content_format || 'plain',
+                }
+              : msg,
+          ),
+        )
+      })
 
-    newSocket.on('message_updated', (updatedMessage: ExtendedMessage) => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.message_id === updatedMessage.message_id
-            ? {
-                ...updatedMessage,
-                content_format: updatedMessage.content_format || 'plain',
-              }
-            : msg,
-        ),
-      )
-    })
+      newSocket.on('message_deleted', (data: { message_id: string }) => {
+        setMessages((prev) =>
+          prev.filter((msg) => msg.message_id !== data.message_id),
+        )
+      })
 
-    newSocket.on('message_deleted', (data: { message_id: string }) => {
-      setMessages((prev) =>
-        prev.filter((msg) => msg.message_id !== data.message_id),
-      )
-    })
+      newSocket.on('error', (error: { message: string }) => {
+        console.error('Socket error:', error)
+        setError(error.message)
+      })
 
-    newSocket.on('error', (error: { message: string }) => {
-      console.error('Socket error:', error)
-      setError(error.message)
-    })
+      newSocket.on('disconnect', () => {
+        console.log('Socket disconnected')
+      })
 
-    newSocket.on('disconnect', () => {
-      console.log('Socket disconnected')
-    })
+      setSocket(newSocket)
 
-    setSocket(newSocket)
-
-    return () => {
-      console.log('Cleaning up socket connection')
-      if (newSocket) {
-        newSocket.emit('leave_chat', conversationId)
-        newSocket.disconnect()
+      return () => {
+        console.log('Cleaning up socket connection')
+        if (newSocket) {
+          newSocket.emit('leave_chat', conversationId)
+          newSocket.disconnect()
+        }
       }
+    } catch (err) {
+      console.error('Socket initialization error:', err)
+      setError('Failed to initialize chat connection')
+      setLoading(false)
     }
   }, [conversationId])
 

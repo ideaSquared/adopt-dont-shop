@@ -303,6 +303,67 @@ export class SocketService {
         },
       )
 
+      // Handle sending messages
+      socket.on(
+        'send_message',
+        async ({ chat_id, content, content_format }) => {
+          try {
+            const userId = socket.data.userId
+            if (!userId) {
+              socket.emit('error', { message: 'Not authenticated' })
+              return
+            }
+
+            const allowed = await socketRateLimiter(userId, 'send_message')
+            if (!allowed) {
+              socket.emit('error', {
+                message: 'Rate limit exceeded for sending messages',
+              })
+              return
+            }
+
+            // Create message in database
+            const message = await Message.create({
+              chat_id,
+              sender_id: userId,
+              content,
+              content_format: content_format || 'plain',
+            })
+
+            // Load sender information
+            const messageWithSender = await Message.findByPk(
+              message.message_id,
+              {
+                include: [
+                  {
+                    model: User,
+                    as: 'User',
+                    attributes: ['user_id', 'first_name', 'last_name'],
+                  },
+                ],
+              },
+            )
+
+            // Emit to all participants in the chat
+            this.io.to(`chat_${chat_id}`).emit('new_message', messageWithSender)
+
+            AuditLogger.logAction(
+              'Socket',
+              `Message sent in chat ${chat_id} by user ${userId}`,
+              'INFO',
+              userId,
+            )
+          } catch (error) {
+            AuditLogger.logAction(
+              'Socket',
+              `Error sending message: ${(error as Error).message}`,
+              'ERROR',
+            )
+            socket.emit('error', { message: 'Failed to send message' })
+          }
+        },
+      )
+
       // Handle disconnection
       socket.on('disconnect', () => {
         const userId = socket.data.userId

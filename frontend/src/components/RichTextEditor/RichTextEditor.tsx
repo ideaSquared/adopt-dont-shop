@@ -67,12 +67,14 @@ type RichTextEditorProps = {
   value: string
   onChange: (content: string, format: 'plain' | 'markdown' | 'html') => void
   placeholder?: string
+  readOnly?: boolean
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   placeholder = 'Type your message...',
+  readOnly = false,
 }) => {
   const handleChange = (content: string) => {
     onChange(content, 'html')
@@ -87,6 +89,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         modules={modules}
         formats={formats}
         placeholder={placeholder}
+        readOnly={readOnly}
       />
     </EditorContainer>
   )
