@@ -6,11 +6,184 @@ import styled from 'styled-components'
 import { Chat } from './Chat'
 
 const Container = styled.div`
-  height: 100%;
-  width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: ${(props) => props.theme.background.content};
+  position: relative;
+`
+
+const Header = styled.div`
+  padding: ${(props) => props.theme.spacing.md}
+    ${(props) => props.theme.spacing.lg};
+  border-bottom: ${(props) => props.theme.border.width.thin} solid
+    ${(props) => props.theme.border.color.default};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`
+
+const HeaderTitle = styled.h2`
+  margin: 0;
+  font-size: ${(props) => props.theme.typography.size.lg};
+  color: ${(props) => props.theme.text.body};
+  font-weight: ${(props) => props.theme.typography.weight.semibold};
+`
+
+const ChatStatus = styled.div<{ status: 'active' | 'locked' | 'archived' }>`
+  display: flex;
+  align-items: center;
+  gap: ${(props) => props.theme.spacing.sm};
+  padding: ${(props) => props.theme.spacing.xs}
+    ${(props) => props.theme.spacing.sm};
+  border-radius: ${(props) => props.theme.border.radius.sm};
+  background: ${(props) => {
+    switch (props.status) {
+      case 'active':
+        return props.theme.background.success
+      case 'locked':
+        return props.theme.background.danger
+      case 'archived':
+        return props.theme.background.disabled
+      default:
+        return props.theme.background.disabled
+    }
+  }};
+  color: ${(props) => props.theme.text.light};
+  font-size: ${(props) => props.theme.typography.size.sm};
+`
+
+const MessageList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: ${(props) => props.theme.spacing.md};
+  display: flex;
+  flex-direction: column;
+  gap: ${(props) => props.theme.spacing.md};
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: ${(props) => props.theme.background.contrast};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+`
+
+const MessageBubble = styled.div<{ isOwn?: boolean }>`
+  max-width: 70%;
+  align-self: ${(props) => (props.isOwn ? 'flex-end' : 'flex-start')};
+  background: ${(props) =>
+    props.isOwn
+      ? props.theme.background.highlight
+      : props.theme.background.contrast};
+  color: ${(props) => props.theme.text.body};
+  padding: ${(props) => props.theme.spacing.sm}
+    ${(props) => props.theme.spacing.md};
+  border-radius: ${(props) => props.theme.border.radius.lg};
+  position: relative;
+`
+
+const MessageContent = styled.div`
+  font-size: ${(props) => props.theme.typography.size.sm};
+  line-height: ${(props) => props.theme.typography.lineHeight.relaxed};
+  white-space: pre-wrap;
+  word-break: break-word;
+`
+
+const MessageMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${(props) => props.theme.spacing.xs};
+  margin-top: ${(props) => props.theme.spacing.xs};
+  font-size: ${(props) => props.theme.typography.size.xs};
+  color: ${(props) => props.theme.text.dim};
+`
+
+const InputContainer = styled.div`
+  padding: ${(props) => props.theme.spacing.md};
+  border-top: ${(props) => props.theme.border.width.thin} solid
+    ${(props) => props.theme.border.color.default};
+  background: ${(props) => props.theme.background.content};
+`
+
+const InputWrapper = styled.div`
+  display: flex;
+  gap: ${(props) => props.theme.spacing.sm};
+  align-items: flex-end;
+`
+
+const StyledTextArea = styled.textarea`
+  flex: 1;
+  min-height: 40px;
+  max-height: 120px;
+  padding: ${(props) => props.theme.spacing.sm};
+  border: ${(props) => props.theme.border.width.thin} solid
+    ${(props) => props.theme.border.color.default};
+  border-radius: ${(props) => props.theme.border.radius.md};
+  background: ${(props) => props.theme.background.body};
+  color: ${(props) => props.theme.text.body};
+  font-size: ${(props) => props.theme.typography.size.sm};
+  resize: none;
+  outline: none;
+  transition: ${(props) => props.theme.transitions.fast};
+
+  &:focus {
+    border-color: ${(props) => props.theme.border.color.focus};
+  }
+
+  &::placeholder {
+    color: ${(props) => props.theme.text.dim};
+  }
+`
+
+const SendButton = styled.button<{ disabled?: boolean }>`
+  padding: ${(props) => props.theme.spacing.sm}
+    ${(props) => props.theme.spacing.md};
+  border: none;
+  border-radius: ${(props) => props.theme.border.radius.md};
+  background: ${(props) =>
+    props.disabled
+      ? props.theme.background.disabled
+      : props.theme.background.highlight};
+  color: ${(props) =>
+    props.disabled ? props.theme.text.dim : props.theme.text.dark};
+  font-size: ${(props) => props.theme.typography.size.sm};
+  font-weight: ${(props) => props.theme.typography.weight.medium};
+  cursor: ${(props) => (props.disabled ? 'not-allowed' : 'pointer')};
+  transition: ${(props) => props.theme.transitions.fast};
+
+  &:hover:not(:disabled) {
+    background: ${(props) => props.theme.background.mouseHighlight};
+  }
+`
+
+const TypingIndicator = styled.div`
+  padding: ${(props) => props.theme.spacing.xs}
+    ${(props) => props.theme.spacing.sm};
+  color: ${(props) => props.theme.text.dim};
+  font-size: ${(props) => props.theme.typography.size.xs};
+  font-style: italic;
+`
+
+const ErrorMessage = styled.div`
+  text-align: center;
+  padding: ${(props) => props.theme.spacing.md};
+  margin: ${(props) => props.theme.spacing.md};
+  background: ${(props) => props.theme.background.danger};
+  color: ${(props) => props.theme.text.danger};
+  border-radius: ${(props) => props.theme.border.radius.lg};
+`
+
+const LoadingMessage = styled.div`
+  text-align: center;
+  padding: ${(props) => props.theme.spacing.xl};
+  color: ${(props) => props.theme.text.dim};
 `
 
 const LoadingOverlay = styled.div`
@@ -19,17 +192,8 @@ const LoadingOverlay = styled.div`
   justify-content: center;
   height: 100%;
   width: 100%;
-  font-size: 1.2rem;
+  font-size: ${(props) => props.theme.typography.size.lg};
   color: ${(props) => props.theme.text.dim};
-`
-
-const ErrorMessage = styled.div`
-  padding: 1rem;
-  margin: 1rem;
-  background: ${(props) => props.theme.background.danger};
-  color: ${(props) => props.theme.text.danger};
-  text-align: center;
-  border-radius: 8px;
 `
 
 type MessageFormat = 'plain' | 'markdown' | 'html'

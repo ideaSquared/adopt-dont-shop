@@ -1,125 +1,161 @@
 import { Message } from '@adoptdontshop/libs/conversations'
 import DOMPurify from 'dompurify'
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import styled, { css } from 'styled-components'
 import RichTextEditor from '../../components/RichTextEditor/RichTextEditor'
 
 // Style definitions
 const ChatContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 10px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  background: ${(props) => props.theme.background.content};
+  max-width: 100%;
+  margin: 0 auto;
+`
 
-  @media (min-width: 768px) {
-    padding: 0;
-  }
+const ChatHeader = styled.div`
+  padding: ${(props) => props.theme.spacing.md};
+  border-bottom: 1px solid ${(props) => props.theme.border.color.default};
+  background: ${(props) => props.theme.background.content};
+  display: flex;
+  align-items: center;
+  gap: ${(props) => props.theme.spacing.md};
+  height: 64px;
+`
+
+const ChatTitle = styled.h2`
+  margin: 0;
+  font-size: ${(props) => props.theme.typography.size.lg};
+  font-weight: ${(props) => props.theme.typography.weight.medium};
+  color: ${(props) => props.theme.text.body};
 `
 
 const MessageList = styled.div`
-  flex: 1;
-  padding: 10px;
+  height: 100%;
   overflow-y: auto;
-  background-color: #f9f9f9;
+  padding: ${(props) => props.theme.spacing.md};
+  background-color: ${(props) => props.theme.background.body};
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: ${(props) => props.theme.background.contrast};
+    border-radius: ${(props) => props.theme.border.radius.full};
+
+    &:hover {
+      background: ${(props) => props.theme.background.mouseHighlight};
+    }
+  }
+
+  scrollbar-width: thin;
+  scrollbar-color: ${(props) => props.theme.background.contrast} transparent;
+`
+
+const MessagesWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${(props) => props.theme.spacing.md};
+  margin-top: auto; /* Push messages to bottom when not enough content */
+`
+
+const MessageGroup = styled.div<{ isCurrentUser: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: ${(props) => props.theme.spacing.xs};
+  align-items: ${(props) => (props.isCurrentUser ? 'flex-end' : 'flex-start')};
+  max-width: 85%;
+  align-self: ${(props) => (props.isCurrentUser ? 'flex-end' : 'flex-start')};
 `
 
 const MessageItem = styled.div<MessageItemProps>`
-  margin-bottom: 10px;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: #e1ffc7;
-  max-width: 90%;
+  padding: ${(props) => props.theme.spacing.sm}
+    ${(props) => props.theme.spacing.md};
+  border-radius: ${(props) =>
+    props.isCurrentUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px'};
+  max-width: 100%;
+  word-break: break-word;
+  font-size: ${(props) => props.theme.typography.size.sm};
+  line-height: 1.4;
 
   ${(props) =>
     props.isCurrentUser
       ? css`
-          background-color: #007bff;
-          color: #fff;
-          margin-left: auto;
-          text-align: right;
+          background-color: ${props.theme.background.highlight};
+          color: ${props.theme.text.body};
         `
       : css`
-          background-color: #e1ffc7;
-          margin-right: auto;
+          background-color: ${props.theme.background.contrast};
+          color: ${props.theme.text.body};
         `}
 `
 
 const MessageSender = styled.div`
-  font-weight: bold;
-  margin-bottom: 5px;
+  font-size: ${(props) => props.theme.typography.size.sm};
+  color: ${(props) => props.theme.text.dim};
+  margin-bottom: ${(props) => props.theme.spacing.xs};
+  font-weight: ${(props) => props.theme.typography.weight.medium};
 `
 
 const MessageContent = styled.div`
-  margin-bottom: 5px;
-
   img {
     max-width: 100%;
-    height: auto;
+    border-radius: ${(props) => props.theme.border.radius.sm};
   }
 
-  pre {
-    background-color: #f8f9fa;
-    padding: 8px;
-    border-radius: 4px;
-    overflow-x: auto;
-  }
-
+  pre,
   code {
+    background-color: ${(props) => props.theme.background.contrast};
+    padding: ${(props) => props.theme.spacing.xs};
+    border-radius: ${(props) => props.theme.border.radius.sm};
     font-family: monospace;
-    background-color: #f8f9fa;
-    padding: 2px 4px;
-    border-radius: 2px;
-  }
-
-  blockquote {
-    border-left: 3px solid #ccc;
-    margin: 0;
-    padding-left: 1em;
-    color: #666;
   }
 `
 
 const MessageTimestamp = styled.div`
-  font-size: 0.75rem;
-  color: #666;
-  text-align: right;
+  font-size: ${(props) => props.theme.typography.size.xs};
+  color: ${(props) => props.theme.text.dim};
+  margin-top: ${(props) => props.theme.spacing.xs};
 `
 
 const InputContainer = styled.div`
+  padding: ${(props) => props.theme.spacing.md};
+  border-top: 1px solid ${(props) => props.theme.border.color.default};
+  background: ${(props) => props.theme.background.content};
   display: flex;
-  padding: 10px;
-  background-color: #fff;
-  border-top: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
-
-  @media (min-width: 768px) {
-    padding: 10px;
-  }
-`
-
-const Input = styled.input`
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  gap: ${(props) => props.theme.spacing.sm};
+  align-items: flex-end;
 `
 
 const Button = styled.button`
-  margin-left: 10px;
-  padding: 8px 16px;
-  background-color: #007bff;
-  color: #fff;
+  padding: ${(props) => props.theme.spacing.sm}
+    ${(props) => props.theme.spacing.lg};
+  background-color: ${(props) => props.theme.background.highlight};
+  color: ${(props) => props.theme.text.dark};
   border: none;
-  border-radius: 4px;
+  border-radius: ${(props) => props.theme.border.radius.full};
   cursor: pointer;
+  font-weight: ${(props) => props.theme.typography.weight.medium};
+  height: 40px;
+  transition: all 0.2s ease;
 
-  &:hover {
-    background-color: #0056b3;
+  &:hover:not(:disabled) {
+    background-color: ${(props) => props.theme.background.mouseHighlight};
+    transform: translateY(-1px);
   }
 
   &:disabled {
-    background-color: #cccccc;
+    opacity: 0.6;
     cursor: not-allowed;
   }
 `
@@ -127,11 +163,11 @@ const Button = styled.button`
 const LockedChatMessage = styled.div`
   background-color: ${(props) => props.theme.background.warning};
   color: ${(props) => props.theme.text.warning};
-  padding: 1rem;
-  margin: 1rem 0;
-  border-radius: 4px;
+  padding: ${(props) => props.theme.spacing.md};
+  margin: ${(props) => props.theme.spacing.md} 0;
+  border-radius: ${(props) => props.theme.border.radius.md};
   text-align: center;
-  font-weight: 500;
+  font-weight: ${(props) => props.theme.typography.weight.medium};
 `
 
 // Types
@@ -160,9 +196,17 @@ export const Chat: React.FC<ChatProps> = ({
 }) => {
   const [newMessage, setNewMessage] = useState('')
   const [messageFormat, setMessageFormat] = useState<MessageFormat>('html')
+  const messageListRef = useRef<HTMLDivElement>(null)
   const currentUserId = '1' // TODO: Get from auth context
   const isMessageValid = newMessage.trim().length > 0
   const isLocked = status === 'locked' || status === 'archived'
+
+  // Scroll to bottom when messages change or component mounts
+  useEffect(() => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight
+    }
+  }, [messages])
 
   const handleSendMessage = () => {
     if (newMessage.trim() && !isLocked) {
@@ -201,30 +245,60 @@ export const Chat: React.FC<ChatProps> = ({
     return <MessageContent>{sanitizedContent}</MessageContent>
   }
 
+  // Group messages by sender
+  const groupedMessages = messages.reduce(
+    (groups: ExtendedMessage[][], message) => {
+      const lastGroup = groups[groups.length - 1]
+
+      if (lastGroup && lastGroup[0].sender_id === message.sender_id) {
+        lastGroup.push(message)
+      } else {
+        groups.push([message])
+      }
+
+      return groups
+    },
+    [],
+  )
+
   return (
     <ChatContainer>
-      <MessageList>
+      <ChatHeader>
+        <ChatTitle>Chat</ChatTitle>
+      </ChatHeader>
+
+      <MessageList ref={messageListRef}>
         {isLocked && (
           <LockedChatMessage>
             This chat is {status === 'locked' ? 'locked' : 'archived'} and no
             new messages can be sent.
           </LockedChatMessage>
         )}
-        {messages.map((message) => (
-          <MessageItem
-            key={message.message_id}
-            isCurrentUser={message.sender_id === currentUserId}
-          >
-            <MessageSender>
-              {message.User.first_name} {message.User.last_name}
-            </MessageSender>
-            {renderMessageContent(message)}
-            <MessageTimestamp>
-              {new Date(message.created_at).toLocaleTimeString()}
-            </MessageTimestamp>
-          </MessageItem>
-        ))}
+        <MessagesWrapper>
+          {groupedMessages.map((group, groupIndex) => (
+            <MessageGroup
+              key={groupIndex}
+              isCurrentUser={group[0].sender_id === currentUserId}
+            >
+              <MessageSender>
+                {group[0].User.first_name} {group[0].User.last_name}
+              </MessageSender>
+              {group.map((message) => (
+                <MessageItem
+                  key={message.message_id}
+                  isCurrentUser={message.sender_id === currentUserId}
+                >
+                  {renderMessageContent(message)}
+                  <MessageTimestamp>
+                    {new Date(message.created_at).toLocaleTimeString()}
+                  </MessageTimestamp>
+                </MessageItem>
+              ))}
+            </MessageGroup>
+          ))}
+        </MessagesWrapper>
       </MessageList>
+
       {!isLocked && (
         <InputContainer>
           <RichTextEditor

@@ -10,36 +10,39 @@ import { ChatContainer } from './ChatContainer'
 const PageContainer = styled.div`
   display: flex;
   height: calc(100vh - 64px);
-  background: #2f3136;
+  background: ${(props) => props.theme.background.body};
 `
 
 const Sidebar = styled.div`
   width: 350px;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: ${(props) => props.theme.border.width.thin} solid
+    ${(props) => props.theme.border.color.default};
   display: flex;
   flex-direction: column;
-  background: #2f3136;
+  background: ${(props) => props.theme.background.body};
 `
 
 const SidebarHeader = styled.div`
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: ${(props) => props.theme.spacing.md}
+    ${(props) => props.theme.spacing.lg};
+  border-bottom: ${(props) => props.theme.border.width.thin} solid
+    ${(props) => props.theme.border.color.default};
 `
 
 const Title = styled.h1`
-  font-size: 1.25rem;
-  color: #ffffff;
+  font-size: ${(props) => props.theme.typography.size.xl};
+  color: ${(props) => props.theme.text.body};
   margin: 0;
-  font-weight: 600;
+  font-weight: ${(props) => props.theme.typography.weight.semibold};
 `
 
 const ConversationList = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: ${(props) => props.theme.spacing.sm};
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: ${(props) => props.theme.spacing.xs};
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -50,49 +53,50 @@ const ConversationList = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
+    background: ${(props) => props.theme.background.contrast};
+    border-radius: ${(props) => props.theme.border.radius.sm};
   }
 `
 
 const ConversationCard = styled.div<{ isSelected?: boolean }>`
-  padding: 0.75rem 1rem;
-  border-radius: 4px;
+  padding: ${(props) => props.theme.spacing.md}
+    ${(props) => props.theme.spacing.md};
+  border-radius: ${(props) => props.theme.border.radius.md};
   cursor: pointer;
   background: ${(props) =>
-    props.isSelected ? 'rgba(255, 255, 255, 0.05)' : 'transparent'};
-  transition: all 0.2s ease;
+    props.isSelected ? props.theme.background.contrast : 'transparent'};
+  transition: ${(props) => props.theme.transitions.fast};
 
   &:hover {
     background: ${(props) =>
       props.isSelected
-        ? 'rgba(255, 255, 255, 0.05)'
-        : 'rgba(255, 255, 255, 0.02)'};
+        ? props.theme.background.contrast
+        : props.theme.background.mouseHighlight};
   }
 `
 
 const ParticipantList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
-  margin-bottom: 0.25rem;
+  gap: ${(props) => props.theme.spacing.xs};
+  margin-bottom: ${(props) => props.theme.spacing.xs};
 `
 
 const ParticipantRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: ${(props) => props.theme.spacing.xs};
 `
 
 const ParticipantName = styled.span`
-  font-weight: 500;
-  color: #dcddde;
-  font-size: 0.875rem;
+  font-weight: ${(props) => props.theme.typography.weight.medium};
+  color: ${(props) => props.theme.text.body};
+  font-size: ${(props) => props.theme.typography.size.sm};
 `
 
 const MessagePreview = styled.div`
-  color: #8e9297;
-  font-size: 0.8125rem;
+  color: ${(props) => props.theme.text.dim};
+  font-size: ${(props) => props.theme.typography.size.xs};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -103,27 +107,27 @@ const StatusIndicator = styled.span<{
 }>`
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: ${(props) => props.theme.border.radius.full};
   display: inline-block;
-  margin-right: 0.5rem;
+  margin-right: ${(props) => props.theme.spacing.sm};
   background: ${(props) => {
     switch (props.status) {
       case 'active':
-        return '#3ba55c'
+        return props.theme.background.success
       case 'locked':
-        return '#ed4245'
+        return props.theme.background.danger
       case 'archived':
-        return '#747f8d'
+        return props.theme.background.disabled
       default:
-        return '#747f8d'
+        return props.theme.background.disabled
     }
   }};
 `
 
 const TimeStamp = styled.span`
-  font-size: 0.6875rem;
-  color: #8e9297;
-  margin-left: 0.5rem;
+  font-size: ${(props) => props.theme.typography.size.xs};
+  color: ${(props) => props.theme.text.dim};
+  margin-left: ${(props) => props.theme.spacing.sm};
 `
 
 const MainContent = styled.div`
@@ -131,38 +135,39 @@ const MainContent = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #36393f;
-  color: #8e9297;
+  background: ${(props) => props.theme.background.content};
+  color: ${(props) => props.theme.text.dim};
 `
 
 const LoadingMessage = styled.div`
   text-align: center;
-  padding: 2rem;
-  color: #8e9297;
+  padding: ${(props) => props.theme.spacing.xl};
+  color: ${(props) => props.theme.text.dim};
 `
 
 const ErrorMessage = styled.div`
   text-align: center;
-  padding: 1rem;
-  margin: 1rem;
-  background: rgba(237, 66, 69, 0.1);
-  color: #ed4245;
-  border-radius: 4px;
+  padding: ${(props) => props.theme.spacing.md};
+  margin: ${(props) => props.theme.spacing.md};
+  background: ${(props) => props.theme.background.danger};
+  color: ${(props) => props.theme.text.danger};
+  border-radius: ${(props) => props.theme.border.radius.lg};
 `
 
 const NoConversationsMessage = styled.div`
   text-align: center;
-  padding: 2rem;
-  color: #8e9297;
+  padding: ${(props) => props.theme.spacing.xl};
+  color: ${(props) => props.theme.text.dim};
 `
 
 const RoleChip = styled.span`
-  font-size: 0.75rem;
-  padding: 0.125rem 0.375rem;
-  background: rgba(79, 84, 92, 0.3);
-  color: #b9bbbe;
-  border-radius: 3px;
-  margin-left: 0.25rem;
+  font-size: ${(props) => props.theme.typography.size.xs};
+  padding: ${(props) => props.theme.spacing.xs}
+    ${(props) => props.theme.spacing.sm};
+  background: ${(props) => props.theme.background.contrast};
+  color: ${(props) => props.theme.text.dim};
+  border-radius: ${(props) => props.theme.border.radius.sm};
+  margin-left: ${(props) => props.theme.spacing.xs};
 `
 
 export const UserConversations: React.FC = () => {
