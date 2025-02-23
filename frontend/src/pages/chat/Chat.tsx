@@ -130,29 +130,44 @@ const InputContainer = styled.div`
   border-top: 1px solid ${(props) => props.theme.border.color.default};
   background: ${(props) => props.theme.background.content};
   flex-shrink: 0;
+  display: flex;
+  gap: ${(props) => props.theme.spacing.sm};
+  align-items: flex-end;
 `
 
-const Button = styled.button`
-  padding: ${(props) => props.theme.spacing.sm}
-    ${(props) => props.theme.spacing.lg};
+const SendButton = styled.button`
+  width: 40px;
+  height: 40px;
+  padding: 0;
   background-color: ${(props) => props.theme.background.highlight};
   color: ${(props) => props.theme.text.dark};
   border: none;
-  border-radius: ${(props) => props.theme.border.radius.full};
+  border-radius: 50%;
   cursor: pointer;
-  font-weight: ${(props) => props.theme.typography.weight.medium};
-  height: 40px;
-  flex-shrink: 0; /* Prevents button from shrinking */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
     background-color: ${(props) => props.theme.background.mouseHighlight};
-    transform: translateY(-1px);
+    transform: scale(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
   }
 
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
   }
 `
 
@@ -301,9 +316,15 @@ export const Chat: React.FC<ChatProps> = ({
             }}
             placeholder="Type your message..."
           />
-          <Button onClick={handleSendMessage} disabled={!isMessageValid}>
-            Send
-          </Button>
+          <SendButton
+            onClick={handleSendMessage}
+            disabled={!isMessageValid}
+            aria-label="Send message"
+          >
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            </svg>
+          </SendButton>
         </InputContainer>
       )}
     </ChatContainer>
