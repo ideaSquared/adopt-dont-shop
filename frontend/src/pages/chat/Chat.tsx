@@ -3,8 +3,20 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import styled, { css } from 'styled-components'
-import MarkdownEditor from '../../components/MarkdownEditor/MarkdownEditor'
+import MarkdownEditor from './components/MarkdownEditor/MarkdownEditor'
 import { useUser } from '../../contexts/auth/UserContext'
+import { useSocket } from '../../hooks/useSocket'
+import { useMessages } from '../../hooks/useMessages'
+import { useErrorHandler } from '../../hooks/useErrorHandler'
+import { ConnectionStatus } from './components/ConnectionStatus'
+import { MessageStatus } from './components/MessageStatus'
+import { TypingIndicator } from './components/TypingIndicator'
+import { VirtualizedMessageList } from './components/VirtualizedMessageList'
+import { useAlert } from '../../contexts/alert/AlertContext'
+import ChatAnalyticsService from '../../services/ChatAnalyticsService'
+import { MessageList } from './components/MessageList'
+import { FilePreview } from './components/FilePreview'
+import { MessageReactions } from './components/MessageReactions'
 
 // Custom debounce hook
 const useDebounce = <T extends (...args: any[]) => any>(
@@ -72,19 +84,17 @@ const ChatTitle = styled.h2`
   color: ${(props) => props.theme.text.body};
 `
 
-const MessageList = styled.div`
+const MessageListWrapper = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: ${(props) => props.theme.spacing.md};
-  background-color: ${(props) => props.theme.background.body};
-  scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
+  gap: ${(props) => props.theme.spacing.md};
   min-height: 0;
 
-  /* Custom scrollbar styling */
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
 
   &::-webkit-scrollbar-track {
@@ -92,16 +102,9 @@ const MessageList = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: ${(props) => props.theme.border.color.default};
-    border-radius: ${(props) => props.theme.border.radius.full};
+    background: ${(props) => props.theme.background.contrast};
+    border-radius: ${(props) => props.theme.border.radius.sm};
   }
-`
-
-const MessagesWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.md};
-  margin-top: auto; /* Push messages to bottom when not enough content */
 `
 
 const MessageGroup = styled.div<{ isCurrentUser: boolean }>`
@@ -267,10 +270,10 @@ type MessageItemProps = {
 }
 
 type ChatProps = {
-  messages: ExtendedMessage[]
   conversationId: string
-  onSendMessage: (message: ExtendedMessage) => void
+  onSendMessage: (message: Message) => void
   status?: 'active' | 'locked' | 'archived'
+  messages: Message[]
 }
 
 type MessageFormat = 'plain' | 'markdown' | 'html'
@@ -355,182 +358,185 @@ const useReadStatus = (
 }
 
 export const Chat: React.FC<ChatProps> = ({
-  messages,
   conversationId,
   onSendMessage,
   status = 'active',
+  messages,
 }) => {
-  const [newMessage, setNewMessage] = useState('')
-  const [messageFormat, setMessageFormat] = useState<MessageFormat>('html')
-  const [sendingMessage, setSendingMessage] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isVisible, setIsVisible] = useState(true)
-  const messageListRef = useRef<HTMLDivElement>(null)
   const { user } = useUser()
-  const isMessageValid = newMessage.trim().length > 0
-  const isLocked = status === 'locked' || status === 'archived'
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { showAlert } = useAlert()
+  const { handleError } = useErrorHandler()
+  const [messageText, setMessageText] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const analyticsService = ChatAnalyticsService.getInstance()
 
-  const { markMessagesAsRead, isProcessing } = useReadStatus(
-    conversationId,
-    messages,
-    isVisible,
-  )
-
-  // Update the visibility effect to only mark as read on visibility change
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      const newIsVisible = !document.hidden
-      setIsVisible(newIsVisible)
-      if (newIsVisible && messages.length > 0) {
-        markMessagesAsRead()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [messages.length, markMessagesAsRead])
-
-  // Only mark messages as read on initial mount and when new messages arrive
-  useEffect(() => {
-    if (isVisible && messages.length > 0) {
-      markMessagesAsRead()
-    }
-  }, [isVisible, messages.length, markMessagesAsRead])
-
-  // Combine duplicate scroll effects into one
-  useEffect(() => {
-    if (messageListRef.current) {
-      messageListRef.current.scrollTop = messageListRef.current.scrollHeight
-    }
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [messages])
-
-  // Clear error when message changes
-  useEffect(() => {
-    if (error) setError(null)
-  }, [newMessage, error])
-
-  const handleSendMessage = async () => {
-    if (!isMessageValid || isLocked || !user?.user_id || sendingMessage) return
+  const handleMessageSubmit = async () => {
+    if (!messageText.trim() && !selectedFile) return
 
     try {
-      setSendingMessage(true)
-      setError(null)
+      const startTime = Date.now()
+      let attachments = []
 
-      const newMsg: ExtendedMessage = {
+      if (selectedFile) {
+        // Handle file upload here
+        // This is a placeholder - implement your file upload logic
+        const formData = new FormData()
+        formData.append('file', selectedFile)
+        // const uploadResponse = await uploadFile(formData)
+        // attachments = [uploadResponse.data]
+      }
+
+      const message: Message = {
         message_id: Date.now().toString(),
         chat_id: conversationId,
-        sender_id: user.user_id,
-        content: newMessage.trim(),
-        content_format: messageFormat,
+        sender_id: user?.user_id || '',
+        content: messageText,
+        content_format: 'plain',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        attachments,
         User: {
-          user_id: user.user_id,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          email: user.email,
+          user_id: user?.user_id || '',
+          first_name: user?.first_name || '',
+          last_name: user?.last_name || '',
+          email: user?.email || '',
         },
       }
 
-      await onSendMessage(newMsg)
-      setNewMessage('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send message')
-    } finally {
-      setSendingMessage(false)
+      await onSendMessage(message)
+
+      // Track message metrics
+      analyticsService.trackMessage(message, Date.now() - startTime)
+
+      setMessageText('')
+      setSelectedFile(null)
+    } catch (error) {
+      handleError('Failed to send message', error)
     }
   }
 
-  const handleEditorChange = (content: string, format: MessageFormat) => {
-    setNewMessage(content)
-    setMessageFormat(format)
-  }
-
-  const renderMessageContent = (message: ExtendedMessage) => {
-    return (
-      <MessageContent>
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {message.content}
-        </ReactMarkdown>
-      </MessageContent>
-    )
-  }
-
-  // Group messages by sender
-  const groupedMessages = messages.reduce(
-    (groups: ExtendedMessage[][], message) => {
-      const lastGroup = groups[groups.length - 1]
-
-      if (lastGroup && lastGroup[0].sender_id === message.sender_id) {
-        lastGroup.push(message)
-      } else {
-        groups.push([message])
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB limit
+        showAlert({
+          type: 'error',
+          message: 'File size must be less than 10MB',
+        })
+        return
       }
+      setSelectedFile(file)
+    }
+  }
 
-      return groups
-    },
-    [],
+  const handleReaction = async (
+    messageId: string,
+    emoji: string,
+    isAdd: boolean,
+  ) => {
+    try {
+      if (isAdd) {
+        // Add reaction
+        analyticsService.trackReaction(messageId, emoji, user?.user_id || '')
+      } else {
+        // Remove reaction
+        // Implement reaction removal tracking if needed
+      }
+    } catch (error) {
+      handleError('Failed to update reaction', error)
+    }
+  }
+
+  const renderMessage = useCallback(
+    (message: Message) => (
+      <div key={message.message_id}>
+        <div>{message.content}</div>
+        {message.attachments?.map((attachment) => (
+          <FilePreview
+            key={attachment.attachment_id}
+            file={attachment}
+            onImageClick={(url) => {
+              // Implement image preview
+            }}
+          />
+        ))}
+        <MessageReactions
+          messageId={message.message_id}
+          reactions={message.reactions || []}
+          currentUserId={user?.user_id || ''}
+          onAddReaction={(messageId, emoji) =>
+            handleReaction(messageId, emoji, true)
+          }
+          onRemoveReaction={(messageId, emoji) =>
+            handleReaction(messageId, emoji, false)
+          }
+        />
+        <MessageStatus message={message} isPending={false} />
+      </div>
+    ),
+    [user?.user_id, handleReaction],
   )
 
   return (
-    <ChatContainer>
-      <MessageList ref={messageListRef}>
-        <MessagesWrapper>
-          {groupedMessages.map((group, groupIndex) => (
-            <MessageGroup
-              key={groupIndex}
-              isCurrentUser={group[0].sender_id === user?.user_id}
-            >
-              <MessageSender>
-                {group[0].User.first_name} {group[0].User.last_name}
-              </MessageSender>
-              {group.map((message) => (
-                <MessageItem
-                  key={message.message_id}
-                  isCurrentUser={message.sender_id === user?.user_id}
-                >
-                  {renderMessageContent(message)}
-                  <MessageTimestamp>
-                    {new Date(message.created_at).toLocaleTimeString()}
-                  </MessageTimestamp>
-                </MessageItem>
-              ))}
-            </MessageGroup>
-          ))}
-        </MessagesWrapper>
-      </MessageList>
+    <ChatContainer role="region" aria-label="Chat messages">
+      <ConnectionStatus isConnected={true} isConnecting={false} />
 
-      {error && <ErrorMessage>{error}</ErrorMessage>}
+      <MessageListWrapper>
+        <MessageList messages={messages} renderMessage={renderMessage} />
+      </MessageListWrapper>
 
-      {isLocked && (
-        <LockedChatMessage>
-          This chat is {status === 'locked' ? 'locked' : 'archived'} and no new
-          messages can be sent.
+      <TypingIndicator chatId={conversationId} />
+
+      {status === 'locked' && (
+        <LockedChatMessage role="alert">
+          This chat is locked and no new messages can be sent.
         </LockedChatMessage>
       )}
-      {!isLocked && (
+
+      {status === 'active' && (
         <InputContainer>
-          <MarkdownEditor
-            value={newMessage}
-            onChange={handleEditorChange}
+          <FileButton
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Attach file"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                d="M10 4v12M4 10h12"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </FileButton>
+          <FileInput
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileSelect}
+            accept="image/*,.pdf,.doc,.docx"
+          />
+          <MessageInput
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
             placeholder="Type your message..."
-            readOnly={sendingMessage}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleMessageSubmit()
+              }
+            }}
           />
           <SendButton
-            onClick={handleSendMessage}
-            disabled={!isMessageValid || sendingMessage}
-            aria-label={sendingMessage ? 'Sending message...' : 'Send message'}
-            type="button"
+            onClick={handleMessageSubmit}
+            disabled={!messageText.trim() && !selectedFile}
           >
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-            </svg>
+            Send
           </SendButton>
         </InputContainer>
       )}

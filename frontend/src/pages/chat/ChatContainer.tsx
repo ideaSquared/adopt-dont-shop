@@ -1,9 +1,13 @@
 import { Message } from '@adoptdontshop/libs/conversations'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { io, Socket } from 'socket.io-client'
 import styled from 'styled-components'
+import { useUser } from '../../contexts/auth/UserContext'
+import { useAlert } from '../../contexts/alert/AlertContext'
 import { Chat } from './Chat'
+import { useErrorHandler } from '../../hooks/useErrorHandler'
+import ChatAnalyticsService from '../../services/ChatAnalyticsService'
 
 const Container = styled.div`
   flex: 1;
@@ -56,159 +60,20 @@ const ChatStatus = styled.div<{ status: 'active' | 'locked' | 'archived' }>`
   font-size: ${(props) => props.theme.typography.size.sm};
 `
 
-const MessageList = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: ${(props) => props.theme.spacing.md};
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.md};
-  min-height: 0;
-
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: ${(props) => props.theme.background.contrast};
-    border-radius: ${(props) => props.theme.border.radius.sm};
-  }
-`
-
-const MessageBubble = styled.div<{ isOwn?: boolean }>`
-  max-width: 70%;
-  align-self: ${(props) => (props.isOwn ? 'flex-end' : 'flex-start')};
-  background: ${(props) =>
-    props.isOwn
-      ? props.theme.background.highlight
-      : props.theme.background.contrast};
-  color: ${(props) => props.theme.text.body};
-  padding: ${(props) => props.theme.spacing.sm}
-    ${(props) => props.theme.spacing.md};
-  border-radius: ${(props) => props.theme.border.radius.lg};
-  position: relative;
-`
-
-const MessageContent = styled.div`
-  font-size: ${(props) => props.theme.typography.size.sm};
-  line-height: ${(props) => props.theme.typography.lineHeight.relaxed};
-  white-space: pre-wrap;
-  word-break: break-word;
-`
-
-const MessageMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${(props) => props.theme.spacing.xs};
-  margin-top: ${(props) => props.theme.spacing.xs};
-  font-size: ${(props) => props.theme.typography.size.xs};
-  color: ${(props) => props.theme.text.dim};
-`
-
-const InputContainer = styled.div`
-  padding: ${(props) => props.theme.spacing.md};
-  border-top: ${(props) => props.theme.border.width.thin} solid
-    ${(props) => props.theme.border.color.default};
-  background: ${(props) => props.theme.background.content};
-  flex-shrink: 0;
-`
-
-const InputWrapper = styled.div`
-  display: flex;
-  gap: ${(props) => props.theme.spacing.sm};
-  align-items: flex-end;
-`
-
-const StyledTextArea = styled.textarea`
-  flex: 1;
-  min-height: 40px;
-  max-height: 120px;
-  padding: ${(props) => props.theme.spacing.sm};
-  border: ${(props) => props.theme.border.width.thin} solid
-    ${(props) => props.theme.border.color.default};
-  border-radius: ${(props) => props.theme.border.radius.md};
-  background: ${(props) => props.theme.background.body};
-  color: ${(props) => props.theme.text.body};
-  font-size: ${(props) => props.theme.typography.size.sm};
-  resize: none;
-  outline: none;
-  transition: ${(props) => props.theme.transitions.fast};
-
-  &:focus {
-    border-color: ${(props) => props.theme.border.color.focus};
-  }
-
-  &::placeholder {
-    color: ${(props) => props.theme.text.dim};
-  }
-`
-
-const SendButton = styled.button<{ disabled?: boolean }>`
-  padding: ${(props) => props.theme.spacing.sm}
-    ${(props) => props.theme.spacing.md};
-  border: none;
-  border-radius: ${(props) => props.theme.border.radius.md};
-  background: ${(props) =>
-    props.disabled
-      ? props.theme.background.disabled
-      : props.theme.background.highlight};
-  color: ${(props) =>
-    props.disabled ? props.theme.text.dim : props.theme.text.dark};
-  font-size: ${(props) => props.theme.typography.size.sm};
-  font-weight: ${(props) => props.theme.typography.weight.medium};
-  cursor: ${(props) => (props.disabled ? 'not-allowed' : 'pointer')};
-  transition: ${(props) => props.theme.transitions.fast};
-
-  &:hover:not(:disabled) {
-    background: ${(props) => props.theme.background.mouseHighlight};
-  }
-`
-
-const TypingIndicator = styled.div`
-  padding: ${(props) => props.theme.spacing.xs}
-    ${(props) => props.theme.spacing.sm};
-  color: ${(props) => props.theme.text.dim};
-  font-size: ${(props) => props.theme.typography.size.xs};
-  font-style: italic;
-`
-
-const ErrorMessage = styled.div`
-  text-align: center;
-  padding: ${(props) => props.theme.spacing.md};
-  margin: ${(props) => props.theme.spacing.md};
-  background: ${(props) => props.theme.background.danger};
-  color: ${(props) => props.theme.text.danger};
-  border-radius: ${(props) => props.theme.border.radius.lg};
-`
-
 const LoadingMessage = styled.div`
   text-align: center;
   padding: ${(props) => props.theme.spacing.xl};
   color: ${(props) => props.theme.text.dim};
 `
 
-const LoadingOverlay = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  width: 100%;
-  font-size: ${(props) => props.theme.typography.size.lg};
-  color: ${(props) => props.theme.text.dim};
-`
+export type MessageFormat = 'plain' | 'markdown' | 'html'
 
-type MessageFormat = 'plain' | 'markdown' | 'html'
-
-interface MessageReadStatus {
+export interface MessageReadStatus {
   user_id: string
   read_at: Date
 }
 
-interface ExtendedMessage extends Message {
+export interface ExtendedMessage extends Message {
   content_format: MessageFormat
   readStatus?: MessageReadStatus[]
 }
@@ -217,178 +82,226 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
 
 export const ChatContainer: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>()
+  const [socket, setSocket] = useState<Socket | null>(null)
   const [messages, setMessages] = useState<ExtendedMessage[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [socket, setSocket] = useState<Socket | null>(null)
   const [chatStatus, setChatStatus] = useState<
     'active' | 'locked' | 'archived'
   >('active')
+  const { user, token } = useUser()
+  const { handleError } = useErrorHandler()
+  const { showAlert } = useAlert()
+  const analyticsService = ChatAnalyticsService.getInstance()
 
-  // Initialize Socket.IO connection and handle messages
+  const handleSocketError = useCallback(
+    (message: string, error?: unknown) => {
+      showAlert({
+        type: 'error',
+        message,
+      })
+      handleError(message, error)
+    },
+    [showAlert, handleError],
+  )
+
   useEffect(() => {
-    if (!conversationId) return
+    if (!conversationId || !token) return
 
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setError('Not authenticated')
-      return
-    }
+    let newSocket: Socket | null = null
+    let isActive = true
+    const startTime = Date.now()
 
-    let newSocket: Socket
-    try {
-      newSocket = io(SOCKET_URL, {
-        auth: { token },
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      })
+    const setupSocket = () => {
+      try {
+        newSocket = io(SOCKET_URL, {
+          auth: { token },
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+        })
 
-      newSocket.on('connect', () => {
-        console.log('Socket connected')
-        setError(null)
-        // Join chat room immediately after connection
-        newSocket.emit('join_chat', conversationId)
-        // Request initial messages
-        newSocket.emit('get_messages', { chatId: conversationId })
-        // Request chat status
-        newSocket.emit('get_chat_status', { chatId: conversationId })
-      })
-
-      newSocket.on('connect_error', (err) => {
-        console.error('Socket connection error:', err)
-        setError('Failed to connect to chat server. Please try again.')
-      })
-
-      newSocket.on('messages', (data: ExtendedMessage[]) => {
-        console.log('Received initial messages:', data)
-        setMessages(
-          data.map((msg) => ({
-            ...msg,
-            content_format: msg.content_format || ('plain' as MessageFormat),
-          })),
-        )
-        setLoading(false)
-      })
-
-      newSocket.on(
-        'chat_status',
-        (data: { status: 'active' | 'locked' | 'archived' }) => {
-          console.log('Received chat status:', data)
-          setChatStatus(data.status)
-        },
-      )
-
-      newSocket.on('new_message', (message: ExtendedMessage) => {
-        console.log('Received new message:', message)
-        setMessages((prev) => [
-          ...prev,
-          {
-            ...message,
-            content_format:
-              message.content_format || ('plain' as MessageFormat),
-          },
-        ])
-      })
-
-      newSocket.on('message_updated', (updatedMessage: ExtendedMessage) => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.message_id === updatedMessage.message_id
-              ? {
-                  ...updatedMessage,
-                  content_format: updatedMessage.content_format || 'plain',
-                }
-              : msg,
-          ),
-        )
-      })
-
-      newSocket.on('message_deleted', (data: { message_id: string }) => {
-        setMessages((prev) =>
-          prev.filter((msg) => msg.message_id !== data.message_id),
-        )
-      })
-
-      newSocket.on(
-        'read_status_updated',
-        (data: {
-          chat_id: string
-          user_id: string
-          message_ids: string[]
-          read_at: Date
-        }) => {
-          // Update messages with new read status
-          setMessages((prev) =>
-            prev.map((msg) => {
-              if (data.message_ids.includes(msg.message_id)) {
-                return {
-                  ...msg,
-                  readStatus: [
-                    ...(msg.readStatus || []),
-                    {
-                      user_id: data.user_id,
-                      read_at: data.read_at,
-                    },
-                  ],
-                }
-              }
-              return msg
-            }),
+        newSocket.on('connect', () => {
+          if (!isActive) return
+          newSocket?.emit('join_chat', conversationId)
+          newSocket?.emit('get_messages', { chatId: conversationId })
+          newSocket?.emit('get_chat_status', { chatId: conversationId })
+          analyticsService.trackPerformanceEvent(
+            'socket_connect',
+            Date.now() - startTime,
+            true,
           )
-        },
-      )
+        })
 
-      newSocket.on('error', (error: { message: string }) => {
-        console.error('Socket error:', error)
-        setError(error.message)
-      })
+        newSocket.on('connect_error', (err) => {
+          if (!isActive) return
+          handleSocketError(
+            'Failed to connect to chat server. Please try again.',
+            err,
+          )
+          analyticsService.trackPerformanceEvent(
+            'socket_connect',
+            Date.now() - startTime,
+            false,
+            err.message,
+          )
+        })
 
-      newSocket.on('disconnect', () => {
-        console.log('Socket disconnected')
-      })
+        newSocket.on('messages', (data: ExtendedMessage[]) => {
+          if (!isActive) return
+          setMessages(
+            data.map((msg) => ({
+              ...msg,
+              content_format: msg.content_format || 'plain',
+            })),
+          )
+          setLoading(false)
+        })
 
-      setSocket(newSocket)
+        newSocket.on(
+          'chat_status',
+          (data: { status: 'active' | 'locked' | 'archived' }) => {
+            if (!isActive) return
+            setChatStatus(data.status)
+          },
+        )
 
-      return () => {
-        console.log('Cleaning up socket connection')
-        if (newSocket) {
-          newSocket.emit('leave_chat', conversationId)
-          newSocket.disconnect()
-        }
+        newSocket.on('new_message', (message: ExtendedMessage) => {
+          if (!isActive) return
+          setMessages((prev) => [
+            ...prev,
+            {
+              ...message,
+              content_format: message.content_format || 'plain',
+            },
+          ])
+        })
+
+        newSocket.on('message_updated', (updatedMessage: ExtendedMessage) => {
+          if (!isActive) return
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.message_id === updatedMessage.message_id
+                ? {
+                    ...updatedMessage,
+                    content_format: updatedMessage.content_format || 'plain',
+                  }
+                : msg,
+            ),
+          )
+        })
+
+        newSocket.on('message_deleted', (data: { message_id: string }) => {
+          if (!isActive) return
+          setMessages((prev) =>
+            prev.filter((msg) => msg.message_id !== data.message_id),
+          )
+        })
+
+        newSocket.on(
+          'read_status_updated',
+          (data: {
+            chat_id: string
+            user_id: string
+            message_ids: string[]
+            read_at: Date
+          }) => {
+            if (!isActive) return
+            setMessages((prev) =>
+              prev.map((msg) => {
+                if (data.message_ids.includes(msg.message_id)) {
+                  return {
+                    ...msg,
+                    readStatus: [
+                      ...(msg.readStatus || []),
+                      { user_id: data.user_id, read_at: data.read_at },
+                    ],
+                  }
+                }
+                return msg
+              }),
+            )
+          },
+        )
+
+        newSocket.on('error', (error: { message: string }) => {
+          if (!isActive) return
+          handleSocketError(error.message)
+        })
+
+        newSocket.on('disconnect', () => {
+          if (!isActive) return
+          showAlert({
+            type: 'warning',
+            message: 'Chat connection lost. Attempting to reconnect...',
+          })
+        })
+
+        setSocket(newSocket)
+      } catch (err) {
+        if (!isActive) return
+        handleSocketError('Failed to initialize chat connection', err)
+        setLoading(false)
       }
-    } catch (err) {
-      console.error('Socket initialization error:', err)
-      setError('Failed to initialize chat connection')
-      setLoading(false)
-    }
-  }, [conversationId])
-
-  const handleSendMessage = async (message: ExtendedMessage) => {
-    if (chatStatus !== 'active') {
-      setError('Cannot send messages in a locked or archived chat')
-      return
     }
 
-    if (!socket?.connected) {
-      setError('Not connected to chat server')
-      return
-    }
+    setupSocket()
 
-    try {
-      socket.emit('send_message', {
-        chat_id: conversationId,
-        content: message.content,
-        content_format: message.content_format || 'plain',
-      })
-    } catch (err) {
-      console.error('Error sending message:', err)
-      setError(err instanceof Error ? err.message : 'Failed to send message')
+    return () => {
+      isActive = false
+      if (newSocket) {
+        newSocket.emit('leave_chat', conversationId)
+        newSocket.disconnect()
+      }
     }
-  }
+  }, [conversationId, token, handleSocketError, analyticsService])
 
-  if (error) {
-    return <ErrorMessage>{error}</ErrorMessage>
+  const handleSendMessage = useCallback(
+    async (message: ExtendedMessage) => {
+      if (chatStatus !== 'active') {
+        showAlert({
+          type: 'error',
+          message: 'Cannot send messages in a locked or archived chat',
+        })
+        return
+      }
+
+      if (!socket?.connected) {
+        showAlert({
+          type: 'error',
+          message: 'Not connected to chat server',
+        })
+        return
+      }
+
+      const startTime = Date.now()
+      try {
+        socket.emit('send_message', {
+          chat_id: conversationId,
+          content: message.content,
+          content_format: message.content_format || 'plain',
+        })
+        analyticsService.trackMessage(message, Date.now() - startTime)
+      } catch (err) {
+        handleSocketError('Failed to send message', err)
+        analyticsService.trackPerformanceEvent(
+          'message_send',
+          Date.now() - startTime,
+          false,
+        )
+      }
+    },
+    [
+      chatStatus,
+      socket,
+      conversationId,
+      showAlert,
+      analyticsService,
+      handleSocketError,
+    ],
+  )
+
+  if (loading) {
+    return <LoadingMessage>Loading chat...</LoadingMessage>
   }
 
   return (
