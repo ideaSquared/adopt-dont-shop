@@ -398,10 +398,13 @@ export const Chat: React.FC<ChatProps> = ({
     if (isVisible && messages.length > 0) {
       markMessagesAsRead()
     }
-  }, [messages.length]) // Only depend on messages.length to avoid constant triggers
+  }, [isVisible, messages.length, markMessagesAsRead])
 
-  // Scroll to bottom when messages change
+  // Combine duplicate scroll effects into one
   useEffect(() => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight
+    }
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
@@ -411,13 +414,6 @@ export const Chat: React.FC<ChatProps> = ({
   useEffect(() => {
     if (error) setError(null)
   }, [newMessage, error])
-
-  // Scroll to bottom when messages change or component mounts
-  useEffect(() => {
-    if (messageListRef.current) {
-      messageListRef.current.scrollTop = messageListRef.current.scrollHeight
-    }
-  }, [messages])
 
   const handleSendMessage = async () => {
     if (!isMessageValid || isLocked || !user?.user_id || sendingMessage) return

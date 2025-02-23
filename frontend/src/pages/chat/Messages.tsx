@@ -47,32 +47,49 @@ const MessageItem = styled.div<{ isActive?: boolean }>`
   margin-bottom: ${(props) => props.theme.spacing.sm};
   background: ${(props) =>
     props.isActive
-      ? props.theme.background.selected
+      ? props.theme.background.highlight
       : props.theme.background.content};
 
   &:hover {
     background: ${(props) =>
       props.isActive
-        ? props.theme.background.selected
-        : props.theme.background.hover};
+        ? props.theme.background.highlight
+        : props.theme.background.mouseHighlight};
   }
 `
 
 type MessagesProps = {
-  // Add any props you need
+  messages?: Array<{
+    id: string
+    content: string
+    isActive?: boolean
+  }>
+  onMessageSelect?: (messageId: string) => void
 }
 
-export const Messages: React.FC<MessagesProps> = () => {
+export const Messages: React.FC<MessagesProps> = ({
+  messages = [],
+  onMessageSelect,
+}) => {
+  const handleMessageClick = (messageId: string) => {
+    onMessageSelect?.(messageId)
+  }
+
   return (
     <MessagesWrapper>
       <MessagesHeader>
         <Title>Messages</Title>
       </MessagesHeader>
       <MessagesList>
-        {/* Add your message items here */}
-        <MessageItem>Message 1</MessageItem>
-        <MessageItem isActive>Message 2</MessageItem>
-        <MessageItem>Message 3</MessageItem>
+        {messages.map((message) => (
+          <MessageItem
+            key={message.id}
+            isActive={message.isActive}
+            onClick={() => handleMessageClick(message.id)}
+          >
+            {message.content}
+          </MessageItem>
+        ))}
       </MessagesList>
     </MessagesWrapper>
   )

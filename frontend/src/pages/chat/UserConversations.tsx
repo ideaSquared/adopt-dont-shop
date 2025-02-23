@@ -163,10 +163,32 @@ const RoleChip = styled.span`
   font-size: ${(props) => props.theme.typography.size.xs};
   padding: ${(props) => props.theme.spacing.xs}
     ${(props) => props.theme.spacing.sm};
-  background: ${(props) => props.theme.background.contrast};
-  color: ${(props) => props.theme.text.dim};
+  background: ${(props) => {
+    const role = props.children?.toString().toLowerCase() || ''
+    if (role.includes('rescue')) {
+      return props.theme.background.success + '75' // Light green with 20% opacity
+    }
+    return props.theme.background.contrast
+  }};
+  color: ${(props) => {
+    const role = props.children?.toString().toLowerCase() || ''
+    if (role.includes('rescue')) {
+      return props.theme.text.success
+    }
+    return props.theme.text.dim
+  }};
+  border: 1px solid
+    ${(props) => {
+      const role = props.children?.toString().toLowerCase() || ''
+      if (role.includes('rescue')) {
+        return props.theme.border.color.success + '40' // Border with 40% opacity
+      }
+      return 'transparent'
+    }};
   border-radius: ${(props) => props.theme.border.radius.sm};
   margin-left: ${(props) => props.theme.spacing.xs};
+  font-weight: ${(props) => props.theme.typography.weight.medium};
+  text-transform: capitalize;
 `
 
 const EmptyStateContainer = styled.div`
