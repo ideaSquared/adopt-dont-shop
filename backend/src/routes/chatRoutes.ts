@@ -19,6 +19,9 @@ router.use(apiRateLimiter)
 // Admin routes
 router.get('/admin/conversations', chatController.getAllConversationsAdmin)
 
+// User routes
+router.get('/user/conversations', chatController.getUserConversations)
+
 // Rescue dashboard routes
 router.get(
   '/rescue/conversations',

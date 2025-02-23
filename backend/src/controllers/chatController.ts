@@ -497,3 +497,58 @@ export const bulkDeleteMessagesController = async (
     handleError(error, userId, 'bulk delete', 'messages', req, res)
   }
 }
+
+/**
+ * Get conversations for the current user
+ */
+export const getUserConversations = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  const userId = req.user?.user_id
+
+  if (!userId) {
+    AuditLogger.logAction(
+      'ChatController',
+      'Attempt to fetch user conversations without authentication',
+      'WARNING',
+      null,
+      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+    )
+    res.status(401).json({ error: 'Not authenticated' })
+    return
+  }
+
+  try {
+    AuditLogger.logAction(
+      'ChatController',
+      'Attempting to fetch user conversations',
+      'INFO',
+      userId,
+      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+    )
+
+    const conversations = await chatService.getAllChatsForUser(userId)
+
+    AuditLogger.logAction(
+      'ChatController',
+      `Successfully fetched ${conversations.length} conversations for user`,
+      'INFO',
+      userId,
+      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+    )
+
+    res.json(conversations)
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    AuditLogger.logAction(
+      'ChatController',
+      `Failed to fetch user conversations: ${errorMessage}`,
+      'ERROR',
+      userId,
+      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+    )
+    res.status(500).json({ error: 'Failed to get conversations' })
+  }
+}

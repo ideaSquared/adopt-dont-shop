@@ -1,7 +1,14 @@
 import { Server } from 'http'
+import jwt from 'jsonwebtoken'
 import { Server as SocketIOServer } from 'socket.io'
 import { socketRateLimiter, typingRateLimiter } from '../middleware/rateLimiter'
+import { Chat, Message, User } from '../Models'
 import { AuditLogger } from './auditLogService'
+
+interface JwtPayload {
+  userId: string // Changed from user_id to userId to match your auth pattern
+  roles?: string[]
+}
 
 export class SocketService {
   private io: SocketIOServer
@@ -15,6 +22,95 @@ export class SocketService {
         methods: ['GET', 'POST'],
         credentials: true,
       },
+    })
+
+    // Add authentication middleware
+    this.io.use(async (socket, next) => {
+      try {
+        const token = socket.handshake.auth.token
+        if (!token) {
+          AuditLogger.logAction(
+            'Socket',
+            'Authentication failed: No token provided',
+            'WARNING',
+            null,
+          )
+          return next(new Error('Authentication token missing'))
+        }
+
+        const secretKey = process.env.SECRET_KEY
+        if (!secretKey) {
+          AuditLogger.logAction(
+            'Socket',
+            'Authentication failed: Missing secret key',
+            'ERROR',
+            null,
+          )
+          return next(new Error('Internal server error'))
+        }
+
+        const decoded = jwt.verify(token, secretKey) as JwtPayload
+        if (!decoded || !decoded.userId) {
+          AuditLogger.logAction(
+            'Socket',
+            'Authentication failed: Invalid token payload',
+            'WARNING',
+            null,
+          )
+          return next(new Error('Invalid token'))
+        }
+
+        // Find user in database
+        const user = await User.findByPk(decoded.userId)
+        if (!user) {
+          AuditLogger.logAction(
+            'Socket',
+            `Authentication failed: User with ID ${decoded.userId} not found`,
+            'WARNING',
+            null,
+          )
+          return next(new Error('User not found'))
+        }
+
+        // Store the user data in the socket
+        socket.data.userId = user.user_id
+        socket.data.user = user
+
+        // Add user to their room
+        socket.join(`user_${user.user_id}`)
+
+        // Store socket mapping
+        const userSockets = this.userSockets.get(user.user_id) || []
+        userSockets.push(socket.id)
+        this.userSockets.set(user.user_id, userSockets)
+
+        AuditLogger.logAction(
+          'Socket',
+          `User ${user.user_id} authenticated on socket ${socket.id}`,
+          'INFO',
+          user.user_id,
+        )
+
+        next()
+      } catch (error) {
+        if (error instanceof jwt.JsonWebTokenError) {
+          AuditLogger.logAction(
+            'Socket',
+            `JWT authentication failed: ${error.message}`,
+            'ERROR',
+            null,
+          )
+          return next(new Error('JWT token expired or invalid'))
+        }
+
+        AuditLogger.logAction(
+          'Socket',
+          `Authentication error: ${(error as Error).message}`,
+          'ERROR',
+          null,
+        )
+        next(new Error('Authentication failed'))
+      }
     })
 
     this.setupSocketHandlers()
@@ -36,48 +132,108 @@ export class SocketService {
 
   private setupSocketHandlers(): void {
     this.io.on('connection', (socket) => {
-      let authenticatedUserId: string | null = null
-
       AuditLogger.logAction(
         'Socket',
         `New socket connection: ${socket.id}`,
         'INFO',
       )
 
-      // Handle user authentication
-      socket.on('authenticate', async (userId: string) => {
+      // Handle getting messages for a chat
+      socket.on('get_messages', async ({ chatId }) => {
         try {
-          // Store socket mapping
-          const userSockets = this.userSockets.get(userId) || []
-          userSockets.push(socket.id)
-          this.userSockets.set(userId, userSockets)
-          authenticatedUserId = userId
+          const userId = socket.data.userId
+          if (!userId) {
+            socket.emit('error', { message: 'Not authenticated' })
+            return
+          }
 
-          // Join user's room
-          socket.join(`user_${userId}`)
+          const allowed = await socketRateLimiter(userId, 'get_messages')
+          if (!allowed) {
+            socket.emit('error', {
+              message: 'Rate limit exceeded for getting messages',
+            })
+            return
+          }
+
+          // Get messages from the database
+          const messages = await Message.findAll({
+            where: { chat_id: chatId },
+            include: [
+              {
+                model: User,
+                as: 'User',
+                attributes: ['user_id', 'first_name', 'last_name'],
+              },
+            ],
+            order: [['created_at', 'ASC']], // Order by creation time ascending
+          })
+
+          // Send messages back to the client
+          socket.emit('messages', messages)
 
           AuditLogger.logAction(
             'Socket',
-            `User ${userId} authenticated on socket ${socket.id}`,
+            `Sent ${messages.length} messages for chat ${chatId} to user ${userId}`,
             'INFO',
           )
         } catch (error) {
           AuditLogger.logAction(
             'Socket',
-            `Authentication error: ${(error as Error).message}`,
+            `Error getting messages: ${(error as Error).message}`,
             'ERROR',
           )
+          socket.emit('error', { message: 'Failed to get messages' })
+        }
+      })
+
+      // Handle getting chat status
+      socket.on('get_chat_status', async ({ chatId }) => {
+        try {
+          const userId = socket.data.userId
+          if (!userId) {
+            socket.emit('error', { message: 'Not authenticated' })
+            return
+          }
+
+          const allowed = await socketRateLimiter(userId, 'get_chat_status')
+          if (!allowed) {
+            socket.emit('error', {
+              message: 'Rate limit exceeded for getting chat status',
+            })
+            return
+          }
+
+          // Get chat from database
+          const chat = await Chat.findByPk(chatId)
+          if (!chat) {
+            socket.emit('error', { message: 'Chat not found' })
+            return
+          }
+
+          // Send chat status back to the client
+          socket.emit('chat_status', { status: chat.status })
+
+          AuditLogger.logAction(
+            'Socket',
+            `Sent chat status for chat ${chatId} to user ${userId}`,
+            'INFO',
+          )
+        } catch (error) {
+          AuditLogger.logAction(
+            'Socket',
+            `Error getting chat status: ${(error as Error).message}`,
+            'ERROR',
+          )
+          socket.emit('error', { message: 'Failed to get chat status' })
         }
       })
 
       // Handle joining chat rooms
       socket.on('join_chat', async (chatId: string) => {
-        if (!authenticatedUserId) return
+        const userId = socket.data.userId
+        if (!userId) return
 
-        const allowed = await socketRateLimiter(
-          authenticatedUserId,
-          'join_chat',
-        )
+        const allowed = await socketRateLimiter(userId, 'join_chat')
         if (!allowed) {
           socket.emit('error', {
             message: 'Rate limit exceeded for joining chats',
@@ -95,12 +251,10 @@ export class SocketService {
 
       // Handle leaving chat rooms
       socket.on('leave_chat', async (chatId: string) => {
-        if (!authenticatedUserId) return
+        const userId = socket.data.userId
+        if (!userId) return
 
-        const allowed = await socketRateLimiter(
-          authenticatedUserId,
-          'leave_chat',
-        )
+        const allowed = await socketRateLimiter(userId, 'leave_chat')
         if (!allowed) {
           socket.emit('error', {
             message: 'Rate limit exceeded for leaving chats',
@@ -120,8 +274,8 @@ export class SocketService {
       socket.on(
         'typing_start',
         async (data: { chatId: string; userId: string }) => {
-          if (!authenticatedUserId || authenticatedUserId !== data.userId)
-            return
+          const userId = socket.data.userId
+          if (!userId || userId !== data.userId) return
 
           const allowed = await typingRateLimiter(data.userId, data.chatId)
           if (!allowed) return // Silently fail for typing indicators
@@ -136,8 +290,8 @@ export class SocketService {
       socket.on(
         'typing_end',
         async (data: { chatId: string; userId: string }) => {
-          if (!authenticatedUserId || authenticatedUserId !== data.userId)
-            return
+          const userId = socket.data.userId
+          if (!userId || userId !== data.userId) return
 
           const allowed = await typingRateLimiter(data.userId, data.chatId)
           if (!allowed) return // Silently fail for typing indicators
@@ -151,14 +305,15 @@ export class SocketService {
 
       // Handle disconnection
       socket.on('disconnect', () => {
-        if (authenticatedUserId) {
-          const userSockets = this.userSockets.get(authenticatedUserId) || []
+        const userId = socket.data.userId
+        if (userId) {
+          const userSockets = this.userSockets.get(userId) || []
           const updatedSockets = userSockets.filter((id) => id !== socket.id)
 
           if (updatedSockets.length === 0) {
-            this.userSockets.delete(authenticatedUserId)
+            this.userSockets.delete(userId)
           } else {
-            this.userSockets.set(authenticatedUserId, updatedSockets)
+            this.userSockets.set(userId, updatedSockets)
           }
         }
 

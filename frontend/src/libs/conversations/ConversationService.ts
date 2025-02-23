@@ -122,6 +122,14 @@ export const bulkDeleteMessages = async (
   await apiService.post(`${API_BASE_URL}/messages/bulk-delete`, { messageIds })
 }
 
+/**
+ * Fetch all conversations for the current user.
+ * @returns Promise resolving to an array of Conversation objects.
+ */
+export const getUserConversations = async (): Promise<Conversation[]> => {
+  return apiService.get<Conversation[]>(`${API_BASE_URL}/user/conversations`)
+}
+
 export default {
   getConversations,
   getAllConversations,
@@ -134,4 +142,5 @@ export default {
   deleteChat,
   deleteMessageAdmin,
   bulkDeleteMessages,
+  getUserConversations,
 }

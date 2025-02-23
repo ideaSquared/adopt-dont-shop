@@ -8,6 +8,7 @@ import {
   VerifyEmail,
 } from '@adoptdontshop/pages/account'
 import { ChatContainer } from '@adoptdontshop/pages/chat'
+import { UserConversations } from '@adoptdontshop/pages/chat/UserConversations'
 import {
   Applications,
   AuditLogs,
@@ -101,9 +102,9 @@ const AppContent: React.FC = () => {
           >
             <Route path="/settings" element={<Settings />} />
             <Route path="/swipe" element={<Swipe />} />
-            {chatBetaEnabled && (
-              <Route path="/chat/:conversationId" element={<ChatContainer />} />
-            )}
+            <Route path="/chat" element={<UserConversations />}>
+              <Route path=":conversationId" element={<ChatContainer />} />
+            </Route>
             <Route
               path="/apply/:rescueId/:petId"
               element={<ApplicationFormWrapper />}

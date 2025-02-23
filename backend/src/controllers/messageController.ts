@@ -1,5 +1,4 @@
 import { Request, Response } from 'express'
-import { Op } from 'sequelize'
 import { Message, User } from '../Models'
 import { Chat } from '../Models/Chat'
 import { MessageAttachment } from '../Models/Message'
@@ -31,23 +30,29 @@ export const getAllMessagesController = async (
   res: Response,
 ) => {
   try {
+    const chatId = req.params.chat_id
     AuditLogger.logAction(
       'MessageController',
-      'Attempting to fetch all messages',
+      `Attempting to fetch messages for chat: ${chatId}`,
       'INFO',
       req.user?.user_id || null,
       AuditLogger.getAuditOptions(req, 'MESSAGE_MANAGEMENT'),
     )
 
-    const messages = await messageService.getAllMessages()
+    const messages = await messageService.getMessagesByChat(chatId)
 
     AuditLogger.logAction(
       'MessageController',
-      `Successfully fetched ${messages.length} messages`,
+      `Successfully fetched ${messages.length} messages for chat: ${chatId}`,
       'INFO',
       req.user?.user_id || null,
       AuditLogger.getAuditOptions(req, 'MESSAGE_MANAGEMENT'),
     )
+
+    // Set cache control headers
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    res.setHeader('Pragma', 'no-cache')
+    res.setHeader('Expires', '0')
 
     res.status(200).json(messages)
   } catch (error) {
@@ -60,11 +65,7 @@ export const getAllMessagesController = async (
       req.user?.user_id || null,
       AuditLogger.getAuditOptions(req, 'MESSAGE_MANAGEMENT'),
     )
-    if (error instanceof Error) {
-      res.status(500).json({ message: error.message })
-    } else {
-      res.status(500).json({ message: 'An unknown error occurred' })
-    }
+    res.status(500).json({ error: 'Failed to fetch messages' })
   }
 }
 
@@ -219,54 +220,7 @@ export const createMessageController = async (
   }
 }
 
-export const getAllMessages = async (req: Request, res: Response) => {
-  try {
-    const chatId = req.params.chat_id
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100) // Max 100 messages per request
-    const cursor = req.query.cursor as string // Message ID to start from
-    const direction = (req.query.direction as string) || 'older' // 'older' or 'newer'
-
-    let whereClause: any = { chat_id: chatId }
-    if (cursor) {
-      whereClause.message_id =
-        direction === 'older' ? { [Op.lt]: cursor } : { [Op.gt]: cursor }
-    }
-
-    const messages = await Message.findAll({
-      where: whereClause,
-      limit,
-      order:
-        direction === 'older'
-          ? [['message_id', 'DESC']]
-          : [['message_id', 'ASC']],
-      include: ['User'],
-    })
-
-    // Get the next cursor
-    const nextCursor =
-      messages.length === limit
-        ? messages[messages.length - 1].message_id
-        : null
-
-    // If fetching newer messages, reverse the array to maintain chronological order
-    if (direction === 'newer') {
-      messages.reverse()
-    }
-
-    res.json({
-      messages,
-      nextCursor,
-      hasMore: nextCursor !== null,
-    })
-  } catch (error) {
-    AuditLogger.logAction(
-      'Message',
-      `Failed to get messages: ${(error as Error).message}`,
-      'ERROR',
-    )
-    res.status(500).json({ error: 'Failed to get messages' })
-  }
-}
+export const getAllMessages = getAllMessagesController
 
 export const createMessage = async (
   req: AuthenticatedRequest,

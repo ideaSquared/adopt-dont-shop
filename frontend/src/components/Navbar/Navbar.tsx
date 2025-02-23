@@ -132,6 +132,7 @@ const Navbar: React.FC = () => {
                 user
                   ? [
                       { label: 'Profile', to: '/settings' },
+                      { label: 'Chat', to: '/chat' },
                       { label: 'Logout', onClick: logout },
                     ]
                   : [
@@ -151,9 +152,7 @@ const Navbar: React.FC = () => {
                   triggerLabel="Verified User"
                   items={[
                     { label: 'Swipe', to: '/swipe' },
-                    ...(chatBetaEnabled
-                      ? [{ label: 'Chat', to: '/chat' }]
-                      : []),
+                    { label: 'Chat', to: '/chat' },
                   ]}
                 />
               </NavItem>

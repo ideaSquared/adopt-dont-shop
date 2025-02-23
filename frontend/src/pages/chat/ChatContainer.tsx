@@ -1,34 +1,35 @@
 import { Message } from '@adoptdontshop/libs/conversations'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { io, Socket } from 'socket.io-client'
 import styled from 'styled-components'
 import { Chat } from './Chat'
 
 const Container = styled.div`
-  height: 100vh;
+  height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  background: ${(props) => props.theme.background.content};
 `
 
 const LoadingOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
+  width: 100%;
   font-size: 1.2rem;
+  color: ${(props) => props.theme.text.dim};
 `
 
 const ErrorMessage = styled.div`
   padding: 1rem;
-  background-color: #fee;
-  color: #c00;
+  margin: 1rem;
+  background: ${(props) => props.theme.background.danger};
+  color: ${(props) => props.theme.text.danger};
   text-align: center;
+  border-radius: 8px;
 `
 
 type MessageFormat = 'plain' | 'markdown' | 'html'
@@ -47,95 +48,103 @@ export const ChatContainer: React.FC = () => {
     'active' | 'locked' | 'archived'
   >('active')
 
-  // Fetch chat status and initial messages
-  const fetchChatData = useCallback(async () => {
-    try {
-      setLoading(true)
-      const [messagesResponse, chatResponse] = await Promise.all([
-        fetch(`/api/chats/${conversationId}/messages`),
-        fetch(`/api/chats/${conversationId}`),
-      ])
-
-      if (!messagesResponse.ok || !chatResponse.ok) {
-        throw new Error('Failed to fetch chat data')
-      }
-
-      const messagesData = await messagesResponse.json()
-      const chatData = await chatResponse.json()
-
-      setMessages(
-        messagesData.messages.map((msg: Message) => ({
-          ...msg,
-          content_format: msg.content_format || ('plain' as MessageFormat),
-        })),
-      )
-      setChatStatus(chatData.status)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
-      setLoading(false)
-    }
-  }, [conversationId])
-
-  // Initialize Socket.IO connection
+  // Initialize Socket.IO connection and handle messages
   useEffect(() => {
+    if (!conversationId) return
+
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setError('Not authenticated')
+      return
+    }
+
     const newSocket = io(
       import.meta.env.REACT_APP_SOCKET_URL || 'http://localhost:5000',
       {
         auth: {
-          token: localStorage.getItem('token'),
+          token: token,
         },
       },
     )
 
     newSocket.on('connect', () => {
+      console.log('Socket connected')
+      // Join chat room immediately after connection
       newSocket.emit('join_chat', conversationId)
+      // Request initial messages
+      newSocket.emit('get_messages', { chatId: conversationId })
+      // Request chat status
+      newSocket.emit('get_chat_status', { chatId: conversationId })
     })
 
-    newSocket.on('new_message', (message: Message) => {
+    newSocket.on('messages', (data: ExtendedMessage[]) => {
+      console.log('Received initial messages:', data)
+      setMessages(
+        data.map((msg) => ({
+          ...msg,
+          content_format: msg.content_format || ('plain' as MessageFormat),
+        })),
+      )
+      setLoading(false)
+    })
+
+    newSocket.on(
+      'chat_status',
+      (data: { status: 'active' | 'locked' | 'archived' }) => {
+        console.log('Received chat status:', data)
+        setChatStatus(data.status)
+      },
+    )
+
+    newSocket.on('new_message', (message: ExtendedMessage) => {
+      console.log('Received new message:', message)
       setMessages((prev) => [
         ...prev,
-        { ...message, content_format: message.content_format || 'plain' },
+        {
+          ...message,
+          content_format: message.content_format || ('plain' as MessageFormat),
+        },
       ])
     })
 
-    newSocket.on('message_updated', (updatedMessage: Message) => {
+    newSocket.on('message_updated', (updatedMessage: ExtendedMessage) => {
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.chat_id === updatedMessage.chat_id
+          msg.message_id === updatedMessage.message_id
             ? {
                 ...updatedMessage,
-                content_format:
-                  updatedMessage.content_format || msg.content_format,
+                content_format: updatedMessage.content_format || 'plain',
               }
             : msg,
         ),
       )
     })
 
-    newSocket.on('message_deleted', (messageId: string) => {
-      setMessages((prev) => prev.filter((msg) => msg.chat_id !== messageId))
+    newSocket.on('message_deleted', (data: { message_id: string }) => {
+      setMessages((prev) =>
+        prev.filter((msg) => msg.message_id !== data.message_id),
+      )
     })
 
-    newSocket.on(
-      'chat_status_updated',
-      (status: 'active' | 'locked' | 'archived') => {
-        setChatStatus(status)
-      },
-    )
+    newSocket.on('error', (error: { message: string }) => {
+      console.error('Socket error:', error)
+      setError(error.message)
+    })
+
+    newSocket.on('disconnect', () => {
+      console.log('Socket disconnected')
+    })
 
     setSocket(newSocket)
 
     return () => {
-      newSocket.emit('leave_chat', conversationId)
-      newSocket.disconnect()
+      console.log('Cleaning up socket connection')
+      if (newSocket) {
+        newSocket.emit('leave_chat', conversationId)
+        newSocket.disconnect()
+      }
     }
   }, [conversationId])
-
-  // Load initial data
-  useEffect(() => {
-    fetchChatData()
-  }, [fetchChatData])
 
   const handleSendMessage = async (message: ExtendedMessage) => {
     if (chatStatus !== 'active') {
@@ -143,23 +152,19 @@ export const ChatContainer: React.FC = () => {
       return
     }
 
+    if (!socket?.connected) {
+      setError('Not connected to chat server')
+      return
+    }
+
     try {
-      const formData = new FormData()
-      formData.append('content', message.content)
-      formData.append('content_format', message.content_format)
-
-      const response = await fetch(`/api/chats/${conversationId}/messages`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+      socket.emit('send_message', {
+        chat_id: conversationId,
+        content: message.content,
+        content_format: message.content_format || 'plain',
       })
-
-      if (!response.ok) throw new Error('Failed to send message')
-
-      // Socket.IO will handle adding the message to the list via the new_message event
     } catch (err) {
+      console.error('Error sending message:', err)
       setError(err instanceof Error ? err.message : 'Failed to send message')
     }
   }
