@@ -5,6 +5,8 @@ import { Conversation, ConversationStatus, Message } from './Conversation'
 
 const API_BASE_URL = '/chats'
 
+type AdminChatStatus = 'active' | 'locked' | 'archived'
+
 /**
  * Fetch all conversations from the API.
  * @returns Promise resolving to an array of Conversation objects.
@@ -53,9 +55,9 @@ export const getMessagesByConversationId = async (
 }
 
 /**
- * Update conversation status.
+ * Update conversation status for rescue users.
  * @param chatId - The ID of the conversation to update.
- * @param status - The new status.
+ * @param status - The new status (active/archived only).
  * @param rescueId - Optional rescue ID for rescue-specific operations.
  */
 export const updateConversationStatus = async (
@@ -68,6 +70,18 @@ export const updateConversationStatus = async (
     : `${API_BASE_URL}/${chatId}/status`
 
   await apiService.patch(endpoint, { status })
+}
+
+/**
+ * Update chat status (admin only) - supports locking chats
+ * @param chatId - The ID of the chat to update
+ * @param status - The new status (active/locked/archived)
+ */
+export const updateChatStatusAdmin = async (
+  chatId: string,
+  status: AdminChatStatus,
+): Promise<void> => {
+  await apiService.patch(`${API_BASE_URL}/${chatId}/status`, { status })
 }
 
 /**
@@ -119,6 +133,7 @@ export default {
   getConversationById,
   getMessagesByConversationId,
   updateConversationStatus,
+  updateChatStatusAdmin,
   deleteMessage,
   deleteChat,
   deleteMessageAdmin,

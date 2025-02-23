@@ -1,7 +1,7 @@
 type ID = string
 type Timestamp = string
 type Email = string
-type ConversationStatus = 'active' | 'archived'
+type ConversationStatus = 'active' | 'archived' | 'locked'
 
 interface User {
   user_id: string

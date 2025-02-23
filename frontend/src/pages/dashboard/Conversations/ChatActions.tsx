@@ -29,7 +29,11 @@ export const ChatActions: React.FC<ChatActionsProps> = ({
     newStatus: 'active' | 'locked' | 'archived',
   ) => {
     try {
-      await ConversationService.updateChatStatus(chatId, newStatus)
+      if (isAdmin) {
+        await ConversationService.updateChatStatusAdmin(chatId, newStatus)
+      } else {
+        await ConversationService.updateConversationStatus(chatId, newStatus)
+      }
       showAlert('Chat status updated successfully', 'success')
       onStatusChange()
     } catch (error) {

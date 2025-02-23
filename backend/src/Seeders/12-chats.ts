@@ -46,7 +46,7 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
   const chats = [
     // Active application discussion for Max
     {
-      chat_id: 'chat_max_' + Math.random().toString(36).slice(2, 12),
+      chat_id: 'chat_' + Math.random().toString(36).slice(2, 12),
       application_id: applications[0]?.application_id || null,
       rescue_id: rescues[0].rescue_id, // First rescue
       status: 'active',
@@ -55,7 +55,7 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
     },
     // Follow-up chat about Luna
     {
-      chat_id: 'chat_luna_' + Math.random().toString(36).slice(2, 12),
+      chat_id: 'chat_' + Math.random().toString(36).slice(2, 12),
       application_id: applications[1]?.application_id || null,
       rescue_id: rescues[0].rescue_id, // First rescue
       status: 'active',
@@ -64,7 +64,7 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
     },
     // General inquiry about senior cats
     {
-      chat_id: 'chat_seniors_' + Math.random().toString(36).slice(2, 12),
+      chat_id: 'chat_' + Math.random().toString(36).slice(2, 12),
       application_id: null,
       rescue_id: rescues[1].rescue_id, // Second rescue
       status: 'active',
@@ -73,7 +73,7 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
     },
     // Archived successful adoption chat for Daisy
     {
-      chat_id: 'chat_daisy_' + Math.random().toString(36).slice(2, 12),
+      chat_id: 'chat_' + Math.random().toString(36).slice(2, 12),
       application_id: applications[2]?.application_id || null,
       rescue_id: rescues[1].rescue_id, // Second rescue
       status: 'archived',
@@ -82,7 +82,7 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
     },
     // Active chat about Buddy & Mittens
     {
-      chat_id: 'chat_buddy_mittens_' + Math.random().toString(36).slice(2, 12),
+      chat_id: 'chat_' + Math.random().toString(36).slice(2, 12),
       application_id: null,
       rescue_id: rescues[0].rescue_id, // First rescue
       status: 'active',
@@ -91,7 +91,7 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
     },
     // Recently archived chat about Rocky
     {
-      chat_id: 'chat_rocky_' + Math.random().toString(36).slice(2, 12),
+      chat_id: 'chat_' + Math.random().toString(36).slice(2, 12),
       application_id: applications[3]?.application_id || null,
       rescue_id: rescues[1].rescue_id, // Second rescue
       status: 'archived',
