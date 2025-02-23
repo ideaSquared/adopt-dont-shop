@@ -63,7 +63,7 @@ type RichTextEditorProps = {
   placeholder?: string
 }
 
-export const RichTextEditor: React.FC<RichTextEditorProps> = ({
+const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   placeholder = 'Type your message...',
