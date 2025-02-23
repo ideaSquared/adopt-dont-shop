@@ -9,17 +9,18 @@ import { ChatContainer } from './ChatContainer'
 
 const PageContainer = styled.div`
   display: flex;
-  height: calc(100vh - 64px);
+  height: 100vh;
   background: ${(props) => props.theme.background.body};
 `
 
 const Sidebar = styled.div`
   width: 350px;
+  min-width: 350px;
   border-right: ${(props) => props.theme.border.width.thin} solid
     ${(props) => props.theme.border.color.default};
   display: flex;
   flex-direction: column;
-  background: ${(props) => props.theme.background.body};
+  background: ${(props) => props.theme.background.content};
 `
 
 const SidebarHeader = styled.div`
@@ -133,10 +134,8 @@ const TimeStamp = styled.span`
 const MainContent = styled.div`
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${(props) => props.theme.background.content};
-  color: ${(props) => props.theme.text.dim};
+  flex-direction: column;
+  overflow: hidden;
 `
 
 const LoadingMessage = styled.div`
@@ -168,6 +167,20 @@ const RoleChip = styled.span`
   color: ${(props) => props.theme.text.dim};
   border-radius: ${(props) => props.theme.border.radius.sm};
   margin-left: ${(props) => props.theme.spacing.xs};
+`
+
+const EmptyStateContainer = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${(props) => props.theme.spacing.xl};
+  color: ${(props) => props.theme.text.dim};
+`
+
+const EmptyStateText = styled.div`
+  font-size: ${(props) => props.theme.typography.size.xl};
+  font-weight: ${(props) => props.theme.typography.weight.semibold};
 `
 
 export const UserConversations: React.FC = () => {
@@ -313,7 +326,11 @@ export const UserConversations: React.FC = () => {
         {conversationId ? (
           <ChatContainer />
         ) : (
-          <div>Select a conversation to start chatting</div>
+          <EmptyStateContainer>
+            <EmptyStateText>
+              Select a conversation to start chatting
+            </EmptyStateText>
+          </EmptyStateContainer>
         )}
       </MainContent>
     </PageContainer>

@@ -266,10 +266,6 @@ export const Chat: React.FC<ChatProps> = ({
 
   return (
     <ChatContainer>
-      <ChatHeader>
-        <ChatTitle>Messages</ChatTitle>
-      </ChatHeader>
-
       <MessageList ref={messageListRef}>
         <MessagesWrapper>
           {groupedMessages.map((group, groupIndex) => (

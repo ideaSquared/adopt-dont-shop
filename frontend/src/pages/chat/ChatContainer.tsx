@@ -11,6 +11,7 @@ const Container = styled.div`
   flex-direction: column;
   background: ${(props) => props.theme.background.content};
   position: relative;
+  height: 100%;
 `
 
 const Header = styled.div`
@@ -339,7 +340,12 @@ export const ChatContainer: React.FC = () => {
 
   return (
     <Container>
-      {loading && <LoadingOverlay>Loading messages...</LoadingOverlay>}
+      <Header>
+        <HeaderTitle>Chat</HeaderTitle>
+        <ChatStatus status={chatStatus}>
+          {chatStatus.charAt(0).toUpperCase() + chatStatus.slice(1)}
+        </ChatStatus>
+      </Header>
       <Chat
         messages={messages}
         conversationId={conversationId || ''}
