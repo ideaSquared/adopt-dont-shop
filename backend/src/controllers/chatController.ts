@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { AuditLogger } from '../services/auditLogService'
 import * as chatService from '../services/chatService'
 import { bulkDeleteMessages } from '../services/chatService'
+import { getRolesForUser } from '../services/permissionService'
 import { AuthenticatedRequest } from '../types'
 
 type ChatStatus = 'active' | 'archived' | 'locked'
@@ -249,7 +250,14 @@ export const updateChat = async (
     return
   }
 
-  if (!status || !['active', 'archived'].includes(status)) {
+  // Check if status is valid based on user role
+  const userRoles = await getRolesForUser(userId)
+  const isAdmin = userRoles.includes('admin')
+  const validStatuses = isAdmin
+    ? ['active', 'locked', 'archived']
+    : ['active', 'archived']
+
+  if (!status || !validStatuses.includes(status)) {
     AuditLogger.logAction(
       'ChatController',
       `Invalid status provided: ${status}`,
@@ -257,9 +265,11 @@ export const updateChat = async (
       userId,
       AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
     )
-    res
-      .status(400)
-      .json({ error: 'Invalid status. Must be "active" or "archived"' })
+    res.status(400).json({
+      error: `Invalid status. Must be ${
+        isAdmin ? '"active", "locked" or "archived"' : '"active" or "archived"'
+      }`,
+    })
     return
   }
 
@@ -289,16 +299,7 @@ export const updateChat = async (
 
     res.json(chat)
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error'
-    AuditLogger.logAction(
-      'ChatController',
-      `Failed to update chat ${chatId}: ${errorMessage}`,
-      'ERROR',
-      userId,
-      AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
-    )
-    res.status(500).json({ error: 'Failed to update chat' })
+    handleError(error, userId, 'update', `chat ${chatId}`, req, res)
   }
 }
 

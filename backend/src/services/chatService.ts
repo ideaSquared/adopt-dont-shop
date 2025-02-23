@@ -3,7 +3,7 @@ import { Chat, ChatParticipant, Message, User } from '../Models'
 import sequelize from '../sequelize'
 import { AuditLogger } from './auditLogService'
 
-type ChatStatus = 'active' | 'archived'
+type ChatStatus = 'active' | 'archived' | 'locked'
 
 // Add interface for Chat with associations
 interface ChatWithAssociations extends Chat {
