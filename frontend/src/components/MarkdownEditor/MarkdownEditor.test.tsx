@@ -1,8 +1,8 @@
 import { fireEvent, render } from '@testing-library/react'
-import RichTextEditor from './RichTextEditor'
+import MarkdownEditor from './MarkdownEditor'
 
 // TODO: Fix this test
-describe.skip('RichTextEditor', () => {
+describe.skip('MarkdownEditor', () => {
   const mockOnChange = jest.fn()
 
   beforeEach(() => {
@@ -10,7 +10,7 @@ describe.skip('RichTextEditor', () => {
   })
 
   it('renders with default placeholder', () => {
-    render(<RichTextEditor value="" onChange={mockOnChange} />)
+    render(<MarkdownEditor value="" onChange={mockOnChange} />)
     const editor = document.querySelector(
       '.ql-editor[data-placeholder="Type your message..."]',
     )
@@ -20,7 +20,7 @@ describe.skip('RichTextEditor', () => {
   it('renders with custom placeholder', () => {
     const customPlaceholder = 'Write something...'
     render(
-      <RichTextEditor
+      <MarkdownEditor
         value=""
         onChange={mockOnChange}
         placeholder={customPlaceholder}
@@ -34,14 +34,14 @@ describe.skip('RichTextEditor', () => {
 
   it('displays initial value', () => {
     const initialValue = '<p>Hello, world!</p>'
-    render(<RichTextEditor value={initialValue} onChange={mockOnChange} />)
+    render(<MarkdownEditor value={initialValue} onChange={mockOnChange} />)
     const editor = document.querySelector('.ql-editor')
     expect(editor).not.toBeNull()
     expect(editor?.innerHTML).toBe(initialValue)
   })
 
   it('calls onChange with HTML format', () => {
-    render(<RichTextEditor value="" onChange={mockOnChange} />)
+    render(<MarkdownEditor value="" onChange={mockOnChange} />)
     const editor = document.querySelector('.ql-editor')
     expect(editor).not.toBeNull()
 
@@ -55,7 +55,7 @@ describe.skip('RichTextEditor', () => {
   })
 
   it('renders toolbar with formatting options', () => {
-    render(<RichTextEditor value="" onChange={mockOnChange} />)
+    render(<MarkdownEditor value="" onChange={mockOnChange} />)
 
     // Check for common formatting buttons in Quill's toolbar
     const boldButton = document.querySelector('button.ql-bold')

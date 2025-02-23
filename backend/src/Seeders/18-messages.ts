@@ -224,6 +224,58 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
             },
           ],
         ),
+        // Add comprehensive Markdown test message
+        createMessage(
+          chat.chat_id,
+          staffUser,
+          `# Markdown Formatting Guide
+
+## Text Formatting
+
+Here's how to use **bold**, *italic*, and ~~strikethrough~~ text.
+You can also use _underline_ for emphasis.
+
+## Lists
+
+Unordered list:
+* First item
+* Second item
+* Third item with **bold** text
+
+Numbered list:
+1. First step
+2. Second step
+3. Third step with *italic* text
+
+## Code Examples
+
+Inline code: \`npm install\`
+
+Code block:
+\`\`\`
+function greet(name) {
+  return "Hello, " + name + "!";
+}
+\`\`\`
+
+## Links
+
+Visit our [adoption page](https://example.com/adopt) for more information.
+
+## Headers
+
+### Level 3 Header
+#### Level 4 Header
+
+## Mixed Formatting
+
+* List with [link](https://example.com)
+* Item with \`inline code\`
+* **Bold item** with *italic* text
+
+Remember to check our documentation for more details!`,
+          new Date(lastMessageTime + oneDay + 10800000),
+        ),
       )
     }
   })

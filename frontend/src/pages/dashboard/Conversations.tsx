@@ -26,6 +26,9 @@ import styled from 'styled-components'
 import { useAlert } from '../../contexts/alert/AlertContext'
 import { useUser } from '../../contexts/auth/UserContext'
 
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
 // Style definitions
 
 const ParticipantsTitle = styled.h3`
@@ -179,6 +182,54 @@ const MessageHeaderRight = styled.div`
 const MessageActionsContainer = styled.div`
   display: inline-flex;
   align-items: center;
+`
+
+const LastMessagePreview = styled.div`
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  p {
+    margin: 0;
+    display: inline;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    display: inline;
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  ul,
+  ol {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: inline;
+    &:after {
+      content: ', ';
+    }
+    &:last-child:after {
+      content: '';
+    }
+  }
+
+  code {
+    background: ${(props) => props.theme.background.contrast};
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
 `
 
 // Remove all type definitions here and keep only the component props type
@@ -454,6 +505,18 @@ export const Conversations: React.FC<ConversationsProps> = ({
     }
   }
 
+  const renderLastMessage = (message?: Message) => {
+    if (!message?.content) return 'No messages'
+
+    return (
+      <LastMessagePreview>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {message.content}
+        </ReactMarkdown>
+      </LastMessagePreview>
+    )
+  }
+
   return (
     <div>
       <h1>{isAdminView ? 'All Conversations' : 'Rescue Conversations'}</h1>
@@ -532,7 +595,7 @@ export const Conversations: React.FC<ConversationsProps> = ({
                   <DateTime timestamp={conversation.created_at} />
                 </td>
 
-                <td>{conversation.Messages[0]?.content || 'No messages'}</td>
+                <td>{renderLastMessage(conversation.Messages[0])}</td>
 
                 <td>
                   <Badge variant={getBadgeVariant(conversation.status)}>

@@ -1,8 +1,9 @@
 import { Message } from '@adoptdontshop/libs/conversations'
-import DOMPurify from 'dompurify'
 import React, { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import styled, { css } from 'styled-components'
-import RichTextEditor from '../../components/RichTextEditor/RichTextEditor'
+import MarkdownEditor from '../../components/MarkdownEditor/MarkdownEditor'
 import { useUser } from '../../contexts/auth/UserContext'
 
 // Style definitions
@@ -117,6 +118,37 @@ const MessageContent = styled.div`
     padding: ${(props) => props.theme.spacing.xs};
     border-radius: ${(props) => props.theme.border.radius.sm};
     font-family: monospace;
+    white-space: pre-wrap;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  ul,
+  ol {
+    margin: 0;
+    padding-left: ${(props) => props.theme.spacing.lg};
+  }
+
+  h1,
+  h2 {
+    margin: 0;
+    font-size: inherit;
+    font-weight: bold;
+  }
+
+  a {
+    color: ${(props) => props.theme.text.link};
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  /* Quill editor content styles */
+  .ql-editor {
+    padding: 0;
   }
 `
 
@@ -274,17 +306,13 @@ export const Chat: React.FC<ChatProps> = ({
   }
 
   const renderMessageContent = (message: ExtendedMessage) => {
-    const sanitizedContent = DOMPurify.sanitize(message.content)
-
-    if (message.content_format === 'html') {
-      return (
-        <MessageContent
-          dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-        />
-      )
-    }
-
-    return <MessageContent>{sanitizedContent}</MessageContent>
+    return (
+      <MessageContent>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {message.content}
+        </ReactMarkdown>
+      </MessageContent>
+    )
   }
 
   // Group messages by sender
@@ -341,7 +369,7 @@ export const Chat: React.FC<ChatProps> = ({
       )}
       {!isLocked && (
         <InputContainer>
-          <RichTextEditor
+          <MarkdownEditor
             value={newMessage}
             onChange={handleEditorChange}
             placeholder="Type your message..."
