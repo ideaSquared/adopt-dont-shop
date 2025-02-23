@@ -4,7 +4,7 @@ import * as chatService from '../services/chatService'
 import { bulkDeleteMessages } from '../services/chatService'
 import { AuthenticatedRequest } from '../types'
 
-type ChatStatus = 'active' | 'archived'
+type ChatStatus = 'active' | 'archived' | 'locked'
 
 // Helper function to check authentication
 const checkAuthentication = (

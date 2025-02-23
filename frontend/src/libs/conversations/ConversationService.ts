@@ -4,15 +4,13 @@ import { apiService } from '../api-service'
 import { Conversation, ConversationStatus, Message } from './Conversation'
 
 const API_BASE_URL = '/chats'
-const ADMIN_BASE_URL = '/admin'
-const CHAT_MANAGEMENT_URL = '/chat-management'
 
 /**
  * Fetch all conversations from the API.
  * @returns Promise resolving to an array of Conversation objects.
  */
 export const getConversations = async (): Promise<Conversation[]> => {
-  return apiService.get<Conversation[]>(API_BASE_URL)
+  return apiService.get<Conversation[]>(`${API_BASE_URL}/admin/conversations`)
 }
 
 /**
@@ -20,7 +18,7 @@ export const getConversations = async (): Promise<Conversation[]> => {
  * @returns Promise resolving to an array of Conversation objects.
  */
 export const getAllConversations = async (): Promise<Conversation[]> => {
-  return apiService.get<Conversation[]>(`${ADMIN_BASE_URL}/conversations`)
+  return apiService.get<Conversation[]>(`${API_BASE_URL}/admin/conversations`)
 }
 
 /**
@@ -29,13 +27,7 @@ export const getAllConversations = async (): Promise<Conversation[]> => {
  * @returns Promise resolving to an array of Conversation objects.
  */
 export const getConversationsByRescueId = async (): Promise<Conversation[]> => {
-  try {
-    return await apiService.get<Conversation[]>(
-      `${API_BASE_URL}/rescue/conversations`,
-    )
-  } catch (error) {
-    throw error
-  }
+  return apiService.get<Conversation[]>(`${API_BASE_URL}/rescue/conversations`)
 }
 
 /**
@@ -73,7 +65,7 @@ export const updateConversationStatus = async (
 ): Promise<void> => {
   const endpoint = rescueId
     ? `${API_BASE_URL}/rescue/${rescueId}/chats/${chatId}/status`
-    : `${ADMIN_BASE_URL}/chats/${chatId}/status`
+    : `${API_BASE_URL}/${chatId}/status`
 
   await apiService.patch(endpoint, { status })
 }
@@ -89,31 +81,17 @@ export const deleteMessage = async (
 ): Promise<void> => {
   const endpoint = rescueId
     ? `${API_BASE_URL}/rescue/${rescueId}/messages/${messageId}`
-    : `${ADMIN_BASE_URL}/messages/${messageId}`
+    : `${API_BASE_URL}/messages/${messageId}`
 
   await apiService.delete(endpoint)
 }
 
 /**
- * Update chat status (admin only)
- * @param chatId - The ID of the chat to update
- * @param status - The new status
- */
-export const updateChatStatus = async (
-  chatId: string,
-  status: 'active' | 'locked' | 'archived',
-): Promise<void> => {
-  await apiService.patch(`${CHAT_MANAGEMENT_URL}/chats/${chatId}/status`, {
-    status,
-  })
-}
-
-/**
- * Delete a chat and all its messages (admin only)
+ * Delete a chat and all its messages
  * @param chatId - The ID of the chat to delete
  */
 export const deleteChat = async (chatId: string): Promise<void> => {
-  await apiService.delete(`${CHAT_MANAGEMENT_URL}/chats/${chatId}`)
+  await apiService.delete(`${API_BASE_URL}/${chatId}`)
 }
 
 /**
@@ -121,7 +99,7 @@ export const deleteChat = async (chatId: string): Promise<void> => {
  * @param messageId - The ID of the message to delete
  */
 export const deleteMessageAdmin = async (messageId: string): Promise<void> => {
-  await apiService.delete(`${CHAT_MANAGEMENT_URL}/messages/${messageId}`)
+  await apiService.delete(`${API_BASE_URL}/messages/${messageId}`)
 }
 
 /**
@@ -131,9 +109,7 @@ export const deleteMessageAdmin = async (messageId: string): Promise<void> => {
 export const bulkDeleteMessages = async (
   messageIds: string[],
 ): Promise<void> => {
-  await apiService.post(`${CHAT_MANAGEMENT_URL}/messages/bulk-delete`, {
-    messageIds,
-  })
+  await apiService.post(`${API_BASE_URL}/messages/bulk-delete`, { messageIds })
 }
 
 export default {
@@ -144,7 +120,6 @@ export default {
   getMessagesByConversationId,
   updateConversationStatus,
   deleteMessage,
-  updateChatStatus,
   deleteChat,
   deleteMessageAdmin,
   bulkDeleteMessages,
