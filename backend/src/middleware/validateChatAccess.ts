@@ -1,5 +1,5 @@
 import { NextFunction, Response } from 'express'
-import { ChatParticipant } from '../Models'
+import { Chat, ChatParticipant } from '../Models'
 import { AuditLogger } from '../services/auditLogService'
 import { getRolesForUser } from '../services/permissionService'
 import { getRescueIdByUserId } from '../services/rescueService'
@@ -8,7 +8,7 @@ import { AuthenticatedRequest } from '../types'
 /**
  * Middleware to validate chat access based on user role and participation
  * - Admins can access any chat
- * - Rescues can access chats where they are a participant
+ * - Rescues can access chats where they are a participant or where the chat belongs to their rescue
  * - Users can access chats where they are a direct participant
  */
 export const validateChatAccess = async (
@@ -49,11 +49,25 @@ export const validateChatAccess = async (
     const userRescueId = await getRescueIdByUserId(userId)
 
     if (userRescueId) {
-      // User is part of a rescue - check if rescue is a participant
+      // Check if the chat belongs to the user's rescue
+      const chat = await Chat.findByPk(chatId)
+      if (chat?.rescue_id === userRescueId) {
+        AuditLogger.logAction(
+          'Auth',
+          `Rescue staff access granted to chat ${chatId} (rescue owner)`,
+          'INFO',
+          userId,
+          AuditLogger.getAuditOptions(req, 'CHAT_ACCESS'),
+        )
+        next()
+        return
+      }
+
+      // Or check if the user is a direct participant with rescue role
       const rescueParticipant = await ChatParticipant.findOne({
         where: {
           chat_id: chatId,
-          participant_id: userRescueId,
+          participant_id: userId,
           role: 'rescue',
         },
       })
@@ -61,7 +75,7 @@ export const validateChatAccess = async (
       if (rescueParticipant) {
         AuditLogger.logAction(
           'Auth',
-          `Rescue staff access granted to chat ${chatId}`,
+          `Rescue staff access granted to chat ${chatId} (participant)`,
           'INFO',
           userId,
           AuditLogger.getAuditOptions(req, 'CHAT_ACCESS'),

@@ -343,7 +343,11 @@ export const Conversations: React.FC<ConversationsProps> = ({
       if (isAdminView) {
         await ConversationService.updateChatStatusAdmin(chatId, newStatus)
       } else {
-        await ConversationService.updateConversationStatus(chatId, newStatus)
+        await ConversationService.updateConversationStatus(
+          chatId,
+          newStatus,
+          rescue?.rescue_id,
+        )
       }
       showAlert('Chat status updated successfully', 'success')
       handleRefreshConversations()
@@ -366,8 +370,11 @@ export const Conversations: React.FC<ConversationsProps> = ({
     try {
       if (isAdminView) {
         await ConversationService.deleteMessageAdmin(messageId)
-      } else {
-        await ConversationService.deleteMessage(messageId)
+      } else if (selectedConversation) {
+        await ConversationService.deleteMessage(
+          messageId,
+          selectedConversation.chat_id,
+        )
       }
       showAlert('Message deleted successfully', 'success')
       if (selectedConversation) {

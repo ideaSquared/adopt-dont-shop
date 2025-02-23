@@ -26,6 +26,15 @@ router.get(
   chatController.getChatsByRescueId,
 )
 
+// Chat status update routes
+router.patch(
+  '/rescue/:rescueId/chats/:chat_id/status',
+  authRoleOwnershipMiddleware({ requiredRole: 'rescue_manager' }),
+  chatController.updateChat,
+)
+
+router.patch('/:chat_id/status', validateChatAccess, chatController.updateChat)
+
 // Protected chat routes (require chat access validation)
 router.get('/:chat_id', validateChatAccess, chatController.getChatById)
 router.put('/:chat_id', validateChatAccess, chatController.updateChat)
@@ -81,12 +90,6 @@ router.delete(
 )
 
 // Admin chat management routes
-router.patch(
-  '/:chat_id/status',
-  authRoleOwnershipMiddleware({ requiredRole: 'admin' }),
-  chatController.updateChat,
-)
-
 router.delete(
   '/messages/:message_id',
   authRoleOwnershipMiddleware({ requiredRole: 'admin' }),

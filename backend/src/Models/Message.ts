@@ -1,8 +1,7 @@
 // src/models/Message.ts
-import { DataTypes, Model, Optional, QueryTypes } from 'sequelize'
+import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize'
 import sequelize from '../sequelize'
 import Chat from './Chat'
-import { Op } from 'sequelize'
 
 export interface MessageAttachment {
   attachment_id: string
@@ -23,12 +22,13 @@ interface MessageAttributes {
   search_vector?: any // tsvector type for full-text search
   created_at?: Date
   updated_at?: Date
+  Chat?: Chat
 }
 
 interface MessageCreationAttributes
   extends Optional<
     MessageAttributes,
-    'message_id' | 'search_vector' | 'content_format'
+    'message_id' | 'created_at' | 'updated_at' | 'search_vector' | 'Chat'
   > {}
 
 export class Message
@@ -45,6 +45,7 @@ export class Message
   public readonly created_at!: Date
   public readonly updated_at!: Date
   public length!: number
+  public Chat?: Chat
 
   // Add static method type declaration
   public static searchMessages: (
@@ -58,7 +59,7 @@ export class Message
   public static associate(models: any) {
     Message.belongsTo(models.Chat, {
       foreignKey: 'chat_id',
-      as: 'chat',
+      as: 'Chat',
       onDelete: 'CASCADE',
     })
     Message.belongsTo(models.User, {
@@ -188,7 +189,7 @@ Message.searchMessages = async function (
       [Op.match]: sequelize.fn('plainto_tsquery', 'english', query),
     },
   }
-  
+
   if (chatId) {
     whereClause.chat_id = chatId
   }
@@ -208,18 +209,21 @@ Message.searchMessages = async function (
       ],
     },
     order: [
-      [sequelize.fn(
-        'ts_rank',
-        sequelize.col('search_vector'),
-        sequelize.fn('plainto_tsquery', 'english', query),
-      ), 'DESC'],
+      [
+        sequelize.fn(
+          'ts_rank',
+          sequelize.col('search_vector'),
+          sequelize.fn('plainto_tsquery', 'english', query),
+        ),
+        'DESC',
+      ],
       ['created_at', 'DESC'],
     ],
     limit,
     offset,
-  });
+  })
 
-  return messages;
+  return messages
 }
 
 export default Message

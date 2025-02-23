@@ -160,17 +160,24 @@ export const getChatById = async (chatId: string) => {
  * @param status - The new status
  * @param userId - The ID of the user performing the action
  * @param auditOptions - Audit logging options
+ * @param rescueId - The ID of the rescue associated with the chat
  */
 export const updateChatStatus = async (
   chatId: string,
   status: 'active' | 'locked' | 'archived',
   userId: string,
   auditOptions: any,
+  rescueId?: string,
 ) => {
   const chat = await Chat.findByPk(chatId)
 
   if (!chat) {
     throw new Error('Chat not found')
+  }
+
+  // If rescueId is provided, verify the chat belongs to the rescue
+  if (rescueId && chat.rescue_id !== rescueId) {
+    throw new Error('Chat does not belong to this rescue')
   }
 
   await chat.update({ status })

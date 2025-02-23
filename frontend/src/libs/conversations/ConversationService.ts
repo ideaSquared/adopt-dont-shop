@@ -55,7 +55,7 @@ export const getMessagesByConversationId = async (
 }
 
 /**
- * Update conversation status for rescue users.
+ * Update conversation status.
  * @param chatId - The ID of the conversation to update.
  * @param status - The new status (active/archived only).
  * @param rescueId - Optional rescue ID for rescue-specific operations.
@@ -87,17 +87,13 @@ export const updateChatStatusAdmin = async (
 /**
  * Delete a message.
  * @param messageId - The ID of the message to delete.
- * @param rescueId - Optional rescue ID for rescue-specific operations.
+ * @param chatId - The ID of the chat containing the message.
  */
 export const deleteMessage = async (
   messageId: string,
-  rescueId?: string,
+  chatId: string,
 ): Promise<void> => {
-  const endpoint = rescueId
-    ? `${API_BASE_URL}/rescue/${rescueId}/messages/${messageId}`
-    : `${API_BASE_URL}/messages/${messageId}`
-
-  await apiService.delete(endpoint)
+  await apiService.delete(`${API_BASE_URL}/${chatId}/messages/${messageId}`)
 }
 
 /**

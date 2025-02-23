@@ -236,6 +236,7 @@ export const updateChat = async (
 ): Promise<void> => {
   const userId = req.user?.user_id
   const chatId = req.params.chat_id
+  const rescueId = req.params.rescue_id
   const { status } = req.body
 
   if (!userId) {
@@ -287,6 +288,7 @@ export const updateChat = async (
       status as ChatStatus,
       userId,
       AuditLogger.getAuditOptions(req, 'CHAT_MANAGEMENT'),
+      rescueId,
     )
 
     AuditLogger.logAction(

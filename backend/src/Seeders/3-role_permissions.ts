@@ -21,7 +21,14 @@ export async function seed(queryInterface: QueryInterface) {
   })
 
   const rolePermissionsMapping: Record<string, string[]> = {
-    rescue_manager: ['view_rescue_info', 'edit_rescue_info', 'delete_rescue'],
+    rescue_manager: [
+      'view_rescue_info',
+      'edit_rescue_info',
+      'delete_rescue',
+      'delete_messages',
+      'view_messages',
+      'create_messages',
+    ],
     staff_manager: [
       'view_staff',
       'add_staff',
@@ -70,4 +77,3 @@ export async function seed(queryInterface: QueryInterface) {
 export async function down(queryInterface: QueryInterface) {
   await queryInterface.bulkDelete('role_permissions', {})
 }
-

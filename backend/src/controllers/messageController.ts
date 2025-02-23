@@ -1,10 +1,13 @@
 import { Request, Response } from 'express'
 import { Op } from 'sequelize'
 import { Message, User } from '../Models'
+import { Chat } from '../Models/Chat'
 import { MessageAttachment } from '../Models/Message'
 import { AuditLogger } from '../services/auditLogService'
 import { FileUploadService } from '../services/fileUploadService'
 import * as messageService from '../services/messageService'
+import { getRolesForUser } from '../services/permissionService'
+import { getRescueIdByUserId } from '../services/rescueService'
 import SocketService from '../services/socketService'
 import { AuthenticatedRequest } from '../types'
 
@@ -396,13 +399,30 @@ export const deleteMessage = async (
       return res.status(401).json({ error: 'Not authenticated' })
     }
 
-    const message = await Message.findByPk(messageId)
+    const message = await Message.findByPk(messageId, {
+      include: [
+        {
+          model: Chat,
+          as: 'Chat',
+        },
+      ],
+    })
 
     if (!message) {
       return res.status(404).json({ error: 'Message not found' })
     }
 
-    if (message.sender_id !== userId) {
+    // Check if user is a rescue manager and if the chat belongs to their rescue
+    const userRoles = await getRolesForUser(userId)
+    const userRescueId = await getRescueIdByUserId(userId)
+    const isRescueManager = userRoles.includes('rescue_manager')
+    const canDeleteAsRescue =
+      isRescueManager &&
+      userRescueId &&
+      message.Chat?.rescue_id === userRescueId
+
+    // Allow deletion if user is the sender or a rescue manager of the chat's rescue
+    if (message.sender_id !== userId && !canDeleteAsRescue) {
       return res
         .status(403)
         .json({ error: 'Not authorized to delete this message' })

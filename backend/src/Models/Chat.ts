@@ -40,7 +40,6 @@ export class Chat
       as: 'application',
     })
     Chat.belongsTo(models.Rescue, {
-      // Add rescue association
       foreignKey: 'rescue_id',
       as: 'rescue',
     })
