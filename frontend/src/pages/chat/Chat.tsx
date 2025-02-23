@@ -294,9 +294,15 @@ const useReadStatus = (
   const { user } = useUser()
   const [isProcessing, setIsProcessing] = useState(false)
   const processedMessagesRef = useRef<Set<string>>(new Set())
+  const lastProcessedTimeRef = useRef<number>(0)
 
   const markMessagesAsRead = useCallback(async () => {
     if (!user?.user_id || !conversationId || !isVisible || isProcessing) return
+
+    // Prevent rapid repeated calls (debounce for 2 seconds)
+    const now = Date.now()
+    if (now - lastProcessedTimeRef.current < 2000) return
+    lastProcessedTimeRef.current = now
 
     try {
       setIsProcessing(true)
@@ -317,11 +323,9 @@ const useReadStatus = (
           processedMessagesRef.current.add(msg.message_id)
         })
 
-        // Get updated unread counts
+        // Dispatch a single update event
         const unreadCounts =
           await ConversationService.getUnreadMessagesForUser()
-
-        // Dispatch update event
         window.dispatchEvent(
           new CustomEvent('unreadCountsUpdated', {
             detail: unreadCounts.reduce(
@@ -344,6 +348,7 @@ const useReadStatus = (
   // Reset processed messages when conversation changes
   useEffect(() => {
     processedMessagesRef.current = new Set()
+    lastProcessedTimeRef.current = 0
   }, [conversationId])
 
   return { markMessagesAsRead, isProcessing }
@@ -372,7 +377,7 @@ export const Chat: React.FC<ChatProps> = ({
     isVisible,
   )
 
-  // Handle visibility changes
+  // Update the visibility effect to only mark as read on visibility change
   useEffect(() => {
     const handleVisibilityChange = () => {
       const newIsVisible = !document.hidden
@@ -388,12 +393,12 @@ export const Chat: React.FC<ChatProps> = ({
     }
   }, [messages.length, markMessagesAsRead])
 
-  // Mark messages as read when component mounts, messages change, or visibility changes
+  // Only mark messages as read on initial mount and when new messages arrive
   useEffect(() => {
-    if (isVisible && messages.length > 0 && !isProcessing) {
+    if (isVisible && messages.length > 0) {
       markMessagesAsRead()
     }
-  }, [messages, isVisible, markMessagesAsRead, isProcessing])
+  }, [messages.length]) // Only depend on messages.length to avoid constant triggers
 
   // Scroll to bottom when messages change
   useEffect(() => {

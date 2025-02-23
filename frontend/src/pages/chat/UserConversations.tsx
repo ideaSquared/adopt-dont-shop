@@ -1,7 +1,7 @@
 import { DateTime } from '@adoptdontshop/components'
 import { ConversationService } from '@adoptdontshop/libs/conversations'
 import type { Conversation } from '@adoptdontshop/libs/conversations/Conversation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { useUser } from '../../contexts/auth/UserContext'
@@ -220,10 +220,17 @@ export const UserConversations: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
+  const lastFetchRef = useRef<number>(0)
 
+  // Initial data fetch and socket setup
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Prevent rapid repeated fetches
+        const now = Date.now()
+        if (now - lastFetchRef.current < 5000) return
+        lastFetchRef.current = now
+
         setLoading(true)
         const [conversationsResponse, unreadMessages] = await Promise.all([
           ConversationService.getUserConversations(),
@@ -253,16 +260,45 @@ export const UserConversations: React.FC = () => {
     }
 
     // Set up interval to periodically check for new messages
-    const interval = setInterval(fetchData, 30000) // Check every 30 seconds
+    // Increased interval to reduce unnecessary requests
+    const interval = setInterval(fetchData, 60000) // Check every minute
 
     return () => clearInterval(interval)
   }, [user?.user_id])
 
+  const handleSelectChat = (chatId: string) => {
+    // Only update if selecting a different chat
+    if (chatId === conversationId) return
+
+    // Optimistically update the UI
+    setUnreadCounts((prev) => ({
+      ...prev,
+      [chatId]: 0,
+    }))
+
+    // Navigate to the chat
+    navigate(`/chat/${chatId}`)
+
+    // Mark messages as read in the background
+    ConversationService.markAllMessagesAsRead(chatId).catch((error) => {
+      console.error('Failed to mark messages as read:', error)
+      // Only revert the optimistic update on error
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [chatId]: prev[chatId] || 0,
+      }))
+    })
+  }
+
+  // Handle unread counts updates from socket events
   useEffect(() => {
     const handleUnreadCountsUpdate = (
       event: CustomEvent<Record<string, number>>,
     ) => {
-      setUnreadCounts(event.detail)
+      setUnreadCounts((prev) => ({
+        ...prev,
+        ...event.detail,
+      }))
     }
 
     window.addEventListener(
@@ -277,54 +313,6 @@ export const UserConversations: React.FC = () => {
       )
     }
   }, [])
-
-  const handleSelectChat = (chatId: string) => {
-    // Immediately update the UI by setting unread count to 0 for this chat
-    setUnreadCounts((prev) => ({
-      ...prev,
-      [chatId]: 0,
-    }))
-
-    // Navigate to the chat
-    navigate(`/chat/${chatId}`)
-
-    // Mark messages as read in the backend and refresh all unread counts
-    ConversationService.markAllMessagesAsRead(chatId)
-      .then(() => ConversationService.getUnreadMessagesForUser())
-      .then((unreadMessages) => {
-        const counts = unreadMessages.reduce(
-          (acc, { chatId, unreadCount }) => ({
-            ...acc,
-            [chatId]: unreadCount,
-          }),
-          {},
-        )
-        setUnreadCounts(counts)
-
-        // Notify other components about the update
-        window.dispatchEvent(
-          new CustomEvent('unreadCountsUpdated', {
-            detail: counts,
-          }),
-        )
-      })
-      .catch((error) => {
-        console.error('Failed to mark messages as read:', error)
-        // Revert the optimistic update on error
-        ConversationService.getUnreadMessagesForUser().then(
-          (unreadMessages) => {
-            const counts = unreadMessages.reduce(
-              (acc, { chatId, unreadCount }) => ({
-                ...acc,
-                [chatId]: unreadCount,
-              }),
-              {},
-            )
-            setUnreadCounts(counts)
-          },
-        )
-      })
-  }
 
   if (!user?.user_id) {
     return (
