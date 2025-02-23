@@ -1,4 +1,11 @@
-import { Message, User } from '../Models'
+import { Op } from 'sequelize'
+import {
+  Chat,
+  ChatParticipant,
+  Message,
+  MessageReadStatus,
+  User,
+} from '../Models'
 
 interface MessageInput {
   chat_id: string
@@ -95,4 +102,120 @@ export const deleteMessage = async (id: string): Promise<boolean> => {
   if (!message) return false
   await message.destroy()
   return true
+}
+
+export const markMessageAsRead = async (
+  messageId: string,
+  userId: string,
+): Promise<void> => {
+  await MessageReadStatus.create({
+    message_id: messageId,
+    user_id: userId,
+  })
+}
+
+export const markAllMessagesAsRead = async (
+  chatId: string,
+  userId: string,
+): Promise<void> => {
+  const messages = await Message.findAll({
+    where: { chat_id: chatId },
+    attributes: ['message_id'],
+  })
+
+  const messageIds = messages.map((m) => m.message_id)
+
+  // Create read status for all unread messages
+  await Promise.all(
+    messageIds.map((messageId) =>
+      MessageReadStatus.findOrCreate({
+        where: {
+          message_id: messageId,
+          user_id: userId,
+        },
+      }),
+    ),
+  )
+}
+
+export const getUnreadMessageCount = async (
+  chatId: string,
+  userId: string,
+): Promise<number> => {
+  const messages = await Message.findAll({
+    where: {
+      chat_id: chatId,
+      sender_id: { [Op.ne]: userId }, // Don't count user's own messages
+    },
+    include: [
+      {
+        model: MessageReadStatus,
+        as: 'readStatus',
+        where: { user_id: userId },
+        required: false,
+      },
+    ],
+  })
+
+  return messages.filter((message) => !message.readStatus?.length).length
+}
+
+export const getUnreadMessagesForUser = async (
+  userId: string,
+): Promise<{ chatId: string; unreadCount: number }[]> => {
+  const chats = await Chat.findAll({
+    include: [
+      {
+        model: Message,
+        as: 'Messages',
+        where: {
+          sender_id: { [Op.ne]: userId },
+        },
+        required: false,
+        include: [
+          {
+            model: MessageReadStatus,
+            as: 'readStatus',
+            where: { user_id: userId },
+            required: false,
+          },
+        ],
+      },
+    ],
+  })
+
+  return chats.map((chat) => ({
+    chatId: chat.chat_id,
+    unreadCount:
+      chat.Messages?.filter((message: Message) => !message.readStatus?.length)
+        .length || 0,
+  }))
+}
+
+export const getUserConversations = async (userId: string): Promise<Chat[]> => {
+  return await Chat.findAll({
+    include: [
+      {
+        model: Message,
+        as: 'Messages',
+        separate: true,
+        order: [['created_at', 'DESC']],
+      },
+      {
+        model: ChatParticipant,
+        as: 'participants',
+        include: [
+          {
+            model: User,
+            as: 'participant',
+            attributes: ['user_id', 'first_name', 'last_name', 'email'],
+          },
+        ],
+      },
+    ],
+    where: {
+      '$participants.participant_id$': userId,
+    },
+    order: [['updated_at', 'DESC']],
+  })
 }

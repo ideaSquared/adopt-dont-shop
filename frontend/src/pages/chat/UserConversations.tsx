@@ -183,6 +183,35 @@ const EmptyStateText = styled.div`
   font-weight: ${(props) => props.theme.typography.weight.semibold};
 `
 
+const UnreadBadge = styled.span`
+  background-color: ${(props) => props.theme.background.danger};
+  color: white;
+  border-radius: ${(props) => props.theme.border.radius.full};
+  padding: 2px 8px;
+  font-size: ${(props) => props.theme.typography.size.xs};
+  font-weight: ${(props) => props.theme.typography.weight.medium};
+  margin-left: ${(props) => props.theme.spacing.sm};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+`
+
+const ConversationHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: ${(props) => props.theme.spacing.xs};
+`
+
+const LatestMessage = styled.div`
+  color: ${(props) => props.theme.text.dim};
+  font-size: ${(props) => props.theme.typography.size.sm};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: ${(props) => props.theme.spacing.xs};
+`
+
 export const UserConversations: React.FC = () => {
   const navigate = useNavigate()
   const { conversationId } = useParams<{ conversationId: string }>()
@@ -190,13 +219,26 @@ export const UserConversations: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    const fetchConversations = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
-        const response = await ConversationService.getUserConversations()
-        setConversations(response || [])
+        const [conversationsResponse, unreadMessages] = await Promise.all([
+          ConversationService.getUserConversations(),
+          ConversationService.getUnreadMessagesForUser(),
+        ])
+
+        setConversations(conversationsResponse || [])
+        const counts = unreadMessages.reduce(
+          (acc, { chatId, unreadCount }) => ({
+            ...acc,
+            [chatId]: unreadCount,
+          }),
+          {},
+        )
+        setUnreadCounts(counts)
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to load conversations',
@@ -207,12 +249,22 @@ export const UserConversations: React.FC = () => {
     }
 
     if (user?.user_id) {
-      fetchConversations()
+      fetchData()
     }
   }, [user?.user_id])
 
-  const handleSelectChat = (chatId: string) => {
+  const handleSelectChat = async (chatId: string) => {
     navigate(`/chat/${chatId}`)
+    // Mark all messages in this chat as read when selected
+    try {
+      await ConversationService.markAllMessagesAsRead(chatId)
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [chatId]: 0,
+      }))
+    } catch (error) {
+      console.error('Failed to mark messages as read:', error)
+    }
   }
 
   if (!user?.user_id) {
@@ -239,89 +291,78 @@ export const UserConversations: React.FC = () => {
     )
   }
 
-  const renderSidebar = () => (
-    <Sidebar>
-      <SidebarHeader>
-        <Title>Messages</Title>
-      </SidebarHeader>
-      <ConversationList>
-        {!conversations.length ? (
-          <NoConversationsMessage>
-            You don&apos;t have any conversations yet.
-          </NoConversationsMessage>
-        ) : (
-          conversations.map((conversation) => {
-            const otherParticipants = conversation.participants.filter(
-              (p) => p.participant.user_id !== user.user_id,
-            )
-            const latestMessage = conversation.Messages?.[0]
+  const renderConversationCard = (conversation: Conversation) => {
+    const otherParticipants = conversation.participants.filter(
+      (p) => p.participant.user_id !== user?.user_id,
+    )
+    const latestMessage = conversation.Messages?.[0]
+    const unreadCount = unreadCounts[conversation.chat_id] || 0
 
-            return (
-              <ConversationCard
-                key={conversation.chat_id}
-                onClick={() => handleSelectChat(conversation.chat_id)}
-                isSelected={conversation.chat_id === conversationId}
-                tabIndex={0}
-                role="listitem"
-                aria-current={conversation.chat_id === conversationId}
-                aria-label={`Chat with ${otherParticipants
-                  .map(
-                    (p) =>
-                      `${p.participant.first_name} ${p.participant.last_name}`,
-                  )
-                  .join(', ')}`}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      minWidth: 0,
-                      flex: 1,
-                    }}
-                  >
-                    <StatusIndicator status={conversation.status} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <ParticipantList>
-                        {otherParticipants.map((participant) => (
-                          <ParticipantRow key={participant.participant.user_id}>
-                            <ParticipantName>
-                              {participant.participant.first_name}
-                            </ParticipantName>
-                            <RoleChip>
-                              {participant.role
-                                .replace(/_/g, ' ')
-                                .toLowerCase()}
-                            </RoleChip>
-                          </ParticipantRow>
-                        ))}
-                      </ParticipantList>
-                      {latestMessage && (
-                        <MessagePreview>{latestMessage.content}</MessagePreview>
-                      )}
-                    </div>
-                  </div>
-                  <TimeStamp>
-                    <DateTime timestamp={conversation.updated_at} />
-                  </TimeStamp>
-                </div>
-              </ConversationCard>
-            )
-          })
-        )}
-      </ConversationList>
-    </Sidebar>
-  )
+    return (
+      <ConversationCard
+        key={conversation.chat_id}
+        onClick={() => handleSelectChat(conversation.chat_id)}
+        isSelected={conversation.chat_id === conversationId}
+        tabIndex={0}
+        role="listitem"
+        aria-current={conversation.chat_id === conversationId}
+        aria-label={`Chat with ${otherParticipants
+          .map((p) => `${p.participant.first_name} ${p.participant.last_name}`)
+          .join(
+            ', ',
+          )}${unreadCount > 0 ? `. ${unreadCount} unread messages` : ''}`}
+      >
+        <div>
+          <ConversationHeader>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <StatusIndicator status={conversation.status} />
+              <div>
+                {otherParticipants.map((participant) => (
+                  <ParticipantRow key={participant.participant.user_id}>
+                    <ParticipantName>
+                      {participant.participant.first_name}{' '}
+                      {participant.participant.last_name}
+                    </ParticipantName>
+                    <RoleChip>
+                      {participant.role.replace(/_/g, ' ').toLowerCase()}
+                    </RoleChip>
+                  </ParticipantRow>
+                ))}
+              </div>
+            </div>
+            {unreadCount > 0 && <UnreadBadge>{unreadCount}</UnreadBadge>}
+          </ConversationHeader>
+          {latestMessage && (
+            <LatestMessage>
+              {latestMessage.content.length > 100
+                ? `${latestMessage.content.substring(0, 100)}...`
+                : latestMessage.content}
+            </LatestMessage>
+          )}
+          <TimeStamp>
+            <DateTime timestamp={conversation.updated_at} />
+          </TimeStamp>
+        </div>
+      </ConversationCard>
+    )
+  }
 
   return (
     <PageContainer>
-      {renderSidebar()}
+      <Sidebar>
+        <SidebarHeader>
+          <Title>Messages</Title>
+        </SidebarHeader>
+        <ConversationList>
+          {!conversations.length ? (
+            <NoConversationsMessage>
+              You don&apos;t have any conversations yet.
+            </NoConversationsMessage>
+          ) : (
+            conversations.map(renderConversationCard)
+          )}
+        </ConversationList>
+      </Sidebar>
       <MainContent>
         {conversationId ? (
           <ChatContainer />

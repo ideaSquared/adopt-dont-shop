@@ -1,4 +1,4 @@
-import { Message } from '@adoptdontshop/libs/conversations'
+import { ConversationService, Message } from '@adoptdontshop/libs/conversations'
 import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -255,6 +255,7 @@ export const Chat: React.FC<ChatProps> = ({
   const { user } = useUser()
   const isMessageValid = newMessage.trim().length > 0
   const isLocked = status === 'locked' || status === 'archived'
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Clear error when message changes
   useEffect(() => {
@@ -267,6 +268,24 @@ export const Chat: React.FC<ChatProps> = ({
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight
     }
   }, [messages])
+
+  useEffect(() => {
+    // Scroll to bottom when new messages arrive
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+
+    // Mark messages as read when they are viewed
+    const markMessagesAsRead = async () => {
+      if (!user?.user_id) return
+
+      try {
+        await ConversationService.markAllMessagesAsRead(conversationId)
+      } catch (error) {
+        console.error('Failed to mark messages as read:', error)
+      }
+    }
+
+    markMessagesAsRead()
+  }, [messages, conversationId, user?.user_id])
 
   const handleSendMessage = async () => {
     if (!isMessageValid || isLocked || !user?.user_id || sendingMessage) return

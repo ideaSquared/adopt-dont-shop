@@ -524,3 +524,105 @@ export const searchMessages = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to search messages' })
   }
 }
+
+export const markMessageAsReadController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  const { messageId } = req.params
+  const userId = req.user?.user_id
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Not authenticated' })
+  }
+
+  try {
+    await messageService.markMessageAsRead(messageId, userId)
+    res.status(200).json({ message: 'Message marked as read' })
+  } catch (error) {
+    AuditLogger.logAction(
+      'MessageController',
+      `Failed to mark message as read: ${(error as Error).message}`,
+      'ERROR',
+      userId,
+    )
+    res.status(500).json({ error: 'Failed to mark message as read' })
+  }
+}
+
+export const markAllMessagesAsReadController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  const { chatId } = req.params
+  const userId = req.user?.user_id
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Not authenticated' })
+  }
+
+  try {
+    await messageService.markAllMessagesAsRead(chatId, userId)
+    res.status(200).json({ message: 'All messages marked as read' })
+  } catch (error) {
+    AuditLogger.logAction(
+      'MessageController',
+      `Failed to mark all messages as read: ${(error as Error).message}`,
+      'ERROR',
+      userId,
+    )
+    res.status(500).json({ error: 'Failed to mark all messages as read' })
+  }
+}
+
+export const getUnreadMessageCountController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  const { chatId } = req.params
+  const userId = req.user?.user_id
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Not authenticated' })
+  }
+
+  try {
+    const unreadCount = await messageService.getUnreadMessageCount(
+      chatId,
+      userId,
+    )
+    res.status(200).json({ unreadCount })
+  } catch (error) {
+    AuditLogger.logAction(
+      'MessageController',
+      `Failed to get unread message count: ${(error as Error).message}`,
+      'ERROR',
+      userId,
+    )
+    res.status(500).json({ error: 'Failed to get unread message count' })
+  }
+}
+
+export const getUnreadMessagesForUserController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  const userId = req.user?.user_id
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Not authenticated' })
+  }
+
+  try {
+    const unreadMessages = await messageService.getUnreadMessagesForUser(userId)
+    res.status(200).json(unreadMessages)
+  } catch (error) {
+    AuditLogger.logAction(
+      'MessageController',
+      `Failed to get unread messages: ${(error as Error).message}`,
+      'ERROR',
+      userId,
+    )
+    res.status(500).json({ error: 'Failed to get unread messages' })
+  }
+}

@@ -130,6 +130,31 @@ export const getUserConversations = async (): Promise<Conversation[]> => {
   return apiService.get<Conversation[]>(`${API_BASE_URL}/user/conversations`)
 }
 
+export const markMessageAsRead = async (messageId: string): Promise<void> => {
+  await apiService.post(`${API_BASE_URL}/messages/${messageId}/read`, {})
+}
+
+export const markAllMessagesAsRead = async (chatId: string): Promise<void> => {
+  await apiService.post(`${API_BASE_URL}/${chatId}/read-all`, {})
+}
+
+export const getUnreadMessageCount = async (
+  chatId: string,
+): Promise<number> => {
+  const response = await apiService.get<{ unreadCount: number }>(
+    `${API_BASE_URL}/${chatId}/unread-count`,
+  )
+  return response.unreadCount
+}
+
+export const getUnreadMessagesForUser = async (): Promise<
+  { chatId: string; unreadCount: number }[]
+> => {
+  return await apiService.get<{ chatId: string; unreadCount: number }[]>(
+    `${API_BASE_URL}/unread-messages`,
+  )
+}
+
 export default {
   getConversations,
   getAllConversations,
@@ -143,4 +168,8 @@ export default {
   deleteMessageAdmin,
   bulkDeleteMessages,
   getUserConversations,
+  markMessageAsRead,
+  markAllMessagesAsRead,
+  getUnreadMessageCount,
+  getUnreadMessagesForUser,
 }

@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import sequelize from '../sequelize'
+import { Message } from './Message'
 
 interface ChatAttributes {
   chat_id: string
@@ -8,9 +9,14 @@ interface ChatAttributes {
   status: 'active' | 'locked' | 'archived'
   created_at?: Date
   updated_at?: Date
+  Messages?: Message[]
 }
 
-interface ChatCreationAttributes extends Optional<ChatAttributes, 'chat_id'> {}
+interface ChatCreationAttributes
+  extends Optional<
+    ChatAttributes,
+    'chat_id' | 'created_at' | 'updated_at' | 'Messages'
+  > {}
 
 export class Chat
   extends Model<ChatAttributes, ChatCreationAttributes>
@@ -22,6 +28,7 @@ export class Chat
   public status!: 'active' | 'locked' | 'archived'
   public readonly created_at!: Date
   public readonly updated_at!: Date
+  public Messages?: Message[]
 
   // Add association methods
   public static associate(models: any) {

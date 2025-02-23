@@ -22,6 +22,12 @@ router.get('/admin/conversations', chatController.getAllConversationsAdmin)
 // User routes
 router.get('/user/conversations', chatController.getUserConversations)
 
+// Unread messages routes
+router.get(
+  '/unread-messages',
+  messageController.getUnreadMessagesForUserController
+)
+
 // Rescue dashboard routes
 router.get(
   '/rescue/conversations',
@@ -66,6 +72,12 @@ router.delete(
   '/:chat_id/messages/:message_id',
   validateChatAccess,
   messageController.deleteMessage,
+)
+
+router.get(
+  '/:chat_id/unread-count',
+  validateChatAccess,
+  messageController.getUnreadMessageCountController,
 )
 
 // Search within a specific chat

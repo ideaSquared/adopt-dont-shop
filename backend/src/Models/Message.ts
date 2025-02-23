@@ -2,6 +2,7 @@
 import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize'
 import sequelize from '../sequelize'
 import Chat from './Chat'
+import { MessageReadStatus } from './MessageReadStatus'
 
 export interface MessageAttachment {
   attachment_id: string
@@ -23,12 +24,18 @@ interface MessageAttributes {
   created_at?: Date
   updated_at?: Date
   Chat?: Chat
+  readStatus?: MessageReadStatus[]
 }
 
 interface MessageCreationAttributes
   extends Optional<
     MessageAttributes,
-    'message_id' | 'created_at' | 'updated_at' | 'search_vector' | 'Chat'
+    | 'message_id'
+    | 'created_at'
+    | 'updated_at'
+    | 'search_vector'
+    | 'Chat'
+    | 'readStatus'
   > {}
 
 export class Message
@@ -46,6 +53,7 @@ export class Message
   public readonly updated_at!: Date
   public length!: number
   public Chat?: Chat
+  public readStatus?: MessageReadStatus[]
 
   // Add static method type declaration
   public static searchMessages: (
