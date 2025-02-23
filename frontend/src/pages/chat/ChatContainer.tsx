@@ -12,6 +12,7 @@ const Container = styled.div`
   background: ${(props) => props.theme.background.content};
   position: relative;
   height: 100%;
+  overflow: hidden;
 `
 
 const Header = styled.div`
@@ -22,6 +23,7 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 `
 
 const HeaderTitle = styled.h2`
@@ -61,6 +63,7 @@ const MessageList = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${(props) => props.theme.spacing.md};
+  min-height: 0;
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -111,6 +114,7 @@ const InputContainer = styled.div`
   border-top: ${(props) => props.theme.border.width.thin} solid
     ${(props) => props.theme.border.color.default};
   background: ${(props) => props.theme.background.content};
+  flex-shrink: 0;
 `
 
 const InputWrapper = styled.div`
@@ -346,12 +350,14 @@ export const ChatContainer: React.FC = () => {
           {chatStatus.charAt(0).toUpperCase() + chatStatus.slice(1)}
         </ChatStatus>
       </Header>
-      <Chat
-        messages={messages}
-        conversationId={conversationId || ''}
-        onSendMessage={handleSendMessage}
-        status={chatStatus}
-      />
+      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+        <Chat
+          messages={messages}
+          conversationId={conversationId || ''}
+          onSendMessage={handleSendMessage}
+          status={chatStatus}
+        />
+      </div>
     </Container>
   )
 }

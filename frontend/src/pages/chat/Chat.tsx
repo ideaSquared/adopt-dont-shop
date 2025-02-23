@@ -6,11 +6,13 @@ import RichTextEditor from '../../components/RichTextEditor/RichTextEditor'
 
 // Style definitions
 const ChatContainer = styled.div`
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   width: 100%;
   background: ${(props) => props.theme.background.content};
+  position: absolute;
+  inset: 0;
 `
 
 const ChatHeader = styled.div`
@@ -31,13 +33,14 @@ const ChatTitle = styled.h2`
 `
 
 const MessageList = styled.div`
-  height: 100%;
+  flex: 1;
   overflow-y: auto;
   padding: ${(props) => props.theme.spacing.md};
   background-color: ${(props) => props.theme.background.body};
   scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 
   /* Custom scrollbar styling */
   &::-webkit-scrollbar {
@@ -49,16 +52,9 @@ const MessageList = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: ${(props) => props.theme.background.contrast};
+    background: ${(props) => props.theme.border.color.default};
     border-radius: ${(props) => props.theme.border.radius.full};
-
-    &:hover {
-      background: ${(props) => props.theme.background.mouseHighlight};
-    }
   }
-
-  scrollbar-width: thin;
-  scrollbar-color: ${(props) => props.theme.background.contrast} transparent;
 `
 
 const MessagesWrapper = styled.div`
@@ -133,10 +129,7 @@ const InputContainer = styled.div`
   padding: ${(props) => props.theme.spacing.md};
   border-top: 1px solid ${(props) => props.theme.border.color.default};
   background: ${(props) => props.theme.background.content};
-  display: flex;
-  gap: ${(props) => props.theme.spacing.sm};
-  align-items: flex-end;
-  width: 100%;
+  flex-shrink: 0;
 `
 
 const Button = styled.button`
