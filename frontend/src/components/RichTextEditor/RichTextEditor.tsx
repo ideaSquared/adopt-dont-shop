@@ -4,31 +4,37 @@ import 'react-quill/dist/quill.snow.css'
 import styled from 'styled-components'
 
 const EditorContainer = styled.div`
+  flex: 1;
+  min-width: 0; /* Prevents flex item from overflowing */
+
   .quill {
     height: 150px;
-    background-color: white;
-    border-radius: 4px;
-    border: 1px solid #ccc;
+    width: 100%;
+    background-color: ${(props) => props.theme.background.body};
+    border-radius: ${(props) => props.theme.border.radius.md};
+    border: ${(props) => props.theme.border.width.thin} solid
+      ${(props) => props.theme.border.color.default};
 
     .ql-toolbar {
-      border-top-left-radius: 4px;
-      border-top-right-radius: 4px;
-      border-bottom: 1px solid #ccc;
-      background-color: #f8f9fa;
+      border-top-left-radius: ${(props) => props.theme.border.radius.md};
+      border-top-right-radius: ${(props) => props.theme.border.radius.md};
+      border-bottom: ${(props) => props.theme.border.width.thin} solid
+        ${(props) => props.theme.border.color.default};
+      background-color: ${(props) => props.theme.background.contrast};
     }
 
     .ql-container {
       height: calc(150px - 42px);
-      border-bottom-left-radius: 4px;
-      border-bottom-right-radius: 4px;
-      font-size: 16px;
+      border-bottom-left-radius: ${(props) => props.theme.border.radius.md};
+      border-bottom-right-radius: ${(props) => props.theme.border.radius.md};
+      font-size: ${(props) => props.theme.typography.size.sm};
 
       .ql-editor {
         height: 100%;
 
         &.ql-blank::before {
           font-style: normal;
-          color: #6c757d;
+          color: ${(props) => props.theme.text.dim};
         }
       }
     }

@@ -9,9 +9,8 @@ const ChatContainer = styled.div`
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100vh;
+  width: 100%;
   background: ${(props) => props.theme.background.content};
-  max-width: 100%;
-  margin: 0 auto;
 `
 
 const ChatHeader = styled.div`
@@ -82,11 +81,13 @@ const MessageItem = styled.div<MessageItemProps>`
   padding: ${(props) => props.theme.spacing.sm}
     ${(props) => props.theme.spacing.md};
   border-radius: ${(props) =>
-    props.isCurrentUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px'};
+    props.isCurrentUser
+      ? `${props.theme.border.radius.lg} ${props.theme.border.radius.lg} ${props.theme.border.radius.sm} ${props.theme.border.radius.lg}`
+      : `${props.theme.border.radius.lg} ${props.theme.border.radius.lg} ${props.theme.border.radius.lg} ${props.theme.border.radius.sm}`};
   max-width: 100%;
   word-break: break-word;
   font-size: ${(props) => props.theme.typography.size.sm};
-  line-height: 1.4;
+  line-height: ${(props) => props.theme.typography.lineHeight.relaxed};
 
   ${(props) =>
     props.isCurrentUser
@@ -135,6 +136,7 @@ const InputContainer = styled.div`
   display: flex;
   gap: ${(props) => props.theme.spacing.sm};
   align-items: flex-end;
+  width: 100%;
 `
 
 const Button = styled.button`
@@ -147,6 +149,7 @@ const Button = styled.button`
   cursor: pointer;
   font-weight: ${(props) => props.theme.typography.weight.medium};
   height: 40px;
+  flex-shrink: 0; /* Prevents button from shrinking */
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
@@ -264,16 +267,10 @@ export const Chat: React.FC<ChatProps> = ({
   return (
     <ChatContainer>
       <ChatHeader>
-        <ChatTitle>Chat</ChatTitle>
+        <ChatTitle>Messages</ChatTitle>
       </ChatHeader>
 
       <MessageList ref={messageListRef}>
-        {isLocked && (
-          <LockedChatMessage>
-            This chat is {status === 'locked' ? 'locked' : 'archived'} and no
-            new messages can be sent.
-          </LockedChatMessage>
-        )}
         <MessagesWrapper>
           {groupedMessages.map((group, groupIndex) => (
             <MessageGroup
@@ -299,6 +296,12 @@ export const Chat: React.FC<ChatProps> = ({
         </MessagesWrapper>
       </MessageList>
 
+      {isLocked && (
+        <LockedChatMessage>
+          This chat is {status === 'locked' ? 'locked' : 'archived'} and no new
+          messages can be sent.
+        </LockedChatMessage>
+      )}
       {!isLocked && (
         <InputContainer>
           <RichTextEditor
