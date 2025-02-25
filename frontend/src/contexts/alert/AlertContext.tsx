@@ -1,17 +1,28 @@
-import React, { createContext, useCallback, useContext, useState } from 'react'
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  useRef,
+} from 'react'
 import styled from 'styled-components'
 import { Alert } from '../../components'
 
 type AlertType = 'success' | 'error' | 'warning' | 'info'
 
+interface AlertOptions {
+  type: AlertType
+  message: string
+}
+
 type AlertMessage = {
-  id: number
+  id: string
   message: string
   type: AlertType
 }
 
 type AlertContextType = {
-  showAlert: (message: string, type: AlertType) => void
+  showAlert: (options: AlertOptions | string, type?: AlertType) => void
 }
 
 const AlertContext = createContext<AlertContextType | undefined>(undefined)
@@ -31,16 +42,30 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [alerts, setAlerts] = useState<AlertMessage[]>([])
+  const alertIdCounter = useRef(0)
 
-  const showAlert = useCallback((message: string, type: AlertType) => {
-    const id = Date.now()
-    setAlerts((prev) => [...prev, { id, message, type }])
-
-    // Remove alert after 5 seconds
-    setTimeout(() => {
-      setAlerts((prev) => prev.filter((alert) => alert.id !== id))
-    }, 5000)
+  const generateUniqueId = useCallback(() => {
+    alertIdCounter.current += 1
+    return `alert-${Date.now()}-${alertIdCounter.current}`
   }, [])
+
+  const showAlert = useCallback(
+    (options: AlertOptions | string, type: AlertType = 'info') => {
+      const id = generateUniqueId()
+      const alertData: AlertMessage =
+        typeof options === 'string'
+          ? { id, message: options, type }
+          : { id, message: options.message, type: options.type }
+
+      setAlerts((prev) => [...prev, alertData])
+
+      // Remove alert after 5 seconds
+      setTimeout(() => {
+        setAlerts((prev) => prev.filter((alert) => alert.id !== id))
+      }, 5000)
+    },
+    [generateUniqueId],
+  )
 
   return (
     <AlertContext.Provider value={{ showAlert }}>

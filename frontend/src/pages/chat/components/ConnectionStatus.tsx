@@ -27,13 +27,13 @@ const StatusDot = styled.span<{
   background-color: ${(props) => {
     switch (props.status) {
       case 'connected':
-        return props.theme.status.success
+        return props.theme.background.success
       case 'connecting':
-        return props.theme.status.warning
+        return props.theme.background.warning
       case 'disconnected':
-        return props.theme.status.error
+        return props.theme.background.danger
       default:
-        return props.theme.status.error
+        return props.theme.background.danger
     }
   }};
   animation: ${(props) => (props.status === 'connecting' ? pulse : 'none')} 1.5s

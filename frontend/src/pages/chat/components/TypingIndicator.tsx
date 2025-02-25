@@ -45,7 +45,7 @@ interface TypingIndicatorProps {
 export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ chatId }) => {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
   const { on, emit } = useSocket({
-    url: process.env.REACT_APP_SOCKET_URL || '',
+    url: import.meta.env.VITE_SOCKET_URL || '',
     token: localStorage.getItem('token') || '',
   })
 

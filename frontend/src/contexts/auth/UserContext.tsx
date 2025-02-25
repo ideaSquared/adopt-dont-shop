@@ -11,6 +11,7 @@ import React, {
 interface UserContextProps {
   user: User | null
   rescue: Rescue | null
+  token: string | null
   setUser: (user: User | null) => void
   setRescue: (rescue: Rescue | null) => void
   loginUser: (email: string, password: string) => Promise<boolean>
@@ -39,6 +40,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [rescue, setRescue] = useState<Rescue | null>(() => {
     const storedRescue = localStorage.getItem('rescue')
     return storedRescue ? JSON.parse(storedRescue) : null
+  })
+
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem('token')
   })
 
   useEffect(() => {
@@ -72,11 +77,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     try {
       const result = await UserService.login(email, password)
       if (result) {
-        const { user, rescue } = result
+        const { user, rescue, token: authToken } = result
         setUser(user)
         setRescue(rescue || null)
+        setToken(authToken)
         localStorage.setItem('user', JSON.stringify(user))
         localStorage.setItem('rescue', JSON.stringify(rescue || null))
+        localStorage.setItem('token', authToken)
         return true
       } else {
         return false
@@ -91,15 +98,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     UserService.logout()
     setUser(null)
     setRescue(null)
+    setToken(null)
     localStorage.removeItem('user')
     localStorage.removeItem('rescue')
+    localStorage.removeItem('token')
   }
 
   return (
     <UserContext.Provider
-      value={{ user, rescue, setUser, setRescue, loginUser, logout }}
+      value={{ user, rescue, token, setUser, setRescue, loginUser, logout }}
     >
       {children}
     </UserContext.Provider>
   )
 }
+

@@ -1,13 +1,13 @@
 import { Message } from '@adoptdontshop/libs/conversations'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { io, Socket } from 'socket.io-client'
 import styled from 'styled-components'
-import { useUser } from '../../contexts/auth/UserContext'
 import { useAlert } from '../../contexts/alert/AlertContext'
-import { Chat } from './Chat'
+import { useUser } from '../../contexts/auth/UserContext'
 import { useErrorHandler } from '../../hooks/useErrorHandler'
+import { useSocket } from '../../hooks/useSocket'
 import ChatAnalyticsService from '../../services/ChatAnalyticsService'
+import { Chat } from './Chat'
 
 const Container = styled.div`
   flex: 1;
@@ -82,7 +82,6 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
 
 export const ChatContainer: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>()
-  const [socket, setSocket] = useState<Socket | null>(null)
   const [messages, setMessages] = useState<ExtendedMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [chatStatus, setChatStatus] = useState<
@@ -92,168 +91,117 @@ export const ChatContainer: React.FC = () => {
   const { handleError } = useErrorHandler()
   const { showAlert } = useAlert()
   const analyticsService = ChatAnalyticsService.getInstance()
+  const startTime = Date.now()
 
-  const handleSocketError = useCallback(
-    (message: string, error?: unknown) => {
-      showAlert({
-        type: 'error',
-        message,
-      })
-      handleError(message, error)
+  const handleConnect = useCallback(() => {
+    if (!socket) return
+    socket.emit('join_chat', conversationId)
+    socket.emit('get_messages', { chatId: conversationId })
+    socket.emit('get_chat_status', { chatId: conversationId })
+    analyticsService.trackPerformanceEvent(
+      'socket_connect',
+      Date.now() - startTime,
+      true,
+    )
+  }, [conversationId, analyticsService])
+
+  const { socket, isConnected } = useSocket({
+    url: SOCKET_URL,
+    token: token || '',
+    onConnect: handleConnect,
+    onError: (error) => {
+      handleError('Socket connection error', error)
+      setLoading(false)
     },
-    [showAlert, handleError],
-  )
+  })
 
   useEffect(() => {
-    if (!conversationId || !token) return
+    if (!socket || !isConnected) return
 
-    let newSocket: Socket | null = null
-    let isActive = true
-    const startTime = Date.now()
-
-    const setupSocket = () => {
-      try {
-        newSocket = io(SOCKET_URL, {
-          auth: { token },
-          reconnection: true,
-          reconnectionAttempts: 5,
-          reconnectionDelay: 1000,
-        })
-
-        newSocket.on('connect', () => {
-          if (!isActive) return
-          newSocket?.emit('join_chat', conversationId)
-          newSocket?.emit('get_messages', { chatId: conversationId })
-          newSocket?.emit('get_chat_status', { chatId: conversationId })
-          analyticsService.trackPerformanceEvent(
-            'socket_connect',
-            Date.now() - startTime,
-            true,
-          )
-        })
-
-        newSocket.on('connect_error', (err) => {
-          if (!isActive) return
-          handleSocketError(
-            'Failed to connect to chat server. Please try again.',
-            err,
-          )
-          analyticsService.trackPerformanceEvent(
-            'socket_connect',
-            Date.now() - startTime,
-            false,
-            err.message,
-          )
-        })
-
-        newSocket.on('messages', (data: ExtendedMessage[]) => {
-          if (!isActive) return
-          setMessages(
-            data.map((msg) => ({
-              ...msg,
-              content_format: msg.content_format || 'plain',
-            })),
-          )
-          setLoading(false)
-        })
-
-        newSocket.on(
-          'chat_status',
-          (data: { status: 'active' | 'locked' | 'archived' }) => {
-            if (!isActive) return
-            setChatStatus(data.status)
-          },
-        )
-
-        newSocket.on('new_message', (message: ExtendedMessage) => {
-          if (!isActive) return
-          setMessages((prev) => [
-            ...prev,
-            {
-              ...message,
-              content_format: message.content_format || 'plain',
-            },
-          ])
-        })
-
-        newSocket.on('message_updated', (updatedMessage: ExtendedMessage) => {
-          if (!isActive) return
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.message_id === updatedMessage.message_id
-                ? {
-                    ...updatedMessage,
-                    content_format: updatedMessage.content_format || 'plain',
-                  }
-                : msg,
-            ),
-          )
-        })
-
-        newSocket.on('message_deleted', (data: { message_id: string }) => {
-          if (!isActive) return
-          setMessages((prev) =>
-            prev.filter((msg) => msg.message_id !== data.message_id),
-          )
-        })
-
-        newSocket.on(
-          'read_status_updated',
-          (data: {
-            chat_id: string
-            user_id: string
-            message_ids: string[]
-            read_at: Date
-          }) => {
-            if (!isActive) return
-            setMessages((prev) =>
-              prev.map((msg) => {
-                if (data.message_ids.includes(msg.message_id)) {
-                  return {
-                    ...msg,
-                    readStatus: [
-                      ...(msg.readStatus || []),
-                      { user_id: data.user_id, read_at: data.read_at },
-                    ],
-                  }
-                }
-                return msg
-              }),
-            )
-          },
-        )
-
-        newSocket.on('error', (error: { message: string }) => {
-          if (!isActive) return
-          handleSocketError(error.message)
-        })
-
-        newSocket.on('disconnect', () => {
-          if (!isActive) return
-          showAlert({
-            type: 'warning',
-            message: 'Chat connection lost. Attempting to reconnect...',
-          })
-        })
-
-        setSocket(newSocket)
-      } catch (err) {
-        if (!isActive) return
-        handleSocketError('Failed to initialize chat connection', err)
-        setLoading(false)
-      }
+    const handleMessages = (data: ExtendedMessage[]) => {
+      console.log('Received messages:', data.length)
+      setMessages(
+        data.map((msg) => ({
+          ...msg,
+          content_format: msg.content_format || 'plain',
+        })),
+      )
+      setLoading(false)
     }
 
-    setupSocket()
+    const handleChatStatus = (data: {
+      status: 'active' | 'locked' | 'archived'
+    }) => {
+      setChatStatus(data.status)
+    }
+
+    const handleNewMessage = (message: ExtendedMessage) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...message,
+          content_format: message.content_format || 'plain',
+        },
+      ])
+    }
+
+    const handleMessageUpdate = (updatedMessage: ExtendedMessage) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.message_id === updatedMessage.message_id
+            ? {
+                ...updatedMessage,
+                content_format: updatedMessage.content_format || 'plain',
+              }
+            : msg,
+        ),
+      )
+    }
+
+    const handleMessageDelete = (data: { message_id: string }) => {
+      setMessages((prev) =>
+        prev.filter((msg) => msg.message_id !== data.message_id),
+      )
+    }
+
+    const handleReadStatus = (data: {
+      chat_id: string
+      user_id: string
+      message_ids: string[]
+      read_at: Date
+    }) => {
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (data.message_ids.includes(msg.message_id)) {
+            return {
+              ...msg,
+              readStatus: [
+                ...(msg.readStatus || []),
+                { user_id: data.user_id, read_at: data.read_at },
+              ],
+            }
+          }
+          return msg
+        }),
+      )
+    }
+
+    socket.on('messages', handleMessages)
+    socket.on('chat_status', handleChatStatus)
+    socket.on('new_message', handleNewMessage)
+    socket.on('message_updated', handleMessageUpdate)
+    socket.on('message_deleted', handleMessageDelete)
+    socket.on('read_status_updated', handleReadStatus)
 
     return () => {
-      isActive = false
-      if (newSocket) {
-        newSocket.emit('leave_chat', conversationId)
-        newSocket.disconnect()
-      }
+      socket.off('messages', handleMessages)
+      socket.off('chat_status', handleChatStatus)
+      socket.off('new_message', handleNewMessage)
+      socket.off('message_updated', handleMessageUpdate)
+      socket.off('message_deleted', handleMessageDelete)
+      socket.off('read_status_updated', handleReadStatus)
     }
-  }, [conversationId, token, handleSocketError, analyticsService])
+  }, [socket, isConnected])
 
   const handleSendMessage = useCallback(
     async (message: ExtendedMessage) => {
@@ -282,7 +230,7 @@ export const ChatContainer: React.FC = () => {
         })
         analyticsService.trackMessage(message, Date.now() - startTime)
       } catch (err) {
-        handleSocketError('Failed to send message', err)
+        handleError('Failed to send message', err)
         analyticsService.trackPerformanceEvent(
           'message_send',
           Date.now() - startTime,
@@ -296,7 +244,7 @@ export const ChatContainer: React.FC = () => {
       conversationId,
       showAlert,
       analyticsService,
-      handleSocketError,
+      handleError,
     ],
   )
 
@@ -323,3 +271,4 @@ export const ChatContainer: React.FC = () => {
     </Container>
   )
 }
+
