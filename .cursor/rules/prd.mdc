@@ -1,0 +1,27 @@
+---
+description: Rules for all instructions where the code is being changed
+globs: 
+---
+# Product Requirements Document
+
+Check for Existing PRD:
+
+    Before processing any instruction:
+    Verify that the root /docs folder contains a Product Requirements Document (PRD).
+
+Create a PRD if Missing:
+
+    If no PRD is found:
+    Automatically create a new PRD using a standard template that captures the baseline product requirements.
+
+Review After Each Instruction:
+
+    After processing every instruction:
+    Analyze whether the latest changes or instructions require modifications to the PRD.
+    Update if Necessary:
+    If the changes affect the product requirements, update the PRD to reflect these adjustments.
+
+Maintain Consistency and Accuracy:
+
+    Keep the PRD in sync:
+    Ensure that the document always reflects the current state of product requirements based on the most recent instructions.
