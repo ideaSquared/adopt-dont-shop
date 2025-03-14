@@ -4,7 +4,7 @@
 
 ### 1.1 Document Title & Version
 
-Rescue Organization Management System PRD v1.0
+Rescue Organization Management System PRD v1.1
 
 ### 1.2 Product Summary
 
@@ -56,118 +56,73 @@ StaffMember Model:
 
 ```typescript
 interface StaffMemberAttributes {
-	staff_id: string;
-	user_id: string;
-	rescue_id: string;
-	title?: string;
+	staff_member_id: string;
+	user_id?: string;
+	rescue_id?: string;
+	verified_by_rescue?: boolean;
 	created_at?: Date;
 	updated_at?: Date;
 }
 ```
 
-RescueSettings Model:
+RescueDashboardData Type:
 
 ```typescript
-interface RescueSettingsAttributes {
-	settings_id: string;
-	rescue_id: string;
-	application_settings: {
-		auto_approve_conditions?: object;
-		notification_preferences?: object;
-		custom_fields_enabled?: boolean;
-	};
-	visibility_settings: {
-		public_profile?: boolean;
-		show_staff?: boolean;
-		show_statistics?: boolean;
-	};
-	created_at?: Date;
-	updated_at?: Date;
-}
-```
+type RescueDashboardData = {
+	totalPets: number;
+	successfulAdoptions: number;
+	pendingApplications: number;
+	averageRating: number;
+	monthlyAdoptions: MonthlyAdoption[];
+	petStatusDistribution: PetStatus[];
+	petTypeDistribution: PetTypeDistribution[];
+	totalApplications: number;
+	adoptionRate: number;
+	averageResponseTime: number;
+};
 
-RescueStatistics Model:
+type MonthlyAdoption = {
+	month: string;
+	adoptions: number;
+};
 
-```typescript
-interface RescueStatisticsAttributes {
-	stats_id: string;
-	rescue_id: string;
-	total_adoptions: number;
-	total_pets: number;
-	active_pets: number;
-	total_applications: number;
-	pending_applications: number;
-	average_time_to_adoption: number;
-	period_start: Date;
-	period_end: Date;
-	created_at?: Date;
-	updated_at?: Date;
-}
-```
+type PetStatus = {
+	name: string;
+	value: number;
+};
 
-Rating Model:
-
-```typescript
-interface RatingAttributes {
-	rating_id: string;
-	rescue_id: string;
-	user_id: string;
-	rating: number;
-	review_text?: string;
-	is_verified_adopter: boolean;
-	created_at?: Date;
-	updated_at?: Date;
-}
+type PetTypeDistribution = {
+	name: string;
+	value: number;
+};
 ```
 
 #### 1.2.4. API Endpoints
 
-Rescue Management Endpoints:
+Rescue Endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/rescues` | POST | Register a new rescue organization |
-| `/api/rescues` | GET | Get all rescue organizations (admin only, with filtering) |
-| `/api/rescues/:rescue_id` | GET | Get a specific rescue organization |
-| `/api/rescues/:rescue_id` | PUT | Update a rescue organization |
-| `/api/rescues/:rescue_id/verify` | POST | Verify a rescue organization (admin only) |
+| `/api/rescues/:rescueId` | GET | Get details of a specific rescue |
+| `/api/rescues` | POST | Create a new rescue organization |
+| `/api/rescues/:rescueId` | PUT | Update rescue organization details |
+| `/api/rescues/:rescueId` | DELETE | Delete a rescue organization |
+| `/api/rescues/:rescueId/verify-reference` | POST | Verify rescue's reference number |
 
-Rescue Staff Endpoints:
+Staff Management Endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/rescues/:rescue_id/staff` | GET | Get all staff members for a rescue |
-| `/api/rescues/:rescue_id/staff` | POST | Add a staff member to a rescue |
-| `/api/rescues/:rescue_id/staff/:staff_id` | GET | Get a specific staff member |
-| `/api/rescues/:rescue_id/staff/:staff_id` | PUT | Update a staff member |
-| `/api/rescues/:rescue_id/staff/:staff_id` | DELETE | Remove a staff member |
+| `/api/rescues/:rescueId/invite` | POST | Invite a user to join the rescue organization |
+| `/api/rescues/:rescueId/cancel-invite` | POST | Cancel a pending invitation |
+| `/api/rescues/:rescueId/staff/:userId` | DELETE | Remove a staff member from the rescue |
+| `/api/rescues/:rescueId/users/:userId/roles` | POST | Add a role to a user within the rescue |
+| `/api/rescues/:rescueId/users/:userId/roles/:roleId` | DELETE | Remove a role from a user within the rescue |
+| `/api/rescues/:rescueId/staff-with-roles` | GET | Get all staff members with their roles |
 
-Rescue Settings Endpoints:
+Dashboard Endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/rescues/:rescue_id/settings` | GET | Get settings for a rescue |
-| `/api/rescues/:rescue_id/settings` | PUT | Update settings for a rescue |
-
-Rescue Statistics Endpoints:
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/rescues/:rescue_id/statistics` | GET | Get statistics for a rescue |
-| `/api/rescues/:rescue_id/statistics/summary` | GET | Get summarized statistics |
-| `/api/rescues/:rescue_id/statistics/adoption-time` | GET | Get adoption time statistics |
-| `/api/rescues/:rescue_id/statistics/application-volume` | GET | Get application volume statistics |
-
-Rescue Rating Endpoints:
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/rescues/:rescue_id/ratings` | GET | Get all ratings for a rescue |
-| `/api/rescues/:rescue_id/ratings` | POST | Add a rating for a rescue |
-| `/api/rescues/:rescue_id/ratings/:rating_id` | PUT | Update a rating |
-| `/api/rescues/:rescue_id/ratings/:rating_id` | DELETE | Delete a rating |
-
-Rescue Dashboard Endpoints:
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/rescues/:rescue_id/dashboard` | GET | Get dashboard data for a rescue |
-| `/api/rescues/:rescue_id/dashboard/recent-activity` | GET | Get recent activity data |
-| `/api/rescues/:rescue_id/dashboard/pending-actions` | GET | Get pending actions data |
+| `/api/dashboard/rescue` | GET | Get dashboard data for a rescue organization |
+| `/api/dashboard/admin` | GET | Get dashboard data for system administrators |
 
 ## 2. User Personas
 
@@ -246,7 +201,7 @@ Platform Administrator
 
 ### Rescue Registration and Verification
 
-**US-001**
+**US-001** ✅ IMPLEMENTED
 
 - Title: Register rescue organization
 - Description: As a rescue organization leader, I want to register my organization on the platform so we can list our pets for adoption.
@@ -258,7 +213,7 @@ Platform Administrator
   5. User receives confirmation of submission
   6. Registration enters verification queue
 
-**US-002**
+**US-002** ✅ IMPLEMENTED
 
 - Title: Verify rescue credentials
 - Description: As a platform administrator, I want to verify rescue organization credentials to ensure legitimacy.
@@ -270,7 +225,7 @@ Platform Administrator
   5. Rescue receives notification of verification outcome
   6. Approved rescues gain immediate access to platform features
 
-**US-003**
+**US-003** ✅ IMPLEMENTED
 
 - Title: Complete rescue profile
 - Description: As a rescue administrator, I want to complete our organization profile to provide potential adopters with information about our mission and operations.
@@ -282,7 +237,7 @@ Platform Administrator
   5. Profile is published to public-facing pages
   6. User can preview profile as it appears to adopters
 
-**US-004**
+**US-004** ✅ IMPLEMENTED
 
 - Title: Update rescue information
 - Description: As a rescue administrator, I want to update our organization's information to keep it current and accurate.
@@ -296,7 +251,7 @@ Platform Administrator
 
 ### Rescue Operations Management
 
-**US-005**
+**US-005** 🔄 PLANNED
 
 - Title: Configure rescue settings
 - Description: As a rescue administrator, I want to configure organization-specific settings to customize our operations on the platform.
@@ -308,7 +263,7 @@ Platform Administrator
   5. Settings are preserved across sessions
   6. Default settings are provided for new organizations
 
-**US-006**
+**US-006** ✅ IMPLEMENTED
 
 - Title: View rescue dashboard
 - Description: As a rescue staff member, I want to access a dashboard that provides an overview of our rescue's activities and pending tasks.
@@ -320,7 +275,7 @@ Platform Administrator
   5. Dashboard refreshes automatically or manually
   6. Dashboard is customizable to show relevant information
 
-**US-007**
+**US-007** ✅ IMPLEMENTED
 
 - Title: Manage rescue staff
 - Description: As a rescue administrator, I want to manage staff members and their roles to control access to our rescue's features.
@@ -332,7 +287,7 @@ Platform Administrator
   5. System logs all staff management actions
   6. Staff members receive notifications of role changes
 
-**US-008**
+**US-008** ✅ IMPLEMENTED
 
 - Title: Track rescue statistics
 - Description: As a rescue administrator, I want to view statistics about our rescue's operations to measure our effectiveness.
@@ -346,7 +301,7 @@ Platform Administrator
 
 ### Pet and Application Management
 
-**US-009**
+**US-009** 🔄 PLANNED
 
 - Title: Bulk manage pet listings
 - Description: As a rescue staff member, I want to manage multiple pet listings simultaneously to save time.
@@ -358,7 +313,7 @@ Platform Administrator
   5. Changes are logged for each pet individually
   6. User receives confirmation of successful updates
 
-**US-010**
+**US-010** ✅ IMPLEMENTED
 
 - Title: Process adoption applications
 - Description: As a rescue staff member, I want to efficiently process adoption applications to match pets with suitable adopters.
@@ -370,7 +325,7 @@ Platform Administrator
   5. System tracks application status changes
   6. Applicants receive notifications of status updates
 
-**US-011**
+**US-011** ✅ IMPLEMENTED
 
 - Title: Communicate with applicants
 - Description: As a rescue staff member, I want to communicate with applicants directly through the platform to discuss their applications.
@@ -382,7 +337,7 @@ Platform Administrator
   5. User can attach documents to messages
   6. Communication is secure and private
 
-**US-012**
+**US-012** 🔄 PLANNED
 
 - Title: Schedule adoption events
 - Description: As a rescue administrator, I want to schedule and manage adoption events to showcase our pets to potential adopters.
@@ -396,7 +351,7 @@ Platform Administrator
 
 ### Public Presence and Feedback
 
-**US-013**
+**US-013** 🔄 PLANNED
 
 - Title: Customize public profile
 - Description: As a rescue administrator, I want to customize how our rescue appears to the public to attract potential adopters.
@@ -408,7 +363,7 @@ Platform Administrator
   5. Changes are reflected immediately on public pages
   6. User can preview profile from adopter perspective
 
-**US-014**
+**US-014** 🔄 PLANNED
 
 - Title: Manage rescue ratings and reviews
 - Description: As a rescue administrator, I want to manage ratings and reviews from adopters to maintain our reputation.
@@ -420,7 +375,7 @@ Platform Administrator
   5. Ratings are aggregated into overall score
   6. User receives notification of new reviews
 
-**US-015**
+**US-015** 🔄 PLANNED
 
 - Title: Share adoption success stories
 - Description: As a rescue staff member, I want to share adoption success stories to showcase our impact and encourage more adoptions.
@@ -434,7 +389,7 @@ Platform Administrator
 
 ### Edge Cases and Alternative Flows
 
-**US-016**
+**US-016** 🔄 PLANNED
 
 - Title: Handle rescue account suspension
 - Description: As a platform administrator, I want to suspend rescue accounts that violate platform policies to maintain platform integrity.
@@ -446,7 +401,7 @@ Platform Administrator
   5. Admin can lift suspension when issues are resolved
   6. System maintains audit trail of suspension actions
 
-**US-017**
+**US-017** 🔄 PLANNED
 
 - Title: Transfer rescue ownership
 - Description: As a rescue administrator, I want to transfer ownership of our rescue account to another administrator when leadership changes.
@@ -458,7 +413,7 @@ Platform Administrator
   5. All staff members receive notification of change
   6. New owner gains full administrative access
 
-**US-018**
+**US-018** 🔄 PLANNED
 
 - Title: Merge rescue organizations
 - Description: As a rescue administrator, I want to merge our rescue with another organization when our organizations combine.
@@ -470,7 +425,7 @@ Platform Administrator
   5. Platform administrator reviews and approves merge
   6. Merged organization retains higher verification status
 
-**US-019**
+**US-019** ✅ IMPLEMENTED
 
 - Title: Archive inactive rescue
 - Description: As a rescue administrator, I want to archive our rescue organization when we cease operations while preserving our history.
@@ -482,7 +437,7 @@ Platform Administrator
   5. Historical data is preserved for reporting
   6. Archive can be reversed by platform administrator
 
-**US-020**
+**US-020** 🔄 PLANNED
 
 - Title: Generate compliance reports
 - Description: As a rescue administrator, I want to generate compliance reports to demonstrate adherence to regulations and platform policies.
@@ -498,22 +453,47 @@ Platform Administrator
 
 ### 4.1 Feature Roadmap
 
-- Rescue Network: Connect multiple related rescue organizations
+#### Short-term (Next Release)
+
+- Rescue Settings Configuration: Allow rescue administrators to customize operations (US-005)
+- Bulk Pet Management: Enable managing multiple pets simultaneously (US-009)
+- Adoption Event Management: Tools for scheduling and managing adoption events (US-012)
+- Public Profile Customization: Enhanced customization of rescue public profiles (US-013)
+
+#### Medium-term (3-6 Months)
+
+- Ratings and Reviews System: Enable adopters to leave reviews and rescues to manage them (US-014)
+- Success Stories: Allow sharing of adoption success stories (US-015)
+- Account Suspension Management: Tools for handling policy violations (US-016)
+- Rescue Ownership Transfer: Process for transferring organization ownership (US-017)
+
+#### Long-term (6+ Months)
+
+- Rescue Organization Merging: Support for merging rescue organizations (US-018)
+- Compliance Reporting: Generate regulatory compliance reports (US-020)
 - Volunteer Management: Tools for managing volunteers
-- Event Management: Features for organizing adoption events
-- Fundraising Tools: Integration with donation platforms
+- Fundraising Integration: Connection with donation platforms
 - Advanced Document Management: Digital signing and document workflows
 - Foster Home Management: Track and manage foster homes
-- Veterinary Integration: Connect with veterinary services
-- Transport Coordination: Manage animal transport logistics
 
 ### 4.2 Technical Improvements
+
+#### Short-term
+
+- Enhanced dashboard visualizations for rescue statistics
+- Export functionality for rescue data
+- Improved notification system for rescue administrators
+
+#### Medium-term
+
+- Integration APIs for rescue management systems
+- Advanced reporting engine with custom report builder
+- Mobile optimization for on-the-go rescue management
+
+#### Long-term
 
 - Machine learning for application matching
 - Predictive analytics for adoption likelihood
 - GIS visualization for geographical insights
-- Integration APIs for rescue management systems
-- Advanced reporting engine with custom report builder
-- Mobile app for on-the-go rescue management
 - Offline capabilities for field operations
 - Blockchain verification for animal records

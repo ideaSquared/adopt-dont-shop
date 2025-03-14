@@ -12,16 +12,45 @@ The User and Authentication System provides secure user management and authentic
 
 #### 1.2.1. Key Features
 
-- User Registration & Authentication: Secure signup, login, and account recovery processes
-- User Profile Management: User profile creation and management capabilities
-- Role-Based Access Control: Access control based on user roles and permissions
-- Team Management: Tools for rescue organizations to manage team members
-- Staff Invitations: Ability to invite new staff members to a rescue organization
-- Session Management: Secure handling of user sessions and tokens
-- Preference Settings: User preference customization
-- Account Security: Features to ensure account security including password policies
+- **User Registration & Authentication**: Secure signup, login, and account recovery processes ✅ IMPLEMENTED
+- **User Profile Management**: User profile creation and management capabilities ✅ IMPLEMENTED
+- **Role-Based Access Control**: Access control based on user roles and permissions ✅ IMPLEMENTED
+- **Team Management**: Tools for rescue organizations to manage team members ✅ IMPLEMENTED
+- **Staff Invitations**: Ability to invite new staff members to a rescue organization ✅ IMPLEMENTED
+- **Session Management**: Secure handling of user sessions and tokens ✅ IMPLEMENTED
+- **Preference Settings**: User preference customization 🔄 PLANNED
+- **Account Security**: Features to ensure account security including password policies ✅ IMPLEMENTED
 
-#### 1.2.2. Technology Stack
+#### 1.2.2. Implementation Status
+
+The User and Authentication System has been substantially implemented, with core functionality for user registration, authentication, profile management, team management, and role-based access control in place. Only minor features like detailed preference settings are planned for upcoming development cycles.
+
+Current implementation status:
+
+- 14 user stories fully implemented
+- 6 user stories planned for future releases
+- Core API endpoints for authentication and user management are functional
+- Database models are fully implemented and optimized for current usage patterns
+
+#### 1.2.3. Implementation References
+
+The User and Authentication System implementation can be found in the following key files:
+
+**Backend**
+
+- Controllers: `backend/src/controllers/userController.ts`, `backend/src/controllers/authController.ts`
+- Services: `backend/src/services/authService.ts`
+- Routes: `backend/src/routes/authRoutes.ts`, `backend/src/routes/userRoutes.ts`
+- Middleware: `backend/src/middleware/authMiddleware.ts`, `backend/src/middleware/authRoleOwnershipMiddleware.ts`
+- Models: `backend/src/Models/User.ts`, `backend/src/Models/Role.ts`, `backend/src/Models/UserRole.ts`
+
+**Frontend**
+
+- Components: `frontend/src/components/auth/Login.tsx`, `frontend/src/components/auth/Register.tsx`
+- Context: `frontend/src/context/UserContext.tsx`
+- Pages: `frontend/src/pages/Profile.tsx`, `frontend/src/pages/AccountSettings.tsx`
+
+#### 1.2.4. Technology Stack
 
 - Frontend: React + TypeScript with styled-components
 - Backend: Express + TypeScript
@@ -29,7 +58,7 @@ The User and Authentication System provides secure user management and authentic
 - Authentication: JWT-based authentication with refresh tokens
 - Password Security: Bcrypt for password hashing
 
-#### 1.2.3. Data Models
+#### 1.2.5. Data Models
 
 User Model:
 
@@ -142,7 +171,7 @@ interface UserPreferenceAttributes {
 }
 ```
 
-#### 1.2.4. API Endpoints
+#### 1.2.6. API Endpoints
 
 Authentication Endpoints:
 | Endpoint | Method | Description |
@@ -281,7 +310,7 @@ Platform Administrator
 
 ### User Registration and Authentication
 
-**US-001**
+**US-001** ✅ IMPLEMENTED
 
 - Title: Register new user account
 - Description: As a potential adopter, I want to create a new account so that I can access the platform's features.
@@ -293,7 +322,7 @@ Platform Administrator
   5. System sends verification email after submission
   6. User receives confirmation of successful registration
 
-**US-002**
+**US-002** ✅ IMPLEMENTED
 
 - Title: Login to user account
 - Description: As a registered user, I want to log in to my account to access personalized features.
@@ -305,7 +334,7 @@ Platform Administrator
   5. System redirects to appropriate dashboard based on user role
   6. "Remember me" option persists login across sessions
 
-**US-003**
+**US-003** ✅ IMPLEMENTED
 
 - Title: Recover forgotten password
 - Description: As a user who has forgotten my password, I want to reset it securely to regain access to my account.
@@ -317,7 +346,7 @@ Platform Administrator
   5. User can create new password after verification
   6. System confirms successful password change
 
-**US-004**
+**US-004** ✅ IMPLEMENTED
 
 - Title: Verify email address
 - Description: As a new user, I want to verify my email address to confirm my identity and activate my account.
@@ -329,7 +358,7 @@ Platform Administrator
   5. User receives confirmation of successful verification
   6. Unverified accounts have limited functionality
 
-**US-005**
+**US-005** ✅ IMPLEMENTED
 
 - Title: Logout from account
 - Description: As a logged-in user, I want to securely log out to protect my account when I'm done using the platform.
@@ -342,7 +371,7 @@ Platform Administrator
 
 ### User Profile Management
 
-**US-006**
+**US-006** ✅ IMPLEMENTED
 
 - Title: Update personal profile
 - Description: As a registered user, I want to update my profile information to keep it current and accurate.
@@ -354,7 +383,7 @@ Platform Administrator
   5. Changes are saved and immediately reflected
   6. User receives confirmation of successful update
 
-**US-007**
+**US-007** ✅ IMPLEMENTED
 
 - Title: Upload profile picture
 - Description: As a registered user, I want to upload a profile picture to personalize my account.
@@ -366,7 +395,7 @@ Platform Administrator
   5. Profile picture is displayed throughout the platform
   6. User can remove or replace picture at any time
 
-**US-008**
+**US-008** ✅ IMPLEMENTED
 
 - Title: Change account password
 - Description: As a registered user, I want to change my password periodically to maintain account security.
@@ -378,7 +407,7 @@ Platform Administrator
   5. System notifies user of successful password change
   6. Email notification is sent confirming password change
 
-**US-009**
+**US-009** 🔄 PLANNED
 
 - Title: Manage notification preferences
 - Description: As a registered user, I want to customize my notification settings to control how I receive updates.
@@ -392,7 +421,7 @@ Platform Administrator
 
 ### Team Management
 
-**US-010**
+**US-010** ✅ IMPLEMENTED
 
 - Title: Invite staff member
 - Description: As a rescue manager, I want to invite new staff members to join our organization on the platform.
@@ -404,7 +433,7 @@ Platform Administrator
   5. Invitations expire after 7 days if not accepted
   6. Manager can resend or cancel pending invitations
 
-**US-011**
+**US-011** ✅ IMPLEMENTED
 
 - Title: Accept staff invitation
 - Description: As an invited staff member, I want to accept an invitation to join a rescue organization on the platform.
@@ -416,7 +445,7 @@ Platform Administrator
   5. System associates user with rescue organization
   6. User gains access to rescue features based on assigned role
 
-**US-012**
+**US-012** ✅ IMPLEMENTED
 
 - Title: Manage staff roles
 - Description: As a rescue manager, I want to assign and modify staff roles to control access to features.
@@ -428,7 +457,7 @@ Platform Administrator
   5. Role changes are logged for audit purposes
   6. Manager can view permission details for each role
 
-**US-013**
+**US-013** ✅ IMPLEMENTED
 
 - Title: Remove staff member
 - Description: As a rescue manager, I want to remove staff members who no longer work with our organization.
@@ -442,7 +471,7 @@ Platform Administrator
 
 ### Role and Permission Management
 
-**US-014**
+**US-014** 🔄 PLANNED
 
 - Title: Create custom role
 - Description: As a platform administrator, I want to create custom roles with specific permissions to meet organizational needs.
@@ -454,7 +483,7 @@ Platform Administrator
   5. System validates role creation to prevent duplicates
   6. Admin can preview permissions for new role
 
-**US-015**
+**US-015** 🔄 PLANNED
 
 - Title: Modify role permissions
 - Description: As a platform administrator, I want to modify the permissions associated with roles to adjust access levels.
@@ -466,7 +495,7 @@ Platform Administrator
   5. System logs permission changes
   6. Admin can revert to previous permission set if needed
 
-**US-016**
+**US-016** ✅ IMPLEMENTED
 
 - Title: Secure access to sensitive features
 - Description: As a system user, I want to ensure that sensitive features are only accessible to authorized personnel.
@@ -480,7 +509,7 @@ Platform Administrator
 
 ### Edge Cases and Alternative Flows
 
-**US-017**
+**US-017** ✅ IMPLEMENTED
 
 - Title: Handle account lockout
 - Description: As a user who has been locked out due to failed login attempts, I want to regain access to my account securely.
@@ -492,7 +521,7 @@ Platform Administrator
   5. System logs all lockout and unlock events
   6. Admin can manually unlock accounts if necessary
 
-**US-018**
+**US-018** 🔄 PLANNED
 
 - Title: Manage concurrent sessions
 - Description: As a security-conscious user, I want to view and manage my active sessions to ensure account security.
@@ -504,7 +533,7 @@ Platform Administrator
   5. Terminated sessions require re-authentication
   6. User receives notification of new logins on different devices
 
-**US-019**
+**US-019** 🔄 PLANNED
 
 - Title: Transfer staff responsibilities
 - Description: As a rescue manager, I want to transfer a staff member's responsibilities to another staff member when they leave.
@@ -516,7 +545,7 @@ Platform Administrator
   5. Both staff members receive notification of transfer
   6. Transfer can be undone within 24 hours if made in error
 
-**US-020**
+**US-020** 🔄 PLANNED
 
 - Title: Implement emergency access protocol
 - Description: As a platform administrator, I want to implement emergency access protocols for critical situations.
@@ -532,16 +561,39 @@ Platform Administrator
 
 ### 4.1 Feature Roadmap
 
-- Social Authentication: Login with Google, Facebook, etc.
-- Multi-Factor Authentication: Additional security layer
-- Advanced Access Control: Context-based permissions
-- User Activity Dashboard: Track user actions and history
-- API Key Management: Generate and manage API keys for integration
-- Single Sign-On: Enterprise SSO integration
-- Biometric Authentication: Fingerprint and facial recognition
-- Delegated Administration: Hierarchical admin privileges
+#### Short-term Priorities (Next Release)
+
+- **Notification Preferences Management** (US-009): Allow users to customize how they receive notifications.
+- **Concurrent Session Management** (US-018): Provide users with visibility and control over their active sessions.
+- **Custom Role Creation** (US-014): Enable administrators to create roles with tailored permissions.
+
+#### Medium-term Priorities
+
+- **Role Permission Modification** (US-015): Allow fine-grained control of permissions for each role.
+- **Staff Responsibility Transfer** (US-019): Enable smooth transition when staff members leave.
+- **Emergency Access Protocol** (US-020): Implement secure emergency access procedures.
+- **Social Authentication**: Login with Google, Facebook, etc.
+- **Multi-Factor Authentication**: Additional security layer for sensitive accounts.
+
+#### Long-term Vision
+
+- **Advanced Access Control**: Context-based permissions
+- **User Activity Dashboard**: Track user actions and history
+- **API Key Management**: Generate and manage API keys for integration
+- **Single Sign-On**: Enterprise SSO integration
+- **Biometric Authentication**: Fingerprint and facial recognition
+- **Delegated Administration**: Hierarchical admin privileges
 
 ### 4.2 Technical Improvements
+
+#### Planned Technical Enhancements
+
+- Enhance preference management data model and API
+- Implement session tracking and management infrastructure
+- Develop custom role creation and management interfaces
+- Add audit trail visualization for security monitoring
+
+#### Future Technical Direction
 
 - Move to OAuth 2.0 framework
 - Implement OpenID Connect

@@ -4,7 +4,7 @@
 
 ### 1.1 Document Title & Version
 
-Application Management System PRD v1.0
+Application Management System PRD v1.1
 
 ### 1.2 Product Summary
 
@@ -47,13 +47,35 @@ interface ApplicationAttributes {
 ApplicationCoreQuestions Model:
 
 ```typescript
-interface ApplicationCoreQuestionsAttributes {
-	question_id: string;
+// Question categories
+type QuestionCategory =
+	| 'PERSONAL_INFORMATION'
+	| 'HOUSEHOLD_INFORMATION'
+	| 'PET_OWNERSHIP_EXPERIENCE'
+	| 'LIFESTYLE_COMPATIBILITY'
+	| 'PET_CARE_COMMITMENT'
+	| 'REFERENCES_VERIFICATION'
+	| 'FINAL_ACKNOWLEDGMENTS';
+
+// Question types
+type QuestionType =
+	| 'TEXT'
+	| 'EMAIL'
+	| 'PHONE'
+	| 'NUMBER'
+	| 'BOOLEAN'
+	| 'SELECT'
+	| 'MULTI_SELECT'
+	| 'ADDRESS';
+
+interface ApplicationCoreQuestionAttributes {
+	question_key: string;
+	category: QuestionCategory;
+	question_type: QuestionType;
 	question_text: string;
-	question_type: 'text' | 'number' | 'select' | 'multiselect' | 'boolean';
-	options?: string[]; // For select/multiselect questions
-	required: boolean;
-	order: number;
+	options?: string[];
+	is_enabled: boolean;
+	is_required: boolean;
 	created_at?: Date;
 	updated_at?: Date;
 }
@@ -65,12 +87,9 @@ ApplicationRescueQuestionConfig Model:
 interface ApplicationRescueQuestionConfigAttributes {
 	config_id: string;
 	rescue_id: string;
-	question_text: string;
-	question_type: 'text' | 'number' | 'select' | 'multiselect' | 'boolean';
-	options?: string[]; // For select/multiselect questions
-	required: boolean;
-	active: boolean;
-	order: number;
+	question_key: string;
+	is_enabled: boolean;
+	is_required: boolean;
 	created_at?: Date;
 	updated_at?: Date;
 }
@@ -81,27 +100,29 @@ interface ApplicationRescueQuestionConfigAttributes {
 Application Endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/applications` | GET | Get all applications (for rescues: their applications; for users: their submissions) |
+| `/api/applications` | GET | Get all applications (admin only) |
 | `/api/applications` | POST | Submit a new application |
-| `/api/applications/:application_id` | GET | Get details for a specific application |
-| `/api/applications/:application_id` | PUT | Update application status (rescues only) |
-| `/api/applications/:application_id` | DELETE | Delete an application (admin only) |
+| `/api/applications/rescue/:rescueId` | GET | Get all applications for a specific rescue |
+| `/api/applications/:id` | GET | Get details for a specific application |
+| `/api/applications/:id` | PUT | Update application status |
+| `/api/applications/:id` | DELETE | Delete an application |
 
 Core Questions Endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/core-questions` | GET | Get all core application questions |
+| `/api/core-questions` | GET | Get all core application questions (admin only) |
 | `/api/core-questions` | POST | Create a new core question (admin only) |
-| `/api/core-questions/:question_id` | PUT | Update a core question (admin only) |
-| `/api/core-questions/:question_id` | DELETE | Delete a core question (admin only) |
+| `/api/core-questions/:questionKey` | GET | Get a specific core question (admin only) |
+| `/api/core-questions/:questionKey` | PUT | Update a core question (admin only) |
+| `/api/core-questions/:questionKey` | DELETE | Delete a core question (admin only) |
+| `/api/core-questions/:questionKey/usage` | GET | Get usage statistics for a core question (admin only) |
 
 Rescue Question Configuration Endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/rescue-questions` | GET | Get all custom questions for the authenticated rescue |
-| `/api/rescue-questions` | POST | Create a new custom question |
-| `/api/rescue-questions/:config_id` | PUT | Update a custom question |
-| `/api/rescue-questions/:config_id` | DELETE | Delete a custom question |
+| `/api/question-configs/rescue/:rescueId` | GET | Get question configurations for a rescue |
+| `/api/question-configs/:configId` | PUT | Update a single question configuration |
+| `/api/question-configs/rescue/:rescueId/bulk` | PUT | Bulk update question configurations for a rescue |
 
 ## 2. User Personas
 
@@ -173,7 +194,7 @@ Admin
 
 ### Application Submission
 
-**US-001**
+**US-001** ✅ IMPLEMENTED
 
 - Title: Submit an adoption application
 - Description: As a potential adopter, I want to submit an application for a specific pet so that I can be considered as an adopter.
@@ -185,7 +206,7 @@ Admin
   5. User receives confirmation upon successful submission
   6. Application appears in user's application history
 
-**US-002**
+**US-002** 🔄 PLANNED
 
 - Title: Upload documents with application
 - Description: As a potential adopter, I want to upload supporting documents with my application to strengthen my case.
@@ -196,7 +217,7 @@ Admin
   4. Documents are securely stored and associated with application
   5. User can remove documents before final submission
 
-**US-003**
+**US-003** ✅ IMPLEMENTED
 
 - Title: Check application status
 - Description: As a potential adopter, I want to check the status of my submitted applications to know where I stand in the process.
@@ -207,7 +228,7 @@ Admin
   4. System provides explanations for each status type
   5. User receives notifications when status changes
 
-**US-004**
+**US-004** 🔄 PLANNED
 
 - Title: Provide additional information
 - Description: As a potential adopter, I want to respond to requests for additional information to complete my application.
@@ -218,7 +239,7 @@ Admin
   4. System tracks response time
   5. Rescue is notified when response is submitted
 
-**US-005**
+**US-005** ✅ IMPLEMENTED
 
 - Title: Access application history
 - Description: As a potential adopter, I want to view my application history to track my adoption journey.
@@ -231,7 +252,7 @@ Admin
 
 ### Application Review and Management
 
-**US-006**
+**US-006** ✅ IMPLEMENTED
 
 - Title: Review adoption applications
 - Description: As a rescue staff member, I want to review submitted applications to evaluate potential adopters.
@@ -242,7 +263,7 @@ Admin
   4. All applicant answers and documents are accessible
   5. Staff can add internal notes to applications
 
-**US-007**
+**US-007** ✅ IMPLEMENTED
 
 - Title: Process application decisions
 - Description: As a rescue staff member, I want to update the status of applications to move them through the adoption process.
@@ -253,7 +274,7 @@ Admin
   4. Applicant is automatically notified of status changes
   5. Status changes trigger appropriate next steps in the system
 
-**US-008**
+**US-008** 🔄 PLANNED
 
 - Title: Request more information from applicant
 - Description: As a rescue staff member, I want to request additional information from applicants when needed.
@@ -264,7 +285,7 @@ Admin
   4. Staff is notified when applicant responds
   5. All requests and responses are logged with the application
 
-**US-009**
+**US-009** 🔄 PLANNED
 
 - Title: Assign applications to team members
 - Description: As a rescue manager, I want to assign applications to specific staff members for review.
@@ -275,7 +296,7 @@ Admin
   4. Manager can reassign applications as needed
   5. Dashboard shows workload distribution across staff
 
-**US-010**
+**US-010** 🔄 PLANNED
 
 - Title: Access application metrics
 - Description: As a rescue manager, I want to view analytics about our applications to optimize our adoption process.
@@ -288,7 +309,7 @@ Admin
 
 ### Application Configuration
 
-**US-011**
+**US-011** ✅ IMPLEMENTED
 
 - Title: Create custom application questions
 - Description: As a rescue manager, I want to create custom questions for our applications to gather information specific to our needs.
@@ -299,7 +320,7 @@ Admin
   4. Questions can be activated or deactivated
   5. Changes are reflected immediately in new applications
 
-**US-012**
+**US-012** 🔄 PLANNED
 
 - Title: Set up application templates
 - Description: As a rescue manager, I want to create application templates for different pet types to streamline our process.
@@ -310,7 +331,7 @@ Admin
   4. Templates can be duplicated and modified
   5. Changes to templates don't affect in-progress applications
 
-**US-013**
+**US-013** 🔄 PLANNED
 
 - Title: Preview application form
 - Description: As a rescue manager, I want to preview how our application form appears to users before activating changes.
@@ -323,7 +344,7 @@ Admin
 
 ### Security and Authentication
 
-**US-014**
+**US-014** ✅ IMPLEMENTED
 
 - Title: Secure application data access
 - Description: As a system user, I want to ensure that application data is only accessible to authorized personnel to protect privacy.
@@ -334,7 +355,7 @@ Admin
   4. Sensitive applicant data is encrypted
   5. System enforces role-based permissions for all actions
 
-**US-015**
+**US-015** 🔄 PLANNED
 
 - Title: Verify application submissions
 - Description: As a rescue staff member, I want to verify the authenticity of applications to prevent fraudulent submissions.
@@ -347,7 +368,7 @@ Admin
 
 ### Edge Cases and Alternative Flows
 
-**US-016**
+**US-016** 🔄 PLANNED
 
 - Title: Recover draft applications
 - Description: As a potential adopter, I want to recover an incomplete application if I'm interrupted during the process.
@@ -358,7 +379,7 @@ Admin
   4. Drafts are retained for at least 30 days
   5. User receives reminder about incomplete applications
 
-**US-017**
+**US-017** ✅ IMPLEMENTED
 
 - Title: Withdraw submitted application
 - Description: As a potential adopter, I want to withdraw my application if my circumstances change.
@@ -369,7 +390,7 @@ Admin
   4. Application is marked as withdrawn but retained in history
   5. Pet becomes available to other applicants immediately
 
-**US-018**
+**US-018** 🔄 PLANNED
 
 - Title: Transfer application to another pet
 - Description: As a rescue staff member, I want to transfer an application to a different pet when appropriate.
@@ -380,7 +401,7 @@ Admin
   4. Applicant is notified of the transfer
   5. Application retains its place in the review queue
 
-**US-019**
+**US-019** 🔄 PLANNED
 
 - Title: Process multiple applications at once
 - Description: As a rescue manager, I want to process multiple applications simultaneously for efficiency.
@@ -391,7 +412,7 @@ Admin
   4. Individual notifications are sent to each applicant
   5. Action is logged for each application individually
 
-**US-020**
+**US-020** 🔄 PLANNED
 
 - Title: Import existing applications
 - Description: As a rescue manager, I want to import our existing applications when migrating to the new system.
@@ -406,25 +427,47 @@ Admin
 
 ### 4.1 Feature Roadmap
 
-- Application Templates: Pre-defined application templates for different pet types
-- Automatic Screening: Initial screening of applications based on criteria
-- Reference Checking: Automated reference checking process
-- Home Visit Scheduling: Integration with calendar for scheduling home visits
-- Post-Adoption Follow-up: Schedule and track post-adoption check-ins
-- Application Scoring: Automated scoring system to prioritize applications
-- Video Submission: Allow applicants to submit video introductions
-- Cross-Rescue Applications: Enable applying to multiple rescues with one application
+#### Short-term (Next Release)
+
+- Document Upload: Allow applicants to upload supporting documents (US-002)
+- Additional Information Requests: Enable rescue staff to request additional information from applicants (US-008)
+- Draft Applications: Allow users to save and recover draft applications (US-016)
+- Application Form Preview: Enable rescue managers to preview application forms before publishing (US-013)
+
+#### Medium-term (3-6 Months)
+
+- Application Templates: Pre-defined application templates for different pet types (US-012)
+- Application Assignment: Assign applications to specific staff members for review (US-009)
+- Bulk Application Processing: Process multiple applications simultaneously (US-019)
+- Application Verification: Verify the authenticity of application submissions (US-015)
+
+#### Long-term (6+ Months)
+
+- Application Metrics Dashboard: Analytics and reporting for applications (US-010)
+- Application Transfer: Transfer applications between pets (US-018)
+- Application Import/Export: Import existing applications from other systems (US-020)
+- Automatic Application Screening: Initial screening of applications based on criteria
+- Applicant Background Checks: Integration with background check services
+- Application Reminders: Automated reminders for incomplete applications
+- Interview Scheduling: Schedule and manage interviews with applicants
 
 ### 4.2 Technical Improvements
 
+#### Short-term
+
+- Performance optimization for application form loading
+- Enhanced validation for application submissions
+- Improved notification system for application status changes
+
+#### Medium-term
+
+- API endpoints for third-party application integrations
+- Application data analytics and reporting engine
+- Advanced search and filtering capabilities for applications
+
+#### Long-term
+
 - Machine learning for application scoring and matching
-- Fraud detection for application verification
-- Integration with external background check services
-- Advanced analytics for application processing metrics
-- Blockchain verification for application authenticity
+- Multi-language support for application forms
 - Mobile application submission optimization
 - Accessibility enhancements for users with disabilities
-<<<<<<< HEAD
-=======
-
->>>>>>> 7003dc5 (✨ Update Product Requirements Documents for Enhanced Clarity and Structure)

@@ -4,7 +4,7 @@
 
 ### 1.1 Document Title & Version
 
-Pet Management System PRD v1.0
+Pet Management System PRD v1.2
 
 ### 1.2 Product Summary
 
@@ -12,14 +12,24 @@ The Pet Management System enables rescue organizations to list, manage, and show
 
 #### 1.2.1. Key Features
 
-- Pet Profile Management: Create and manage detailed pet profiles with comprehensive attributes
-- Pet Image Management: Upload, organize, and showcase pet photos
-- Pet Status Tracking: Track adoption status and availability of pets
-- Pet Browsing & Discovery: Enable potential adopters to discover pets through browsing and filtering
-- Pet "Swipe" Interface: Tinder-style matching system for potential adopters to express interest in pets
-- Pet Search & Filtering: Advanced search capabilities based on pet attributes and adopter preferences
+- **Pet Profile Management**: Create and manage detailed pet profiles with comprehensive attributes ✅ IMPLEMENTED
+- **Pet Image Management**: Upload, organize, and showcase pet photos ✅ IMPLEMENTED
+- **Pet Status Tracking**: Track adoption status and availability of pets ✅ IMPLEMENTED
+- **Pet Browsing & Discovery**: Enable potential adopters to discover pets through browsing and filtering ✅ IMPLEMENTED
+- **Pet "Swipe" Interface**: Tinder-style matching system for potential adopters to express interest in pets ✅ IMPLEMENTED
+- **Pet Search & Filtering**: Advanced search capabilities based on pet attributes and adopter preferences ✅ IMPLEMENTED
 
-#### 1.2.2. Technology Stack
+#### 1.2.2. Implementation Status
+
+The Pet Management System has been substantially implemented, with core functionality for pet profile management, image handling, and pet discovery features already available, including the swipe interface. Planned features, including advanced matching algorithms and favorites management, are scheduled for upcoming development cycles as detailed in the Future Enhancements section.
+
+Current implementation status:
+
+- 9 user stories fully implemented (including swipe interface)
+- 11 user stories planned for future releases
+- Core API endpoints for pet and image management functional
+
+#### 1.2.3. Technology Stack
 
 - Frontend: React + TypeScript with styled-components
 - Backend: Express + TypeScript
@@ -27,7 +37,7 @@ The Pet Management System enables rescue organizations to list, manage, and show
 - Image Storage: File system storage with multer for image uploads
 - Authentication: JWT-based authentication for secure pet management
 
-#### 1.2.3. Data Models
+#### 1.2.4. Data Models
 
 Pet Model:
 
@@ -45,7 +55,7 @@ interface PetAttributes {
 	archived?: boolean;
 	created_at?: Date;
 	updated_at?: Date;
-	images?: string[];
+	images?: string[]; // Array of image URLs
 	vaccination_status?: string;
 	breed?: string;
 	other_pets?: string;
@@ -61,58 +71,36 @@ interface PetAttributes {
 }
 ```
 
-PetImage Model:
+UserPreference Model (for storing user preferences):
 
 ```typescript
-interface PetImageAttributes {
-	image_id: string;
-	pet_id: string;
-	url: string;
-	is_primary: boolean;
-	order: number;
-	created_at: Date;
-	updated_at: Date;
-}
-```
-
-UserPetPreference Model:
-
-```typescript
-interface UserPetPreferenceAttributes {
-	preference_id: string;
+interface UserPreferenceAttributes {
+	preferences_id: string;
 	user_id: string;
-	pet_id: string;
-	status: 'liked' | 'passed' | 'matched';
-	created_at: Date;
-	updated_at: Date;
+	preference_key: string;
+	preference_value: string;
+	created_at?: Date;
+	updated_at?: Date;
 }
 ```
 
-#### 1.2.4. API Endpoints
+#### 1.2.5. API Endpoints
 
 Pet Endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/pets` | GET | Get all pets (with optional filtering) |
-| `/api/pets` | POST | Create a new pet (rescue organizations only) |
+| `/api/pets` | GET | Get all pets for the authenticated rescue |
+| `/api/pets` | POST | Create a new pet (rescue managers only) |
 | `/api/pets/:pet_id` | GET | Get details for a specific pet |
-| `/api/pets/:pet_id` | PUT | Update a pet's details (rescue organizations only) |
-| `/api/pets/:pet_id` | DELETE | Delete a pet (rescue organizations only) |
+| `/api/pets/:pet_id` | PUT | Update a pet's details (rescue managers only) |
+| `/api/pets/:pet_id` | DELETE | Delete a pet (rescue managers only) |
 
 Pet Image Endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/pets/:pet_id/images` | GET | Get all images for a pet |
-| `/api/pets/:pet_id/images` | POST | Upload new image(s) for a pet |
-| `/api/pets/:pet_id/images/:image_id` | DELETE | Delete an image from a pet |
-
-Pet Preference Endpoints:
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/preferences` | GET | Get all pet preferences for the current user |
-| `/api/preferences` | POST | Create a new pet preference (like/pass) |
-| `/api/preferences/:preference_id` | PUT | Update a preference |
-| `/api/preferences/:preference_id` | DELETE | Delete a preference |
+| `/api/pets/:petId/images` | GET | Get all images for a pet |
+| `/api/pets/:petId/images` | POST | Upload new image(s) for a pet |
+| `/api/pets/:petId/images/:imageId` | DELETE | Delete an image from a pet |
 
 ## 2. User Personas
 
@@ -177,7 +165,7 @@ Administrator
 
 ### Pet Profile Management
 
-**US-001**
+**US-001** ✅ IMPLEMENTED
 
 - Title: Create pet profile
 - Description: As a rescue staff member, I want to create a new pet profile so that potential adopters can discover the pet.
@@ -189,7 +177,7 @@ Administrator
   5. New pet appears in organization's pet list
   6. Pet is marked as "draft" until explicitly published
 
-**US-002**
+**US-002** ✅ IMPLEMENTED
 
 - Title: Upload pet images
 - Description: As a rescue staff member, I want to upload multiple images of a pet to showcase its appearance and personality.
@@ -201,7 +189,7 @@ Administrator
   5. System optimizes images for web display
   6. User can add captions to images
 
-**US-003**
+**US-003** ✅ IMPLEMENTED
 
 - Title: Edit pet details
 - Description: As a rescue staff member, I want to update a pet's information to keep it accurate and current.
@@ -213,7 +201,7 @@ Administrator
   5. Changes are reflected immediately after saving
   6. System logs who made the changes and when
 
-**US-004**
+**US-004** ✅ IMPLEMENTED
 
 - Title: Manage pet status
 - Description: As a rescue staff member, I want to update a pet's adoption status to reflect its current availability.
@@ -225,7 +213,7 @@ Administrator
   5. Adopters are notified of relevant status changes
   6. Pet search results are updated to reflect new status
 
-**US-005**
+**US-005** ✅ IMPLEMENTED
 
 - Title: Archive pet listings
 - Description: As a rescue staff member, I want to archive pets that have been adopted or are no longer available.
@@ -239,7 +227,7 @@ Administrator
 
 ### Pet Discovery and Browsing
 
-**US-006**
+**US-006** ✅ IMPLEMENTED
 
 - Title: Browse pets with swipe interface
 - Description: As a potential adopter, I want to browse available pets using a swipe interface for a fun, engaging experience.
@@ -251,7 +239,7 @@ Administrator
   5. Interface is responsive and works on mobile devices
   6. User can tap to view more details about the pet
 
-**US-007**
+**US-007** ✅ IMPLEMENTED
 
 - Title: Search for specific pets
 - Description: As a potential adopter, I want to search for pets with specific characteristics to find ones that match my preferences.
@@ -263,7 +251,7 @@ Administrator
   5. User can save search criteria for future use
   6. Search remembers recent searches
 
-**US-008**
+**US-008** ✅ IMPLEMENTED
 
 - Title: View detailed pet profile
 - Description: As a potential adopter, I want to view comprehensive information about a pet to determine if it's a good match for me.
@@ -275,7 +263,7 @@ Administrator
   5. User can express interest directly from profile
   6. User can share pet profile with others
 
-**US-009**
+**US-009** 🔄 PLANNED
 
 - Title: Save favorite pets
 - Description: As a potential adopter, I want to save pets I'm interested in to a favorites list for later consideration.
@@ -287,7 +275,7 @@ Administrator
   5. User receives notification if favorite pet status changes
   6. Favorites are synchronized across devices
 
-**US-010**
+**US-010** 🔄 PLANNED
 
 - Title: Filter pets by location
 - Description: As a potential adopter, I want to find pets near my location to make the adoption process more convenient.
@@ -301,7 +289,7 @@ Administrator
 
 ### Pet Matching and Recommendations
 
-**US-011**
+**US-011** 🔄 PLANNED
 
 - Title: Receive pet recommendations
 - Description: As a potential adopter, I want to receive personalized pet recommendations based on my preferences and behavior.
@@ -313,7 +301,7 @@ Administrator
   5. User can provide feedback on recommendation quality
   6. Recommendations include explanation of why pet was suggested
 
-**US-012**
+**US-012** 🔄 PLANNED
 
 - Title: Match with compatible pets
 - Description: As a potential adopter, I want the system to match me with pets that are compatible with my lifestyle and requirements.
@@ -325,7 +313,7 @@ Administrator
   5. User can view explanation of match factors
   6. Rescue organizations can see potential matches for their pets
 
-**US-013**
+**US-013** ✅ IMPLEMENTED
 
 - Title: Express interest in a pet
 - Description: As a potential adopter, I want to express interest in a pet to initiate the adoption process.
@@ -339,7 +327,7 @@ Administrator
 
 ### Pet Data Management
 
-**US-014**
+**US-014** 🔄 PLANNED
 
 - Title: Bulk manage pets
 - Description: As a rescue staff member, I want to perform actions on multiple pets simultaneously to save time.
@@ -351,7 +339,7 @@ Administrator
   5. System provides feedback on successful completion
   6. Bulk actions are logged for audit purposes
 
-**US-015**
+**US-015** 🔄 PLANNED
 
 - Title: Import pets from spreadsheet
 - Description: As a rescue staff member, I want to import multiple pet profiles from a spreadsheet to quickly add new pets.
@@ -363,7 +351,7 @@ Administrator
   5. Error report identifies issues with invalid entries
   6. Import history is maintained for reference
 
-**US-016**
+**US-016** 🔄 PLANNED
 
 - Title: Generate pet reports
 - Description: As a rescue administrator, I want to generate reports on our pets to track adoption metrics and trends.
@@ -377,7 +365,7 @@ Administrator
 
 ### Edge Cases and Alternative Flows
 
-**US-017**
+**US-017** 🔄 PLANNED
 
 - Title: Handle pet transfer between rescues
 - Description: As a rescue administrator, I want to transfer a pet to another rescue organization when appropriate.
@@ -389,7 +377,7 @@ Administrator
   5. Both organizations receive confirmation of transfer
   6. Transfer is logged for audit purposes
 
-**US-018**
+**US-018** 🔄 PLANNED
 
 - Title: Manage duplicate pet listings
 - Description: As a platform administrator, I want to identify and manage duplicate pet listings to maintain data integrity.
@@ -401,7 +389,7 @@ Administrator
   5. Affected rescue organizations are notified
   6. Merged listings maintain complete history
 
-**US-019**
+**US-019** ✅ IMPLEMENTED
 
 - Title: Handle pet return after adoption
 - Description: As a rescue staff member, I want to reactivate a pet profile when a pet is returned after adoption.
@@ -413,7 +401,7 @@ Administrator
   5. Return reason can be documented privately
   6. Pet can be marked with special "returned" status if needed
 
-**US-020**
+**US-020** 🔄 PLANNED
 
 - Title: Manage sensitive pet information
 - Description: As a rescue staff member, I want to manage sensitive information about a pet that should only be visible to approved adopters.
@@ -427,24 +415,81 @@ Administrator
 
 ## 4. Future Enhancements
 
-### 4.1 Feature Roadmap
+The Pet Management System will evolve with additional features in future releases:
 
-- Virtual Pet Meet & Greet: Schedule virtual meetings with pets
-- Adoption Timeline: Track the pet's journey from listing to adoption
-- Success Stories: Share adoption success stories
-- Behavioral Assessment: Standardized behavioral profiles for pets
-- Health Records: Digital health records and vaccination tracking
-- Foster Management: Track pets in foster homes
-- Transport Coordination: Arrange transportation for adopted pets
-- Pet DNA Testing: Integration with pet DNA services
+### Near-term Enhancements (Next 3-6 months)
 
-### 4.2 Technical Improvements
+1. **Enhanced Swipe Experience** 🔍
 
-- AI-powered breed and characteristic identification
-- Image optimization pipeline for faster loading
-- Enhanced matching algorithm with machine learning
-- Geolocation-based pet discovery
-- Automated pet description generation
-- Video support for pet profiles
-- Mobile app for on-the-go pet management
-- Integration with microchip registries
+   - Improvements to the existing swipe interface with animations and transitions
+   - Machine learning algorithms to improve pet recommendations based on swipe patterns
+   - Addition of pet matching functionality based on user preferences
+
+2. **Advanced Pet Matching Algorithm** 🔄
+
+   - Development of a sophisticated matching algorithm that pairs adopters with compatible pets
+   - Takes into account lifestyle, housing situation, experience with pets, and other factors
+   - Connection to US-012 (Match with compatible pets)
+
+3. **Favorites Management** ❤️
+
+   - Allow users to save pets to a favorites list for later consideration
+   - Notification system for status changes of favorited pets
+   - Connection to US-009 (Save favorite pets)
+
+4. **Location-based Filtering** 📍
+   - Enhanced geographic filtering options for pet discovery
+   - Integration with mapping services to show pet locations
+   - Connection to US-010 (Filter pets by location)
+
+### Medium-term Enhancements (6-12 months)
+
+1. **Virtual Pet Meet & Greet** 📱
+
+   - Virtual meeting scheduling between potential adopters and pets
+   - Video conferencing integration within the platform
+   - Recording capabilities for reference
+
+2. **Adoption Timeline Tracking** ⏱️
+
+   - Visual timeline of the adoption process for each pet
+   - Milestone tracking from initial listing to adoption completion
+   - Automated notifications for timeline updates
+
+3. **Advanced Pet Data Management** 📊
+
+   - Bulk import/export capabilities for rescue organizations
+   - Advanced reporting and analytics on pet data
+   - Connection to US-015 (Import pets from spreadsheet) and US-016 (Generate pet reports)
+
+4. **Pet Transfer System** 🔄
+   - Streamlined process for transferring pets between rescue organizations
+   - Documentation and approval workflow
+   - Connection to US-017 (Handle pet transfer between rescues)
+
+### Long-term Enhancements (12+ months)
+
+1. **AI-powered Breed Identification** 🤖
+
+   - Automatic breed identification from uploaded photos
+   - Suggest likely breed mixes for mixed-breed pets
+   - Highlight breed-specific information and care requirements
+
+2. **Post-Adoption Support** 🏠
+
+   - Resources and tools for new pet owners
+   - Check-in system to monitor adoption success
+   - Community features for adopters to share experiences
+
+3. **Integration with Smart Pet Technology** 📡
+
+   - Connect with smart collars, feeders, and other pet tech
+   - Tracking of pet health metrics
+   - Data sharing with veterinarians and pet care providers
+
+4. **Advanced Privacy Controls** 🔒
+   - Granular control over sensitive pet information
+   - Role-based access control for different types of users
+   - Connection to US-020 (Manage sensitive pet information)
+
+These enhancements will be prioritized based on user feedback, adoption rates, and strategic business goals.
