@@ -1,4 +1,9 @@
 ---
+description: 
+globs: *.md
+alwaysApply: false
+---
+---
 description: Rules for all instructions where the code is being change
 globs: .md
 alwaysApply: false

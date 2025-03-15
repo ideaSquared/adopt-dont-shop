@@ -1,6 +1,7 @@
 ---
 description: Guidelines for writing React Typescript
-globs: frontend/*.ts, frontend/*.tsx
+globs: frontend/*.ts,*.tsx
+alwaysApply: false
 ---
 # React Typescript Rules
 

@@ -1,6 +1,7 @@
 ---
 description: Guidelines for witing backend ExpressJS Typescript
-globs: backend/*.ts
+globs: backend/**/*.ts
+alwaysApply: false
 ---
 # Express Best Practices  
 
