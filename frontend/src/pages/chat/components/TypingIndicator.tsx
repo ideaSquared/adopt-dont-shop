@@ -40,16 +40,29 @@ interface TypingUser {
 
 interface TypingIndicatorProps {
   chatId: string
+  parentSocketConnection?: { isConnected: boolean }
 }
 
-export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ chatId }) => {
+export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
+  chatId,
+  parentSocketConnection,
+}) => {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
-  const { on, emit } = useSocket({
-    url: import.meta.env.VITE_SOCKET_URL || '',
-    token: localStorage.getItem('token') || '',
+
+  // With our singleton pattern, we don't need to create a new socket
+  // Just use the existing one for event handling
+  // (no need to pass URL/token since it will use the global instance)
+  const { on } = useSocket({
+    url: '',
+    token: '',
   })
 
   useEffect(() => {
+    // If parent socket isn't connected, don't set up typing handlers
+    if (!parentSocketConnection?.isConnected) {
+      return
+    }
+
     const handleUserStartTyping = (data: TypingUser) => {
       setTypingUsers((prev) => {
         if (prev.some((user) => user.user_id === data.user_id)) return prev
@@ -63,6 +76,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ chatId }) => {
       )
     }
 
+    // Register handlers
     const cleanup = [
       on('user_start_typing', handleUserStartTyping),
       on('user_stop_typing', handleUserStopTyping),
@@ -71,7 +85,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ chatId }) => {
     return () => {
       cleanup.forEach((unsub) => unsub?.())
     }
-  }, [on])
+  }, [on, parentSocketConnection])
 
   const getTypingText = () => {
     if (typingUsers.length === 0) return ''

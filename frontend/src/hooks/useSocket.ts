@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { useAlert } from '../contexts/alert/AlertContext'
 import { useErrorHandler } from './useErrorHandler'
@@ -8,6 +8,15 @@ const MAX_RECONNECTION_ATTEMPTS = 5
 const BASE_RECONNECTION_DELAY = 2000 // 2 seconds base delay
 const ERROR_DISPLAY_DELAY = 3000 // Wait 3 seconds before showing error
 
+// Global singleton socket instance
+let globalSocket: Socket | null = null
+let globalSocketOptions: { url: string; token: string } | null = null
+let isConnecting = false
+let connectionPromise: Promise<Socket> | null = null
+const connectedCallbacks: Array<() => void> = []
+const disconnectedCallbacks: Array<() => void> = []
+const errorCallbacks: Array<(error: Error) => void> = []
+
 interface UseSocketOptions {
   url: string
   token: string
@@ -16,218 +25,256 @@ interface UseSocketOptions {
   onError?: (error: Error) => void
 }
 
+// Define a return type for the useSocket hook
+interface UseSocketReturn {
+  socket: Socket | null
+  isConnected: boolean
+  isConnecting: boolean
+  connect: () => void
+  disconnect: () => void
+  on: <T = any>(
+    event: string,
+    callback: (data: T) => void,
+  ) => (() => void) | undefined
+  emit: (event: string, data: any) => boolean
+}
+
+/**
+ * Creates or returns a singleton socket instance
+ */
+const getSocket = async (url: string, token: string): Promise<Socket> => {
+  // If we already have a socket with the same options, return it
+  if (
+    globalSocket &&
+    globalSocket.connected &&
+    globalSocketOptions?.url === url &&
+    globalSocketOptions?.token === token
+  ) {
+    return globalSocket
+  }
+
+  // If we're already connecting, return the promise
+  if (isConnecting && connectionPromise) {
+    return connectionPromise
+  }
+
+  // Clean up any existing socket before creating a new one
+  if (globalSocket) {
+    try {
+      globalSocket.removeAllListeners()
+      globalSocket.disconnect()
+      globalSocket.close()
+    } catch (err) {
+      console.error('Error cleaning up global socket:', err)
+    }
+    globalSocket = null
+  }
+
+  isConnecting = true
+
+  // Create a new promise for the connection
+  connectionPromise = new Promise<Socket>((resolve, reject) => {
+    try {
+      const socket = io(url, {
+        auth: { token },
+        transports: ['websocket'],
+        upgrade: false,
+        reconnection: true, // Enable built-in reconnection
+        reconnectionAttempts: MAX_RECONNECTION_ATTEMPTS,
+        reconnectionDelay: BASE_RECONNECTION_DELAY,
+        timeout: INITIAL_TIMEOUT,
+        forceNew: true, // Force a new connection
+      })
+
+      socket.on('connect', () => {
+        console.log('Global socket connected successfully')
+        isConnecting = false
+        globalSocket = socket
+        globalSocketOptions = { url, token }
+
+        // Notify all listeners
+        connectedCallbacks.forEach((callback) => callback())
+
+        resolve(socket)
+      })
+
+      socket.on('connect_error', (err) => {
+        console.error('Global socket connection error:', err)
+
+        // Only reject if we're in the connection process
+        if (isConnecting) {
+          isConnecting = false
+          reject(err)
+        }
+
+        // Notify error listeners
+        errorCallbacks.forEach((callback) => callback(err))
+      })
+
+      socket.on('disconnect', (reason) => {
+        console.log('Global socket disconnected:', reason)
+
+        // Notify disconnect listeners
+        disconnectedCallbacks.forEach((callback) => callback())
+      })
+
+      // Start connection
+      socket.connect()
+    } catch (err) {
+      console.error('Failed to initialize global socket:', err)
+      isConnecting = false
+      reject(err)
+    }
+  })
+
+  return connectionPromise
+}
+
 export const useSocket = ({
   url,
   token,
   onConnect,
   onDisconnect,
   onError,
-}: UseSocketOptions) => {
-  const [isConnected, setIsConnected] = useState(false)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const socketRef = useRef<Socket | null>(null)
-  const reconnectAttemptsRef = useRef(0)
-  const timersRef = useRef<{
-    connection?: NodeJS.Timeout
-    reconnection?: NodeJS.Timeout
-    error?: NodeJS.Timeout
-  }>({})
-  const isActiveRef = useRef(true)
+}: UseSocketOptions): UseSocketReturn => {
+  const [isConnected, setIsConnected] = useState<boolean>(
+    globalSocket?.connected || false,
+  )
+  const [isSocketConnecting, setIsSocketConnecting] =
+    useState<boolean>(isConnecting)
   const { showAlert } = useAlert()
   const { handleError } = useErrorHandler()
 
-  const clearTimers = useCallback(() => {
-    Object.values(timersRef.current).forEach((timer) => {
-      if (timer) clearTimeout(timer)
-    })
-    timersRef.current = {}
-  }, [])
-
-  const cleanupSocket = useCallback(() => {
-    if (socketRef.current) {
-      try {
-        socketRef.current.removeAllListeners()
-        socketRef.current.disconnect()
-        socketRef.current.close()
-      } catch (err) {
-        console.error('Error cleaning up socket:', err)
-      }
-      socketRef.current = null
-    }
-  }, [])
-
-  const getReconnectionDelay = useCallback(() => {
-    return Math.min(
-      BASE_RECONNECTION_DELAY * Math.pow(2, reconnectAttemptsRef.current),
-      32000,
-    )
-  }, [])
-
+  // Connect to the socket
   const connect = useCallback(() => {
-    if (!isActiveRef.current || isConnecting || socketRef.current?.connected) {
-      return
-    }
+    if (!url || !token) return
 
-    try {
-      setIsConnecting(true)
-      clearTimers()
-      cleanupSocket()
+    setIsSocketConnecting(true)
 
-      const socket = io(url, {
-        auth: { token },
-        transports: ['websocket'],
-        upgrade: false,
-        reconnection: false,
-        timeout: INITIAL_TIMEOUT,
-        forceNew: true,
-        autoConnect: false,
-      })
-
-      socketRef.current = socket
-
-      // Set connection timeout
-      timersRef.current.connection = setTimeout(() => {
-        if (!isActiveRef.current || socket.connected) return
-
-        console.log('Connection timeout reached')
-        cleanupSocket()
-        setIsConnecting(false)
-
-        if (reconnectAttemptsRef.current < MAX_RECONNECTION_ATTEMPTS) {
-          reconnectAttemptsRef.current++
-          const delay = getReconnectionDelay()
-
-          if (reconnectAttemptsRef.current > 1) {
-            showAlert({
-              type: 'warning',
-              message: `Connection attempt failed. Retrying in ${delay / 1000} seconds...`,
-            })
-          }
-
-          timersRef.current.reconnection = setTimeout(connect, delay)
-        } else {
-          handleError('Connection timeout. Please refresh the page.')
-          onError?.(new Error('Connection timeout'))
-        }
-      }, INITIAL_TIMEOUT)
-
-      socket.on('connect', () => {
-        if (!isActiveRef.current) return
-        console.log('Socket connected successfully')
-        clearTimers()
-        reconnectAttemptsRef.current = 0
-        setIsConnecting(false)
-        setIsConnected(true)
-        onConnect?.()
-      })
-
-      socket.on('connect_error', (err) => {
-        if (!isActiveRef.current) return
-        console.error('Socket connection error:', err)
-        clearTimers()
-        cleanupSocket()
-        setIsConnecting(false)
-        setIsConnected(false)
-
-        if (reconnectAttemptsRef.current < MAX_RECONNECTION_ATTEMPTS) {
-          reconnectAttemptsRef.current++
-          const delay = getReconnectionDelay()
-
-          if (reconnectAttemptsRef.current > 1) {
-            timersRef.current.error = setTimeout(() => {
-              showAlert({
-                type: 'warning',
-                message: `Connection attempt failed. Retrying in ${delay / 1000} seconds...`,
-              })
-            }, ERROR_DISPLAY_DELAY)
-          }
-
-          timersRef.current.reconnection = setTimeout(connect, delay)
-        } else {
-          handleError(
-            'Unable to establish connection after multiple attempts. Please refresh the page.',
-            err,
-          )
-          onError?.(err)
+    getSocket(url, token)
+      .then((socket) => {
+        setIsConnected(socket.connected)
+        setIsSocketConnecting(false)
+        if (socket.connected && onConnect) {
+          onConnect()
         }
       })
+      .catch((err) => {
+        setIsSocketConnecting(false)
+        handleError('Failed to connect to chat server', err)
+        if (onError) onError(err)
 
-      socket.on('disconnect', (reason) => {
-        if (!isActiveRef.current) return
-        console.log('Socket disconnected:', reason)
-        setIsConnecting(false)
-        setIsConnected(false)
-        cleanupSocket()
-        onDisconnect?.()
-
-        if (
-          reason === 'io client disconnect' ||
-          reason === 'io server disconnect'
-        ) {
-          return
-        }
-
-        if (reconnectAttemptsRef.current < MAX_RECONNECTION_ATTEMPTS) {
-          const delay = getReconnectionDelay()
-          timersRef.current.error = setTimeout(() => {
-            showAlert({
-              type: 'warning',
-              message: `Connection lost. Attempting to reconnect in ${delay / 1000} seconds...`,
-            })
-          }, ERROR_DISPLAY_DELAY)
-          timersRef.current.reconnection = setTimeout(connect, delay)
-        }
+        showAlert({
+          type: 'warning',
+          message: 'Connection to chat server failed. Please try again.',
+        })
       })
+  }, [url, token, onConnect, onError, handleError, showAlert])
 
-      socket.connect()
-    } catch (err) {
-      console.error('Failed to initialize socket:', err)
-      cleanupSocket()
-      setIsConnecting(false)
-      setIsConnected(false)
-      handleError('Failed to initialize chat connection', err)
-      onError?.(err as Error)
-    }
-  }, [
-    url,
-    token,
-    isConnecting,
-    clearTimers,
-    cleanupSocket,
-    getReconnectionDelay,
-    handleError,
-    onConnect,
-    onDisconnect,
-    onError,
-    showAlert,
-  ])
-
+  // Disconnect handler - note this doesn't actually disconnect the global socket
+  // It just removes this component's listeners
   const disconnect = useCallback(() => {
-    clearTimers()
-    if (socketRef.current) {
-      socketRef.current.disconnect()
-      cleanupSocket()
-    }
-    setIsConnected(false)
-    setIsConnecting(false)
-  }, [clearTimers, cleanupSocket])
+    // We don't actually disconnect the global socket, just remove this component's listeners
+    if (globalSocket) {
+      if (onConnect) {
+        const index = connectedCallbacks.indexOf(onConnect)
+        if (index !== -1) connectedCallbacks.splice(index, 1)
+      }
 
+      if (onDisconnect) {
+        const index = disconnectedCallbacks.indexOf(onDisconnect)
+        if (index !== -1) disconnectedCallbacks.splice(index, 1)
+      }
+
+      if (onError) {
+        const index = errorCallbacks.indexOf(onError)
+        if (index !== -1) errorCallbacks.splice(index, 1)
+      }
+    }
+  }, [onConnect, onDisconnect, onError])
+
+  // Event listener registration
+  const on = useCallback(
+    <T = any>(event: string, callback: (data: T) => void) => {
+      if (!globalSocket) return undefined
+
+      globalSocket.on(event, callback)
+      return () => {
+        globalSocket?.off(event, callback)
+      }
+    },
+    [],
+  )
+
+  // Event emission
+  const emit = useCallback((event: string, data: any): boolean => {
+    if (!globalSocket || !globalSocket.connected) {
+      console.warn(`Cannot emit ${event}: Socket not connected`)
+      return false
+    }
+    globalSocket.emit(event, data)
+    return true
+  }, [])
+
+  // Setup connection state listeners
   useEffect(() => {
-    isActiveRef.current = true
-    connect()
+    if (onConnect) connectedCallbacks.push(onConnect)
+    if (onDisconnect) disconnectedCallbacks.push(onDisconnect)
+    if (onError) errorCallbacks.push(onError)
+
+    // Update local state when global socket state changes
+    const handleConnect = () => {
+      setIsConnected(true)
+      setIsSocketConnecting(false)
+    }
+
+    const handleDisconnect = () => {
+      setIsConnected(false)
+    }
+
+    const handleConnecting = () => {
+      setIsSocketConnecting(true)
+    }
+
+    if (globalSocket) {
+      globalSocket.on('connect', handleConnect)
+      globalSocket.on('disconnect', handleDisconnect)
+      globalSocket.on('connecting', handleConnecting)
+
+      // Initialize state based on current socket status
+      setIsConnected(globalSocket.connected)
+      setIsSocketConnecting(isConnecting)
+
+      // If socket is connected, call onConnect immediately
+      if (globalSocket.connected && onConnect) {
+        onConnect()
+      }
+    }
+
+    // If no connection exists, initiate one
+    if (!globalSocket && !isConnecting && url && token) {
+      connect()
+    }
 
     return () => {
-      isActiveRef.current = false
-      clearTimers()
+      if (globalSocket) {
+        globalSocket.off('connect', handleConnect)
+        globalSocket.off('disconnect', handleDisconnect)
+        globalSocket.off('connecting', handleConnecting)
+      }
+
+      // Clean up callbacks when component unmounts
       disconnect()
     }
-  }, [connect, disconnect, clearTimers])
+  }, [connect, disconnect, onConnect, onDisconnect, onError, url, token])
 
   return {
-    socket: socketRef.current,
+    socket: globalSocket,
     isConnected,
-    isConnecting,
+    isConnecting: isSocketConnecting,
     connect,
     disconnect,
+    on,
+    emit,
   }
 }

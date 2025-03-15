@@ -157,7 +157,17 @@ export default class ChatAnalyticsService {
     }
   }
 
-  private trackPerformanceEvent(
+  // Public method for components to track events
+  public trackEvent(
+    eventType: string,
+    duration: number,
+    success: boolean = true,
+    errorType?: string,
+  ): void {
+    this.trackPerformanceEvent(eventType, duration, success, errorType)
+  }
+
+  public trackPerformanceEvent(
     eventType: string,
     duration: number,
     success: boolean,

@@ -1,5 +1,5 @@
 import { Message } from '@adoptdontshop/libs/conversations'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { useAlert } from '../../contexts/alert/AlertContext'
@@ -76,6 +76,15 @@ export interface MessageReadStatus {
 export interface ExtendedMessage extends Message {
   content_format: MessageFormat
   readStatus?: MessageReadStatus[]
+  reactions?: Array<{ emoji: string; count: number; users: string[] }>
+  attachments?: Array<{
+    attachment_id: string
+    filename: string
+    originalName: string
+    mimeType: string
+    size: number
+    url: string
+  }>
 }
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
@@ -91,33 +100,42 @@ export const ChatContainer: React.FC = () => {
   const { handleError } = useErrorHandler()
   const { showAlert } = useAlert()
   const analyticsService = ChatAnalyticsService.getInstance()
-  const startTime = Date.now()
+  const startTimeRef = useRef(Date.now())
+  const hasJoinedChatRef = useRef(false)
 
-  const handleConnect = useCallback(() => {
-    if (!socket) return
-    socket.emit('join_chat', conversationId)
-    socket.emit('get_messages', { chatId: conversationId })
-    socket.emit('get_chat_status', { chatId: conversationId })
-    analyticsService.trackPerformanceEvent(
-      'socket_connect',
-      Date.now() - startTime,
-      true,
-    )
-  }, [conversationId, analyticsService])
-
-  const { socket, isConnected } = useSocket({
+  // Create a connection to the global socket
+  const { socket, isConnected, emit, on } = useSocket({
     url: SOCKET_URL,
     token: token || '',
-    onConnect: handleConnect,
+    onConnect: () => {
+      // Handle reconnections - don't duplicate join_chat calls
+      if (!hasJoinedChatRef.current && conversationId) {
+        console.log('Socket connected, joining chat:', conversationId)
+        emit('join_chat', conversationId)
+        emit('get_messages', { chatId: conversationId })
+        emit('get_chat_status', { chatId: conversationId })
+        hasJoinedChatRef.current = true
+        
+        try {
+          // Track connection time
+          const connectionTime = Date.now() - startTimeRef.current
+          analyticsService.trackEvent('socket_connect', connectionTime)
+        } catch (err) {
+          console.error('Failed to track socket connection:', err)
+        }
+      }
+    },
     onError: (error) => {
       handleError('Socket connection error', error)
       setLoading(false)
     },
   })
 
+  // Setup event listeners after connection is established
   useEffect(() => {
-    if (!socket || !isConnected) return
+    if (!isConnected || !socket) return
 
+    // Handlers for socket events
     const handleMessages = (data: ExtendedMessage[]) => {
       console.log('Received messages:', data.length)
       setMessages(
@@ -186,22 +204,22 @@ export const ChatContainer: React.FC = () => {
       )
     }
 
-    socket.on('messages', handleMessages)
-    socket.on('chat_status', handleChatStatus)
-    socket.on('new_message', handleNewMessage)
-    socket.on('message_updated', handleMessageUpdate)
-    socket.on('message_deleted', handleMessageDelete)
-    socket.on('read_status_updated', handleReadStatus)
+    // Register event listeners
+    const cleanupFunctions = [
+      on('messages', handleMessages),
+      on('chat_status', handleChatStatus),
+      on('new_message', handleNewMessage),
+      on('message_updated', handleMessageUpdate),
+      on('message_deleted', handleMessageDelete),
+      on('read_status_updated', handleReadStatus),
+    ]
 
+    // Cleanup event listeners
     return () => {
-      socket.off('messages', handleMessages)
-      socket.off('chat_status', handleChatStatus)
-      socket.off('new_message', handleNewMessage)
-      socket.off('message_updated', handleMessageUpdate)
-      socket.off('message_deleted', handleMessageDelete)
-      socket.off('read_status_updated', handleReadStatus)
+      hasJoinedChatRef.current = false
+      cleanupFunctions.forEach((cleanup) => cleanup && cleanup())
     }
-  }, [socket, isConnected])
+  }, [isConnected, socket, on, conversationId])
 
   const handleSendMessage = useCallback(
     async (message: ExtendedMessage) => {
@@ -213,7 +231,7 @@ export const ChatContainer: React.FC = () => {
         return
       }
 
-      if (!socket?.connected) {
+      if (!isConnected) {
         showAlert({
           type: 'error',
           message: 'Not connected to chat server',
@@ -223,28 +241,26 @@ export const ChatContainer: React.FC = () => {
 
       const startTime = Date.now()
       try {
-        socket.emit('send_message', {
+        emit('send_message', {
           chat_id: conversationId,
           content: message.content,
           content_format: message.content_format || 'plain',
         })
-        analyticsService.trackMessage(message, Date.now() - startTime)
+
+        // Track message using the public method
+        analyticsService.trackEvent('message_send', Date.now() - startTime)
       } catch (err) {
         handleError('Failed to send message', err)
-        analyticsService.trackPerformanceEvent(
-          'message_send',
-          Date.now() - startTime,
-          false,
-        )
       }
     },
     [
       chatStatus,
-      socket,
+      isConnected,
       conversationId,
       showAlert,
       analyticsService,
       handleError,
+      emit,
     ],
   )
 
@@ -266,9 +282,11 @@ export const ChatContainer: React.FC = () => {
           conversationId={conversationId || ''}
           onSendMessage={handleSendMessage}
           status={chatStatus}
+          socketConnection={{
+            isConnected: isConnected || false,
+          }}
         />
       </div>
     </Container>
   )
 }
-

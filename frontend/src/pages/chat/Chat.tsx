@@ -555,6 +555,8 @@ type ChatProps = {
   status?: 'active' | 'locked' | 'archived'
 
   messages: Message[]
+
+  socketConnection?: { isConnected: boolean }
 }
 
 type MessageFormat = 'plain' | 'markdown' | 'html'
@@ -665,6 +667,8 @@ export const Chat: React.FC<ChatProps> = ({
   status = 'active',
 
   messages,
+
+  socketConnection,
 }) => {
   const { user } = useUser()
 
@@ -891,13 +895,19 @@ export const Chat: React.FC<ChatProps> = ({
 
   return (
     <ChatContainer role="region" aria-label="Chat messages">
-      <ConnectionStatus isConnected={true} isConnecting={false} />
+      <ConnectionStatus
+        isConnected={socketConnection?.isConnected || false}
+        isConnecting={false}
+      />
 
       <MessageListWrapper>
         <MessageList messages={messages} renderMessage={renderMessage} />
       </MessageListWrapper>
 
-      <TypingIndicator chatId={conversationId} />
+      <TypingIndicator
+        chatId={conversationId}
+        parentSocketConnection={socketConnection}
+      />
 
       {status === 'locked' && (
         <LockedChatMessage role="alert">
@@ -960,4 +970,3 @@ export const Chat: React.FC<ChatProps> = ({
     </ChatContainer>
   )
 }
-
