@@ -1,7 +1,7 @@
 export { Applications } from './Applications'
+export { AuditLogs } from './AuditLogs'
 export { Conversations } from './Conversations'
 export { FeatureFlags } from './FeatureFlags'
-export { AuditLogs } from './AuditLogs'
 export { Pets } from './Pets'
 export { Ratings } from './Ratings'
 export { Rescue } from './Rescue'

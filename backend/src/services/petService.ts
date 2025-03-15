@@ -1,4 +1,4 @@
-import { Conversation, Rating } from '../Models'
+import { Rating } from '../Models'
 import Pet, { PetAttributes, PetCreationAttributes } from '../Models/Pet'
 
 export const getAllPets = async (): Promise<Pet[]> => {
@@ -52,7 +52,7 @@ export const updatePet = async (
 
 export const deletePet = async (petId: string): Promise<boolean> => {
   await Rating.destroy({ where: { pet_id: petId } })
-  await Conversation.destroy({ where: { pet_id: petId } })
+  // await Conversation.destroy({ where: { pet_id: petId } })
 
   const deletedCount = await Pet.destroy({ where: { pet_id: petId } })
   if (deletedCount > 0) {

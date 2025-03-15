@@ -1,105 +1,338 @@
-import React, { useEffect, useMemo, useState } from 'react'
-
-// Third-party imports
-import styled from 'styled-components'
-
-// Internal imports
 import {
   Badge,
   BaseSidebar,
   Button,
   DateTime,
-  FormInput,
+  DropdownButton,
   SelectInput,
   Table,
   TextInput,
 } from '@adoptdontshop/components'
-import {
+
+import { ConversationService } from '@adoptdontshop/libs/conversations'
+
+import type {
   Conversation,
-  ConversationService,
+  ConversationStatus,
   Message,
-} from '@adoptdontshop/libs/conversations/'
+} from '@adoptdontshop/libs/conversations/Conversation'
+
+import React, { useEffect, useMemo, useState } from 'react'
+
+import { useNavigate } from 'react-router-dom'
+
+import styled from 'styled-components'
+
+import { useAlert } from '../../contexts/alert/AlertContext'
+import { useUser } from '../../contexts/auth/UserContext'
+
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 // Style definitions
+
 const ParticipantsTitle = styled.h3`
   font-size: 1.25rem;
+
   font-weight: 500;
+
   margin-bottom: 0.5rem;
 `
 
 const ParticipantsContainer = styled.div`
   display: flex;
+
   flex-wrap: wrap;
+
   gap: 0.5rem;
+
   margin-bottom: 1rem;
 `
 
 const MessagesTitle = styled.h3`
   font-size: 1.25rem;
+
   font-weight: 500;
+
   margin-top: 1rem;
+
   margin-bottom: 0.5rem;
 `
 
 const MessageList = styled.ul`
   list-style-type: none;
-  padding: 0;
+
+  padding: 1rem;
+
   margin: 0;
+
+  max-height: 500px;
+
+  overflow-y: auto;
+
+  background-color: ${(props) => props.theme.background.body};
+
+  border-radius: 0.5rem;
+
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 `
 
 const MessageItem = styled.li`
   background-color: ${(props) => props.theme.background.contrast};
-  padding: 0.5rem;
-  border-radius: 0.25rem;
+
+  padding: 1rem;
+
+  border-radius: 0.5rem;
+
+  margin-bottom: 1rem;
+
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateX(2px);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`
+
+const MessageContent = styled.div`
+  font-size: 0.95rem;
+
+  line-height: 1.5;
+
+  margin: 0.5rem 0;
+
+  white-space: pre-wrap;
+
+  word-break: break-word;
+`
+
+const MessageHeader = styled.div`
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
   margin-bottom: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`
+
+const SenderInfo = styled.div`
+  font-weight: 600;
+
+  color: ${(props) => props.theme.text.body};
 `
 
 const TimeStamp = styled.p`
   font-size: 0.75rem;
+
   color: ${(props) => props.theme.text.dim};
-  margin-top: 0.25rem;
+
+  margin: 0;
 `
 
-// Types
-type ConversationsProps = Record<string, never>
+const MessageActionsWrapper = styled.div`
+  display: flex;
 
-export const Conversations: React.FC<ConversationsProps> = () => {
+  justify-content: flex-end;
+
+  margin-top: 0.5rem;
+
+  button {
+    padding: 0.25rem 0.75rem;
+
+    font-size: 0.85rem;
+  }
+`
+
+const ActionButtons = styled.div`
+  display: flex;
+
+  gap: 0.5rem;
+`
+
+const MessageItemHeader = styled(MessageHeader)`
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+`
+
+const MessageHeaderLeft = styled.div`
+  display: flex;
+
+  align-items: center;
+
+  gap: 1rem;
+`
+
+const MessageHeaderRight = styled.div`
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.5rem;
+`
+
+const MessageActionsContainer = styled.div`
+  display: inline-flex;
+  align-items: center;
+`
+
+const LastMessagePreview = styled.div`
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  p {
+    margin: 0;
+    display: inline;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    display: inline;
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  ul,
+  ol {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: inline;
+    &:after {
+      content: ', ';
+    }
+    &:last-child:after {
+      content: '';
+    }
+  }
+
+  code {
+    background: ${(props) => props.theme.background.contrast};
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+`
+
+// Remove all type definitions here and keep only the component props type
+
+type ConversationsProps = {
+  isAdminView?: boolean
+}
+
+interface MessageResponse {
+  messages: Message[]
+}
+
+// Add type for status
+
+const getBadgeVariant = (
+  status: ConversationStatus,
+): 'success' | 'warning' | 'danger' => {
+  switch (status) {
+    case 'active':
+      return 'success'
+
+    case 'archived':
+      return 'danger'
+
+    default:
+      return 'danger'
+  }
+}
+
+export const Conversations: React.FC<ConversationsProps> = ({
+  isAdminView = false,
+}) => {
+  const navigate = useNavigate()
+
+  const { user, rescue } = useUser()
+  const { showAlert } = useAlert()
+
   const [conversations, setConversations] = useState<Conversation[]>([])
+
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false)
-  const [searchTerm, setSearchTerm] = useState<string | null>(null)
-  const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
-  // Fetch conversations on component mount
+  const [messages, setMessages] = useState<Message[]>([])
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false)
+
+  const [searchTerm, setSearchTerm] = useState<string>('')
+
+  const [filterStatus, setFilterStatus] = useState<string>('')
+
+  const [loading, setLoading] = useState(true)
+
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch conversations
+
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const fetchedConversations =
-          await ConversationService.getConversations()
-        setConversations(fetchedConversations)
-      } catch (error) {
-        console.error('Failed to fetch conversations:', error)
+        setLoading(true)
+
+        let fetchedConversations
+
+        if (isAdminView) {
+          fetchedConversations = await ConversationService.getAllConversations()
+        } else if (rescue?.rescue_id) {
+          fetchedConversations =
+            await ConversationService.getConversationsByRescueId()
+        }
+
+        setConversations(fetchedConversations || [])
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+      } finally {
+        setLoading(false)
       }
     }
 
-    fetchConversations()
-  }, [])
+    if (isAdminView || rescue?.rescue_id) {
+      fetchConversations()
+    }
+  }, [isAdminView, rescue?.rescue_id])
 
   const filteredConversations = useMemo(() => {
     if (!conversations) return []
+
     return conversations.filter((conversation) => {
       const matchesSearch =
         !searchTerm ||
         conversation.participants.some(
           (participant) =>
-            participant.email
+            participant.participant.email
+
               .toLowerCase()
+
               .includes(searchTerm.toLowerCase()) ||
-            participant.name.toLowerCase().includes(searchTerm.toLowerCase()),
+            `${participant.participant.first_name} ${participant.participant.last_name}`
+
+              .toLowerCase()
+
+              .includes(searchTerm.toLowerCase()),
         )
+
       const matchesStatus =
         !filterStatus || conversation.status === filterStatus
 
@@ -107,7 +340,6 @@ export const Conversations: React.FC<ConversationsProps> = () => {
     })
   }, [searchTerm, filterStatus, conversations])
 
-  // Event handlers for input changes
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
   }
@@ -118,96 +350,341 @@ export const Conversations: React.FC<ConversationsProps> = () => {
     setFilterStatus(e.target.value)
   }
 
-  // Handle viewing a conversation and fetching related messages
   const handleViewConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation)
+
     setIsSidebarOpen(true)
 
     try {
-      const fetchedMessages =
-        await ConversationService.getMessagesByConversationId(
-          conversation.conversation_id,
-        )
+      const response = await ConversationService.getMessagesByConversationId(
+        conversation.chat_id,
+      )
+
+      // Extract messages from the response
+
+      const fetchedMessages = Array.isArray(response)
+        ? response
+        : (response as MessageResponse).messages || []
+
       setMessages(fetchedMessages)
     } catch (error) {
-      console.error('Failed to fetch messages:', error)
+      setError('Failed to fetch messages')
+
+      setMessages([])
     }
+  }
+
+  const handleJoinChat = (conversationId: string) => {
+    navigate(`/chat/${conversationId}`)
   }
 
   const handleCloseSidebar = () => {
     setIsSidebarOpen(false)
+
     setSelectedConversation(null)
+
     setMessages([])
+  }
+
+  const handleUpdateStatus = async (
+    chatId: string,
+    newStatus: ConversationStatus,
+  ) => {
+    try {
+      if (isAdminView) {
+        await ConversationService.updateChatStatusAdmin(chatId, newStatus)
+      } else {
+        await ConversationService.updateConversationStatus(
+          chatId,
+          newStatus,
+          rescue?.rescue_id,
+        )
+      }
+      showAlert('Chat status updated successfully', 'success')
+      handleRefreshConversations()
+    } catch (error) {
+      showAlert('Failed to update chat status', 'error')
+    }
+  }
+
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await ConversationService.deleteChat(chatId)
+      showAlert('Chat deleted successfully', 'success')
+      handleRefreshConversations()
+    } catch (error) {
+      showAlert('Failed to delete chat', 'error')
+    }
+  }
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      if (isAdminView) {
+        await ConversationService.deleteMessageAdmin(messageId)
+      } else if (selectedConversation) {
+        await ConversationService.deleteMessage(
+          messageId,
+          selectedConversation.chat_id,
+        )
+      }
+      showAlert('Message deleted successfully', 'success')
+      if (selectedConversation) {
+        const response = await ConversationService.getMessagesByConversationId(
+          selectedConversation.chat_id,
+        )
+        // Handle both array and object response formats
+        const updatedMessages = Array.isArray(response)
+          ? response
+          : (response as MessageResponse).messages || []
+        setMessages(updatedMessages)
+      }
+    } catch (error) {
+      showAlert('Failed to delete message', 'error')
+    }
+  }
+
+  const renderMessageActions = (message: Message) => {
+    const canDelete = isAdminView || message.sender_id === user?.user_id
+
+    if (!isAdminView && !canDelete) {
+      return null
+    }
+
+    if (!isAdminView) {
+      return (
+        <Button
+          variant="danger"
+          onClick={() => handleDeleteMessage(message.message_id)}
+        >
+          Delete
+        </Button>
+      )
+    }
+
+    return (
+      <MessageActionsContainer>
+        <DropdownButton
+          triggerLabel="Actions"
+          items={[
+            {
+              label: 'Delete Message',
+              onClick: () => handleDeleteMessage(message.message_id),
+            },
+          ]}
+        />
+      </MessageActionsContainer>
+    )
   }
 
   const filterOptions = [
     { value: '', label: 'All' },
-    { value: 'open', label: 'Open' },
-    { value: 'closed', label: 'Closed' },
+
+    { value: 'active', label: 'Active' },
+
+    { value: 'archived', label: 'Archived' },
   ]
+
+  const handleRefreshConversations = async () => {
+    try {
+      setLoading(true)
+
+      let fetchedConversations
+
+      if (isAdminView) {
+        fetchedConversations = await ConversationService.getAllConversations()
+      } else if (rescue?.rescue_id) {
+        fetchedConversations =
+          await ConversationService.getConversationsByRescueId()
+      }
+
+      setConversations(fetchedConversations || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const renderLastMessage = (message?: Message) => {
+    if (!message?.content) return 'No messages'
+
+    return (
+      <LastMessagePreview>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {message.content}
+        </ReactMarkdown>
+      </LastMessagePreview>
+    )
+  }
 
   return (
     <div>
-      <h1>Conversations</h1>
-      <FormInput label="Search by participant name or email">
+      <h1>{isAdminView ? 'All Conversations' : 'Rescue Conversations'}</h1>
+
+      <div style={{ marginBottom: '1rem' }}>
         <TextInput
-          value={searchTerm || ''}
           type="text"
+          placeholder="Search conversations..."
+          value={searchTerm}
           onChange={handleSearchChange}
         />
-      </FormInput>
-      <FormInput label="Filter by status">
+
         <SelectInput
-          options={filterOptions}
           value={filterStatus}
           onChange={handleStatusFilterChange}
+          options={filterOptions}
         />
-      </FormInput>
-      <Table hasActions>
+      </div>
+
+      <Table>
         <thead>
           <tr>
             <th>ID</th>
-            <th>Started By</th>
-            <th>Created At</th>
+
+            <th>User</th>
+
+            <th>Created</th>
+
             <th>Last Message</th>
+
             <th>Status</th>
-            <th>Unread Messages</th>
-            <th>Participants</th>
+
             <th>Actions</th>
           </tr>
         </thead>
+
         <tbody>
-          {filteredConversations.map((conversation) => (
-            <tr key={conversation.conversation_id}>
-              <td>{conversation.conversation_id}</td>
-              <td>{conversation.started_by}</td>
-              <td>
-                <DateTime timestamp={conversation.created_at} />
-              </td>
-              <td>{conversation.last_message}</td>
-              <td>{conversation.status}</td>
-              <td>{conversation.unread_messages}</td>
-              <td>
-                <div>
-                  {conversation.participants &&
-                  conversation.participants.length > 0
-                    ? conversation.participants
-                        .map((p) => `${p.name} (${p.email})`)
-                        .join(', ')
-                    : 'No participants'}
-                </div>
-              </td>
-              <td>
-                <Button
-                  type="button"
-                  onClick={() => handleViewConversation(conversation)}
-                >
-                  View
-                </Button>
-                <Button type="button">Close</Button>
+          {loading ? (
+            <tr>
+              <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>
+                Loading conversations...
               </td>
             </tr>
-          ))}
+          ) : error ? (
+            <tr>
+              <td
+                colSpan={6}
+                style={{
+                  textAlign: 'center',
+
+                  padding: '2rem',
+
+                  color: '#dc3545',
+                }}
+              >
+                {error}
+              </td>
+            </tr>
+          ) : filteredConversations.length === 0 ? (
+            <tr>
+              <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>
+                No conversations found
+              </td>
+            </tr>
+          ) : (
+            filteredConversations.map((conversation) => (
+              <tr key={conversation.chat_id}>
+                <td>{conversation.chat_id}</td>
+
+                <td>
+                  {conversation.participants.find((p) => p.role === 'user')
+                    ?.participant.first_name || 'Unknown'}
+                </td>
+
+                <td>
+                  <DateTime timestamp={conversation.created_at} />
+                </td>
+
+                <td>{renderLastMessage(conversation.Messages[0])}</td>
+
+                <td>
+                  <Badge variant={getBadgeVariant(conversation.status)}>
+                    {conversation.status}
+                  </Badge>
+                </td>
+
+                <td>
+                  <ActionButtons>
+                    {!isAdminView && (
+                      <Button
+                        variant="success"
+                        onClick={() => handleJoinChat(conversation.chat_id)}
+                      >
+                        Join Chat
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="info"
+                      onClick={() => handleViewConversation(conversation)}
+                    >
+                      View Details
+                    </Button>
+
+                    {isAdminView ? (
+                      <DropdownButton
+                        triggerLabel="Actions"
+                        items={[
+                          ...(conversation.status !== 'active'
+                            ? [
+                                {
+                                  label: 'Activate Chat',
+                                  onClick: () =>
+                                    handleUpdateStatus(
+                                      conversation.chat_id,
+                                      'active',
+                                    ),
+                                },
+                              ]
+                            : []),
+                          ...(conversation.status !== 'locked'
+                            ? [
+                                {
+                                  label: 'Lock Chat',
+                                  onClick: () =>
+                                    handleUpdateStatus(
+                                      conversation.chat_id,
+                                      'locked',
+                                    ),
+                                },
+                              ]
+                            : []),
+                          ...(conversation.status !== 'archived'
+                            ? [
+                                {
+                                  label: 'Archive Chat',
+                                  onClick: () =>
+                                    handleUpdateStatus(
+                                      conversation.chat_id,
+                                      'archived',
+                                    ),
+                                },
+                              ]
+                            : []),
+                          {
+                            label: 'Delete Chat',
+                            onClick: () =>
+                              handleDeleteChat(conversation.chat_id),
+                          },
+                        ]}
+                      />
+                    ) : (
+                      conversation.status === 'active' && (
+                        <Button
+                          variant="warning"
+                          onClick={() =>
+                            handleUpdateStatus(conversation.chat_id, 'archived')
+                          }
+                        >
+                          Archive
+                        </Button>
+                      )
+                    )}
+                  </ActionButtons>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </Table>
 
@@ -220,33 +697,50 @@ export const Conversations: React.FC<ConversationsProps> = () => {
         {selectedConversation && (
           <div>
             <ParticipantsTitle>Participants</ParticipantsTitle>
+
             <ParticipantsContainer>
-              {selectedConversation.participants.map((participant, index) => (
-                <Badge key={index} variant="info">
-                  {participant.name} ({participant.email})
+              {selectedConversation.participants.map((participant) => (
+                <Badge key={participant.chat_participant_id} variant="info">
+                  {participant.participant.first_name}{' '}
+                  {participant.participant.last_name} (
+                  {participant.participant.email})
                 </Badge>
               ))}
             </ParticipantsContainer>
+
             <MessagesTitle>Messages</MessagesTitle>
+
             {messages.length === 0 ? (
               <p>No messages found.</p>
             ) : (
               <MessageList>
-                {messages
+                {[...messages]
+
                   .sort(
                     (a, b) =>
-                      new Date(b.sent_at).getTime() -
-                      new Date(a.sent_at).getTime(),
+                      new Date(b.created_at).getTime() -
+                      new Date(a.created_at).getTime(),
                   )
-                  .map((message, index) => (
-                    <MessageItem key={index}>
-                      <p>
-                        <strong>{message.sender_name}:</strong>{' '}
-                        {message.message_text}
-                      </p>
-                      <TimeStamp>
-                        {new Date(message.sent_at).toLocaleString()}
-                      </TimeStamp>
+
+                  .map((message) => (
+                    <MessageItem key={message.message_id}>
+                      <MessageItemHeader>
+                        <MessageHeaderLeft>
+                          <SenderInfo>
+                            {message.User.first_name} {message.User.last_name}
+                          </SenderInfo>
+
+                          <TimeStamp>
+                            {new Date(message.created_at).toLocaleString()}
+                          </TimeStamp>
+                        </MessageHeaderLeft>
+
+                        <MessageHeaderRight>
+                          {renderMessageActions(message)}
+                        </MessageHeaderRight>
+                      </MessageItemHeader>
+
+                      <MessageContent>{message.content}</MessageContent>
                     </MessageItem>
                   ))}
               </MessageList>

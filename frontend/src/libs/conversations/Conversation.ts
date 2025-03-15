@@ -1,36 +1,43 @@
 type ID = string
 type Timestamp = string
 type Email = string
-type Status = string
+type ConversationStatus = 'active' | 'archived' | 'locked'
+
+interface User {
+  user_id: string
+  first_name: string
+  last_name: string
+  email: string
+}
+
+interface Participant {
+  chat_participant_id: string
+  chat_id: string
+  participant_id: string
+  role: 'rescue' | 'user'
+  participant: User
+}
+
+interface Message {
+  readStatus: any
+  message_id: string
+  chat_id: string
+  sender_id: string
+  content: string
+  content_format: 'plain' | 'markdown' | 'html'
+  created_at: string
+  updated_at: string
+  User: User
+}
 
 export interface Conversation {
-  conversation_id: ID
-  started_by: string
-  started_at: Timestamp
-  last_message: string
-  last_message_at: Timestamp
-  last_message_by: string
-  pet_id: ID
-  status: Status
-  unread_messages: number
-  messages_count: number
+  chat_id: string
+  application_id?: string
+  status: ConversationStatus
   created_at: Timestamp
   updated_at: Timestamp
   participants: Participant[]
-  started_by_email: Email
-  last_message_by_email: Email
+  Messages: Message[]
 }
 
-export interface Participant {
-  email: Email
-  name: string
-}
-
-export interface Message {
-  conversation_id: ID
-  sender_id: ID
-  sender_name: string
-  message_text: string
-  sent_at: Timestamp
-  status: Status
-}
+export type { ConversationStatus, Message, Participant, User }

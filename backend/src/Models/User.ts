@@ -25,6 +25,7 @@ interface UserAttributes {
   city?: string
   location?: { type: string; coordinates: [number, number] }
   Roles?: Role[] // Mark Roles as optional
+  rescue_id?: string | null // Add rescue_id
 }
 
 export interface UserCreationAttributes
@@ -49,6 +50,7 @@ class User
   public country!: string
   public city!: string
   public location!: { type: string; coordinates: [number, number] }
+  public rescue_id!: string | null // Add rescue_id
 
   // Optional Roles property
   public Roles?: Role[]
@@ -116,6 +118,14 @@ User.init(
     },
     location: {
       type: DataTypes.JSON,
+    },
+    rescue_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      references: {
+        model: 'rescues',
+        key: 'rescue_id',
+      },
     },
   },
   {

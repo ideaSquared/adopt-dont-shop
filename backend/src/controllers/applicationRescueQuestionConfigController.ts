@@ -1,6 +1,6 @@
 import { Response } from 'express'
-import { AuditLogger } from '../services/auditLogService'
 import * as RescueQuestionConfigService from '../services/applicationRescueQuestionConfigService'
+import { AuditLogger } from '../services/auditLogService'
 import { AuthenticatedRequest } from '../types'
 
 export const getRescueQuestionConfigs = async (

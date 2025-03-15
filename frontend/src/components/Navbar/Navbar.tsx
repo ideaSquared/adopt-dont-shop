@@ -132,6 +132,7 @@ const Navbar: React.FC = () => {
                 user
                   ? [
                       { label: 'Profile', to: '/settings' },
+                      { label: 'Chat', to: '/chat' },
                       { label: 'Logout', onClick: logout },
                     ]
                   : [
@@ -151,9 +152,7 @@ const Navbar: React.FC = () => {
                   triggerLabel="Verified User"
                   items={[
                     { label: 'Swipe', to: '/swipe' },
-                    ...(chatBetaEnabled
-                      ? [{ label: 'Chat', to: '/chat' }]
-                      : []),
+                    { label: 'Chat', to: '/chat' },
                   ]}
                 />
               </NavItem>
@@ -169,6 +168,7 @@ const Navbar: React.FC = () => {
                   { label: 'Pets', to: '/pets' },
                   { label: 'Staff', to: '/staff' },
                   { label: 'Settings', to: '/rescue' },
+                  { label: 'Chat', to: '/rescue/chat' },
                 ]}
               />
             </NavItem>
@@ -190,6 +190,7 @@ const Navbar: React.FC = () => {
                   { label: 'Feature flags', to: '/feature-flags' },
                   { label: 'Ratings', to: '/ratings' },
                   { label: 'Applications (Admin)', to: '/admin/applications' },
+                  { label: 'Chat (Admin)', to: '/admin/chat' },
                 ]}
               />
             </NavItem>

@@ -7,11 +7,12 @@ import {
   Settings,
   VerifyEmail,
 } from '@adoptdontshop/pages/account'
-import { Conversations } from '@adoptdontshop/pages/chat'
+import { ChatContainer } from '@adoptdontshop/pages/chat'
+import { UserConversations } from '@adoptdontshop/pages/chat/UserConversations'
 import {
-  Conversations as AdminConversations,
   Applications,
   AuditLogs,
+  Conversations,
   FeatureFlags,
   Pets,
   Ratings,
@@ -101,9 +102,9 @@ const AppContent: React.FC = () => {
           >
             <Route path="/settings" element={<Settings />} />
             <Route path="/swipe" element={<Swipe />} />
-            {chatBetaEnabled && (
-              <Route path="/chat" element={<Conversations />} />
-            )}
+            <Route path="/chat" element={<UserConversations />}>
+              <Route path=":conversationId" element={<ChatContainer />} />
+            </Route>
             <Route
               path="/apply/:rescueId/:petId"
               element={<ApplicationFormWrapper />}
@@ -131,6 +132,10 @@ const AppContent: React.FC = () => {
               element={<Dashboard isAdminView={false} />}
             />
             <Route path="/rescue" element={<Rescue />} />
+            <Route
+              path="/rescue/chat"
+              element={<Conversations isAdminView={false} />}
+            />
           </Route>
 
           {/* Admin routes */}
@@ -141,12 +146,6 @@ const AppContent: React.FC = () => {
             />
             <Route path="/admin/logs" element={<AuditLogs />} />
             <Route path="/admin/users" element={<Users />} />
-            {chatBetaEnabled && (
-              <Route
-                path="/admin/conversations"
-                element={<AdminConversations />}
-              />
-            )}
             <Route path="/admin/rescues" element={<Rescues />} />
             <Route path="/admin/feature-flags" element={<FeatureFlags />} />
             <Route path="/admin/ratings" element={<Ratings />} />
@@ -170,6 +169,10 @@ const AppContent: React.FC = () => {
             <Route
               path="/admin/applications/questions/:configId"
               element={<AdminQuestionConfigForm />}
+            />
+            <Route
+              path="/admin/chat"
+              element={<Conversations isAdminView={true} />}
             />
           </Route>
         </Routes>
