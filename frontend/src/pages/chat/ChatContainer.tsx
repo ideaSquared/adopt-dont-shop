@@ -115,7 +115,7 @@ export const ChatContainer: React.FC = () => {
         emit('get_messages', { chatId: conversationId })
         emit('get_chat_status', { chatId: conversationId })
         hasJoinedChatRef.current = true
-        
+
         try {
           // Track connection time
           const connectionTime = Date.now() - startTimeRef.current
@@ -204,6 +204,74 @@ export const ChatContainer: React.FC = () => {
       )
     }
 
+    const handleReactionUpdate = (data: {
+      message_id: string
+      emoji: string
+      user_id: string
+      isAdd: boolean
+    }) => {
+      console.log('Received reaction_updated event:', data)
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.message_id === data.message_id) {
+            const currentReactions = msg.reactions || []
+            let updatedReactions = [...currentReactions]
+
+            // Find existing reaction with the same emoji
+            const existingReactionIndex = updatedReactions.findIndex(
+              (r) => r.emoji === data.emoji,
+            )
+
+            if (data.isAdd) {
+              // Adding a reaction
+              if (existingReactionIndex >= 0) {
+                // Update existing reaction
+                const reaction = { ...updatedReactions[existingReactionIndex] }
+                if (!reaction.users.includes(data.user_id)) {
+                  reaction.count += 1
+                  reaction.users = [...reaction.users, data.user_id]
+                  updatedReactions[existingReactionIndex] = reaction
+                }
+              } else {
+                // Create new reaction
+                updatedReactions.push({
+                  emoji: data.emoji,
+                  count: 1,
+                  users: [data.user_id],
+                })
+              }
+            } else {
+              // Removing a reaction
+              if (existingReactionIndex >= 0) {
+                const reaction = { ...updatedReactions[existingReactionIndex] }
+                if (reaction.users.includes(data.user_id)) {
+                  reaction.count -= 1
+                  reaction.users = reaction.users.filter(
+                    (id) => id !== data.user_id,
+                  )
+
+                  if (reaction.count > 0) {
+                    updatedReactions[existingReactionIndex] = reaction
+                  } else {
+                    // Remove the reaction entirely if count is 0
+                    updatedReactions = updatedReactions.filter(
+                      (_, i) => i !== existingReactionIndex,
+                    )
+                  }
+                }
+              }
+            }
+
+            return {
+              ...msg,
+              reactions: updatedReactions,
+            }
+          }
+          return msg
+        }),
+      )
+    }
+
     // Register event listeners
     const cleanupFunctions = [
       on('messages', handleMessages),
@@ -212,6 +280,7 @@ export const ChatContainer: React.FC = () => {
       on('message_updated', handleMessageUpdate),
       on('message_deleted', handleMessageDelete),
       on('read_status_updated', handleReadStatus),
+      on('reaction_updated', handleReactionUpdate),
     ]
 
     // Cleanup event listeners
@@ -284,6 +353,7 @@ export const ChatContainer: React.FC = () => {
           status={chatStatus}
           socketConnection={{
             isConnected: isConnected || false,
+            emit: emit,
           }}
         />
       </div>

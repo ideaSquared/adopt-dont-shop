@@ -3,7 +3,13 @@ import jwt from 'jsonwebtoken'
 import { Op } from 'sequelize'
 import { Socket, Server as SocketIOServer } from 'socket.io'
 import { socketRateLimiter, typingRateLimiter } from '../middleware/rateLimiter'
-import { Chat, Message, MessageReadStatus, User } from '../Models'
+import {
+  Chat,
+  Message,
+  MessageReaction,
+  MessageReadStatus,
+  User,
+} from '../Models'
 import { AuditLogger } from './auditLogService'
 
 interface JwtPayload {
@@ -156,7 +162,7 @@ export class SocketService {
             return
           }
 
-          // Get messages from the database
+          // Get messages from the database with reactions
           const messages = await Message.findAll({
             where: { chat_id: chatId },
             include: [
@@ -165,12 +171,58 @@ export class SocketService {
                 as: 'User',
                 attributes: ['user_id', 'first_name', 'last_name'],
               },
+              {
+                model: MessageReadStatus,
+                as: 'readStatus',
+              },
+              {
+                model: MessageReaction,
+                as: 'reactions',
+                include: [
+                  {
+                    model: User,
+                    as: 'user',
+                    attributes: ['user_id'],
+                  },
+                ],
+              },
             ],
             order: [['created_at', 'ASC']], // Order by creation time ascending
           })
 
+          // Process messages to group reactions
+          const processedMessages = messages.map((message) => {
+            const rawMessage = message.toJSON()
+
+            // Group reactions by emoji
+            const reactionsMap = new Map()
+
+            if (rawMessage.reactions && rawMessage.reactions.length > 0) {
+              rawMessage.reactions.forEach((reaction: any) => {
+                const emoji = reaction.emoji
+
+                if (!reactionsMap.has(emoji)) {
+                  reactionsMap.set(emoji, {
+                    emoji,
+                    count: 0,
+                    users: [],
+                  })
+                }
+
+                const reactionData = reactionsMap.get(emoji)
+                reactionData.count += 1
+                reactionData.users.push(reaction.user.user_id)
+              })
+            }
+
+            return {
+              ...rawMessage,
+              reactions: Array.from(reactionsMap.values()),
+            }
+          })
+
           // Send messages back to the client
-          socket.emit('messages', messages)
+          socket.emit('messages', processedMessages)
 
           AuditLogger.logAction(
             'Socket',
@@ -303,6 +355,138 @@ export class SocketService {
           })
         },
       )
+
+      // Handle message reactions
+      socket.on('add_reaction', async ({ message_id, emoji, chat_id }) => {
+        try {
+          console.log('Received add_reaction event:', {
+            message_id,
+            emoji,
+            chat_id,
+          })
+          const userId = socket.data.userId
+          if (!userId) {
+            socket.emit('error', { message: 'Not authenticated' })
+            return
+          }
+
+          const allowed = await socketRateLimiter(userId, 'add_reaction')
+          if (!allowed) {
+            socket.emit('error', {
+              message: 'Rate limit exceeded for adding reactions',
+            })
+            return
+          }
+
+          // Find the message to ensure it exists
+          const message = await Message.findByPk(message_id)
+          if (!message) {
+            socket.emit('error', { message: 'Message not found' })
+            return
+          }
+
+          // Check if reaction already exists
+          const existingReaction = await MessageReaction.findOne({
+            where: {
+              message_id,
+              user_id: userId,
+              emoji,
+            },
+          })
+
+          // Only create if it doesn't exist
+          if (!existingReaction) {
+            await MessageReaction.create({
+              message_id,
+              user_id: userId,
+              emoji,
+            })
+          }
+
+          // Emit to all participants in the chat
+          this.io.to(`chat_${chat_id}`).emit('reaction_updated', {
+            message_id,
+            emoji,
+            user_id: userId,
+            isAdd: true,
+          })
+
+          AuditLogger.logAction(
+            'Socket',
+            `Reaction added to message ${message_id} by user ${userId}`,
+            'INFO',
+            userId,
+          )
+        } catch (error) {
+          AuditLogger.logAction(
+            'Socket',
+            `Error adding reaction: ${(error as Error).message}`,
+            'ERROR',
+          )
+          socket.emit('error', { message: 'Failed to add reaction' })
+        }
+      })
+
+      socket.on('remove_reaction', async ({ message_id, emoji, chat_id }) => {
+        try {
+          console.log('Received remove_reaction event:', {
+            message_id,
+            emoji,
+            chat_id,
+          })
+          const userId = socket.data.userId
+          if (!userId) {
+            socket.emit('error', { message: 'Not authenticated' })
+            return
+          }
+
+          const allowed = await socketRateLimiter(userId, 'remove_reaction')
+          if (!allowed) {
+            socket.emit('error', {
+              message: 'Rate limit exceeded for removing reactions',
+            })
+            return
+          }
+
+          // Find the message to ensure it exists
+          const message = await Message.findByPk(message_id)
+          if (!message) {
+            socket.emit('error', { message: 'Message not found' })
+            return
+          }
+
+          // Delete the reaction
+          await MessageReaction.destroy({
+            where: {
+              message_id,
+              user_id: userId,
+              emoji,
+            },
+          })
+
+          // Emit to all participants in the chat
+          this.io.to(`chat_${chat_id}`).emit('reaction_updated', {
+            message_id,
+            emoji,
+            user_id: userId,
+            isAdd: false,
+          })
+
+          AuditLogger.logAction(
+            'Socket',
+            `Reaction removed from message ${message_id} by user ${userId}`,
+            'INFO',
+            userId,
+          )
+        } catch (error) {
+          AuditLogger.logAction(
+            'Socket',
+            `Error removing reaction: ${(error as Error).message}`,
+            'ERROR',
+          )
+          socket.emit('error', { message: 'Failed to remove reaction' })
+        }
+      })
 
       // Handle sending messages
       socket.on(

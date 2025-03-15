@@ -1,4 +1,7 @@
-import { ConversationService, Message } from '@adoptdontshop/libs/conversations'
+import {
+  Message as BaseMessage,
+  ConversationService,
+} from '@adoptdontshop/libs/conversations'
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -23,6 +26,23 @@ import { MessageList } from './components/MessageList'
 import { FilePreview } from './components/FilePreview'
 
 import { MessageReactions } from './components/MessageReactions'
+
+// Extended Message type to include reactions
+interface Message extends BaseMessage {
+  reactions?: Array<{
+    emoji: string
+    count: number
+    users: string[]
+  }>
+  attachments?: Array<{
+    attachment_id: string
+    filename: string
+    originalName: string
+    mimeType: string
+    size: number
+    url: string
+  }>
+}
 
 // Custom debounce hook
 
@@ -547,16 +567,15 @@ type MessageItemProps = {
   isCurrentUser: boolean
 }
 
-type ChatProps = {
+export interface ChatProps {
   conversationId: string
-
-  onSendMessage: (message: Message) => void
-
+  onSendMessage: (message: Message) => Promise<void>
   status?: 'active' | 'locked' | 'archived'
-
   messages: Message[]
-
-  socketConnection?: { isConnected: boolean }
+  socketConnection?: {
+    isConnected: boolean
+    emit?: (event: string, data: any) => void
+  }
 }
 
 type MessageFormat = 'plain' | 'markdown' | 'html'
@@ -690,7 +709,7 @@ export const Chat: React.FC<ChatProps> = ({
     try {
       const startTime = Date.now()
 
-      const attachments = []
+      const attachments: any[] = []
 
       if (selectedFile) {
         // Handle file upload here
@@ -770,19 +789,38 @@ export const Chat: React.FC<ChatProps> = ({
 
   const handleReaction = async (
     messageId: string,
-
     emoji: string,
-
     isAdd: boolean,
   ) => {
     try {
+      console.log('Handling reaction:', messageId, emoji, isAdd)
+      console.log('Socket connection:', socketConnection)
+
       if (isAdd) {
         // Add reaction
-
-        analyticsService.trackReaction(messageId, emoji, user?.user_id || '')
+        if (socketConnection?.emit) {
+          console.log('Emitting add_reaction event')
+          socketConnection.emit('add_reaction', {
+            message_id: messageId,
+            emoji,
+            chat_id: conversationId,
+          })
+          analyticsService.trackReaction(messageId, emoji, user?.user_id || '')
+        } else {
+          console.error('Socket emit function not available')
+        }
       } else {
         // Remove reaction
-        // Implement reaction removal tracking if needed
+        if (socketConnection?.emit) {
+          console.log('Emitting remove_reaction event')
+          socketConnection.emit('remove_reaction', {
+            message_id: messageId,
+            emoji,
+            chat_id: conversationId,
+          })
+        } else {
+          console.error('Socket emit function not available')
+        }
       }
     } catch (error) {
       handleError('Failed to update reaction', error)
@@ -876,15 +914,24 @@ export const Chat: React.FC<ChatProps> = ({
               <MessageTime>{timestamp}</MessageTime>
             </MessageItem>
 
-            {message.attachments?.map((attachment) => (
-              <FilePreview
-                key={attachment.attachment_id}
-                file={attachment}
-                onImageClick={(url) => {
-                  // Implement image preview
-                }}
-              />
-            ))}
+            {message.attachments?.map(
+              (attachment: {
+                attachment_id: string
+                filename: string
+                originalName: string
+                mimeType: string
+                size: number
+                url: string
+              }) => (
+                <FilePreview
+                  key={attachment.attachment_id}
+                  file={attachment}
+                  onImageClick={(url) => {
+                    // Implement image preview
+                  }}
+                />
+              ),
+            )}
           </MessageBubble>
         </MessageGroup>
       )

@@ -6,7 +6,7 @@ const Container = styled.div`
   border: 1px solid ${(props) => props.theme.border.color.default};
   border-radius: ${(props) => props.theme.border.radius.md};
   padding: ${(props) => props.theme.spacing.sm};
-  box-shadow: ${(props) => props.theme.shadow.lg};
+  box-shadow: ${(props) => props.theme.shadows.lg};
   max-width: 280px;
 `
 

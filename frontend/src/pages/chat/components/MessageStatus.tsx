@@ -1,6 +1,6 @@
+import { Message } from '@adoptdontshop/libs/conversations'
 import React from 'react'
 import styled from 'styled-components'
-import { Message } from '@adoptdontshop/libs/conversations'
 
 const StatusContainer = styled.div`
   display: flex;
@@ -19,7 +19,7 @@ const StatusIcon = styled.span<{ status: 'pending' | 'sent' | 'read' }>`
   color: ${(props) => {
     switch (props.status) {
       case 'read':
-        return props.theme.status.success
+        return props.theme.text.success
       case 'sent':
         return props.theme.text.dim
       default:

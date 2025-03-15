@@ -7,6 +7,7 @@ import ChatParticipant from './ChatParticipant'
 import { FeatureFlag } from './FeatureFlag'
 import Invitation from './Invitation'
 import Message from './Message'
+import MessageReaction from './MessageReaction'
 import MessageReadStatus from './MessageReadStatus'
 import Permission from './Permission'
 import Pet from './Pet'
@@ -66,6 +67,10 @@ Message.hasMany(MessageReadStatus, {
   foreignKey: 'message_id',
   as: 'readStatus',
 })
+Message.hasMany(MessageReaction, {
+  foreignKey: 'message_id',
+  as: 'reactions',
+})
 
 // MessageReadStatus Associations
 MessageReadStatus.belongsTo(Message, {
@@ -73,6 +78,13 @@ MessageReadStatus.belongsTo(Message, {
   as: 'message',
 })
 MessageReadStatus.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
+
+// MessageReaction Associations
+MessageReaction.belongsTo(Message, {
+  foreignKey: 'message_id',
+  as: 'message',
+})
+MessageReaction.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
 
 // Pet & Rescue Associations
 Pet.belongsTo(Rescue, { foreignKey: 'owner_id' })
@@ -107,6 +119,7 @@ export {
   FeatureFlag,
   Invitation,
   Message,
+  MessageReaction,
   MessageReadStatus,
   Permission,
   Pet,

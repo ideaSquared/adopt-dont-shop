@@ -25,6 +25,7 @@ interface MessageAttributes {
   updated_at?: Date
   Chat?: Chat
   readStatus?: MessageReadStatus[]
+  reactions?: any[]
 }
 
 interface MessageCreationAttributes
