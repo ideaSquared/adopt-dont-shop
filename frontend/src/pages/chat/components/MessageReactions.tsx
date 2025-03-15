@@ -4,9 +4,8 @@ import { EmojiPicker } from './EmojiPicker'
 
 const ReactionsContainer = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: ${(props) => props.theme.spacing.xs};
-  margin-top: ${(props) => props.theme.spacing.xs};
 `
 
 const ReactionButton = styled.button<{ isActive?: boolean }>`
@@ -36,16 +35,36 @@ const ReactionButton = styled.button<{ isActive?: boolean }>`
   }
 `
 
-const AddReactionButton = styled(ReactionButton)`
-  padding: ${(props) => props.theme.spacing.xs};
+const AddReactionButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid ${(props) => props.theme.border.color.default};
+  background: ${(props) => props.theme.background.content};
   color: ${(props) => props.theme.text.dim};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${(props) => props.theme.background.mouseHighlight};
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 `
 
 const EmojiPickerContainer = styled.div`
   position: absolute;
   bottom: 100%;
-  left: 0;
+  right: 0;
   z-index: 1000;
+  margin-bottom: ${(props) => props.theme.spacing.xs};
+  box-shadow: ${(props) => props.theme.shadows.md};
 `
 
 interface Reaction {
@@ -107,18 +126,20 @@ export const MessageReactions: React.FC<MessageReactionsProps> = ({
         aria-label="Add reaction"
       >
         <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <path
-            d="M8 3v10M3 8h10"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M14.828 14.828a4 4 0 10-5.656-5.656 4 4 0 005.656 5.656z" />
+          <path d="M17.657 6.343A8 8 0 014.343 19.657 8 8 0 0117.657 6.343z" />
+          <path d="M9 12h.01" />
+          <path d="M15 12h.01" />
+          <path d="M10 16c.5.3 1.6.5 2 .5s1.5-.2 2-.5" />
         </svg>
       </AddReactionButton>
       {showEmojiPicker && (

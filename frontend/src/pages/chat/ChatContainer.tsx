@@ -210,7 +210,6 @@ export const ChatContainer: React.FC = () => {
       user_id: string
       isAdd: boolean
     }) => {
-      console.log('Received reaction_updated event:', data)
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.message_id === data.message_id) {

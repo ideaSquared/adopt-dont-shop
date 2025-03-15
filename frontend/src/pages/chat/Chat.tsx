@@ -561,6 +561,32 @@ const MessageInput = styled.textarea`
   }
 `
 
+const MessageReactionsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${(props) => props.theme.spacing.xs};
+  margin-top: ${(props) => props.theme.spacing.xs};
+`
+
+const ReactionBubble = styled.div<{ isActive?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px ${(props) => props.theme.spacing.xs};
+  border-radius: ${(props) => props.theme.border.radius.full};
+  background: ${(props) =>
+    props.isActive
+      ? props.theme.background.highlight
+      : props.theme.background.content};
+  font-size: ${(props) => props.theme.typography.size.xs};
+  border: 1px solid ${(props) => props.theme.border.color.default};
+  cursor: pointer;
+
+  &:hover {
+    background: ${(props) => props.theme.background.mouseHighlight};
+  }
+`
+
 // Types
 
 type MessageItemProps = {
@@ -793,13 +819,9 @@ export const Chat: React.FC<ChatProps> = ({
     isAdd: boolean,
   ) => {
     try {
-      console.log('Handling reaction:', messageId, emoji, isAdd)
-      console.log('Socket connection:', socketConnection)
-
       if (isAdd) {
         // Add reaction
         if (socketConnection?.emit) {
-          console.log('Emitting add_reaction event')
           socketConnection.emit('add_reaction', {
             message_id: messageId,
             emoji,
@@ -807,19 +829,18 @@ export const Chat: React.FC<ChatProps> = ({
           })
           analyticsService.trackReaction(messageId, emoji, user?.user_id || '')
         } else {
-          console.error('Socket emit function not available')
+          // Socket emit function not available - silent fail
         }
       } else {
         // Remove reaction
         if (socketConnection?.emit) {
-          console.log('Emitting remove_reaction event')
           socketConnection.emit('remove_reaction', {
             message_id: messageId,
             emoji,
             chat_id: conversationId,
           })
         } else {
-          console.error('Socket emit function not available')
+          // Socket emit function not available - silent fail
         }
       }
     } catch (error) {
@@ -913,6 +934,36 @@ export const Chat: React.FC<ChatProps> = ({
 
               <MessageTime>{timestamp}</MessageTime>
             </MessageItem>
+
+            {/* Display reactions under the message */}
+            {message.reactions && message.reactions.length > 0 && (
+              <MessageReactionsContainer>
+                {message.reactions.map((reaction) => (
+                  <ReactionBubble
+                    key={reaction.emoji}
+                    isActive={reaction.users.includes(user?.user_id || '')}
+                    onClick={() =>
+                      reaction.users.includes(user?.user_id || '')
+                        ? handleReaction(
+                            message.message_id,
+                            reaction.emoji,
+                            false,
+                          )
+                        : handleReaction(
+                            message.message_id,
+                            reaction.emoji,
+                            true,
+                          )
+                    }
+                  >
+                    <span role="img" aria-hidden="true">
+                      {reaction.emoji}
+                    </span>
+                    <span>{reaction.count}</span>
+                  </ReactionBubble>
+                ))}
+              </MessageReactionsContainer>
+            )}
 
             {message.attachments?.map(
               (attachment: {

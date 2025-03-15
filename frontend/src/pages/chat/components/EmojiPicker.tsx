@@ -10,10 +10,18 @@ const Container = styled.div`
   max-width: 280px;
 `
 
+const CategoryTitle = styled.div`
+  font-size: ${(props) => props.theme.typography.size.xs};
+  color: ${(props) => props.theme.text.dim};
+  margin-bottom: ${(props) => props.theme.spacing.xs};
+  font-weight: ${(props) => props.theme.typography.weight.medium};
+`
+
 const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: ${(props) => props.theme.spacing.xs};
+  margin-bottom: ${(props) => props.theme.spacing.sm};
 `
 
 const EmojiButton = styled.button`
@@ -39,47 +47,47 @@ interface EmojiPickerProps {
   onSelect: (emoji: string) => void
 }
 
-// Common emojis that work well for message reactions
-const COMMON_EMOJIS = [
-  '👍',
-  '👎',
-  '❤️',
-  '😀',
-  '😂',
-  '🎉',
-  '👏',
-  '🔥',
-  '💯',
-  '✨',
-  '🤔',
-  '😍',
-  '🙌',
-  '👀',
-  '💪',
-  '🙏',
-  '💖',
-  '💡',
-  '⭐',
-  '🎯',
-  '🚀',
+// Emoji categories for better organization
+const EMOJI_CATEGORIES = [
+  {
+    name: 'Common',
+    emojis: ['👍', '👎', '❤️', '😀', '😂', '👏', '🔥'],
+  },
+  {
+    name: 'Faces',
+    emojis: ['😊', '😍', '🤔', '😮', '😢', '😎', '🥳'],
+  },
+  {
+    name: 'Gestures',
+    emojis: ['👋', '🙌', '👀', '💪', '🙏', '🤝', '✌️'],
+  },
+  {
+    name: 'Symbols',
+    emojis: ['💯', '✨', '💡', '⭐', '🎯', '🚀', '🎉'],
+  },
 ]
 
 export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect }) => {
   return (
     <Container role="dialog" aria-label="Emoji picker">
-      <Grid>
-        {COMMON_EMOJIS.map((emoji) => (
-          <EmojiButton
-            key={emoji}
-            onClick={() => onSelect(emoji)}
-            aria-label={`Select ${emoji} emoji`}
-          >
-            <span role="img" aria-hidden="true">
-              {emoji}
-            </span>
-          </EmojiButton>
-        ))}
-      </Grid>
+      {EMOJI_CATEGORIES.map((category) => (
+        <div key={category.name}>
+          <CategoryTitle>{category.name}</CategoryTitle>
+          <Grid>
+            {category.emojis.map((emoji) => (
+              <EmojiButton
+                key={emoji}
+                onClick={() => onSelect(emoji)}
+                aria-label={`Select ${emoji} emoji`}
+              >
+                <span role="img" aria-hidden="true">
+                  {emoji}
+                </span>
+              </EmojiButton>
+            ))}
+          </Grid>
+        </div>
+      ))}
     </Container>
   )
 }

@@ -359,11 +359,6 @@ export class SocketService {
       // Handle message reactions
       socket.on('add_reaction', async ({ message_id, emoji, chat_id }) => {
         try {
-          console.log('Received add_reaction event:', {
-            message_id,
-            emoji,
-            chat_id,
-          })
           const userId = socket.data.userId
           if (!userId) {
             socket.emit('error', { message: 'Not authenticated' })
@@ -429,11 +424,6 @@ export class SocketService {
 
       socket.on('remove_reaction', async ({ message_id, emoji, chat_id }) => {
         try {
-          console.log('Received remove_reaction event:', {
-            message_id,
-            emoji,
-            chat_id,
-          })
           const userId = socket.data.userId
           if (!userId) {
             socket.emit('error', { message: 'Not authenticated' })
