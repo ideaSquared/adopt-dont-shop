@@ -4,7 +4,7 @@
 
 ### 1.1 Document Title & Version
 
-Pet Adoption Messaging System PRD v1.2
+Pet Adoption Messaging System PRD v1.3
 
 ### 1.2 Product Summary
 
@@ -20,17 +20,20 @@ The Pet Adoption Messaging System enables real-time communication between rescue
 - **File Attachments**: Share adoption-related documents and images ✅ IMPLEMENTED
 - **Message Reactions**: Add emoji reactions to messages ✅ IMPLEMENTED
 - **Multi-Participant Chats**: Support for conversations with multiple participants ✅ IMPLEMENTED
+- **Socket-based Real-time Updates**: Instant message delivery and status changes ✅ IMPLEMENTED
+- **Offline Support**: Connection recovery and status indicators ✅ IMPLEMENTED
 - **Analytics**: Track user engagement and system performance 🔄 PLANNED
 
 #### 1.2.2. Implementation Status
 
-The Messaging System has been substantially implemented, with core functionality for conversations, messaging, basic read receipts, typing indicators, message reactions, and multi-participant chats available. Only analytics features are planned for upcoming development cycles as detailed in the Future Enhancements section.
+The Messaging System has been substantially implemented, with core functionality for conversations, messaging, read receipts, typing indicators, message reactions, multi-participant chats, and real-time updates available. Only analytics features, content reporting, conversation reminders, and ownership transfer are planned for upcoming development cycles as detailed in the Future Enhancements section.
 
 Current implementation status:
 
-- 17 user stories fully implemented
+- 19 user stories fully implemented
 - 3 user stories planned for future releases
 - Core API endpoints for chats, messages, and participants functional
+- Socket.IO integration complete for real-time communications
 - Database models are fully implemented and optimized for current usage patterns
 
 #### 1.2.3. Technology Stack
@@ -38,7 +41,7 @@ Current implementation status:
 - Frontend: React + TypeScript with styled-components
 - Backend: Express + TypeScript
 - Database: PostgreSQL with Sequelize ORM
-- Real-time Communication: Socket.IO (planned)
+- Real-time Communication: Socket.IO ✅ IMPLEMENTED
 - Authentication: JWT-based authentication
 
 #### 1.2.4. Data Models
@@ -106,6 +109,19 @@ interface MessageReadStatusAttributes {
 }
 ```
 
+MessageReaction Model:
+
+```typescript
+interface MessageReactionAttributes {
+	reaction_id: string;
+	message_id: string;
+	user_id: string;
+	emoji: string;
+	created_at: Date;
+	updated_at: Date;
+}
+```
+
 #### 1.2.5. API Endpoints
 
 Chat Endpoints:
@@ -145,7 +161,7 @@ Admin Endpoints:
 | `/api/chats/messages/:message_id` | DELETE | Delete a specific message (admin only) |
 | `/api/chats/messages/bulk-delete` | POST | Bulk delete messages (admin only) |
 
-Socket.IO Events (Planned - Not Currently Implemented):
+Socket.IO Events (Implemented):
 | Event | Data | Description |
 |-------|------|-------------|
 | `join_chat` | `chatId: string` | Join a chat room |
@@ -155,8 +171,10 @@ Socket.IO Events (Planned - Not Currently Implemented):
 | `send_message` | `{ chat_id: string, content: string, content_format: string }` | Send a new message |
 | `typing_start` | `{ chatId: string, userId: string }` | Indicate user started typing |
 | `typing_end` | `{ chatId: string, userId: string }` | Indicate user stopped typing |
+| `add_reaction` | `{ message_id: string, emoji: string, chat_id: string }` | Add emoji reaction to a message |
+| `remove_reaction` | `{ message_id: string, emoji: string, chat_id: string }` | Remove emoji reaction from a message |
 
-Socket.IO Events (Server-to-Client - Planned):
+Socket.IO Events (Server-to-Client - Implemented):
 | Event | Data | Description |
 |-------|------|-------------|
 | `messages` | `Message[]` | Array of messages for a chat |
@@ -167,6 +185,7 @@ Socket.IO Events (Server-to-Client - Planned):
 | `user_typing` | `{ userId: string, chatId: string }` | User is typing |
 | `user_stopped_typing` | `{ userId: string, chatId: string }` | User stopped typing |
 | `read_status_updated` | `{ chat_id: string, user_id: string, message_ids: string[], read_at: Date }` | Message(s) marked as read |
+| `reaction_updated` | `{ message_id: string, emoji: string, user_id: string, isAdd: boolean }` | Reaction added or removed |
 | `error` | `{ message: string }` | Error message |
 
 #### 1.2.6. Implementation References
@@ -179,18 +198,20 @@ The Messaging System has been implemented across several key files in the codeba
 - `backend/src/Models/ChatParticipant.ts` - Handles chat participant relationships
 - `backend/src/Models/Message.ts` - Manages message storage with search capabilities
 - `backend/src/Models/MessageReadStatus.ts` - Tracks message read receipts
+- `backend/src/Models/MessageReaction.ts` - Manages emoji reactions on messages
 
-**Backend Routes and Controllers:**
+**Backend Services:**
 
-- `backend/src/routes/chatRoutes.ts` - Defines all chat and message API endpoints
-- `backend/src/controllers/chatController.ts` - Implements chat management logic
+- `backend/src/services/socketService.ts` - Implements real-time communication with Socket.IO
 - `backend/src/controllers/messageController.ts` - Handles message operations
 
 **Frontend Components:**
 
-- `frontend/src/components/chat/` - Contains UI components for the chat interface
-- `frontend/src/pages/Messages.tsx` - Main messaging interface
-- `frontend/src/hooks/useChat.ts` - Custom hook for chat data management
+- `frontend/src/pages/chat/Chat.tsx` - Main chat interface component
+- `frontend/src/pages/chat/ChatContainer.tsx` - Container component for chat management
+- `frontend/src/pages/chat/components/MessageReactions.tsx` - Handles emoji reactions UI
+- `frontend/src/pages/chat/components/EmojiPicker.tsx` - Component for selecting emoji reactions
+- `frontend/src/hooks/useSocket.ts` - Custom hook for socket connection management
 
 These files contain the implementation of the user stories outlined in this document, with the planned features marked accordingly.
 
@@ -381,11 +402,14 @@ Administrator
 
 **Acceptance Criteria:**
 
-- User can select from a standard set of emoji reactions
-- Reactions are visible to all participants
+- User can select from a standard set of emoji reactions organized by categories
+- Reactions are visible to all participants in real-time
 - Multiple reactions can be added to a single message
 - User can remove their own reactions
 - Reactions show count and list of users who reacted
+- Reactions appear directly under the message bubble
+- Reactions can be toggled by clicking on existing reactions
+- Emoji picker is accessible and follows accessibility standards
 
 #### US-010: Receive Message Notifications ✅ IMPLEMENTED
 
@@ -456,6 +480,8 @@ Administrator
 - User is notified of connection status (connected/disconnected)
 - Message history is synchronized after reconnection
 - System provides retry options for failed message sends
+- Connection status is visually indicated in the UI
+- System automatically attempts to reconnect on connection loss
 
 #### US-015: Handle Message Delivery Failures ✅ IMPLEMENTED
 
@@ -549,12 +575,6 @@ Administrator
 
 #### Short-term (Next Release)
 
-- **Real-time Messaging with Socket.IO** 🔌
-
-  - Implement Socket.IO for real-time communication
-  - Replace current polling mechanism with push-based updates
-  - Enable instant message delivery and status updates
-
 - **Content Reporting** 🚩
 
   - Allow users to report inappropriate content (US-013)
@@ -621,7 +641,6 @@ Administrator
 
 #### Short-term
 
-- Socket.IO integration for real-time updates
 - Optimized database queries for high message volume
 - Enhanced error handling and recovery
 - Performance monitoring and analytics
