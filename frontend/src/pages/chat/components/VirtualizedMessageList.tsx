@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
-import styled from 'styled-components'
 import { Message } from '@adoptdontshop/libs/conversations'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import styled from 'styled-components'
 
 const ListContainer = styled.div`
   flex: 1;
@@ -71,10 +71,10 @@ export const VirtualizedMessageList: React.FC<VirtualizedMessageListProps> = ({
     {},
   )
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (!containerRef.current) return
 
-    const { scrollTop, clientHeight, scrollHeight } = containerRef.current
+    const { scrollTop, clientHeight } = containerRef.current
     const bufferSize = 20 // Number of items to render above and below visible area
 
     // Calculate visible range based on scroll position
@@ -86,7 +86,7 @@ export const VirtualizedMessageList: React.FC<VirtualizedMessageListProps> = ({
     )
 
     setVisibleRange({ start, end })
-  }
+  }, [messages.length])
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -107,7 +107,7 @@ export const VirtualizedMessageList: React.FC<VirtualizedMessageListProps> = ({
         container.removeEventListener('scroll', handleScroll)
       }
     }
-  }, [messages.length])
+  }, [handleScroll])
 
   return (
     <ListContainer ref={containerRef}>

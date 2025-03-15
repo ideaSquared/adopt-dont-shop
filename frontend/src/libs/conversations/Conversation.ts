@@ -19,6 +19,7 @@ interface Participant {
 }
 
 interface Message {
+  readStatus: any
   message_id: string
   chat_id: string
   sender_id: string

@@ -75,7 +75,7 @@ export interface MessageReadStatus {
 
 export interface ExtendedMessage extends Message {
   content_format: MessageFormat
-  readStatus?: MessageReadStatus[]
+  readStatus: MessageReadStatus[]
   reactions?: Array<{ emoji: string; count: number; users: string[] }>
   attachments?: Array<{
     attachment_id: string
@@ -96,7 +96,7 @@ export const ChatContainer: React.FC = () => {
   const [chatStatus, setChatStatus] = useState<
     'active' | 'locked' | 'archived'
   >('active')
-  const { user, token } = useUser()
+  const { token } = useUser()
   const { handleError } = useErrorHandler()
   const { showAlert } = useAlert()
   const analyticsService = ChatAnalyticsService.getInstance()
@@ -110,7 +110,6 @@ export const ChatContainer: React.FC = () => {
     onConnect: () => {
       // Handle reconnections - don't duplicate join_chat calls
       if (!hasJoinedChatRef.current && conversationId) {
-        console.log('Socket connected, joining chat:', conversationId)
         emit('join_chat', conversationId)
         emit('get_messages', { chatId: conversationId })
         emit('get_chat_status', { chatId: conversationId })
@@ -137,11 +136,11 @@ export const ChatContainer: React.FC = () => {
 
     // Handlers for socket events
     const handleMessages = (data: ExtendedMessage[]) => {
-      console.log('Received messages:', data.length)
       setMessages(
         data.map((msg) => ({
           ...msg,
           content_format: msg.content_format || 'plain',
+          readStatus: msg.readStatus || [],
         })),
       )
       setLoading(false)
@@ -159,6 +158,7 @@ export const ChatContainer: React.FC = () => {
         {
           ...message,
           content_format: message.content_format || 'plain',
+          readStatus: message.readStatus || [],
         },
       ])
     }
@@ -170,6 +170,7 @@ export const ChatContainer: React.FC = () => {
             ? {
                 ...updatedMessage,
                 content_format: updatedMessage.content_format || 'plain',
+                readStatus: updatedMessage.readStatus || [],
               }
             : msg,
         ),
