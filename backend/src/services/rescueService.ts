@@ -205,8 +205,8 @@ export const getRescueStaffWithRoles = async (
     const status = invite.used
       ? 'Accepted'
       : invite.expiration < new Date()
-      ? 'Expired'
-      : 'Pending'
+        ? 'Expired'
+        : 'Pending'
 
     return {
       user_id: '',

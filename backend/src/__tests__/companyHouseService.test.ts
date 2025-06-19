@@ -82,9 +82,8 @@ describe('CompanyHouseService', () => {
 
   describe('fetchAndValidateCompany', () => {
     it('should return true for a valid company', async () => {
-      const result = await CompanyHouseService.fetchAndValidateCompany(
-        '12345678',
-      )
+      const result =
+        await CompanyHouseService.fetchAndValidateCompany('12345678')
       expect(result).toBe(true)
     })
 

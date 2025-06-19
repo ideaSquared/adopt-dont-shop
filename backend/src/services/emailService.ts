@@ -130,4 +130,3 @@ export const sendInvitationEmail = async (
     email,
   )
 }
-

@@ -308,4 +308,3 @@ export async function seed(queryInterface: QueryInterface) {
 export async function down(queryInterface: QueryInterface) {
   await queryInterface.bulkDelete('pets', {})
 }
-

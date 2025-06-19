@@ -272,9 +272,8 @@ export const getApplicationsByRescueId = async (
       AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
     )
 
-    const applications = await ApplicationService.getApplicationsByRescueId(
-      rescueId,
-    )
+    const applications =
+      await ApplicationService.getApplicationsByRescueId(rescueId)
 
     AuditLogger.logAction(
       'ApplicationController',

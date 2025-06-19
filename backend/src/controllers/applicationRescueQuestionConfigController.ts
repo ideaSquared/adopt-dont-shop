@@ -18,9 +18,8 @@ export const getRescueQuestionConfigs = async (
       AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
     )
 
-    const configs = await RescueQuestionConfigService.getRescueQuestionConfigs(
-      rescueId,
-    )
+    const configs =
+      await RescueQuestionConfigService.getRescueQuestionConfigs(rescueId)
 
     AuditLogger.logAction(
       'RescueQuestionConfigController',

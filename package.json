@@ -1,0 +1,58 @@
+{
+  "name": "adopt-dont-shop-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "service.backend",
+    "app.client",
+    "app.admin",
+    "app.rescue",
+    "lib.components"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:client\" \"npm run dev:admin\" \"npm run dev:rescue\"",
+    "dev:backend": "npm run dev --workspace=service.backend",
+    "dev:client": "npm run dev --workspace=app.client",
+    "dev:admin": "npm run dev --workspace=app.admin",
+    "dev:rescue": "npm run dev --workspace=app.rescue",
+    "dev:components": "npm run dev --workspace=lib.components",
+    "build": "npm run build --workspace=lib.components && npm run build --workspace=service.backend && npm run build --workspace=app.client && npm run build --workspace=app.admin && npm run build --workspace=app.rescue",
+    "build:backend": "npm run build --workspace=service.backend",
+    "build:client": "npm run build --workspace=app.client",
+    "build:admin": "npm run build --workspace=app.admin",
+    "build:rescue": "npm run build --workspace=app.rescue",
+    "build:components": "npm run build --workspace=lib.components",
+    "test": "npm run test --workspaces",
+    "test:backend": "npm run test --workspace=service.backend",
+    "test:client": "npm run test --workspace=app.client",
+    "test:admin": "npm run test --workspace=app.admin",
+    "test:rescue": "npm run test --workspace=app.rescue",
+    "test:components": "npm run test --workspace=lib.components",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 0 --ignore-pattern 'backend/**' --ignore-pattern 'frontend/**' --ignore-pattern 'node_modules/**' --ignore-pattern 'dist/**'",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix --ignore-pattern 'backend/**' --ignore-pattern 'frontend/**' --ignore-pattern 'node_modules/**' --ignore-pattern 'dist/**'",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\" --ignore-path .prettierignore",
+    "clean": "npm run clean --workspaces && rm -rf node_modules",
+    "install:all": "npm install && npm run install --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "lerna": "^8.1.2",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-jest": "^27.9.0",
+    "eslint-plugin-import": "^2.29.1",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

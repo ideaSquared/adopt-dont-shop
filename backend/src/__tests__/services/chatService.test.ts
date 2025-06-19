@@ -146,15 +146,13 @@ describe('ChatService', () => {
         chat_id: 'chat_123',
         rescue_id: 'rescue_123',
         status: 'active',
-        update: jest
-          .fn()
-          .mockImplementation(function (
-            this: any,
-            { status }: { status: string },
-          ) {
-            this.status = status
-            return this
-          }),
+        update: jest.fn().mockImplementation(function (
+          this: any,
+          { status }: { status: string },
+        ) {
+          this.status = status
+          return this
+        }),
       }
 
       ;(Chat.findByPk as jest.Mock).mockResolvedValue(mockChat)

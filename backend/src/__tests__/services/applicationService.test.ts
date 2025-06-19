@@ -166,9 +166,8 @@ describe('ApplicationService', () => {
         .mockResolvedValueOnce(mockUsers.slice(0, 2)) // For applicants
         .mockResolvedValueOnce([mockUsers[2]]) // For actioned_by
 
-      const result = await applicationService.getApplicationsByRescueId(
-        'rescue_123',
-      )
+      const result =
+        await applicationService.getApplicationsByRescueId('rescue_123')
 
       expect(Pet.findAll).toHaveBeenCalledWith({
         where: { owner_id: 'rescue_123' },
@@ -206,9 +205,8 @@ describe('ApplicationService', () => {
     it('should return empty array when rescue has no pets', async () => {
       ;(Pet.findAll as jest.Mock).mockResolvedValue([])
 
-      const result = await applicationService.getApplicationsByRescueId(
-        'rescue_123',
-      )
+      const result =
+        await applicationService.getApplicationsByRescueId('rescue_123')
 
       expect(result).toEqual([])
     })
@@ -218,9 +216,8 @@ describe('ApplicationService', () => {
       ;(Pet.findAll as jest.Mock).mockResolvedValue(mockPets)
       ;(Application.findAll as jest.Mock).mockResolvedValue([])
 
-      const result = await applicationService.getApplicationsByRescueId(
-        'rescue_123',
-      )
+      const result =
+        await applicationService.getApplicationsByRescueId('rescue_123')
 
       expect(result).toEqual([])
     })

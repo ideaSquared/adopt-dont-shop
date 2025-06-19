@@ -56,9 +56,8 @@ export const getCoreQuestionByKey = async (
       AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
     )
 
-    const question = await CoreApplicationQuestionService.getCoreQuestionByKey(
-      questionKey,
-    )
+    const question =
+      await CoreApplicationQuestionService.getCoreQuestionByKey(questionKey)
 
     if (question) {
       AuditLogger.logAction(
@@ -201,9 +200,8 @@ export const deleteCoreQuestion = async (
       AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
     )
 
-    const deleted = await CoreApplicationQuestionService.deleteCoreQuestion(
-      questionKey,
-    )
+    const deleted =
+      await CoreApplicationQuestionService.deleteCoreQuestion(questionKey)
 
     if (deleted) {
       AuditLogger.logAction(
@@ -261,9 +259,8 @@ export const getCoreQuestionUsage = async (
       AuditLogger.getAuditOptions(req, 'APPLICATION_MANAGEMENT'),
     )
 
-    const usage = await CoreApplicationQuestionService.getCoreQuestionUsage(
-      questionKey,
-    )
+    const usage =
+      await CoreApplicationQuestionService.getCoreQuestionUsage(questionKey)
 
     AuditLogger.logAction(
       'CoreApplicationQuestionController',

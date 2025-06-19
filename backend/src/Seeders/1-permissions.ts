@@ -129,4 +129,3 @@ export async function down(queryInterface: QueryInterface) {
     permission_name: permissionNames,
   })
 }
-

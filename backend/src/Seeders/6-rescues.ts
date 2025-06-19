@@ -44,4 +44,3 @@ export async function down(queryInterface: QueryInterface) {
     rescue_name: ['Happy Tails Animal Shelter', 'Safe Haven Pet Rescue'],
   })
 }
-
