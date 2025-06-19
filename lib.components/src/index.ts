@@ -37,9 +37,15 @@ export { Navbar } from './components/navigation/Navbar';
 // Data Display Components
 export { Table } from './components/data/Table';
 
-// Pet-Specific Components
-export { PetCard } from './components/pet/PetCard';
-export { PetFilters } from './components/pet/PetFilters';
+// Form components
+export * from './components/form/FileUpload';
+export * from './components/form/RadioInput';
+
+// UI components
+export * from './components/ui/EmptyState';
+export * from './components/ui/Pagination';
+export * from './components/ui/ProgressBar';
+export * from './components/ui/Toast';
 
 // Types
 export type {
@@ -56,11 +62,6 @@ export type {
   ModalProps,
   ModalSize,
   NavbarProps,
-  Pet,
-  PetCardProps,
-  PetFilterValues,
-  PetFiltersProps,
-  PetStatus,
   SelectInputProps,
   StackProps,
   TableColumn,

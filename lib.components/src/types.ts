@@ -79,7 +79,6 @@ export type {
   NavbarVariant,
   UserMenuAction,
 } from './components/navigation/Navbar';
-export type { Pet, PetCardProps, PetGender, PetSize, PetStatus } from './components/pet/PetCard';
-export type { PetFilterValues, PetFiltersProps } from './components/pet/PetFilters';
+
 export type { AlertProps, AlertSize, AlertVariant } from './components/ui/Alert';
 export type { ModalProps, ModalSize } from './components/ui/Modal';

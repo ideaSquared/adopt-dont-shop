@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 
 import styled, { css } from 'styled-components';
 
-import { Spinner } from '../ui/Spinner';
+import { Spinner } from '../../ui/Spinner';
 
 export type SortDirection = 'asc' | 'desc' | null;
 
@@ -493,4 +493,3 @@ export const Table = <T,>({
     </TableContainer>
   );
 };
-
