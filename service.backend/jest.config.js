@@ -3,7 +3,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/controllers/(.*)$': '<rootDir>/src/controllers/$1',
     '^@/models/(.*)$': '<rootDir>/src/models/$1',
@@ -20,7 +20,7 @@ module.exports = {
   collectCoverageFrom: ['src/**/*.{ts}', '!src/**/*.d.ts', '!src/index.ts', '!src/setupTests.ts'],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  testMatch: ['<rootDir>/src/**/__tests__/**/*.{ts}', '<rootDir>/src/**/*.{test,spec}.{ts}'],
+  testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts', '<rootDir>/src/**/*.{test,spec}.ts'],
   clearMocks: true,
   restoreMocks: true,
 };

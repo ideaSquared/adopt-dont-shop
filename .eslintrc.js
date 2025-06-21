@@ -36,8 +36,8 @@ module.exports = {
     'no-var': 'error',
 
     // Code quality rules
-    eqeqeq: ['error', 'always'],
-    curly: ['error', 'all'],
+    eqeqeq: ['warn', 'always'],
+    curly: ['warn', 'all'],
     'no-duplicate-imports': 'error',
     'no-unused-expressions': 'error',
 

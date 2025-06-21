@@ -1,0 +1,26 @@
+# Production Docker Compose configuration
+version: '3.8'
+
+services:
+  service-backend:
+    target: production
+    restart: always
+    environment:
+      NODE_ENV: production
+    volumes:
+      - ./uploads:/app/uploads
+
+  app-admin:
+    target: production
+    restart: always
+
+  app-client:
+    target: production
+    restart: always
+
+  app-rescue:
+    target: production
+    restart: always
+
+  nginx:
+    restart: always

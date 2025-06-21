@@ -1,42 +1,48 @@
-import { Sequelize } from 'sequelize-typescript';
-import { config } from './config';
-import { logger } from './utils/logger';
+import * as dotenv from 'dotenv';
+import { Sequelize } from 'sequelize';
 
-// Define the database connection
-export const sequelize = new Sequelize({
-  host: config.database.host,
-  port: config.database.port,
-  username: config.database.username,
-  password: config.database.password,
-  database: config.database.database,
-  dialect: 'postgres',
-  logging: config.database.logging,
-  models: [__dirname + '/models'], // Auto-load all models from models directory
-  pool: {
-    max: 20,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
-  define: {
-    timestamps: true, // Add timestamps to all models
-    underscored: true, // Use snake_case for all column names
-  },
-});
+dotenv.config();
 
-// Function to initialize database connection
-export const initDatabase = async (): Promise<void> => {
-  try {
-    await sequelize.authenticate();
-    logger.info('Database connection established successfully.');
+const env = process.env.NODE_ENV || 'development';
+let database: string;
 
-    // Sync models with database (in development)
-    if (config.nodeEnv === 'development') {
-      await sequelize.sync({ alter: true });
-      logger.info('Database synchronized successfully.');
-    }
-  } catch (error) {
-    logger.error('Unable to connect to the database:', error);
-    throw error;
+switch (env) {
+  case 'development':
+    database = process.env.DEV_DB_NAME!;
+    break;
+  case 'test':
+    database = process.env.TEST_DB_NAME!;
+    break;
+  case 'production':
+    database = process.env.PROD_DB_NAME!;
+    break;
+  default:
+    throw new Error('NODE_ENV is not set to a valid environment');
+}
+
+const sequelize = new Sequelize(
+  database,
+  process.env.POSTGRES_USER!,
+  process.env.POSTGRES_PASSWORD!,
+  {
+    host: process.env.POSTGRES_HOST!,
+    port: Number(process.env.POSTGRES_PORT!),
+    dialect: 'postgres',
+    define: {
+      // Convert camelCase to snake_case for database columns
+      underscored: true,
+      // Use camelCase for model attributes
+      freezeTableName: false,
+      // Enable timestamps with camelCase names
+      timestamps: true,
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt',
+      deletedAt: 'deletedAt',
+      // Enable paranoid (soft delete) by default
+      paranoid: true,
+    },
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
   }
-};
+);
+
+export default sequelize;

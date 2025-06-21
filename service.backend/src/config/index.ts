@@ -17,18 +17,34 @@ export const config = {
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_NAME || 'adopt_dont_shop',
     dialect: 'postgres',
-    logging: process.env.DB_LOGGING === 'true' ? console.log : false,
+    logging:
+      process.env.NODE_ENV === 'development' && process.env.DB_LOGGING === 'true'
+        ? console.log
+        : false,
   },
 
   // JWT configuration
   jwt: {
-    secret: process.env.JWT_SECRET || 'adoptdontshopsecret',
-    expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+    secret:
+      process.env.JWT_SECRET ||
+      (() => {
+        throw new Error('JWT_SECRET environment variable is required');
+      })(),
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
 
   // Cors configuration
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin:
+      process.env.CORS_ORIGIN ||
+      (() => {
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error('CORS_ORIGIN environment variable is required in production');
+        }
+        return 'http://localhost:3000'; // Safe default for development
+      })(),
+    credentials: true,
   },
 
   // File upload configuration
@@ -46,5 +62,24 @@ export const config = {
       pass: process.env.EMAIL_PASS,
     },
     from: process.env.EMAIL_FROM || 'noreply@adoptdontshop.com',
+  },
+
+  // Rate limiting configuration
+  rateLimit: {
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+  },
+
+  // Security configuration
+  security: {
+    bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
+    sessionSecret:
+      process.env.SESSION_SECRET ||
+      (() => {
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error('SESSION_SECRET environment variable is required in production');
+        }
+        return 'dev-session-secret';
+      })(),
   },
 };

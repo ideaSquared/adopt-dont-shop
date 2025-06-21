@@ -1,51 +1,166 @@
+version: '3.8'
+
 services:
-  backend:
-    build: ./backend
-    ports:
-      - '5000:5000'
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-      - ./uploads:/app/uploads 
-    environment:
-      NODE_ENV: ${NODE_ENV}
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: ${DEV_DB_NAME} # Default to development DB
-      POSTGRES_HOST: database
-      POSTGRES_PORT: 5432
-    depends_on:
-      - database
-    entrypoint: >
-      sh -c "
-      npm run sync-db 
-      && npm run dev
-      "
-
-  frontend:
-    build: ./frontend
-    ports:
-      - '3001:3001'
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=${NODE_ENV}
-      - CHOKIDAR_USEPOLLING=true
-    stdin_open: true
-    tty: true
-
+  # Database service
   database:
     image: postgres:16.4
     restart: always
     ports:
       - '5432:5432'
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: ${DEV_DB_NAME} # Default to development DB
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-adopt_dont_shop}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # Main backend service
+  service-backend:
+    build:
+      context: ./service.backend
+      dockerfile: Dockerfile
+    ports:
+      - '5000:5000'
+    volumes:
+      - ./service.backend:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 5000
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop}
+      POSTGRES_HOST: database
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      API_URL: ${API_URL:-http://api.localhost}
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  # Shared components library
+  lib-components:
+    build:
+      context: ./lib.components
+      dockerfile: Dockerfile
+    volumes:
+      - ./lib.components:/app
+      - /app/node_modules
+      - lib_components_dist:/app/dist
+    command: npm run dev
+    restart: unless-stopped
+
+  # Admin application
+  app-admin:
+    build:
+      context: ./app.admin
+      dockerfile: Dockerfile
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./app.admin:/app
+      - /app/node_modules
+      - lib_components_dist:/app/node_modules/@adopt-dont-shop/components/dist
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+      CHOKIDAR_USEPOLLING: true
+    depends_on:
+      - lib-components
+      - service-backend
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # Client application (public-facing)
+  app-client:
+    build:
+      context: ./app.client
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./app.client:/app
+      - /app/node_modules
+      - lib_components_dist:/app/node_modules/@adopt-dont-shop/components/dist
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+      CHOKIDAR_USEPOLLING: true
+    depends_on:
+      - lib-components
+      - service-backend
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # Rescue application
+  app-rescue:
+    build:
+      context: ./app.rescue
+      dockerfile: Dockerfile
+    ports:
+      - '3002:3002'
+    volumes:
+      - ./app.rescue:/app
+      - /app/node_modules
+      - lib_components_dist:/app/node_modules/@adopt-dont-shop/components/dist
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+      CHOKIDAR_USEPOLLING: true
+    depends_on:
+      - lib-components
+      - service-backend
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # Nginx reverse proxy with subdomain routing
+  nginx:
+    image: nginx:alpine
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - service-backend
+      - app-client
+      - app-admin
+      - app-rescue
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  redis_data:
+  lib_components_dist:
+
+networks:
+  default:
+    name: adopt-dont-shop-network

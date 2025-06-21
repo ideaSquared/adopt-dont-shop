@@ -1,0 +1,35 @@
+# Development-specific Docker Compose overrides
+version: '3.8'
+
+services:
+  service-backend:
+    target: development
+    volumes:
+      - ./service.backend:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  lib-components:
+    volumes:
+      - ./lib.components:/app
+      - /app/node_modules
+
+  app-admin:
+    target: development
+    volumes:
+      - ./app.admin:/app
+      - /app/node_modules
+
+  app-client:
+    target: development
+    volumes:
+      - ./app.client:/app
+      - /app/node_modules
+
+  app-rescue:
+    target: development
+    volumes:
+      - ./app.rescue:/app
+      - /app/node_modules

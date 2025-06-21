@@ -113,10 +113,30 @@ The Backend Service is the core API and data management layer that powers all ap
 - **Batch Processing**: Efficient handling of high-volume notification events
 - **Email Digests**: Compilation of notifications into scheduled email summaries
 - **Do Not Disturb**: User-configurable quiet hours for notifications
+
+### 9. Email Service & Templates
+
+- **Transactional Emails**: User registration, password reset, application updates, adoption confirmations
+- **Email Template Management**: Dynamic template system with variable substitution and conditional content
+- **Template Categories**: Welcome emails, notifications, marketing, system alerts, and administrative communications
+- **Multi-Language Support**: Internationalization with locale-specific templates and content
+- **Email Queue Management**: Reliable delivery with retry logic, priority handling, and batch processing
+- **Delivery Tracking**: Email open rates, click tracking, bounce handling, and unsubscribe management
+- **Template Editor**: WYSIWYG editor for non-technical users with preview and testing capabilities
+- **Personalization Engine**: Dynamic content based on user preferences, behavior, and adoption history
+- **Email Scheduling**: Delayed delivery, recurring campaigns, and time-zone aware sending
+- **A/B Testing**: Template variations for conversion optimization and engagement analysis
+- **Compliance Management**: GDPR, CAN-SPAM compliance with automatic unsubscribe handling
+- **Email Analytics**: Delivery metrics, engagement tracking, and performance reporting
+- **Template Inheritance**: Base templates with shared headers, footers, and styling
+- **Attachment Support**: Secure file attachments for documents, certificates, and adoption paperwork
+- **Responsive Design**: Mobile-optimized templates with cross-client compatibility
+
+### 10. Feature Flags & Configuration
+
 - **Feature Flags**: Dynamic feature enabling/disabling
 - **System Settings**: Platform-wide configuration management
 - **Application Questions**: Core question library for adoption forms
-- **Email Templates**: Transactional email template management
 - **Notification Rules**: Configurable notification triggers and rules
 - **Integration Settings**: Third-party service configuration
 - **Security Policies**: Platform security configuration
@@ -153,6 +173,15 @@ The Backend Service is the core API and data management layer that powers all ap
 - **ModeratorAction**: Actions taken by moderators with audit trail
 - **UserSanction**: Warnings, restrictions, and bans applied to users
 - **Appeal**: User appeals for moderation decisions
+
+### Email & Communication
+
+- **EmailTemplate**: Template definitions with variables and content
+- **EmailQueue**: Queued emails with delivery status and retry logic
+- **EmailLog**: Delivery tracking, opens, clicks, and bounce handling
+- **EmailPreference**: User email preferences and unsubscribe settings
+- **EmailCampaign**: Marketing campaigns and bulk email tracking
+- **EmailAttachment**: File attachments for emails with security scanning
 
 ### Entity Relationships
 
@@ -310,6 +339,27 @@ POST   /api/v1/admin/support/tickets    # Create support ticket
 GET    /api/v1/admin/support/tickets/:ticketId # Get ticket details
 PATCH  /api/v1/admin/support/tickets/:ticketId/status # Update ticket status
 POST   /api/v1/admin/support/tickets/:ticketId/responses # Add ticket response
+```
+
+### Email Service Endpoints
+
+```
+GET    /api/v1/email/templates          # Get email templates with pagination and filtering
+POST   /api/v1/email/templates          # Create new email template (admin only)
+GET    /api/v1/email/templates/:templateId # Get specific email template
+PUT    /api/v1/email/templates/:templateId # Update email template (admin only)
+DELETE /api/v1/email/templates/:templateId # Delete email template (admin only)
+POST   /api/v1/email/templates/:templateId/preview # Preview template with test data
+POST   /api/v1/email/templates/:templateId/test # Send test email
+POST   /api/v1/email/send               # Send single email (system/admin only)
+POST   /api/v1/email/send/bulk          # Send bulk emails (admin only)
+GET    /api/v1/email/queue              # Get email queue status (admin only)
+POST   /api/v1/email/queue/retry        # Retry failed emails (admin only)
+GET    /api/v1/email/analytics          # Get email delivery analytics (admin only)
+GET    /api/v1/email/analytics/:templateId # Get template-specific analytics
+POST   /api/v1/email/unsubscribe        # Handle unsubscribe requests (public)
+GET    /api/v1/email/preferences/:userId # Get user email preferences
+PUT    /api/v1/email/preferences/:userId # Update user email preferences
 ```
 
 ### Feature Flag & Configuration Endpoints
