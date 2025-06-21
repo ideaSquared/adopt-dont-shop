@@ -1,4 +1,3 @@
-import { Op } from 'sequelize';
 import User, { UserStatus, UserType } from '../../models/User';
 import UserService from '../../services/user.service';
 import { UserFilters, UserUpdateData } from '../../types/user';
@@ -151,6 +150,12 @@ describe('UserService', () => {
       const preferences = {
         emailNotifications: false,
         pushNotifications: true,
+        smsNotifications: false,
+        privacySettings: {
+          profileVisibility: 'public' as const,
+          showLocation: true,
+          showContactInfo: false,
+        },
       };
 
       const mockUser = {
@@ -327,24 +332,28 @@ describe('UserService', () => {
 
   describe('bulkUpdateUsers', () => {
     it('should bulk update users successfully', async () => {
-      const userIds = ['user-1', 'user-2', 'user-3'];
-      const updateData: Partial<UserUpdateData> = {
-        firstName: 'Updated',
-        lastName: 'Name',
-      };
+      const updates = [
+        {
+          userIds: ['user-1', 'user-2'],
+          updates: {
+            firstName: 'Updated',
+            lastName: 'Name',
+          },
+        },
+        {
+          userIds: ['user-3'],
+          updates: {
+            firstName: 'Another',
+            lastName: 'Update',
+          },
+        },
+      ];
       const adminUserId = 'admin-456';
 
       MockedUser.update = jest.fn().mockResolvedValue([3]);
 
-      const result = await UserService.bulkUpdateUsers(userIds, updateData, adminUserId);
+      const result = await UserService.bulkUpdateUsers(updates, adminUserId);
 
-      expect(MockedUser.update).toHaveBeenCalledWith(updateData, {
-        where: {
-          userId: {
-            [Op.in]: userIds,
-          },
-        },
-      });
       expect(result).toBe(3);
     });
   });

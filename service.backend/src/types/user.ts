@@ -32,10 +32,9 @@ export interface UserLocation {
   addressLine1?: string;
   addressLine2?: string;
   postalCode?: string;
-  coordinates?: {
-    type: 'Point';
-    coordinates: [number, number]; // [longitude, latitude]
-  };
+  // Match the database model format exactly
+  type?: string;
+  coordinates?: [number, number]; // [longitude, latitude]
 }
 
 export interface PrivacySettings {

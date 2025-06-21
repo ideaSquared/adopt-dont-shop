@@ -134,13 +134,37 @@ export class UserService {
       // Store original data for audit
       const originalData = user.toJSON();
 
-      // Ensure location has the correct format for the database
-      if (updateData.location && Array.isArray(updateData.location.coordinates)) {
-        updateData.location = updateData.location.coordinates;
+      // Process the update data to match the database model format
+      const processedUpdateData: any = { ...updateData };
+
+      // Handle location transformation if present
+      if (updateData.location) {
+        const { coordinates, type, ...locationData } = updateData.location;
+
+        // If we have coordinates, create a proper GeoJSON Point
+        if (coordinates && Array.isArray(coordinates) && coordinates.length === 2) {
+          processedUpdateData.location = {
+            type: type || 'Point',
+            coordinates: coordinates,
+          };
+        } else {
+          // If no coordinates, remove location from update to avoid errors
+          delete processedUpdateData.location;
+        }
+
+        // Update other location fields separately
+        if (locationData.country !== undefined) processedUpdateData.country = locationData.country;
+        if (locationData.city !== undefined) processedUpdateData.city = locationData.city;
+        if (locationData.addressLine1 !== undefined)
+          processedUpdateData.addressLine1 = locationData.addressLine1;
+        if (locationData.addressLine2 !== undefined)
+          processedUpdateData.addressLine2 = locationData.addressLine2;
+        if (locationData.postalCode !== undefined)
+          processedUpdateData.postalCode = locationData.postalCode;
       }
 
       // Update user
-      await user.update(updateData);
+      await user.update(processedUpdateData);
 
       // Log the update
       await AuditLogService.log({
@@ -149,7 +173,7 @@ export class UserService {
         entityId: userId,
         details: {
           originalData: JSON.parse(JSON.stringify(originalData)),
-          updateData: JSON.parse(JSON.stringify(updateData)),
+          updateData: JSON.parse(JSON.stringify(processedUpdateData)),
         },
         userId,
       });
