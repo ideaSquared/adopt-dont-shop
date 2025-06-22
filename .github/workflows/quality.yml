@@ -1,0 +1,109 @@
+name: Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        project: [service.backend, app.client, app.admin, app.rescue, lib.components]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ${{ matrix.project }}
+
+      - name: Check TypeScript types
+        run: npx tsc --noEmit
+        working-directory: ${{ matrix.project }}
+
+      - name: Check code formatting
+        run: npm run format:check
+        working-directory: ${{ matrix.project }}
+        continue-on-error: true
+
+      - name: Lint code
+        run: npm run lint
+        working-directory: ${{ matrix.project }}
+
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        project: [service.backend, app.client, app.admin, app.rescue, lib.components]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ${{ matrix.project }}
+
+      - name: Check for outdated dependencies
+        run: npm outdated
+        working-directory: ${{ matrix.project }}
+        continue-on-error: true
+
+      - name: Check for duplicate dependencies
+        run: npm ls --depth=0
+        working-directory: ${{ matrix.project }}
+        continue-on-error: true
+
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        project: [service.backend, app.client, app.admin, app.rescue, lib.components]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ${{ matrix.project }}
+
+      - name: Build project
+        run: npm run build
+        working-directory: ${{ matrix.project }}
+        env:
+          CI: true
+
+      - name: Check build output
+        run: |
+          if [ -d "${{ matrix.project }}/dist" ]; then
+            echo "✓ Build output directory exists"
+            ls -la ${{ matrix.project }}/dist
+          else
+            echo "⚠ No dist directory found"
+          fi

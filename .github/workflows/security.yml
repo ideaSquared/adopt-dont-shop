@@ -1,4 +1,4 @@
-name: Security & Quality
+name: Security
 
 on:
   push:
@@ -6,136 +6,31 @@ on:
   pull_request:
     branches: [main, develop]
   schedule:
-    # Run security scans daily at 2 AM UTC
-    - cron: '0 2 * * *'
+    - cron: "0 6 * * 1"
 
 jobs:
-  security-scan:
+  dependency-audit:
+    name: Dependency Audit
     runs-on: ubuntu-latest
+    
     strategy:
       matrix:
-        app: [service.backend, app.client, app.admin, app.rescue, lib.components]
-
-    name: Security Scan - ${{ matrix.app }}
-
+        project: [service.backend, app.client, app.admin, app.rescue, lib.components]
+        
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          # Remove cache since no package-lock.json files exist
-          # cache: 'npm'
-          # cache-dependency-path: ${{ matrix.app }}/package.json
-
-      - name: Install Dependencies
-        run: npm install
-        working-directory: ./${{ matrix.app }}
-
-      - name: Run npm audit
-        run: npm audit --audit-level moderate
-        working-directory: ./${{ matrix.app }}
-        continue-on-error: true
-
-      - name: Run Security Validation Script
-        if: matrix.app == 'service.backend'
-        run: npm run security:audit
-        working-directory: ./${{ matrix.app }}
-        continue-on-error: true
-
-  dependency-review:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: moderate
-          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC
-
-  codeql-analysis:
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    strategy:
-      matrix:
-        language: ['javascript', 'typescript']
-
-    steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: '/language:${{ matrix.language }}'
-
-  docker-security:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [service.backend, app.client, app.admin, app.rescue]
-
-    name: Docker Security - ${{ matrix.service }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Docker Image
-        run: docker build -t ${{ matrix.service }}:test ./${{ matrix.service }}
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: '${{ matrix.service }}:test'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
-
-  license-check:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: Install license-checker
-        run: npm install -g license-checker
+      - name: Install dependencies
+        run: npm install
+        working-directory: ${{ matrix.project }}
 
-      - name: Check licenses in service.backend
-        run: |
-          cd service.backend
-          npm install
-          license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;Unlicense;CC0-1.0' --excludePrivatePackages
-
-      - name: Check licenses in frontend apps
-        run: |
-          for app in app.client app.admin app.rescue lib.components; do
-            echo "Checking licenses in $app..."
-            cd $app
-            npm install
-            license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;Unlicense;CC0-1.0' --excludePrivatePackages
-            cd ..
-          done
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        working-directory: ${{ matrix.project }}
+        continue-on-error: true

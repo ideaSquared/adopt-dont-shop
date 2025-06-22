@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: service.backend
+
+      - name: Lint code
+        run: npm run lint
+        working-directory: service.backend
+
+      - name: Run tests
+        run: npm test
+        working-directory: service.backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+
+      - name: Build application
+        run: npm run build
+        working-directory: service.backend
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        app: [app.admin, app.rescue, lib.components]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ${{ matrix.app }}
+
+      - name: Lint code
+        run: npm run lint
+        working-directory: ${{ matrix.app }}
+
+      - name: Run tests
+        run: npm test -- --passWithNoTests
+        working-directory: ${{ matrix.app }}
+
+      - name: Build application
+        run: npm run build
+        working-directory: ${{ matrix.app }}
+        env:
+          CI: true
+
+  test-client-app:
+    name: Client App Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: app.client
+
+      - name: Lint code
+        run: npm run lint
+        working-directory: app.client
+
+      - name: Run tests
+        run: npm test -- --passWithNoTests
+        working-directory: app.client
+
+      - name: Build application
+        run: npm run build
+        working-directory: app.client
+        env:
+          CI: true
