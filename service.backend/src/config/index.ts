@@ -53,19 +53,56 @@ export const config = {
     credentials: true,
   },
 
-  // File upload configuration
-  uploads: {
-    directory: process.env.UPLOAD_DIR || 'uploads',
-    maxSize: parseInt(process.env.MAX_FILE_SIZE || '5242880', 10), // 5MB
+  // Storage configuration
+  storage: {
+    provider: process.env.STORAGE_PROVIDER || 'local', // 'local' | 's3'
+    local: {
+      directory: process.env.UPLOAD_DIR || 'uploads',
+      publicPath: process.env.PUBLIC_UPLOAD_PATH || '/uploads',
+      maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB
+      allowedMimeTypes: [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'application/pdf',
+        'text/plain',
+      ],
+    },
+    s3: {
+      bucket: process.env.S3_BUCKET_NAME,
+      region: process.env.S3_REGION || 'us-east-1',
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      cloudFrontDomain: process.env.CLOUDFRONT_DOMAIN,
+    },
   },
 
   // Email configuration
   email: {
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT, 10) : 587,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+    provider: process.env.EMAIL_PROVIDER || 'ethereal', // 'ethereal' | 'sendgrid' | 'ses' | 'smtp'
+    ethereal: {
+      // Ethereal creates test accounts automatically
+      createTestAccount: process.env.NODE_ENV === 'development',
+    },
+    sendgrid: {
+      apiKey: process.env.SENDGRID_API_KEY,
+      fromEmail: process.env.SENDGRID_FROM_EMAIL,
+      fromName: process.env.SENDGRID_FROM_NAME || "Adopt Don't Shop",
+    },
+    ses: {
+      region: process.env.AWS_SES_REGION || 'us-east-1',
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+    smtp: {
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
     },
     from: process.env.EMAIL_FROM || 'noreply@adoptdontshop.com',
   },

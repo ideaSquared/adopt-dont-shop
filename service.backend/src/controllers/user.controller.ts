@@ -360,6 +360,111 @@ export class UserController {
       });
     }
   }
+
+  /**
+   * Get user activity summary
+   */
+  async getUserActivitySummary(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const activitySummary = await UserService.getUserActivitySummary(userId);
+      res.json({
+        success: true,
+        data: activitySummary,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Get user activity summary failed:', error);
+
+      if (errorMessage === 'User not found') {
+        res.status(404).json({
+          success: false,
+          error: 'User not found',
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get user activity summary',
+      });
+    }
+  }
+
+  /**
+   * Update user role
+   */
+  async updateUserRole(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const { userType } = req.body;
+      const adminUserId = req.user!.userId;
+
+      const updatedUser = await UserService.updateUserRole(userId, userType, adminUserId);
+      res.json({
+        success: true,
+        data: updatedUser,
+        message: 'User role updated successfully',
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Update user role failed:', error);
+
+      if (errorMessage === 'User not found') {
+        res.status(404).json({
+          success: false,
+          error: 'User not found',
+        });
+        return;
+      }
+
+      if (errorMessage.includes('Cannot change role')) {
+        res.status(400).json({
+          success: false,
+          error: errorMessage,
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update user role',
+      });
+    }
+  }
+
+  /**
+   * Reactivate user account
+   */
+  async reactivateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const requestingUserId = req.user!.userId;
+
+      const result = await UserService.reactivateUser(userId, requestingUserId);
+      res.json({
+        success: true,
+        data: result,
+        message: 'User reactivated successfully',
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Reactivate user failed:', error);
+
+      if (errorMessage === 'User not found') {
+        res.status(404).json({
+          success: false,
+          error: 'User not found',
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to reactivate user',
+      });
+    }
+  }
 }
 
 export default new UserController();

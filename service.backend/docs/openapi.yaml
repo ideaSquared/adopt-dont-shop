@@ -1,0 +1,971 @@
+openapi: 3.0.3
+info:
+  title: Adopt Don't Shop Backend API
+  description: |
+    Comprehensive backend API for the Adopt Don't Shop pet adoption platform.
+
+    ## Features
+    - 🔐 JWT-based authentication with role-based access control
+    - 🐾 Complete pet management system
+    - 📝 Dynamic adoption application workflow
+    - 💬 Real-time messaging with Socket.IO
+    - 📧 Multi-provider email system
+    - 🏥 Health monitoring and analytics
+
+    ## Authentication
+    Most endpoints require authentication via JWT token in the Authorization header:
+    ```
+    Authorization: Bearer <jwt_token>
+    ```
+
+    ## Rate Limiting
+    API endpoints are rate limited to prevent abuse:
+    - **Standard**: 100 requests per 15 minutes
+    - **Auth endpoints**: 5 requests per 15 minutes
+    - **Upload endpoints**: 10 requests per 15 minutes
+
+  version: 1.0.0
+  contact:
+    name: Adopt Don't Shop Development Team
+    email: development@adoptdontshop.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://api-staging.adoptdontshop.com
+    description: Staging server
+  - url: https://api.adoptdontshop.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  # Authentication Endpoints
+  /api/v1/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register new user
+      description: Create a new user account with email verification
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists
+
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      description: Authenticate user and return JWT tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh JWT token
+      description: Get new access token using refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: User logout
+      description: Invalidate refresh token
+      responses:
+        '200':
+          description: Logout successful
+
+  # User Management Endpoints
+  /api/v1/users:
+    get:
+      tags: [Users]
+      summary: Search users
+      description: Search and filter users (admin only)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+        - name: userType
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserType'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSearchResponse'
+
+  /api/v1/users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      description: Retrieve user profile information
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Users]
+      summary: Update user profile
+      description: Update user profile information
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  # Pet Management Endpoints
+  /api/v1/pets:
+    get:
+      tags: [Pets]
+      summary: Search pets
+      description: Search available pets with filters
+      security: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/PetType'
+        - name: size
+          in: query
+          schema:
+            $ref: '#/components/schemas/PetSize'
+        - name: age
+          in: query
+          schema:
+            $ref: '#/components/schemas/AgeGroup'
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Pets retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetSearchResponse'
+
+    post:
+      tags: [Pets]
+      summary: Create new pet
+      description: Add a new pet to the system (rescue staff only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetCreateRequest'
+      responses:
+        '201':
+          description: Pet created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+  /api/v1/pets/{petId}:
+    get:
+      tags: [Pets]
+      summary: Get pet details
+      description: Retrieve detailed pet information
+      security: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pet retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+  # Application Management Endpoints
+  /api/v1/applications:
+    get:
+      tags: [Applications]
+      summary: Get applications
+      description: Retrieve adoption applications
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ApplicationStatus'
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Applications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationSearchResponse'
+
+    post:
+      tags: [Applications]
+      summary: Submit application
+      description: Submit a new adoption application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreateRequest'
+      responses:
+        '201':
+          description: Application submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+
+  # Chat/Messaging Endpoints
+  /api/v1/conversations:
+    get:
+      tags: [Messaging]
+      summary: Get conversations
+      description: Retrieve user's conversations
+      responses:
+        '200':
+          description: Conversations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+
+    post:
+      tags: [Messaging]
+      summary: Create conversation
+      description: Start a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationCreateRequest'
+      responses:
+        '201':
+          description: Conversation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+
+  # Health Check Endpoints
+  /health:
+    get:
+      tags: [Health]
+      summary: Simple health check
+      description: Basic health status
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /health/detailed:
+    get:
+      tags: [Health]
+      summary: Detailed health check
+      description: Comprehensive health status including all services
+      security: []
+      responses:
+        '200':
+          description: Detailed health information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResult'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Authentication Schemas
+    RegisterRequest:
+      type: object
+      required: [email, password, firstName, lastName, userType]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        firstName:
+          type: string
+          minLength: 1
+        lastName:
+          type: string
+          minLength: 1
+        userType:
+          $ref: '#/components/schemas/UserType'
+        phoneNumber:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/User'
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: number
+
+    # User Schemas
+    User:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+        userType:
+          $ref: '#/components/schemas/UserType'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        emailVerified:
+          type: boolean
+        profileImageUrl:
+          type: string
+        bio:
+          type: string
+        location:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+
+    UserType:
+      type: string
+      enum: [ADOPTER, RESCUE_STAFF, ADMIN]
+
+    UserStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, PENDING_VERIFICATION, SUSPENDED]
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+        bio:
+          type: string
+        location:
+          type: string
+        profileImageUrl:
+          type: string
+
+    UserSearchResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+
+    # Pet Schemas
+    Pet:
+      type: object
+      properties:
+        petId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        rescueId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PetType'
+        breed:
+          type: string
+        age:
+          type: object
+          properties:
+            years:
+              type: integer
+            months:
+              type: integer
+        gender:
+          $ref: '#/components/schemas/Gender'
+        size:
+          $ref: '#/components/schemas/PetSize'
+        status:
+          $ref: '#/components/schemas/PetStatus'
+        description:
+          type: string
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/PetImage'
+        adoptionFee:
+          type: number
+        specialNeeds:
+          type: boolean
+        goodWithChildren:
+          type: boolean
+        goodWithDogs:
+          type: boolean
+        goodWithCats:
+          type: boolean
+        energyLevel:
+          $ref: '#/components/schemas/EnergyLevel'
+        createdAt:
+          type: string
+          format: date-time
+
+    PetType:
+      type: string
+      enum: [DOG, CAT, RABBIT, BIRD, REPTILE, SMALL_MAMMAL, FISH, OTHER]
+
+    PetSize:
+      type: string
+      enum: [EXTRA_SMALL, SMALL, MEDIUM, LARGE, EXTRA_LARGE]
+
+    Gender:
+      type: string
+      enum: [MALE, FEMALE, UNKNOWN]
+
+    PetStatus:
+      type: string
+      enum: [AVAILABLE, PENDING, ADOPTED, FOSTER, MEDICAL_HOLD, BEHAVIORAL_HOLD, NOT_AVAILABLE]
+
+    AgeGroup:
+      type: string
+      enum: [BABY, YOUNG, ADULT, SENIOR]
+
+    EnergyLevel:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, VERY_HIGH]
+
+    PetImage:
+      type: object
+      properties:
+        imageId:
+          type: string
+        url:
+          type: string
+        thumbnailUrl:
+          type: string
+        caption:
+          type: string
+        isPrimary:
+          type: boolean
+
+    PetCreateRequest:
+      type: object
+      required: [name, type, gender, size, ageGroup]
+      properties:
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/PetType'
+        breed:
+          type: string
+        ageYears:
+          type: integer
+        ageMonths:
+          type: integer
+        ageGroup:
+          $ref: '#/components/schemas/AgeGroup'
+        gender:
+          $ref: '#/components/schemas/Gender'
+        size:
+          $ref: '#/components/schemas/PetSize'
+        shortDescription:
+          type: string
+        longDescription:
+          type: string
+        adoptionFee:
+          type: number
+
+    PetSearchResponse:
+      type: object
+      properties:
+        pets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pet'
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+
+    # Application Schemas
+    Application:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        petId:
+          type: string
+          format: uuid
+        rescueId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        priority:
+          $ref: '#/components/schemas/ApplicationPriority'
+        answers:
+          type: object
+        submittedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    ApplicationStatus:
+      type: string
+      enum:
+        [
+          DRAFT,
+          SUBMITTED,
+          UNDER_REVIEW,
+          PENDING_REFERENCES,
+          REFERENCE_CHECK,
+          INTERVIEW_SCHEDULED,
+          INTERVIEW_COMPLETED,
+          HOME_VISIT_SCHEDULED,
+          HOME_VISIT_COMPLETED,
+          APPROVED,
+          CONDITIONALLY_APPROVED,
+          REJECTED,
+          WITHDRAWN,
+          EXPIRED,
+        ]
+
+    ApplicationPriority:
+      type: string
+      enum: [LOW, NORMAL, HIGH, URGENT]
+
+    ApplicationCreateRequest:
+      type: object
+      required: [petId, answers]
+      properties:
+        petId:
+          type: string
+          format: uuid
+        answers:
+          type: object
+        references:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reference'
+
+    Reference:
+      type: object
+      properties:
+        name:
+          type: string
+        relationship:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+
+    ApplicationSearchResponse:
+      type: object
+      properties:
+        applications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Application'
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+
+    # Messaging Schemas
+    Conversation:
+      type: object
+      properties:
+        chatId:
+          type: string
+          format: uuid
+        applicationId:
+          type: string
+          format: uuid
+        rescueId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, locked, archived]
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatParticipant'
+        lastMessage:
+          $ref: '#/components/schemas/Message'
+        createdAt:
+          type: string
+          format: date-time
+
+    ChatParticipant:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [rescue, user]
+        lastReadAt:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      properties:
+        messageId:
+          type: string
+          format: uuid
+        chatId:
+          type: string
+          format: uuid
+        senderId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        contentFormat:
+          type: string
+          enum: [plain, markdown, html]
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageAttachment'
+        createdAt:
+          type: string
+          format: date-time
+
+    MessageAttachment:
+      type: object
+      properties:
+        attachmentId:
+          type: string
+        filename:
+          type: string
+        originalName:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+        url:
+          type: string
+
+    ConversationCreateRequest:
+      type: object
+      required: [participantIds]
+      properties:
+        participantIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        applicationId:
+          type: string
+          format: uuid
+        initialMessage:
+          type: string
+
+    # Health Check Schemas
+    HealthCheckResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+        uptime:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        environment:
+          type: string
+        services:
+          type: object
+          properties:
+            database:
+              $ref: '#/components/schemas/ServiceHealth'
+            email:
+              $ref: '#/components/schemas/ServiceHealth'
+            storage:
+              $ref: '#/components/schemas/ServiceHealth'
+            fileSystem:
+              $ref: '#/components/schemas/ServiceHealth'
+        metrics:
+          type: object
+          properties:
+            memoryUsage:
+              type: object
+            cpuUsage:
+              type: object
+            activeConnections:
+              type: integer
+
+    ServiceHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+        responseTime:
+          type: number
+        details:
+          type: string
+        lastChecked:
+          type: string
+          format: date-time
+
+    # Error Schemas
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: string
+        details:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management and profiles
+  - name: Pets
+    description: Pet management and search
+  - name: Applications
+    description: Adoption application workflow
+  - name: Messaging
+    description: Real-time messaging system
+  - name: Health
+    description: System health and monitoring

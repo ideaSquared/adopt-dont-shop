@@ -514,17 +514,103 @@ export class UserService {
         throw new Error('User not found');
       }
 
-      // TODO: Implement actual counts from related models
-      return {
-        applicationsCount: 0, // TODO: Implement actual count
-        activeChatsCount: 0, // TODO: Implement actual count
-        petsFavoritedCount: 0, // TODO: Implement actual count
-        recentActivity: [], // TODO: Implement actual activity
+      // Get real application count
+      const applicationsCount = await Application.count({
+        where: { user_id: userId },
+      });
+
+      // Get active chats count
+      const activeChatsCount = await Chat.count({
+        include: [
+          {
+            model: ChatParticipant,
+            where: { participant_id: userId },
+            required: true,
+          },
+        ],
+        where: { status: 'active' },
+      });
+
+      // Get pets favorited count
+      const petsFavoritedCount = await UserFavorite.count({
+        where: { user_id: userId },
+      });
+
+      // Get recent activity from audit logs
+      const recentActivity = await AuditLog.findAll({
+        where: { user: userId },
+        order: [['timestamp', 'DESC']],
+        limit: 5,
+        attributes: ['action', 'category', 'timestamp', 'metadata'],
+      });
+
+      // Calculate total login count from audit logs
+      const totalLoginCount = await AuditLog.count({
+        where: {
+          user: userId,
+          action: 'LOGIN',
+        },
+      });
+
+      // Calculate average session duration from audit logs
+      const sessionData = (await sequelize.query(
+        `
+        SELECT 
+          DATE_TRUNC('day', timestamp) as session_date,
+          MIN(timestamp) as first_action,
+          MAX(timestamp) as last_action
+        FROM audit_logs 
+        WHERE "user" = :userId
+          AND timestamp >= NOW() - INTERVAL '30 days'
+        GROUP BY DATE_TRUNC('day', timestamp)
+        HAVING COUNT(*) > 1
+      `,
+        {
+          replacements: { userId },
+          type: QueryTypes.SELECT,
+        }
+      )) as Array<{
+        session_date: string;
+        first_action: Date;
+        last_action: Date;
+      }>;
+
+      const averageSessionDuration =
+        sessionData.length > 0
+          ? sessionData.reduce((sum, session) => {
+              const duration =
+                new Date(session.last_action).getTime() - new Date(session.first_action).getTime();
+              return sum + duration / (1000 * 60); // Convert to minutes
+            }, 0) / sessionData.length
+          : 0;
+
+      const activity: UserActivity = {
+        applicationsCount,
+        activeChatsCount,
+        petsFavoritedCount,
+        recentActivity: (recentActivity || []).map(log => ({
+          type: this.mapActionToActivityType(log.action),
+          description: this.formatActivityDescription(log.action, log.metadata),
+          timestamp: log.timestamp,
+          metadata: log.metadata || {},
+        })),
         lastLogin: user.lastLoginAt,
         accountCreated: user.createdAt,
-        totalLoginCount: 0, // TODO: Implement actual count
-        averageSessionDuration: 0, // TODO: Implement actual calculation
+        totalLoginCount,
+        averageSessionDuration: Math.round(averageSessionDuration * 100) / 100,
       };
+
+      if (loggerHelpers && loggerHelpers.logPerformance) {
+        loggerHelpers.logPerformance('User Activity', {
+          duration: Date.now() - startTime,
+          userId,
+          applicationCount: applicationsCount,
+          chatCount: activeChatsCount,
+          favoriteCount: petsFavoritedCount,
+        });
+      }
+
+      return activity;
     } catch (error) {
       logger.error('Failed to get user activity:', {
         error: error instanceof Error ? error.message : String(error),
@@ -652,6 +738,42 @@ export class UserService {
         duration: Date.now() - startTime,
       });
       throw error;
+    }
+  }
+
+  /**
+   * Map audit log action to activity type
+   */
+  private static mapActionToActivityType(
+    action: string
+  ): 'application' | 'chat' | 'favorite' | 'profile_update' | 'login' {
+    if (action.includes('APPLICATION')) return 'application';
+    if (action.includes('CHAT') || action.includes('MESSAGE')) return 'chat';
+    if (action.includes('FAVORITE')) return 'favorite';
+    if (action.includes('PROFILE') || action.includes('USER_UPDATE')) return 'profile_update';
+    if (action.includes('LOGIN')) return 'login';
+    return 'profile_update'; // default fallback
+  }
+
+  /**
+   * Format activity description from action and metadata
+   */
+  private static formatActivityDescription(action: string, metadata?: any): string {
+    switch (action) {
+      case 'APPLICATION_SUBMITTED':
+        return `Submitted application for ${metadata?.petName || 'a pet'}`;
+      case 'USER_LOGIN':
+        return 'Logged into account';
+      case 'PROFILE_UPDATED':
+        return 'Updated profile information';
+      case 'PET_FAVORITED':
+        return `Added ${metadata?.petName || 'a pet'} to favorites`;
+      case 'MESSAGE_SENT':
+        return 'Sent a message';
+      case 'CHAT_CREATED':
+        return 'Started a new conversation';
+      default:
+        return action.toLowerCase().replace(/_/g, ' ');
     }
   }
 
@@ -1093,4 +1215,3 @@ export class UserService {
 }
 
 export default UserService;
-

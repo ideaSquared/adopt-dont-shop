@@ -1,6 +1,6 @@
 import EmailQueue from '../../models/EmailQueue';
 import logger from '../../utils/logger';
-import { BaseEmailProvider } from './baseProvider';
+import { BaseEmailProvider } from './base-provider';
 
 export class ConsoleEmailProvider extends BaseEmailProvider {
   constructor() {

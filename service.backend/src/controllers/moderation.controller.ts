@@ -113,11 +113,30 @@ export class ModerationController {
       const { status, assignedModerator, resolution, resolutionNotes } = req.body;
       const updatedBy = req.user!.userId;
 
-      // This would require additional method in ModerationService
-      // For now, we'll return a placeholder response
+      // Get the report first
+      const report = await ModerationService.getReportById(reportId);
+      if (!report) {
+        res.status(404).json({
+          success: false,
+          message: 'Report not found',
+        });
+        return;
+      }
+
+      // Update the report with the new status
+      await report.update({
+        status,
+        assignedModerator,
+        resolution,
+        resolutionNotes,
+        resolvedBy: status === 'resolved' ? updatedBy : undefined,
+        resolvedAt: status === 'resolved' ? new Date() : undefined,
+      });
+
       res.json({
         success: true,
         message: 'Report status updated successfully',
+        data: report,
       });
     } catch (error) {
       logger.error('Error updating report status:', error);
@@ -180,31 +199,11 @@ export class ModerationController {
         };
       }
 
-      // This would require the getModerationMetrics method to be implemented in ModerationService
-      // For now, we'll return a placeholder response
+      const metrics = await ModerationService.getModerationMetrics(dateRange);
+
       res.json({
         success: true,
-        data: {
-          reports: {
-            total: 0,
-            pending: 0,
-            underReview: 0,
-            resolved: 0,
-            dismissed: 0,
-            byCategory: {},
-            bySeverity: {},
-          },
-          actions: {
-            total: 0,
-            byType: {},
-            active: 0,
-            reversed: 0,
-          },
-          response: {
-            averageResponseTime: 0,
-            averageResolutionTime: 0,
-          },
-        },
+        data: metrics,
       });
     } catch (error) {
       logger.error('Error fetching moderation metrics:', error);
@@ -222,11 +221,12 @@ export class ModerationController {
       const { moderatorId } = req.body;
       const assignedBy = req.user!.userId;
 
-      // This would require the assignReport method to be implemented in ModerationService
-      // For now, we'll return a placeholder response
+      const report = await ModerationService.assignReport(reportId, moderatorId, assignedBy);
+
       res.json({
         success: true,
         message: 'Report assigned successfully',
+        data: report,
       });
     } catch (error) {
       logger.error('Error assigning report:', error);

@@ -46,20 +46,20 @@ router.put(
 );
 
 // GET /users/:userId/activity - Get user activity summary
-// router.get(
-//   '/:userId/activity',
-//   requirePermissionOrOwnership(PERMISSIONS.USER_READ, 'userId'),
-//   UserController.getUserActivitySummary // TODO: Implement
-// );
+router.get(
+  '/:userId/activity',
+  requirePermissionOrOwnership(PERMISSIONS.USER_READ, 'userId'),
+  UserController.getUserActivitySummary
+);
 
 // PUT /users/:userId/role - Update user role (admin only)
-// router.put('/:userId/role', requireAdmin, userValidation.updateRole, UserController.updateUserRole); // TODO: Implement
+router.put('/:userId/role', requireAdmin, userValidation.updateRole, UserController.updateUserRole);
 
 // POST /users/:userId/deactivate - Deactivate user (admin only)
 router.post('/:userId/deactivate', requireAdmin, UserController.deactivateUser);
 
 // POST /users/:userId/reactivate - Reactivate user (admin only)
-// router.post('/:userId/reactivate', requireAdmin, UserController.reactivateUser); // TODO: Implement
+router.post('/:userId/reactivate', requireAdmin, UserController.reactivateUser);
 
 // POST /users/bulk-update - Bulk update users (admin only)
 router.post(

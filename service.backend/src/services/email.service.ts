@@ -1,4 +1,5 @@
 import { Op, WhereOptions } from 'sequelize';
+import { config } from '../config';
 import EmailPreference, { EmailFrequency, NotificationType } from '../models/EmailPreference';
 import EmailQueue, { EmailPriority, EmailStatus, EmailType } from '../models/EmailQueue';
 import EmailTemplate, {
@@ -10,8 +11,9 @@ import { JsonObject, JsonValue, TemplateData, TemplateVariable } from '../types/
 import { BulkEmailOptions, EmailAnalytics, SendEmailOptions } from '../types/email';
 import logger, { loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
-import { EmailProvider } from './emailProviders/baseProvider';
-import { ConsoleEmailProvider } from './emailProviders/consoleProvider';
+import { EmailProvider } from './email-providers/base-provider';
+import { ConsoleEmailProvider } from './email-providers/console-provider';
+import { EtherealProvider } from './email-providers/ethereal-provider';
 
 class EmailService {
   private provider: EmailProvider;
@@ -19,9 +21,38 @@ class EmailService {
   private processingInterval?: NodeJS.Timeout;
 
   constructor() {
-    // Initialize with console provider by default
+    // Initialize with console provider as default
     this.provider = new ConsoleEmailProvider();
+
+    // Initialize the appropriate provider asynchronously
+    this.initializeProvider().catch(error => {
+      logger.error('Failed to initialize email provider:', error);
+    });
+
     this.startQueueProcessor();
+  }
+
+  private async initializeProvider(): Promise<void> {
+    try {
+      switch (config.email.provider) {
+        case 'ethereal':
+          const etherealProvider = new EtherealProvider();
+          await etherealProvider.initialize();
+          this.provider = etherealProvider;
+          break;
+        default:
+          // Fallback to console provider
+          this.provider = new ConsoleEmailProvider();
+      }
+
+      loggerHelpers.logExternalService('Email Provider', 'Provider Initialized', {
+        provider: config.email.provider,
+        environment: process.env.NODE_ENV,
+      });
+    } catch (error) {
+      logger.error('Failed to initialize email provider, falling back to console:', error);
+      this.provider = new ConsoleEmailProvider();
+    }
   }
 
   // Provider Management
@@ -35,6 +66,18 @@ class EmailService {
 
   public getProvider(): EmailProvider {
     return this.provider;
+  }
+
+  public getProviderInfo(): any {
+    if (this.provider instanceof EtherealProvider) {
+      return this.provider.getPreviewInfo();
+    }
+    return null;
+  }
+
+  public static getProviderInfo(): any {
+    const emailService = new EmailService();
+    return emailService.getProviderInfo();
   }
 
   // Template Management

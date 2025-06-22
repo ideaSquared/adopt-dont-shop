@@ -5,12 +5,12 @@ import { createServer } from 'http';
 import morgan from 'morgan';
 import { Server as SocketIOServer } from 'socket.io';
 import { config } from './config';
-import { errorHandler } from './middleware/errorHandler';
-import { apiLimiter } from './middleware/rateLimiter';
+import { errorHandler } from './middleware/error-handler';
+import { apiLimiter } from './middleware/rate-limiter';
 import sequelize from './sequelize';
-import { SocketHandlers } from './socket/socketHandlers';
+import { SocketHandlers } from './socket/socket-handlers';
 import { logger } from './utils/logger';
-import { printEnvironmentInfo, validateEnvironment } from './utils/validateEnv';
+import { printEnvironmentInfo, validateEnvironment } from './utils/validate-env';
 
 // Import routes
 import adminRoutes from './routes/admin.routes';
@@ -18,14 +18,17 @@ import applicationRoutes from './routes/application.routes';
 import authRoutes from './routes/auth.routes';
 import chatRoutes from './routes/chat.routes';
 import emailRoutes from './routes/email.routes';
+import monitoringRoutes from './routes/monitoring.routes';
 import notificationRoutes from './routes/notification.routes';
 import petRoutes from './routes/pet.routes';
 import rescueRoutes from './routes/rescue.routes';
 import userRoutes from './routes/user.routes';
 
 // Import additional routes for PRD compliance
+import path from 'path';
 import ConfigurationService from './services/configuration.service';
 import FeatureFlagService from './services/featureFlag.service';
+import { HealthCheckService } from './services/health-check.service';
 
 // Create feature flags and config routes
 const featureRoutes = Router();
@@ -101,6 +104,16 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Apply rate limiting
 app.use('/api', apiLimiter);
 
+// Serve uploaded files in development
+if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
+  const uploadDir = path.resolve(config.storage.local.directory);
+  app.use('/uploads', express.static(uploadDir));
+  logger.info(`Serving static files from: ${uploadDir}`);
+}
+
+// Monitoring routes (development only)
+app.use('/monitoring', monitoringRoutes);
+
 // API routes
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/auth', authRoutes);
@@ -115,17 +128,107 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/features', featureRoutes);
 app.use('/api/v1/config', configRoutes);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date(),
-    features: {
-      socketIO: true,
-      realTimeMessaging: true,
-    },
+// Health monitoring APIs (available in all environments)
+app.get('/api/v1/health', async (req, res) => {
+  try {
+    const health = await HealthCheckService.getFullHealthCheck();
+    const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    res.status(503).json({ error: 'Health check failed' });
+  }
+});
+
+app.get('/api/v1/health/services', async (req, res) => {
+  try {
+    const health = await HealthCheckService.getFullHealthCheck();
+    res.json(health.services);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get service health' });
+  }
+});
+
+app.get('/api/v1/health/metrics', async (req, res) => {
+  try {
+    const health = await HealthCheckService.getFullHealthCheck();
+    res.json({
+      uptime: health.uptime,
+      metrics: health.metrics,
+      timestamp: health.timestamp,
+      environment: health.environment,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get metrics' });
+  }
+});
+
+// Email provider info (development only)
+if (config.nodeEnv === 'development') {
+  app.get('/api/v1/email/provider-info', async (req, res) => {
+    try {
+      const EmailService = (await import('./services/email.service')).default;
+      const providerInfo = EmailService.getProviderInfo();
+
+      if (!providerInfo) {
+        return res.json({
+          provider: 'none',
+          message: 'No email provider info available',
+        });
+      }
+
+      res.json({
+        provider: 'ethereal',
+        ...providerInfo,
+        loginUrl: 'https://ethereal.email/login',
+        messagesUrl: 'https://ethereal.email/messages',
+        instructions: {
+          step1: 'Copy the username and password above',
+          step2: 'Click "Login to Ethereal" or go to https://ethereal.email/login',
+          step3: 'Use the credentials to log in and view all test emails',
+          step4: 'Check console logs for direct preview links when emails are sent',
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get email provider info' });
+    }
   });
+}
+
+// Enhanced health check endpoints
+app.get('/health', async (req, res) => {
+  try {
+    const health = await HealthCheckService.getFullHealthCheck();
+
+    // Return appropriate status code
+    const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
+
+    res.status(statusCode).json(health);
+  } catch (error) {
+    logger.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      error: 'Health check service failed',
+      timestamp: new Date(),
+    });
+  }
+});
+
+// Simple health check for load balancers
+app.get('/health/simple', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date() });
+});
+
+// Readiness check for Kubernetes
+app.get('/health/ready', async (req, res) => {
+  try {
+    const dbHealth = await HealthCheckService.checkDatabaseHealth();
+    if (dbHealth.status === 'unhealthy') {
+      return res.status(503).json({ status: 'not ready', reason: 'database unavailable' });
+    }
+    res.status(200).json({ status: 'ready', timestamp: new Date() });
+  } catch (error) {
+    res.status(503).json({ status: 'not ready', reason: 'health check failed' });
+  }
 });
 
 // Apply error handler middleware

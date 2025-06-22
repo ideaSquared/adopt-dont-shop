@@ -2,8 +2,12 @@ import jwt from 'jsonwebtoken';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import { config } from '../config';
 import { ChatService } from '../services/chat.service';
+import { HealthCheckService } from '../services/health-check.service';
 import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
+
+// Track active connections for health monitoring
+let activeConnections = 0;
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -90,7 +94,13 @@ export class SocketHandlers {
    */
   private setupConnectionHandler() {
     this.io.on('connection', (socket: AuthenticatedSocket) => {
-      logger.info(`User ${socket.userId} connected with socket ${socket.id}`);
+      // Track connection for health monitoring
+      activeConnections++;
+      HealthCheckService.updateActiveConnections(activeConnections);
+
+      logger.info(
+        `User ${socket.userId} connected with socket ${socket.id} (Total: ${activeConnections})`
+      );
 
       // Update user presence
       this.updateUserPresence(socket.userId!, 'online', socket.id);
@@ -159,7 +169,7 @@ export class SocketHandlers {
         chatId: string;
         content: string;
         messageType?: 'text' | 'file' | 'image';
-        attachments?: Array<{ type: string; url: string; name: string }>;
+        attachments?: Array<{ type: string; url: string; name: string; size?: number }>;
         replyToId?: string;
       }) => {
         try {
@@ -177,7 +187,7 @@ export class SocketHandlers {
                   filename: att.name,
                   originalName: att.name,
                   mimeType: att.type,
-                  size: 0, // TODO: Get actual size
+                  size: att.size || 0, // Use actual size from attachment data
                   url: att.url,
                 }))
               : undefined,
@@ -368,7 +378,13 @@ export class SocketHandlers {
    */
   private setupDisconnectHandler(socket: AuthenticatedSocket) {
     socket.on('disconnect', () => {
-      logger.info(`User ${socket.userId} disconnected (socket ${socket.id})`);
+      // Track disconnection for health monitoring
+      activeConnections = Math.max(0, activeConnections - 1);
+      HealthCheckService.updateActiveConnections(activeConnections);
+
+      logger.info(
+        `User ${socket.userId} disconnected (socket ${socket.id}) (Total: ${activeConnections})`
+      );
 
       // Update user presence
       this.handleUserDisconnect(socket.userId!, socket.id);

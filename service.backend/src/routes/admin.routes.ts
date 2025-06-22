@@ -1,7 +1,7 @@
 import express from 'express';
 import { AdminController } from '../controllers/admin.controller';
 import { authenticateToken, requireRole } from '../middleware/auth';
-import { authLimiter, generalLimiter } from '../middleware/rateLimiter';
+import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
 
 const router = express.Router();
 

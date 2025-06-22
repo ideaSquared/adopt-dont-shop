@@ -1,7 +1,7 @@
 import express from 'express';
 import { ChatController } from '../controllers/chat.controller';
 import { authenticateToken, requireRole } from '../middleware/auth';
-import { authLimiter, generalLimiter } from '../middleware/rateLimiter';
+import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
 
 const router = express.Router();
 

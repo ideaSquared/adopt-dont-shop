@@ -301,8 +301,27 @@ export class AuthService {
         email: user.email,
       });
 
-      // TODO: Send email with reset link
-      logger.info('Password reset requested', { userId: user.userId, email: user.email });
+      // Send password reset email
+      try {
+        const emailService = (await import('./email.service')).default;
+        await emailService.sendEmail({
+          toEmail: user.email,
+          templateData: {
+            firstName: user.firstName,
+            resetToken: resetToken,
+            resetUrl: `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`,
+            expiresAt: resetExpires.toISOString(),
+          },
+          type: 'transactional',
+          priority: 'high',
+          subject: 'Password Reset Request',
+        });
+
+        logger.info('Password reset email sent', { userId: user.userId, email: user.email });
+      } catch (emailError) {
+        logger.error('Failed to send password reset email:', emailError);
+        // Don't throw error - we still want to return success to user for security
+      }
 
       return { message: 'If the email exists, a reset link has been sent' };
     } catch (error) {
@@ -453,8 +472,27 @@ export class AuthService {
         userId: user.userId,
       });
 
-      // TODO: Send verification email
-      logger.info('Verification email resent', { userId: user.userId, email: user.email });
+      // Send verification email
+      try {
+        const emailService = (await import('./email.service')).default;
+        await emailService.sendEmail({
+          toEmail: user.email,
+          templateData: {
+            firstName: user.firstName,
+            verificationToken: verificationToken,
+            verificationUrl: `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`,
+            expiresAt: verificationExpires.toISOString(),
+          },
+          type: 'transactional',
+          priority: 'high',
+          subject: 'Verify Your Email Address',
+        });
+
+        logger.info('Verification email sent', { userId: user.userId, email: user.email });
+      } catch (emailError) {
+        logger.error('Failed to send verification email:', emailError);
+        // Don't throw error - we still want to return success to user for security
+      }
 
       return {
         message: 'If the email exists and is unverified, a new verification link has been sent',

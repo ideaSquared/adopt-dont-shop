@@ -10,7 +10,7 @@ import { AuditLogService } from './auditLog.service';
 
 // File upload configuration
 const UPLOAD_CONFIG = {
-  maxFileSize: config.uploads.maxSize,
+  maxFileSize: config.storage.local.maxFileSize,
   allowedMimeTypes: {
     images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
     documents: [
@@ -37,7 +37,7 @@ const UPLOAD_CONFIG = {
 
 // Ensure upload directories exist
 Object.values(UPLOAD_CONFIG.directories).forEach(dir => {
-  const dirPath = path.join(config.uploads.directory, dir);
+  const dirPath = path.join(config.storage.local.directory, dir);
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
@@ -97,7 +97,10 @@ const createStorage = (uploadType: keyof typeof UPLOAD_CONFIG.directories) => {
       file: Express.Multer.File,
       cb: (error: Error | null, destination: string) => void
     ) => {
-      const uploadPath = path.join(config.uploads.directory, UPLOAD_CONFIG.directories[uploadType]);
+      const uploadPath = path.join(
+        config.storage.local.directory,
+        UPLOAD_CONFIG.directories[uploadType]
+      );
       cb(null, uploadPath);
     },
     filename: (
@@ -273,7 +276,7 @@ export class FileUploadService {
       }
 
       // Delete physical file
-      const filePath = path.join(config.uploads.directory, uploadRecord.file_path);
+      const filePath = path.join(config.storage.local.directory, uploadRecord.file_path);
       if (fs.existsSync(filePath)) {
         await fs.promises.unlink(filePath);
       }
