@@ -1,0 +1,135 @@
+name: Docker CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'service.backend/**'
+      - 'app.client/**'
+      - 'app.admin/**'
+      - 'app.rescue/**'
+      - 'lib.components/**'
+      - 'docker-compose*.yml'
+      - '**/Dockerfile'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'service.backend/**'
+      - 'app.client/**'
+      - 'app.admin/**'
+      - 'app.rescue/**'
+      - 'lib.components/**'
+      - 'docker-compose*.yml'
+      - '**/Dockerfile'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [service.backend, app.client, app.admin, app.rescue, lib.components]
+        include:
+          - service: service.backend
+            name: Backend Service
+            port: 3000
+          - service: app.client
+            name: Client App
+            port: 3001
+          - service: app.admin
+            name: Admin App
+            port: 3002
+          - service: app.rescue
+            name: Rescue App
+            port: 3003
+          - service: lib.components
+            name: Component Library
+            port: 6006
+
+    name: Build ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          push: false
+          tags: adopt-dont-shop/${{ matrix.service }}:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker Image
+        run: |
+          # Start the container
+          docker run -d --name test-${{ matrix.service }} \
+            -p ${{ matrix.port }}:${{ matrix.port }} \
+            adopt-dont-shop/${{ matrix.service }}:test
+
+          # Wait for container to be ready
+          sleep 10
+
+          # Basic health check (adjust based on your app's health endpoint)
+          if [ "${{ matrix.service }}" = "service.backend" ]; then
+            curl -f http://localhost:${{ matrix.port }}/health || exit 1
+          else
+            # For frontend apps, just check if they're serving content
+            curl -f http://localhost:${{ matrix.port }} || exit 1
+          fi
+
+          # Cleanup
+          docker stop test-${{ matrix.service }}
+          docker rm test-${{ matrix.service }}
+
+  docker-compose-test:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env file for testing
+        run: |
+          cat << EOF > .env
+          NODE_ENV=development
+          DATABASE_URL=postgresql://postgres:password@postgres:5432/adopt_dont_shop
+          JWT_SECRET=test-secret-key
+          JWT_REFRESH_SECRET=test-refresh-secret-key
+          EMAIL_PROVIDER=console
+          FRONTEND_URL=http://localhost:3004
+          EOF
+
+      - name: Test Docker Compose
+        run: |
+          # Test development compose
+          docker-compose -f docker-compose.yml up -d --build
+
+          # Wait for services to be ready
+          sleep 30
+
+          # Test backend health
+          curl -f http://localhost:3000/health || exit 1
+
+          # Test client app accessibility  
+          curl -f http://localhost:3001 || exit 1
+
+          # Cleanup
+          docker-compose -f docker-compose.yml down -v
+
+      - name: Test Production Docker Compose
+        run: |
+          # Test production compose
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+          # Wait for services to be ready
+          sleep 30
+
+          # Basic connectivity tests
+          curl -f http://localhost:80 || exit 1
+
+          # Cleanup
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml down -v

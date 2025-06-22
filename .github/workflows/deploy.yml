@@ -1,0 +1,142 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main # Deploy to production
+      - develop # Deploy to staging
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Environment Variables
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            echo "DEPLOY_ENV=production" >> $GITHUB_ENV
+            echo "DEPLOY_URL=${{ secrets.PRODUCTION_URL }}" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_ENV=staging" >> $GITHUB_ENV
+            echo "DEPLOY_URL=${{ secrets.STAGING_URL }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CONTAINER_REGISTRY }}
+          username: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
+          password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+
+      - name: Build and Push Images
+        run: |
+          # Build and push all service images
+          SERVICES="service.backend app.client app.admin app.rescue"
+
+          for service in $SERVICES; do
+            echo "Building $service..."
+            docker build -t ${{ secrets.CONTAINER_REGISTRY }}/adopt-dont-shop/$service:${{ github.sha }} ./$service
+            docker push ${{ secrets.CONTAINER_REGISTRY }}/adopt-dont-shop/$service:${{ github.sha }}
+            
+            # Tag as latest for the environment
+            docker tag ${{ secrets.CONTAINER_REGISTRY }}/adopt-dont-shop/$service:${{ github.sha }} \
+              ${{ secrets.CONTAINER_REGISTRY }}/adopt-dont-shop/$service:${{ env.DEPLOY_ENV }}-latest
+            docker push ${{ secrets.CONTAINER_REGISTRY }}/adopt-dont-shop/$service:${{ env.DEPLOY_ENV }}-latest
+          done
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            # Navigate to deployment directory
+            cd /opt/adopt-dont-shop/${{ env.DEPLOY_ENV }}
+
+            # Pull latest code
+            git pull origin ${{ github.ref_name }}
+
+            # Update environment variables
+            echo "Updating environment configuration..."
+
+            # Pull latest images
+            docker-compose pull
+
+            # Deploy with zero-downtime
+            docker-compose up -d --remove-orphans
+
+            # Health check
+            echo "Performing health checks..."
+            sleep 30
+
+            # Check backend health
+            curl -f http://localhost:3000/health || exit 1
+
+            # Check client app accessibility
+            curl -f http://localhost:3001 || exit 1
+
+            # Cleanup old images
+            docker image prune -f
+
+            echo "Deployment completed successfully!"
+
+      - name: Run Database Migrations
+        if: env.DEPLOY_ENV == 'production'
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            cd /opt/adopt-dont-shop/${{ env.DEPLOY_ENV }}
+
+            # Run database migrations
+            docker-compose exec -T service.backend npm run db:migrate
+
+            # Run database seeds if needed
+            # docker-compose exec -T service.backend npm run db:seed
+
+      - name: Notify Deployment Status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Create Release
+        if: env.DEPLOY_ENV == 'production' && success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            Automated release from commit ${{ github.sha }}
+
+            Changes in this release:
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false

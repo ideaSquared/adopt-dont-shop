@@ -1,26 +1,36 @@
-name: Frontend CI
+name: Frontend Apps CI
 
 on:
   push:
     paths:
-      - 'frontend/**/*.js'
-      - 'frontend/**/*.jsx'
-      - 'frontend/**/*.ts'
-      - 'frontend/**/*.tsx'
-      - 'frontend/package.json'
-      - 'frontend/package-lock.json'
+      - 'app.client/**'
+      - 'app.admin/**'
+      - 'app.rescue/**'
+      - 'lib.components/**'
   pull_request:
     paths:
-      - 'frontend/**/*.js'
-      - 'frontend/**/*.jsx'
-      - 'frontend/**/*.ts'
-      - 'frontend/**/*.tsx'
-      - 'frontend/package.json'
-      - 'frontend/package-lock.json'
+      - 'app.client/**'
+      - 'app.admin/**'
+      - 'app.rescue/**'
+      - 'lib.components/**'
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [app.client, app.admin, app.rescue, lib.components]
+        include:
+          - app: app.client
+            name: Client App
+          - app: app.admin
+            name: Admin App
+          - app: app.rescue
+            name: Rescue App
+          - app: lib.components
+            name: Component Library
+
+    name: Test ${{ matrix.name }}
 
     steps:
       - uses: actions/checkout@v4
@@ -28,13 +38,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
       - name: Install Dependencies
-        run: npm install --prefix frontend
+        run: npm ci
+        working-directory: ./${{ matrix.app }}
+      - name: Run Linting
+        run: npm run lint
+        working-directory: ./${{ matrix.app }}
+        continue-on-error: true
       - name: Run Tests
-        run: npm run test --prefix frontend
+        run: npm test
+        working-directory: ./${{ matrix.app }}
+      - name: Build App
+        run: npm run build
+        working-directory: ./${{ matrix.app }}
+        env:
+          CI: true
       # Uncomment the following lines if you want to upload coverage reports to Codecov
       # - name: Upload coverage reports to Codecov
       #   uses: codecov/codecov-action@v4.0.1
       #   with:
       #     token: ${{ secrets.CODECOV_TOKEN }}
-      #     slug: ideaSquared/pet-adoption
+      #     slug: ideaSquared/adopt-dont-shop

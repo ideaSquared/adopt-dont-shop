@@ -1,0 +1,188 @@
+name: Frontend Apps CI (Smart)
+
+on:
+  push:
+    paths:
+      - 'app.client/**'
+      - 'app.admin/**'
+      - 'app.rescue/**'
+      - 'lib.components/**'
+  pull_request:
+    paths:
+      - 'app.client/**'
+      - 'app.admin/**'
+      - 'app.rescue/**'
+      - 'lib.components/**'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      client: ${{ steps.changes.outputs.client }}
+      admin: ${{ steps.changes.outputs.admin }}
+      rescue: ${{ steps.changes.outputs.rescue }}
+      components: ${{ steps.changes.outputs.components }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            client:
+              - 'app.client/**'
+            admin:
+              - 'app.admin/**'
+            rescue:
+              - 'app.rescue/**'
+            components:
+              - 'lib.components/**'
+
+  test-client:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.client == 'true'
+    runs-on: ubuntu-latest
+    name: Test Client App
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app.client/package-lock.json
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: ./app.client
+      - name: Run Linting
+        run: npm run lint
+        working-directory: ./app.client
+        continue-on-error: true
+      - name: Run Tests
+        run: npm test
+        working-directory: ./app.client
+      - name: Build App
+        run: npm run build
+        working-directory: ./app.client
+        env:
+          CI: true
+
+  test-admin:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    name: Test Admin App
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app.admin/package-lock.json
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: ./app.admin
+      - name: Run Linting
+        run: npm run lint
+        working-directory: ./app.admin
+        continue-on-error: true
+      - name: Run Tests
+        run: npm test
+        working-directory: ./app.admin
+      - name: Build App
+        run: npm run build
+        working-directory: ./app.admin
+        env:
+          CI: true
+
+  test-rescue:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.rescue == 'true'
+    runs-on: ubuntu-latest
+    name: Test Rescue App
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app.rescue/package-lock.json
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: ./app.rescue
+      - name: Run Linting
+        run: npm run lint
+        working-directory: ./app.rescue
+        continue-on-error: true
+      - name: Run Tests
+        run: npm test
+        working-directory: ./app.rescue
+      - name: Build App
+        run: npm run build
+        working-directory: ./app.rescue
+        env:
+          CI: true
+
+  test-components:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.components == 'true'
+    runs-on: ubuntu-latest
+    name: Test Component Library
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: lib.components/package-lock.json
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: ./lib.components
+      - name: Run Linting
+        run: npm run lint
+        working-directory: ./lib.components
+        continue-on-error: true
+      - name: Run Tests
+        run: npm test
+        working-directory: ./lib.components
+      - name: Build Library
+        run: npm run build
+        working-directory: ./lib.components
+        env:
+          CI: true
+      - name: Run Storybook Build
+        run: npm run build-storybook
+        working-directory: ./lib.components
+        continue-on-error: true
+
+  # Dependency check job that runs when components change
+  # since other apps depend on lib.components
+  test-dependents:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.components == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [app.client, app.admin, app.rescue]
+    name: Test ${{ matrix.app }} (component changes)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: ./${{ matrix.app }}
+      - name: Run Tests
+        run: npm test
+        working-directory: ./${{ matrix.app }}
+      - name: Build App
+        run: npm run build
+        working-directory: ./${{ matrix.app }}
+        env:
+          CI: true
