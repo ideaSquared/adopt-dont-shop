@@ -98,7 +98,9 @@ class EmailPreference
   }
 
   public canReceiveType(type: NotificationType): boolean {
-    if (!this.canReceiveEmails()) return false;
+    if (!this.canReceiveEmails()) {
+      return false;
+    }
 
     const preference = this.preferences.find(p => p.type === type);
     return preference ? preference.enabled && preference.frequency !== EmailFrequency.NEVER : false;
@@ -170,13 +172,19 @@ class EmailPreference
   }
 
   public shouldReceiveDigest(): boolean {
-    if (!this.canReceiveEmails()) return false;
-    if (this.digestFrequency === EmailFrequency.NEVER) return false;
+    if (!this.canReceiveEmails()) {
+      return false;
+    }
+    if (this.digestFrequency === EmailFrequency.NEVER) {
+      return false;
+    }
 
     const now = new Date();
     const lastSent = this.lastDigestSent;
 
-    if (!lastSent) return true;
+    if (!lastSent) {
+      return true;
+    }
 
     const hoursSinceLastDigest = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60);
 
@@ -200,7 +208,9 @@ class EmailPreference
 
   public isInQuietHours(type: NotificationType): boolean {
     const preference = this.getPreference(type);
-    if (!preference?.quietHours) return false;
+    if (!preference?.quietHours) {
+      return false;
+    }
 
     const now = new Date();
     const currentTime = now.toLocaleTimeString('en-US', {

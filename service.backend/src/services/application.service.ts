@@ -1161,17 +1161,37 @@ class LegacyApplicationService {
     const newFilters: ApplicationSearchFilters = {};
     const newOptions: ApplicationSearchOptions = {};
 
-    if (filters.status) newFilters.status = filters.status as ApplicationStatus;
-    if (filters.petId) newFilters.pet_id = filters.petId;
-    if (filters.userId) newFilters.user_id = filters.userId;
-    if (filters.rescueId) newFilters.rescue_id = filters.rescueId;
-    if (filters.startDate) newFilters.created_from = filters.startDate;
-    if (filters.endDate) newFilters.created_to = filters.endDate;
+    if (filters.status) {
+      newFilters.status = filters.status as ApplicationStatus;
+    }
+    if (filters.petId) {
+      newFilters.pet_id = filters.petId;
+    }
+    if (filters.userId) {
+      newFilters.user_id = filters.userId;
+    }
+    if (filters.rescueId) {
+      newFilters.rescue_id = filters.rescueId;
+    }
+    if (filters.startDate) {
+      newFilters.created_from = filters.startDate;
+    }
+    if (filters.endDate) {
+      newFilters.created_to = filters.endDate;
+    }
 
-    if (filters.page) newOptions.page = filters.page;
-    if (filters.limit) newOptions.limit = filters.limit;
-    if (filters.sortBy) newOptions.sortBy = filters.sortBy;
-    if (filters.sortOrder) newOptions.sortOrder = filters.sortOrder;
+    if (filters.page) {
+      newOptions.page = filters.page;
+    }
+    if (filters.limit) {
+      newOptions.limit = filters.limit;
+    }
+    if (filters.sortBy) {
+      newOptions.sortBy = filters.sortBy;
+    }
+    if (filters.sortOrder) {
+      newOptions.sortOrder = filters.sortOrder;
+    }
 
     const result = await ApplicationService.searchApplications(
       newFilters,
@@ -1191,12 +1211,16 @@ class LegacyApplicationService {
   }
 
   static async createApplication(applicationData: CreateApplicationRequest, userId?: string) {
-    if (!userId) throw new Error('User ID is required');
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     return ApplicationService.createApplication(applicationData, userId);
   }
 
   static async updateApplicationStatus(applicationId: string, status: string, userId?: string) {
-    if (!userId) throw new Error('User ID is required');
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const statusUpdate: ApplicationStatusUpdateRequest = {
       status: status as ApplicationStatus,
       actioned_by: userId,
@@ -1205,7 +1229,9 @@ class LegacyApplicationService {
   }
 
   static async withdrawApplication(applicationId: string, userId?: string) {
-    if (!userId) throw new Error('User ID is required');
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     await ApplicationService.withdrawApplication(applicationId, userId);
     return { message: 'Application withdrawn successfully' };
   }

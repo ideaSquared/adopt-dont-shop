@@ -72,7 +72,9 @@ export class AnalyticsService {
    * Build date filter for queries
    */
   private static buildDateFilter(dateRange?: { start: Date; end: Date }) {
-    if (!dateRange) return {};
+    if (!dateRange) {
+      return {};
+    }
 
     return {
       [Op.between]: [dateRange.start, dateRange.end],
@@ -1270,8 +1272,20 @@ export class AnalyticsService {
           (sum: number, count) => sum + Number(count || 0),
           0
         ),
-        approvedApplications: Number((applicationsByStatus as any[]).find(item => item.status === 'approved')?.getDataValue ? (applicationsByStatus as any[]).find(item => item.status === 'approved')?.getDataValue('count') : (applicationsByStatus as any[]).find(item => item.status === 'approved')?.count || 0),
-        rejectedApplications: Number((applicationsByStatus as any[]).find(item => item.status === 'rejected')?.getDataValue ? (applicationsByStatus as any[]).find(item => item.status === 'rejected')?.getDataValue('count') : (applicationsByStatus as any[]).find(item => item.status === 'rejected')?.count || 0),
+        approvedApplications: Number(
+          (applicationsByStatus as any[]).find(item => item.status === 'approved')?.getDataValue
+            ? (applicationsByStatus as any[])
+                .find(item => item.status === 'approved')
+                ?.getDataValue('count')
+            : (applicationsByStatus as any[]).find(item => item.status === 'approved')?.count || 0
+        ),
+        rejectedApplications: Number(
+          (applicationsByStatus as any[]).find(item => item.status === 'rejected')?.getDataValue
+            ? (applicationsByStatus as any[])
+                .find(item => item.status === 'rejected')
+                ?.getDataValue('count')
+            : (applicationsByStatus as any[]).find(item => item.status === 'rejected')?.count || 0
+        ),
       });
 
       return {

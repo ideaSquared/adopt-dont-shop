@@ -1,6 +1,6 @@
 import User, { UserStatus, UserType } from '../../models/User';
 import UserService from '../../services/user.service';
-import { UserFilters, UserUpdateData } from '../../types/user';
+import { UserUpdateData } from '../../types/user';
 
 // Mock dependencies
 jest.mock('../../models/User');
@@ -13,7 +13,20 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-// Note: We import the real Op from sequelize to match the service
+// Mock Sequelize and Op
+jest.mock('sequelize', () => {
+  const actualSequelize = jest.requireActual('sequelize');
+  return {
+    ...actualSequelize,
+    Op: {
+      gte: Symbol('gte'),
+      lte: Symbol('lte'),
+      iLike: Symbol('iLike'),
+      or: Symbol('or'),
+      ne: Symbol('ne'),
+    },
+  };
+});
 
 // Create proper mock for User model
 const MockedUser = User as jest.Mocked<typeof User>;
@@ -86,6 +99,12 @@ describe('UserService', () => {
           firstName: 'Jane',
           lastName: 'Smith',
         }),
+        toJSON: jest.fn().mockReturnValue({
+          userId,
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        }),
       };
 
       MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
@@ -111,10 +130,13 @@ describe('UserService', () => {
 
   describe('searchUsers', () => {
     it('should search users with filters', async () => {
-      const filters: UserFilters = {
+      const filters = {
         search: 'john',
         userType: UserType.ADOPTER,
         status: UserStatus.ACTIVE,
+      };
+
+      const options = {
         page: 1,
         limit: 10,
       };
@@ -135,7 +157,7 @@ describe('UserService', () => {
         rows: mockUsers,
       });
 
-      const result = await UserService.searchUsers(filters);
+      const result = await UserService.searchUsers(filters, options);
 
       expect(MockedUser.findAndCountAll).toHaveBeenCalled();
       expect(result.users).toEqual(mockUsers);

@@ -392,14 +392,13 @@ describe('PetService', () => {
         available_since: expect.any(Date),
       });
       expect(mockAuditLog).toHaveBeenCalledWith({
-        action: 'STATUS_CHANGE',
+        action: 'UPDATE_STATUS',
         entity: 'Pet',
         entityId: 'pet1',
         details: {
           originalStatus: PetStatus.AVAILABLE,
           newStatus: PetStatus.ADOPTED,
           reason: statusUpdate.reason,
-          notes: statusUpdate.notes || null,
           updatedBy: 'user1',
         },
         userId: 'user1',
@@ -764,4 +763,3 @@ describe('PetService', () => {
     });
   });
 });
-

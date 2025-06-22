@@ -154,10 +154,18 @@ export class AuditLogService {
 
       const whereClause: WhereOptions = {};
 
-      if (userId) whereClause.userId = userId;
-      if (entity) whereClause.entity = entity;
-      if (entityId) whereClause.entityId = entityId;
-      if (action) whereClause.action = action;
+      if (userId) {
+        whereClause.userId = userId;
+      }
+      if (entity) {
+        whereClause.entity = entity;
+      }
+      if (entityId) {
+        whereClause.entityId = entityId;
+      }
+      if (action) {
+        whereClause.action = action;
+      }
 
       if (startDate && endDate) {
         whereClause.timestamp = {

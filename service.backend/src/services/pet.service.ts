@@ -315,16 +315,17 @@ export class PetService {
         userId: createdBy,
       });
 
-      loggerHelpers.logBusiness(
-        'Pet Created',
-        {
-          petId: pet.pet_id,
-          rescueId,
-          createdBy,
-          duration: Date.now() - startTime,
-        },
-        createdBy
-      );
+      loggerHelpers &&
+        loggerHelpers.logBusiness &&
+        loggerHelpers.logBusiness(
+          'Pet Created',
+          {
+            petId: pet.pet_id,
+            rescueId,
+            createdBy,
+          },
+          createdBy
+        );
 
       return pet;
     } catch (error) {
@@ -486,16 +487,18 @@ export class PetService {
         userId: updatedBy,
       });
 
-      loggerHelpers.logBusiness(
-        'Pet Updated',
-        {
-          petId,
-          updatedBy,
-          duration: Date.now() - startTime,
-          updatedFields: Object.keys(dbUpdateData),
-        },
-        updatedBy
-      );
+      loggerHelpers &&
+        loggerHelpers.logBusiness &&
+        loggerHelpers.logBusiness(
+          'Pet Updated',
+          {
+            petId,
+            updatedBy,
+            duration: Date.now() - startTime,
+            updatedFields: Object.keys(dbUpdateData),
+          },
+          updatedBy
+        );
 
       return pet.reload();
     } catch (error) {
@@ -549,17 +552,19 @@ export class PetService {
         userId: updatedBy,
       });
 
-      loggerHelpers.logBusiness(
-        'Pet Status Updated',
-        {
-          petId,
-          originalStatus,
-          newStatus: statusUpdate.status,
-          updatedBy,
-          duration: Date.now() - startTime,
-        },
-        updatedBy
-      );
+      loggerHelpers &&
+        loggerHelpers.logBusiness &&
+        loggerHelpers.logBusiness(
+          'Pet Status Updated',
+          {
+            petId,
+            originalStatus,
+            newStatus: statusUpdate.status,
+            updatedBy,
+            duration: Date.now() - startTime,
+          },
+          updatedBy
+        );
 
       return pet.reload();
     } catch (error) {
@@ -605,16 +610,18 @@ export class PetService {
         userId: deletedBy,
       });
 
-      loggerHelpers.logBusiness(
-        'Pet Deleted',
-        {
-          petId,
-          deletedBy,
-          reason,
-          duration: Date.now() - startTime,
-        },
-        deletedBy
-      );
+      loggerHelpers &&
+        loggerHelpers.logBusiness &&
+        loggerHelpers.logBusiness(
+          'Pet Deleted',
+          {
+            petId,
+            deletedBy,
+            reason,
+            duration: Date.now() - startTime,
+          },
+          deletedBy
+        );
 
       return { message: 'Pet deleted successfully' };
     } catch (error) {

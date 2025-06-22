@@ -171,8 +171,12 @@ class EmailQueue
   public markAsSent(providerId?: string, providerMessageId?: string): void {
     this.status = EmailStatus.SENT;
     this.sentAt = new Date();
-    if (providerId) this.providerId = providerId;
-    if (providerMessageId) this.providerMessageId = providerMessageId;
+    if (providerId) {
+      this.providerId = providerId;
+    }
+    if (providerMessageId) {
+      this.providerMessageId = providerMessageId;
+    }
   }
 
   public markAsFailed(reason: string): void {
@@ -248,7 +252,9 @@ class EmailQueue
   }
 
   public getUniqueClickCount(): number {
-    if (!this.tracking?.clicks) return 0;
+    if (!this.tracking?.clicks) {
+      return 0;
+    }
     const uniqueUrls = new Set(this.tracking.clicks.map(click => click.url));
     return uniqueUrls.size;
   }

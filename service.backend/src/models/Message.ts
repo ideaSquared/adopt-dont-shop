@@ -69,7 +69,9 @@ export class Message
 
   // Instance methods for reactions
   public addReaction(userId: string, emoji: string): void {
-    if (!this.reactions) this.reactions = [];
+    if (!this.reactions) {
+      this.reactions = [];
+    }
 
     // Remove existing reaction from this user with same emoji
     this.reactions = this.reactions.filter(r => !(r.user_id === userId && r.emoji === emoji));
@@ -83,12 +85,16 @@ export class Message
   }
 
   public removeReaction(userId: string, emoji: string): void {
-    if (!this.reactions) return;
+    if (!this.reactions) {
+      return;
+    }
     this.reactions = this.reactions.filter(r => !(r.user_id === userId && r.emoji === emoji));
   }
 
   public getReactionCount(emoji?: string): number {
-    if (!this.reactions) return 0;
+    if (!this.reactions) {
+      return 0;
+    }
     if (emoji) {
       return this.reactions.filter(r => r.emoji === emoji).length;
     }
@@ -96,7 +102,9 @@ export class Message
   }
 
   public hasUserReacted(userId: string, emoji?: string): boolean {
-    if (!this.reactions) return false;
+    if (!this.reactions) {
+      return false;
+    }
     if (emoji) {
       return this.reactions.some(r => r.user_id === userId && r.emoji === emoji);
     }
@@ -105,7 +113,9 @@ export class Message
 
   // Instance methods for read status
   public markAsRead(userId: string): void {
-    if (!this.read_status) this.read_status = [];
+    if (!this.read_status) {
+      this.read_status = [];
+    }
 
     // Remove existing read status for this user
     this.read_status = this.read_status.filter(r => r.user_id !== userId);
@@ -118,7 +128,9 @@ export class Message
   }
 
   public isReadBy(userId: string): boolean {
-    if (!this.read_status) return false;
+    if (!this.read_status) {
+      return false;
+    }
     return this.read_status.some(r => r.user_id === userId);
   }
 
@@ -127,7 +139,9 @@ export class Message
   }
 
   public getUnreadUsers(chatParticipants: string[]): string[] {
-    if (!this.read_status) return chatParticipants;
+    if (!this.read_status) {
+      return chatParticipants;
+    }
     const readUserIds = this.read_status.map(r => r.user_id);
     return chatParticipants.filter(userId => !readUserIds.includes(userId));
   }

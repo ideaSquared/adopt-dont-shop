@@ -74,8 +74,12 @@ class AdminService {
 
       const whereConditions: WhereOptions = {};
 
-      if (status) whereConditions.status = status;
-      if (userType) whereConditions.userType = userType;
+      if (status) {
+        whereConditions.status = status;
+      }
+      if (userType) {
+        whereConditions.userType = userType;
+      }
 
       if (search) {
         whereConditions[Op.or as any] = [
@@ -381,7 +385,9 @@ class AdminService {
 
       const whereConditions: WhereOptions = {};
 
-      if (status) whereConditions.status = status;
+      if (status) {
+        whereConditions.status = status;
+      }
 
       if (search) {
         whereConditions[Op.or as any] = [
@@ -563,9 +569,15 @@ class AdminService {
 
       const whereConditions: WhereOptions = {};
 
-      if (userId) whereConditions.userId = userId;
-      if (entity) whereConditions.entity = entity;
-      if (action) whereConditions.action = action;
+      if (userId) {
+        whereConditions.userId = userId;
+      }
+      if (entity) {
+        whereConditions.entity = entity;
+      }
+      if (action) {
+        whereConditions.action = action;
+      }
 
       if (startDate && endDate) {
         whereConditions.timestamp = {

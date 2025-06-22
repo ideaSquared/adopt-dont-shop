@@ -431,7 +431,9 @@ export class SocketHandlers {
    */
   private broadcastPresenceUpdate(userId: string, status: string) {
     const presence = userPresence.get(userId);
-    if (!presence) return;
+    if (!presence) {
+      return;
+    }
 
     // Broadcast to user's own sockets (for multi-device sync)
     this.io.to(`user:${userId}`).emit('own_presence_update', {

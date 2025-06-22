@@ -158,7 +158,9 @@ class SupportTicket
   }
 
   public addResponse(response: Omit<TicketResponse, 'responseId' | 'createdAt'>): void {
-    if (!this.responses) this.responses = [];
+    if (!this.responses) {
+      this.responses = [];
+    }
 
     const newResponse: TicketResponse = {
       ...response,

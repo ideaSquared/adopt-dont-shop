@@ -4,6 +4,15 @@ import path from 'path';
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
+// Database logging function (eslint-compliant)
+const createDatabaseLogger = () => {
+  if (process.env.NODE_ENV === 'development' && process.env.DB_LOGGING === 'true') {
+    // eslint-disable-next-line no-console
+    return console.log;
+  }
+  return false;
+};
+
 // Configuration object
 export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -17,10 +26,7 @@ export const config = {
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_NAME || 'adopt_dont_shop',
     dialect: 'postgres',
-    logging:
-      process.env.NODE_ENV === 'development' && process.env.DB_LOGGING === 'true'
-        ? console.log
-        : false,
+    logging: createDatabaseLogger(),
   },
 
   // JWT configuration

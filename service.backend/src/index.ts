@@ -1,5 +1,5 @@
 import cors from 'cors';
-import express from 'express';
+import express, { Router } from 'express';
 import helmet from 'helmet';
 import { createServer } from 'http';
 import morgan from 'morgan';
@@ -24,7 +24,6 @@ import rescueRoutes from './routes/rescue.routes';
 import userRoutes from './routes/user.routes';
 
 // Import additional routes for PRD compliance
-import { Router } from 'express';
 import ConfigurationService from './services/configuration.service';
 import FeatureFlagService from './services/featureFlag.service';
 
@@ -133,7 +132,7 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 // Initialize Socket.IO handlers
-const socketHandlers = new SocketHandlers(io);
+new SocketHandlers(io);
 
 // Start server
 const startServer = async () => {

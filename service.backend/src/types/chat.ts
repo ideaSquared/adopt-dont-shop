@@ -49,4 +49,4 @@ export interface ChatStatistics {
   averageMessagesPerChat: number;
   messageGrowthRate: number;
   userEngagement: number;
-} 
+}

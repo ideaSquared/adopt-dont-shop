@@ -79,8 +79,10 @@ class ConfigurationService {
 
     // Validate value if validation rules exist
     if (existingConfig?.validationRule || options?.validationRule) {
-      const rules = existingConfig?.validationRule || options?.validationRule!;
-      this.validateValue(key, value, rules);
+      const rules = existingConfig?.validationRule || options?.validationRule;
+      if (rules) {
+        this.validateValue(key, value, rules);
+      }
     }
 
     const config: ConfigurationItem = {
@@ -181,7 +183,9 @@ class ConfigurationService {
     value: ConfigValue,
     rules: ConfigurationItem['validationRule']
   ): void {
-    if (!rules) return;
+    if (!rules) {
+      return;
+    }
 
     if (rules.required && (value === null || value === undefined || value === '')) {
       throw new Error(`Configuration '${key}' is required`);
@@ -215,8 +219,12 @@ class ConfigurationService {
 
   // Infer type from value
   private inferType(value: ConfigValue): ConfigurationItem['type'] {
-    if (Array.isArray(value)) return 'array';
-    if (typeof value === 'object' && value !== null) return 'object';
+    if (Array.isArray(value)) {
+      return 'array';
+    }
+    if (typeof value === 'object' && value !== null) {
+      return 'object';
+    }
     return typeof value as ConfigurationItem['type'];
   }
 
@@ -346,7 +354,9 @@ class ConfigurationService {
     const recentlyModified = configs
       .filter(c => c.lastModifiedAt)
       .sort((a, b) => {
-        if (!a.lastModifiedAt || !b.lastModifiedAt) return 0;
+        if (!a.lastModifiedAt || !b.lastModifiedAt) {
+          return 0;
+        }
         return b.lastModifiedAt.getTime() - a.lastModifiedAt.getTime();
       })
       .slice(0, 10);

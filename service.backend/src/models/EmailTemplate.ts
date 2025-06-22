@@ -211,19 +211,29 @@ class EmailTemplate
     // Type checking
     switch (variable.type) {
       case 'string':
-        if (typeof value !== 'string') return false;
+        if (typeof value !== 'string') {
+          return false;
+        }
         break;
       case 'number':
-        if (typeof value !== 'number') return false;
+        if (typeof value !== 'number') {
+          return false;
+        }
         break;
       case 'boolean':
-        if (typeof value !== 'boolean') return false;
+        if (typeof value !== 'boolean') {
+          return false;
+        }
         break;
       case 'date':
-        if (!(value instanceof Date) && typeof value !== 'string') return false;
+        if (!(value instanceof Date) && typeof value !== 'string') {
+          return false;
+        }
         break;
       case 'object':
-        if (typeof value !== 'object') return false;
+        if (typeof value !== 'object') {
+          return false;
+        }
         break;
     }
 
@@ -232,14 +242,24 @@ class EmailTemplate
       const validation = variable.validation;
 
       if (typeof value === 'string') {
-        if (validation.pattern && !new RegExp(validation.pattern).test(value)) return false;
-        if (validation.minLength && value.length < validation.minLength) return false;
-        if (validation.maxLength && value.length > validation.maxLength) return false;
+        if (validation.pattern && !new RegExp(validation.pattern).test(value)) {
+          return false;
+        }
+        if (validation.minLength && value.length < validation.minLength) {
+          return false;
+        }
+        if (validation.maxLength && value.length > validation.maxLength) {
+          return false;
+        }
       }
 
       if (typeof value === 'number') {
-        if (validation.min !== undefined && value < validation.min) return false;
-        if (validation.max !== undefined && value > validation.max) return false;
+        if (validation.min !== undefined && value < validation.min) {
+          return false;
+        }
+        if (validation.max !== undefined && value > validation.max) {
+          return false;
+        }
       }
     }
 

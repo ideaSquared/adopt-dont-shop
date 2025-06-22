@@ -292,6 +292,22 @@ export const loggerHelpers = {
   },
 };
 
+// Safe wrapper to prevent undefined errors in tests
+export const safeLoggerHelpers = {
+  logBusiness: (event: string, data: LogData, userId?: string) => {
+    try {
+      if (loggerHelpers && loggerHelpers.logBusiness) {
+        loggerHelpers.logBusiness(event, data, userId);
+      } else {
+        logger.info(`Business: ${event}`, { category: 'BUSINESS', userId, ...data });
+      }
+    } catch (error) {
+      // Fallback to basic logging if loggerHelpers fails
+      logger.info(`Business: ${event}`, { category: 'BUSINESS', userId, ...data });
+    }
+  },
+};
+
 // Create logs directory structure if it doesn't exist
 if (isProduction) {
   import('fs')
@@ -327,6 +343,7 @@ process.on('SIGTERM', () => {
 // Uncaught exception handling
 process.on('uncaughtException', error => {
   logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
+  // eslint-disable-next-line no-process-exit
   process.exit(1);
 });
 
@@ -335,4 +352,3 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 export default logger;
-

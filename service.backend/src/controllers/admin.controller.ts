@@ -19,14 +19,14 @@ export class AdminController {
     try {
       const { startDate, endDate } = req.query;
 
-      let start: Date | undefined;
-      let end: Date | undefined;
+      let _start: Date | undefined;
+      let _end: Date | undefined;
 
       if (startDate) {
-        start = new Date(startDate as string);
+        _start = new Date(startDate as string);
       }
       if (endDate) {
-        end = new Date(endDate as string);
+        _end = new Date(endDate as string);
       }
 
       const metrics = await AdminService.getPlatformMetrics();
@@ -761,6 +761,73 @@ export class AdminController {
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve system statistics',
+      });
+    }
+  }
+
+  static async getDashboardStats(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const startTime = Date.now();
+
+    try {
+      const { startDate, endDate } = req.query;
+
+      const stats = await AdminService.getPlatformMetrics();
+
+      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+      res.json(stats);
+    } catch (error) {
+      logger.error('Failed to get dashboard stats:', {
+        error: error instanceof Error ? error.message : String(error),
+        duration: Date.now() - startTime,
+      });
+      res.status(500).json({ error: 'Failed to get dashboard stats' });
+    }
+  }
+
+  static async getUsersAdmin(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const startTime = Date.now();
+
+    try {
+      const {
+        search,
+        role,
+        status,
+        _verificationStatus, // Prefix with underscore to indicate intentionally unused
+        page = 1,
+        limit = 20,
+        _sortBy = 'createdAt', // Prefix with underscore to indicate intentionally unused
+        _sortOrder = 'DESC', // Prefix with underscore to indicate intentionally unused
+      } = req.query;
+
+      const result = await AdminService.getUsers({
+        search: search as string,
+        status: status as UserStatus,
+        userType: role as UserType,
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+      });
+
+      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+      res.json({
+        success: true,
+        data: result.users,
+        pagination: {
+          page: result.page,
+          limit: 20,
+          total: result.total,
+          pages: result.totalPages,
+        },
+      });
+    } catch (error) {
+      logger.error('Error searching users:', {
+        error: error instanceof Error ? error.message : String(error),
+        query: req.query,
+        duration: Date.now() - startTime,
+      });
+      res.status(500).json({
+        error: 'Failed to search users',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }

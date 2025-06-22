@@ -152,8 +152,12 @@ class Notification
   }
 
   public shouldSend(): boolean {
-    if (this.isExpired()) return false;
-    if (this.scheduled_for && new Date() < this.scheduled_for) return false;
+    if (this.isExpired()) {
+      return false;
+    }
+    if (this.scheduled_for && new Date() < this.scheduled_for) {
+      return false;
+    }
     return [NotificationStatus.PENDING, NotificationStatus.FAILED].includes(this.status);
   }
 
@@ -384,13 +388,19 @@ Notification.init(
           const now = new Date();
           switch (notification.status) {
             case NotificationStatus.SENT:
-              if (!notification.sent_at) notification.sent_at = now;
+              if (!notification.sent_at) {
+                notification.sent_at = now;
+              }
               break;
             case NotificationStatus.DELIVERED:
-              if (!notification.delivered_at) notification.delivered_at = now;
+              if (!notification.delivered_at) {
+                notification.delivered_at = now;
+              }
               break;
             case NotificationStatus.READ:
-              if (!notification.read_at) notification.read_at = now;
+              if (!notification.read_at) {
+                notification.read_at = now;
+              }
               break;
           }
         }

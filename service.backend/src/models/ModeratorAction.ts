@@ -106,7 +106,9 @@ class ModeratorAction
   }
 
   public getRemainingDuration(): number | null {
-    if (!this.expiresAt) return null;
+    if (!this.expiresAt) {
+      return null;
+    }
     const now = new Date();
     const remaining = this.expiresAt.getTime() - now.getTime();
     return Math.max(0, Math.floor(remaining / (1000 * 60 * 60))); // Return hours

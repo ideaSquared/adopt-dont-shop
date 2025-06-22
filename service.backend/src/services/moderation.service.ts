@@ -155,18 +155,36 @@ class ModerationService {
     const whereClause: any = {};
 
     // Apply filters
-    if (filters.status) whereClause.status = filters.status;
-    if (filters.category) whereClause.category = filters.category;
-    if (filters.severity) whereClause.severity = filters.severity;
-    if (filters.reporterId) whereClause.reporterId = filters.reporterId;
-    if (filters.reportedUserId) whereClause.reportedUserId = filters.reportedUserId;
-    if (filters.assignedModerator) whereClause.assignedModerator = filters.assignedModerator;
-    if (filters.reportedEntityType) whereClause.reportedEntityType = filters.reportedEntityType;
+    if (filters.status) {
+      whereClause.status = filters.status;
+    }
+    if (filters.category) {
+      whereClause.category = filters.category;
+    }
+    if (filters.severity) {
+      whereClause.severity = filters.severity;
+    }
+    if (filters.reporterId) {
+      whereClause.reporterId = filters.reporterId;
+    }
+    if (filters.reportedUserId) {
+      whereClause.reportedUserId = filters.reportedUserId;
+    }
+    if (filters.assignedModerator) {
+      whereClause.assignedModerator = filters.assignedModerator;
+    }
+    if (filters.reportedEntityType) {
+      whereClause.reportedEntityType = filters.reportedEntityType;
+    }
 
     if (filters.dateFrom || filters.dateTo) {
       whereClause.createdAt = {};
-      if (filters.dateFrom) whereClause.createdAt[Op.gte] = filters.dateFrom;
-      if (filters.dateTo) whereClause.createdAt[Op.lte] = filters.dateTo;
+      if (filters.dateFrom) {
+        whereClause.createdAt[Op.gte] = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        whereClause.createdAt[Op.lte] = filters.dateTo;
+      }
     }
 
     if (filters.search) {
@@ -513,10 +531,15 @@ class ModerationService {
       reports.total += count;
 
       // Handle the status mapping safely
-      if (row.status === 'pending') reports.pending += count;
-      else if (row.status === 'under_review') reports.underReview += count;
-      else if (row.status === 'resolved') reports.resolved += count;
-      else if (row.status === 'dismissed') reports.dismissed += count;
+      if (row.status === 'pending') {
+        reports.pending += count;
+      } else if (row.status === 'under_review') {
+        reports.underReview += count;
+      } else if (row.status === 'resolved') {
+        reports.resolved += count;
+      } else if (row.status === 'dismissed') {
+        reports.dismissed += count;
+      }
 
       reports.byCategory[row.category] = (reports.byCategory[row.category] || 0) + count;
       reports.bySeverity[row.severity] = (reports.bySeverity[row.severity] || 0) + count;

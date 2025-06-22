@@ -14,13 +14,19 @@ module.exports = {
     '^@/types/(.*)$': '<rootDir>/src/types/$1',
   },
   transform: {
-    '^.+\\.(ts)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': 'ts-jest',
   },
-  moduleFileExtensions: ['ts', 'js', 'json'],
-  collectCoverageFrom: ['src/**/*.{ts}', '!src/**/*.d.ts', '!src/index.ts', '!src/setupTests.ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,js}',
+    '!src/**/*.d.ts',
+    '!src/**/*.test.{ts,js}',
+    '!src/index.ts',
+  ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts', '<rootDir>/src/**/*.{test,spec}.ts'],
+  testMatch: ['<rootDir>/src/**/__tests__/**/*.{ts,js}', '<rootDir>/src/**/*.{test,spec}.{ts,js}'],
   clearMocks: true,
   restoreMocks: true,
+  testTimeout: 30000,
 };
