@@ -2,6 +2,7 @@
   "name": "@adopt-dont-shop/app-admin",
   "version": "1.0.0",
   "description": "Admin dashboard React application for platform management",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite --port 3001",

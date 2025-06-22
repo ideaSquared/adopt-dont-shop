@@ -14,18 +14,18 @@ COPY package*.json ./
 
 # Install dependencies
 FROM base AS dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Development stage
 FROM base AS development
-RUN npm ci
+RUN npm install
 COPY . .
 EXPOSE 5000
 CMD ["npm", "run", "dev"]
 
 # Build stage
 FROM base AS build
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build && npm prune --production
 

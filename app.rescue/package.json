@@ -2,6 +2,7 @@
   "name": "@adopt-dont-shop/app-rescue",
   "version": "1.0.0",
   "description": "Rescue management React application for rescue organizations",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite --port 3002",

@@ -11,14 +11,14 @@ COPY package*.json ./
 
 # Development stage
 FROM base AS development
-RUN npm ci
+RUN npm install
 COPY . .
 EXPOSE 3001
 CMD ["npm", "run", "dev"]
 
 # Build stage
 FROM base AS build
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
 

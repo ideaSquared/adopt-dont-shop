@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Backend API service for Adopt Don't Shop",
   "main": "dist/index.js",
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
