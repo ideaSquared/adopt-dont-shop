@@ -40,18 +40,26 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 - **Dependency review:** Validates new dependencies in PRs
 
 ### 5. Deploy (`deploy.yml`)
-**Triggers:** Push to `main` (production) or `develop` (staging)
-**Purpose:** Automated deployment pipeline
-- **Environments:**
-  - `main` branch → Production deployment
-  - `develop` branch → Staging deployment
-- **Features:**
-  - Container registry integration
-  - Zero-downtime deployments
-  - Database migrations (production only)
-  - Health checks and rollback capability
-  - Slack notifications
-  - Automated release creation
+**Status:** 🚫 **CURRENTLY DISABLED**
+**Triggers:** Manual workflow dispatch only (automatic triggers disabled)
+**Purpose:** Automated deployment pipeline (disabled until infrastructure is ready)
+
+**Current State:** The deployment workflow is disabled because no deployment infrastructure is configured yet.
+
+**To Enable Deployment:**
+1. Set up a container registry (Docker Hub, AWS ECR, GitHub Container Registry)
+2. Configure a deployment server with Docker and SSH access
+3. Add required secrets to GitHub repository (see Required Secrets section)
+4. Edit `deploy.yml` to remove the `if: false` condition and enable push triggers
+
+**Features** (when enabled):
+- Container registry integration
+- Zero-downtime deployments  
+- Database migrations (production only)
+- Health checks and rollback capability
+- Automated release creation
+
+**Alternative:** See `deploy-disabled.yml` for a complete deployment template you can customize.
 
 ## Required Secrets
 
