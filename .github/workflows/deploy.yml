@@ -115,15 +115,16 @@ jobs:
             # Run database seeds if needed
             # docker-compose exec -T service.backend npm run db:seed
 
-      - name: Notify Deployment Status
-        if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          channel: '#deployments'
-          fields: repo,message,commit,author,action,eventName,ref,workflow
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+            # Slack notifications (optional - uncomment and configure if needed)
+      # - name: Notify Deployment Status
+      #   if: always()
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: '#deployments'
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Create Release
         if: env.DEPLOY_ENV == 'production' && success()

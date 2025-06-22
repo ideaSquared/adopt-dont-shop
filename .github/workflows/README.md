@@ -70,8 +70,8 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 - `PRODUCTION_URL` - Production application URL
 - `STAGING_URL` - Staging application URL
 
-### Notifications
-- `SLACK_WEBHOOK` - Slack webhook URL for deployment notifications
+### Notifications (Optional)
+- `SLACK_WEBHOOK` - Slack webhook URL for deployment notifications (commented out by default)
 
 ## Environment Setup
 
@@ -107,7 +107,7 @@ All deployments include automated health checks:
 
 - **Build status:** Visible in GitHub Actions tab
 - **Security alerts:** GitHub Security tab
-- **Deployments:** Slack notifications to #deployments channel
+- **Deployments:** GitHub Actions status (Slack notifications available but disabled by default)
 - **Releases:** Automatic GitHub releases for production deployments
 
 ## Troubleshooting
