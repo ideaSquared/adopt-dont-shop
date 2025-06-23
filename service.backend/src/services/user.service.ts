@@ -24,9 +24,7 @@ const safeLoggerHelpers = {
   logBusiness: (event: string, data: any, userId?: string) => {
     try {
       if (loggerHelpers && loggerHelpers.logBusiness) {
-        loggerHelpers &&
-          loggerHelpers.logBusiness &&
-          loggerHelpers.logBusiness(event, data, userId);
+        loggerHelpers.logBusiness(event, data, userId);
       } else {
         logger.info(`Business: ${event}`, { category: 'BUSINESS', userId, ...data });
       }
@@ -204,8 +202,7 @@ export class UserService {
         userId,
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'User Profile Updated',
           {
@@ -215,6 +212,7 @@ export class UserService {
           },
           userId
         );
+      }
 
       return user.reload();
     } catch (error) {
@@ -483,8 +481,7 @@ export class UserService {
         userId,
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'User Preferences Reset',
           {
@@ -493,6 +490,7 @@ export class UserService {
           },
           userId
         );
+      }
 
       return defaultPreferences;
     } catch (error) {
@@ -949,8 +947,7 @@ export class UserService {
         },
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'User Role Updated',
           {
@@ -962,6 +959,7 @@ export class UserService {
           },
           adminUserId
         );
+      }
 
       return user.reload();
     } catch (error) {
@@ -1009,8 +1007,7 @@ export class UserService {
         userId: deactivatedBy,
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'User Deactivated',
           {
@@ -1021,6 +1018,7 @@ export class UserService {
           },
           deactivatedBy
         );
+      }
 
       return user.reload();
     } catch (error) {
@@ -1063,8 +1061,7 @@ export class UserService {
         userId: activatedBy,
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'User Reactivated',
           {
@@ -1074,6 +1071,7 @@ export class UserService {
           },
           activatedBy
         );
+      }
 
       return user.reload();
     } catch (error) {

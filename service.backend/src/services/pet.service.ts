@@ -315,8 +315,7 @@ export class PetService {
         userId: createdBy,
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'Pet Created',
           {
@@ -326,6 +325,7 @@ export class PetService {
           },
           createdBy
         );
+      }
 
       return pet;
     } catch (error) {
@@ -487,8 +487,7 @@ export class PetService {
         userId: updatedBy,
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'Pet Updated',
           {
@@ -499,6 +498,7 @@ export class PetService {
           },
           updatedBy
         );
+      }
 
       return pet.reload();
     } catch (error) {
@@ -552,8 +552,7 @@ export class PetService {
         userId: updatedBy,
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'Pet Status Updated',
           {
@@ -565,6 +564,7 @@ export class PetService {
           },
           updatedBy
         );
+      }
 
       return pet.reload();
     } catch (error) {
@@ -610,8 +610,7 @@ export class PetService {
         userId: deletedBy,
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'Pet Deleted',
           {
@@ -622,6 +621,7 @@ export class PetService {
           },
           deletedBy
         );
+      }
 
       return { message: 'Pet deleted successfully' };
     } catch (error) {

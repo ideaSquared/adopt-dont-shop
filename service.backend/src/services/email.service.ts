@@ -35,11 +35,12 @@ class EmailService {
   private async initializeProvider(): Promise<void> {
     try {
       switch (config.email.provider) {
-        case 'ethereal':
+        case 'ethereal': {
           const etherealProvider = new EtherealProvider();
           await etherealProvider.initialize();
           this.provider = etherealProvider;
           break;
+        }
         default:
           // Fallback to console provider
           this.provider = new ConsoleEmailProvider();

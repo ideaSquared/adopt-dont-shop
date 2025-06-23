@@ -384,12 +384,12 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   // Setup default mock implementations
-  const User = require('./models/User').default;
-  const Pet = require('./models/Pet').default;
-  const Application = require('./models/Application').default;
-  const Chat = require('./models/Chat').default;
-  const ChatParticipant = require('./models/ChatParticipant').default;
-  const Rescue = require('./models/Rescue').default;
+  const { User } = jest.requireActual('./models/User');
+  const { Pet } = jest.requireActual('./models/Pet');
+  const { Application } = jest.requireActual('./models/Application');
+  const { Chat } = jest.requireActual('./models/Chat');
+  const { ChatParticipant } = jest.requireActual('./models/ChatParticipant');
+  const { Rescue } = jest.requireActual('./models/Rescue');
 
   // Default User mock implementations
   User.findByPk.mockImplementation((id: string) => {

@@ -172,7 +172,9 @@ export class HealthCheckService {
 
   private static async getDiskSpace() {
     try {
-      const { execPromise } = require('util').promisify(require('child_process').exec);
+      const { promisify } = await import('util');
+      const { exec } = await import('child_process');
+      const execPromise = promisify(exec);
 
       if (process.platform === 'win32') {
         // Windows: Use wmic to get disk space

@@ -82,4 +82,3 @@ describe('AuditLogService', () => {
 
   // Note: Instance method tests removed due to constructor issues in test environment
 });
-
