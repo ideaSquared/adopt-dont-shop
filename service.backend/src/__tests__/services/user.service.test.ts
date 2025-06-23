@@ -1,5 +1,5 @@
 import User, { UserStatus, UserType } from '../../models/User';
-import UserService from '../../services/user.service';
+import { UserService } from '../../services/user.service';
 import { UserUpdateData } from '../../types/user';
 
 // Mock dependencies

@@ -5,13 +5,6 @@ import { AuditLogService } from '../../services/auditLog.service';
 jest.mock('../../models/AuditLog');
 jest.mock('../../utils/logger');
 
-// Mock the entire AuditLogService module
-jest.mock('../../services/auditLog.service', () => ({
-  AuditLogService: {
-    log: jest.fn(),
-  },
-}));
-
 const MockedAuditLog = AuditLog as jest.Mocked<typeof AuditLog>;
 
 describe('AuditLogService', () => {
@@ -37,12 +30,22 @@ describe('AuditLogService', () => {
         timestamp: new Date(),
       };
 
-      const AuditLogServiceMock = AuditLogService as jest.Mocked<typeof AuditLogService>;
-      AuditLogServiceMock.log.mockResolvedValue(mockLog as any);
+      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as any);
 
       const result = await AuditLogService.log(mockAuditData);
 
-      expect(AuditLogService.log).toHaveBeenCalledWith(mockAuditData);
+      expect(MockedAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: mockAuditData.userId,
+          action: mockAuditData.action,
+          entity: mockAuditData.entity,
+          entityId: mockAuditData.entityId,
+          details: mockAuditData.details,
+          ipAddress: mockAuditData.ipAddress,
+          userAgent: mockAuditData.userAgent,
+          timestamp: expect.any(Date),
+        })
+      );
       expect(result).toEqual(mockLog);
     });
 
@@ -63,22 +66,77 @@ describe('AuditLogService', () => {
         timestamp: new Date(),
       };
 
-      const AuditLogServiceMock = AuditLogService as jest.Mocked<typeof AuditLogService>;
-      AuditLogServiceMock.log.mockResolvedValue(mockLog as any);
+      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as any);
 
       const result = await AuditLogService.log(minimalData);
 
-      expect(AuditLogService.log).toHaveBeenCalledWith(minimalData);
+      expect(MockedAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: minimalData.userId,
+          action: minimalData.action,
+          entity: minimalData.entity,
+          entityId: minimalData.entityId,
+          details: {},
+          timestamp: expect.any(Date),
+        })
+      );
       expect(result).toEqual(mockLog);
     });
 
     it('should handle error when audit log creation fails', async () => {
-      const AuditLogServiceMock = AuditLogService as jest.Mocked<typeof AuditLogService>;
-      AuditLogServiceMock.log.mockRejectedValue(new Error('Database error'));
+      MockedAuditLog.create = jest.fn().mockRejectedValue(new Error('Database error'));
 
       await expect(AuditLogService.log(mockAuditData)).rejects.toThrow('Database error');
     });
   });
 
-  // Note: Instance method tests removed due to constructor issues in test environment
+  describe('getLogs', () => {
+    it('should retrieve audit logs with filters', async () => {
+      const mockLogs = [
+        { id: 'log-1', action: 'CREATE', entity: 'User' },
+        { id: 'log-2', action: 'UPDATE', entity: 'Pet' },
+      ];
+
+      MockedAuditLog.findAndCountAll = jest.fn().mockResolvedValue({
+        rows: mockLogs,
+        count: 2,
+      });
+
+      const whereConditions = { entity: 'User' };
+      const options = { limit: 10, offset: 0 };
+
+      const result = await AuditLogService.getLogs(whereConditions, options);
+
+      expect(MockedAuditLog.findAndCountAll).toHaveBeenCalledWith({
+        where: whereConditions,
+        include: expect.any(Array),
+        ...options,
+      });
+      expect(result.rows).toEqual(mockLogs);
+      expect(result.count).toBe(2);
+    });
+  });
+
+  describe('getLogsByUser', () => {
+    it('should get logs for a specific user', async () => {
+      const userId = 'user-123';
+      const mockLogs = [{ id: 'log-1', userId, action: 'LOGIN' }];
+
+      MockedAuditLog.findAndCountAll = jest.fn().mockResolvedValue({
+        rows: mockLogs,
+        count: 1,
+      });
+
+      const result = await AuditLogService.getLogsByUser(userId);
+
+      expect(MockedAuditLog.findAndCountAll).toHaveBeenCalledWith({
+        where: { userId },
+        include: expect.any(Array),
+        limit: 50,
+        offset: 0,
+        order: [['timestamp', 'DESC']],
+      });
+      expect(result.rows).toEqual(mockLogs);
+    });
+  });
 });

@@ -161,7 +161,10 @@ User.init(
       type: DataTypes.STRING,
       primaryKey: true,
       field: 'user_id', // Explicit database field mapping
-      defaultValue: sequelize.literal(`'user_' || left(md5(random()::text), 12)`),
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => 'user_' + Math.random().toString(36).substr(2, 12)
+          : sequelize.literal(`'user_' || left(md5(random()::text), 12)`),
     },
     firstName: {
       type: DataTypes.STRING(100),

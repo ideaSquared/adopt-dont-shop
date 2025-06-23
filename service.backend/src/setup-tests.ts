@@ -4,7 +4,41 @@ import { config } from 'dotenv';
 // Load test environment variables
 config({ path: '.env.test' });
 
-// Mock Sequelize connection FIRST - this must be done before models are imported
+// Mock Sequelize completely FIRST - this must be done before models are imported
+jest.mock('sequelize', () => {
+  const actualSequelize = jest.requireActual('sequelize');
+
+  // Create a mock sequelize instance
+  const mockSequelizeInstance = {
+    query: jest.fn(() => Promise.resolve([[]])),
+    transaction: jest.fn(() =>
+      Promise.resolve({
+        commit: jest.fn(),
+        rollback: jest.fn(),
+      })
+    ),
+    authenticate: jest.fn(() => Promise.resolve()),
+    define: jest.fn(() => ({})),
+    models: {},
+    DataTypes: actualSequelize.DataTypes,
+    literal: jest.fn((sql: string) => ({ val: sql })), // Mock literal function
+    fn: jest.fn((func: string, ...args: any[]) => ({ fn: func, args })),
+    col: jest.fn((column: string) => ({ col: column })),
+    where: jest.fn((left: any, operator: any, right: any) => ({
+      where: { left, operator, right },
+    })),
+    Op: actualSequelize.Op,
+  };
+
+  // Return both the constructor and the instance methods
+  return {
+    ...actualSequelize,
+    Sequelize: jest.fn(() => mockSequelizeInstance),
+    default: mockSequelizeInstance,
+  };
+});
+
+// Mock the sequelize instance file specifically
 jest.mock('./sequelize', () => ({
   __esModule: true,
   default: {
@@ -18,12 +52,28 @@ jest.mock('./sequelize', () => ({
     authenticate: jest.fn(() => Promise.resolve()),
     define: jest.fn(() => ({})),
     models: {},
-    DataTypes: {},
+    DataTypes: require('sequelize').DataTypes,
+    literal: jest.fn((sql: string) => ({ val: sql })), // Mock literal function
+    fn: jest.fn((func: string, ...args: any[]) => ({ fn: func, args })),
+    col: jest.fn((column: string) => ({ col: column })),
+    where: jest.fn((left: any, operator: any, right: any) => ({
+      where: { left, operator, right },
+    })),
+    Op: require('sequelize').Op,
   },
 }));
 
 // Mock loggerHelpers to prevent undefined errors in tests
 jest.mock('./utils/logger', () => ({
+  __esModule: true,
+  default: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    http: jest.fn(),
+    end: jest.fn(),
+  },
   logger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -48,6 +98,28 @@ jest.mock('./utils/logger', () => ({
   },
 }));
 
+// Mock the config
+jest.mock('./config', () => ({
+  config: {
+    database: {
+      host: 'localhost',
+      port: 5432,
+      username: 'test',
+      password: 'test',
+      database: 'test',
+    },
+    email: {
+      provider: 'console',
+    },
+    jwt: {
+      secret: 'test-secret',
+      refreshSecret: 'test-refresh-secret',
+      expiresIn: '15m',
+      refreshExpiresIn: '7d',
+    },
+  },
+}));
+
 // Mock Sequelize models with proper methods
 const createMockSequelizeModel = (data: any = {}) => ({
   ...data,
@@ -60,6 +132,10 @@ const createMockSequelizeModel = (data: any = {}) => ({
   belongsTo: jest.fn(),
   hasOne: jest.fn(),
   belongsToMany: jest.fn(),
+  isAccountLocked: jest.fn().mockReturnValue(false),
+  isEmailVerified: jest.fn().mockReturnValue(true),
+  canLogin: jest.fn().mockReturnValue(true),
+  getFullName: jest.fn().mockReturnValue('Test User'),
 });
 
 // Mock User model
@@ -79,20 +155,25 @@ jest.mock('./models/User', () => ({
     belongsTo: jest.fn(),
     hasOne: jest.fn(),
     belongsToMany: jest.fn(),
+    scope: jest.fn().mockReturnThis(),
     sequelize: {
       query: jest.fn(),
       transaction: jest.fn(),
     },
+    associate: jest.fn(),
   },
   UserStatus: {
     ACTIVE: 'active',
     INACTIVE: 'inactive',
     SUSPENDED: 'suspended',
+    PENDING_VERIFICATION: 'pending_verification',
+    DEACTIVATED: 'deactivated',
   },
   UserType: {
     ADOPTER: 'adopter',
-    RESCUE: 'rescue',
+    RESCUE_STAFF: 'rescue_staff',
     ADMIN: 'admin',
+    MODERATOR: 'moderator',
   },
 }));
 
@@ -113,6 +194,8 @@ jest.mock('./models/Pet', () => ({
     belongsTo: jest.fn(),
     hasOne: jest.fn(),
     belongsToMany: jest.fn(),
+    searchPets: jest.fn(),
+    associate: jest.fn(),
   },
   PetStatus: {
     AVAILABLE: 'available',
@@ -172,7 +255,7 @@ jest.mock('./models/Pet', () => ({
   },
 }));
 
-// Mock other required models
+// Mock Application model
 jest.mock('./models/Application', () => ({
   __esModule: true,
   default: {
@@ -181,13 +264,33 @@ jest.mock('./models/Application', () => ({
     findAll: jest.fn(),
     create: jest.fn(),
     count: jest.fn(),
+    findAndCountAll: jest.fn(),
     hasMany: jest.fn(),
     belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+  ApplicationStatus: {
+    DRAFT: 'draft',
+    SUBMITTED: 'submitted',
+    UNDER_REVIEW: 'under_review',
+    APPROVED: 'approved',
+    REJECTED: 'rejected',
+    WITHDRAWN: 'withdrawn',
   },
 }));
 
+// Mock Chat model
 jest.mock('./models/Chat', () => ({
   __esModule: true,
+  Chat: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
   default: {
     findByPk: jest.fn(),
     findOne: jest.fn(),
@@ -195,20 +298,26 @@ jest.mock('./models/Chat', () => ({
     count: jest.fn(),
     hasMany: jest.fn(),
     belongsTo: jest.fn(),
+    associate: jest.fn(),
   },
 }));
 
-jest.mock('./models/ChatParticipant', () => ({
+// Mock Message model
+jest.mock('./models/Message', () => ({
   __esModule: true,
-  default: {
+  Message: {
     findByPk: jest.fn(),
     findOne: jest.fn(),
     findAll: jest.fn(),
+    create: jest.fn(),
     count: jest.fn(),
+    hasMany: jest.fn(),
     belongsTo: jest.fn(),
+    associate: jest.fn(),
   },
 }));
 
+// Mock Rescue model
 jest.mock('./models/Rescue', () => ({
   __esModule: true,
   default: {
@@ -217,126 +326,10 @@ jest.mock('./models/Rescue', () => ({
     findAll: jest.fn(),
     create: jest.fn(),
     count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    sequelize: {
-      query: jest.fn(),
-      transaction: jest.fn(),
-    },
-  },
-}));
-
-// Mock AuditLogService as static class
-jest.mock('./services/auditLog.service', () => ({
-  AuditLogService: {
-    log: jest.fn(() => Promise.resolve()),
-    getAuditLogs: jest.fn(() => Promise.resolve({ logs: [], total: 0 })),
-  },
-}));
-
-// Mock sequelize connection
-jest.mock('./sequelize', () => ({
-  __esModule: true,
-  default: {
-    query: jest.fn(() => Promise.resolve([[]])),
-    transaction: jest.fn(() => Promise.resolve()),
-    authenticate: jest.fn(() => Promise.resolve()),
-  },
-}));
-
-// Mock all models that might be used - this prevents initialization errors
-jest.mock('./models/AuditLog', () => ({
-  __esModule: true,
-  default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
     findAndCountAll: jest.fn(),
-    bulkCreate: jest.fn(),
     hasMany: jest.fn(),
     belongsTo: jest.fn(),
-    hasOne: jest.fn(),
-    belongsToMany: jest.fn(),
-    sequelize: {
-      query: jest.fn(),
-      transaction: jest.fn(),
-    },
-  },
-  AuditLog: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    bulkCreate: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    hasOne: jest.fn(),
-    belongsToMany: jest.fn(),
-  },
-}));
-
-jest.mock('./models/UserFavorite', () => ({
-  __esModule: true,
-  default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    bulkCreate: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    hasOne: jest.fn(),
-    belongsToMany: jest.fn(),
-  },
-}));
-
-jest.mock('./models/StaffMember', () => ({
-  __esModule: true,
-  default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    bulkCreate: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    hasOne: jest.fn(),
-    belongsToMany: jest.fn(),
-  },
-}));
-
-// Mock models/index.ts with all exported models
-jest.mock('./models/index', () => {
-  const createMockModel = () => ({
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    bulkCreate: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    hasOne: jest.fn(),
-    belongsToMany: jest.fn(),
+    associate: jest.fn(),
     sequelize: {
       query: jest.fn(),
       transaction: jest.fn(() =>
@@ -346,141 +339,349 @@ jest.mock('./models/index', () => {
         })
       ),
     },
-  });
+  },
+}));
 
-  return {
-    __esModule: true,
-    default: {},
-    Application: createMockModel(),
-    ApplicationQuestion: createMockModel(),
-    AuditLog: createMockModel(),
-    Chat: createMockModel(),
-    ChatParticipant: createMockModel(),
-    DeviceToken: createMockModel(),
-    EmailPreference: createMockModel(),
-    EmailQueue: createMockModel(),
-    EmailTemplate: createMockModel(),
-    FeatureFlag: createMockModel(),
-    Invitation: createMockModel(),
-    Message: createMockModel(),
-    ModeratorAction: createMockModel(),
-    Notification: createMockModel(),
-    Permission: createMockModel(),
-    Pet: createMockModel(),
-    Rating: createMockModel(),
-    Report: createMockModel(),
-    Rescue: createMockModel(),
-    Role: createMockModel(),
-    RolePermission: createMockModel(),
-    StaffMember: createMockModel(),
-    User: createMockModel(),
-    UserFavorite: createMockModel(),
-    UserRole: createMockModel(),
-  };
-});
+// Mock AuditLog model
+jest.mock('./models/AuditLog', () => ({
+  __esModule: true,
+  AuditLog: {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    findAndCountAll: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    associate: jest.fn(),
+  },
+}));
 
-// Mock console methods during tests if needed
+// Mock external services
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn(),
+  compare: jest.fn(),
+  genSalt: jest.fn(),
+}));
+
+jest.mock('jsonwebtoken', () => ({
+  sign: jest.fn(),
+  verify: jest.fn(),
+  decode: jest.fn(),
+}));
+
+// Mock crypto for UUID generation
+jest.mock('crypto', () => ({
+  randomUUID: jest.fn(() => 'mock-uuid-123'),
+  randomBytes: jest.fn(() => Buffer.from('mock-random-bytes')),
+}));
+
+// Mock nodemailer
+jest.mock('nodemailer', () => ({
+  createTransporter: jest.fn(),
+  createTestAccount: jest.fn(),
+}));
+
+// Mock ChatParticipant model
+jest.mock('./models/ChatParticipant', () => ({
+  __esModule: true,
+  ChatParticipant: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    init: jest.fn(),
+  },
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    init: jest.fn(),
+  },
+}));
+
+// Mock UserFavorite model
+jest.mock('./models/UserFavorite', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+}));
+
+// Mock other models that might be imported
+jest.mock('./models/StaffMember', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    sequelize: {
+      query: jest.fn(),
+      transaction: jest.fn(() =>
+        Promise.resolve({
+          commit: jest.fn(),
+          rollback: jest.fn(),
+        })
+      ),
+    },
+  },
+}));
+
+jest.mock('./models/Notification', () => ({
+  __esModule: true,
+  Notification: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+}));
+
+jest.mock('./models/EmailPreference', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+}));
+
+jest.mock('./models/DeviceToken', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+}));
+
+// Mock ApplicationQuestion model
+jest.mock('./models/ApplicationQuestion', () => ({
+  __esModule: true,
+  ApplicationQuestion: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    init: jest.fn(),
+    getCoreQuestions: jest.fn(),
+    getRescueQuestions: jest.fn(),
+    getAllQuestionsForRescue: jest.fn(),
+  },
+  QuestionCategory: {
+    PERSONAL_INFORMATION: 'personal_information',
+    HOUSEHOLD_INFORMATION: 'household_information',
+    PET_OWNERSHIP_EXPERIENCE: 'pet_ownership_experience',
+    LIFESTYLE_COMPATIBILITY: 'lifestyle_compatibility',
+    PET_CARE_COMMITMENT: 'pet_care_commitment',
+    REFERENCES_VERIFICATION: 'references_verification',
+    FINAL_ACKNOWLEDGMENTS: 'final_acknowledgments',
+  },
+  QuestionType: {
+    TEXT: 'text',
+    EMAIL: 'email',
+    PHONE: 'phone',
+    NUMBER: 'number',
+    BOOLEAN: 'boolean',
+    SELECT: 'select',
+    MULTI_SELECT: 'multi_select',
+    ADDRESS: 'address',
+    DATE: 'date',
+    FILE: 'file',
+  },
+  QuestionScope: {
+    CORE: 'core',
+    RESCUE_SPECIFIC: 'rescue_specific',
+  },
+}));
+
+// Mock Rating model
+jest.mock('./models/Rating', () => ({
+  __esModule: true,
+  Rating: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+}));
+
+// Mock models/index to prevent circular imports
+jest.mock('./models/index', () => ({
+  __esModule: true,
+  default: {},
+}));
+
+// Global test setup
 beforeEach(() => {
   jest.clearAllMocks();
-
-  // Setup default mock implementations
-  const { User } = jest.requireActual('./models/User');
-  const { Pet } = jest.requireActual('./models/Pet');
-  const { Application } = jest.requireActual('./models/Application');
-  const { Chat } = jest.requireActual('./models/Chat');
-  const { ChatParticipant } = jest.requireActual('./models/ChatParticipant');
-  const { Rescue } = jest.requireActual('./models/Rescue');
-
-  // Default User mock implementations
-  User.findByPk.mockImplementation((id: string) => {
-    if (id === 'nonexistent') return Promise.resolve(null);
-    return Promise.resolve(
-      createMockSequelizeModel({
-        user_id: id,
-        email: 'test@example.com',
-        first_name: 'Test',
-        last_name: 'User',
-        status: 'active',
-        user_type: 'adopter',
-        notificationPreferences: {},
-        privacySettings: {},
-      })
-    );
-  });
-
-  // Mock User.scope method
-  User.scope = jest.fn().mockImplementation((scope: string) => ({
-    findByPk: jest.fn().mockImplementation((id: string) => {
-      if (id === 'nonexistent' || id === 'non-existent') return Promise.resolve(null);
-      return Promise.resolve(
-        createMockSequelizeModel({
-          userId: id,
-          email: 'test@example.com',
-          firstName: 'Test',
-          lastName: 'User',
-          status: 'active',
-          userType: 'adopter',
-          notificationPreferences: {},
-          privacySettings: {},
-        })
-      );
-    }),
-  }));
-
-  User.findOne.mockImplementation(() =>
-    Promise.resolve(
-      createMockSequelizeModel({
-        user_id: 'test-id',
-        email: 'test@example.com',
-        first_name: 'Test',
-        last_name: 'User',
-      })
-    )
-  );
-
-  User.findAndCountAll.mockImplementation(() =>
-    Promise.resolve({
-      rows: [createMockSequelizeModel({ user_id: 'test-id' })],
-      count: 1,
-    })
-  );
-
-  User.count.mockImplementation(() => Promise.resolve(1));
-
-  // Default Pet mock implementations
-  Pet.findByPk.mockImplementation((id: string) => {
-    if (id === 'nonexistent') return Promise.resolve(null);
-    return Promise.resolve(
-      createMockSequelizeModel({
-        pet_id: id,
-        name: 'Test Pet',
-        status: 'available',
-        rescue_id: 'test-rescue-id',
-      })
-    );
-  });
-
-  Pet.findAndCountAll.mockImplementation(() =>
-    Promise.resolve({
-      rows: [createMockSequelizeModel({ pet_id: 'test-id' })],
-      count: 1,
-    })
-  );
-
-  Pet.create.mockImplementation((data: any) =>
-    Promise.resolve(createMockSequelizeModel({ ...data, pet_id: 'new-pet-id' }))
-  );
-
-  // Mock other models
-  Application.count.mockImplementation(() => Promise.resolve(0));
-  Chat.count.mockImplementation(() => Promise.resolve(0));
-  ChatParticipant.findAll.mockImplementation(() => Promise.resolve([]));
-  Rescue.findByPk.mockImplementation(() =>
-    Promise.resolve(createMockSequelizeModel({ rescue_id: 'test-rescue' }))
-  );
 });
 
-// Global test teardown
-afterAll(async () => {
-  // Close any open connections, clean up resources
+// Set up test environment variables
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret';
+process.env.TEST_DB_NAME = 'test_db';
+process.env.POSTGRES_USER = 'test';
+process.env.POSTGRES_PASSWORD = 'test';
+process.env.POSTGRES_HOST = 'localhost';
+process.env.POSTGRES_PORT = '5432';
+
+// Export some utilities for tests
+export const createMockUser = (overrides: any = {}) => ({
+  userId: 'user-123',
+  email: 'test@example.com',
+  firstName: 'Test',
+  lastName: 'User',
+  userType: 'adopter',
+  status: 'active',
+  emailVerified: true,
+  ...overrides,
+});
+
+// Mock the models index file that exports named models
+jest.mock('./models', () => ({
+  __esModule: true,
+  Application: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    findAndCountAll: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+  Pet: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    findAndCountAll: jest.fn(),
+    bulkCreate: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    hasOne: jest.fn(),
+    belongsToMany: jest.fn(),
+    searchPets: jest.fn(),
+    associate: jest.fn(),
+  },
+  Rescue: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    findAndCountAll: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    sequelize: {
+      query: jest.fn(),
+      transaction: jest.fn(() =>
+        Promise.resolve({
+          commit: jest.fn(),
+          rollback: jest.fn(),
+        })
+      ),
+    },
+  },
+  StaffMember: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    sequelize: {
+      query: jest.fn(),
+      transaction: jest.fn(() =>
+        Promise.resolve({
+          commit: jest.fn(),
+          rollback: jest.fn(),
+        })
+      ),
+    },
+  },
+  User: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    findAndCountAll: jest.fn(),
+    bulkCreate: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    hasOne: jest.fn(),
+    belongsToMany: jest.fn(),
+    scope: jest.fn().mockReturnThis(),
+    sequelize: {
+      query: jest.fn(),
+      transaction: jest.fn(),
+    },
+    associate: jest.fn(),
+  },
+}));
+
+export const createMockPet = (overrides: any = {}) => ({
+  petId: 'pet-123',
+  name: 'Test Pet',
+  type: 'dog',
+  status: 'available',
+  rescueId: 'rescue-123',
+  ...overrides,
 });

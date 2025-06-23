@@ -224,11 +224,15 @@ describe('AuthService', () => {
   describe('refreshToken', () => {
     it('should refresh token successfully', async () => {
       const refreshToken = 'valid-refresh-token';
+      const mockPayload = {
+        userId: 'user-123',
+        tokenId: 'token-123',
+      };
+
       const mockUser = {
         userId: 'user-123',
         email: 'test@example.com',
         userType: UserType.ADOPTER,
-        status: UserStatus.ACTIVE,
         canLogin: jest.fn().mockReturnValue(true),
         toJSON: jest.fn().mockReturnValue({
           userId: 'user-123',
@@ -237,24 +241,13 @@ describe('AuthService', () => {
         }),
       };
 
-      // Mock JWT verify to return a valid payload
-      mockedJwt.verify = jest.fn().mockImplementation((token, secret) => {
-        if (token === refreshToken) {
-          return {
-            userId: 'user-123',
-            email: 'test@example.com',
-            userType: UserType.ADOPTER,
-          };
-        }
-        throw new Error('Invalid token');
-      });
-
+      mockedJwt.verify = jest.fn().mockReturnValue(mockPayload);
       MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      mockedJwt.sign = jest.fn().mockReturnValue('new-access-token' as any);
 
       const result = await AuthService.refreshToken(refreshToken);
 
-      expect(mockedJwt.verify).toHaveBeenCalledWith(refreshToken, undefined); // JWT_REFRESH_SECRET will be undefined in tests
+      expect(mockedJwt.verify).toHaveBeenCalledWith(refreshToken, 'test-jwt-refresh-secret');
+      expect(MockedUser.findByPk).toHaveBeenCalledWith(mockPayload.userId, expect.any(Object));
       expect(result.user).toBeDefined();
       expect(result.token).toBe('mocked-access-token');
     });

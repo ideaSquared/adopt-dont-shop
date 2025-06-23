@@ -7,6 +7,7 @@ jest.mock('../../services/auditLog.service', () => ({
 }));
 
 import { Op } from 'sequelize';
+// Import models from the index to use the mocked versions
 import { Application, Pet, Rescue, StaffMember, User } from '../../models';
 import {
   CreateRescueRequest,
@@ -16,7 +17,6 @@ import {
 } from '../../services/rescue.service';
 
 // Mock dependencies
-jest.mock('../../models');
 jest.mock('../../utils/logger');
 
 const mockRescue = Rescue as jest.Mocked<typeof Rescue>;
