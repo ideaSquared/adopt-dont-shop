@@ -32,6 +32,8 @@ export { Modal } from './components/ui/Modal';
 
 // Navigation Components
 export { Breadcrumbs } from './components/navigation/Breadcrumbs';
+export { Footer } from './components/navigation/Footer';
+export { Header } from './components/navigation/Header';
 export { Navbar } from './components/navigation/Navbar';
 
 // Data Display Components
@@ -69,3 +71,7 @@ export type {
   TextAreaProps,
   TextInputProps,
 } from './types';
+
+// Component Types
+export type { FooterProps } from './components/navigation/Footer';
+export type { HeaderProps } from './components/navigation/Header';

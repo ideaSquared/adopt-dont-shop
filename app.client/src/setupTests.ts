@@ -1,3 +1,6 @@
+/// <reference types="jest" />
+/// <reference types="@testing-library/jest-dom" />
+
 import '@testing-library/jest-dom';
 
 // Global test setup
@@ -8,15 +11,27 @@ beforeEach(() => {
 
 // Mock IntersectionObserver for testing
 global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
+  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+    // Mock implementation
+  }
+
+  root: Element | null = null;
+  rootMargin: string = '0px';
+  thresholds: readonly number[] = [0];
+
   disconnect() {}
   observe() {}
   unobserve() {}
-};
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+} as any;
 
 // Mock ResizeObserver for testing
 global.ResizeObserver = class ResizeObserver {
-  constructor() {}
+  constructor(callback: ResizeObserverCallback) {
+    // Mock implementation
+  }
   disconnect() {}
   observe() {}
   unobserve() {}
@@ -25,7 +40,7 @@ global.ResizeObserver = class ResizeObserver {
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: jest.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,

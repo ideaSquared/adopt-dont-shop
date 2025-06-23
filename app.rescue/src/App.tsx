@@ -1,5 +1,4 @@
 // Rescue App Placeholder - To be implemented during migration
-import React from 'react';
 
 const RescueApp = () => {
   return (

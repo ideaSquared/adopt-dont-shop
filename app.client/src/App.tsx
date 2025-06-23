@@ -1,6 +1,5 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { Header, Footer } from '@adopt-dont-shop/components';
+import { Footer, Header } from '@adopt-dont-shop/components';
+import { Route, Routes } from 'react-router-dom';
 
 // Page imports will be added during migration
 const HomePage = () => <div>Home Page - To be migrated</div>;
