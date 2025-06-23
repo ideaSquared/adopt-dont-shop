@@ -1,2 +1,3 @@
-export { default } from './GenericFilters'
-export type { FilterConfig } from './GenericFilters'
+export { default } from './FilterPanel';
+export type { FilterConfig } from './FilterPanel';
+

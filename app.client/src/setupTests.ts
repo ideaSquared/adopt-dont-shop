@@ -11,7 +11,7 @@ beforeEach(() => {
 
 // Mock IntersectionObserver for testing
 global.IntersectionObserver = class IntersectionObserver {
-  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+  constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {
     // Mock implementation
   }
 
@@ -29,7 +29,7 @@ global.IntersectionObserver = class IntersectionObserver {
 
 // Mock ResizeObserver for testing
 global.ResizeObserver = class ResizeObserver {
-  constructor(callback: ResizeObserverCallback) {
+  constructor(_callback: ResizeObserverCallback) {
     // Mock implementation
   }
   disconnect() {}

@@ -2,8 +2,8 @@ import React from 'react';
 import styled from 'styled-components';
 
 const StyledFooter = styled.footer`
-  background: ${({ theme }) => theme.colors.background.secondary};
-  border-top: 1px solid ${({ theme }) => theme.colors.border.primary};
+  background: ${({ theme }) => theme.background.secondary};
+  border-top: 1px solid ${({ theme }) => theme.border.color.primary};
   padding: ${({ theme }) => theme.spacing.xl} 0;
   margin-top: auto;
 `;
@@ -17,7 +17,7 @@ const FooterContainer = styled.div`
 
 const FooterText = styled.p`
   margin: 0;
-  color: ${({ theme }) => theme.colors.text.secondary};
+  color: ${({ theme }) => theme.text.secondary};
   font-size: ${({ theme }) => theme.typography.size.sm};
 `;
 
@@ -29,12 +29,12 @@ const FooterLinks = styled.div`
 `;
 
 const FooterLink = styled.a`
-  color: ${({ theme }) => theme.colors.text.secondary};
+  color: ${({ theme }) => theme.text.secondary};
   text-decoration: none;
   font-size: ${({ theme }) => theme.typography.size.sm};
 
   &:hover {
-    color: ${({ theme }) => theme.colors.text.primary};
+    color: ${({ theme }) => theme.text.primary};
   }
 `;
 
@@ -61,3 +61,4 @@ export const Footer: React.FC<FooterProps> = ({ className }) => {
 };
 
 Footer.displayName = 'Footer';
+
