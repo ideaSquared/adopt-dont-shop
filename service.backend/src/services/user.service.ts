@@ -1187,8 +1187,7 @@ export class UserService {
         userId: updatedBy,
       });
 
-      loggerHelpers &&
-        loggerHelpers.logBusiness &&
+      if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
           'Bulk User Update',
           {
@@ -1198,6 +1197,7 @@ export class UserService {
           },
           updatedBy
         );
+      }
 
       return affectedRows;
     } catch (error) {
