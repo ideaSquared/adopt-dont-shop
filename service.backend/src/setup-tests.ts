@@ -1,12 +1,14 @@
 // Test setup for backend service
 import { config } from 'dotenv';
+import { DataTypes, Op } from 'sequelize';
 
 // Load test environment variables
 config({ path: '.env.test' });
 
 // Mock Sequelize completely FIRST - this must be done before models are imported
 jest.mock('sequelize', () => {
-  const actualSequelize = jest.requireActual('sequelize');
+  // Use ES module import approach that ESLint prefers
+  const actualSequelize = jest.requireActual('sequelize') as typeof import('sequelize');
 
   // Create a mock sequelize instance
   const mockSequelizeInstance = {
@@ -22,11 +24,13 @@ jest.mock('sequelize', () => {
     models: {},
     DataTypes: actualSequelize.DataTypes,
     literal: jest.fn((sql: string) => ({ val: sql })), // Mock literal function
-    fn: jest.fn((func: string, ...args: any[]) => ({ fn: func, args })),
+    fn: jest.fn((func: string, ...args: Array<string | number | object>) => ({ fn: func, args })),
     col: jest.fn((column: string) => ({ col: column })),
-    where: jest.fn((left: any, operator: any, right: any) => ({
-      where: { left, operator, right },
-    })),
+    where: jest.fn(
+      (left: string | number | object, operator: string, right: string | number | object) => ({
+        where: { left, operator, right },
+      })
+    ),
     Op: actualSequelize.Op,
   };
 
@@ -52,14 +56,16 @@ jest.mock('./sequelize', () => ({
     authenticate: jest.fn(() => Promise.resolve()),
     define: jest.fn(() => ({})),
     models: {},
-    DataTypes: require('sequelize').DataTypes,
+    DataTypes,
     literal: jest.fn((sql: string) => ({ val: sql })), // Mock literal function
-    fn: jest.fn((func: string, ...args: any[]) => ({ fn: func, args })),
+    fn: jest.fn((func: string, ...args: Array<string | number | object>) => ({ fn: func, args })),
     col: jest.fn((column: string) => ({ col: column })),
-    where: jest.fn((left: any, operator: any, right: any) => ({
-      where: { left, operator, right },
-    })),
-    Op: require('sequelize').Op,
+    where: jest.fn(
+      (left: string | number | object, operator: string, right: string | number | object) => ({
+        where: { left, operator, right },
+      })
+    ),
+    Op,
   },
 }));
 
@@ -120,23 +126,7 @@ jest.mock('./config', () => ({
   },
 }));
 
-// Mock Sequelize models with proper methods
-const createMockSequelizeModel = (data: any = {}) => ({
-  ...data,
-  toJSON: jest.fn(() => data),
-  save: jest.fn(() => Promise.resolve(data)),
-  update: jest.fn(() => Promise.resolve([1])),
-  destroy: jest.fn(() => Promise.resolve(1)),
-  reload: jest.fn(() => Promise.resolve(data)),
-  hasMany: jest.fn(),
-  belongsTo: jest.fn(),
-  hasOne: jest.fn(),
-  belongsToMany: jest.fn(),
-  isAccountLocked: jest.fn().mockReturnValue(false),
-  isEmailVerified: jest.fn().mockReturnValue(true),
-  canLogin: jest.fn().mockReturnValue(true),
-  getFullName: jest.fn().mockReturnValue('Test User'),
-});
+// Mock Sequelize models with proper methods - removed unused createMockSequelizeModel function
 
 // Mock User model
 jest.mock('./models/User', () => ({
@@ -572,7 +562,7 @@ process.env.POSTGRES_HOST = 'localhost';
 process.env.POSTGRES_PORT = '5432';
 
 // Export some utilities for tests
-export const createMockUser = (overrides: any = {}) => ({
+export const createMockUser = (overrides: Record<string, unknown> = {}) => ({
   userId: 'user-123',
   email: 'test@example.com',
   firstName: 'Test',
@@ -677,7 +667,7 @@ jest.mock('./models', () => ({
   },
 }));
 
-export const createMockPet = (overrides: any = {}) => ({
+export const createMockPet = (overrides: Record<string, unknown> = {}) => ({
   petId: 'pet-123',
   name: 'Test Pet',
   type: 'dog',
