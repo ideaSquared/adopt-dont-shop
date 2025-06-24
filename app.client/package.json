@@ -22,7 +22,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.3",
     "styled-components": "^6.1.12",
-    "@adopt-dont-shop/components": "file:../lib.components",
+    "@adopt-dont-shop/components": "workspace:*",
     "axios": "^1.6.8",
     "react-query": "^3.39.3",
     "socket.io-client": "^4.7.5",

@@ -2,15 +2,15 @@
   "name": "@adopt-dont-shop/components",
   "version": "1.0.0",
   "description": "Shared component library for Adopt Don't Shop applications",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "main": "dist/adopt-dont-shop-components.umd.js",
+  "module": "dist/adopt-dont-shop-components.es.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
+      "import": "./dist/adopt-dont-shop-components.es.js",
+      "require": "./dist/adopt-dont-shop-components.umd.js",
       "types": "./dist/index.d.ts"
     }
   },
@@ -67,4 +67,3 @@
     "react-dom": ">=18.0.0"
   }
 }
-

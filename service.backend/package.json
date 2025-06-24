@@ -17,6 +17,8 @@
     "clean": "rm -rf dist",
     "migrate": "sequelize-cli db:migrate",
     "seed": "sequelize-cli db:seed:all",
+    "seed:dev": "ts-node src/seeders/index.ts",
+    "seed:clear": "ts-node src/seeders/index.ts clear",
     "security:validate": "node scripts/validate-security.js",
     "prestart": "npm run security:validate",
     "predeploy": "npm run lint && npm run test && npm run security:validate && npm run build"
