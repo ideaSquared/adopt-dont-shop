@@ -42,14 +42,20 @@ export const config = {
 
   // Cors configuration
   cors: {
-    origin:
-      process.env.CORS_ORIGIN ||
-      (() => {
-        if (process.env.NODE_ENV === 'production') {
-          throw new Error('CORS_ORIGIN environment variable is required in production');
+    origin: (() => {
+      const corsOrigin = process.env.CORS_ORIGIN;
+      if (corsOrigin) {
+        // Handle multiple origins (comma-separated)
+        if (corsOrigin.includes(',')) {
+          return corsOrigin.split(',').map(origin => origin.trim());
         }
-        return 'http://localhost:3000'; // Safe default for development
-      })(),
+        return corsOrigin;
+      }
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('CORS_ORIGIN environment variable is required in production');
+      }
+      return ['http://localhost:3000', 'http://localhost', 'http://api.localhost']; // Safe defaults for development
+    })(),
     credentials: true,
   },
 

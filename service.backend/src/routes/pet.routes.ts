@@ -9,11 +9,22 @@ const petController = new PetController();
 // Public routes (no authentication required)
 router.get('/', PetController.validateSearchPets, petController.searchPets);
 
+router.get('/test', (req, res) => {
+  res.json({ message: 'Pet routes are working!' });
+});
+
 router.get('/featured', petController.getFeaturedPets);
 
-router.get('/:petId', PetController.validatePetId, petController.getPetById);
+router.get('/statistics', petController.getPetStatistics);
 
 router.get('/rescue/:rescueId', petController.getPetsByRescue);
+
+router.get('/favorites/user', authenticateToken, petController.getUserFavorites);
+
+// Parameterized routes (must come after specific routes)
+router.get('/:petId', PetController.validatePetId, petController.getPetById);
+
+router.get('/:petId/activity', PetController.validatePetId, petController.getPetActivity);
 
 // Protected routes (authentication required)
 router.post(
@@ -94,7 +105,5 @@ router.get(
   petController.checkFavoriteStatus
 );
 
-// User favorites route (moved to user routes would be more appropriate, but adding here for completeness)
-router.get('/favorites/user', authenticateToken, petController.getUserFavorites);
-
 export default router;
+

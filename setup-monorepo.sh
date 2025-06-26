@@ -183,7 +183,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - VITE_API_URL=http://localhost:8000/api
+      - VITE_API_URL=http://api.localhost
     volumes:
       - ./packages/app.client:/app/packages/app.client
       - ./packages/lib.components:/app/packages/lib.components
@@ -200,7 +200,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - VITE_API_URL=http://localhost:8000/api
+      - VITE_API_URL=http://api.localhost
     volumes:
       - ./packages/app.admin:/app/packages/app.admin
       - ./packages/lib.components:/app/packages/lib.components
@@ -217,7 +217,7 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - VITE_API_URL=http://localhost:8000/api
+      - VITE_API_URL=http://api.localhost
     volumes:
       - ./packages/app.rescue:/app/packages/app.rescue
       - ./packages/lib.components:/app/packages/lib.components

@@ -4,7 +4,7 @@ import { apiService } from './api';
 class AuthService {
   // Login user
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await apiService.post<AuthResponse>('/auth/login', credentials);
+    const response = await apiService.post<AuthResponse>('/v1/auth/login', credentials);
 
     // Store tokens and user data
     localStorage.setItem('authToken', response.accessToken);
@@ -19,7 +19,7 @@ class AuthService {
 
   // Register new user
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    const response = await apiService.post<AuthResponse>('/auth/register', userData);
+    const response = await apiService.post<AuthResponse>('/v1/auth/register', userData);
 
     // Store tokens and user data
     localStorage.setItem('authToken', response.accessToken);
@@ -35,7 +35,7 @@ class AuthService {
   // Logout user
   async logout(): Promise<void> {
     try {
-      await apiService.post('/auth/logout');
+      await apiService.post('/v1/auth/logout');
     } catch (error) {
       // Continue with logout even if API call fails
       console.error('Logout API call failed:', error);
@@ -76,7 +76,7 @@ class AuthService {
     }
 
     const response = await apiService.post<{ accessToken: string; refreshToken: string }>(
-      '/auth/refresh',
+      '/v1/auth/refresh',
       {
         refreshToken,
       }
@@ -94,12 +94,12 @@ class AuthService {
 
   // Get user profile
   async getProfile(): Promise<User> {
-    return await apiService.get<User>('/auth/profile');
+    return await apiService.get<User>('/v1/auth/profile');
   }
 
   // Update user profile
   async updateProfile(profileData: Partial<User>): Promise<User> {
-    const updatedUser = await apiService.put<User>('/auth/profile', profileData);
+    const updatedUser = await apiService.put<User>('/v1/auth/profile', profileData);
 
     // Update localStorage
     localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -109,27 +109,27 @@ class AuthService {
 
   // Send password reset email
   async requestPasswordReset(email: string): Promise<void> {
-    await apiService.post('/auth/forgot-password', { email });
+    await apiService.post('/v1/auth/forgot-password', { email });
   }
 
   // Reset password with token
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    await apiService.post('/auth/reset-password', { token, password: newPassword });
+    await apiService.post('/v1/auth/reset-password', { token, password: newPassword });
   }
 
   // Verify email
   async verifyEmail(token: string): Promise<void> {
-    await apiService.post('/auth/verify-email', { token });
+    await apiService.post('/v1/auth/verify-email', { token });
   }
 
   // Resend verification email
   async resendVerificationEmail(): Promise<void> {
-    await apiService.post('/auth/resend-verification');
+    await apiService.post('/v1/auth/resend-verification');
   }
 
   // Change password (when logged in)
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    await apiService.post('/auth/change-password', {
+    await apiService.post('/v1/auth/change-password', {
       currentPassword,
       newPassword,
     });
