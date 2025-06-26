@@ -1,26 +1,61 @@
 # Production Docker Compose configuration
-version: '3.8'
-
 services:
   service-backend:
-    target: production
+    build:
+      target: production
     restart: always
     environment:
       NODE_ENV: production
     volumes:
       - ./uploads:/app/uploads
+    command: null
 
   app-admin:
-    target: production
+    build:
+      target: production
     restart: always
+    environment:
+      NODE_ENV: production
+      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+    volumes: []
+    depends_on:
+      - service-backend
+    stdin_open: false
+    tty: false
 
   app-client:
-    target: production
+    build:
+      target: production
     restart: always
+    environment:
+      NODE_ENV: production
+      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+    volumes: []
+    depends_on:
+      - service-backend
+    stdin_open: false
+    tty: false
 
   app-rescue:
-    target: production
+    build:
+      target: production
     restart: always
+    environment:
+      NODE_ENV: production
+      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+    volumes: []
+    depends_on:
+      - service-backend
+    stdin_open: false
+    tty: false
 
   nginx:
     restart: always
+
+  # Disable lib-components in production as it's built into the apps
+  lib-components:
+    deploy:
+      replicas: 0

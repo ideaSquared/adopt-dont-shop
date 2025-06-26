@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   # Database service
   database:
-    image: postgres:16.4
+    image: postgis/postgis:16-3.4
     restart: always
     ports:
       - '5432:5432'
@@ -13,6 +11,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-adopt_dont_shop}"]
       interval: 10s
@@ -34,6 +33,7 @@ services:
     build:
       context: ./service.backend
       dockerfile: Dockerfile
+      target: development
     ports:
       - '5000:5000'
     volumes:
@@ -43,11 +43,19 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 5000
+      # PostgreSQL variables for container
       POSTGRES_USER: ${POSTGRES_USER:-user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop}
       POSTGRES_HOST: database
       POSTGRES_PORT: 5432
+      # Database variables for application
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      DB_NAME: ${POSTGRES_DB:-adopt_dont_shop}
+      DEV_DB_NAME: ${POSTGRES_DB:-adopt_dont_shop}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
@@ -74,21 +82,20 @@ services:
   # Admin application
   app-admin:
     build:
-      context: ./app.admin
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: app.admin/Dockerfile
+      target: development
     ports:
       - '3001:3001'
     volumes:
       - ./app.admin:/app
       - /app/node_modules
-      - lib_components_dist:/app/node_modules/@adopt-dont-shop/components/dist
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
       VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
       CHOKIDAR_USEPOLLING: true
     depends_on:
-      - lib-components
       - service-backend
     stdin_open: true
     tty: true
@@ -97,21 +104,20 @@ services:
   # Client application (public-facing)
   app-client:
     build:
-      context: ./app.client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: app.client/Dockerfile
+      target: development
     ports:
       - '3000:3000'
     volumes:
       - ./app.client:/app
       - /app/node_modules
-      - lib_components_dist:/app/node_modules/@adopt-dont-shop/components/dist
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
       VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
       CHOKIDAR_USEPOLLING: true
     depends_on:
-      - lib-components
       - service-backend
     stdin_open: true
     tty: true
@@ -120,21 +126,20 @@ services:
   # Rescue application
   app-rescue:
     build:
-      context: ./app.rescue
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: app.rescue/Dockerfile
+      target: development
     ports:
       - '3002:3002'
     volumes:
       - ./app.rescue:/app
       - /app/node_modules
-      - lib_components_dist:/app/node_modules/@adopt-dont-shop/components/dist
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
       VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
       CHOKIDAR_USEPOLLING: true
     depends_on:
-      - lib-components
       - service-backend
     stdin_open: true
     tty: true

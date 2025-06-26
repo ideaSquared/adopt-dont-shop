@@ -8,6 +8,10 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './src'),
     },
+    dedupe: ['styled-components', 'react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: ['styled-components'],
   },
   server: {
     port: 3000,

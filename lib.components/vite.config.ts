@@ -18,12 +18,22 @@ export default defineConfig({
       fileName: format => `adopt-dont-shop-components.${format}.js`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'styled-components'],
+      external: [
+        'react',
+        'react-dom',
+        'styled-components',
+        '@radix-ui/react-tooltip',
+        '@radix-ui/react-dropdown-menu',
+        'clsx',
+      ],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
           'styled-components': 'styled',
+          '@radix-ui/react-tooltip': 'RadixTooltip',
+          '@radix-ui/react-dropdown-menu': 'RadixDropdownMenu',
+          clsx: 'clsx',
         },
       },
     },
