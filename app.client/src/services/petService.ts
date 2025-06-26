@@ -4,17 +4,17 @@ import { apiService } from './api';
 class PetService {
   // Search pets with filters and pagination
   async searchPets(filters: PetSearchFilters = {}): Promise<PaginatedResponse<Pet>> {
-    return await apiService.get<PaginatedResponse<Pet>>('/v1/pets', filters);
+    return await apiService.get<PaginatedResponse<Pet>>('/api/v1/pets', filters);
   }
 
   // Get a single pet by ID
   async getPet(petId: string): Promise<Pet> {
-    return await apiService.get<Pet>(`/v1/pets/${petId}`);
+    return await apiService.get<Pet>(`/api/v1/pets/${petId}`);
   }
 
   // Get featured/recommended pets for home page
   async getFeaturedPets(limit: number = 12): Promise<Pet[]> {
-    return await apiService.get<Pet[]>('/v1/pets/featured', { limit });
+    return await apiService.get<Pet[]>('/api/v1/pets/featured', { limit });
   }
 
   // Get recent pets - TODO: Implement backend endpoint
@@ -34,24 +34,24 @@ class PetService {
 
   // Add pet to favorites (requires authentication)
   async addToFavorites(petId: string): Promise<void> {
-    await apiService.post(`/v1/pets/${petId}/favorite`);
+    await apiService.post(`/api/v1/pets/${petId}/favorite`);
   }
 
   // Remove pet from favorites (requires authentication)
   async removeFromFavorites(petId: string): Promise<void> {
-    await apiService.delete(`/v1/pets/${petId}/favorite`);
+    await apiService.delete(`/api/v1/pets/${petId}/favorite`);
   }
 
   // Get user's favorite pets (requires authentication)
   async getFavorites(): Promise<Pet[]> {
-    return await apiService.get<Pet[]>('/v1/pets/favorites/user');
+    return await apiService.get<Pet[]>('/api/v1/pets/favorites/user');
   }
 
   // Check if pet is in user's favorites (requires authentication)
   async isFavorite(petId: string): Promise<boolean> {
     try {
       const result = await apiService.get<{ isFavorite: boolean }>(
-        `/v1/pets/${petId}/favorite/status`
+        `/api/v1/pets/${petId}/favorite/status`
       );
       return result.isFavorite;
     } catch (error) {
@@ -65,7 +65,7 @@ class PetService {
     page: number = 1,
     limit: number = 20
   ): Promise<PaginatedResponse<Pet>> {
-    return await apiService.get<PaginatedResponse<Pet>>(`/v1/pets/rescue/${rescueId}`, {
+    return await apiService.get<PaginatedResponse<Pet>>(`/api/v1/pets/rescue/${rescueId}`, {
       page,
       limit,
     });
@@ -109,7 +109,7 @@ class PetService {
       percentage: number;
     }>;
   }> {
-    return await apiService.get('/v1/pets/statistics');
+    return await apiService.get('/api/v1/pets/statistics');
   }
 }
 
