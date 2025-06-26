@@ -244,14 +244,43 @@ const startServer = async () => {
     validateEnvironment();
     printEnvironmentInfo();
 
-    // Test database connection
-    await sequelize.authenticate();
-    logger.info('Database connection established.');
+    // Test database connection with retry mechanism
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        await sequelize.authenticate();
+        logger.info('Database connection established.');
+        break;
+      } catch (error) {
+        retries--;
+        if (retries === 0) {
+          throw error;
+        }
+        logger.warn(
+          `Database connection failed, retrying in 5 seconds... (${retries} retries left)`
+        );
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
 
-    // Sync database models (in development)
+    // Ensure PostGIS extension is ready before syncing models
     if (config.nodeEnv === 'development') {
-      await sequelize.sync({ alter: true });
-      logger.info('Database models synchronized.');
+      try {
+        // Wait for PostGIS to be fully initialized
+        logger.info('Waiting for PostGIS extension to be fully ready...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // Test PostGIS functionality
+        await sequelize.query('SELECT PostGIS_Version();');
+        logger.info('PostGIS extension is ready.');
+
+        // Sync database models
+        await sequelize.sync({ alter: true });
+        logger.info('Database models synchronized.');
+      } catch (error) {
+        logger.error('Failed to sync database models:', error);
+        throw error;
+      }
     }
 
     // Start listening

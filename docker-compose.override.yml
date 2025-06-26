@@ -10,28 +10,29 @@ services:
       NODE_ENV: development
     command: npm run dev
 
-  lib-components:
-    volumes:
-      - ./lib.components:/app
-      - /app/node_modules
-
   app-admin:
     build:
       target: development
     volumes:
-      - ./app.admin:/app
-      - /app/node_modules
+      - ./app.admin:/app/app.admin
+      - ./lib.components:/app/lib.components
+      - /app/app.admin/node_modules
+      - /app/lib.components/node_modules
 
   app-client:
     build:
       target: development
     volumes:
-      - ./app.client:/app
-      - /app/node_modules
+      - ./app.client:/app/app.client
+      - ./lib.components:/app/lib.components
+      - /app/app.client/node_modules
+      - /app/lib.components/node_modules
 
   app-rescue:
     build:
       target: development
     volumes:
-      - ./app.rescue:/app
-      - /app/node_modules
+      - ./app.rescue:/app/app.rescue
+      - ./lib.components:/app/lib.components
+      - /app/app.rescue/node_modules
+      - /app/lib.components/node_modules

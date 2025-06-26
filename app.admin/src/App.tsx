@@ -1,18 +1,24 @@
 // Admin App Placeholder - To be implemented during migration
-import React from 'react';
+import { Button, Card } from '@adopt-dont-shop/components';
 
 const AdminApp = () => {
   return (
-    <div>
+    <div style={{ padding: '2rem' }}>
       <h1>Admin Dashboard</h1>
       <p>This will be implemented during the migration process.</p>
-      <ul>
-        <li>User Management</li>
-        <li>Rescue Management</li>
-        <li>Content Moderation</li>
-        <li>System Analytics</li>
-        <li>Support Tickets</li>
-      </ul>
+
+      <Card>
+        <h2>Admin Features</h2>
+        <ul>
+          <li>User Management</li>
+          <li>Rescue Management</li>
+          <li>Content Moderation</li>
+          <li>System Analytics</li>
+          <li>Support Tickets</li>
+        </ul>
+
+        <Button variant='primary'>Access Admin Panel</Button>
+      </Card>
     </div>
   );
 };

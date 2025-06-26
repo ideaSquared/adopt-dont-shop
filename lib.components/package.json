@@ -18,8 +18,8 @@
     "dist"
   ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "vite build --watch",
+    "build": "rm -rf dist && vite build",
     "build:types": "tsc --emitDeclarationOnly",
     "preview": "vite preview",
     "test": "jest",
@@ -31,7 +31,14 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "clean": "rm -rf dist"
   },
-  "dependencies": {},
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "styled-components": "^6.1.12",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "clsx": "^2.1.1"
+  },
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.2.19",
@@ -56,20 +63,10 @@
     "eslint-plugin-jest": "^27.9.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
-    "prettier": "^3.2.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "styled-components": "^6.1.12",
-    "@radix-ui/react-tooltip": "^1.0.7",
-    "@radix-ui/react-dropdown-menu": "^2.0.6",
-    "clsx": "^2.1.1"
+    "prettier": "^3.2.5"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
-    "react-dom": ">=18.0.0",
-    "styled-components": ">=6.0.0",
-    "@radix-ui/react-tooltip": ">=1.0.0",
-    "@radix-ui/react-dropdown-menu": ">=2.0.0",
-    "clsx": ">=2.0.0"
+    "react-dom": ">=18.0.0"
   }
 }

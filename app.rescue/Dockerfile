@@ -1,69 +1,74 @@
 # Multi-stage build for app.rescue
-FROM node:20-alpine AS base
+FROM node:18-alpine AS base
+
+WORKDIR /app
 
 # Install git for potential git dependencies
 RUN apk add --no-cache git
 
-# Build components library first
-FROM base AS components-builder
-WORKDIR /components
-COPY lib.components/package*.json ./
-RUN npm install
-COPY lib.components ./
-RUN npm run build
-
 # Development stage
 FROM base AS development
-WORKDIR /app
+# Copy package files and source code for both app.rescue and lib.components
+COPY app.rescue/package*.json ./app.rescue/
+COPY lib.components/package*.json ./lib.components/
+COPY lib.components/src/ ./lib.components/src/
+COPY lib.components/vite.config.ts ./lib.components/
+COPY lib.components/tsconfig.json ./lib.components/
 
-# Copy package files and install dependencies
-COPY app.rescue/package*.json ./
-# Temporarily replace workspace dependency with file dependency
-RUN sed -i 's/"@adopt-dont-shop\/components": "workspace:\*"/"@adopt-dont-shop\/components": "file:\/tmp\/components"/' package.json
-
-# Create temporary components directory and copy built components
-RUN mkdir -p /tmp/components
-COPY --from=components-builder /components/dist /tmp/components/dist
-COPY --from=components-builder /components/package.json /tmp/components/package.json
-
-# Install dependencies
+# Install dependencies for both
+WORKDIR /app/lib.components
 RUN npm install
+# Clean any existing build artifacts and build fresh
+RUN npm run clean && npm run build
 
-# Copy application source
-COPY app.rescue ./
+WORKDIR /app/app.rescue
+# Create a temporary package.json without workspace dependencies for Docker
+RUN sed 's/"@adopt-dont-shop\/components": "workspace:\*",//g' package.json > package-docker.json && mv package-docker.json package.json
+RUN npm install
+# Install the local lib.components package
+RUN npm install /app/lib.components
 
+# Copy source code (will be overridden by volumes in development)
+COPY app.rescue/ ./app.rescue/
+COPY lib.components/ ./lib.components/
+
+WORKDIR /app/app.rescue
 EXPOSE 3002
 CMD ["npm", "run", "dev"]
 
 # Build stage  
 FROM base AS build
-WORKDIR /app
+# Copy package files and source code for both app.rescue and lib.components
+COPY app.rescue/package*.json ./app.rescue/
+COPY lib.components/package*.json ./lib.components/
+COPY lib.components/src/ ./lib.components/src/
+COPY lib.components/vite.config.ts ./lib.components/
+COPY lib.components/tsconfig.json ./lib.components/
 
-# Copy package files and install dependencies
-COPY app.rescue/package*.json ./
-# Temporarily replace workspace dependency with file dependency
-RUN sed -i 's/"@adopt-dont-shop\/components": "workspace:\*"/"@adopt-dont-shop\/components": "file:\/tmp\/components"/' package.json
-
-# Create temporary components directory and copy built components
-RUN mkdir -p /tmp/components
-COPY --from=components-builder /components/dist /tmp/components/dist
-COPY --from=components-builder /components/package.json /tmp/components/package.json
-
-# Install dependencies
+# Install dependencies for both
+WORKDIR /app/lib.components
 RUN npm install
+# Clean any existing build artifacts and build fresh
+RUN npm run clean && npm run build
 
-# Copy application source and build
-COPY app.rescue ./
+WORKDIR /app/app.rescue
+# Create a temporary package.json without workspace dependencies for Docker
+RUN sed 's/"@adopt-dont-shop\/components": "workspace:\*",//g' package.json > package-docker.json && mv package-docker.json package.json
+RUN npm install
+# Install the local lib.components package
+RUN npm install /app/lib.components
+
+# Copy source code
+COPY app.rescue/ ./app.rescue/
+COPY lib.components/ ./lib.components/
+
+WORKDIR /app/app.rescue
 RUN npm run build
 
 # Production stage
 FROM nginx:alpine AS production
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/app.rescue/dist /usr/share/nginx/html
 COPY app.rescue/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Add health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3002 || exit 1
-
-EXPOSE 3002
+EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"] 

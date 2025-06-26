@@ -67,18 +67,6 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  # Shared components library
-  lib-components:
-    build:
-      context: ./lib.components
-      dockerfile: Dockerfile
-    volumes:
-      - ./lib.components:/app
-      - /app/node_modules
-      - lib_components_dist:/app/dist
-    command: npm run dev
-    restart: unless-stopped
-
   # Admin application
   app-admin:
     build:
@@ -88,8 +76,10 @@ services:
     ports:
       - '3001:3001'
     volumes:
-      - ./app.admin:/app
-      - /app/node_modules
+      - ./app.admin:/app/app.admin
+      - ./lib.components:/app/lib.components
+      - /app/app.admin/node_modules
+      - /app/lib.components/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
@@ -110,8 +100,10 @@ services:
     ports:
       - '3000:3000'
     volumes:
-      - ./app.client:/app
-      - /app/node_modules
+      - ./app.client:/app/app.client
+      - ./lib.components:/app/lib.components
+      - /app/app.client/node_modules
+      - /app/lib.components/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
@@ -132,8 +124,10 @@ services:
     ports:
       - '3002:3002'
     volumes:
-      - ./app.rescue:/app
-      - /app/node_modules
+      - ./app.rescue:/app/app.rescue
+      - ./lib.components:/app/lib.components
+      - /app/app.rescue/node_modules
+      - /app/lib.components/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
@@ -164,7 +158,6 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  lib_components_dist:
 
 networks:
   default:
