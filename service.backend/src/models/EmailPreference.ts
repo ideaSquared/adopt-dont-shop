@@ -323,12 +323,14 @@ EmailPreference.init(
     preferenceId: {
       type: DataTypes.STRING,
       primaryKey: true,
+      field: 'preference_id',
       defaultValue: () => `pref_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     },
     userId: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
+      field: 'user_id',
       references: {
         model: 'users',
         key: 'user_id',
@@ -338,11 +340,13 @@ EmailPreference.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
+      field: 'is_email_enabled',
     },
     globalUnsubscribe: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+      field: 'global_unsubscribe',
     },
     preferences: {
       type: DataTypes.JSONB,
@@ -366,16 +370,19 @@ EmailPreference.init(
       type: DataTypes.ENUM('html', 'text', 'both'),
       allowNull: false,
       defaultValue: 'html',
+      field: 'email_format',
     },
     digestFrequency: {
       type: DataTypes.ENUM(...Object.values(EmailFrequency)),
       allowNull: false,
       defaultValue: EmailFrequency.WEEKLY,
+      field: 'digest_frequency',
     },
     digestTime: {
       type: DataTypes.STRING(5), // HH:MM format
       allowNull: false,
       defaultValue: '09:00',
+      field: 'digest_time',
       validate: {
         is: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
       },
@@ -384,16 +391,19 @@ EmailPreference.init(
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
+      field: 'unsubscribe_token',
       defaultValue: () => EmailPreference.generateUnsubscribeToken(),
     },
     lastDigestSent: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'last_digest_sent',
     },
     bounceCount: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+      field: 'bounce_count',
       validate: {
         min: 0,
       },
@@ -401,19 +411,23 @@ EmailPreference.init(
     lastBounceAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'last_bounce_at',
     },
     isBlacklisted: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+      field: 'is_blacklisted',
     },
     blacklistReason: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'blacklist_reason',
     },
     blacklistedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'blacklisted_at',
     },
     metadata: {
       type: DataTypes.JSONB,
@@ -424,11 +438,13 @@ EmailPreference.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {
@@ -439,27 +455,27 @@ EmailPreference.init(
     updatedAt: 'updatedAt',
     indexes: [
       {
-        fields: ['userId'],
+        fields: ['user_id'],
         unique: true,
       },
       {
-        fields: ['unsubscribeToken'],
+        fields: ['unsubscribe_token'],
         unique: true,
       },
       {
-        fields: ['isEmailEnabled'],
+        fields: ['is_email_enabled'],
       },
       {
-        fields: ['globalUnsubscribe'],
+        fields: ['global_unsubscribe'],
       },
       {
-        fields: ['isBlacklisted'],
+        fields: ['is_blacklisted'],
       },
       {
-        fields: ['digestFrequency'],
+        fields: ['digest_frequency'],
       },
       {
-        fields: ['lastDigestSent'],
+        fields: ['last_digest_sent'],
       },
     ],
   }

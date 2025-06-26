@@ -214,7 +214,7 @@ ApplicationQuestion.init(
       defaultValue: sequelize.literal(`'question_' || left(md5(random()::text), 12)`),
     },
     rescue_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
       references: {
         model: 'rescues',

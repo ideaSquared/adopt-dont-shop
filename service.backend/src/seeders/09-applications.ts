@@ -5,7 +5,7 @@ const applicationData = [
     application_id: 'app_buddy_john_001',
     user_id: 'user_adopter_001', // John Smith
     pet_id: 'pet_buddy_001',
-    rescue_id: 'rescue_pawsrescue_001',
+    rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.UNDER_REVIEW,
     priority: ApplicationPriority.NORMAL,
     actioned_by: null,
@@ -74,7 +74,7 @@ const applicationData = [
     application_id: 'app_whiskers_emily_001',
     user_id: 'user_adopter_002', // Emily Davis
     pet_id: 'pet_whiskers_001',
-    rescue_id: 'rescue_furryfriendspdx_001',
+    rescue_id: '550e8400-e29b-41d4-a716-446655440003',
     status: ApplicationStatus.APPROVED,
     priority: ApplicationPriority.HIGH,
     actioned_by: 'user_rescue_admin_001',
@@ -140,7 +140,7 @@ const applicationData = [
     application_id: 'app_rocky_michael_001',
     user_id: 'user_adopter_003', // Michael Brown
     pet_id: 'pet_rocky_001',
-    rescue_id: 'rescue_happytails_001',
+    rescue_id: '550e8400-e29b-41d4-a716-446655440002',
     status: ApplicationStatus.INTERVIEW_SCHEDULED,
     priority: ApplicationPriority.HIGH,
     actioned_by: 'user_rescue_admin_002',
@@ -212,7 +212,7 @@ const applicationData = [
     application_id: 'app_luna_jessica_001',
     user_id: 'user_adopter_004', // Jessica Wilson
     pet_id: 'pet_luna_001',
-    rescue_id: 'rescue_pawsrescue_001',
+    rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.REJECTED,
     priority: ApplicationPriority.LOW,
     actioned_by: 'user_rescue_staff_001',

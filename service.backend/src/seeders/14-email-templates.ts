@@ -4,8 +4,9 @@ const emailTemplateData = [
   {
     template_id: 'tmpl_welcome_001',
     name: 'Welcome Email',
+    type: 'transactional',
     subject: "Welcome to Adopt Don't Shop! 🐾",
-    html_content: `
+    htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
           <h1>Welcome to Adopt Don't Shop!</h1>
@@ -29,7 +30,7 @@ const emailTemplateData = [
         </div>
       </div>
     `,
-    text_content: `
+    textContent: `
       Welcome to Adopt Don't Shop!
       
       Dear {{firstName}},
@@ -49,16 +50,17 @@ const emailTemplateData = [
       Happy pet hunting!
       The Adopt Don't Shop Team
     `,
-    category: 'onboarding',
+    category: 'welcome',
     is_active: true,
-    created_by: 'user_admin_001',
-    last_modified_by: 'user_admin_001',
+    createdBy: 'user_admin_001',
+    lastModifiedBy: 'user_admin_001',
   },
   {
     template_id: 'tmpl_app_received_001',
     name: 'Application Received',
+    type: 'notification',
     subject: 'Application Received for {{petName}} 📋',
-    html_content: `
+    htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #2196F3; color: white; padding: 20px; text-align: center;">
           <h1>Application Received!</h1>
@@ -87,7 +89,7 @@ const emailTemplateData = [
         </div>
       </div>
     `,
-    text_content: `
+    textContent: `
       Application Received!
       
       Dear {{applicantName}},
@@ -113,16 +115,17 @@ const emailTemplateData = [
       Thank you for choosing to adopt!
       {{rescueName}} Team
     `,
-    category: 'application',
+    category: 'application_update',
     is_active: true,
-    created_by: 'user_admin_001',
-    last_modified_by: 'user_admin_001',
+    createdBy: 'user_admin_001',
+    lastModifiedBy: 'user_admin_001',
   },
   {
     template_id: 'tmpl_app_approved_001',
     name: 'Application Approved',
+    type: 'notification',
     subject: '🎉 Great News! Your Application for {{petName}} is Approved!',
-    html_content: `
+    htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
           <h1>🎉 Congratulations!</h1>
@@ -152,7 +155,7 @@ const emailTemplateData = [
         </div>
       </div>
     `,
-    text_content: `
+    textContent: `
       🎉 Congratulations! Your application has been approved!
       
       Dear {{applicantName}},
@@ -178,16 +181,17 @@ const emailTemplateData = [
       Congratulations and thank you for choosing to adopt!
       {{rescueName}} Team
     `,
-    category: 'application',
+    category: 'application_update',
     is_active: true,
-    created_by: 'user_admin_001',
-    last_modified_by: 'user_admin_001',
+    createdBy: 'user_admin_001',
+    lastModifiedBy: 'user_admin_001',
   },
   {
     template_id: 'tmpl_app_rejected_001',
     name: 'Application Not Approved',
+    type: 'notification',
     subject: 'Update on Your Application for {{petName}}',
-    html_content: `
+    htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #FF9800; color: white; padding: 20px; text-align: center;">
           <h1>Application Update</h1>
@@ -216,7 +220,7 @@ const emailTemplateData = [
         </div>
       </div>
     `,
-    text_content: `
+    textContent: `
       Application Update
       
       Dear {{applicantName}},
@@ -241,16 +245,17 @@ const emailTemplateData = [
       
       {{rescueName}} Team
     `,
-    category: 'application',
+    category: 'application_update',
     is_active: true,
-    created_by: 'user_admin_001',
-    last_modified_by: 'user_admin_001',
+    createdBy: 'user_admin_001',
+    lastModifiedBy: 'user_admin_001',
   },
   {
     template_id: 'tmpl_new_message_001',
     name: 'New Message Notification',
+    type: 'notification',
     subject: 'New message from {{senderName}}',
-    html_content: `
+    htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #9C27B0; color: white; padding: 20px; text-align: center;">
           <h1>💬 New Message</h1>
@@ -269,7 +274,7 @@ const emailTemplateData = [
         </div>
       </div>
     `,
-    text_content: `
+    textContent: `
       New Message
       
       Dear {{recipientName}},
@@ -284,10 +289,10 @@ const emailTemplateData = [
       
       The Adopt Don't Shop Team
     `,
-    category: 'communication',
+    category: 'notification_digest',
     is_active: true,
-    created_by: 'user_admin_001',
-    last_modified_by: 'user_admin_001',
+    createdBy: 'user_admin_001',
+    lastModifiedBy: 'user_admin_001',
   },
 ];
 

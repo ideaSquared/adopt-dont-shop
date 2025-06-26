@@ -34,15 +34,21 @@ const seeders = [
 export async function runAllSeeders() {
   try {
     console.log('🌱 Starting database seeding...');
+    console.log(`📊 Running ${seeders.length} seeders in sequence...`);
 
     // Ensure database connection
     await sequelize.authenticate();
     console.log('✅ Database connection established');
 
-    for (const { name, seeder } of seeders) {
-      console.log(`📦 Seeding ${name}...`);
+    for (let i = 0; i < seeders.length; i++) {
+      const { name, seeder } = seeders[i];
+      console.log(`📦 [${i + 1}/${seeders.length}] Seeding ${name}...`);
+      const startTime = Date.now();
+
       await seeder();
-      console.log(`✅ ${name} seeded successfully`);
+
+      const duration = Date.now() - startTime;
+      console.log(`✅ ${name} seeded successfully (${duration}ms)`);
     }
 
     console.log('🎉 All seeders completed successfully!');

@@ -246,7 +246,7 @@ Rating.init(
       },
     },
     rescue_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
       references: {
         model: 'rescues',

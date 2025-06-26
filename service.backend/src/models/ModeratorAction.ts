@@ -120,11 +120,13 @@ ModeratorAction.init(
     actionId: {
       type: DataTypes.STRING,
       primaryKey: true,
+      field: 'action_id',
       defaultValue: () => `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     },
     moderatorId: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'moderator_id',
       references: {
         model: 'users',
         key: 'user_id',
@@ -133,22 +135,26 @@ ModeratorAction.init(
     reportId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'report_id',
       references: {
         model: 'reports',
-        key: 'reportId',
+        key: 'report_id',
       },
     },
     targetEntityType: {
       type: DataTypes.ENUM('user', 'rescue', 'pet', 'application', 'message', 'conversation'),
       allowNull: false,
+      field: 'target_entity_type',
     },
     targetEntityId: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'target_entity_id',
     },
     targetUserId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'target_user_id',
       references: {
         model: 'users',
         key: 'user_id',
@@ -157,6 +163,7 @@ ModeratorAction.init(
     actionType: {
       type: DataTypes.ENUM(...Object.values(ActionType)),
       allowNull: false,
+      field: 'action_type',
     },
     severity: {
       type: DataTypes.ENUM(...Object.values(ActionSeverity)),
@@ -190,15 +197,18 @@ ModeratorAction.init(
     expiresAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'expires_at',
     },
     isActive: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
+      field: 'is_active',
     },
     reversedBy: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'reversed_by',
       references: {
         model: 'users',
         key: 'user_id',
@@ -207,10 +217,12 @@ ModeratorAction.init(
     reversedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'reversed_at',
     },
     reversalReason: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'reversal_reason',
     },
     evidence: {
       type: DataTypes.JSONB,
@@ -221,20 +233,24 @@ ModeratorAction.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+      field: 'notification_sent',
     },
     internalNotes: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'internal_notes',
     },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {
@@ -245,31 +261,31 @@ ModeratorAction.init(
     updatedAt: 'updatedAt',
     indexes: [
       {
-        fields: ['moderatorId'],
+        fields: ['moderator_id'],
       },
       {
-        fields: ['reportId'],
+        fields: ['report_id'],
       },
       {
-        fields: ['targetEntityType', 'targetEntityId'],
+        fields: ['target_entity_type', 'target_entity_id'],
       },
       {
-        fields: ['targetUserId'],
+        fields: ['target_user_id'],
       },
       {
-        fields: ['actionType'],
+        fields: ['action_type'],
       },
       {
         fields: ['severity'],
       },
       {
-        fields: ['isActive'],
+        fields: ['is_active'],
       },
       {
-        fields: ['expiresAt'],
+        fields: ['expires_at'],
       },
       {
-        fields: ['createdAt'],
+        fields: ['created_at'],
       },
     ],
   }

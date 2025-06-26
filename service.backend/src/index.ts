@@ -266,6 +266,7 @@ const startServer = async () => {
     // Ensure PostGIS extension is ready before syncing models
     if (config.nodeEnv === 'development') {
       try {
+        logger.info('🔧 Development mode detected - preparing fresh database...');
         // Wait for PostGIS to be fully initialized
         logger.info('Waiting for PostGIS extension to be fully ready...');
         await new Promise(resolve => setTimeout(resolve, 3000));
@@ -274,9 +275,15 @@ const startServer = async () => {
         await sequelize.query('SELECT PostGIS_Version();');
         logger.info('PostGIS extension is ready.');
 
-        // Sync database models
-        await sequelize.sync({ alter: true });
-        logger.info('Database models synchronized.');
+        // Sync database models (force recreate in development)
+        await sequelize.sync({ force: true });
+        logger.info('Database models synchronized (tables recreated).');
+
+        // Run seeders after models are synced
+        logger.info('Running database seeders...');
+        const { runAllSeeders } = await import('./seeders');
+        await runAllSeeders();
+        logger.info('Database seeding completed.');
       } catch (error) {
         logger.error('Failed to sync database models:', error);
         throw error;

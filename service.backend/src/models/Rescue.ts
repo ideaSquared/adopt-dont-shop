@@ -177,9 +177,13 @@ Rescue.init(
       field: 'verified_at',
     },
     verifiedBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: true,
       field: 'verified_by',
+      references: {
+        model: 'users',
+        key: 'user_id',
+      },
     },
     settings: {
       type: DataTypes.JSONB,
@@ -198,9 +202,13 @@ Rescue.init(
       field: 'deleted_at',
     },
     deletedBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: true,
       field: 'deleted_by',
+      references: {
+        model: 'users',
+        key: 'user_id',
+      },
     },
     createdAt: {
       type: DataTypes.DATE,

@@ -281,19 +281,22 @@ EmailQueue.init(
     emailId: {
       type: DataTypes.STRING,
       primaryKey: true,
+      field: 'email_id',
       defaultValue: () => `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     },
     templateId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'template_id',
       references: {
         model: 'email_templates',
-        key: 'templateId',
+        key: 'template_id',
       },
     },
     fromEmail: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'from_email',
       validate: {
         isEmail: true,
       },
@@ -301,10 +304,12 @@ EmailQueue.init(
     fromName: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'from_name',
     },
     toEmail: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'to_email',
       validate: {
         isEmail: true,
       },
@@ -312,20 +317,24 @@ EmailQueue.init(
     toName: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'to_name',
     },
     ccEmails: {
       type: DataTypes.ARRAY(DataTypes.STRING),
       allowNull: false,
       defaultValue: [],
+      field: 'cc_emails',
     },
     bccEmails: {
       type: DataTypes.ARRAY(DataTypes.STRING),
       allowNull: false,
       defaultValue: [],
+      field: 'bcc_emails',
     },
     replyToEmail: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'reply_to_email',
       validate: {
         isEmail: true,
       },
@@ -341,6 +350,7 @@ EmailQueue.init(
     htmlContent: {
       type: DataTypes.TEXT,
       allowNull: false,
+      field: 'html_content',
       validate: {
         notEmpty: true,
       },
@@ -348,11 +358,13 @@ EmailQueue.init(
     textContent: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'text_content',
     },
     templateData: {
       type: DataTypes.JSONB,
       allowNull: false,
       defaultValue: {},
+      field: 'template_data',
     },
     attachments: {
       type: DataTypes.JSONB,
@@ -376,11 +388,13 @@ EmailQueue.init(
     scheduledFor: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'scheduled_for',
     },
     maxRetries: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 3,
+      field: 'max_retries',
       validate: {
         min: 0,
         max: 10,
@@ -390,6 +404,7 @@ EmailQueue.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+      field: 'current_retries',
       validate: {
         min: 0,
       },
@@ -397,22 +412,27 @@ EmailQueue.init(
     lastAttemptAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'last_attempt_at',
     },
     sentAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'sent_at',
     },
     failureReason: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'failure_reason',
     },
     providerId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'provider_id',
     },
     providerMessageId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'provider_message_id',
     },
     tracking: {
       type: DataTypes.JSONB,
@@ -426,10 +446,12 @@ EmailQueue.init(
     campaignId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'campaign_id',
     },
     userId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'user_id',
       references: {
         model: 'users',
         key: 'user_id',
@@ -438,6 +460,7 @@ EmailQueue.init(
     createdBy: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'created_by',
       references: {
         model: 'users',
         key: 'user_id',
@@ -452,11 +475,13 @@ EmailQueue.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {
@@ -476,32 +501,32 @@ EmailQueue.init(
         fields: ['type'],
       },
       {
-        fields: ['toEmail'],
+        fields: ['to_email'],
       },
       {
-        fields: ['userId'],
+        fields: ['user_id'],
       },
       {
-        fields: ['templateId'],
+        fields: ['template_id'],
       },
       {
-        fields: ['campaignId'],
+        fields: ['campaign_id'],
       },
       {
-        fields: ['scheduledFor'],
+        fields: ['scheduled_for'],
       },
       {
-        fields: ['sentAt'],
+        fields: ['sent_at'],
       },
       {
-        fields: ['createdAt'],
+        fields: ['created_at'],
       },
       {
         fields: ['tags'],
         using: 'gin',
       },
       {
-        fields: ['status', 'priority', 'scheduledFor'],
+        fields: ['status', 'priority', 'scheduled_for'],
         name: 'email_queue_processing_idx',
       },
     ],

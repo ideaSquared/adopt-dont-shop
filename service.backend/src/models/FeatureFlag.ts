@@ -15,6 +15,7 @@ FeatureFlag.init(
     flag_id: {
       type: DataTypes.STRING,
       primaryKey: true,
+      defaultValue: () => `flag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     },
     name: {
       type: DataTypes.STRING,

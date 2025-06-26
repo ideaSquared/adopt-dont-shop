@@ -2,7 +2,7 @@ import Rescue from '../models/Rescue';
 
 const rescueOrganizations = [
   {
-    rescueId: 'rescue_pawsrescue_001',
+    rescueId: '550e8400-e29b-41d4-a716-446655440001',
     name: 'Paws Rescue Austin',
     email: 'info@pawsrescue.dev',
     phone: '(512) 555-0123',
@@ -33,7 +33,7 @@ const rescueOrganizations = [
     isDeleted: false,
   },
   {
-    rescueId: 'rescue_happytails_001',
+    rescueId: '550e8400-e29b-41d4-a716-446655440002',
     name: 'Happy Tails Senior Dog Rescue',
     email: 'info@happytailsrescue.dev',
     phone: '(305) 555-0456',
@@ -65,7 +65,7 @@ const rescueOrganizations = [
     isDeleted: false,
   },
   {
-    rescueId: 'rescue_furryfriendspdx_001',
+    rescueId: '550e8400-e29b-41d4-a716-446655440003',
     name: 'Furry Friends Portland',
     email: 'info@furryfriendspdx.dev',
     phone: '(503) 555-0789',

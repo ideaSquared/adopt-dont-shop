@@ -268,7 +268,7 @@ Application.init(
       onDelete: 'CASCADE',
     },
     rescue_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: false,
       references: {
         model: 'rescues',

@@ -134,6 +134,7 @@ Report.init(
     reporterId: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'reporter_id',
       references: {
         model: 'users',
         key: 'user_id',
@@ -142,14 +143,17 @@ Report.init(
     reportedEntityType: {
       type: DataTypes.ENUM('user', 'rescue', 'pet', 'application', 'message', 'conversation'),
       allowNull: false,
+      field: 'reported_entity_type',
     },
     reportedEntityId: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'reported_entity_id',
     },
     reportedUserId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'reported_user_id',
       references: {
         model: 'users',
         key: 'user_id',
@@ -198,6 +202,7 @@ Report.init(
     assignedModerator: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'assigned_moderator',
       references: {
         model: 'users',
         key: 'user_id',
@@ -206,10 +211,12 @@ Report.init(
     assignedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'assigned_at',
     },
     resolvedBy: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'resolved_by',
       references: {
         model: 'users',
         key: 'user_id',
@@ -218,6 +225,7 @@ Report.init(
     resolvedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'resolved_at',
     },
     resolution: {
       type: DataTypes.STRING(100),
@@ -238,10 +246,12 @@ Report.init(
     resolutionNotes: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'resolution_notes',
     },
     escalatedTo: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'escalated_to',
       references: {
         model: 'users',
         key: 'user_id',
@@ -250,20 +260,24 @@ Report.init(
     escalatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'escalated_at',
     },
     escalationReason: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'escalation_reason',
     },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {
@@ -274,13 +288,13 @@ Report.init(
     updatedAt: 'updatedAt',
     indexes: [
       {
-        fields: ['reporterId'],
+        fields: ['reporter_id'],
       },
       {
-        fields: ['reportedEntityType', 'reportedEntityId'],
+        fields: ['reported_entity_type', 'reported_entity_id'],
       },
       {
-        fields: ['reportedUserId'],
+        fields: ['reported_user_id'],
       },
       {
         fields: ['category'],
@@ -292,10 +306,10 @@ Report.init(
         fields: ['severity'],
       },
       {
-        fields: ['assignedModerator'],
+        fields: ['assigned_moderator'],
       },
       {
-        fields: ['createdAt'],
+        fields: ['created_at'],
       },
     ],
   }

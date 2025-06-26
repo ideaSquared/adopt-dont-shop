@@ -72,7 +72,7 @@ StaffMember.init(
       },
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: false,
       field: 'user_id',
       references: {
@@ -91,9 +91,13 @@ StaffMember.init(
       field: 'is_verified',
     },
     verifiedBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: true,
       field: 'verified_by',
+      references: {
+        model: 'users',
+        key: 'user_id',
+      },
     },
     verifiedAt: {
       type: DataTypes.DATE,
@@ -101,9 +105,13 @@ StaffMember.init(
       field: 'verified_at',
     },
     addedBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: false,
       field: 'added_by',
+      references: {
+        model: 'users',
+        key: 'user_id',
+      },
     },
     addedAt: {
       type: DataTypes.DATE,
@@ -123,9 +131,13 @@ StaffMember.init(
       field: 'deleted_at',
     },
     deletedBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: true,
       field: 'deleted_by',
+      references: {
+        model: 'users',
+        key: 'user_id',
+      },
     },
     createdAt: {
       type: DataTypes.DATE,

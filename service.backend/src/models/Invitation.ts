@@ -55,8 +55,12 @@ Invitation.init(
       allowNull: false,
     },
     rescue_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: false,
+      references: {
+        model: 'rescues',
+        key: 'rescue_id',
+      },
     },
     user_id: {
       type: DataTypes.STRING,

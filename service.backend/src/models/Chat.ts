@@ -64,7 +64,7 @@ Chat.init(
     },
     rescue_id: {
       // Add rescue_id field
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: false,
       references: {
         model: 'rescues',

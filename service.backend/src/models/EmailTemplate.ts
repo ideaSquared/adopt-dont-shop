@@ -272,6 +272,7 @@ EmailTemplate.init(
     templateId: {
       type: DataTypes.STRING,
       primaryKey: true,
+      field: 'template_id',
       defaultValue: () => `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     },
     name: {
@@ -311,6 +312,7 @@ EmailTemplate.init(
     htmlContent: {
       type: DataTypes.TEXT,
       allowNull: false,
+      field: 'html_content',
       validate: {
         notEmpty: true,
       },
@@ -318,6 +320,7 @@ EmailTemplate.init(
     textContent: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'text_content',
     },
     variables: {
       type: DataTypes.JSONB,
@@ -352,9 +355,10 @@ EmailTemplate.init(
     parentTemplateId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'parent_template_id',
       references: {
         model: 'email_templates',
-        key: 'templateId',
+        key: 'template_id',
       },
     },
     versions: {
@@ -366,6 +370,7 @@ EmailTemplate.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 1,
+      field: 'current_version',
       validate: {
         min: 1,
       },
@@ -374,6 +379,7 @@ EmailTemplate.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+      field: 'is_default',
     },
     priority: {
       type: DataTypes.INTEGER,
@@ -392,6 +398,7 @@ EmailTemplate.init(
     createdBy: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'created_by',
       references: {
         model: 'users',
         key: 'user_id',
@@ -400,6 +407,7 @@ EmailTemplate.init(
     lastModifiedBy: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'last_modified_by',
       references: {
         model: 'users',
         key: 'user_id',
@@ -408,11 +416,13 @@ EmailTemplate.init(
     lastUsedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'last_used_at',
     },
     usageCount: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+      field: 'usage_count',
       validate: {
         min: 0,
       },
@@ -421,6 +431,7 @@ EmailTemplate.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+      field: 'test_emails_sent',
       validate: {
         min: 0,
       },
@@ -429,15 +440,18 @@ EmailTemplate.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
     deletedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'deleted_at',
     },
   },
   {
@@ -466,13 +480,13 @@ EmailTemplate.init(
         fields: ['locale'],
       },
       {
-        fields: ['isDefault'],
+        fields: ['is_default'],
       },
       {
-        fields: ['createdBy'],
+        fields: ['created_by'],
       },
       {
-        fields: ['lastUsedAt'],
+        fields: ['last_used_at'],
       },
       {
         fields: ['tags'],

@@ -357,7 +357,7 @@ User.init(
       allowNull: true,
     },
     rescueId: {
-      type: DataTypes.STRING,
+      type: DataTypes.UUID,
       allowNull: true,
       field: 'rescue_id',
       references: {
@@ -416,13 +416,13 @@ User.init(
         fields: ['status'],
       },
       {
-        fields: ['userType'],
+        fields: ['user_type'],
       },
       {
-        fields: ['rescueId'],
+        fields: ['rescue_id'],
       },
       {
-        fields: ['createdAt'],
+        fields: ['created_at'],
       },
     ],
   }
