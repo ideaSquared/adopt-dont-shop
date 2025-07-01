@@ -1,249 +1,404 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled, { css } from 'styled-components';
-import { Theme } from '../../styles/theme';
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+export type AvatarShape = 'circle' | 'square';
+export type StatusIndicator = 'online' | 'offline' | 'away' | 'busy' | 'none';
 
-export type AvatarVariant = 'circle' | 'square' | 'rounded';
-
-export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
+export type AvatarProps = {
   /**
-   * Avatar size
-   */
-  size?: AvatarSize;
-  /**
-   * Avatar shape variant
-   */
-  variant?: AvatarVariant;
-  /**
-   * Image source URL
+   * Source URL for the avatar image
    */
   src?: string;
   /**
-   * Alt text for the image
+   * Alt text for the avatar image
    */
   alt?: string;
   /**
-   * Fallback text when no image is provided (usually initials)
+   * Name used to generate initials as fallback
    */
-  fallback?: string;
+  name?: string;
+  /**
+   * Custom initials (overrides name-based initials)
+   */
+  initials?: string;
+  /**
+   * Size of the avatar
+   */
+  size?: AvatarSize;
+  /**
+   * Shape of the avatar
+   */
+  shape?: AvatarShape;
+  /**
+   * Status indicator
+   */
+  status?: StatusIndicator;
+  /**
+   * Custom status color (overrides status-based color)
+   */
+  statusColor?: string;
+  /**
+   * Whether the avatar is clickable
+   */
+  clickable?: boolean;
+  /**
+   * Click handler
+   */
+  onClick?: () => void;
   /**
    * Custom fallback icon
    */
   fallbackIcon?: React.ReactNode;
   /**
-   * Background color for fallback
-   */
-  backgroundColor?: string;
-  /**
-   * Text color for fallback
-   */
-  textColor?: string;
-  /**
-   * Whether the avatar has a border
-   */
-  bordered?: boolean;
-  /**
-   * Additional class name
+   * Custom CSS class
    */
   className?: string;
-}
+  /**
+   * Test ID for testing
+   */
+  'data-testid'?: string;
+};
 
-interface StyledAvatarProps {
+const getSizeStyles = (size: AvatarSize, theme: any) => {
+  const sizes = {
+    xs: css`
+      width: ${theme.spacing[6]};
+      height: ${theme.spacing[6]};
+      font-size: ${theme.typography.size.xs};
+    `,
+    sm: css`
+      width: ${theme.spacing[8]};
+      height: ${theme.spacing[8]};
+      font-size: ${theme.typography.size.sm};
+    `,
+    md: css`
+      width: ${theme.spacing[10]};
+      height: ${theme.spacing[10]};
+      font-size: ${theme.typography.size.base};
+    `,
+    lg: css`
+      width: ${theme.spacing[12]};
+      height: ${theme.spacing[12]};
+      font-size: ${theme.typography.size.lg};
+    `,
+    xl: css`
+      width: ${theme.spacing[16]};
+      height: ${theme.spacing[16]};
+      font-size: ${theme.typography.size.xl};
+    `,
+    '2xl': css`
+      width: ${theme.spacing[20]};
+      height: ${theme.spacing[20]};
+      font-size: ${theme.typography.size['2xl']};
+    `,
+  };
+  return sizes[size];
+};
+
+const getStatusColor = (status: StatusIndicator, theme: any) => {
+  const colors = {
+    online: theme.colors.semantic.success[500],
+    offline: theme.colors.neutral[400],
+    away: theme.colors.semantic.warning[500],
+    busy: theme.colors.semantic.error[500],
+    none: 'transparent',
+  };
+  return colors[status];
+};
+
+const AvatarContainer = styled.div<{
   $size: AvatarSize;
-  $variant: AvatarVariant;
-  $backgroundColor?: string;
-  $textColor?: string;
-  $bordered: boolean;
-}
-
-const getSizeStyles = (size: AvatarSize) => {
-  switch (size) {
-    case 'xs':
-      return css`
-        width: 1.5rem;
-        height: 1.5rem;
-        font-size: 0.625rem;
-      `;
-    case 'sm':
-      return css`
-        width: 2rem;
-        height: 2rem;
-        font-size: 0.75rem;
-      `;
-    case 'lg':
-      return css`
-        width: 4rem;
-        height: 4rem;
-        font-size: 1.125rem;
-      `;
-    case 'xl':
-      return css`
-        width: 5rem;
-        height: 5rem;
-        font-size: 1.25rem;
-      `;
-    case '2xl':
-      return css`
-        width: 6rem;
-        height: 6rem;
-        font-size: 1.5rem;
-      `;
-    case 'md':
-    default:
-      return css`
-        width: 3rem;
-        height: 3rem;
-        font-size: 1rem;
-      `;
-  }
-};
-
-const getVariantStyles = (variant: AvatarVariant, theme: Theme) => {
-  switch (variant) {
-    case 'square':
-      return css`
-        border-radius: 0;
-      `;
-    case 'rounded':
-      return css`
-        border-radius: ${theme.border.radius.md};
-      `;
-    case 'circle':
-    default:
-      return css`
-        border-radius: ${theme.border.radius.full};
-      `;
-  }
-};
-
-const StyledAvatar = styled.div<StyledAvatarProps>`
-  /* Base avatar styles */
+  $shape: AvatarShape;
+  $clickable: boolean;
+  $hasStatus: boolean;
+}>`
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  position: relative;
+  flex-shrink: 0;
   overflow: hidden;
-  vertical-align: middle;
+  background: ${({ theme }) => theme.colors.neutral[200]};
+  color: ${({ theme }) => theme.colors.neutral[600]};
+  font-family: ${({ theme }) => theme.typography.family.sans};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
-  line-height: 1;
-  user-select: none;
+  transition: all ${({ theme }) => theme.transitions.fast};
 
-  /* Apply size styles */
-  ${({ $size }) => getSizeStyles($size)}
+  ${({ $size, theme }) => getSizeStyles($size, theme)}
 
-  /* Apply variant styles */
-  ${({ $variant, theme }) => getVariantStyles($variant, theme)}
-  
-  /* Background and text colors */
-  background-color: ${({ $backgroundColor, theme }) =>
-    $backgroundColor || theme.background.contrast};
-  color: ${({ $textColor, theme }) => $textColor || theme.text.body};
+  border-radius: ${({ $shape, theme }) =>
+    $shape === 'circle' ? theme.border.radius.full : theme.border.radius.lg};
 
-  /* Border */
-  ${({ $bordered, theme }) =>
-    $bordered &&
+  ${({ $clickable, theme }) =>
+    $clickable &&
     css`
-      border: ${theme.border.width.normal} solid ${theme.border.color.default};
+      cursor: pointer;
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: ${theme.shadows.md};
+      }
+
+      &:focus-visible {
+        outline: none;
+        box-shadow: ${theme.shadows.focus};
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
     `}
+
+  ${({ theme }) =>
+    theme.mode === 'dark' &&
+    css`
+      background: ${theme.colors.neutral[700]};
+      color: ${theme.colors.neutral[300]};
+    `}
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    ${({ $clickable }) =>
+      $clickable &&
+      css`
+        &:hover,
+        &:active {
+          transform: none;
+        }
+      `}
+  }
 `;
 
 const AvatarImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
+  border-radius: inherit;
 `;
 
-const AvatarFallback = styled.div`
+const InitialsText = styled.span`
+  text-transform: uppercase;
+  user-select: none;
+  line-height: 1;
+`;
+
+const FallbackIcon = styled.div<{ $size: AvatarSize }>`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
-  text-transform: uppercase;
-  font-weight: inherit;
-`;
+  color: inherit;
 
-const DefaultFallbackIcon = styled.div`
-  width: 60%;
-  height: 60%;
-  background-color: currentColor;
-  mask: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'/%3e%3c/svg%3e")
-    no-repeat center;
-  mask-size: contain;
-`;
-
-export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
-  (
-    {
-      size = 'md',
-      variant = 'circle',
-      src,
-      alt = '',
-      fallback,
-      fallbackIcon,
-      backgroundColor,
-      textColor,
-      bordered = false,
-      className = '',
-      ...rest
-    },
-    ref
-  ) => {
-    const [imageError, setImageError] = React.useState(false);
-    const [imageLoaded, setImageLoaded] = React.useState(false);
-
-    const handleImageError = () => {
-      setImageError(true);
-    };
-
-    const handleImageLoad = () => {
-      setImageLoaded(true);
-      setImageError(false);
-    };
-
-    // Reset error state when src changes
-    React.useEffect(() => {
-      if (src) {
-        setImageError(false);
-        setImageLoaded(false);
+  svg {
+    width: ${({ $size }) => {
+      switch ($size) {
+        case 'xs':
+          return '16px';
+        case 'sm':
+          return '20px';
+        case 'md':
+          return '24px';
+        case 'lg':
+          return '28px';
+        case 'xl':
+          return '32px';
+        case '2xl':
+          return '40px';
+        default:
+          return '24px';
       }
-    }, [src]);
-
-    const shouldShowImage = src && !imageError && imageLoaded;
-    const shouldShowFallback = !src || imageError || !imageLoaded;
-
-    return (
-      <StyledAvatar
-        ref={ref}
-        className={className}
-        $size={size}
-        $variant={variant}
-        $backgroundColor={backgroundColor}
-        $textColor={textColor}
-        $bordered={bordered}
-        {...rest}
-      >
-        {src && (
-          <AvatarImage
-            src={src}
-            alt={alt}
-            onError={handleImageError}
-            onLoad={handleImageLoad}
-            style={{
-              display: shouldShowImage ? 'block' : 'none',
-            }}
-          />
-        )}
-        {shouldShowFallback && (
-          <AvatarFallback>
-            {fallbackIcon || (fallback ? fallback : <DefaultFallbackIcon />)}
-          </AvatarFallback>
-        )}
-      </StyledAvatar>
-    );
+    }};
+    height: ${({ $size }) => {
+      switch ($size) {
+        case 'xs':
+          return '16px';
+        case 'sm':
+          return '20px';
+        case 'md':
+          return '24px';
+        case 'lg':
+          return '28px';
+        case 'xl':
+          return '32px';
+        case '2xl':
+          return '40px';
+        default:
+          return '24px';
+      }
+    }};
   }
+`;
+
+const StatusIndicatorDot = styled.div<{
+  $size: AvatarSize;
+  $status: StatusIndicator;
+  $customColor?: string;
+}>`
+  position: absolute;
+  border-radius: ${({ theme }) => theme.border.radius.full};
+  border: 2px solid ${({ theme }) => theme.background.secondary};
+  background: ${({ $status, $customColor, theme }) =>
+    $customColor || getStatusColor($status, theme)};
+
+  ${({ $size, theme }) => {
+    const dotSizes = {
+      xs: css`
+        width: ${theme.spacing[2]};
+        height: ${theme.spacing[2]};
+        bottom: 0;
+        right: 0;
+      `,
+      sm: css`
+        width: ${theme.spacing[2.5]};
+        height: ${theme.spacing[2.5]};
+        bottom: 0;
+        right: 0;
+      `,
+      md: css`
+        width: ${theme.spacing[3]};
+        height: ${theme.spacing[3]};
+        bottom: 0;
+        right: 0;
+      `,
+      lg: css`
+        width: ${theme.spacing[3.5]};
+        height: ${theme.spacing[3.5]};
+        bottom: 1px;
+        right: 1px;
+      `,
+      xl: css`
+        width: ${theme.spacing[4]};
+        height: ${theme.spacing[4]};
+        bottom: 2px;
+        right: 2px;
+      `,
+      '2xl': css`
+        width: ${theme.spacing[5]};
+        height: ${theme.spacing[5]};
+        bottom: 3px;
+        right: 3px;
+      `,
+    };
+    return dotSizes[$size];
+  }}
+`;
+
+const DefaultFallbackIcon = () => (
+  <svg viewBox='0 0 24 24' fill='currentColor'>
+    <path d='M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z' />
+  </svg>
 );
 
+const generateInitials = (name: string): string => {
+  if (!name) return '';
+
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+
+  return parts
+    .slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase())
+    .join('');
+};
+
+export const Avatar: React.FC<AvatarProps> = ({
+  src,
+  alt,
+  name = '',
+  initials,
+  size = 'md',
+  shape = 'circle',
+  status = 'none',
+  statusColor,
+  clickable = false,
+  onClick,
+  fallbackIcon,
+  className,
+  'data-testid': dataTestId,
+}) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+    setImageError(false);
+  };
+
+  const handleClick = () => {
+    if (clickable && onClick) {
+      onClick();
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (clickable && onClick && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
+  const displayInitials = initials || generateInitials(name);
+  const showStatusIndicator = status !== 'none';
+  const effectiveAlt = alt || `Avatar for ${name}` || 'Avatar';
+
+  return (
+    <AvatarContainer
+      className={className}
+      $size={size}
+      $shape={shape}
+      $clickable={clickable}
+      $hasStatus={showStatusIndicator}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={clickable ? 0 : undefined}
+      role={clickable ? 'button' : 'img'}
+      aria-label={clickable ? `Avatar for ${name}` : effectiveAlt}
+      data-testid={dataTestId}
+    >
+      {/* Image */}
+      {src && !imageError && (
+        <AvatarImage
+          src={src}
+          alt={effectiveAlt}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+          loading='lazy'
+        />
+      )}
+
+      {/* Fallback content when image fails or is not provided */}
+      {(!src || imageError) && (
+        <>
+          {displayInitials ? (
+            <InitialsText>{displayInitials}</InitialsText>
+          ) : (
+            <FallbackIcon $size={size}>{fallbackIcon || <DefaultFallbackIcon />}</FallbackIcon>
+          )}
+        </>
+      )}
+
+      {/* Status indicator */}
+      {showStatusIndicator && (
+        <StatusIndicatorDot
+          $size={size}
+          $status={status}
+          $customColor={statusColor}
+          aria-label={`Status: ${status}`}
+        />
+      )}
+    </AvatarContainer>
+  );
+};
+
 Avatar.displayName = 'Avatar';
+

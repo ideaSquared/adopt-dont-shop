@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { Theme } from '../../styles/theme';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -23,6 +23,14 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
    * Card padding size
    */
   padding?: 'none' | 'sm' | 'md' | 'lg';
+  /**
+   * Card variant for different visual styles
+   */
+  variant?: 'default' | 'outlined' | 'elevated' | 'filled' | 'glass';
+  /**
+   * Whether the card is clickable
+   */
+  clickable?: boolean;
 }
 
 interface StyledCardProps {
@@ -30,162 +38,286 @@ interface StyledCardProps {
   $shadowed: boolean;
   $bordered: boolean;
   $padding: 'none' | 'sm' | 'md' | 'lg';
+  $variant: 'default' | 'outlined' | 'elevated' | 'filled' | 'glass';
+  $clickable: boolean;
 }
 
-// Helper for padding styles
 const getPaddingStyles = (padding: 'none' | 'sm' | 'md' | 'lg', theme: Theme) => {
   switch (padding) {
     case 'none':
-      return 'padding: 0;';
+      return css`
+        padding: 0;
+      `;
     case 'sm':
-      return `padding: ${theme.spacing.sm};`;
+      return css`
+        padding: ${theme.spacing[3]};
+      `;
     case 'lg':
-      return `padding: ${theme.spacing.lg};`;
+      return css`
+        padding: ${theme.spacing[6]};
+      `;
     case 'md':
     default:
-      return `padding: ${theme.spacing.md};`;
+      return css`
+        padding: ${theme.spacing[4]};
+      `;
+  }
+};
+
+const getVariantStyles = (
+  variant: 'default' | 'outlined' | 'elevated' | 'filled' | 'glass',
+  theme: Theme
+) => {
+  switch (variant) {
+    case 'outlined':
+      return css`
+        background: ${theme.background.secondary};
+        border: 1px solid ${theme.border.color.primary};
+        box-shadow: none;
+        backdrop-filter: blur(10px);
+      `;
+    case 'elevated':
+      return css`
+        background: ${theme.background.secondary};
+        border: none;
+        box-shadow: ${theme.shadows.xl};
+        backdrop-filter: blur(10px);
+      `;
+    case 'filled':
+      return css`
+        background: ${theme.background.tertiary};
+        border: none;
+        box-shadow: ${theme.shadows.md};
+        backdrop-filter: blur(10px);
+      `;
+    case 'glass':
+      return css`
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: ${theme.shadows.lg};
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      `;
+    case 'default':
+    default:
+      return css`
+        background: ${theme.background.secondary};
+        border: 1px solid ${theme.border.color.primary};
+        box-shadow: ${theme.shadows.md};
+        backdrop-filter: blur(10px);
+      `;
   }
 };
 
 const StyledCard = styled.div<StyledCardProps>`
-  background-color: ${({ theme }) => theme.background.content};
-  border-radius: ${({ theme }) => theme.border.radius.md};
+  position: relative;
+  border-radius: ${({ theme }) => theme.border.radius.xl};
+  transition: all ${({ theme }) => theme.transitions.normal}
+    ${({ theme }) => theme.animations.easing.smooth};
   overflow: hidden;
+  isolation: isolate;
 
-  /* Border styles */
-  ${({ theme, $bordered }) =>
-    $bordered
-      ? `border: ${theme.border.width.thin} solid ${theme.border.color.default};`
-      : 'border: none;'}
+  ${({ $padding, theme }) => getPaddingStyles($padding, theme)}
+  ${({ $variant, theme }) => getVariantStyles($variant, theme)}
 
-  /* Shadow styles */
-  box-shadow: ${({ theme, $shadowed }) => ($shadowed ? theme.shadows.md : 'none')};
+  ${({ $clickable }) =>
+    $clickable &&
+    css`
+      cursor: pointer;
+      user-select: none;
+    `}
 
-  /* Hover effect */
-  transition:
-    transform ${({ theme }) => theme.transitions.fast},
-    box-shadow ${({ theme }) => theme.transitions.fast};
+  ${({ $hoverable, $clickable, theme }) =>
+    ($hoverable || $clickable) &&
+    css`
+      &:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: ${theme.shadows['2xl']};
+      }
 
-  ${({ $hoverable, theme }) =>
-    $hoverable &&
-    `
+      &:active {
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: ${theme.shadows.xl};
+      }
+    `}
+
+  ${({ $bordered, theme }) =>
+    $bordered &&
+    css`
+      border: 1px solid ${theme.border.color.secondary};
+    `}
+
+  /* Focus styles for accessibility */
+  &:focus-visible {
+    outline: none;
+    box-shadow: ${({ theme }) => theme.shadows.focusPrimary};
+    transform: translateY(-2px);
+  }
+
+  /* Modern glass morphism effect for glass variant */
+  ${({ $variant }) =>
+    $variant === 'glass' &&
+    css`
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          rgba(255, 255, 255, 0.05) 100%
+        );
+        border-radius: inherit;
+        z-index: -1;
+      }
+    `}
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
     &:hover {
-      transform: translateY(-2px);
-      box-shadow: ${theme.shadows.lg};
+      transform: none;
     }
-  `}
+
+    &:active {
+      transform: none;
+    }
+  }
 `;
 
-export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  (
-    {
-      className,
-      children,
-      hoverable = false,
-      shadowed = true,
-      bordered = true,
-      padding = 'md',
-      ...props
-    },
-    ref
-  ) => {
-    return (
-      <StyledCard
-        ref={ref}
-        className={className}
-        $hoverable={hoverable}
-        $shadowed={shadowed}
-        $bordered={bordered}
-        $padding={padding}
-        {...props}
-      >
-        {children}
-      </StyledCard>
-    );
-  }
-);
+export const Card: React.FC<CardProps> = ({
+  children,
+  hoverable = false,
+  shadowed = true,
+  bordered = false,
+  padding = 'md',
+  variant = 'default',
+  clickable = false,
+  className,
+  tabIndex,
+  ...props
+}) => {
+  const effectiveTabIndex = clickable ? (tabIndex ?? 0) : tabIndex;
 
-Card.displayName = 'Card';
+  return (
+    <StyledCard
+      className={className}
+      $hoverable={hoverable}
+      $shadowed={shadowed}
+      $bordered={bordered}
+      $padding={padding}
+      $variant={variant}
+      $clickable={clickable}
+      tabIndex={effectiveTabIndex}
+      role={clickable ? 'button' : undefined}
+      {...props}
+    >
+      {children}
+    </StyledCard>
+  );
+};
 
+// Card subcomponents with modern styling
 export interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
+  /**
+   * Whether to show a bottom border
+   */
+  bordered?: boolean;
 }
 
-const StyledCardHeader = styled.div<{ $padding: 'none' | 'sm' | 'md' | 'lg' }>`
-  ${({ $padding, theme }) => getPaddingStyles($padding, theme)}
+const StyledCardHeader = styled.div<{ $bordered: boolean }>`
+  padding: ${({ theme }) => theme.spacing[4]} ${({ theme }) => theme.spacing[4]} 0;
+  margin-bottom: ${({ theme }) => theme.spacing[4]};
 
-  ${({ $padding, theme }) =>
-    $padding !== 'none' &&
-    `
-    border-bottom: ${theme.border.width.thin} solid ${theme.border.color.default};
-  `}
-  
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.xs};
+  ${({ $bordered, theme }) =>
+    $bordered &&
+    css`
+      border-bottom: 1px solid ${theme.border.color.tertiary};
+      padding-bottom: ${theme.spacing[4]};
+    `}
+
+  h1, h2, h3, h4, h5, h6 {
+    margin-bottom: ${({ theme }) => theme.spacing[2]};
+    color: ${({ theme }) => theme.text.primary};
+    font-weight: ${({ theme }) => theme.typography.weight.semibold};
+  }
+
+  p {
+    color: ${({ theme }) => theme.text.secondary};
+    margin-bottom: 0;
+  }
 `;
 
-export const CardHeader = React.forwardRef<
-  HTMLDivElement,
-  CardHeaderProps & { padding?: 'none' | 'sm' | 'md' | 'lg' }
->(({ className, children, padding = 'md', ...props }, ref) => {
-  return (
-    <StyledCardHeader ref={ref} className={className} $padding={padding} {...props}>
-      {children}
-    </StyledCardHeader>
-  );
-});
-
-CardHeader.displayName = 'CardHeader';
+export const CardHeader: React.FC<CardHeaderProps> = ({
+  children,
+  bordered = false,
+  className,
+  ...props
+}) => (
+  <StyledCardHeader className={className} $bordered={bordered} {...props}>
+    {children}
+  </StyledCardHeader>
+);
 
 export interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-const StyledCardContent = styled.div<{ $padding: 'none' | 'sm' | 'md' | 'lg' }>`
-  ${({ $padding, theme }) => getPaddingStyles($padding, theme)}
+const StyledCardContent = styled.div`
+  flex: 1;
+  color: ${({ theme }) => theme.text.secondary};
+  line-height: ${({ theme }) => theme.typography.lineHeight.relaxed};
 `;
 
-export const CardContent = React.forwardRef<
-  HTMLDivElement,
-  CardContentProps & { padding?: 'none' | 'sm' | 'md' | 'lg' }
->(({ className, children, padding = 'md', ...props }, ref) => {
-  return (
-    <StyledCardContent ref={ref} className={className} $padding={padding} {...props}>
-      {children}
-    </StyledCardContent>
-  );
-});
-
-CardContent.displayName = 'CardContent';
+export const CardContent: React.FC<CardContentProps> = ({ children, className, ...props }) => (
+  <StyledCardContent className={className} {...props}>
+    {children}
+  </StyledCardContent>
+);
 
 export interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
+  /**
+   * Whether to show a top border
+   */
+  bordered?: boolean;
 }
 
-const StyledCardFooter = styled.div<{ $padding: 'none' | 'sm' | 'md' | 'lg' }>`
-  ${({ $padding, theme }) => getPaddingStyles($padding, theme)}
+const StyledCardFooter = styled.div<{ $bordered: boolean }>`
+  padding: 0 ${({ theme }) => theme.spacing[4]} ${({ theme }) => theme.spacing[4]};
+  margin-top: ${({ theme }) => theme.spacing[4]};
 
-  ${({ $padding, theme }) =>
-    $padding !== 'none' &&
-    `
-    border-top: ${theme.border.width.thin} solid ${theme.border.color.default};
-  `}
-  
+  ${({ $bordered, theme }) =>
+    $bordered &&
+    css`
+      border-top: 1px solid ${theme.border.color.tertiary};
+      padding-top: ${theme.spacing[4]};
+    `}
+
   display: flex;
-  justify-content: flex-end;
+  gap: ${({ theme }) => theme.spacing[3]};
   align-items: center;
+  justify-content: flex-end;
 `;
 
-export const CardFooter = React.forwardRef<
-  HTMLDivElement,
-  CardFooterProps & { padding?: 'none' | 'sm' | 'md' | 'lg' }
->(({ className, children, padding = 'md', ...props }, ref) => {
-  return (
-    <StyledCardFooter ref={ref} className={className} $padding={padding} {...props}>
-      {children}
-    </StyledCardFooter>
-  );
-});
+export const CardFooter: React.FC<CardFooterProps> = ({
+  children,
+  bordered = false,
+  className,
+  ...props
+}) => (
+  <StyledCardFooter className={className} $bordered={bordered} {...props}>
+    {children}
+  </StyledCardFooter>
+);
 
+Card.displayName = 'Card';
+CardHeader.displayName = 'CardHeader';
+CardContent.displayName = 'CardContent';
 CardFooter.displayName = 'CardFooter';
+

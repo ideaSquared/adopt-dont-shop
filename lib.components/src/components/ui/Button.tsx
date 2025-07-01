@@ -1,7 +1,26 @@
 import React from 'react';
-import styled from 'styled-components';
-import { ButtonProps, ButtonSize, ButtonVariant } from '../../types';
+import styled, { css, keyframes } from 'styled-components';
 import { Theme } from '../../styles/theme';
+import { ButtonProps, ButtonSize, ButtonVariant } from '../../types';
+
+// Modern loading animation
+const spin = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const shimmer = keyframes`
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+`;
 
 interface StyledButtonProps {
   $variant: ButtonVariant;
@@ -9,161 +28,287 @@ interface StyledButtonProps {
   $isLoading: boolean;
   $isFullWidth: boolean;
   $isRounded: boolean;
+  $hasStartIcon: boolean;
+  $hasEndIcon: boolean;
 }
 
-/* Utility function to get size styles */
+// Modern size system with better touch targets
 const getSizeStyles = (size: ButtonSize, theme: Theme) => {
   switch (size) {
     case 'sm':
-      return `
-        padding: ${theme.spacing.xs} ${theme.spacing.sm};
+      return css`
+        padding: ${theme.spacing[2]} ${theme.spacing[3]};
         font-size: ${theme.typography.size.sm};
-        min-height: 2rem;
+        font-weight: ${theme.typography.weight.medium};
+        min-height: ${theme.spacing[8]};
+        gap: ${theme.spacing[1.5]};
       `;
     case 'lg':
-      return `
-        padding: ${theme.spacing.sm} ${theme.spacing.lg};
+      return css`
+        padding: ${theme.spacing[3]} ${theme.spacing[6]};
         font-size: ${theme.typography.size.lg};
-        min-height: 3rem;
+        font-weight: ${theme.typography.weight.semibold};
+        min-height: ${theme.spacing[12]};
+        gap: ${theme.spacing[2]};
       `;
     case 'md':
     default:
-      return `
-        padding: ${theme.spacing.sm} ${theme.spacing.md};
+      return css`
+        padding: ${theme.spacing[2.5]} ${theme.spacing[4]};
         font-size: ${theme.typography.size.base};
-        min-height: 2.5rem;
+        font-weight: ${theme.typography.weight.medium};
+        min-height: ${theme.spacing[10]};
+        gap: ${theme.spacing[2]};
       `;
   }
 };
 
-/* Utility function to get variant styles */
+// Modern variant system with semantic colors
 const getVariantStyles = (variant: ButtonVariant, theme: Theme) => {
   switch (variant) {
     case 'primary':
-      return `
-        background-color: ${theme.background.primary};
-        color: ${theme.text.light};
-        border: ${theme.border.width.thin} solid ${theme.background.primary};
-        
+      return css`
+        background: ${theme.colors.primary[500]};
+        color: ${theme.text.inverse};
+        border: 1px solid ${theme.colors.primary[500]};
+        box-shadow: ${theme.shadows.sm};
+
         &:hover:not(:disabled) {
-          filter: brightness(90%);
+          background: ${theme.colors.primary[600]};
+          border-color: ${theme.colors.primary[600]};
+          box-shadow: ${theme.shadows.md};
+          transform: translateY(-1px);
         }
-        
+
         &:active:not(:disabled) {
-          filter: brightness(85%);
+          background: ${theme.colors.primary[700]};
+          border-color: ${theme.colors.primary[700]};
+          transform: translateY(0);
+          box-shadow: ${theme.shadows.sm};
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: ${theme.shadows.focusPrimary};
         }
       `;
+
     case 'secondary':
-      return `
-        background-color: ${theme.background.secondary};
-        color: ${theme.text.light};
-        border: ${theme.border.width.thin} solid ${theme.background.secondary};
-        
+      return css`
+        background: ${theme.colors.secondary[500]};
+        color: ${theme.text.inverse};
+        border: 1px solid ${theme.colors.secondary[500]};
+        box-shadow: ${theme.shadows.sm};
+
         &:hover:not(:disabled) {
-          filter: brightness(90%);
+          background: ${theme.colors.secondary[600]};
+          border-color: ${theme.colors.secondary[600]};
+          box-shadow: ${theme.shadows.md};
+          transform: translateY(-1px);
         }
-        
+
         &:active:not(:disabled) {
-          filter: brightness(85%);
+          background: ${theme.colors.secondary[700]};
+          border-color: ${theme.colors.secondary[700]};
+          transform: translateY(0);
+          box-shadow: ${theme.shadows.sm};
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 3px ${theme.colors.secondary[200]};
         }
       `;
+
     case 'outline':
-      return `
-        background-color: transparent;
-        color: ${theme.text.primary};
-        border: ${theme.border.width.thin} solid ${theme.border.color.primary};
-        
+      return css`
+        background: transparent;
+        color: ${theme.colors.primary[600]};
+        border: 1px solid ${theme.border.color.primary};
+
         &:hover:not(:disabled) {
-          background-color: ${theme.background.contrast};
+          background: ${theme.colors.primary[50]};
+          border-color: ${theme.colors.primary[300]};
+          color: ${theme.colors.primary[700]};
+          transform: translateY(-1px);
+          box-shadow: ${theme.shadows.sm};
         }
-        
+
         &:active:not(:disabled) {
-          background-color: ${theme.background.contrast};
+          background: ${theme.colors.primary[100]};
+          transform: translateY(0);
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: ${theme.shadows.focusPrimary};
         }
       `;
+
     case 'ghost':
-      return `
-        background-color: transparent;
-        color: ${theme.text.primary};
-        border: ${theme.border.width.thin} solid transparent;
-        box-shadow: none;
-        
+      return css`
+        background: transparent;
+        color: ${theme.text.secondary};
+        border: 1px solid transparent;
+
         &:hover:not(:disabled) {
-          background-color: ${theme.background.contrast};
+          background: ${theme.background.tertiary};
+          color: ${theme.text.primary};
         }
-        
+
         &:active:not(:disabled) {
-          background-color: ${theme.background.mouseHighlight};
+          background: ${theme.colors.neutral[200]};
+        }
+
+        &:focus-visible {
+          outline: none;
+          background: ${theme.background.tertiary};
+          box-shadow: ${theme.shadows.focus};
         }
       `;
+
     case 'success':
-      return `
-        background-color: ${theme.background.success};
-        color: ${theme.text.dark};
-        border: ${theme.border.width.thin} solid ${theme.border.color.success};
-        
+      return css`
+        background: ${theme.colors.semantic.success[500]};
+        color: ${theme.text.inverse};
+        border: 1px solid ${theme.colors.semantic.success[500]};
+        box-shadow: ${theme.shadows.sm};
+
         &:hover:not(:disabled) {
-          filter: brightness(95%);
+          background: ${theme.colors.semantic.success[600]};
+          border-color: ${theme.colors.semantic.success[600]};
+          box-shadow: ${theme.shadows.md};
+          transform: translateY(-1px);
+        }
+
+        &:active:not(:disabled) {
+          background: ${theme.colors.semantic.success[700]};
+          border-color: ${theme.colors.semantic.success[700]};
+          transform: translateY(0);
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: ${theme.shadows.focusSuccess};
         }
       `;
+
     case 'danger':
-      return `
-        background-color: ${theme.background.danger};
-        color: ${theme.text.dark};
-        border: ${theme.border.width.thin} solid ${theme.border.color.danger};
-        
+      return css`
+        background: ${theme.colors.semantic.error[500]};
+        color: ${theme.text.inverse};
+        border: 1px solid ${theme.colors.semantic.error[500]};
+        box-shadow: ${theme.shadows.sm};
+
         &:hover:not(:disabled) {
-          filter: brightness(95%);
+          background: ${theme.colors.semantic.error[600]};
+          border-color: ${theme.colors.semantic.error[600]};
+          box-shadow: ${theme.shadows.md};
+          transform: translateY(-1px);
+        }
+
+        &:active:not(:disabled) {
+          background: ${theme.colors.semantic.error[700]};
+          border-color: ${theme.colors.semantic.error[700]};
+          transform: translateY(0);
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: ${theme.shadows.focusError};
         }
       `;
+
     case 'warning':
-      return `
-        background-color: ${theme.background.warning};
-        color: ${theme.text.dark};
-        border: ${theme.border.width.thin} solid ${theme.border.color.warning};
-        
+      return css`
+        background: ${theme.colors.semantic.warning[500]};
+        color: ${theme.colors.semantic.warning[900]};
+        border: 1px solid ${theme.colors.semantic.warning[500]};
+        box-shadow: ${theme.shadows.sm};
+
         &:hover:not(:disabled) {
-          filter: brightness(95%);
+          background: ${theme.colors.semantic.warning[600]};
+          border-color: ${theme.colors.semantic.warning[600]};
+          box-shadow: ${theme.shadows.md};
+          transform: translateY(-1px);
+        }
+
+        &:active:not(:disabled) {
+          background: ${theme.colors.semantic.warning[700]};
+          border-color: ${theme.colors.semantic.warning[700]};
+          transform: translateY(0);
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: ${theme.shadows.focusWarning};
         }
       `;
+
     case 'info':
-      return `
-        background-color: ${theme.background.info};
-        color: ${theme.text.dark};
-        border: ${theme.border.width.thin} solid ${theme.border.color.info};
-        
+      return css`
+        background: ${theme.colors.semantic.info[500]};
+        color: ${theme.text.inverse};
+        border: 1px solid ${theme.colors.semantic.info[500]};
+        box-shadow: ${theme.shadows.sm};
+
         &:hover:not(:disabled) {
-          filter: brightness(95%);
+          background: ${theme.colors.semantic.info[600]};
+          border-color: ${theme.colors.semantic.info[600]};
+          box-shadow: ${theme.shadows.md};
+          transform: translateY(-1px);
+        }
+
+        &:active:not(:disabled) {
+          background: ${theme.colors.semantic.info[700]};
+          border-color: ${theme.colors.semantic.info[700]};
+          transform: translateY(0);
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 3px ${theme.colors.semantic.info[200]};
         }
       `;
+
     default:
-      return `
-        background-color: ${theme.background.primary};
-        color: ${theme.text.light};
-        border: ${theme.border.width.thin} solid ${theme.background.primary};
-        
+      return css`
+        background: ${theme.colors.primary[500]};
+        color: ${theme.text.inverse};
+        border: 1px solid ${theme.colors.primary[500]};
+
         &:hover:not(:disabled) {
-          filter: brightness(90%);
+          background: ${theme.colors.primary[600]};
+          border-color: ${theme.colors.primary[600]};
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: ${theme.shadows.focusPrimary};
         }
       `;
   }
 };
 
 const StyledButton = styled.button<StyledButtonProps>`
-  /* Base button styles */
+  /* Base button styles with modern design */
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
+  font-family: ${({ theme }) => theme.typography.family.sans};
   border-radius: ${({ theme, $isRounded }) =>
-    $isRounded ? theme.border.radius.full : theme.border.radius.md};
+    $isRounded ? theme.border.radius.full : theme.border.radius.lg};
   transition: all ${({ theme }) => theme.transitions.fast};
   cursor: pointer;
   white-space: nowrap;
-  line-height: 1.5;
-  box-shadow: ${({ theme }) => theme.shadows.sm};
-  position: relative;
+  text-decoration: none;
+  user-select: none;
   overflow: hidden;
+  outline: none;
+
+  /* Ensure good line height */
+  line-height: 1;
 
   /* Full width styling */
   width: ${({ $isFullWidth }) => ($isFullWidth ? '100%' : 'auto')};
@@ -174,56 +319,116 @@ const StyledButton = styled.button<StyledButtonProps>`
   /* Apply variant styles */
   ${({ $variant, theme }) => getVariantStyles($variant, theme)}
   
-  /* Disabled state */
+  /* Icon spacing adjustments */
+  ${({ $hasStartIcon, $hasEndIcon, theme }) => {
+    if ($hasStartIcon && !$hasEndIcon) {
+      return css`
+        padding-left: ${theme.spacing[3]};
+      `;
+    }
+    if ($hasEndIcon && !$hasStartIcon) {
+      return css`
+        padding-right: ${theme.spacing[3]};
+      `;
+    }
+    if ($hasStartIcon && $hasEndIcon) {
+      return css`
+        padding-left: ${theme.spacing[3]};
+        padding-right: ${theme.spacing[3]};
+      `;
+    }
+    return '';
+  }}
+  
+  /* Disabled state with better visual feedback */
   &:disabled {
-    opacity: 0.65;
+    opacity: 0.6;
     cursor: not-allowed;
-    box-shadow: none;
+    transform: none !important;
+    box-shadow: none !important;
+    pointer-events: none;
+
+    /* Subtle disabled styling */
+    filter: grayscale(0.3);
   }
 
-  /* Loading state */
+  /* Loading state with smooth animations */
   ${({ $isLoading }) =>
     $isLoading &&
-    `
-    position: relative;
-    color: transparent !important;
-    pointer-events: none;
-    
-    &::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 1rem;
-      height: 1rem;
-      margin: -0.5rem 0 0 -0.5rem;
-      border-radius: 50%;
-      border: 2px solid currentColor;
-      border-right-color: transparent;
-      animation: spin 0.75s linear infinite;
-    }
-    
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
+    css`
+      cursor: wait;
+      position: relative;
+
+      /* Hide text while loading */
+      color: transparent !important;
+
+      /* Loading spinner */
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 1.2em;
+        height: 1.2em;
+        margin: -0.6em 0 0 -0.6em;
+        border-radius: 50%;
+        border: 2px solid;
+        border-color: currentColor transparent currentColor transparent;
+        animation: ${spin} 1s linear infinite;
+        color: inherit;
       }
+    `}
+
+  /* Add subtle shimmer effect on hover for primary buttons */
+  ${({ $variant }) =>
+    ($variant === 'primary' || $variant === 'secondary') &&
+    css`
+      &:hover:not(:disabled)::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        animation: ${shimmer} 2s ease-in-out;
+      }
+    `}
+
+  /* Better touch targets for mobile */
+  @media (max-width: 768px) {
+    min-height: ${({ theme }) => theme.spacing[11]};
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transform: none !important;
+
+    &::after {
+      animation: none;
     }
-  `}
+
+    &::before {
+      animation: none;
+    }
+  }
 `;
 
-const IconContainer = styled.span`
+const IconContainer = styled.span<{ $position: 'start' | 'end' }>`
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  /* Size the icon appropriately */
+  svg {
+    width: 1em;
+    height: 1em;
+  }
 `;
 
-const StartIconContainer = styled(IconContainer)`
-  margin-right: ${({ theme }) => theme.spacing.xs};
-`;
-
-const EndIconContainer = styled(IconContainer)`
-  margin-left: ${({ theme }) => theme.spacing.xs};
-`;
-
+// Modern button component with enhanced UX
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -233,14 +438,29 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       isFullWidth = false,
       isRounded = false,
       disabled = false,
-      className = '',
+      children,
       startIcon,
       endIcon,
-      children,
-      ...rest
+      leftIcon, // Legacy prop support
+      rightIcon, // Legacy prop support
+      className,
+      onClick,
+      ...props
     },
     ref
   ) => {
+    // Support legacy icon props
+    const effectiveStartIcon = startIcon || leftIcon;
+    const effectiveEndIcon = endIcon || rightIcon;
+
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (isLoading || disabled) {
+        event.preventDefault();
+        return;
+      }
+      onClick?.(event);
+    };
+
     return (
       <StyledButton
         ref={ref}
@@ -250,16 +470,28 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         $isLoading={isLoading}
         $isFullWidth={isFullWidth}
         $isRounded={isRounded}
+        $hasStartIcon={!!effectiveStartIcon}
+        $hasEndIcon={!!effectiveEndIcon}
         disabled={disabled || isLoading}
-        {...rest}
+        onClick={handleClick}
+        aria-disabled={disabled || isLoading}
+        aria-busy={isLoading}
+        type='button'
+        {...props}
       >
-        {' '}
-        {startIcon && <StartIconContainer>{startIcon}</StartIconContainer>}
+        {effectiveStartIcon && !isLoading && (
+          <IconContainer $position='start'>{effectiveStartIcon}</IconContainer>
+        )}
         {children}
-        {endIcon && <EndIconContainer>{endIcon}</EndIconContainer>}
+        {effectiveEndIcon && !isLoading && (
+          <IconContainer $position='end'>{effectiveEndIcon}</IconContainer>
+        )}
       </StyledButton>
     );
   }
 );
 
 Button.displayName = 'Button';
+
+export default Button;
+

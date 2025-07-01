@@ -30,19 +30,19 @@ export type TextInputProps = {
 const getSizeStyles = (size: TextInputSize) => {
   const sizes = {
     sm: css`
-      height: 32px;
-      padding: 0 8px;
-      font-size: 14px;
+      height: ${({ theme }) => theme.spacing[8]};
+      padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[3]};
+      font-size: ${({ theme }) => theme.typography.size.sm};
     `,
     md: css`
-      height: 40px;
-      padding: 0 12px;
-      font-size: 16px;
+      height: ${({ theme }) => theme.spacing[10]};
+      padding: ${({ theme }) => theme.spacing[2.5]} ${({ theme }) => theme.spacing[3]};
+      font-size: ${({ theme }) => theme.typography.size.base};
     `,
     lg: css`
-      height: 48px;
-      padding: 0 16px;
-      font-size: 18px;
+      height: ${({ theme }) => theme.spacing[12]};
+      padding: ${({ theme }) => theme.spacing[3]} ${({ theme }) => theme.spacing[4]};
+      font-size: ${({ theme }) => theme.typography.size.lg};
     `,
   };
   return sizes[size];
@@ -51,38 +51,22 @@ const getSizeStyles = (size: TextInputSize) => {
 const getVariantStyles = (variant: TextInputVariant, theme: any) => {
   const variants = {
     default: css`
-      border: 1px solid ${theme.colors.neutral[300]};
-      background-color: ${theme.colors.neutral.white};
-      border-radius: ${theme.spacing.xs};
-
-      &:focus {
-        border-color: ${theme.colors.primary.main};
-        box-shadow: 0 0 0 3px ${theme.colors.primary.light}40;
-      }
+      background: ${theme.background.secondary};
+      border: 1px solid ${theme.border.color.primary};
+      border-radius: ${theme.border.radius.lg};
     `,
     filled: css`
+      background: ${theme.background.tertiary};
       border: 1px solid transparent;
-      background-color: ${theme.colors.neutral[100]};
-      border-radius: ${theme.spacing.xs};
-
-      &:focus {
-        background-color: ${theme.colors.neutral.white};
-        border-color: ${theme.colors.primary.main};
-        box-shadow: 0 0 0 3px ${theme.colors.primary.light}40;
-      }
+      border-radius: ${theme.border.radius.lg};
     `,
     underlined: css`
+      background: transparent;
       border: none;
-      border-bottom: 2px solid ${theme.colors.neutral[300]};
-      background-color: transparent;
+      border-bottom: 2px solid ${theme.border.color.primary};
       border-radius: 0;
       padding-left: 0;
       padding-right: 0;
-
-      &:focus {
-        border-bottom-color: ${theme.colors.primary.main};
-        box-shadow: none;
-      }
     `,
   };
   return variants[variant];
@@ -90,117 +74,181 @@ const getVariantStyles = (variant: TextInputVariant, theme: any) => {
 
 const getStateStyles = (state: TextInputState, theme: any) => {
   const states = {
-    default: css``,
-    error: css`
-      border-color: ${theme.colors.semantic.error.main};
+    default: css`
+      border-color: ${theme.border.color.primary};
+
+      &:hover:not(:disabled) {
+        border-color: ${theme.border.color.secondary};
+      }
+
       &:focus {
-        border-color: ${theme.colors.semantic.error.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.error.light}40;
+        outline: none;
+        border-color: ${theme.colors.primary[500]};
+        box-shadow: ${theme.shadows.focusPrimary};
+      }
+    `,
+    error: css`
+      border-color: ${theme.colors.semantic.error[300]};
+
+      &:hover:not(:disabled) {
+        border-color: ${theme.colors.semantic.error[400]};
+      }
+
+      &:focus {
+        outline: none;
+        border-color: ${theme.colors.semantic.error[500]};
+        box-shadow: ${theme.shadows.focusError};
       }
     `,
     success: css`
-      border-color: ${theme.colors.semantic.success.main};
+      border-color: ${theme.colors.semantic.success[300]};
+
+      &:hover:not(:disabled) {
+        border-color: ${theme.colors.semantic.success[400]};
+      }
+
       &:focus {
-        border-color: ${theme.colors.semantic.success.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.success.light}40;
+        outline: none;
+        border-color: ${theme.colors.semantic.success[500]};
+        box-shadow: ${theme.shadows.focusSuccess};
       }
     `,
     warning: css`
-      border-color: ${theme.colors.semantic.warning.main};
+      border-color: ${theme.colors.semantic.warning[300]};
+
+      &:hover:not(:disabled) {
+        border-color: ${theme.colors.semantic.warning[400]};
+      }
+
       &:focus {
-        border-color: ${theme.colors.semantic.warning.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.warning.light}40;
+        outline: none;
+        border-color: ${theme.colors.semantic.warning[500]};
+        box-shadow: ${theme.shadows.focusWarning};
       }
     `,
   };
   return states[state];
 };
 
-const InputContainer = styled.div<{ $fullWidth: boolean }>`
-  display: ${({ $fullWidth }) => ($fullWidth ? 'block' : 'inline-block')};
+const Container = styled.div<{ $fullWidth: boolean }>`
+  display: inline-flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[1.5]};
   width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
 `;
 
-const Label = styled.label<{ $required: boolean }>`
-  display: block;
-  margin-bottom: ${({ theme }) => theme.spacing.xs};
+const Label = styled.label<{ $required: boolean; $disabled: boolean }>`
   font-size: ${({ theme }) => theme.typography.size.sm};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
-  color: ${({ theme }) => theme.colors.neutral[700]};
+  color: ${({ theme, $disabled }) => ($disabled ? theme.text.disabled : theme.text.primary)};
+  line-height: ${({ theme }) => theme.typography.lineHeight.tight};
 
   ${({ $required }) =>
     $required &&
     css`
       &::after {
         content: ' *';
-        color: ${({ theme }) => theme.colors.semantic.error.main};
+        color: ${({ theme }) => theme.colors.semantic.error[500]};
       }
     `}
 `;
 
-const InputWrapper = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-`;
-
-const StyledInput = styled.input<{
+const InputWrapper = styled.div<{
   $size: TextInputSize;
   $variant: TextInputVariant;
   $state: TextInputState;
+  $disabled: boolean;
   $hasLeftIcon: boolean;
   $hasRightIcon: boolean;
   $hasLeftAddon: boolean;
   $hasRightAddon: boolean;
 }>`
-  width: 100%;
-  border: none;
-  outline: none;
+  position: relative;
+  display: flex;
+  align-items: center;
   transition: all ${({ theme }) => theme.transitions.fast};
-  color: ${({ theme }) => theme.colors.neutral[900]};
 
   ${({ $size }) => getSizeStyles($size)}
   ${({ $variant, theme }) => getVariantStyles($variant, theme)}
   ${({ $state, theme }) => getStateStyles($state, theme)}
 
-  ${({ $hasLeftIcon, $size }) =>
-    $hasLeftIcon &&
+  ${({ $disabled, theme }) =>
+    $disabled &&
     css`
-      padding-left: ${$size === 'sm' ? '32px' : $size === 'md' ? '40px' : '48px'};
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: ${theme.background.disabled};
     `}
 
-  ${({ $hasRightIcon, $size }) =>
-    $hasRightIcon &&
-    css`
-      padding-right: ${$size === 'sm' ? '32px' : $size === 'md' ? '40px' : '48px'};
-    `}
+  ${({ $hasLeftAddon, $hasRightAddon, theme }) => {
+    if ($hasLeftAddon && $hasRightAddon) {
+      return css`
+        border-radius: 0;
+      `;
+    }
+    if ($hasLeftAddon) {
+      return css`
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        border-left: none;
+      `;
+    }
+    if ($hasRightAddon) {
+      return css`
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        border-right: none;
+      `;
+    }
+    return '';
+  }}
+`;
 
-  ${({ $hasLeftAddon }) =>
-    $hasLeftAddon &&
-    css`
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-    `}
-
-  ${({ $hasRightAddon }) =>
-    $hasRightAddon &&
-    css`
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    `}
+const StyledInput = styled.input<{
+  $size: TextInputSize;
+  $hasLeftIcon: boolean;
+  $hasRightIcon: boolean;
+}>`
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: ${({ theme }) => theme.text.primary};
+  font-family: ${({ theme }) => theme.typography.family.sans};
+  font-size: inherit;
+  line-height: ${({ theme }) => theme.typography.lineHeight.normal};
 
   &::placeholder {
-    color: ${({ theme }) => theme.colors.neutral[400]};
+    color: ${({ theme }) => theme.text.quaternary};
   }
 
   &:disabled {
-    background-color: ${({ theme }) => theme.colors.neutral[100]};
-    color: ${({ theme }) => theme.colors.neutral[400]};
     cursor: not-allowed;
+    color: ${({ theme }) => theme.text.disabled};
   }
+
+  ${({ $hasLeftIcon, theme, $size }) =>
+    $hasLeftIcon &&
+    css`
+      padding-left: ${$size === 'sm'
+        ? theme.spacing[8]
+        : $size === 'lg'
+          ? theme.spacing[12]
+          : theme.spacing[10]};
+    `}
+
+  ${({ $hasRightIcon, theme, $size }) =>
+    $hasRightIcon &&
+    css`
+      padding-right: ${$size === 'sm'
+        ? theme.spacing[8]
+        : $size === 'lg'
+          ? theme.spacing[12]
+          : theme.spacing[10]};
+    `}
 `;
 
-const IconWrapper = styled.div<{
+const IconContainer = styled.div<{
   $position: 'left' | 'right';
   $size: TextInputSize;
 }>`
@@ -210,18 +258,26 @@ const IconWrapper = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${({ theme }) => theme.colors.neutral[400]};
+  color: ${({ theme }) => theme.text.tertiary};
   pointer-events: none;
   z-index: 1;
 
-  ${({ $position, $size }) =>
-    $position === 'left'
+  ${({ $position, $size, theme }) => {
+    const spacing =
+      $size === 'sm' ? theme.spacing[3] : $size === 'lg' ? theme.spacing[4] : theme.spacing[3];
+    return $position === 'left'
       ? css`
-          left: ${$size === 'sm' ? '8px' : $size === 'md' ? '12px' : '16px'};
+          left: ${spacing};
         `
       : css`
-          right: ${$size === 'sm' ? '8px' : $size === 'md' ? '12px' : '16px'};
-        `}
+          right: ${spacing};
+        `;
+  }}
+
+  svg {
+    width: ${({ $size }) => ($size === 'sm' ? '16px' : $size === 'lg' ? '20px' : '18px')};
+    height: ${({ $size }) => ($size === 'sm' ? '16px' : $size === 'lg' ? '20px' : '18px')};
+  }
 `;
 
 const Addon = styled.div<{
@@ -232,49 +288,67 @@ const Addon = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: ${({ theme }) => theme.colors.neutral[100]};
-  border: 1px solid ${({ theme }) => theme.colors.neutral[300]};
-  color: ${({ theme }) => theme.colors.neutral[600]};
+  background: ${({ theme }) => theme.background.tertiary};
+  border: 1px solid ${({ theme }) => theme.border.color.primary};
+  color: ${({ theme }) => theme.text.secondary};
   font-size: ${({ theme }) => theme.typography.size.sm};
-  padding: 0 ${({ theme }) => theme.spacing.sm};
+  font-weight: ${({ theme }) => theme.typography.weight.medium};
   white-space: nowrap;
 
-  ${({ $size }) => getSizeStyles($size)}
+  ${({ $size, theme }) => {
+    const styles = getSizeStyles($size);
+    return css`
+      ${styles}
+      padding-left: ${theme.spacing[3]};
+      padding-right: ${theme.spacing[3]};
+    `;
+  }}
 
-  ${({ $position }) =>
-    $position === 'left'
+  ${({ $position, $variant, theme }) => {
+    if ($variant === 'underlined') {
+      return css`
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid ${theme.border.color.primary};
+        border-radius: 0;
+      `;
+    }
+
+    return $position === 'left'
       ? css`
+          border-top-left-radius: ${theme.border.radius.lg};
+          border-bottom-left-radius: ${theme.border.radius.lg};
           border-right: none;
-          border-top-right-radius: 0;
-          border-bottom-right-radius: 0;
         `
       : css`
+          border-top-right-radius: ${theme.border.radius.lg};
+          border-bottom-right-radius: ${theme.border.radius.lg};
           border-left: none;
-          border-top-left-radius: 0;
-          border-bottom-left-radius: 0;
-        `}
+        `;
+  }}
+`;
 
-  ${({ $variant }) =>
-    $variant === 'underlined' &&
-    css`
-      border: none;
-      border-bottom: 2px solid ${({ theme }) => theme.colors.neutral[300]};
-      background-color: transparent;
-      border-radius: 0;
-    `}
+const AddonGroup = styled.div`
+  display: flex;
+  align-items: stretch;
+  width: 100%;
 `;
 
 const HelperText = styled.div<{ $state: TextInputState }>`
-  margin-top: ${({ theme }) => theme.spacing.xs};
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme, $state }) =>
-    $state === 'error'
-      ? theme.colors.semantic.error.main
-      : $state === 'success'
-        ? theme.colors.semantic.success.main
-        : $state === 'warning'
-          ? theme.colors.semantic.warning.main
-          : theme.colors.neutral[600]};
+  font-size: ${({ theme }) => theme.typography.size.xs};
+  line-height: ${({ theme }) => theme.typography.lineHeight.relaxed};
+  color: ${({ theme, $state }) => {
+    switch ($state) {
+      case 'error':
+        return theme.colors.semantic.error[600];
+      case 'success':
+        return theme.colors.semantic.success[600];
+      case 'warning':
+        return theme.colors.semantic.warning[600];
+      default:
+        return theme.text.tertiary;
+    }
+  }};
 `;
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
@@ -282,6 +356,8 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     {
       label,
       placeholder,
+      value,
+      defaultValue,
       size = 'md',
       variant = 'default',
       state = 'default',
@@ -302,68 +378,90 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     },
     ref
   ) => {
-    const inputId = id || `input-${Math.random().toString(36).substring(2, 9)}`;
+    const inputId = id || `text-input-${Math.random().toString(36).substring(2, 9)}`;
     const effectiveState = error ? 'error' : state;
     const effectiveHelperText = error || helperText;
 
-    return (
-      <InputContainer $fullWidth={fullWidth} className={className}>
-        {label && (
-          <Label htmlFor={inputId} $required={required}>
-            {label}
-          </Label>
+    const input = (
+      <StyledInput
+        ref={ref}
+        id={inputId}
+        placeholder={placeholder}
+        value={value}
+        defaultValue={defaultValue}
+        disabled={disabled}
+        required={required}
+        readOnly={readOnly}
+        data-testid={dataTestId}
+        $size={size}
+        $hasLeftIcon={!!leftIcon}
+        $hasRightIcon={!!rightIcon}
+        aria-invalid={effectiveState === 'error'}
+        aria-describedby={effectiveHelperText ? `${inputId}-helper` : undefined}
+        {...props}
+      />
+    );
+
+    const inputWithIcons = (
+      <InputWrapper
+        $size={size}
+        $variant={variant}
+        $state={effectiveState}
+        $disabled={disabled}
+        $hasLeftIcon={!!leftIcon}
+        $hasRightIcon={!!rightIcon}
+        $hasLeftAddon={!!leftAddon}
+        $hasRightAddon={!!rightAddon}
+      >
+        {leftIcon && (
+          <IconContainer $position='left' $size={size}>
+            {leftIcon}
+          </IconContainer>
         )}
-        <InputWrapper>
+        {input}
+        {rightIcon && (
+          <IconContainer $position='right' $size={size}>
+            {rightIcon}
+          </IconContainer>
+        )}
+      </InputWrapper>
+    );
+
+    const inputWithAddons =
+      leftAddon || rightAddon ? (
+        <AddonGroup>
           {leftAddon && (
             <Addon $position='left' $size={size} $variant={variant}>
               {leftAddon}
             </Addon>
           )}
-
-          <div style={{ position: 'relative', flex: 1 }}>
-            {leftIcon && (
-              <IconWrapper $position='left' $size={size}>
-                {leftIcon}
-              </IconWrapper>
-            )}
-
-            <StyledInput
-              ref={ref}
-              id={inputId}
-              placeholder={placeholder}
-              disabled={disabled}
-              required={required}
-              readOnly={readOnly}
-              $size={size}
-              $variant={variant}
-              $state={effectiveState}
-              $hasLeftIcon={!!leftIcon}
-              $hasRightIcon={!!rightIcon}
-              $hasLeftAddon={!!leftAddon}
-              $hasRightAddon={!!rightAddon}
-              data-testid={dataTestId}
-              {...props}
-            />
-
-            {rightIcon && (
-              <IconWrapper $position='right' $size={size}>
-                {rightIcon}
-              </IconWrapper>
-            )}
-          </div>
-
+          {inputWithIcons}
           {rightAddon && (
             <Addon $position='right' $size={size} $variant={variant}>
               {rightAddon}
             </Addon>
           )}
-        </InputWrapper>
+        </AddonGroup>
+      ) : (
+        inputWithIcons
+      );
 
-        {effectiveHelperText && (
-          <HelperText $state={effectiveState}>{effectiveHelperText}</HelperText>
+    return (
+      <Container className={className} $fullWidth={fullWidth}>
+        {label && (
+          <Label htmlFor={inputId} $required={required} $disabled={disabled}>
+            {label}
+          </Label>
         )}
-      </InputContainer>
+        {inputWithAddons}
+        {effectiveHelperText && (
+          <HelperText $state={effectiveState} id={`${inputId}-helper`}>
+            {effectiveHelperText}
+          </HelperText>
+        )}
+      </Container>
     );
   }
 );
 
+TextInput.displayName = 'TextInput';

@@ -1,7 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import styled, { css } from 'styled-components';
-import { Button } from './Button';
+import styled, { css, keyframes } from 'styled-components';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
@@ -16,81 +15,130 @@ export type ModalProps = {
   closeOnEscape?: boolean;
   className?: string;
   'data-testid'?: string;
+  /**
+   * Whether to center the modal vertically
+   */
+  centered?: boolean;
+  /**
+   * Custom header content
+   */
+  header?: React.ReactNode;
+  /**
+   * Custom footer content
+   */
+  footer?: React.ReactNode;
 };
+
+// Modern animations
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+`;
+
+const scaleIn = keyframes`
+  from {
+    opacity: 0;
+    transform: scale(0.95) translate(-50%, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translate(-50%, -50%);
+  }
+`;
 
 const getSizeStyles = (size: ModalSize) => {
   const sizes = {
     sm: css`
-      max-width: 400px;
-      width: 90vw;
+      width: 90%;
+      max-width: 384px;
+      max-height: 90vh;
     `,
     md: css`
-      max-width: 600px;
-      width: 90vw;
+      width: 90%;
+      max-width: 512px;
+      max-height: 90vh;
     `,
     lg: css`
-      max-width: 800px;
-      width: 90vw;
+      width: 90%;
+      max-width: 768px;
+      max-height: 90vh;
     `,
     xl: css`
-      max-width: 1200px;
-      width: 95vw;
+      width: 90%;
+      max-width: 1024px;
+      max-height: 90vh;
     `,
     full: css`
-      width: 100vw;
-      height: 100vh;
+      width: 95%;
+      height: 95%;
       max-width: none;
-      border-radius: 0;
+      max-height: none;
     `,
   };
+
   return sizes[size];
 };
 
-const Overlay = styled.div<{ $isOpen: boolean }>`
+const Overlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: ${({ theme }) => theme.spacing.md};
-  opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
-  visibility: ${({ $isOpen }) => ($isOpen ? 'visible' : 'hidden')};
-  transition: all ${({ theme }) => theme.transitions.normal};
+  background: ${({ theme }) => theme.background.overlay};
+  backdrop-filter: blur(4px);
+  z-index: ${({ theme }) => theme.zIndex.modal};
+  animation: ${fadeIn} ${({ theme }) => theme.transitions.normal};
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    backdrop-filter: none;
+  }
 `;
 
-const ModalContainer = styled.div<{
-  $isOpen: boolean;
-  $size: ModalSize;
-}>`
-  background: ${({ theme }) => theme.colors.neutral.white};
-  border-radius: ${({ theme }) => theme.spacing.sm};
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  max-height: 90vh;
+const ModalContainer = styled.div<{ $size: ModalSize; $centered: boolean }>`
+  position: fixed;
+  top: ${({ $centered }) => ($centered ? '50%' : '10%')};
+  left: 50%;
+  transform: ${({ $centered }) => ($centered ? 'translate(-50%, -50%)' : 'translate(-50%, 0)')};
+  background: ${({ theme }) => theme.background.secondary};
+  border-radius: ${({ theme }) => theme.border.radius.xl};
+  box-shadow: ${({ theme }) => theme.shadows['2xl']};
   overflow: hidden;
+  animation: ${scaleIn} ${({ theme }) => theme.transitions.normal};
   display: flex;
   flex-direction: column;
-  transform: ${({ $isOpen }) => ($isOpen ? 'scale(1)' : 'scale(0.95)')};
-  transition: all ${({ theme }) => theme.transitions.normal};
 
   ${({ $size }) => getSizeStyles($size)}
 
-  @media (max-width: 768px) {
-    width: 95vw;
-    max-height: 95vh;
+  /* Dark mode enhanced shadows */
+  ${({ theme }) =>
+    theme.mode === 'dark' &&
+    css`
+      box-shadow:
+        0 25px 50px -12px rgb(0 0 0 / 0.6),
+        0 0 0 1px rgb(255 255 255 / 0.05);
+    `}
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: ${({ $centered }) => ($centered ? 'translate(-50%, -50%)' : 'translate(-50%, 0)')};
   }
 `;
 
 const ModalHeader = styled.div`
-  padding: ${({ theme }) => theme.spacing.lg};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.neutral[200]};
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: ${({ theme }) => theme.spacing[6]} ${({ theme }) => theme.spacing[6]}
+    ${({ theme }) => theme.spacing[4]};
+  border-bottom: 1px solid ${({ theme }) => theme.border.color.primary};
   flex-shrink: 0;
 `;
 
@@ -98,22 +146,92 @@ const ModalTitle = styled.h2`
   margin: 0;
   font-size: ${({ theme }) => theme.typography.size.xl};
   font-weight: ${({ theme }) => theme.typography.weight.semibold};
-  color: ${({ theme }) => theme.colors.neutral[900]};
+  color: ${({ theme }) => theme.text.primary};
+  line-height: ${({ theme }) => theme.typography.lineHeight.tight};
 `;
 
-const ModalBody = styled.div`
-  padding: ${({ theme }) => theme.spacing.lg};
-  overflow-y: auto;
+const ModalContent = styled.div`
+  padding: ${({ theme }) => theme.spacing[6]};
   flex: 1;
+  overflow-y: auto;
+  color: ${({ theme }) => theme.text.secondary};
+  line-height: ${({ theme }) => theme.typography.lineHeight.relaxed};
+
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.border.color.tertiary};
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: ${({ theme }) => theme.border.color.quaternary};
+  }
 `;
 
-const CloseButton = styled(Button)`
-  padding: ${({ theme }) => theme.spacing.xs};
-  min-width: auto;
-  min-height: auto;
+const ModalFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: ${({ theme }) => theme.spacing[3]};
+  padding: ${({ theme }) => theme.spacing[4]} ${({ theme }) => theme.spacing[6]}
+    ${({ theme }) => theme.spacing[6]};
+  border-top: 1px solid ${({ theme }) => theme.border.color.primary};
+  flex-shrink: 0;
+`;
+
+const CloseButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
   height: 32px;
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  border: none;
+  background: transparent;
+  color: ${({ theme }) => theme.text.tertiary};
+  cursor: pointer;
+  transition: all ${({ theme }) => theme.transitions.fast};
+
+  &:hover {
+    background: ${({ theme }) => theme.background.tertiary};
+    color: ${({ theme }) => theme.text.primary};
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: ${({ theme }) => theme.shadows.focus};
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
 `;
+
+const CloseIcon = () => (
+  <svg viewBox='0 0 20 20' fill='currentColor'>
+    <path d='M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z' />
+  </svg>
+);
 
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
@@ -126,36 +244,37 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnEscape = true,
   className,
   'data-testid': dataTestId,
+  centered = true,
+  header,
+  footer,
 }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      previousFocusRef.current = document.activeElement as HTMLElement;
-      modalRef.current?.focus();
-    } else if (previousFocusRef.current) {
-      previousFocusRef.current.focus();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
+  // Handle escape key
+  const handleEscape = useCallback(
+    (event: KeyboardEvent) => {
       if (closeOnEscape && event.key === 'Escape') {
         onClose();
       }
-    };
+    },
+    [closeOnEscape, onClose]
+  );
 
+  useEffect(() => {
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
-    }
 
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
-    };
-  }, [isOpen, closeOnEscape, onClose]);
+      if (closeOnEscape) {
+        document.addEventListener('keydown', handleEscape);
+      }
+
+      return () => {
+        document.body.style.overflow = '';
+        if (closeOnEscape) {
+          document.removeEventListener('keydown', handleEscape);
+        }
+      };
+    }
+  }, [isOpen, closeOnEscape, handleEscape]);
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (closeOnOverlayClick && event.target === event.currentTarget) {
@@ -164,55 +283,45 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Tab') {
-      const focusableElements = modalRef.current?.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusableElements && focusableElements.length > 0) {
-        const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-
-        if (event.shiftKey && document.activeElement === firstElement) {
-          lastElement.focus();
-          event.preventDefault();
-        } else if (!event.shiftKey && document.activeElement === lastElement) {
-          firstElement.focus();
-          event.preventDefault();
-        }
-      }
+    if (event.key === 'Escape' && closeOnEscape) {
+      onClose();
     }
   };
 
   if (!isOpen) return null;
 
   const modalContent = (
-    <Overlay $isOpen={isOpen} onClick={handleOverlayClick}>
+    <Overlay onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
       <ModalContainer
-        ref={modalRef}
-        $isOpen={isOpen}
-        $size={size}
         className={className}
+        $size={size}
+        $centered={centered}
         role='dialog'
         aria-modal='true'
         aria-labelledby={title ? 'modal-title' : undefined}
-        tabIndex={-1}
-        onKeyDown={handleKeyDown}
         data-testid={dataTestId}
       >
-        {(title || showCloseButton) && (
+        {(title || header || showCloseButton) && (
           <ModalHeader>
-            {title && <ModalTitle id='modal-title'>{title}</ModalTitle>}
+            {header || <ModalTitle id='modal-title'>{title}</ModalTitle>}
             {showCloseButton && (
-              <CloseButton variant='ghost' size='sm' onClick={onClose} aria-label='Close modal'>
-                ×
+              <CloseButton onClick={onClose} aria-label='Close modal' type='button'>
+                <CloseIcon />
               </CloseButton>
             )}
           </ModalHeader>
         )}
-        <ModalBody>{children}</ModalBody>
+
+        <ModalContent>{children}</ModalContent>
+
+        {footer && <ModalFooter>{footer}</ModalFooter>}
       </ModalContainer>
     </Overlay>
   );
 
+  // Render modal in portal
   return createPortal(modalContent, document.body);
 };
+
+Modal.displayName = 'Modal';
+

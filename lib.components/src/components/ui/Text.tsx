@@ -86,7 +86,7 @@ const getVariantStyles = (variant: TextVariant, theme: Theme) => {
       return css`
         font-size: ${theme.typography.size.xs};
         font-weight: ${theme.typography.weight.normal};
-        color: ${theme.text.dim};
+        color: ${theme.text.tertiary};
         text-transform: uppercase;
         letter-spacing: 0.05em;
       `;
@@ -103,11 +103,11 @@ const getVariantStyles = (variant: TextVariant, theme: Theme) => {
       `;
     case 'muted':
       return css`
-        color: ${theme.text.dim};
+        color: ${theme.text.tertiary};
       `;
     case 'highlight':
       return css`
-        color: ${theme.text.highlight};
+        color: ${theme.text.primary};
         font-weight: ${theme.typography.weight.medium};
       `;
     case 'body':
@@ -154,11 +154,11 @@ const getWeightStyles = (weight: TextWeight, theme: Theme) => {
 const getColorStyles = (color: TextColor, theme: Theme) => {
   switch (color) {
     case 'dark':
-      return `color: ${theme.text.dark};`;
+      return `color: ${theme.text.primary};`;
     case 'light':
-      return `color: ${theme.text.light};`;
+      return `color: ${theme.text.inverse};`;
     case 'muted':
-      return `color: ${theme.text.dim};`;
+      return `color: ${theme.text.tertiary};`;
     case 'primary':
       return `color: ${theme.text.primary};`;
     case 'secondary':
@@ -166,20 +166,20 @@ const getColorStyles = (color: TextColor, theme: Theme) => {
     case 'success':
       return `color: ${theme.text.success};`;
     case 'danger':
-      return `color: ${theme.text.danger};`;
+      return `color: ${theme.text.error};`;
     case 'warning':
       return `color: ${theme.text.warning};`;
     case 'info':
       return `color: ${theme.text.info};`;
     case 'body':
     default:
-      return `color: ${theme.text.body};`;
+      return `color: ${theme.text.primary};`;
   }
 };
 
 const StyledText = styled.span<StyledTextProps>`
   /* Base text styles */
-  font-family: ${({ theme }) => theme.typography.family.body};
+  font-family: ${({ theme }) => theme.typography.family.sans};
   line-height: ${({ theme }) => theme.typography.lineHeight.relaxed};
 
   /* Apply variant styles */

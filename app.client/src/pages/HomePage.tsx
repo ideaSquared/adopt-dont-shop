@@ -10,10 +10,10 @@ import styled from 'styled-components';
 const HeroSection = styled.section`
   background: linear-gradient(
     135deg,
-    ${props => props.theme.colors.primary.main} 0%,
-    ${props => props.theme.colors.secondary.main} 100%
+    ${props => props.theme.colors.primary[500]} 0%,
+    ${props => props.theme.colors.secondary[500]} 100%
   );
-  color: white;
+  color: ${props => props.theme.text.primary};
   padding: 4rem 2rem;
   text-align: center;
 
@@ -62,7 +62,7 @@ const Section = styled.section`
     text-align: center;
     font-size: 2.5rem;
     margin-bottom: 3rem;
-    color: ${props => props.theme.text.body};
+    color: ${props => props.theme.text.primary};
   }
 
   @media (max-width: 768px) {
@@ -88,7 +88,7 @@ const PetGrid = styled.div`
 `;
 
 const StatsSection = styled.section`
-  background-color: ${props => props.theme.background.contrast};
+  background-color: ${props => props.theme.background.secondary};
   padding: 4rem 0;
 
   .stats-grid {
@@ -101,13 +101,13 @@ const StatsSection = styled.section`
   .stat-item {
     h3 {
       font-size: 3rem;
-      color: ${props => props.theme.colors.primary.main};
+      color: ${props => props.theme.colors.primary[500]};
       margin-bottom: 0.5rem;
     }
 
     p {
       font-size: 1.25rem;
-      color: ${props => props.theme.text.dim};
+      color: ${props => props.theme.text.tertiary};
     }
   }
 
@@ -123,7 +123,7 @@ const StatsSection = styled.section`
 `;
 
 const CTASection = styled.section`
-  background-color: ${props => props.theme.colors.primary.main};
+  background-color: ${props => props.theme.colors.primary[500]};
   color: white;
   padding: 4rem 0;
   text-align: center;
@@ -152,8 +152,8 @@ const LoadingContainer = styled.div`
 const ErrorMessage = styled.div`
   text-align: center;
   padding: 2rem;
-  color: ${props => props.theme.colors.semantic.error.main};
-  background-color: ${props => props.theme.background.danger};
+  color: ${props => props.theme.colors.semantic.error[500]};
+  background-color: ${props => props.theme.background.error};
   border-radius: 8px;
   margin: 2rem 0;
 `;
