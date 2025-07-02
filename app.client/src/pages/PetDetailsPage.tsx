@@ -538,6 +538,15 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                   key={photo.photoId}
                   className={`thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
                   onClick={() => setSelectedImageIndex(index)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedImageIndex(index);
+                    }
+                  }}
+                  role='button'
+                  tabIndex={0}
+                  aria-label={`View photo ${index + 1} of ${pet.name}`}
                 >
                   {photo.url ? (
                     <img src={photo.url} alt={`${pet.name} ${index + 1}`} />
