@@ -1,4 +1,4 @@
-import { ApiResponse } from '@/types';
+import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest } from '@/types';
 
 interface FetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -6,6 +6,78 @@ interface FetchOptions {
   body?: unknown;
   timeout?: number;
 }
+
+// Base API configuration
+const API_BASE_URL = '/api/v1'; // This will be proxied to your backend
+
+// Data transformation utilities
+const transformPetFromAPI = (pet: any): any => {
+  if (!pet) return pet;
+
+  // Handle location object - convert PostGIS geometry to readable format
+  let locationString = pet.location;
+  if (pet.location && typeof pet.location === 'object') {
+    // Handle PostGIS geometry object {type: "Point", coordinates: [lng, lat]}
+    if (pet.location.coordinates && Array.isArray(pet.location.coordinates)) {
+      const [lng, lat] = pet.location.coordinates;
+      locationString = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    } else if (pet.location.city || pet.location.state) {
+      // Handle structured location object
+      const parts = [];
+      if (pet.location.city) parts.push(pet.location.city);
+      if (pet.location.state) parts.push(pet.location.state);
+      locationString = parts.join(', ');
+    } else {
+      // Fallback - just show that location exists
+      locationString = 'Location available';
+    }
+  }
+
+  const transformed = {
+    ...pet,
+    // Map snake_case to camelCase
+    petId: pet.pet_id || pet.petId,
+    // Handle images -> photos transformation
+    photos: pet.images
+      ? pet.images.map((img: any) => ({
+          photoId: img.image_id || img.photoId,
+          url: img.url,
+          isPrimary: img.is_primary || img.isPrimary || false,
+          caption: img.caption,
+          order: img.order_index || img.order || 0,
+        }))
+      : [],
+    // Map other snake_case fields if needed
+    shortDescription: pet.short_description || pet.shortDescription,
+    longDescription: pet.long_description || pet.longDescription,
+    rescueId: pet.rescue_id || pet.rescueId,
+    // Convert location object to string
+    location: locationString,
+    // Handle rescue object
+    rescue: pet.rescue
+      ? {
+          rescueId: pet.rescue.rescue_id || pet.rescue.rescueId,
+          name: pet.rescue.name,
+          // Handle rescue location
+          location:
+            pet.rescue.location && typeof pet.rescue.location === 'object'
+              ? pet.rescue.location.city && pet.rescue.location.state
+                ? `${pet.rescue.location.city}, ${pet.rescue.location.state}`
+                : 'Location available'
+              : pet.rescue.location,
+        }
+      : undefined,
+    createdAt: pet.created_at || pet.createdAt,
+    updatedAt: pet.updated_at || pet.updatedAt,
+  };
+
+  return transformed;
+};
+
+const transformPetsArrayFromAPI = (pets: any[]): any[] => {
+  if (!Array.isArray(pets)) return pets;
+  return pets.map(transformPetFromAPI);
+};
 
 class ApiService {
   private baseURL: string;
@@ -16,7 +88,7 @@ class ApiService {
   }
 
   private getAuthToken(): string | null {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem('accessToken');
   }
 
   private setAuthToken(token: string): void {
@@ -93,6 +165,12 @@ class ApiService {
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         const jsonResponse = (await response.json()) as ApiResponse<T>;
+
+        // Handle the nested success response structure from service.backend
+        if (jsonResponse.success !== undefined) {
+          return jsonResponse.data || jsonResponse;
+        }
+
         return jsonResponse.data;
       }
 
@@ -105,6 +183,7 @@ class ApiService {
         throw new Error(`Request timeout after ${timeout}ms`);
       }
 
+      console.error('API request failed:', error);
       throw error;
     }
   }
@@ -150,21 +229,55 @@ class ApiService {
       fullUrl = `${url}?${searchParams.toString()}`;
     }
 
-    return this.fetchWithAuth<T>(fullUrl, { method: 'GET' });
+    const response = await this.fetchWithAuth<T>(fullUrl, { method: 'GET' });
+
+    // Transform pet data if this is a pet-related endpoint
+    if (url.includes('/pets')) {
+      if (Array.isArray(response)) {
+        return transformPetsArrayFromAPI(response) as T;
+      } else if (response && typeof response === 'object') {
+        // Handle paginated response
+        if ('data' in response && Array.isArray((response as any).data)) {
+          return {
+            ...response,
+            data: transformPetsArrayFromAPI((response as any).data),
+          } as T;
+        } else {
+          // Single pet response
+          return transformPetFromAPI(response) as T;
+        }
+      }
+    }
+
+    return response;
   }
 
   async post<T>(url: string, data?: unknown): Promise<T> {
-    return this.fetchWithAuth<T>(url, {
+    const response = await this.fetchWithAuth<T>(url, {
       method: 'POST',
       body: data,
     });
+
+    // Transform pet data if this is a pet-related endpoint
+    if (url.includes('/pets') && response && typeof response === 'object') {
+      return transformPetFromAPI(response) as T;
+    }
+
+    return response;
   }
 
   async put<T>(url: string, data?: unknown): Promise<T> {
-    return this.fetchWithAuth<T>(url, {
+    const response = await this.fetchWithAuth<T>(url, {
       method: 'PUT',
       body: data,
     });
+
+    // Transform pet data if this is a pet-related endpoint
+    if (url.includes('/pets') && response && typeof response === 'object') {
+      return transformPetFromAPI(response) as T;
+    }
+
+    return response;
   }
 
   async patch<T>(url: string, data?: unknown): Promise<T> {
@@ -213,6 +326,35 @@ class ApiService {
 
   isAuthenticated(): boolean {
     return !!this.getAuthToken();
+  }
+
+  // Authentication methods
+  async login(credentials: LoginRequest): Promise<AuthResponse> {
+    return this.post<AuthResponse>('/auth/login', credentials);
+  }
+
+  async register(userData: RegisterRequest): Promise<AuthResponse> {
+    return this.post<AuthResponse>('/auth/register', userData);
+  }
+
+  async logout(): Promise<void> {
+    await this.post<void>('/auth/logout');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  }
+
+  async refreshToken(): Promise<{ accessToken: string }> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await this.post<{ accessToken: string }>('/auth/refresh', {
+      refreshToken,
+    });
+
+    localStorage.setItem('accessToken', response.accessToken);
+    return response;
   }
 }
 
