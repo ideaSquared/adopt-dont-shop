@@ -526,10 +526,16 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
         <ImageSection>
           <div className='primary-image'>
             {primaryPhoto?.url ? (
-              <img src={primaryPhoto.url} alt={pet.name} />
-            ) : (
-              <PlaceholderImage />
-            )}
+              <img
+                src={primaryPhoto.url}
+                alt={pet.name}
+                onError={e => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
+                }}
+              />
+            ) : null}
+            <PlaceholderImage style={{ display: primaryPhoto?.url ? 'none' : 'flex' }} />
           </div>
           {pet.photos && pet.photos.length > 1 && (
             <div className='thumbnail-grid'>
@@ -549,7 +555,20 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                   aria-label={`View photo ${index + 1} of ${pet.name}`}
                 >
                   {photo.url ? (
-                    <img src={photo.url} alt={`${pet.name} ${index + 1}`} />
+                    <>
+                      <img
+                        src={photo.url}
+                        alt={`${pet.name} ${index + 1}`}
+                        onError={e => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.setAttribute(
+                            'style',
+                            'display: flex'
+                          );
+                        }}
+                      />
+                      <ThumbnailPlaceholder style={{ display: 'none' }} />
+                    </>
                   ) : (
                     <ThumbnailPlaceholder />
                   )}

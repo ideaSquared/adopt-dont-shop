@@ -271,5 +271,6 @@ export async function seedRolePermissions() {
     }
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Created ${assignmentCount} role-permission assignments`);
 }

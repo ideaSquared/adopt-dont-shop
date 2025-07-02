@@ -65,5 +65,6 @@ export async function seedFeatureFlags() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Created ${featureFlags.length} feature flags`);
 }

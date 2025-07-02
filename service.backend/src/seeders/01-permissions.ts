@@ -97,5 +97,6 @@ export async function seedPermissions() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Created ${permissions.length} permissions`);
 }

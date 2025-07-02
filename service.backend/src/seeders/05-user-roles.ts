@@ -46,5 +46,6 @@ export async function seedUserRoles() {
     }
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Created ${assignmentCount} user-role assignments`);
 }

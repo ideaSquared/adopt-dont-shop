@@ -258,7 +258,18 @@ export const PetCard: React.FC<PetCardProps> = ({
     <StyledCard as={Link} to={`/pets/${pet.petId}`}>
       <ImageContainer>
         {primaryPhoto?.url ? (
-          <img src={primaryPhoto.url} alt={pet.name} loading='lazy' />
+          <>
+            <img
+              src={primaryPhoto.url}
+              alt={pet.name}
+              loading='lazy'
+              onError={e => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
+              }}
+            />
+            <PlaceholderImage style={{ display: 'none' }} />
+          </>
         ) : (
           <PlaceholderImage />
         )}

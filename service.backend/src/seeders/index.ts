@@ -33,24 +33,30 @@ const seeders = [
 
 export async function runAllSeeders() {
   try {
+    // eslint-disable-next-line no-console
     console.log('🌱 Starting database seeding...');
+    // eslint-disable-next-line no-console
     console.log(`📊 Running ${seeders.length} seeders in sequence...`);
 
     // Ensure database connection
     await sequelize.authenticate();
+    // eslint-disable-next-line no-console
     console.log('✅ Database connection established');
 
     for (let i = 0; i < seeders.length; i++) {
       const { name, seeder } = seeders[i];
+      // eslint-disable-next-line no-console
       console.log(`📦 [${i + 1}/${seeders.length}] Seeding ${name}...`);
       const startTime = Date.now();
 
       await seeder();
 
       const duration = Date.now() - startTime;
+      // eslint-disable-next-line no-console
       console.log(`✅ ${name} seeded successfully (${duration}ms)`);
     }
 
+    // eslint-disable-next-line no-console
     console.log('🎉 All seeders completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);
@@ -60,6 +66,7 @@ export async function runAllSeeders() {
 
 export async function clearAllData() {
   try {
+    // eslint-disable-next-line no-console
     console.log('🧹 Clearing all seeded data...');
 
     // Clear in reverse order to handle foreign key constraints
@@ -85,9 +92,11 @@ export async function clearAllData() {
 
     for (const tableName of clearOrder) {
       await sequelize.query(`TRUNCATE TABLE ${tableName} RESTART IDENTITY CASCADE;`);
+      // eslint-disable-next-line no-console
       console.log(`✅ Cleared ${tableName}`);
     }
 
+    // eslint-disable-next-line no-console
     console.log('🎉 All data cleared successfully!');
   } catch (error) {
     console.error('❌ Error during data clearing:', error);
@@ -101,11 +110,15 @@ if (require.main === module) {
 
   if (command === 'clear') {
     clearAllData()
+      // eslint-disable-next-line no-process-exit
       .then(() => process.exit(0))
+      // eslint-disable-next-line no-process-exit
       .catch(() => process.exit(1));
   } else {
     runAllSeeders()
+      // eslint-disable-next-line no-process-exit
       .then(() => process.exit(0))
+      // eslint-disable-next-line no-process-exit
       .catch(() => process.exit(1));
   }
 }

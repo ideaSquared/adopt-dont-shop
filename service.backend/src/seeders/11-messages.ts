@@ -160,5 +160,6 @@ export async function seedMessages() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Created ${messageData.length} chat messages`);
 }

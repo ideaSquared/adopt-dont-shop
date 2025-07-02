@@ -91,5 +91,6 @@ export async function seedRatings() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Created ${ratingData.length} ratings and reviews`);
 }

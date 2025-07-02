@@ -39,5 +39,6 @@ export async function seedChats() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Created ${chatData.length} chat conversations`);
 }

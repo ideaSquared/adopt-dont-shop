@@ -265,11 +265,12 @@ export async function seedApplications() {
       where: { application_id: appData.application_id },
       defaults: {
         ...appData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+        created_at: new Date(),
+        updated_at: new Date(),
+      } as any,
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Created ${applicationData.length} adoption applications`);
 }

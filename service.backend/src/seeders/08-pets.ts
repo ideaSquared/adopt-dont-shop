@@ -73,7 +73,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-97.7431, 30.2672] }, // Austin, TX
+    location: { type: 'Point', coordinates: [-97.7431, 30.2672] as [number, number] }, // Austin, TX
     available_since: new Date('2024-01-22'),
     view_count: 145,
     favorite_count: 23,
@@ -100,7 +100,7 @@ const petProfiles = [
     markings: 'White paws and chest',
     microchip_id: 'MCP002345678',
     archived: false,
-    featured: false,
+    featured: true,
     priority_listing: true,
     adoption_fee: 75,
     special_needs: true,
@@ -135,7 +135,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-122.6587, 45.5152] }, // Portland, OR
+    location: { type: 'Point', coordinates: [-122.6587, 45.5152] as [number, number] }, // Portland, OR
     available_since: new Date('2024-02-10'),
     view_count: 67,
     favorite_count: 12,
@@ -197,7 +197,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-80.1918, 25.7617] }, // Miami, FL
+    location: { type: 'Point', coordinates: [-80.1918, 25.7617] as [number, number] }, // Miami, FL
     available_since: new Date('2024-01-15'),
     view_count: 89,
     favorite_count: 18,
@@ -258,7 +258,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-97.7431, 30.2672] }, // Austin, TX
+    location: { type: 'Point', coordinates: [-97.7431, 30.2672] as [number, number] }, // Austin, TX
     available_since: new Date('2023-12-01'),
     view_count: 234,
     favorite_count: 45,
@@ -285,7 +285,7 @@ const petProfiles = [
     markings: 'Traditional German Shepherd coloring',
     microchip_id: 'MCP005678901',
     archived: false,
-    featured: false,
+    featured: true,
     priority_listing: false,
     adoption_fee: 200,
     special_needs: false,
@@ -319,7 +319,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-97.7431, 30.2672] }, // Austin, TX
+    location: { type: 'Point', coordinates: [-97.7431, 30.2672] as [number, number] }, // Austin, TX
     available_since: new Date('2024-02-20'),
     view_count: 98,
     favorite_count: 15,
@@ -334,11 +334,12 @@ export async function seedPets() {
       where: { pet_id: petData.pet_id },
       defaults: {
         ...petData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       },
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Created ${petProfiles.length} pet profiles`);
 }
