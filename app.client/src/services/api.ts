@@ -84,7 +84,7 @@ class ApiService {
   private defaultTimeout: number = 10000;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://api.localhost';
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   }
 
   private getAuthToken(): string | null {
@@ -168,6 +168,7 @@ class ApiService {
 
         // Handle the nested success response structure from service.backend
         if (jsonResponse.success !== undefined) {
+          console.log('Backend response with success field:', jsonResponse);
           return jsonResponse.data || jsonResponse;
         }
 
@@ -215,7 +216,7 @@ class ApiService {
           const value = obj[key];
           const paramKey = prefix ? `${prefix}.${key}` : key;
 
-          if (value !== undefined && value !== null) {
+          if (value !== undefined && value !== null && value !== '') {
             if (typeof value === 'object' && !Array.isArray(value)) {
               flattenParams(value as Record<string, unknown>, paramKey);
             } else {
@@ -238,10 +239,15 @@ class ApiService {
       } else if (response && typeof response === 'object') {
         // Handle paginated response
         if ('data' in response && Array.isArray((response as any).data)) {
-          return {
-            ...response,
-            data: transformPetsArrayFromAPI((response as any).data),
+          const apiResponse = response as any;
+          console.log('Transforming paginated response:', apiResponse);
+          console.log('Meta field:', apiResponse.meta);
+          const transformedResponse = {
+            data: transformPetsArrayFromAPI(apiResponse.data),
+            pagination: apiResponse.meta || apiResponse.pagination,
           } as T;
+          console.log('Transformed response:', transformedResponse);
+          return transformedResponse;
         } else {
           // Single pet response
           return transformPetFromAPI(response) as T;

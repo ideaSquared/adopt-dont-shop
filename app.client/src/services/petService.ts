@@ -4,7 +4,48 @@ import { apiService } from './api';
 class PetService {
   // Search pets with filters and pagination
   async searchPets(filters: PetSearchFilters = {}): Promise<PaginatedResponse<Pet>> {
-    return await apiService.get<PaginatedResponse<Pet>>('/api/v1/pets', filters);
+    // Map frontend filter format to backend API format
+    const apiFilters: Record<string, any> = {};
+
+    // Only include non-empty values
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        apiFilters[key] = value;
+      }
+    });
+
+    // Map age range to backend format
+    if (filters.age?.min !== undefined) {
+      apiFilters.ageMin = filters.age.min;
+      delete apiFilters.age;
+    }
+    if (filters.age?.max !== undefined) {
+      apiFilters.ageMax = filters.age.max;
+      delete apiFilters.age;
+    }
+
+    // Map sort order to backend format (uppercase)
+    if (filters.sortOrder) {
+      apiFilters.sortOrder = filters.sortOrder.toUpperCase();
+    }
+
+    // Map sortBy field names to backend format
+    if (filters.sortBy) {
+      const sortByMapping: Record<string, string> = {
+        createdAt: 'created_at',
+        adoptionFee: 'adoption_fee',
+        age: 'age_years',
+      };
+      apiFilters.sortBy = sortByMapping[filters.sortBy] || filters.sortBy;
+    }
+
+    // Use 'search' parameter for general text search instead of 'breed'
+    if (filters.breed && !filters.search) {
+      apiFilters.search = filters.breed;
+      delete apiFilters.breed;
+    }
+
+    return await apiService.get<PaginatedResponse<Pet>>('/api/v1/pets', apiFilters);
   }
 
   // Get a single pet by ID

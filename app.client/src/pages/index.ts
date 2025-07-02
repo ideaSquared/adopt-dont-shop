@@ -3,3 +3,4 @@ export { LoginPage } from './LoginPage';
 export { PetDetailsPage } from './PetDetailsPage';
 export { RegisterPage } from './RegisterPage';
 export { RescueDetailsPage } from './RescueDetailsPage';
+export { SearchPage } from './SearchPage';

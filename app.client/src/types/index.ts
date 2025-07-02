@@ -73,6 +73,7 @@ export interface PetPhoto {
 }
 
 export interface PetSearchFilters {
+  search?: string;
   type?: string;
   breed?: string;
   age?: {
@@ -140,4 +141,4 @@ export interface Rescue {
   verified: boolean;
   createdAt: string;
   updatedAt: string;
-} 
+}

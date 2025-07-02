@@ -1,14 +1,14 @@
 import { AuthProvider } from '@/contexts/AuthContext';
-import { HomePage } from '@/pages/HomePage';
-import { LoginPage } from '@/pages/LoginPage';
-import { PetDetailsPage } from '@/pages/PetDetailsPage';
-import { RegisterPage } from '@/pages/RegisterPage';
-import { RescueDetailsPage } from '@/pages/RescueDetailsPage';
+import {
+  HomePage,
+  LoginPage,
+  PetDetailsPage,
+  RegisterPage,
+  RescueDetailsPage,
+  SearchPage,
+} from '@/pages';
 import { Footer, Header } from '@adopt-dont-shop/components';
 import { Route, Routes } from 'react-router-dom';
-
-// Placeholder components for pages not yet implemented
-const SearchPage = () => <div>Search Page - To be migrated</div>;
 const ApplicationPage = () => <div>Application Page - To be migrated</div>;
 const ProfilePage = () => <div>Profile Page - To be migrated</div>;
 
