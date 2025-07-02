@@ -1,10 +1,14 @@
-import EmailTemplate from '../models/EmailTemplate';
+import EmailTemplate, {
+  TemplateCategory,
+  TemplateStatus,
+  TemplateType,
+} from '../models/EmailTemplate';
 
 const emailTemplateData = [
   {
-    template_id: 'tmpl_welcome_001',
+    templateId: 'tmpl_welcome_001',
     name: 'Welcome Email',
-    type: 'transactional',
+    type: TemplateType.TRANSACTIONAL,
     subject: "Welcome to Adopt Don't Shop! 🐾",
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -50,15 +54,25 @@ const emailTemplateData = [
       Happy pet hunting!
       The Adopt Don't Shop Team
     `,
-    category: 'welcome',
-    is_active: true,
+    category: TemplateCategory.WELCOME,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {},
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: false,
+    priority: 0,
+    tags: [],
+    usageCount: 0,
+    testEmailsSent: 0,
     createdBy: 'user_admin_001',
     lastModifiedBy: 'user_admin_001',
   },
   {
-    template_id: 'tmpl_app_received_001',
+    templateId: 'tmpl_app_received_001',
     name: 'Application Received',
-    type: 'notification',
+    type: TemplateType.NOTIFICATION,
     subject: 'Application Received for {{petName}} 📋',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -115,15 +129,25 @@ const emailTemplateData = [
       Thank you for choosing to adopt!
       {{rescueName}} Team
     `,
-    category: 'application_update',
-    is_active: true,
+    category: TemplateCategory.APPLICATION_UPDATE,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {},
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: false,
+    priority: 0,
+    tags: [],
+    usageCount: 0,
+    testEmailsSent: 0,
     createdBy: 'user_admin_001',
     lastModifiedBy: 'user_admin_001',
   },
   {
-    template_id: 'tmpl_app_approved_001',
+    templateId: 'tmpl_app_approved_001',
     name: 'Application Approved',
-    type: 'notification',
+    type: TemplateType.NOTIFICATION,
     subject: '🎉 Great News! Your Application for {{petName}} is Approved!',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -181,15 +205,25 @@ const emailTemplateData = [
       Congratulations and thank you for choosing to adopt!
       {{rescueName}} Team
     `,
-    category: 'application_update',
-    is_active: true,
+    category: TemplateCategory.APPLICATION_UPDATE,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {},
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: false,
+    priority: 0,
+    tags: [],
+    usageCount: 0,
+    testEmailsSent: 0,
     createdBy: 'user_admin_001',
     lastModifiedBy: 'user_admin_001',
   },
   {
-    template_id: 'tmpl_app_rejected_001',
+    templateId: 'tmpl_app_rejected_001',
     name: 'Application Not Approved',
-    type: 'notification',
+    type: TemplateType.NOTIFICATION,
     subject: 'Update on Your Application for {{petName}}',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -245,15 +279,25 @@ const emailTemplateData = [
       
       {{rescueName}} Team
     `,
-    category: 'application_update',
-    is_active: true,
+    category: TemplateCategory.APPLICATION_UPDATE,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {},
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: false,
+    priority: 0,
+    tags: [],
+    usageCount: 0,
+    testEmailsSent: 0,
     createdBy: 'user_admin_001',
     lastModifiedBy: 'user_admin_001',
   },
   {
-    template_id: 'tmpl_new_message_001',
+    templateId: 'tmpl_new_message_001',
     name: 'New Message Notification',
-    type: 'notification',
+    type: TemplateType.NOTIFICATION,
     subject: 'New message from {{senderName}}',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -289,8 +333,18 @@ const emailTemplateData = [
       
       The Adopt Don't Shop Team
     `,
-    category: 'notification_digest',
-    is_active: true,
+    category: TemplateCategory.NOTIFICATION_DIGEST,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {},
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: false,
+    priority: 0,
+    tags: [],
+    usageCount: 0,
+    testEmailsSent: 0,
     createdBy: 'user_admin_001',
     lastModifiedBy: 'user_admin_001',
   },
@@ -299,12 +353,8 @@ const emailTemplateData = [
 export async function seedEmailTemplates() {
   for (const template of emailTemplateData) {
     await EmailTemplate.findOrCreate({
-      where: { template_id: template.template_id },
-      defaults: {
-        ...template,
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
+      where: { templateId: template.templateId },
+      defaults: template,
     });
   }
 

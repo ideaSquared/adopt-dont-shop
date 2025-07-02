@@ -21,7 +21,6 @@ const chatData = [
   },
   {
     chat_id: 'chat_general_inquiry_001',
-    application_id: null,
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: 'active' as const,
   },
