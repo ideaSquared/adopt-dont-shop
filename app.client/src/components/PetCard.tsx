@@ -180,7 +180,7 @@ export const PetCard: React.FC<PetCardProps> = ({
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  const primaryPhoto = pet.photos?.find(photo => photo.isPrimary) || pet.photos?.[0];
+  const primaryPhoto = pet.images?.find(image => image.is_primary) || pet.images?.[0];
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -195,13 +195,13 @@ export const PetCard: React.FC<PetCardProps> = ({
 
     try {
       if (isFavorite) {
-        await petService.removeFromFavorites(pet.petId);
+        await petService.removeFromFavorites(pet.pet_id);
         setIsFavorite(false);
-        onFavoriteToggle?.(pet.petId, false);
+        onFavoriteToggle?.(pet.pet_id, false);
       } else {
-        await petService.addToFavorites(pet.petId);
+        await petService.addToFavorites(pet.pet_id);
         setIsFavorite(true);
-        onFavoriteToggle?.(pet.petId, true);
+        onFavoriteToggle?.(pet.pet_id, true);
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
@@ -210,10 +210,11 @@ export const PetCard: React.FC<PetCardProps> = ({
     }
   };
 
-  const formatAge = (age?: number) => {
-    if (!age) return 'Unknown';
-    if (age < 1) return `${Math.round(age * 12)} months`;
-    return `${age} year${age !== 1 ? 's' : ''}`;
+  const formatAge = (ageYears: number, ageMonths: number) => {
+    if (ageYears === 0 && ageMonths === 0) return 'Unknown';
+    if (ageYears === 0) return `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
+    if (ageMonths === 0) return `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+    return `${ageYears} year${ageYears !== 1 ? 's' : ''}, ${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
   };
 
   const formatSize = (size: string) => {
@@ -253,9 +254,8 @@ export const PetCard: React.FC<PetCardProps> = ({
         return status;
     }
   };
-
   return (
-    <StyledCard as={Link} to={`/pets/${pet.petId}`}>
+    <StyledCard as={Link} to={`/pets/${pet.pet_id}`}>
       <ImageContainer>
         {primaryPhoto?.url ? (
           <>
@@ -311,7 +311,7 @@ export const PetCard: React.FC<PetCardProps> = ({
           )}
           <div className='detail-row'>
             <span className='label'>Age:</span>
-            <span className='value'>{formatAge(pet.age)}</span>
+            <span className='value'>{formatAge(pet.age_years, pet.age_months)}</span>
           </div>
           <div className='detail-row'>
             <span className='label'>Size:</span>
@@ -323,12 +323,13 @@ export const PetCard: React.FC<PetCardProps> = ({
           </div>
         </PetDetails>
 
-        {pet.description && <Description>{pet.description}</Description>}
+        {pet.short_description && <Description>{pet.short_description}</Description>}
 
-        {pet.rescue && (
+        {pet.rescue_id && (
           <RescueInfo>
-            Rescue: {pet.rescue.name}
-            {pet.location && ` • ${pet.location}`}
+            Rescue ID: {pet.rescue_id}
+            {pet.location &&
+              ` • Location: ${pet.location.coordinates[1]}, ${pet.location.coordinates[0]}`}
           </RescueInfo>
         )}
 

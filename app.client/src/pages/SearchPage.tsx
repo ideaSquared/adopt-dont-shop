@@ -174,13 +174,29 @@ const PET_GENDERS = [
   { value: 'female', label: 'Female' },
 ];
 
+const AGE_GROUPS = [
+  { value: '', label: 'All Ages' },
+  { value: 'young', label: 'Young' },
+  { value: 'adult', label: 'Adult' },
+  { value: 'senior', label: 'Senior' },
+];
+
+const PET_STATUS = [
+  { value: '', label: 'All Status' },
+  { value: 'available', label: 'Available' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'adopted', label: 'Adopted' },
+];
+
 const SORT_OPTIONS = [
-  { value: 'createdAt:desc', label: 'Newest First' },
-  { value: 'createdAt:asc', label: 'Oldest First' },
+  { value: 'created_at:desc', label: 'Newest First' },
+  { value: 'created_at:asc', label: 'Oldest First' },
   { value: 'name:asc', label: 'Name A-Z' },
   { value: 'name:desc', label: 'Name Z-A' },
-  { value: 'age:asc', label: 'Youngest First' },
-  { value: 'age:desc', label: 'Oldest First' },
+  { value: 'age_years:asc', label: 'Youngest First' },
+  { value: 'age_years:desc', label: 'Oldest First' },
+  { value: 'adoption_fee:asc', label: 'Price Low to High' },
+  { value: 'adoption_fee:desc', label: 'Price High to Low' },
 ];
 
 export const SearchPage: React.FC = () => {
@@ -189,7 +205,6 @@ export const SearchPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginatedResponse<Pet>['pagination'] | null>(null);
-
   // Search filters state
   const [filters, setFilters] = useState<PetSearchFilters>({
     type: searchParams.get('type') || '',
@@ -197,14 +212,15 @@ export const SearchPage: React.FC = () => {
     size: searchParams.get('size') || '',
     gender: searchParams.get('gender') || '',
     location: searchParams.get('location') || '',
+    ageGroup: searchParams.get('ageGroup') || '',
+    status: searchParams.get('status') || '',
     page: parseInt(searchParams.get('page') || '1'),
     limit: 12,
-    sortBy: searchParams.get('sortBy') || 'createdAt',
+    sortBy: searchParams.get('sortBy') || 'created_at',
     sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-
   // Load pets based on current filters
   const loadPets = useCallback(async () => {
     setIsLoading(true);
@@ -218,22 +234,23 @@ export const SearchPage: React.FC = () => {
         searchFilters.search = searchQuery.trim();
       }
 
+      console.log('Making API call with filters:', searchFilters);
       const response = await petService.searchPets(searchFilters);
-      console.log('Search response:', response);
+      console.log('API response:', response);
       console.log('Response data:', response.data);
       console.log('Response pagination:', response.pagination);
+
       setPets(response.data || []);
       setPagination(response.pagination || null);
     } catch (err) {
+      console.error('Search error details:', err);
       setError('Failed to load pets. Please try again.');
       setPets([]);
       setPagination(null);
-      console.error('Search error:', err);
     } finally {
       setIsLoading(false);
     }
   }, [filters, searchQuery]);
-
   // Update URL search params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
@@ -243,6 +260,8 @@ export const SearchPage: React.FC = () => {
     if (filters.breed) params.set('breed', filters.breed);
     if (filters.size) params.set('size', filters.size);
     if (filters.gender) params.set('gender', filters.gender);
+    if (filters.ageGroup) params.set('ageGroup', filters.ageGroup);
+    if (filters.status) params.set('status', filters.status);
     if (filters.location) params.set('location', filters.location);
     if (filters.page && filters.page > 1) params.set('page', filters.page.toString());
     if (filters.sortBy) params.set('sortBy', filters.sortBy);
@@ -281,12 +300,11 @@ export const SearchPage: React.FC = () => {
     }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
   const clearFilters = () => {
     setFilters({
       page: 1,
       limit: 12,
-      sortBy: 'createdAt',
+      sortBy: 'created_at',
       sortOrder: 'desc',
     });
     setSearchQuery('');
@@ -298,6 +316,8 @@ export const SearchPage: React.FC = () => {
       filters.breed ||
       filters.size ||
       filters.gender ||
+      filters.ageGroup ||
+      filters.status ||
       filters.location ||
       searchQuery
   );
@@ -341,6 +361,20 @@ export const SearchPage: React.FC = () => {
             value={filters.gender || ''}
             onChange={(value: string | string[]) => handleFilterChange('gender', value as string)}
             options={PET_GENDERS}
+          />
+
+          <SelectInput
+            label='Age Group'
+            value={filters.ageGroup || ''}
+            onChange={(value: string | string[]) => handleFilterChange('ageGroup', value as string)}
+            options={AGE_GROUPS}
+          />
+
+          <SelectInput
+            label='Status'
+            value={filters.status || ''}
+            onChange={(value: string | string[]) => handleFilterChange('status', value as string)}
+            options={PET_STATUS}
           />
 
           <TextInput
@@ -397,7 +431,7 @@ export const SearchPage: React.FC = () => {
             {hasActiveFilters && <Button onClick={clearFilters}>Clear All Filters</Button>}
           </EmptyState>
         ) : (
-          <PetGrid>{pets && pets.map(pet => <PetCard key={pet.petId} pet={pet} />)}</PetGrid>
+          <PetGrid>{pets && pets.map(pet => <PetCard key={pet.pet_id} pet={pet} />)}</PetGrid>
         )}
 
         {/* Pagination */}

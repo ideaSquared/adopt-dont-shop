@@ -7,11 +7,94 @@ interface FetchOptions {
   timeout?: number;
 }
 
-// Base API configuration
-const API_BASE_URL = '/api/v1'; // This will be proxied to your backend
+// Pet data interfaces
+interface PetImage {
+  image_id?: string;
+  photoId?: string;
+  url: string;
+  is_primary?: boolean;
+  isPrimary?: boolean;
+  caption?: string;
+  order_index?: number;
+  order?: number;
+}
+
+interface PetLocation {
+  coordinates?: [number, number];
+  type?: string;
+  city?: string;
+  state?: string;
+}
+
+interface PetRescue {
+  rescue_id?: string;
+  rescueId?: string;
+  name: string;
+  location?: PetLocation | string;
+}
+
+interface ApiPet {
+  pet_id?: string;
+  petId?: string;
+  images?: PetImage[];
+  short_description?: string;
+  shortDescription?: string;
+  long_description?: string;
+  longDescription?: string;
+  rescue_id?: string;
+  rescueId?: string;
+  location?: PetLocation | string;
+  rescue?: PetRescue;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+interface TransformedPet {
+  petId?: string;
+  photos: Array<{
+    photoId?: string;
+    url: string;
+    isPrimary: boolean;
+    caption?: string;
+    order: number;
+  }>;
+  shortDescription?: string;
+  longDescription?: string;
+  rescueId?: string;
+  location: string;
+  rescue?: {
+    rescueId?: string;
+    name: string;
+    location?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+interface PaginatedResponse<T> {
+  data: T[];
+  meta?: {
+    currentPage?: number;
+    totalItems?: number;
+    itemsPerPage?: number;
+    totalPages?: number;
+  };
+  pagination?: {
+    currentPage?: number;
+    totalItems?: number;
+    itemsPerPage?: number;
+    totalPages?: number;
+  };
+}
+
+// Base API configuration is set in the ApiService constructor
 
 // Data transformation utilities
-const transformPetFromAPI = (pet: any): any => {
+const transformPetFromAPI = (pet: ApiPet): TransformedPet => {
   if (!pet) return pet;
 
   // Handle location object - convert PostGIS geometry to readable format
@@ -39,7 +122,7 @@ const transformPetFromAPI = (pet: any): any => {
     petId: pet.pet_id || pet.petId,
     // Handle images -> photos transformation
     photos: pet.images
-      ? pet.images.map((img: any) => ({
+      ? pet.images.map((img: PetImage) => ({
           photoId: img.image_id || img.photoId,
           url: img.url,
           isPrimary: img.is_primary || img.isPrimary || false,
@@ -71,11 +154,11 @@ const transformPetFromAPI = (pet: any): any => {
     updatedAt: pet.updated_at || pet.updatedAt,
   };
 
-  return transformed;
+  return transformed as TransformedPet;
 };
 
-const transformPetsArrayFromAPI = (pets: any[]): any[] => {
-  if (!Array.isArray(pets)) return pets;
+const transformPetsArrayFromAPI = (pets: ApiPet[]): TransformedPet[] => {
+  if (!Array.isArray(pets)) return pets as unknown as TransformedPet[];
   return pets.map(transformPetFromAPI);
 };
 
@@ -168,8 +251,8 @@ class ApiService {
 
         // Handle the nested success response structure from service.backend
         if (jsonResponse.success !== undefined) {
-          console.log('Backend response with success field:', jsonResponse);
-          return jsonResponse.data || jsonResponse;
+          // Process response with success field
+          return jsonResponse.data as T;
         }
 
         return jsonResponse.data;
@@ -238,26 +321,24 @@ class ApiService {
         return transformPetsArrayFromAPI(response) as T;
       } else if (response && typeof response === 'object') {
         // Handle paginated response
-        if ('data' in response && Array.isArray((response as any).data)) {
-          const apiResponse = response as any;
-          console.log('Transforming paginated response:', apiResponse);
-          console.log('Meta field:', apiResponse.meta);
+        if ('data' in response && Array.isArray((response as Record<string, unknown>).data)) {
+          const apiResponse = response as PaginatedResponse<TransformedPet>;
+          // Process pagination metadata
           const transformedResponse = {
             data: transformPetsArrayFromAPI(apiResponse.data),
             pagination: apiResponse.meta || apiResponse.pagination,
           } as T;
-          console.log('Transformed response:', transformedResponse);
+          // Return the transformed response with pagination
           return transformedResponse;
         } else {
           // Single pet response
-          return transformPetFromAPI(response) as T;
+          return transformPetFromAPI(response as unknown as ApiPet) as T;
         }
       }
     }
 
     return response;
   }
-
   async post<T>(url: string, data?: unknown): Promise<T> {
     const response = await this.fetchWithAuth<T>(url, {
       method: 'POST',
@@ -266,12 +347,11 @@ class ApiService {
 
     // Transform pet data if this is a pet-related endpoint
     if (url.includes('/pets') && response && typeof response === 'object') {
-      return transformPetFromAPI(response) as T;
+      return transformPetFromAPI(response as unknown as ApiPet) as T;
     }
 
     return response;
   }
-
   async put<T>(url: string, data?: unknown): Promise<T> {
     const response = await this.fetchWithAuth<T>(url, {
       method: 'PUT',
@@ -280,7 +360,7 @@ class ApiService {
 
     // Transform pet data if this is a pet-related endpoint
     if (url.includes('/pets') && response && typeof response === 'object') {
-      return transformPetFromAPI(response) as T;
+      return transformPetFromAPI(response as unknown as ApiPet) as T;
     }
 
     return response;
