@@ -4,6 +4,7 @@ import { Theme } from '../../styles/theme';
 import { ButtonProps, ButtonSize, ButtonVariant } from '../../types';
 
 // Modern loading animation
+// 🔥 HOT RELOAD TEST: This comment should appear instantly in your app!
 const spin = keyframes`
   from {
     transform: rotate(0deg);
@@ -494,4 +495,3 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = 'Button';
 
 export default Button;
-

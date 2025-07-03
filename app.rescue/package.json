@@ -18,7 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@adopt-dont-shop/components": "workspace:*",
+    "@adopt-dont-shop/components": "file:../lib.components",
     "@hookform/resolvers": "^3.3.4",
     "date-fns": "^3.6.0",
     "react": "^18.2.0",

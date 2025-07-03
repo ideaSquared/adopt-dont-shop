@@ -47,3 +47,14 @@ sketch
 
 _archive/
 uploads
+
+### Turbo ###
+.turbo
+
+### Docker ###
+.dockerignore
+docker-compose.override.yml
+
+### Development ###
+.env.development
+.env.development.local

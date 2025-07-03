@@ -1,0 +1,171 @@
+services:
+  # Database service (unchanged)
+  database:
+    image: postgis/postgis:16-3.4
+    restart: always
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-adopt_dont_shop}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and sessions (unchanged)
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # Turborepo-optimized backend service
+  service-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.turborepo
+      target: development
+      args:
+        - TURBO_FILTER=@adopt-dont-shop/service-backend
+    ports:
+      - '5000:5000'
+    volumes:
+      # Mount entire monorepo for turbo to work properly
+      - .:/app
+      - turbo_cache:/app/.turbo
+      # Don't mount individual node_modules to avoid conflicts
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 5000
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop}
+      POSTGRES_HOST: database
+      POSTGRES_PORT: 5432
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      DB_NAME: ${POSTGRES_DB:-adopt_dont_shop}
+      DEV_DB_NAME: ${POSTGRES_DB:-adopt_dont_shop}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      API_URL: ${API_URL:-http://api.localhost}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost,http://api.localhost}
+      # Turborepo environment variables
+      TURBO_CACHE_DIR: /app/.turbo
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    command: ['npm', 'run', 'dev', '--workspace=@adopt-dont-shop/service-backend']
+
+  # Turborepo-optimized admin app
+  app-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.turborepo
+      target: development
+    ports:
+      - '3001:3001'
+    volumes:
+      # Mount entire monorepo for turbo and hot reload
+      - .:/app
+      - turbo_cache:/app/.turbo
+      # Don't mount individual node_modules to avoid conflicts
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+      CHOKIDAR_USEPOLLING: true
+      # Turborepo environment variables
+      TURBO_CACHE_DIR: /app/.turbo
+    depends_on:
+      - service-backend
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    command: ['npm', 'run', 'dev', '--workspace=@adopt-dont-shop/app-admin']
+
+  # Turborepo-optimized client app
+  app-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.turborepo
+      target: development
+    ports:
+      - '3000:3000'
+    volumes:
+      - .:/app
+      - turbo_cache:/app/.turbo
+      # Don't mount individual node_modules to avoid conflicts
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+      CHOKIDAR_USEPOLLING: true
+      TURBO_CACHE_DIR: /app/.turbo
+    depends_on:
+      - service-backend
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    command: ['npm', 'run', 'dev', '--workspace=@adopt-dont-shop/app-client']
+
+  # Turborepo-optimized rescue app
+  app-rescue:
+    build:
+      context: .
+      dockerfile: Dockerfile.turborepo
+      target: development
+    ports:
+      - '3002:3002'
+    volumes:
+      - .:/app
+      - turbo_cache:/app/.turbo
+      # Don't mount individual node_modules to avoid conflicts
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+      CHOKIDAR_USEPOLLING: true
+      TURBO_CACHE_DIR: /app/.turbo
+    depends_on:
+      - service-backend
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    command: ['npm', 'run', 'dev', '--workspace=@adopt-dont-shop/app-rescue']
+
+  # Nginx reverse proxy (unchanged)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - service-backend
+      - app-client
+      - app-admin
+      - app-rescue
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  turbo_cache:

@@ -21,7 +21,8 @@ export { Card, CardContent, CardFooter, CardHeader } from './components/ui/Card'
 
 // Form Components - commenting out problematic ones for now
 export { CheckboxInput } from './components/form/CheckboxInput';
-export { SelectInput } from './components/form/SelectInput';
+export { default as CountrySelectInput } from './components/form/CountrySelectInput';
+export { SelectInput } from './components/form/SelectInput/SimpleSelectInput';
 export { TextArea } from './components/form/TextArea';
 export { TextInput } from './components/form/TextInput';
 export { Input } from './components/ui/Input';
@@ -73,4 +74,3 @@ export type {
 // Component Types
 export type { FooterProps } from './components/navigation/Footer';
 export type { HeaderProps } from './components/navigation/Header';
-

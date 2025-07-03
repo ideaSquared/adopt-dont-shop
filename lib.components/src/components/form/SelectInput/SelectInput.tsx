@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
 
 export type SelectOption = {
@@ -50,34 +51,35 @@ const getSizeStyles = (size: SelectInputSize) => {
   return sizes[size];
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getStateStyles = (state: SelectInputState, theme: any) => {
   const states = {
     default: css`
       border-color: ${theme.colors.neutral[300]};
       &:focus-within {
-        border-color: ${theme.colors.primary.main};
-        box-shadow: 0 0 0 3px ${theme.colors.primary.light}40;
+        border-color: ${theme.colors.primary[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.primary[200]};
       }
     `,
     error: css`
-      border-color: ${theme.colors.semantic.error.main};
+      border-color: ${theme.colors.semantic.error[500]};
       &:focus-within {
-        border-color: ${theme.colors.semantic.error.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.error.light}40;
+        border-color: ${theme.colors.semantic.error[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.semantic.error[200]};
       }
     `,
     success: css`
-      border-color: ${theme.colors.semantic.success.main};
+      border-color: ${theme.colors.semantic.success[500]};
       &:focus-within {
-        border-color: ${theme.colors.semantic.success.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.success.light}40;
+        border-color: ${theme.colors.semantic.success[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.semantic.success[200]};
       }
     `,
     warning: css`
-      border-color: ${theme.colors.semantic.warning.main};
+      border-color: ${theme.colors.semantic.warning[500]};
       &:focus-within {
-        border-color: ${theme.colors.semantic.warning.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.warning.light}40;
+        border-color: ${theme.colors.semantic.warning[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.semantic.warning[200]};
       }
     `,
   };
@@ -102,7 +104,7 @@ const Label = styled.label<{ $required: boolean }>`
     css`
       &::after {
         content: ' *';
-        color: ${({ theme }) => theme.colors.semantic.error.main};
+        color: ${({ theme }) => theme.colors.semantic.error[500]};
       }
     `}
 `;
@@ -116,7 +118,7 @@ const SelectContainer = styled.div<{
   position: relative;
   border: 1px solid;
   border-radius: ${({ theme }) => theme.spacing.xs};
-  background-color: ${({ theme }) => theme.colors.neutral.white};
+  background-color: ${({ theme }) => theme.colors.neutral[50]};
   transition: all ${({ theme }) => theme.transitions.fast};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
 
@@ -167,8 +169,8 @@ const SelectedValue = styled.span`
 const Tag = styled.span`
   display: inline-flex;
   align-items: center;
-  background-color: ${({ theme }) => theme.colors.primary.light};
-  color: ${({ theme }) => theme.colors.primary.dark};
+  background-color: ${({ theme }) => theme.colors.primary[100]};
+  color: ${({ theme }) => theme.colors.primary[700]};
   padding: 2px ${({ theme }) => theme.spacing.xs};
   border-radius: ${({ theme }) => theme.spacing.xs};
   font-size: ${({ theme }) => theme.typography.size.sm};
@@ -189,7 +191,7 @@ const TagRemove = styled.button`
   transition: background-color ${({ theme }) => theme.transitions.fast};
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.primary.main}20;
+    background-color: ${({ theme }) => theme.colors.primary[500]}20;
   }
 `;
 
@@ -252,20 +254,21 @@ const ClearButton = styled.button`
   }
 `;
 
-const Dropdown = styled.div<{ $isOpen: boolean }>`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: ${({ theme }) => theme.colors.neutral.white};
+const Dropdown = styled.div<{
+  $isOpen: boolean;
+  $position: { top: number; left: number; width: number };
+}>`
+  position: fixed;
+  top: ${({ $position }) => $position.top}px;
+  left: ${({ $position }) => $position.left}px;
+  width: ${({ $position }) => $position.width}px;
+  background: ${({ theme }) => theme.colors.neutral[50]};
   border: 1px solid ${({ theme }) => theme.colors.neutral[300]};
-  border-top: none;
-  border-bottom-left-radius: ${({ theme }) => theme.spacing.xs};
-  border-bottom-right-radius: ${({ theme }) => theme.spacing.xs};
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: ${({ theme }) => theme.spacing.xs};
+  box-shadow: ${({ theme }) => theme.shadows.lg};
   max-height: 200px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: ${({ theme }) => theme.zIndex.dropdown};
   display: ${({ $isOpen }) => ($isOpen ? 'block' : 'none')};
 `;
 
@@ -274,7 +277,7 @@ const Option = styled.div<{ $isSelected: boolean; $isDisabled: boolean }>`
   cursor: ${({ $isDisabled }) => ($isDisabled ? 'not-allowed' : 'pointer')};
   transition: background-color ${({ theme }) => theme.transitions.fast};
   background-color: ${({ $isSelected, theme }) =>
-    $isSelected ? theme.colors.primary.light : 'transparent'};
+    $isSelected ? theme.colors.primary[100] : 'transparent'};
   color: ${({ $isDisabled, theme }) =>
     $isDisabled ? theme.colors.neutral[400] : theme.colors.neutral[900]};
 
@@ -295,11 +298,11 @@ const HelperText = styled.div<{ $state: SelectInputState }>`
   font-size: ${({ theme }) => theme.typography.size.sm};
   color: ${({ theme, $state }) =>
     $state === 'error'
-      ? theme.colors.semantic.error.main
+      ? theme.colors.semantic.error[500]
       : $state === 'success'
-        ? theme.colors.semantic.success.main
+        ? theme.colors.semantic.success[500]
         : $state === 'warning'
-          ? theme.colors.semantic.warning.main
+          ? theme.colors.semantic.warning[500]
           : theme.colors.neutral[600]};
 `;
 
@@ -330,6 +333,7 @@ export const SelectInput = forwardRef<HTMLDivElement, SelectInputProps>(
   ) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
     const [selectedValues, setSelectedValues] = useState<string[]>(() => {
       if (value !== undefined) {
         return Array.isArray(value) ? value : [value];
@@ -340,8 +344,36 @@ export const SelectInput = forwardRef<HTMLDivElement, SelectInputProps>(
       return [];
     });
 
+    // Sync external value changes
+    useEffect(() => {
+      if (value !== undefined) {
+        const newValues = Array.isArray(value) ? value : [value];
+        setSelectedValues(newValues);
+      }
+    }, [value]);
+
     const containerRef = useRef<HTMLDivElement>(null);
+    const selectContainerRef = useRef<HTMLDivElement | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    const combinedRef = React.useCallback(
+      (node: HTMLDivElement | null) => {
+        // Update our internal ref
+        selectContainerRef.current = node;
+
+        // Handle forwarded ref
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref && 'current' in ref) {
+          try {
+            (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          } catch {
+            // Ignore readonly ref assignment errors
+          }
+        }
+      },
+      [ref]
+    );
 
     const effectiveState = error ? 'error' : state;
     const effectiveHelperText = error || helperText;
@@ -352,6 +384,17 @@ export const SelectInput = forwardRef<HTMLDivElement, SelectInputProps>(
 
     const selectedOptions = options.filter(option => selectedValues.includes(option.value));
 
+    const updateDropdownPosition = () => {
+      if (selectContainerRef.current) {
+        const rect = selectContainerRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom,
+          left: rect.left,
+          width: rect.width,
+        });
+      }
+    };
+
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -359,9 +402,34 @@ export const SelectInput = forwardRef<HTMLDivElement, SelectInputProps>(
         }
       };
 
+      const handleScroll = () => {
+        if (isOpen) {
+          updateDropdownPosition();
+        }
+      };
+
+      const handleResize = () => {
+        if (isOpen) {
+          updateDropdownPosition();
+        }
+      };
+
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
+      };
+    }, [isOpen]);
+
+    useEffect(() => {
+      if (isOpen) {
+        updateDropdownPosition();
+      }
+    }, [isOpen]);
 
     const handleToggle = () => {
       if (!disabled) {
@@ -406,12 +474,33 @@ export const SelectInput = forwardRef<HTMLDivElement, SelectInputProps>(
     const hasValue = selectedValues.length > 0;
     const showClearButton = clearable && hasValue && !disabled;
 
+    const dropdownContent = isOpen ? (
+      <Dropdown $isOpen={isOpen} $position={dropdownPosition}>
+        {filteredOptions.length > 0 ? (
+          filteredOptions.map(option => (
+            <Option
+              key={option.value}
+              $isSelected={selectedValues.includes(option.value)}
+              $isDisabled={!!option.disabled}
+              onClick={() => !option.disabled && handleSelect(option.value)}
+              role='option'
+              aria-selected={selectedValues.includes(option.value)}
+            >
+              {option.label}
+            </Option>
+          ))
+        ) : (
+          <NoOptions>No options found</NoOptions>
+        )}
+      </Dropdown>
+    ) : null;
+
     return (
       <Container ref={containerRef} $fullWidth={fullWidth} className={className}>
         {label && <Label $required={required}>{label}</Label>}
 
         <SelectContainer
-          ref={ref}
+          ref={combinedRef}
           $size={size}
           $state={effectiveState}
           $disabled={disabled}
@@ -470,30 +559,16 @@ export const SelectInput = forwardRef<HTMLDivElement, SelectInputProps>(
           </SelectContent>
         </SelectContainer>
 
-        <Dropdown $isOpen={isOpen}>
-          {filteredOptions.length > 0 ? (
-            filteredOptions.map(option => (
-              <Option
-                key={option.value}
-                $isSelected={selectedValues.includes(option.value)}
-                $isDisabled={!!option.disabled}
-                onClick={() => !option.disabled && handleSelect(option.value)}
-                role='option'
-                aria-selected={selectedValues.includes(option.value)}
-              >
-                {option.label}
-              </Option>
-            ))
-          ) : (
-            <NoOptions>No options found</NoOptions>
-          )}
-        </Dropdown>
-
         {effectiveHelperText && (
           <HelperText $state={effectiveState}>{effectiveHelperText}</HelperText>
         )}
+
+        {typeof document !== 'undefined' &&
+          dropdownContent &&
+          createPortal(dropdownContent, document.body)}
       </Container>
     );
   }
 );
 
+SelectInput.displayName = 'SelectInput';

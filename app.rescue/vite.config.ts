@@ -1,8 +1,19 @@
 import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+
+  resolve: {
+    alias:
+      mode === 'development'
+        ? {
+            '@adopt-dont-shop/components': resolve(__dirname, '../lib.components/src'),
+          }
+        : {},
+  },
+
   server: {
     host: '0.0.0.0',
     port: 3002,
@@ -17,4 +28,4 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
   },
-});
+}));
