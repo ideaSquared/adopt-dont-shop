@@ -5,4 +5,3 @@ export type {
   SelectInputState,
   SelectOption,
 } from './SelectInput';
-
