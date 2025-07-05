@@ -86,6 +86,13 @@ const DescriptionCard = styled(Card)`
     color: ${props => props.theme.text.primary};
   }
 
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 2rem 0 1rem 0;
+    color: ${props => props.theme.text.primary};
+  }
+
   p {
     line-height: 1.6;
     color: ${props => props.theme.text.secondary};
@@ -296,8 +303,22 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
     }
   };
 
-  const formatRescueType = (type: string) => {
-    return type === 'individual' ? 'Individual Rescue' : 'Organization';
+  const formatRescueType = (rescue: Rescue) => {
+    // Use the type if available, otherwise infer from presence of EIN
+    if (rescue.type) {
+      return rescue.type === 'individual' ? 'Individual Rescue' : 'Organization';
+    }
+    return rescue.ein ? 'Organization' : 'Individual Rescue';
+  };
+
+  const formatRescueStatus = (status: string) => {
+    const statusMap = {
+      pending: 'Pending Verification',
+      verified: 'Verified',
+      suspended: 'Suspended',
+      inactive: 'Inactive',
+    };
+    return statusMap[status as keyof typeof statusMap] || status;
   };
 
   if (loading) {
@@ -314,9 +335,9 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
         <ErrorContainer>
           <h2>Rescue Not Found</h2>
           <p>{error || 'The rescue you are looking for could not be found.'}</p>
-          <Button as={Link} to='/'>
-            Back to Home
-          </Button>
+          <Link to='/'>
+            <Button variant='primary'>Back to Home</Button>
+          </Link>
         </ErrorContainer>
       </PageContainer>
     );
@@ -336,36 +357,41 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
               <path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z' />
             </svg>
             <span>
-              {rescue.location.city}, {rescue.location.state}
+              {rescue.city}, {rescue.state}
             </span>
           </div>
           <div className='meta-item'>
             <svg className='icon' viewBox='0 0 24 24'>
               <path d='M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-1 16H9V7h9v14z' />
             </svg>
-            <span>{formatRescueType(rescue.type)}</span>
+            <span>{formatRescueType(rescue)}</span>
           </div>
+          {rescue.status && (
+            <div className='meta-item'>
+              <svg className='icon' viewBox='0 0 24 24'>
+                <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' />
+              </svg>
+              <span>{formatRescueStatus(rescue.status)}</span>
+            </div>
+          )}
         </div>
         <div className='verification-badge'>
-          <Badge variant={rescue.verified ? 'success' : 'warning'}>
-            {rescue.verified ? '✓ Verified' : 'Pending Verification'}
+          <Badge variant={rescue.status === 'verified' ? 'success' : 'warning'}>
+            {rescue.status === 'verified' ? '✓ Verified' : formatRescueStatus(rescue.status)}
           </Badge>
         </div>
         <div className='contact-info'>
-          <Button as='a' href={`mailto:${rescue.email}`} variant='primary' size='md'>
-            Contact Rescue
-          </Button>
-          {rescue.website && (
-            <Button
-              as='a'
-              href={rescue.website}
-              target='_blank'
-              rel='noopener noreferrer'
-              variant='outline'
-              size='md'
-            >
-              Visit Website
+          <a href={`mailto:${rescue.contactEmail || rescue.email}`}>
+            <Button variant='primary' size='md'>
+              Contact Rescue
             </Button>
+          </a>
+          {rescue.website && (
+            <a href={rescue.website} target='_blank' rel='noopener noreferrer'>
+              <Button variant='outline' size='md'>
+                Visit Website
+              </Button>
+            </a>
           )}
         </div>
       </RescueHeader>
@@ -377,15 +403,37 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
             <p>{rescue.description}</p>
           ) : (
             <p>
-              {rescue.name} is a {formatRescueType(rescue.type).toLowerCase()} based in{' '}
-              {rescue.location.city}, {rescue.location.state}. They are dedicated to helping pets
-              find loving homes.
+              {rescue.name} is a {formatRescueType(rescue).toLowerCase()} based in {rescue.city},{' '}
+              {rescue.state}. They are dedicated to helping pets find loving homes.
             </p>
+          )}
+
+          {rescue.mission && (
+            <>
+              <h3>Our Mission</h3>
+              <p>{rescue.mission}</p>
+            </>
           )}
         </DescriptionCard>
 
         <ContactCard>
           <h2>Contact Information</h2>
+
+          {rescue.contactPerson && (
+            <div className='contact-item'>
+              <svg className='icon' viewBox='0 0 24 24'>
+                <path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' />
+              </svg>
+              <div className='details'>
+                <div className='label'>Contact Person</div>
+                <div className='value'>
+                  {rescue.contactPerson}
+                  {rescue.contactTitle && ` - ${rescue.contactTitle}`}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className='contact-item'>
             <svg className='icon' viewBox='0 0 24 24'>
               <path d='M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z' />
@@ -395,6 +443,18 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
               <div className='value'>{rescue.email}</div>
             </div>
           </div>
+
+          {rescue.contactEmail && rescue.contactEmail !== rescue.email && (
+            <div className='contact-item'>
+              <svg className='icon' viewBox='0 0 24 24'>
+                <path d='M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z' />
+              </svg>
+              <div className='details'>
+                <div className='label'>Contact Email</div>
+                <div className='value'>{rescue.contactEmail}</div>
+              </div>
+            </div>
+          )}
 
           {rescue.phone && (
             <div className='contact-item'>
@@ -408,6 +468,18 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
             </div>
           )}
 
+          {rescue.contactPhone && rescue.contactPhone !== rescue.phone && (
+            <div className='contact-item'>
+              <svg className='icon' viewBox='0 0 24 24'>
+                <path d='M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z' />
+              </svg>
+              <div className='details'>
+                <div className='label'>Contact Phone</div>
+                <div className='value'>{rescue.contactPhone}</div>
+              </div>
+            </div>
+          )}
+
           <div className='contact-item'>
             <svg className='icon' viewBox='0 0 24 24'>
               <path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z' />
@@ -415,9 +487,10 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
             <div className='details'>
               <div className='label'>Location</div>
               <div className='value'>
-                {rescue.location.address && `${rescue.location.address}, `}
-                {rescue.location.city}, {rescue.location.state}
-                {rescue.location.zipCode && ` ${rescue.location.zipCode}`}
+                {rescue.address && `${rescue.address}, `}
+                {rescue.city}, {rescue.state}
+                {rescue.zipCode && ` ${rescue.zipCode}`}
+                {rescue.country !== 'US' && `, ${rescue.country}`}
               </div>
             </div>
           </div>
@@ -442,6 +515,30 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
               </div>
             </div>
           )}
+
+          {rescue.ein && (
+            <div className='contact-item'>
+              <svg className='icon' viewBox='0 0 24 24'>
+                <path d='M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h8c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z' />
+              </svg>
+              <div className='details'>
+                <div className='label'>EIN</div>
+                <div className='value'>{rescue.ein}</div>
+              </div>
+            </div>
+          )}
+
+          {rescue.registrationNumber && (
+            <div className='contact-item'>
+              <svg className='icon' viewBox='0 0 24 24'>
+                <path d='M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h8c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z' />
+              </svg>
+              <div className='details'>
+                <div className='label'>Registration Number</div>
+                <div className='value'>{rescue.registrationNumber}</div>
+              </div>
+            </div>
+          )}
         </ContactCard>
       </RescueInfo>
 
@@ -459,7 +556,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           <>
             <PetsGrid>
               {pets.map(pet => (
-                <PetCard key={pet.petId} pet={pet} showFavoriteButton={true} />
+                <PetCard key={pet.pet_id} pet={pet} showFavoriteButton={true} />
               ))}
             </PetsGrid>
 
@@ -481,12 +578,14 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
             </svg>
             <h3>No Pets Available</h3>
             <p>
-              {rescue.name} doesn't have any pets available for adoption at the moment. Please check
-              back later or contact them directly for more information.
+              {rescue.name} doesn&apos;t have any pets available for adoption at the moment. Please
+              check back later or contact them directly for more information.
             </p>
-            <Button as='a' href={`mailto:${rescue.email}`} variant='primary' size='md'>
-              Contact {rescue.name}
-            </Button>
+            <a href={`mailto:${rescue.contactEmail || rescue.email}`}>
+              <Button variant='primary' size='md'>
+                Contact {rescue.name}
+              </Button>
+            </a>
           </EmptyState>
         )}
       </PetsSection>

@@ -204,19 +204,45 @@ export interface Application {
 export interface Rescue {
   rescueId: string;
   name: string;
-  type: 'individual' | 'organization';
   email: string;
   phone?: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
   website?: string;
   description?: string;
-  location: {
-    address?: string;
-    city: string;
-    state: string;
-    zipCode?: string;
-    country: string;
+  mission?: string;
+  ein?: string;
+  registrationNumber?: string;
+  contactPerson: string;
+  contactTitle?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  status: 'pending' | 'verified' | 'suspended' | 'inactive';
+  verifiedAt?: string;
+  verifiedBy?: string;
+  settings?: {
+    autoApproveApplications?: boolean;
+    requireHomeVisit?: boolean;
+    allowPublicContact?: boolean;
+    adoptionFeeRange?: { min: number; max: number };
+    [key: string]: unknown;
   };
-  verified: boolean;
+  isDeleted: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
   createdAt: string;
   updatedAt: string;
+  // Computed properties for backwards compatibility
+  verified: boolean;
+  location: {
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  type: 'individual' | 'organization';
 }

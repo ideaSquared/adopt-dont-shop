@@ -20,29 +20,30 @@ switch (env) {
     throw new Error('NODE_ENV is not set to a valid environment');
 }
 
-const sequelize = new Sequelize(
-  database,
-  process.env.POSTGRES_USER!,
-  process.env.POSTGRES_PASSWORD!,
-  {
-    host: process.env.POSTGRES_HOST!,
-    port: Number(process.env.POSTGRES_PORT!),
-    dialect: 'postgres',
-    define: {
-      // Convert camelCase to snake_case for database columns
-      underscored: true,
-      // Use camelCase for model attributes
-      freezeTableName: false,
-      // Enable timestamps with camelCase names
-      timestamps: true,
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt',
-      deletedAt: 'deletedAt',
-      // Enable paranoid (soft delete) by default
-      paranoid: true,
-    },
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-  }
-);
+const sequelize = new Sequelize(database, process.env.DB_USERNAME!, process.env.DB_PASSWORD!, {
+  host: process.env.DB_HOST!,
+  port: Number(process.env.DB_PORT!),
+  dialect: 'postgres',
+  define: {
+    // Convert camelCase to snake_case for database columns
+    underscored: true,
+    // Use camelCase for model attributes
+    freezeTableName: false,
+    // Enable timestamps with camelCase names
+    timestamps: true,
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    deletedAt: 'deletedAt',
+    // Enable paranoid (soft delete) by default
+    paranoid: true,
+  },
+  logging:
+    process.env.NODE_ENV === 'development'
+      ? (sql: string) => {
+          // eslint-disable-next-line no-console
+          console.log(sql);
+        }
+      : false,
+});
 
 export default sequelize;

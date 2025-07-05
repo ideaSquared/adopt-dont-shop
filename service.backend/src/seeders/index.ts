@@ -5,6 +5,7 @@ import { seedRolePermissions } from './03-role-permissions';
 import { seedUsers } from './04-users';
 import { seedUserRoles } from './05-user-roles';
 import { seedRescues } from './06-rescues';
+import { seedStaffMembers } from './06.5-staff-members';
 import { seedFeatureFlags } from './07-feature-flags';
 import { seedPets } from './08-pets';
 import { seedApplications } from './09-applications';
@@ -21,6 +22,7 @@ const seeders = [
   { name: 'Users', seeder: seedUsers },
   { name: 'User Roles', seeder: seedUserRoles },
   { name: 'Rescues', seeder: seedRescues },
+  { name: 'Staff Members', seeder: seedStaffMembers },
   { name: 'Feature Flags', seeder: seedFeatureFlags },
   { name: 'Pets', seeder: seedPets },
   { name: 'Applications', seeder: seedApplications },

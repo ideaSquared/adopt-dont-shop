@@ -157,6 +157,7 @@ export class RescueService {
           {
             model: StaffMember,
             as: 'staff',
+            required: false,
             include: [
               {
                 model: User,
@@ -204,6 +205,7 @@ export class RescueService {
           {
             model: StaffMember,
             as: 'staff',
+            required: false,
             include: [
               {
                 model: User,
