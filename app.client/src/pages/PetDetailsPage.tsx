@@ -413,10 +413,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     setFavoriteLoading(true);
     try {
       if (isFavorite) {
-        await petService.removeFromFavorites(pet.petId);
+        await petService.removeFromFavorites(pet.pet_id);
         setIsFavorite(false);
       } else {
-        await petService.addToFavorites(pet.petId);
+        await petService.addToFavorites(pet.pet_id);
         setIsFavorite(true);
       }
     } catch (error) {
@@ -426,10 +426,11 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     }
   };
 
-  const formatAge = (age?: number) => {
-    if (!age) return 'Unknown';
-    if (age < 1) return `${Math.round(age * 12)} months`;
-    return `${age} year${age !== 1 ? 's' : ''}`;
+  const formatAge = (ageYears?: number, ageMonths?: number) => {
+    if (!ageYears && !ageMonths) return 'Unknown';
+    if (!ageYears && ageMonths) return `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
+    if (ageYears && !ageMonths) return `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+    return `${ageYears} year${ageYears !== 1 ? 's' : ''} ${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
   };
 
   const formatSize = (size: string) => {
@@ -490,7 +491,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     );
   }
 
-  const primaryPhoto = pet.photos?.[selectedImageIndex] || pet.photos?.[0];
+  const primaryPhoto = pet.images?.[selectedImageIndex] || pet.images?.[0];
 
   return (
     <PageContainer>
@@ -502,7 +503,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
           <div className='subtitle'>
             <span>{pet.type}</span>
             {pet.breed && <span>• {pet.breed}</span>}
-            <span>• {formatAge(pet.age)}</span>
+            <span>• {formatAge(pet.age_years, pet.age_months)}</span>
             <span>• {pet.gender}</span>
             <span>• {formatSize(pet.size)}</span>
           </div>
@@ -537,11 +538,11 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
             ) : null}
             <PlaceholderImage style={{ display: primaryPhoto?.url ? 'none' : 'flex' }} />
           </div>
-          {pet.photos && pet.photos.length > 1 && (
+          {pet.images && pet.images.length > 1 && (
             <div className='thumbnail-grid'>
-              {pet.photos.map((photo, index) => (
+              {pet.images.map((image, index) => (
                 <div
-                  key={photo.photoId}
+                  key={image.image_id}
                   className={`thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
                   onClick={() => setSelectedImageIndex(index)}
                   onKeyDown={e => {
@@ -554,10 +555,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                   tabIndex={0}
                   aria-label={`View photo ${index + 1} of ${pet.name}`}
                 >
-                  {photo.url ? (
+                  {image.url ? (
                     <>
                       <img
-                        src={photo.url}
+                        src={image.url}
                         alt={`${pet.name} ${index + 1}`}
                         onError={e => {
                           e.currentTarget.style.display = 'none';
@@ -594,7 +595,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
               )}
               <div className='info-item'>
                 <span className='label'>Age</span>
-                <span className='value'>{formatAge(pet.age)}</span>
+                <span className='value'>{formatAge(pet.age_years, pet.age_months)}</span>
               </div>
               <div className='info-item'>
                 <span className='label'>Size</span>
@@ -607,7 +608,11 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
               {pet.location && (
                 <div className='info-item'>
                   <span className='label'>Location</span>
-                  <span className='value'>{pet.location}</span>
+                  <span className='value'>
+                    {pet.location.coordinates
+                      ? `${pet.location.coordinates[1]}, ${pet.location.coordinates[0]}`
+                      : 'Not specified'}
+                  </span>
                 </div>
               )}
             </div>
@@ -615,22 +620,19 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
 
           <ActionCard>
             <h3>Interested in {pet.name}?</h3>
-            {pet.rescue && (
+            {pet.rescue_id && (
               <div className='rescue-info'>
-                <div className='rescue-name'>{pet.rescue.name}</div>
-                {pet.rescue.location && (
-                  <div className='rescue-location'>{pet.rescue.location}</div>
-                )}
+                <div className='rescue-name'>Rescue ID: {pet.rescue_id}</div>
               </div>
             )}
             <div className='actions'>
               {pet.status === 'available' && (
-                <ActionLink to={`/apply/${pet.petId}`} className='primary large'>
+                <ActionLink to={`/apply/${pet.pet_id}`} className='primary large'>
                   Apply to Adopt
                 </ActionLink>
               )}
-              {pet.rescue && (
-                <ActionLink to={`/rescues/${pet.rescue.rescueId}`} className='outline'>
+              {pet.rescue_id && (
+                <ActionLink to={`/rescues/${pet.rescue_id}`} className='outline'>
                   View Rescue Profile
                 </ActionLink>
               )}
@@ -638,10 +640,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
           </ActionCard>
         </Sidebar>
 
-        {pet.description && (
+        {pet.long_description && (
           <DescriptionCard>
             <h2>About {pet.name}</h2>
-            <p>{pet.description}</p>
+            <p>{pet.long_description}</p>
           </DescriptionCard>
         )}
       </MainContent>

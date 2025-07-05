@@ -122,8 +122,35 @@ class PetService {
   }
   // Get a single pet by ID
   async getPet(petId: string): Promise<Pet> {
-    const response = await apiService.get<ApiResponse<Pet>>(`/api/v1/pets/${petId}`);
-    return response.data;
+    try {
+      // Make direct fetch to avoid API service transformations that might be causing issues
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/v1/pets/${petId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const rawData = await response.json();
+      console.log('Raw pet API response:', rawData);
+
+      // Handle the API response structure
+      if (rawData.success && rawData.data) {
+        return rawData.data;
+      } else {
+        throw new Error('Invalid API response structure');
+      }
+    } catch (error) {
+      console.error('Failed to fetch pet:', error);
+      throw error;
+    }
   }
 
   // Get featured/recommended pets for home page
