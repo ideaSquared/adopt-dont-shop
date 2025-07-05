@@ -8,6 +8,7 @@ export type SelectOption = {
   label: string;
   disabled?: boolean;
   flag?: string; // For country options
+  originalValue?: string; // For internal processing
 };
 
 export type SelectInputSize = 'sm' | 'md' | 'lg';
@@ -455,11 +456,17 @@ export const SelectInput = forwardRef<HTMLButtonElement, SelectInputProps>(
 
     const options = isCountrySelect ? countryOptions : propOptions;
 
-    // Filter options based on search query and exclude empty string values
+    // Filter options based on search query and convert empty values for Radix compatibility
     const filteredOptions = useMemo(() => {
-      const validOptions = options.filter(option => option.value !== '');
-      if (!searchable || !searchQuery) return validOptions;
-      return validOptions.filter(option =>
+      const processedOptions = options.map(option => ({
+        ...option,
+        // Convert empty string values to a special value for Radix compatibility
+        value: option.value === '' ? '__all__' : option.value,
+        originalValue: option.value,
+      }));
+
+      if (!searchable || !searchQuery) return processedOptions;
+      return processedOptions.filter(option =>
         option.label.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }, [options, searchQuery, searchable]);
@@ -471,14 +478,17 @@ export const SelectInput = forwardRef<HTMLButtonElement, SelectInputProps>(
       : options.find(option => option.value === currentValue);
 
     const handleValueChange = (newValue: string) => {
+      // Convert special "all" value back to empty string
+      const actualValue = newValue === '__all__' ? '' : newValue;
+
       if (multiple) {
         const currentArray = Array.isArray(value) ? value : [];
-        const updatedArray = currentArray.includes(newValue)
-          ? currentArray.filter(v => v !== newValue)
-          : [...currentArray, newValue];
+        const updatedArray = currentArray.includes(actualValue)
+          ? currentArray.filter(v => v !== actualValue)
+          : [...currentArray, actualValue];
         onChange?.(updatedArray);
       } else {
-        onChange?.(newValue);
+        onChange?.(actualValue);
       }
     };
 
@@ -542,8 +552,14 @@ export const SelectInput = forwardRef<HTMLButtonElement, SelectInputProps>(
         )}
         <SelectContainer $fullWidth={fullWidth}>
           <Select.Root
-            value={multiple ? undefined : (currentValue as string) || ''}
-            defaultValue={multiple ? undefined : (defaultValue as string)}
+            value={
+              multiple
+                ? undefined
+                : (currentValue === '' ? '__all__' : (currentValue as string)) || ''
+            }
+            defaultValue={
+              multiple ? undefined : defaultValue === '' ? '__all__' : (defaultValue as string)
+            }
             onValueChange={handleValueChange}
             disabled={disabled}
           >
