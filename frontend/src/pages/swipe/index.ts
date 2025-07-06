@@ -1,1 +1,0 @@
-export { Swipe } from './Swipe'
