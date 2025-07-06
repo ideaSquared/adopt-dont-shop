@@ -56,8 +56,8 @@ const petProfiles = [
     images: [
       {
         image_id: 'img_buddy_001',
-        url: 'https://via.placeholder.com/800x600/FFD700/000000?text=Buddy+Primary',
-        thumbnail_url: 'https://via.placeholder.com/300x300/FFD700/000000?text=Buddy',
+        url: 'https://placedog.net/800/600?id=1',
+        thumbnail_url: 'https://placedog.net/300/300?id=1',
         caption: 'Buddy playing in the yard',
         is_primary: true,
         order_index: 0,
@@ -65,8 +65,8 @@ const petProfiles = [
       },
       {
         image_id: 'img_buddy_002',
-        url: 'https://via.placeholder.com/800x600/FFD700/000000?text=Buddy+Action',
-        thumbnail_url: 'https://via.placeholder.com/300x300/FFD700/000000?text=Action',
+        url: 'https://placedog.net/800/600?id=2',
+        thumbnail_url: 'https://placedog.net/300/300?id=2',
         caption: 'Buddy running on the beach',
         is_primary: false,
         order_index: 1,
@@ -127,8 +127,8 @@ const petProfiles = [
     images: [
       {
         image_id: 'img_whiskers_001',
-        url: 'https://via.placeholder.com/800x600/8B4513/FFFFFF?text=Whiskers+Primary',
-        thumbnail_url: 'https://via.placeholder.com/300x300/8B4513/FFFFFF?text=Whiskers',
+        url: 'https://cataas.com/cat/cute?width=800&height=600',
+        thumbnail_url: 'https://cataas.com/cat/cute?width=300&height=300',
         caption: 'Whiskers enjoying a sunny spot',
         is_primary: true,
         order_index: 0,
@@ -189,8 +189,8 @@ const petProfiles = [
     images: [
       {
         image_id: 'img_rocky_001',
-        url: 'https://via.placeholder.com/800x600/8B4513/FFFFFF?text=Rocky+Primary',
-        thumbnail_url: 'https://via.placeholder.com/300x300/8B4513/FFFFFF?text=Rocky',
+        url: 'https://placedog.net/800/600?id=3',
+        thumbnail_url: 'https://placedog.net/300/300?id=3',
         caption: "Rocky's gentle smile",
         is_primary: true,
         order_index: 0,
@@ -250,8 +250,8 @@ const petProfiles = [
     images: [
       {
         image_id: 'img_luna_001',
-        url: 'https://via.placeholder.com/800x600/4682B4/FFFFFF?text=Luna+Primary',
-        thumbnail_url: 'https://via.placeholder.com/300x300/4682B4/FFFFFF?text=Luna',
+        url: 'https://cataas.com/cat/siamese?width=800&height=600',
+        thumbnail_url: 'https://cataas.com/cat/siamese?width=300&height=300',
         caption: 'Luna showing off her beautiful blue eyes',
         is_primary: true,
         order_index: 0,
@@ -311,8 +311,8 @@ const petProfiles = [
     images: [
       {
         image_id: 'img_max_001',
-        url: 'https://via.placeholder.com/800x600/8B4513/FFFFFF?text=Max+Primary',
-        thumbnail_url: 'https://via.placeholder.com/300x300/8B4513/FFFFFF?text=Max',
+        url: 'https://placedog.net/800/600?id=4',
+        thumbnail_url: 'https://placedog.net/300/300?id=4',
         caption: 'Max ready for adventure',
         is_primary: true,
         order_index: 0,

@@ -48,38 +48,72 @@ const ImageContainer = styled.div`
   }
 `;
 
-const PlaceholderImage = styled.div`
+const PlaceholderImage = styled.div<{ $isLoading?: boolean; $petName?: string; $petType?: string }>`
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: ${props => {
+    // Create a pet-type specific gradient
+    switch (props.$petType) {
+      case 'dog':
+        return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+      case 'cat':
+        return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+      case 'rabbit':
+        return 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+      case 'bird':
+        return 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
+      default:
+        return 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+    }
+  }};
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
+  color: white;
+  text-align: center;
 
   &::before {
     content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a0a0a0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E");
+    width: 80px;
+    height: 80px;
+    background-image: ${props =>
+      props.$isLoading
+        ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'/%3E%3C/svg%3E\")"
+        : props.$petType === 'dog'
+          ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'%3E%3Cpath d='M4.5 12.5c0 .6.4 1 1 1s1-.4 1-1-.4-1-1-1-1 .4-1 1zm13 0c0 .6.4 1 1 1s1-.4 1-1-.4-1-1-1-1 .4-1 1zM12 17.5c-1.4 0-2.5-.9-2.9-2.1H7.9c.5 2.4 2.6 4.1 5.1 4.1s4.6-1.7 5.1-4.1h-1.2c-.4 1.2-1.5 2.1-2.9 2.1zm0-15C5.9 2.5 1 7.4 1 13.5S5.9 24.5 12 24.5s11-4.9 11-11S18.1 2.5 12 2.5z'/%3E%3C/svg%3E\")"
+          : props.$petType === 'cat'
+            ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l1.09 2.09L16 3l-1.09 1.09L16 6l-2.91-1.09L12 2zm-4.5 8.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S9.83 9 9 9s-1.5.67-1.5 1.5zm7 0c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S16.33 9 15.5 9s-1.5.67-1.5 1.5zM12 17.5c1.33 0 2.5-.87 2.5-2h-5c0 1.13 1.17 2 2.5 2z'/%3E%3C/svg%3E\")"
+            : "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E\")"};
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
-    opacity: 0.3;
+    margin-bottom: 20px;
+    animation: ${props => (props.$isLoading ? 'spin 2s linear infinite' : 'none')};
   }
 
-  &::after {
-    content: 'No Photo Available';
-    position: absolute;
-    bottom: 20px;
-    font-size: 0.9rem;
-    opacity: 0.8;
-    color: #666;
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
+`;
+
+const PlaceholderText = styled.div`
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+`;
+
+const PlaceholderSubtext = styled.div`
+  font-size: 1rem;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 `;
 
 const SwipeOverlay = styled(animated.div)<{ $action: string }>`
@@ -178,8 +212,27 @@ const ROTATION_MULTIPLIER = 0.1;
 
 export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zIndex, style }) => {
   const [overlayAction, setOverlayAction] = useState<string>('');
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Image loading handlers
+  const handleImageLoad = useCallback(() => {
+    setImageLoaded(true);
+    setImageError(false);
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    setImageLoaded(false);
+    setImageError(true);
+  }, []);
+
+  // Reset image state when pet changes
+  React.useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+  }, [pet.petId]);
 
   // Keyboard navigation handler
   const handleKeyDown = useCallback(
@@ -340,6 +393,27 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
 
   const primaryImage = pet.images?.[0];
 
+  // Create a fallback image URL for better reliability
+  const getImageUrl = (url: string | undefined): string | undefined => {
+    if (!url) return undefined;
+
+    // If it's a via.placeholder.com URL (which might not work), return undefined to use our own placeholder
+    if (url.includes('via.placeholder.com') || url.includes('placeholder')) {
+      return undefined;
+    }
+
+    // If it's a valid http/https URL, use it as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+
+    // If it's a relative path, you might want to prepend your base URL
+    // For now, just return the URL as is
+    return url;
+  };
+
+  const imageUrl = getImageUrl(primaryImage);
+
   // Calculate age display - handle undefined values properly
   let age = '';
   if (pet.ageYears && pet.ageYears > 0) {
@@ -371,10 +445,44 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
       }}
     >
       <ImageContainer>
-        {primaryImage ? (
-          <img src={primaryImage} alt={`${pet.name} - ${pet.breed || 'pet'}`} draggable={false} />
+        {imageUrl ? (
+          <>
+            <img
+              src={imageUrl}
+              alt={`${pet.name} - ${pet.breed || 'pet'}`}
+              draggable={false}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              style={{
+                opacity: imageLoaded && !imageError ? 1 : 0,
+                transition: 'opacity 0.3s ease-in-out',
+              }}
+            />
+            {(!imageLoaded || imageError) && (
+              <PlaceholderImage
+                $isLoading={!imageError && !imageLoaded}
+                $petName={pet.name}
+                $petType={pet.type}
+              >
+                {!imageLoaded && !imageError ? (
+                  <>
+                    <PlaceholderText>Loading...</PlaceholderText>
+                    <PlaceholderSubtext>{pet.name}</PlaceholderSubtext>
+                  </>
+                ) : (
+                  <>
+                    <PlaceholderText>{pet.name}</PlaceholderText>
+                    <PlaceholderSubtext>{pet.breed || pet.type}</PlaceholderSubtext>
+                  </>
+                )}
+              </PlaceholderImage>
+            )}
+          </>
         ) : (
-          <PlaceholderImage />
+          <PlaceholderImage $petName={pet.name} $petType={pet.type}>
+            <PlaceholderText>{pet.name}</PlaceholderText>
+            <PlaceholderSubtext>{pet.breed || pet.type}</PlaceholderSubtext>
+          </PlaceholderImage>
         )}
 
         <SwipeOverlay

@@ -243,9 +243,6 @@ export class DiscoveryService {
    * Transform Pet models to DiscoveryPet format
    */
   private async transformToDiscoveryPets(pets: Pet[]): Promise<DiscoveryPet[]> {
-    const defaultImageUrl =
-      'https://via.placeholder.com/800x600/f5f7fa/666666?text=No+Photo+Available';
-
     return pets.map(pet => {
       // Type assertion to access included rescue data
       const petWithRescue = pet as Pet & {
@@ -258,13 +255,12 @@ export class DiscoveryService {
       // Ensure petId is never undefined
       const petId = pet.pet_id || `pet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // Get image URLs and provide default if none exist
+      // Get image URLs - only return valid URLs, let frontend handle placeholders
       let imageUrls: string[] = [];
       if (pet.images && Array.isArray(pet.images) && pet.images.length > 0) {
-        imageUrls = pet.images.map(img => img.url).filter(url => url);
-      }
-      if (imageUrls.length === 0) {
-        imageUrls = [defaultImageUrl];
+        imageUrls = pet.images
+          .map(img => img.url)
+          .filter(url => url && !url.includes('placeholder') && !url.includes('via.placeholder'));
       }
 
       return {
