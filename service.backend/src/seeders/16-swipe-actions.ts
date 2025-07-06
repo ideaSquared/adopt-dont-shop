@@ -1,5 +1,6 @@
 import { QueryInterface } from 'sequelize';
 import { logger } from '../utils/logger';
+import { insertWithPgUuid } from '../utils/uuid-helpers';
 
 interface SessionRow {
   session_id: string;
@@ -58,16 +59,16 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
       const swipeTime = new Date(baseTime.getTime() + i * Math.random() * 60 * 1000); // Spread over time
 
       swipeActions.push({
-        swipe_action_id: `swipe_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
         action,
         pet_id: pet.pet_id,
         session_id: sessionRow.session_id,
         user_id: null, // Anonymous sessions for now
         timestamp: swipeTime,
-        metadata: JSON.stringify({
-          viewDuration: Math.floor(Math.random() * 10000) + 1000, // 1-11 seconds
-          imageIndex: action === 'info' ? Math.floor(Math.random() * 3) : 0,
-          source: 'discovery_page',
+        response_time: Math.floor(Math.random() * 10000) + 1000, // 1-11 seconds response time
+        gesture_data: JSON.stringify({
+          distance: Math.floor(Math.random() * 200) + 50,
+          velocity: Math.random() * 500 + 100,
+          direction: action === 'like' ? 'right' : action === 'pass' ? 'left' : 'up',
         }),
         created_at: swipeTime,
         updated_at: swipeTime,
@@ -75,7 +76,8 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
     }
   }
 
-  await queryInterface.bulkInsert('swipe_actions', swipeActions);
+  // Use PostgreSQL's gen_random_uuid() for generating swipe_action_id
+  await insertWithPgUuid(queryInterface, 'swipe_actions', swipeActions, 'swipe_action_id');
   logger.info(`Seeded ${swipeActions.length} swipe actions`);
 };
 

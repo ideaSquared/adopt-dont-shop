@@ -65,7 +65,13 @@ export class DiscoveryService {
         nextCursor: pets.length > 0 ? pets[pets.length - 1].pet_id : undefined,
       };
     } catch (error) {
-      logger.error('Error generating discovery queue', { error, filters, userId });
+      logger.error('Error generating discovery queue', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : '',
+        errorName: error instanceof Error ? error.name : '',
+        filters,
+        userId,
+      });
       throw new Error('Failed to generate discovery queue');
     }
   }
@@ -92,8 +98,8 @@ export class DiscoveryService {
         include: [
           {
             model: Rescue,
-            as: 'rescue',
-            attributes: ['rescue_id', 'name'],
+            as: 'Rescue',
+            attributes: ['rescue_id', 'name', 'status'],
           },
         ],
         limit,
@@ -115,68 +121,79 @@ export class DiscoveryService {
     limit: number,
     userId?: string
   ): Promise<Pet[]> {
-    // Build where conditions based on filters
-    const whereConditions: Record<string, any> = {
-      status: PetStatus.AVAILABLE,
-    };
-
-    if (filters.type) {
-      whereConditions.type = filters.type;
-    }
-    if (filters.breed) {
-      whereConditions.breed = {
-        [Op.iLike]: `%${filters.breed}%`,
+    try {
+      // Build where conditions based on filters
+      const whereConditions: Record<string, unknown> = {
+        status: PetStatus.AVAILABLE,
       };
+
+      if (filters.type) {
+        whereConditions.type = filters.type;
+      }
+      if (filters.breed) {
+        whereConditions.breed = {
+          [Op.iLike]: `%${filters.breed}%`,
+        };
+      }
+      if (filters.ageGroup) {
+        whereConditions.age_group = filters.ageGroup;
+      }
+      if (filters.size) {
+        whereConditions.size = filters.size;
+      }
+      if (filters.gender) {
+        whereConditions.gender = filters.gender;
+      }
+
+      // Smart sorting query with multiple factors
+      const pets = await Pet.findAll({
+        where: whereConditions,
+        include: [
+          {
+            model: Rescue,
+            as: 'Rescue',
+            attributes: ['rescue_id', 'name', 'status'],
+          },
+        ],
+        order: [
+          // 1. Prioritize verified rescues
+          literal(`CASE WHEN "Rescue"."status" = 'verified' THEN 0 ELSE 1 END`),
+
+          // 2. Prioritize recently added pets (within last 7 days)
+          literal(`CASE WHEN "Pet"."created_at" > NOW() - INTERVAL '7 days' THEN 0 ELSE 1 END`),
+
+          // 3. Prioritize pets with good photos (more than 2 images)
+          literal(`CASE WHEN jsonb_array_length("Pet"."images") > 2 THEN 0 ELSE 1 END`),
+
+          // 4. Boost puppies and kittens (young pets are popular)
+          literal(`CASE WHEN "Pet"."age_group" IN ('baby', 'young') THEN 0 ELSE 1 END`),
+
+          // 5. Random factor for diversity
+          fn('RANDOM'),
+        ],
+        limit: limit * 2, // Get more than needed for filtering
+      });
+
+      // Apply additional smart filtering
+      const smartFiltered = this.applySmartFiltering(pets, userId);
+
+      return smartFiltered.slice(0, limit);
+    } catch (error) {
+      logger.error('Error in getSmartSortedPets', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : '',
+        errorName: error instanceof Error ? error.name : '',
+        filters,
+        userId,
+      });
+      throw error;
     }
-    if (filters.ageGroup) {
-      whereConditions.age_group = filters.ageGroup;
-    }
-    if (filters.size) {
-      whereConditions.size = filters.size;
-    }
-    if (filters.gender) {
-      whereConditions.gender = filters.gender;
-    }
-
-    // Smart sorting query with multiple factors
-    const pets = await Pet.findAll({
-      where: whereConditions,
-      include: [
-        {
-          model: Rescue,
-          as: 'rescue',
-          attributes: ['rescue_id', 'name', 'verified', 'premium'],
-        },
-      ],
-      order: [
-        // 1. Prioritize sponsored/premium rescues
-        literal(`CASE WHEN "rescue"."premium" = true THEN 0 ELSE 1 END`),
-
-        // 2. Prioritize recently added pets (within last 7 days)
-        literal(`CASE WHEN "Pet"."created_at" > NOW() - INTERVAL '7 days' THEN 0 ELSE 1 END`),
-
-        // 3. Prioritize pets with good photos (more than 2 images)
-        literal(`CASE WHEN array_length("Pet"."images", 1) > 2 THEN 0 ELSE 1 END`),
-
-        // 4. Boost puppies and kittens (young pets are popular)
-        literal(`CASE WHEN "Pet"."age_group" IN ('baby', 'young') THEN 0 ELSE 1 END`),
-
-        // 5. Random factor for diversity
-        fn('RANDOM'),
-      ],
-      limit: limit * 2, // Get more than needed for filtering
-    });
-
-    // Apply additional smart filtering
-    const smartFiltered = this.applySmartFiltering(pets, userId);
-
-    return smartFiltered.slice(0, limit);
   }
 
   /**
    * Apply smart filtering based on user preferences and behavior
    */
-  private applySmartFiltering(pets: Pet[], userId?: string): Pet[] {
+  private applySmartFiltering(pets: Pet[], _userId?: string): Pet[] {
     // For now, implement basic filtering
     // TODO: Implement ML-based filtering based on user behavior
 
@@ -232,9 +249,9 @@ export class DiscoveryService {
     return pets.map(pet => {
       // Type assertion to access included rescue data
       const petWithRescue = pet as Pet & {
-        rescue?: {
+        Rescue?: {
           name: string;
-          premium: boolean;
+          status: 'pending' | 'verified' | 'suspended' | 'inactive';
         };
       };
 
@@ -262,8 +279,8 @@ export class DiscoveryService {
         gender: pet.gender,
         images: imageUrls,
         shortDescription: pet.short_description || undefined,
-        rescueName: petWithRescue.rescue?.name || 'Unknown Rescue',
-        isSponsored: petWithRescue.rescue?.premium || false,
+        rescueName: petWithRescue.Rescue?.name || 'Unknown Rescue',
+        isSponsored: petWithRescue.Rescue?.status === 'verified' || false,
         compatibilityScore: this.calculateCompatibilityScore(pet),
       };
     });

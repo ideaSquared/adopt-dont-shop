@@ -201,10 +201,9 @@ SwipeSession.init(
       comment: 'Client user agent string',
     },
     deviceType: {
-      type: DataTypes.ENUM(...Object.values(DeviceType)),
+      type: DataTypes.ENUM('desktop', 'mobile', 'tablet', 'unknown'),
       allowNull: true,
-      defaultValue: DeviceType.UNKNOWN,
-      comment: 'Type of device used',
+      defaultValue: 'unknown',
     },
     isActive: {
       type: DataTypes.BOOLEAN,
