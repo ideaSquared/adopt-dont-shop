@@ -97,11 +97,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (credentials: LoginRequest) => {
+    // eslint-disable-next-line no-console
+    console.log('🔑 AuthContext: login() called with:', credentials.email);
     setIsLoading(true);
     try {
+      // eslint-disable-next-line no-console
+      console.log('🔑 AuthContext: calling authService.login()');
       const response = await authService.login(credentials);
+      // eslint-disable-next-line no-console
+      console.log('🔑 AuthContext: authService.login() response:', response.user?.email);
       setUser(response.user);
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('🔑 AuthContext: login error:', error);
       setUser(null);
       throw error;
     } finally {

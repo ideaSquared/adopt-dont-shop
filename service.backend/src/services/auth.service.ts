@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { Op } from 'sequelize';
 import User, { UserStatus, UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
@@ -341,7 +342,9 @@ export class AuthService {
       const user = await User.findOne({
         where: {
           resetToken: data.token,
-          resetTokenExpiration: { $gt: new Date() },
+          resetTokenExpiration: {
+            [Op.gt]: new Date(),
+          },
         },
       });
 
@@ -383,7 +386,9 @@ export class AuthService {
       const user = await User.findOne({
         where: {
           verificationToken: token,
-          verificationTokenExpiresAt: { $gt: new Date() },
+          verificationTokenExpiresAt: {
+            [Op.gt]: new Date(),
+          },
         },
       });
 
@@ -549,6 +554,7 @@ export class AuthService {
   }
 
   private static sanitizeUser(user: User): Partial<User> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, twoFactorSecret, backupCodes, resetToken, verificationToken, ...sanitized } =
       user.toJSON();
     return sanitized;

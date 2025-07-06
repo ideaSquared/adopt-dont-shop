@@ -171,15 +171,17 @@ class ApiService {
   }
 
   private getAuthToken(): string | null {
-    return localStorage.getItem('accessToken');
+    return localStorage.getItem('authToken') || localStorage.getItem('accessToken');
   }
 
   private setAuthToken(token: string): void {
     localStorage.setItem('authToken', token);
+    localStorage.setItem('accessToken', token); // Keep both for compatibility
   }
 
   private clearAuthToken(): void {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
   }
@@ -189,6 +191,13 @@ class ApiService {
 
     // Build full URL
     const fullUrl = url.startsWith('http') ? url : `${this.baseURL}${url}`;
+
+    // eslint-disable-next-line no-console
+    console.log(`🌐 API: ${method} ${fullUrl}`);
+    if (body && import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log('📤 API: Request body:', body);
+    }
 
     // Prepare headers
     const requestHeaders: Record<string, string> = {
@@ -247,15 +256,21 @@ class ApiService {
       // Parse response
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
-        const jsonResponse = (await response.json()) as ApiResponse<T>;
+        const jsonResponse = (await response.json()) as T | ApiResponse<T>;
 
-        // Handle the nested success response structure from service.backend
-        if (jsonResponse.success !== undefined) {
-          // Process response with success field
-          return jsonResponse.data as T;
+        // Check if response has the nested success structure from service.backend
+        if (
+          typeof jsonResponse === 'object' &&
+          jsonResponse !== null &&
+          'success' in jsonResponse &&
+          'data' in jsonResponse
+        ) {
+          // Handle the nested success response structure from service.backend
+          return (jsonResponse as ApiResponse<T>).data;
         }
 
-        return jsonResponse.data;
+        // Return the response directly (like auth endpoints)
+        return jsonResponse as T;
       }
 
       // For non-JSON responses, return the response as-is
@@ -426,30 +441,32 @@ class ApiService {
 
   // Authentication methods
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    return this.post<AuthResponse>('/auth/login', credentials);
+    return this.post<AuthResponse>('/api/v1/auth/login', credentials);
   }
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    return this.post<AuthResponse>('/auth/register', userData);
+    return this.post<AuthResponse>('/api/v1/auth/register', userData);
   }
 
   async logout(): Promise<void> {
-    await this.post<void>('/auth/logout');
+    await this.post<void>('/api/v1/auth/logout');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
   }
 
-  async refreshToken(): Promise<{ accessToken: string }> {
+  async refreshToken(): Promise<{ token: string }> {
     const refreshToken = localStorage.getItem('refreshToken');
     if (!refreshToken) {
       throw new Error('No refresh token available');
     }
 
-    const response = await this.post<{ accessToken: string }>('/auth/refresh', {
+    const response = await this.post<{ token: string }>('/api/v1/auth/refresh-token', {
       refreshToken,
     });
 
-    localStorage.setItem('accessToken', response.accessToken);
+    localStorage.setItem('authToken', response.token);
+    localStorage.setItem('accessToken', response.token);
     return response;
   }
 }

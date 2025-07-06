@@ -4,32 +4,45 @@ import { apiService } from './api';
 class AuthService {
   // Login user
   async login(credentials: LoginRequest): Promise<AuthResponse> {
+    // eslint-disable-next-line no-console
+    console.log('🔐 AuthService: Attempting login for:', credentials.email);
+    // eslint-disable-next-line no-console
+    console.log('🔐 AuthService: Making request to /api/v1/auth/login');
+
     const response = await apiService.post<AuthResponse>('/api/v1/auth/login', credentials);
 
-    // Store tokens and user data
-    localStorage.setItem('authToken', response.accessToken);
+    // Store tokens and user data (backend returns 'token', frontend expects 'accessToken')
+    localStorage.setItem('authToken', response.token);
+    localStorage.setItem('accessToken', response.token); // Keep both for compatibility
     localStorage.setItem('refreshToken', response.refreshToken);
     localStorage.setItem('user', JSON.stringify(response.user));
 
     // Set token in API service
-    apiService.setToken(response.accessToken);
+    apiService.setToken(response.token);
 
-    return response;
+    return {
+      ...response,
+      accessToken: response.token, // Map backend 'token' to frontend 'accessToken'
+    };
   }
 
   // Register new user
   async register(userData: RegisterRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>('/api/v1/auth/register', userData);
 
-    // Store tokens and user data
-    localStorage.setItem('authToken', response.accessToken);
+    // Store tokens and user data (backend returns 'token', frontend expects 'accessToken')
+    localStorage.setItem('authToken', response.token);
+    localStorage.setItem('accessToken', response.token); // Keep both for compatibility
     localStorage.setItem('refreshToken', response.refreshToken);
     localStorage.setItem('user', JSON.stringify(response.user));
 
     // Set token in API service
-    apiService.setToken(response.accessToken);
+    apiService.setToken(response.token);
 
-    return response;
+    return {
+      ...response,
+      accessToken: response.token, // Map backend 'token' to frontend 'accessToken'
+    };
   }
 
   // Logout user
@@ -75,31 +88,32 @@ class AuthService {
       throw new Error('No refresh token available');
     }
 
-    const response = await apiService.post<{ accessToken: string; refreshToken: string }>(
-      '/api/v1/auth/refresh',
+    const response = await apiService.post<{ token: string; refreshToken: string }>(
+      '/api/v1/auth/refresh-token',
       {
         refreshToken,
       }
     );
 
     // Update stored tokens
-    localStorage.setItem('authToken', response.accessToken);
+    localStorage.setItem('authToken', response.token);
+    localStorage.setItem('accessToken', response.token); // Keep both for compatibility
     localStorage.setItem('refreshToken', response.refreshToken);
 
     // Set new token in API service
-    apiService.setToken(response.accessToken);
+    apiService.setToken(response.token);
 
-    return response.accessToken;
+    return response.token;
   }
 
   // Get user profile
   async getProfile(): Promise<User> {
-    return await apiService.get<User>('/api/v1/auth/profile');
+    return await apiService.get<User>('/api/v1/auth/me');
   }
 
   // Update user profile
   async updateProfile(profileData: Partial<User>): Promise<User> {
-    const updatedUser = await apiService.put<User>('/api/v1/auth/profile', profileData);
+    const updatedUser = await apiService.put<User>('/api/v1/auth/me', profileData);
 
     // Update localStorage
     localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -114,17 +128,21 @@ class AuthService {
 
   // Reset password with token
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    await apiService.post('/api/v1/auth/reset-password', { token, password: newPassword });
+    await apiService.post('/api/v1/auth/reset-password', { token, newPassword });
   }
 
   // Verify email
   async verifyEmail(token: string): Promise<void> {
-    await apiService.post('/api/v1/auth/verify-email', { token });
+    await apiService.get(`/api/v1/auth/verify-email/${token}`);
   }
 
   // Resend verification email
   async resendVerificationEmail(): Promise<void> {
-    await apiService.post('/api/v1/auth/resend-verification');
+    const user = this.getCurrentUser();
+    if (!user?.email) {
+      throw new Error('No user email found');
+    }
+    await apiService.post('/api/v1/auth/resend-verification', { email: user.email });
   }
 
   // Change password (when logged in)

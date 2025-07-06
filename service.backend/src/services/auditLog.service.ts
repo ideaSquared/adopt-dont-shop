@@ -27,6 +27,8 @@ export interface AuditLogData {
   details?: JsonObject;
   ipAddress?: string;
   userAgent?: string;
+  service?: string;
+  level?: 'INFO' | 'WARNING' | 'ERROR';
 }
 
 export class AuditLogService {
@@ -36,14 +38,21 @@ export class AuditLogService {
   static async log(data: AuditLogData): Promise<AuditLog> {
     try {
       const auditLog = await AuditLog.create({
-        userId: data.userId,
+        service: data.service || 'adopt-dont-shop-backend',
+        user: data.userId,
         action: data.action,
-        entity: data.entity,
-        entityId: data.entityId,
-        details: data.details || {},
-        ipAddress: data.ipAddress,
-        userAgent: data.userAgent,
+        level: data.level || 'INFO',
         timestamp: new Date(),
+        metadata: {
+          entity: data.entity,
+          entityId: data.entityId,
+          details: data.details || {},
+          ipAddress: data.ipAddress,
+          userAgent: data.userAgent,
+        },
+        category: data.entity || 'GENERAL',
+        ip_address: data.ipAddress,
+        user_agent: data.userAgent,
       });
 
       logger.info(`Audit log created: ${data.action} on ${data.entity} by ${data.userId}`);

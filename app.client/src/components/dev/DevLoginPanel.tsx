@@ -3,223 +3,371 @@ import { User } from '@/types';
 import React, { useState } from 'react';
 import styled from 'styled-components';
 
+// Interface for dev users with description
 interface DevUser extends User {
-  role: 'adopter' | 'rescue_admin' | 'admin';
-  password: string; // For dev purposes
+  description: string;
 }
 
-const devUsers: DevUser[] = [
+// Seeded users copied directly from backend/src/seeders/04-users.ts
+const seededDevUsers: DevUser[] = [
   {
-    userId: 'user-1',
-    email: 'john.adopter@example.com',
+    userId: 'user_superadmin_001',
+    firstName: 'Super',
+    lastName: 'Admin',
+    email: 'superadmin@adoptdontshop.dev',
+    userType: 'admin',
+    status: 'active',
+    emailVerified: true,
+    country: 'US',
+    city: 'New York',
+    timezone: 'America/New_York',
+    language: 'en',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Full system access',
+  },
+  {
+    userId: 'user_admin_001',
+    firstName: 'System',
+    lastName: 'Administrator',
+    email: 'admin@adoptdontshop.dev',
+    userType: 'admin',
+    status: 'active',
+    emailVerified: true,
+    country: 'US',
+    city: 'San Francisco',
+    timezone: 'America/Los_Angeles',
+    language: 'en',
+    bio: 'Platform administrator managing system operations and rescue partnerships.',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Platform administrator',
+  },
+  {
+    userId: 'user_rescue_admin_001',
+    firstName: 'Emily',
+    lastName: 'Johnson',
+    email: 'emily@pawsandhearts.dev',
+    userType: 'rescue_staff',
+    status: 'active',
+    emailVerified: true,
+    country: 'US',
+    city: 'Austin',
+    timezone: 'America/Chicago',
+    language: 'en',
+    bio: 'Veterinary technician helping rescued animals get healthy and ready for adoption.',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Veterinary technician',
+  },
+  {
+    userId: 'user_rescue_admin_002',
+    firstName: 'Maria',
+    lastName: 'Garcia',
+    email: 'maria@happytailsrescue.dev',
+    userType: 'rescue_staff',
+    status: 'active',
+    emailVerified: true,
+    country: 'US',
+    city: 'Miami',
+    timezone: 'America/New_York',
+    language: 'en',
+    bio: 'Director of Happy Tails Rescue, specializing in senior dog adoption.',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Happy Tails director',
+  },
+  {
+    userId: 'user_adopter_001',
     firstName: 'John',
-    lastName: 'Adopter',
-    role: 'adopter',
-    password: 'dev123',
-    phone: '(555) 123-4567',
-    location: {
-      address: '123 Main St',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105',
-    },
+    lastName: 'Smith',
+    email: 'john.smith@gmail.com',
+    userType: 'adopter',
+    status: 'active',
     emailVerified: true,
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-15T10:30:00Z',
+    country: 'US',
+    city: 'Denver',
+    addressLine1: '123 Main Street',
+    postalCode: '80202',
+    timezone: 'America/Denver',
+    language: 'en',
+    bio: 'Looking to adopt a friendly dog for my family.',
+    dateOfBirth: '1985-06-15',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Family dog seeker',
   },
   {
-    userId: 'user-2',
-    email: 'jane.petlover@example.com',
-    firstName: 'Jane',
-    lastName: 'Pet Lover',
-    role: 'adopter',
-    password: 'dev123',
-    phone: '(555) 987-6543',
-    location: {
-      address: '456 Oak Ave',
-      city: 'Los Angeles',
-      state: 'CA',
-      zipCode: '90210',
-    },
-    emailVerified: true,
-    createdAt: '2024-02-20T14:15:00Z',
-    updatedAt: '2024-02-20T14:15:00Z',
-  },
-  {
-    userId: 'user-3',
-    email: 'sarah.rescue@example.com',
+    userId: 'user_adopter_002',
     firstName: 'Sarah',
-    lastName: 'Rescue Admin',
-    role: 'rescue_admin',
-    password: 'dev123',
-    phone: '(555) 456-7890',
-    location: {
-      address: '789 Elm St',
-      city: 'Seattle',
-      state: 'WA',
-      zipCode: '98101',
-    },
+    lastName: 'Williams',
+    email: 'sarah.williams@yahoo.com',
+    userType: 'adopter',
+    status: 'active',
     emailVerified: true,
-    createdAt: '2024-01-01T09:00:00Z',
-    updatedAt: '2024-01-01T09:00:00Z',
+    country: 'US',
+    city: 'Portland',
+    addressLine1: '456 Oak Avenue',
+    postalCode: '97201',
+    timezone: 'America/Los_Angeles',
+    language: 'en',
+    bio: 'Cat lover looking for a senior cat to give a loving home.',
+    dateOfBirth: '1990-03-22',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Senior cat advocate',
   },
   {
-    userId: 'user-4',
-    email: 'mike.admin@example.com',
-    firstName: 'Mike',
-    lastName: 'Super Admin',
-    role: 'admin',
-    password: 'dev123',
-    phone: '(555) 111-2222',
-    location: {
-      address: '321 Pine St',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-    },
+    userId: 'user_adopter_003',
+    firstName: 'Michael',
+    lastName: 'Chen',
+    email: 'michael.chen@outlook.com',
+    userType: 'adopter',
+    status: 'active',
     emailVerified: true,
-    createdAt: '2023-12-01T08:00:00Z',
-    updatedAt: '2023-12-01T08:00:00Z',
+    country: 'US',
+    city: 'Seattle',
+    addressLine1: '789 Pine Street',
+    postalCode: '98101',
+    timezone: 'America/Los_Angeles',
+    language: 'en',
+    bio: 'First-time pet owner interested in adopting a small dog.',
+    dateOfBirth: '1988-11-10',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'First-time pet owner',
   },
   {
-    userId: 'user-5',
-    email: 'alex.newcomer@example.com',
+    userId: 'user_adopter_004',
+    firstName: 'Jessica',
+    lastName: 'Brown',
+    email: 'jessica.brown@gmail.com',
+    userType: 'adopter',
+    status: 'active',
+    emailVerified: true,
+    country: 'US',
+    city: 'Chicago',
+    addressLine1: '321 Maple Drive',
+    postalCode: '60601',
+    timezone: 'America/Chicago',
+    language: 'en',
+    bio: 'Experienced dog owner looking for an active companion for hiking.',
+    dateOfBirth: '1982-07-18',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Active lifestyle dog owner',
+  },
+  {
+    userId: 'user_volunteer_001',
+    firstName: 'David',
+    lastName: 'Wilson',
+    email: 'david.volunteer@gmail.com',
+    userType: 'adopter',
+    status: 'active',
+    emailVerified: true,
+    country: 'US',
+    city: 'Boston',
+    timezone: 'America/New_York',
+    language: 'en',
+    bio: 'Weekend volunteer helping with dog walking and socialization.',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Weekend volunteer',
+  },
+  {
+    userId: 'user_temp_001',
     firstName: 'Alex',
-    lastName: 'Newcomer',
-    role: 'adopter',
-    password: 'dev123',
+    lastName: 'Temporary',
+    email: 'temp@example.com',
+    userType: 'adopter',
+    status: 'inactive',
     emailVerified: false,
-    createdAt: '2024-07-01T16:30:00Z',
-    updatedAt: '2024-07-01T16:30:00Z',
+    country: 'US',
+    city: 'Phoenix',
+    timezone: 'America/Phoenix',
+    language: 'en',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Temporary test user',
   },
 ];
 
-const DevPanel = styled.div<{ $isOpen: boolean }>`
-  position: fixed;
-  top: 0;
-  right: ${props => (props.$isOpen ? '0' : '-350px')};
-  width: 350px;
-  height: 100vh;
-  background: ${props => props.theme.background.primary};
-  border-left: 1px solid ${props => props.theme.border.color.primary};
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
-  z-index: 9999;
-  overflow-y: auto;
-  transition: right 0.3s ease;
-  padding: 1rem;
-`;
+const SEEDED_PASSWORD = 'DevPassword123!';
 
-const ToggleButton = styled.button<{ $isOpen: boolean }>`
+const DevToggle = styled.button`
   position: fixed;
-  top: 50%;
-  right: ${props => (props.$isOpen ? '350px' : '0')};
-  transform: translateY(-50%);
-  background: ${props => props.theme.colors.primary[500]};
-  color: white;
-  border: none;
-  padding: 1rem 0.5rem;
-  border-radius: 6px 0 0 6px;
+  top: 20px;
+  right: 20px;
+  background: #1f2937;
+  color: #fbbf24;
+  border: 2px solid #fbbf24;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
   z-index: 10000;
-  transition: right 0.3s ease;
-  font-size: 0.75rem;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-
-  &:hover {
-    background: ${props => props.theme.colors.primary[600]};
-  }
-`;
-
-const PanelHeader = styled.div`
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-
-  h3 {
-    margin: 0 0 0.5rem 0;
-    color: ${props => props.theme.colors.neutral[900]};
-    font-size: 1.1rem;
-  }
-
-  p {
-    margin: 0;
-    color: ${props => props.theme.colors.neutral[600]};
-    font-size: 0.875rem;
-  }
-`;
-
-const UserCard = styled.div`
-  background: ${props => props.theme.background.secondary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: ${props => props.theme.colors.primary[300]};
-    background: ${props => props.theme.colors.primary[50]};
+    background: #fbbf24;
+    color: #1f2937;
+  }
+`;
+
+const DevPanel = styled.div<{ $isOpen: boolean }>`
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  width: 350px;
+  max-height: 80vh;
+  background: white;
+  border: 2px solid #fbbf24;
+  border-radius: 12px;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  z-index: 9999;
+  overflow: hidden;
+  transform: translateX(${props => (props.$isOpen ? '0' : '100%')});
+  opacity: ${props => (props.$isOpen ? '1' : '0')};
+  transition: all 0.3s ease;
+`;
+
+const DevHeader = styled.div`
+  background: #1f2937;
+  color: #fbbf24;
+  padding: 1rem;
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: center;
+`;
+
+const DevContent = styled.div`
+  padding: 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+`;
+
+const UserCard = styled.button`
+  display: block;
+  width: 100%;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+
+  &:hover {
+    border-color: #fbbf24;
+    background: #fffbeb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
 const UserName = styled.div`
   font-weight: 600;
-  color: ${props => props.theme.colors.neutral[900]};
+  color: #1f2937;
   margin-bottom: 0.25rem;
+  font-size: 0.9rem;
 `;
 
 const UserEmail = styled.div`
-  color: ${props => props.theme.colors.neutral[600]};
-  font-size: 0.875rem;
+  color: #6b7280;
+  font-size: 0.8rem;
   margin-bottom: 0.5rem;
 `;
 
-const UserRole = styled.span<{ $role: string }>`
+const UserMeta = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const UserRole = styled.span<{ $userType: string }>`
   display: inline-block;
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 500;
   text-transform: uppercase;
+  letter-spacing: 0.025em;
 
   ${props => {
-    switch (props.$role) {
+    switch (props.$userType) {
       case 'adopter':
         return `
-          background: ${props.theme.colors.semantic.success[100]};
-          color: ${props.theme.colors.semantic.success[700]};
+          background: #dcfce7;
+          color: #166534;
         `;
-      case 'rescue_admin':
+      case 'rescue_staff':
         return `
-          background: ${props.theme.colors.primary[100]};
-          color: ${props.theme.colors.primary[700]};
+          background: #dbeafe;
+          color: #1e40af;
         `;
       case 'admin':
         return `
-          background: ${props.theme.colors.secondary[100]};
-          color: ${props.theme.colors.secondary[700]};
+          background: #fef3c7;
+          color: #92400e;
+        `;
+      case 'volunteer':
+        return `
+          background: #e0e7ff;
+          color: #3730a3;
         `;
       default:
         return `
-          background: ${props.theme.colors.neutral[100]};
-          color: ${props.theme.colors.neutral[700]};
+          background: #f3f4f6;
+          color: #374151;
         `;
     }
   }}
 `;
 
-const CurrentUser = styled.div`
-  background: ${props => props.theme.colors.primary[50]};
-  border: 1px solid ${props => props.theme.colors.primary[200]};
+const UserDescription = styled.div`
+  font-size: 0.7rem;
+  color: #9ca3af;
+`;
+
+const CurrentUserPanel = styled.div`
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
   border-radius: 8px;
   padding: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 
   h4 {
     margin: 0 0 0.5rem 0;
-    color: ${props => props.theme.colors.primary[800]};
+    color: #1e40af;
     font-size: 0.875rem;
   }
 `;
@@ -227,32 +375,33 @@ const CurrentUser = styled.div`
 const LogoutButton = styled.button`
   width: 100%;
   padding: 0.5rem 1rem;
-  background: ${props => props.theme.colors.semantic.error[500]};
+  background: #dc2626;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.875rem;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
+  transition: background-color 0.2s ease;
 
   &:hover {
-    background: ${props => props.theme.colors.semantic.error[600]};
+    background: #b91c1c;
   }
 `;
 
 const WarningBanner = styled.div`
-  background: ${props => props.theme.colors.semantic.warning[100]};
-  color: ${props => props.theme.colors.semantic.warning[800]};
+  background: #fef3c7;
+  color: #92400e;
   padding: 0.75rem;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   margin-bottom: 1rem;
-  border: 1px solid ${props => props.theme.colors.semantic.warning[200]};
+  border: 1px solid #fbbf24;
 `;
 
 export const DevLoginPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, logout, setDevUser, isAuthenticated, isLoading } = useAuth();
+  const { user, login, logout, isAuthenticated } = useAuth();
 
   // Only show in development mode
   if (!import.meta.env.DEV) {
@@ -260,106 +409,71 @@ export const DevLoginPanel: React.FC = () => {
   }
   const handleUserLogin = async (devUser: DevUser) => {
     try {
-      // Use the development setDevUser method
-      if (setDevUser) {
-        // Remove the role and password properties since they're not in the User type
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { role, password, ...userWithoutRole } = devUser;
-
-        // Generate a mock authentication token for dev users
-        const mockToken = `dev-token-${userWithoutRole.userId}-${Date.now()}`;
-        localStorage.setItem('accessToken', mockToken);
-        localStorage.setItem('authToken', mockToken); // For compatibility
-
-        // Dev login success (for debugging in development)
-        if (import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
-          console.log('DevLoginPanel: Setting dev user:', devUser.email, `(${role})`);
-          // eslint-disable-next-line no-console
-          console.log('DevLoginPanel: Generated mock token:', mockToken);
-        }
-
-        setDevUser(userWithoutRole);
-
-        if (import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
-          console.log('DevLoginPanel: User data set:', userWithoutRole);
-        }
-
-        // Wait a bit longer to ensure React state updates
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        if (import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
-          console.log('DevLoginPanel: Login completed, closing panel');
-        }
-
-        setIsOpen(false);
-      } else {
-        console.warn('setDevUser method not available - make sure you are in development mode');
-      }
+      await login({ email: devUser.email, password: SEEDED_PASSWORD });
+      setIsOpen(false);
     } catch (error) {
-      console.error('Dev login failed:', error);
-      alert('Dev login failed. Please check the console for details.');
+      console.error('DevLoginPanel: Login error:', error);
+      alert(`Login error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('DevLoginPanel: Logout error:', error);
     }
   };
 
   return (
     <>
-      <ToggleButton $isOpen={isOpen} onClick={() => setIsOpen(!isOpen)}>
-        {isOpen ? 'CLOSE DEV' : 'DEV LOGIN'}
-      </ToggleButton>
+      <DevToggle onClick={() => setIsOpen(!isOpen)}>🔧 DEV LOGIN</DevToggle>
 
       <DevPanel $isOpen={isOpen}>
-        <PanelHeader>
-          <h3>🔧 Dev Login Panel</h3>
-          <p>Quick login as different user types</p>
-        </PanelHeader>
+        <DevHeader>Development Login Panel</DevHeader>
 
-        <WarningBanner>⚠️ Development mode only - not available in production</WarningBanner>
+        <DevContent>
+          <WarningBanner>⚠️ Development only - uses real authentication</WarningBanner>
 
-        {/* Debug info */}
-        <div
-          style={{
-            background: '#f3f4f6',
-            padding: '0.75rem',
-            borderRadius: '6px',
-            marginBottom: '1rem',
-            fontSize: '0.75rem',
-            fontFamily: 'monospace',
-          }}
-        >
-          <div>Auth Status:</div>
-          <div>• isAuthenticated: {isAuthenticated ? '✅ true' : '❌ false'}</div>
-          <div>• isLoading: {isLoading ? '⏳ true' : '✅ false'}</div>
-          <div>• user: {user ? `✅ ${user.email}` : '❌ null'}</div>
-        </div>
+          {isAuthenticated && user && (
+            <CurrentUserPanel>
+              <h4>Currently Logged In:</h4>
+              <UserName>
+                {user.firstName} {user.lastName}
+              </UserName>
+              <UserEmail>{user.email}</UserEmail>
+              <UserRole $userType={user.userType || 'unknown'}>
+                {user.userType || 'unknown'}
+              </UserRole>
+              <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
+            </CurrentUserPanel>
+          )}
 
-        {user && (
-          <CurrentUser>
-            <h4>Currently logged in as:</h4>
-            <UserName>
-              {user.firstName} {user.lastName}
-            </UserName>
-            <UserEmail>{user.email}</UserEmail>
-            <LogoutButton onClick={logout}>Logout</LogoutButton>
-          </CurrentUser>
-        )}
+          <h4 style={{ marginBottom: '1rem', color: '#374151', fontSize: '0.9rem' }}>
+            Available Users (Password: {SEEDED_PASSWORD}):
+          </h4>
 
-        <div>
-          <h4 style={{ marginBottom: '1rem', color: '#374151' }}>Available Dev Users:</h4>
-          {devUsers.map(devUser => (
-            <UserCard key={devUser.userId} onClick={() => handleUserLogin(devUser)}>
+          {seededDevUsers.map(devUser => (
+            <UserCard
+              key={devUser.userId}
+              onClick={() => handleUserLogin(devUser)}
+              disabled={isAuthenticated && user?.email === devUser.email}
+            >
               <UserName>
                 {devUser.firstName} {devUser.lastName}
               </UserName>
               <UserEmail>{devUser.email}</UserEmail>
-              <UserRole $role={devUser.role}>{devUser.role}</UserRole>
+              <UserMeta>
+                <UserRole $userType={devUser.userType || 'unknown'}>
+                  {devUser.userType || 'unknown'}
+                </UserRole>
+                <UserDescription>{devUser.description}</UserDescription>
+              </UserMeta>
               {!devUser.emailVerified && (
                 <div
                   style={{
                     marginTop: '0.5rem',
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     color: '#dc2626',
                   }}
                 >
@@ -368,7 +482,7 @@ export const DevLoginPanel: React.FC = () => {
               )}
             </UserCard>
           ))}
-        </div>
+        </DevContent>
       </DevPanel>
     </>
   );

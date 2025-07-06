@@ -4,23 +4,50 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  phoneNumber?: string;
+  emailVerified: boolean;
+  userType: 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
+  status: 'active' | 'inactive' | 'suspended' | 'pending_verification' | 'deactivated';
+  profileImageUrl?: string;
+  bio?: string;
+  dateOfBirth?: string;
+  country?: string;
+  city?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  postalCode?: string;
+  location?: {
+    type: string;
+    coordinates: [number, number];
+  };
+  privacySettings?: {
+    profileVisibility?: string;
+    showLocation?: boolean;
+    allowMessages?: boolean;
+    showAdoptionHistory?: boolean;
+  };
+  notificationPreferences?: {
+    emailNotifications?: boolean;
+    pushNotifications?: boolean;
+    smsNotifications?: boolean;
+    marketingEmails?: boolean;
+  };
+  timezone?: string;
+  language?: string;
+  twoFactorEnabled?: boolean;
+  lastLoginAt?: string;
+  termsAcceptedAt?: string;
+  privacyPolicyAcceptedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Legacy fields for backward compatibility
   phone?: string;
   preferredContactMethod?: 'email' | 'phone' | 'both';
-  location?: {
-    address?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
-  };
   preferences?: {
     petTypes?: string[];
     maxDistance?: number;
     newsletterOptIn?: boolean;
   };
-  emailVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface LoginRequest {
@@ -31,15 +58,21 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  confirmPassword: string;
   firstName: string;
   lastName: string;
+  phoneNumber?: string;
+  userType?: 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
+  // Legacy field for frontend form compatibility
+  confirmPassword?: string;
 }
 
 export interface AuthResponse {
   user: User;
-  accessToken: string;
+  token: string; // Backend returns 'token', not 'accessToken'
   refreshToken: string;
+  expiresIn: number;
+  // Legacy field for frontend compatibility
+  accessToken?: string;
 }
 
 // Pet Types - Updated to match backend API response

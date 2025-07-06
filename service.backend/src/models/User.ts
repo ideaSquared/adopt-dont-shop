@@ -407,6 +407,16 @@ User.init(
     timestamps: true,
     paranoid: true,
     underscored: true,
+    scopes: {
+      defaultScope: {
+        attributes: {
+          exclude: ['password', 'resetToken', 'verificationToken', 'twoFactorSecret'],
+        },
+      },
+      withSecrets: {
+        // Include all attributes (including sensitive ones like password)
+      },
+    },
     indexes: [
       {
         unique: true,
