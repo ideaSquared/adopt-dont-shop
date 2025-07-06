@@ -1,3 +1,4 @@
+export { FavoritesPage } from './FavoritesPage';
 export { HomePage } from './HomePage';
 export { LoginPage } from './LoginPage';
 export { PetDetailsPage } from './PetDetailsPage';

@@ -1,4 +1,5 @@
 import { PetCard } from '@/components/PetCard';
+import { SwipeHero } from '@/components/hero/SwipeHero';
 import { useAuth } from '@/contexts/AuthContext';
 import { petService } from '@/services/petService';
 import { Pet } from '@/types';
@@ -6,44 +7,6 @@ import { Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-
-const HeroSection = styled.section`
-  background: linear-gradient(
-    135deg,
-    ${props => props.theme.colors.primary[500]} 0%,
-    ${props => props.theme.colors.secondary[500]} 100%
-  );
-  color: ${props => props.theme.text.primary};
-  padding: 4rem 2rem;
-  text-align: center;
-
-  h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    font-weight: 700;
-  }
-
-  p {
-    font-size: 1.25rem;
-    margin-bottom: 2rem;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-    line-height: 1.6;
-  }
-
-  @media (max-width: 768px) {
-    padding: 3rem 1rem;
-
-    h1 {
-      font-size: 2rem;
-    }
-
-    p {
-      font-size: 1rem;
-    }
-  }
-`;
 
 const Container = styled.div`
   max-width: 1200px;
@@ -184,20 +147,7 @@ export const HomePage: React.FC = () => {
   return (
     <div>
       {/* Hero Section */}
-      <HeroSection>
-        <Container>
-          <h1>Find Your Perfect Companion</h1>
-          <p>
-            Connect with loving pets from trusted rescue organizations. Every adoption saves a life
-            and makes room for another pet in need.
-          </p>
-          <Link to='/search'>
-            <Button size='lg' variant='secondary'>
-              Start Searching
-            </Button>
-          </Link>
-        </Container>
-      </HeroSection>
+      <SwipeHero />
 
       {/* Featured Pets Section */}
       <Section>
