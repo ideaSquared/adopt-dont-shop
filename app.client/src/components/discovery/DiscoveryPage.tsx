@@ -1,6 +1,7 @@
 import { DiscoveryPet, PetSearchFilters, SwipeAction, SwipeSession } from '@/types';
 import { Container } from '@adopt-dont-shop/components';
 import React, { useCallback, useEffect, useState } from 'react';
+import { MdWarning } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { discoveryService } from '../../services/discoveryService';
@@ -447,7 +448,9 @@ export const DiscoveryPage: React.FC = () => {
           </LoadingState>
         ) : error ? (
           <ErrorState>
-            <div className='error-icon'>⚠️</div>
+            <div className='error-icon'>
+              <MdWarning />
+            </div>
             <div className='error-message'>{error}</div>
             <button className='retry-button' onClick={retryLoading}>
               Try Again

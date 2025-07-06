@@ -2,6 +2,7 @@ import { DiscoveryPet } from '@/types';
 import { animated, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import React, { useCallback, useRef, useState } from 'react';
+import { MdCheckCircle, MdPets, MdRefresh, MdStar } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -74,21 +75,8 @@ const PlaceholderImage = styled.div<{ $isLoading?: boolean; $petName?: string; $
   color: white;
   text-align: center;
 
-  &::before {
-    content: '';
-    width: 80px;
-    height: 80px;
-    background-image: ${props =>
-      props.$isLoading
-        ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'/%3E%3C/svg%3E\")"
-        : props.$petType === 'dog'
-          ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'%3E%3Cpath d='M4.5 12.5c0 .6.4 1 1 1s1-.4 1-1-.4-1-1-1-1 .4-1 1zm13 0c0 .6.4 1 1 1s1-.4 1-1-.4-1-1-1-1 .4-1 1zM12 17.5c-1.4 0-2.5-.9-2.9-2.1H7.9c.5 2.4 2.6 4.1 5.1 4.1s4.6-1.7 5.1-4.1h-1.2c-.4 1.2-1.5 2.1-2.9 2.1zm0-15C5.9 2.5 1 7.4 1 13.5S5.9 24.5 12 24.5s11-4.9 11-11S18.1 2.5 12 2.5z'/%3E%3C/svg%3E\")"
-          : props.$petType === 'cat'
-            ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l1.09 2.09L16 3l-1.09 1.09L16 6l-2.91-1.09L12 2zm-4.5 8.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S9.83 9 9 9s-1.5.67-1.5 1.5zm7 0c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S16.33 9 15.5 9s-1.5.67-1.5 1.5zM12 17.5c1.33 0 2.5-.87 2.5-2h-5c0 1.13 1.17 2 2.5 2z'/%3E%3C/svg%3E\")"
-            : "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E\")"};
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
+  .placeholder-icon {
+    font-size: 80px;
     margin-bottom: 20px;
     animation: ${props => (props.$isLoading ? 'spin 2s linear infinite' : 'none')};
   }
@@ -102,6 +90,24 @@ const PlaceholderImage = styled.div<{ $isLoading?: boolean; $petName?: string; $
     }
   }
 `;
+
+const PlaceholderIcon: React.FC<{ isLoading?: boolean; petType?: string }> = ({
+  isLoading,
+  petType,
+}) => {
+  if (isLoading) {
+    return <MdRefresh className='placeholder-icon' />;
+  }
+
+  switch (petType) {
+    case 'dog':
+      return <MdPets className='placeholder-icon' />;
+    case 'cat':
+      return <MdStar className='placeholder-icon' />;
+    default:
+      return <MdCheckCircle className='placeholder-icon' />;
+  }
+};
 
 const PlaceholderText = styled.div`
   font-size: 1.5rem;
@@ -464,6 +470,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
                 $petName={pet.name}
                 $petType={pet.type}
               >
+                <PlaceholderIcon isLoading={!imageError && !imageLoaded} petType={pet.type} />
                 {!imageLoaded && !imageError ? (
                   <>
                     <PlaceholderText>Loading...</PlaceholderText>
@@ -480,6 +487,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
           </>
         ) : (
           <PlaceholderImage $petName={pet.name} $petType={pet.type}>
+            <PlaceholderIcon petType={pet.type} />
             <PlaceholderText>{pet.name}</PlaceholderText>
             <PlaceholderSubtext>{pet.breed || pet.type}</PlaceholderSubtext>
           </PlaceholderImage>

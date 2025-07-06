@@ -1,4 +1,5 @@
 import React from 'react';
+import { MdClose, MdFavorite, MdInfo, MdStar } from 'react-icons/md';
 import styled from 'styled-components';
 
 interface SwipeControlsProps {
@@ -130,7 +131,9 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
         title='Pass - Not interested'
         type='button'
       >
-        <ButtonIcon>❌</ButtonIcon>
+        <ButtonIcon>
+          <MdClose />
+        </ButtonIcon>
       </ActionButton>
 
       <ActionButton
@@ -140,7 +143,9 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
         title='Info - View details'
         type='button'
       >
-        <ButtonIcon>ℹ️</ButtonIcon>
+        <ButtonIcon>
+          <MdInfo />
+        </ButtonIcon>
       </ActionButton>
 
       <ActionButton
@@ -150,7 +155,9 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
         title='Like - Add to favorites'
         type='button'
       >
-        <ButtonIcon>❤️</ButtonIcon>
+        <ButtonIcon>
+          <MdFavorite />
+        </ButtonIcon>
       </ActionButton>
 
       <ActionButton
@@ -160,7 +167,9 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
         title='Super Like - Priority interest'
         type='button'
       >
-        <ButtonIcon>⭐</ButtonIcon>
+        <ButtonIcon>
+          <MdStar />
+        </ButtonIcon>
       </ActionButton>
     </ControlsContainer>
   );
