@@ -268,7 +268,7 @@ export interface SwipeAction {
 }
 
 export interface PetDiscoveryQueue {
-  pets: Pet[];
+  pets: DiscoveryPet[];
   currentIndex: number;
   hasMore: boolean;
   nextBatchSize: number;
@@ -284,4 +284,30 @@ export interface SwipeStats {
   averageSessionDuration: number;
   favoriteBreeds: string[];
   favoriteAgeGroups: string[];
+}
+
+// Discovery-specific types for optimized responses
+export interface DiscoveryPet {
+  petId: string;
+  name: string;
+  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'other';
+  breed?: string;
+  ageGroup: 'baby' | 'young' | 'adult' | 'senior';
+  ageYears?: number;
+  ageMonths?: number;
+  size: 'extra_small' | 'small' | 'medium' | 'large' | 'extra_large';
+  gender: 'male' | 'female' | 'unknown';
+  images: string[];
+  shortDescription?: string;
+  distance?: number;
+  rescueName: string;
+  isSponsored?: boolean;
+  compatibilityScore?: number;
+}
+
+export interface DiscoveryQueue {
+  pets: DiscoveryPet[];
+  sessionId: string;
+  hasMore: boolean;
+  nextCursor?: string;
 }

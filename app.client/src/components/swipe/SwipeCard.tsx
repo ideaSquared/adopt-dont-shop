@@ -1,4 +1,4 @@
-import { Pet } from '@/types';
+import { DiscoveryPet } from '@/types';
 import { animated, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import React, { useCallback, useRef, useState } from 'react';
@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
 interface SwipeCardProps {
-  pet: Pet;
+  pet: DiscoveryPet;
   onSwipe: (action: 'like' | 'pass' | 'super_like' | 'info', petId: string) => void;
   isTop: boolean;
   zIndex: number;
@@ -189,29 +189,29 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
       switch (event.key) {
         case 'ArrowLeft':
           event.preventDefault();
-          onSwipe('pass', pet.pet_id);
+          onSwipe('pass', pet.petId);
           break;
         case 'ArrowRight':
           event.preventDefault();
-          onSwipe('like', pet.pet_id);
+          onSwipe('like', pet.petId);
           break;
         case 'ArrowUp':
           event.preventDefault();
-          onSwipe('super_like', pet.pet_id);
+          onSwipe('super_like', pet.petId);
           break;
         case 'ArrowDown':
         case 'Enter':
         case ' ':
           event.preventDefault();
-          navigate(`/pets/${pet.pet_id}`);
+          navigate(`/pets/${pet.petId}`);
           break;
         case 'Escape':
           event.preventDefault();
-          onSwipe('pass', pet.pet_id);
+          onSwipe('pass', pet.petId);
           break;
       }
     },
-    [isTop, onSwipe, pet.pet_id, navigate]
+    [isTop, onSwipe, pet.petId, navigate]
   );
 
   const [{ x, y, rotate, scale, opacity }, api] = useSpring(() => ({
@@ -230,7 +230,19 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
   }));
 
   const bind = useDrag(
-    ({ active, movement: [mx, my], velocity: [vx], direction: [dx], cancel }) => {
+    ({
+      active,
+      movement: [mx, my],
+      velocity: [vx],
+      direction: [dx],
+      cancel,
+    }: {
+      active: boolean;
+      movement: [number, number];
+      velocity: [number, number];
+      direction: [number, number];
+      cancel?: () => void;
+    }) => {
       if (!isTop) return;
 
       const trigger = Math.abs(mx) > SWIPE_THRESHOLD;
@@ -274,7 +286,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
           let finalAction: 'like' | 'pass' | 'super_like' | 'info';
           if (overlayAction === 'info' && my > 50) {
             // Navigate to pet details instead of swiping away
-            navigate(`/pets/${pet.pet_id}`);
+            navigate(`/pets/${pet.petId}`);
             // Reset card position
             api.start({
               x: 0,
@@ -303,7 +315,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
 
           // Trigger callback after a short delay
           setTimeout(() => {
-            onSwipe(finalAction, pet.pet_id);
+            onSwipe(finalAction, pet.petId);
           }, 100);
 
           if (cancel) cancel();
@@ -327,7 +339,17 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
   );
 
   const primaryImage = pet.images?.[0];
-  const age = pet.age_years > 0 ? `${pet.age_years}y` : `${pet.age_months}m`;
+
+  // Calculate age display - handle undefined values properly
+  let age = '';
+  if (pet.ageYears && pet.ageYears > 0) {
+    age = `${pet.ageYears}y`;
+  } else if (pet.ageMonths && pet.ageMonths > 0) {
+    age = `${pet.ageMonths}m`;
+  } else {
+    // Fallback to age group if specific age not available
+    age = pet.ageGroup || 'Unknown age';
+  }
 
   return (
     <CardContainer
@@ -342,7 +364,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
         ...style,
         zIndex,
         transform: x.to(
-          x =>
+          (x: number) =>
             `translateX(${x}px) translateY(${y.get()}px) rotate(${rotate.get()}deg) scale(${scale.get()})`
         ),
         opacity,
@@ -350,11 +372,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
     >
       <ImageContainer>
         {primaryImage ? (
-          <img
-            src={primaryImage.url}
-            alt={primaryImage.caption || `${pet.name} - ${pet.breed}`}
-            draggable={false}
-          />
+          <img src={primaryImage} alt={`${pet.name} - ${pet.breed || 'pet'}`} draggable={false} />
         ) : (
           <PlaceholderImage />
         )}

@@ -1,10 +1,10 @@
-import { Pet, SwipeAction } from '@/types';
+import { DiscoveryPet, SwipeAction } from '@/types';
 import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { SwipeCard } from './SwipeCard';
 
 interface SwipeStackProps {
-  pets: Pet[];
+  pets: DiscoveryPet[];
   onSwipe: (action: SwipeAction) => void;
   onEndReached: () => void;
   sessionId?: string;
@@ -71,7 +71,7 @@ export const SwipeStack: React.FC<SwipeStackProps> = ({
 
   const handleSwipe = useCallback(
     (action: 'like' | 'pass' | 'super_like' | 'info', petId: string) => {
-      const pet = pets.find(p => p.pet_id === petId);
+      const pet = pets.find(p => p.petId === petId);
       if (!pet) return;
 
       const swipeAction: SwipeAction = {
@@ -139,7 +139,7 @@ export const SwipeStack: React.FC<SwipeStackProps> = ({
 
         return (
           <SwipeCard
-            key={pet.pet_id}
+            key={pet.petId}
             pet={pet}
             onSwipe={handleSwipe}
             isTop={isTop}

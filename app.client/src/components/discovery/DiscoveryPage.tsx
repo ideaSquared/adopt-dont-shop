@@ -1,4 +1,4 @@
-import { Pet, PetSearchFilters, SwipeAction, SwipeSession } from '@/types';
+import { DiscoveryPet, PetSearchFilters, SwipeAction, SwipeSession } from '@/types';
 import { Container } from '@adopt-dont-shop/components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -233,7 +233,7 @@ const ErrorState = styled.div`
 
 export const DiscoveryPage: React.FC = () => {
   const navigate = useNavigate();
-  const [pets, setPets] = useState<Pet[]>([]);
+  const [pets, setPets] = useState<DiscoveryPet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -315,7 +315,7 @@ export const DiscoveryPage: React.FC = () => {
     try {
       const lastPet = pets[pets.length - 1];
       if (lastPet) {
-        const morePets = await discoveryService.loadMorePets(session.sessionId, lastPet.pet_id);
+        const morePets = await discoveryService.loadMorePets(session.sessionId, lastPet.petId);
         if (morePets.length > 0) {
           setPets(prev => [...prev, ...morePets]);
         }
@@ -333,13 +333,13 @@ export const DiscoveryPage: React.FC = () => {
       // Handle info action differently - navigate to pet details
       if (action === 'info') {
         // Navigate to pet details page
-        navigate(`/pets/${currentPet.pet_id}`);
+        navigate(`/pets/${currentPet.petId}`);
         return;
       }
 
       const swipeAction: SwipeAction = {
         action,
-        petId: currentPet.pet_id,
+        petId: currentPet.petId,
         timestamp: new Date().toISOString(),
         sessionId: session.sessionId,
       };

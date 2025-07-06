@@ -1,16 +1,23 @@
-import { Pet, PetDiscoveryQueue, PetSearchFilters, SwipeAction, SwipeStats } from '@/types';
+import {
+  DiscoveryPet,
+  PetDiscoveryQueue,
+  PetSearchFilters,
+  SwipeAction,
+  SwipeStats,
+} from '@/types';
 import { apiService } from './api';
 
 const API_BASE_URL = '/api/v1/discovery';
 
 interface DiscoveryQueueResponse {
-  pets: Pet[];
+  pets: DiscoveryPet[];
+  sessionId: string;
   hasMore: boolean;
-  nextBatchSize: number;
+  nextCursor?: string;
 }
 
 interface LoadMorePetsResponse {
-  pets: Pet[];
+  pets: DiscoveryPet[];
 }
 
 interface SessionStats {
@@ -28,12 +35,12 @@ export class DiscoveryService {
   /**
    * Preload images for better performance
    */
-  private preloadImages(pets: Pet[], count: number = 5): void {
+  private preloadImages(pets: DiscoveryPet[], count: number = 5): void {
     pets.slice(0, count).forEach(pet => {
-      if (pet.images?.[0]?.url && !this.imagePreloadCache.has(pet.images[0].url)) {
+      if (pet.images?.[0] && !this.imagePreloadCache.has(pet.images[0])) {
         const img = new Image();
-        img.src = pet.images[0].url;
-        this.imagePreloadCache.add(pet.images[0].url);
+        img.src = pet.images[0];
+        this.imagePreloadCache.add(pet.images[0]);
       }
     });
   }
@@ -60,7 +67,7 @@ export class DiscoveryService {
         pets: data.pets || [],
         currentIndex: 0,
         hasMore: data.hasMore || false,
-        nextBatchSize: data.nextBatchSize || 20,
+        nextBatchSize: 20, // Default batch size
       };
 
       // Preload images for better performance
@@ -118,7 +125,7 @@ export class DiscoveryService {
   /**
    * Load more pets for infinite swipe
    */
-  async loadMorePets(sessionId: string, lastPetId: string): Promise<Pet[]> {
+  async loadMorePets(sessionId: string, lastPetId: string): Promise<DiscoveryPet[]> {
     try {
       const requestBody = {
         sessionId,

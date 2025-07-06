@@ -18,6 +18,8 @@ export interface DiscoveryPet {
   type: PetType;
   breed?: string;
   ageGroup: AgeGroup;
+  ageYears?: number;
+  ageMonths?: number;
   size: Size;
   gender: Gender;
   images: string[];
@@ -114,7 +116,7 @@ export class DiscoveryService {
     userId?: string
   ): Promise<Pet[]> {
     // Build where conditions based on filters
-    const whereConditions: any = {
+    const whereConditions: Record<string, any> = {
       status: PetStatus.AVAILABLE,
     };
 
@@ -224,6 +226,9 @@ export class DiscoveryService {
    * Transform Pet models to DiscoveryPet format
    */
   private async transformToDiscoveryPets(pets: Pet[]): Promise<DiscoveryPet[]> {
+    const defaultImageUrl =
+      'https://via.placeholder.com/800x600/f5f7fa/666666?text=No+Photo+Available';
+
     return pets.map(pet => {
       // Type assertion to access included rescue data
       const petWithRescue = pet as Pet & {
@@ -233,15 +238,29 @@ export class DiscoveryService {
         };
       };
 
+      // Ensure petId is never undefined
+      const petId = pet.pet_id || `pet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Get image URLs and provide default if none exist
+      let imageUrls: string[] = [];
+      if (pet.images && Array.isArray(pet.images) && pet.images.length > 0) {
+        imageUrls = pet.images.map(img => img.url).filter(url => url);
+      }
+      if (imageUrls.length === 0) {
+        imageUrls = [defaultImageUrl];
+      }
+
       return {
-        petId: pet.pet_id,
-        name: pet.name,
+        petId,
+        name: pet.name || 'Unknown',
         type: pet.type,
         breed: pet.breed || undefined,
         ageGroup: pet.age_group,
+        ageYears: pet.age_years || undefined,
+        ageMonths: pet.age_months || undefined,
         size: pet.size,
         gender: pet.gender,
-        images: pet.images ? pet.images.map(img => img.url) : [],
+        images: imageUrls,
         shortDescription: pet.short_description || undefined,
         rescueName: petWithRescue.rescue?.name || 'Unknown Rescue',
         isSponsored: petWithRescue.rescue?.premium || false,
