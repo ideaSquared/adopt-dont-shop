@@ -1,6 +1,7 @@
+import { ProfileEditForm, SettingsForm } from '@/components/profile';
 import { useAuth } from '@/contexts/AuthContext';
 import { applicationService } from '@/services/applicationService';
-import { Application } from '@/types';
+import { Application, User } from '@/types';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -181,13 +182,34 @@ const LoadingContainer = styled.div`
 
 type TabType = 'profile' | 'applications' | 'settings';
 
+interface UserSettings {
+  notifications?: {
+    email?: boolean;
+    push?: boolean;
+    sms?: boolean;
+  };
+  privacy?: {
+    profileVisibility?: 'public' | 'private';
+    showEmail?: boolean;
+    showPhone?: boolean;
+  };
+  preferences?: {
+    petTypes?: string[];
+    maxDistance?: number;
+    newsletterOptIn?: boolean;
+  };
+}
+
 export const ProfilePage: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -214,6 +236,97 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleProfileSave = async (updatedData: Partial<User>) => {
+    if (!user) return;
+
+    try {
+      setIsSavingProfile(true);
+      setError(null);
+
+      // In dev mode, just update the dev user in localStorage and context
+      if (import.meta.env.DEV) {
+        const token = localStorage.getItem('accessToken');
+        if (token?.startsWith('dev-token-')) {
+          const updatedUser = { ...user, ...updatedData };
+          localStorage.setItem('dev_user', JSON.stringify(updatedUser));
+
+          // Update context if updateProfile method exists
+          if (updateProfile) {
+            await updateProfile(updatedData);
+          }
+
+          setIsEditingProfile(false);
+          return;
+        }
+      }
+
+      // For real users, this would call the API
+      // await updateProfile(updatedData);
+      // TODO: Implement API call when backend is ready
+      // eslint-disable-next-line no-console
+      console.log('Profile update would be sent to API:', updatedData);
+
+      setIsEditingProfile(false);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      setError('Failed to update profile. Please try again.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleSettingsSave = async (settings: UserSettings) => {
+    try {
+      setIsSavingSettings(true);
+      setError(null);
+
+      // In dev mode, just store settings in localStorage
+      if (import.meta.env.DEV) {
+        localStorage.setItem('user_settings', JSON.stringify(settings));
+        return;
+      }
+
+      // For real users, this would call the API
+      // TODO: Implement API call when backend is ready
+      // eslint-disable-next-line no-console
+      console.log('Settings would be sent to API:', settings);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      setError('Failed to save settings. Please try again.');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // In dev mode, just clear localStorage and redirect
+      if (import.meta.env.DEV) {
+        const token = localStorage.getItem('accessToken');
+        if (token?.startsWith('dev-token-')) {
+          localStorage.removeItem('dev_user');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user_settings');
+          navigate('/');
+          return;
+        }
+      }
+
+      // For real users, this would call the API
+      // TODO: Implement API call when backend is ready
+      // eslint-disable-next-line no-console
+      console.log('Account deletion would be sent to API');
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      setError('Failed to delete account. Please try again.');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -226,48 +339,59 @@ export const ProfilePage: React.FC = () => {
     <Section>
       <SectionTitle>Profile Information</SectionTitle>
       {user && (
-        <ProfileInfo>
-          <InfoItem>
-            <InfoLabel>Name</InfoLabel>
-            <InfoValue>
-              {user.firstName} {user.lastName}
-            </InfoValue>
-          </InfoItem>
-          <InfoItem>
-            <InfoLabel>Email</InfoLabel>
-            <InfoValue>{user.email}</InfoValue>
-          </InfoItem>
-          <InfoItem>
-            <InfoLabel>Phone</InfoLabel>
-            <InfoValue>{user.phone || 'Not provided'}</InfoValue>
-          </InfoItem>
-          <InfoItem>
-            <InfoLabel>Location</InfoLabel>
-            <InfoValue>
-              {user.location?.city && user.location?.state
-                ? `${user.location.city}, ${user.location.state}`
-                : 'Not provided'}
-            </InfoValue>
-          </InfoItem>
-          <InfoItem>
-            <InfoLabel>Member Since</InfoLabel>
-            <InfoValue>{formatDate(user.createdAt)}</InfoValue>
-          </InfoItem>
-          <InfoItem>
-            <InfoLabel>Email Verified</InfoLabel>
-            <InfoValue>{user.emailVerified ? 'Yes' : 'No'}</InfoValue>
-          </InfoItem>
-        </ProfileInfo>
+        <>
+          {isEditingProfile ? (
+            <ProfileEditForm
+              user={user}
+              onSave={handleProfileSave}
+              onCancel={() => setIsEditingProfile(false)}
+              isLoading={isSavingProfile}
+            />
+          ) : (
+            <>
+              <ProfileInfo>
+                <InfoItem>
+                  <InfoLabel>Name</InfoLabel>
+                  <InfoValue>
+                    {user.firstName} {user.lastName}
+                  </InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>Email</InfoLabel>
+                  <InfoValue>{user.email}</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>Phone</InfoLabel>
+                  <InfoValue>{user.phone || 'Not provided'}</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>Preferred Contact</InfoLabel>
+                  <InfoValue>{user.preferredContactMethod || 'Not specified'}</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>Location</InfoLabel>
+                  <InfoValue>
+                    {user.location?.city && user.location?.state
+                      ? `${user.location.city}, ${user.location.state}`
+                      : 'Not provided'}
+                  </InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>Member Since</InfoLabel>
+                  <InfoValue>{formatDate(user.createdAt)}</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>Email Verified</InfoLabel>
+                  <InfoValue>{user.emailVerified ? 'Yes' : 'No'}</InfoValue>
+                </InfoItem>
+              </ProfileInfo>
+              <div style={{ marginTop: '2rem' }}>
+                <Button onClick={() => setIsEditingProfile(true)}>Edit Profile</Button>
+              </div>
+            </>
+          )}
+        </>
       )}
-      <div style={{ marginTop: '2rem' }}>
-        <Button
-          onClick={() => {
-            // TODO: Implement edit profile functionality
-          }}
-        >
-          Edit Profile
-        </Button>
-      </div>
     </Section>
   );
 
@@ -323,10 +447,14 @@ export const ProfilePage: React.FC = () => {
   const renderSettingsTab = () => (
     <Section>
       <SectionTitle>Settings</SectionTitle>
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <p>Settings functionality will be implemented in a future update.</p>
-        <p>This will include notification preferences, privacy settings, and account management.</p>
-      </div>
+      {user && (
+        <SettingsForm
+          user={user}
+          onSave={handleSettingsSave}
+          onDeleteAccount={handleDeleteAccount}
+          isLoading={isSavingSettings}
+        />
+      )}
     </Section>
   );
 

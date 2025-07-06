@@ -158,12 +158,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateProfile = async (profileData: Partial<User>) => {
     if (!user) throw new Error('No user logged in');
 
-    try {
-      const updatedUser = await authService.updateProfile(profileData);
-      setUser(updatedUser);
-    } catch (error) {
-      throw error;
+    // In development mode, handle dev users differently
+    if (import.meta.env.DEV) {
+      const token = localStorage.getItem('accessToken');
+      if (token?.startsWith('dev-token-')) {
+        const updatedUser = { ...user, ...profileData };
+        setUser(updatedUser);
+        localStorage.setItem('dev_user', JSON.stringify(updatedUser));
+        return;
+      }
     }
+
+    const updatedUser = await authService.updateProfile(profileData);
+    setUser(updatedUser);
   };
 
   const refreshUser = async () => {
