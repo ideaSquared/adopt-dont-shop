@@ -17,8 +17,13 @@ export interface User {
   addressLine2?: string;
   postalCode?: string;
   location?: {
-    type: string;
-    coordinates: [number, number];
+    type?: string;
+    coordinates?: [number, number];
+    address?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
   };
   privacySettings?: {
     profileVisibility?: string;

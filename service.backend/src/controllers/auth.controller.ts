@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { body } from 'express-validator';
 import AuthService from '../services/auth.service';
+import { UserService } from '../services/user.service';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
 
@@ -57,6 +58,49 @@ export const authValidation = {
 
   resendVerification: [
     body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email address'),
+  ],
+
+  updateProfile: [
+    body('firstName')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('First name must be 1-50 characters'),
+    body('lastName')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Last name must be 1-50 characters'),
+    body('phoneNumber')
+      .optional()
+      .isMobilePhone('any')
+      .withMessage('Please provide a valid phone number'),
+    body('bio')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Bio must be max 500 characters'),
+    body('profileImageUrl').optional().isURL().withMessage('Profile image must be a valid URL'),
+    body('location.city')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('City must be max 100 characters'),
+    body('location.country')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Country must be max 100 characters'),
+    body('location.address')
+      .optional()
+      .trim()
+      .isLength({ max: 255 })
+      .withMessage('Address must be max 255 characters'),
+    body('location.zipCode')
+      .optional()
+      .trim()
+      .isLength({ max: 20 })
+      .withMessage('Zip code must be max 20 characters'),
   ],
 };
 
@@ -226,6 +270,29 @@ export class AuthController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Get current user failed:', error);
       res.status(500).json({ error: 'Failed to get user profile' });
+    }
+  }
+
+  /**
+   * Update current user profile
+   */
+  async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const updateData = req.body;
+
+      const updatedUser = await UserService.updateUserProfile(userId, updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Update profile failed:', error);
+
+      if (errorMessage === 'User not found') {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      res.status(500).json({ error: 'Failed to update profile' });
     }
   }
 }

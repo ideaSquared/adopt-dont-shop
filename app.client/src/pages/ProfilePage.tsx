@@ -210,6 +210,7 @@ export const ProfilePage: React.FC = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -243,33 +244,37 @@ export const ProfilePage: React.FC = () => {
       setIsSavingProfile(true);
       setError(null);
 
-      // In dev mode, just update the dev user in localStorage and context
-      if (import.meta.env.DEV) {
-        const token = localStorage.getItem('accessToken');
-        if (token?.startsWith('dev-token-')) {
-          const updatedUser = { ...user, ...updatedData };
-          localStorage.setItem('dev_user', JSON.stringify(updatedUser));
-
-          // Update context if updateProfile method exists
-          if (updateProfile) {
-            await updateProfile(updatedData);
-          }
-
-          setIsEditingProfile(false);
-          return;
-        }
+      // Use the updateProfile method from AuthContext which handles both dev and production
+      if (updateProfile) {
+        await updateProfile(updatedData);
+      } else {
+        throw new Error('Profile update is not available. Please refresh the page and try again.');
       }
 
-      // For real users, this would call the API
-      // await updateProfile(updatedData);
-      // TODO: Implement API call when backend is ready
-      // eslint-disable-next-line no-console
-      console.log('Profile update would be sent to API:', updatedData);
-
       setIsEditingProfile(false);
+      setSuccessMessage('Profile updated successfully!');
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error('Failed to update profile:', error);
-      setError('Failed to update profile. Please try again.');
+
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.message.includes('validation') || error.message.includes('Validation')) {
+          setError('Please check your input and try again.');
+        } else if (error.message.includes('network') || error.message.includes('Network')) {
+          setError('Network error. Please check your connection and try again.');
+        } else if (
+          error.message.includes('unauthorized') ||
+          error.message.includes('Unauthorized')
+        ) {
+          setError('Your session has expired. Please log in again.');
+        } else {
+          setError(error.message || 'Failed to update profile. Please try again.');
+        }
+      } else {
+        setError('Failed to update profile. Please try again.');
+      }
     } finally {
       setIsSavingProfile(false);
     }
@@ -338,6 +343,11 @@ export const ProfilePage: React.FC = () => {
   const renderProfileTab = () => (
     <Section>
       <SectionTitle>Profile Information</SectionTitle>
+      {successMessage && (
+        <div style={{ marginBottom: '1rem' }}>
+          <Alert variant='success'>{successMessage}</Alert>
+        </div>
+      )}
       {user && (
         <>
           {isEditingProfile ? (
@@ -371,8 +381,11 @@ export const ProfilePage: React.FC = () => {
                 <InfoItem>
                   <InfoLabel>Location</InfoLabel>
                   <InfoValue>
-                    {user.location?.city && user.location?.state
-                      ? `${user.location.city}, ${user.location.state}`
+                    {(user.location?.city || user.city) &&
+                    (user.location?.state || user.location?.country || user.country)
+                      ? `${user.location?.city || user.city}, ${
+                          user.location?.state || user.location?.country || user.country
+                        }`
                       : 'Not provided'}
                   </InfoValue>
                 </InfoItem>
@@ -384,6 +397,12 @@ export const ProfilePage: React.FC = () => {
                   <InfoLabel>Email Verified</InfoLabel>
                   <InfoValue>{user.emailVerified ? 'Yes' : 'No'}</InfoValue>
                 </InfoItem>
+                {user.bio && (
+                  <InfoItem>
+                    <InfoLabel>Bio</InfoLabel>
+                    <InfoValue>{user.bio}</InfoValue>
+                  </InfoItem>
+                )}
               </ProfileInfo>
               <div style={{ marginTop: '2rem' }}>
                 <Button onClick={() => setIsEditingProfile(true)}>Edit Profile</Button>

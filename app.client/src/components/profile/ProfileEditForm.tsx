@@ -1,6 +1,6 @@
 import { User } from '@/types';
-import { Button, Input } from '@adopt-dont-shop/components';
-import React, { useState } from 'react';
+import { Button, Input, TextArea } from '@adopt-dont-shop/components';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
 const Form = styled.form`
@@ -57,6 +57,42 @@ const ButtonGroup = styled.div`
   }
 `;
 
+const FormTitle = styled.h3`
+  font-size: 1.25rem;
+  color: ${props => props.theme.text.primary};
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const UnsavedBadge = styled.span`
+  background: ${props => props.theme.colors.semantic?.warning?.[100] || '#fef3c7'};
+  color: ${props => props.theme.colors.semantic?.warning?.[700] || '#92400e'};
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+`;
+
+const KeyboardHint = styled.div`
+  font-size: 0.75rem;
+  color: ${props => props.theme.text.secondary};
+  text-align: center;
+  margin-top: 0.5rem;
+  opacity: 0.7;
+`;
+
+const CharacterCount = styled.div<{ $isNearLimit: boolean }>`
+  font-size: 0.75rem;
+  color: ${props =>
+    props.$isNearLimit
+      ? props.theme.colors.semantic?.warning?.[600] || '#d97706'
+      : props.theme.text.secondary};
+  text-align: right;
+  margin-top: 0.25rem;
+`;
+
 interface ProfileEditFormProps {
   user: User;
   onSave: (updatedUser: Partial<User>) => Promise<void>;
@@ -74,20 +110,41 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     firstName: user.firstName || '',
     lastName: user.lastName || '',
     email: user.email || '',
-    phone: user.phone || '',
+    phone: user.phone || user.phoneNumber || '',
     preferredContactMethod: user.preferredContactMethod || 'email',
+    bio: user.bio || '',
     location: {
-      address: user.location?.address || '',
-      city: user.location?.city || '',
+      address: user.location?.address || user.addressLine1 || '',
+      city: user.location?.city || user.city || '',
       state: user.location?.state || '',
-      zipCode: user.location?.zipCode || '',
-      country: user.location?.country || 'US',
+      zipCode: user.location?.zipCode || user.postalCode || '',
+      country: user.location?.country || user.country || 'US',
     },
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Handle Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (!isLoading && hasChanges) {
+          document
+            .getElementById('profile-edit-form')
+            ?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isLoading, hasChanges]);
 
   const handleInputChange = (field: string, value: string) => {
+    setHasChanges(true);
+
     if (field.startsWith('location.')) {
       const locationField = field.split('.')[1];
       setFormData(prev => ({
@@ -135,6 +192,10 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       newErrors['location.zipCode'] = 'Please enter a valid ZIP code';
     }
 
+    if (formData.bio && formData.bio.length > 500) {
+      newErrors.bio = 'Bio must be 500 characters or less';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -147,11 +208,50 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     }
 
     try {
-      await onSave(formData);
+      // Transform formData to match User interface
+      const userData: Partial<User> = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        phoneNumber: formData.phone, // Support both fields
+        preferredContactMethod: formData.preferredContactMethod,
+        bio: formData.bio,
+        // Map location fields to both new and legacy formats
+        location: {
+          type: 'Point', // Default GeoJSON type
+          coordinates: [0, 0], // Default coordinates
+          address: formData.location.address,
+          city: formData.location.city,
+          state: formData.location.state,
+          zipCode: formData.location.zipCode,
+          country: formData.location.country,
+        },
+        // Legacy field mappings
+        addressLine1: formData.location.address,
+        city: formData.location.city,
+        postalCode: formData.location.zipCode,
+        country: formData.location.country,
+      };
+
+      await onSave(userData);
+      setHasChanges(false); // Reset changes indicator after successful save
     } catch (error) {
       console.error('Failed to save profile:', error);
       setErrors({ submit: 'Failed to save profile. Please try again.' });
     }
+  };
+
+  const handleCancel = () => {
+    if (hasChanges) {
+      const confirmCancel = window.confirm(
+        'You have unsaved changes. Are you sure you want to cancel?'
+      );
+      if (!confirmCancel) {
+        return;
+      }
+    }
+    onCancel();
   };
 
   const usStates = [
@@ -208,7 +308,12 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   ];
 
   return (
-    <Form onSubmit={handleSubmit}>
+    <Form id='profile-edit-form' onSubmit={handleSubmit}>
+      <FormTitle>
+        Edit Profile
+        {hasChanges && <UnsavedBadge>Unsaved changes</UnsavedBadge>}
+      </FormTitle>
+
       <FormRow>
         <FormGroup>
           <Label htmlFor='firstName'>First Name *</Label>
@@ -274,6 +379,23 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
           <option value='phone'>Phone</option>
           <option value='both'>Both</option>
         </Select>
+      </FormGroup>
+
+      <FormGroup>
+        <Label htmlFor='bio'>Bio</Label>
+        <TextArea
+          id='bio'
+          value={formData.bio}
+          onChange={e => handleInputChange('bio', e.target.value)}
+          error={errors.bio}
+          disabled={isLoading}
+          placeholder='Tell us a little about yourself...'
+          rows={4}
+          maxLength={500}
+        />
+        <CharacterCount $isNearLimit={formData.bio.length > 400}>
+          {formData.bio.length}/500 characters
+        </CharacterCount>
       </FormGroup>
 
       <FormGroup>
@@ -350,13 +472,15 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       {errors.submit && <div style={{ color: 'red', fontSize: '0.875rem' }}>{errors.submit}</div>}
 
       <ButtonGroup>
-        <Button type='button' variant='secondary' onClick={onCancel} disabled={isLoading}>
+        <Button type='button' variant='secondary' onClick={handleCancel} disabled={isLoading}>
           Cancel
         </Button>
         <Button type='submit' isLoading={isLoading} disabled={isLoading}>
           Save Changes
         </Button>
       </ButtonGroup>
+
+      <KeyboardHint>💡 Tip: Press Ctrl+S (or ⌘+S on Mac) to save quickly</KeyboardHint>
     </Form>
   );
 };

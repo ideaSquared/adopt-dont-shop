@@ -47,4 +47,7 @@ router.post(
 // GET /auth/me
 router.get('/me', authenticateToken, AuthController.getCurrentUser);
 
+// PUT /auth/me
+router.put('/me', authenticateToken, authValidation.updateProfile, AuthController.updateProfile);
+
 export default router;
