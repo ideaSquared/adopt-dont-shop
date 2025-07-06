@@ -29,7 +29,7 @@ class EmailService {
       logger.error('Failed to initialize email provider:', error);
     });
 
-    this.startQueueProcessor();
+    // Don't start queue processor in constructor - wait for database to be ready
   }
 
   private async initializeProvider(): Promise<void> {
@@ -538,7 +538,12 @@ class EmailService {
   }
 
   // Queue Processing
-  private startQueueProcessor(): void {
+  public startQueueProcessor(): void {
+    if (this.processingInterval) {
+      logger.warn('Email queue processor already running');
+      return;
+    }
+
     this.processingInterval = setInterval(async () => {
       if (!this.isProcessing) {
         await this.processEmailQueue();
