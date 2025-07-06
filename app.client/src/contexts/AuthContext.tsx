@@ -11,6 +11,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (profileData: Partial<User>) => Promise<void>;
   refreshUser: () => Promise<void>;
+  // Development only method
+  setDevUser?: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,10 +33,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Debug user state changes in development
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log('AuthContext: User state changed:', {
+        user: user?.email || 'null',
+        isAuthenticated: !!user,
+        isLoading,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }, [user, isLoading]);
+
   // Initialize auth state from localStorage
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // In development mode, check for dev user first
+        if (import.meta.env.DEV) {
+          const devUser = localStorage.getItem('dev_user');
+          // eslint-disable-next-line no-console
+          console.log('AuthContext init - checking dev user:', devUser ? 'found' : 'not found');
+          if (devUser) {
+            const parsedUser = JSON.parse(devUser);
+
+            // Ensure dev user has a mock token
+            const existingToken = localStorage.getItem('accessToken');
+            if (!existingToken || !existingToken.startsWith('dev-token-')) {
+              const mockToken = `dev-token-${parsedUser.userId}-${Date.now()}`;
+              localStorage.setItem('accessToken', mockToken);
+              localStorage.setItem('authToken', mockToken);
+              // eslint-disable-next-line no-console
+              console.log('AuthContext init - generated mock token for dev user');
+            }
+
+            setUser(parsedUser);
+            // eslint-disable-next-line no-console
+            console.log('AuthContext init - dev user loaded:', parsedUser.email);
+            setIsLoading(false);
+            return;
+          }
+        }
+
         const currentUser = authService.getCurrentUser();
         if (currentUser && authService.isAuthenticated()) {
           // Verify token is still valid by fetching fresh user data
@@ -43,8 +84,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
-        // Clear invalid auth data
-        await authService.logout();
+        // Clear invalid auth data only if we're not in dev mode with a dev user
+        if (!import.meta.env.DEV || !localStorage.getItem('dev_user')) {
+          await authService.logout();
+        }
       } finally {
         setIsLoading(false);
       }
@@ -84,10 +127,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await authService.logout();
       setUser(null);
+      // Clear dev user data in development mode
+      if (import.meta.env.DEV) {
+        localStorage.removeItem('dev_user');
+        // Clear mock tokens for dev users
+        const token = localStorage.getItem('accessToken');
+        if (token?.startsWith('dev-token-')) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('authToken');
+        }
+      }
     } catch (error) {
       console.error('Logout error:', error);
       // Even if logout fails, clear local state
       setUser(null);
+      if (import.meta.env.DEV) {
+        localStorage.removeItem('dev_user');
+        // Clear mock tokens for dev users
+        const token = localStorage.getItem('accessToken');
+        if (token?.startsWith('dev-token-')) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('authToken');
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -105,6 +167,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshUser = async () => {
+    // Don't refresh dev users
+    if (import.meta.env.DEV && localStorage.getItem('dev_user')) {
+      return;
+    }
+
     if (!authService.isAuthenticated()) return;
 
     try {
@@ -112,8 +179,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(freshUser);
     } catch (error) {
       console.error('Failed to refresh user:', error);
-      // If refresh fails, logout user
-      await logout();
+      // If refresh fails, logout user (but not dev users)
+      if (!import.meta.env.DEV || !localStorage.getItem('dev_user')) {
+        await logout();
+      }
+    }
+  };
+
+  // Development only method to directly set user
+  const setDevUser = (devUser: User) => {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log('setDevUser called with:', devUser.email);
+      setUser(devUser);
+      // Store in localStorage for persistence during dev
+      localStorage.setItem('dev_user', JSON.stringify(devUser));
+      // eslint-disable-next-line no-console
+      console.log('Dev user stored in localStorage');
     }
   };
 
@@ -126,6 +208,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     updateProfile,
     refreshUser,
+    ...(import.meta.env.DEV && { setDevUser }),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

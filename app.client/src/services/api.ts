@@ -280,6 +280,16 @@ class ApiService {
   // Public fetch method with authentication
   async fetchWithAuth<T>(url: string, options: FetchOptions = {}): Promise<T> {
     const token = this.getAuthToken();
+
+    // In development mode, check if this is a dev token
+    if (import.meta.env.DEV && token?.startsWith('dev-token-')) {
+      // For dev tokens, make requests without authentication header
+      // The backend should handle missing auth gracefully in dev mode
+      // eslint-disable-next-line no-console
+      console.log('API: Using dev token, making request without auth header');
+      return this.makeRequest<T>(url, options);
+    }
+
     const headers = {
       ...options.headers,
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -445,3 +455,4 @@ class ApiService {
 }
 
 export const apiService = new ApiService();
+export const api = apiService;

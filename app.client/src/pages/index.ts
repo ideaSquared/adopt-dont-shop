@@ -1,7 +1,9 @@
+export { ApplicationPage } from './ApplicationPage';
 export { FavoritesPage } from './FavoritesPage';
 export { HomePage } from './HomePage';
 export { LoginPage } from './LoginPage';
 export { PetDetailsPage } from './PetDetailsPage';
+export { ProfilePage } from './ProfilePage';
 export { RegisterPage } from './RegisterPage';
 export { RescueDetailsPage } from './RescueDetailsPage';
 export { SearchPage } from './SearchPage';

@@ -1,9 +1,11 @@
 import { AuthProvider } from '@/contexts/AuthContext';
 import {
+  ApplicationPage,
   FavoritesPage,
   HomePage,
   LoginPage,
   PetDetailsPage,
+  ProfilePage,
   RegisterPage,
   RescueDetailsPage,
   SearchPage,
@@ -11,12 +13,11 @@ import {
 import { Footer } from '@adopt-dont-shop/components';
 import { useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { DiscoveryPage } from './components/discovery/DiscoveryPage';
 import { AppNavbar } from './components/navigation/AppNavbar';
 import { SwipeOnboarding } from './components/onboarding/SwipeOnboarding';
 import { SwipeFloatingButton } from './components/ui/SwipeFloatingButton';
-const ApplicationPage = () => <div>Application Page - To be migrated</div>;
-const ProfilePage = () => <div>Profile Page - To be migrated</div>;
 
 function App() {
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -40,6 +41,7 @@ function App() {
           </Routes>
         </main>
         <SwipeFloatingButton />
+        <DevLoginPanel />
         {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
         <Footer />
       </div>

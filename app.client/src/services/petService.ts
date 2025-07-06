@@ -191,6 +191,14 @@ class PetService {
   // Check if pet is in user's favorites (requires authentication)
   async isFavorite(petId: string): Promise<boolean> {
     try {
+      // In dev mode with dev token, return false to avoid auth issues
+      if (import.meta.env.DEV) {
+        const token = localStorage.getItem('accessToken');
+        if (token?.startsWith('dev-token-')) {
+          return false; // Dev users don't have favorites yet
+        }
+      }
+
       const result = await apiService.get<ApiResponse<{ isFavorite: boolean }>>(
         `/api/v1/pets/${petId}/favorite/status`
       );

@@ -111,6 +111,14 @@ export interface Pet {
   created_at: string;
   updated_at: string;
   deleted_at?: string;
+
+  // Rescue information (joined from rescue table)
+  rescue?: {
+    name: string;
+    location?: string;
+    phone?: string;
+    email?: string;
+  };
 }
 
 export interface PetImage {
@@ -189,15 +197,115 @@ export interface PaginatedResponse<T> {
 }
 
 // Application Types
-export interface Application {
-  applicationId: string;
+export interface ApplicationData {
   petId: string;
   userId: string;
-  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
-  submittedAt: string;
+  rescueId: string;
+  personalInfo: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    dateOfBirth?: string;
+    occupation?: string;
+  };
+  livingsituation: {
+    housingType: 'house' | 'apartment' | 'condo' | 'other';
+    isOwned: boolean;
+    hasYard: boolean;
+    yardSize?: 'small' | 'medium' | 'large';
+    yardFenced?: boolean;
+    allowsPets: boolean;
+    landlordContact?: string;
+    householdSize: number;
+    householdMembers?: Array<{
+      name: string;
+      age: number;
+      relationship: string;
+    }>;
+    hasAllergies: boolean;
+    allergyDetails?: string;
+  };
+  petExperience: {
+    hasPetsCurrently: boolean;
+    currentPets?: Array<{
+      type: string;
+      breed?: string;
+      age: number;
+      spayedNeutered: boolean;
+      vaccinated: boolean;
+    }>;
+    previousPets?: Array<{
+      type: string;
+      breed?: string;
+      yearsOwned: number;
+      whatHappened: string;
+    }>;
+    experienceLevel: 'beginner' | 'some' | 'experienced' | 'expert';
+    willingToTrain: boolean;
+    hoursAloneDaily: number;
+    exercisePlans: string;
+  };
+  references: {
+    veterinarian?: {
+      name: string;
+      clinicName: string;
+      phone: string;
+      email?: string;
+      yearsUsed: number;
+    };
+    personal: Array<{
+      name: string;
+      relationship: string;
+      phone: string;
+      email?: string;
+      yearsKnown: number;
+    }>;
+  };
+  additionalInfo?: {
+    whyAdopt: string;
+    expectations: string;
+    petName?: string;
+    emergencyPlan: string;
+    agreement: boolean;
+  };
+}
+
+export type ApplicationStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'pending_references'
+  | 'home_visit_scheduled'
+  | 'approved'
+  | 'rejected'
+  | 'withdrawn'
+  | 'on_hold';
+
+export interface Application {
+  id: string;
+  petId: string;
+  userId: string;
+  rescueId: string;
+  status: ApplicationStatus;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewNotes?: string;
+  data: ApplicationData;
+  documents?: Array<{
+    id: string;
+    type: string;
+    filename: string;
+    url: string;
+    uploadedAt: string;
+  }>;
+  createdAt: string;
   updatedAt: string;
-  pet?: Pet;
-  user?: User;
 }
 
 // Rescue Types
