@@ -14,6 +14,8 @@ import { seedMessages } from './11-messages';
 import { seedNotifications } from './12-notifications';
 import { seedRatings } from './13-ratings';
 import { seedEmailTemplates } from './14-email-templates';
+import { up as seedSwipeSessions } from './15-swipe-sessions';
+import { up as seedSwipeActions } from './16-swipe-actions';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -31,6 +33,8 @@ const seeders = [
   { name: 'Notifications', seeder: seedNotifications },
   { name: 'Ratings', seeder: seedRatings },
   { name: 'Email Templates', seeder: seedEmailTemplates },
+  { name: 'Swipe Sessions', seeder: () => seedSwipeSessions(sequelize.getQueryInterface()) },
+  { name: 'Swipe Actions', seeder: () => seedSwipeActions(sequelize.getQueryInterface()) },
 ];
 
 export async function runAllSeeders() {
@@ -73,6 +77,8 @@ export async function clearAllData() {
 
     // Clear in reverse order to handle foreign key constraints
     const clearOrder = [
+      'swipe_actions',
+      'swipe_sessions',
       'messages',
       'chat_participants',
       'chats',

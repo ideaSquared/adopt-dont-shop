@@ -216,7 +216,7 @@ export const HomePage: React.FC = () => {
             <>
               <PetGrid>
                 {featuredPets.map(pet => (
-                  <PetCard key={pet.petId} pet={pet} />
+                  <PetCard key={pet.pet_id} pet={pet} />
                 ))}
               </PetGrid>
 

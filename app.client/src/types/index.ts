@@ -246,3 +246,42 @@ export interface Rescue {
   };
   type: 'individual' | 'organization';
 }
+
+// Swipe Interface Types
+export interface SwipeSession {
+  sessionId: string;
+  userId?: string;
+  startTime: string;
+  endTime?: string;
+  totalSwipes: number;
+  likes: number;
+  passes: number;
+  superLikes: number;
+  filters: PetSearchFilters;
+}
+
+export interface SwipeAction {
+  action: 'like' | 'pass' | 'super_like' | 'info';
+  petId: string;
+  timestamp: string;
+  sessionId: string;
+}
+
+export interface PetDiscoveryQueue {
+  pets: Pet[];
+  currentIndex: number;
+  hasMore: boolean;
+  nextBatchSize: number;
+}
+
+export interface SwipeStats {
+  totalSessions: number;
+  totalSwipes: number;
+  totalLikes: number;
+  totalPasses: number;
+  totalSuperLikes: number;
+  likeToSwipeRatio: number;
+  averageSessionDuration: number;
+  favoriteBreeds: string[];
+  favoriteAgeGroups: string[];
+}

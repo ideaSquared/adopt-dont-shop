@@ -12,11 +12,15 @@ import { SocketHandlers } from './socket/socket-handlers';
 import { logger } from './utils/logger';
 import { printEnvironmentInfo, validateEnvironment } from './utils/validate-env';
 
+// Import models to ensure they're loaded
+import './models';
+
 // Import routes
 import adminRoutes from './routes/admin.routes';
 import applicationRoutes from './routes/application.routes';
 import authRoutes from './routes/auth.routes';
 import chatRoutes from './routes/chat.routes';
+import discoveryRoutes from './routes/discovery.routes';
 import emailRoutes from './routes/email.routes';
 import monitoringRoutes from './routes/monitoring.routes';
 import notificationRoutes from './routes/notification.routes';
@@ -120,6 +124,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/applications', applicationRoutes);
 app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/conversations', chatRoutes);
+app.use('/api/v1/discovery', discoveryRoutes);
 app.use('/api/v1/email', emailRoutes);
 app.use('/api/v1/pets', petRoutes);
 app.use('/api/v1/users', userRoutes);

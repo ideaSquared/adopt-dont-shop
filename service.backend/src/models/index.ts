@@ -36,6 +36,10 @@ import EmailPreference from './EmailPreference';
 import EmailQueue from './EmailQueue';
 import EmailTemplate from './EmailTemplate';
 
+// Swipe Interface Models
+import { SwipeAction } from './SwipeAction';
+import { SwipeSession } from './SwipeSession';
+
 // Define all models
 const models = {
   User,
@@ -63,6 +67,8 @@ const models = {
   EmailTemplate,
   EmailQueue,
   EmailPreference,
+  SwipeSession,
+  SwipeAction,
 };
 
 // Setup associations (done explicitly below instead of using associate methods)
@@ -193,6 +199,19 @@ EmailQueue.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 User.hasMany(EmailQueue, { foreignKey: 'createdBy', as: 'CreatedEmails' });
 EmailQueue.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
 
+// Swipe Interface associations
+User.hasMany(SwipeSession, { foreignKey: 'userId', as: 'SwipeSessions' });
+SwipeSession.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+
+SwipeSession.hasMany(SwipeAction, { foreignKey: 'sessionId', as: 'SwipeActions' });
+SwipeAction.belongsTo(SwipeSession, { foreignKey: 'sessionId', as: 'Session' });
+
+User.hasMany(SwipeAction, { foreignKey: 'userId', as: 'SwipeActions' });
+SwipeAction.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+
+Pet.hasMany(SwipeAction, { foreignKey: 'petId', as: 'SwipeActions' });
+SwipeAction.belongsTo(Pet, { foreignKey: 'petId', as: 'Pet' });
+
 User.hasOne(EmailPreference, { foreignKey: 'userId', as: 'EmailPreferences' });
 EmailPreference.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
@@ -227,6 +246,8 @@ export {
   Role,
   RolePermission,
   StaffMember,
+  SwipeAction,
+  SwipeSession,
   User,
   UserFavorite,
   UserRole,

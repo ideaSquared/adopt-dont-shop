@@ -111,6 +111,7 @@ describe('RescueService', () => {
           {
             model: StaffMember,
             as: 'staff',
+            required: false,
             include: [
               {
                 model: User,
@@ -255,6 +256,7 @@ describe('RescueService', () => {
           {
             model: StaffMember,
             as: 'staff',
+            required: false,
             include: [
               {
                 model: User,
@@ -350,6 +352,7 @@ describe('RescueService', () => {
         commit: jest.fn(),
         rollback: jest.fn(),
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
         transaction: jest.fn().mockResolvedValue(mockTransaction),
       };
@@ -407,6 +410,7 @@ describe('RescueService', () => {
         commit: jest.fn(),
         rollback: jest.fn(),
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
         transaction: jest.fn().mockResolvedValue(mockTransaction),
       };
@@ -474,6 +478,7 @@ describe('RescueService', () => {
         commit: jest.fn(),
         rollback: jest.fn(),
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
         transaction: jest.fn().mockResolvedValue(mockTransaction),
       };
@@ -534,6 +539,7 @@ describe('RescueService', () => {
         commit: jest.fn(),
         rollback: jest.fn(),
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
         transaction: jest.fn().mockResolvedValue(mockTransaction),
       };
@@ -618,6 +624,7 @@ describe('RescueService', () => {
         commit: jest.fn(),
         rollback: jest.fn(),
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
         transaction: jest.fn().mockResolvedValue(mockTransaction),
       };
@@ -789,6 +796,7 @@ describe('RescueService', () => {
         commit: jest.fn(),
         rollback: jest.fn(),
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
         transaction: jest.fn().mockResolvedValue(mockTransaction),
       };
