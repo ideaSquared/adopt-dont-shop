@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { petService } from '@/services/petService';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import { Pet } from '@/types';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useState } from 'react';
@@ -170,16 +170,22 @@ interface PetCardProps {
   pet: Pet;
   showFavoriteButton?: boolean;
   onFavoriteToggle?: (petId: string, isFavorite: boolean) => void;
+  isFavorite?: boolean; // Optional prop to override the favorites context
 }
 
 export const PetCard: React.FC<PetCardProps> = ({
   pet,
   showFavoriteButton = true,
   onFavoriteToggle,
+  isFavorite: propIsFavorite,
 }) => {
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
   const { isAuthenticated } = useAuth();
+  const favorites = useFavorites();
+
+  // Use prop if provided, otherwise check favorites context
+  const isFavorite =
+    propIsFavorite !== undefined ? propIsFavorite : favorites.isFavorite(pet.pet_id);
 
   const primaryPhoto = pet.images?.find(image => image.is_primary) || pet.images?.[0];
 
@@ -196,16 +202,16 @@ export const PetCard: React.FC<PetCardProps> = ({
 
     try {
       if (isFavorite) {
-        await petService.removeFromFavorites(pet.pet_id);
-        setIsFavorite(false);
+        await favorites.removeFromFavorites(pet.pet_id);
         onFavoriteToggle?.(pet.pet_id, false);
       } else {
-        await petService.addToFavorites(pet.pet_id);
-        setIsFavorite(true);
+        await favorites.addToFavorites(pet.pet_id);
         onFavoriteToggle?.(pet.pet_id, true);
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
+      // Could show a toast notification here in the future
+      // For now, just log the error - the favorites context handles the "already favorited" case
     } finally {
       setIsLoadingFavorite(false);
     }

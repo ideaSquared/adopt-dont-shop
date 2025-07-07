@@ -1298,22 +1298,30 @@ export class PetService {
         throw new Error('Pet not found');
       }
 
-      // Check if already favorited
+      // Check if already favorited (including soft-deleted records)
       const existingFavorite = await UserFavorite.findOne({
         where: { user_id: userId, pet_id: petId },
+        paranoid: false, // Include soft-deleted records
       });
 
-      if (existingFavorite) {
+      if (existingFavorite && !existingFavorite.deleted_at) {
+        // Already favorited and not soft-deleted
         throw new Error('Pet is already in favorites');
       }
 
-      await UserFavorite.create({
-        user_id: userId,
-        pet_id: petId,
-        created_at: new Date(),
-      });
-
-      logger.info(`Pet ${petId} added to favorites for user ${userId}`);
+      if (existingFavorite && existingFavorite.deleted_at) {
+        // Restore soft-deleted favorite
+        await existingFavorite.restore();
+        logger.info(`Pet ${petId} favorite restored for user ${userId}`);
+      } else {
+        // Create new favorite
+        await UserFavorite.create({
+          user_id: userId,
+          pet_id: petId,
+          created_at: new Date(),
+        });
+        logger.info(`Pet ${petId} added to favorites for user ${userId}`);
+      }
     } catch (error) {
       logger.error('Error adding pet to favorites:', error);
       throw error;
@@ -1352,12 +1360,12 @@ export class PetService {
         include: [
           {
             model: Pet,
-            as: 'pet',
+            as: 'Pet',
             include: [
               {
                 model: Rescue,
-                as: 'rescue',
-                attributes: ['id', 'name', 'city', 'state'],
+                as: 'Rescue',
+                attributes: ['rescueId', 'name', 'city', 'state'],
               },
             ],
           },
@@ -1367,7 +1375,7 @@ export class PetService {
         order: [['created_at', 'DESC']],
       });
 
-      const pets = favorites.map((favorite: any) => favorite.pet);
+      const pets = favorites.map((favorite: any) => favorite.Pet);
       const totalPages = Math.ceil(total / limit);
 
       return {

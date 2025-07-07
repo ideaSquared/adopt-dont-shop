@@ -185,8 +185,37 @@ class PetService {
   }
   // Get user's favorite pets (requires authentication)
   async getFavorites(): Promise<Pet[]> {
-    const response = await apiService.get<ApiResponse<Pet[]>>('/api/v1/pets/favorites/user');
-    return response.data || [];
+    interface BackendPetWithRescue extends Omit<Pet, 'rescue'> {
+      Rescue?: {
+        rescueId: string;
+        name: string;
+        city: string;
+        state: string;
+      };
+    }
+
+    const response = await apiService.get<{
+      pets: BackendPetWithRescue[];
+      total: number;
+      page: number;
+      totalPages: number;
+    }>('/api/v1/pets/favorites/user');
+
+    // Transform the response to match the Pet interface
+    const pets = (response.pets || []).map(
+      (pet: BackendPetWithRescue): Pet => ({
+        ...pet,
+        // Transform Rescue object to rescue format expected by frontend
+        rescue: pet.Rescue
+          ? {
+              name: pet.Rescue.name,
+              location: `${pet.Rescue.city}, ${pet.Rescue.state}`,
+            }
+          : undefined,
+      })
+    );
+
+    return pets;
   }
   // Check if pet is in user's favorites (requires authentication)
   async isFavorite(petId: string): Promise<boolean> {

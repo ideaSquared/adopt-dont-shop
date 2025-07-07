@@ -22,6 +22,7 @@ class UserFavorite extends Model<
   declare pet_id: ForeignKey<Pet['pet_id']>;
   declare created_at: CreationOptional<Date>;
   declare updated_at: CreationOptional<Date>;
+  declare deleted_at: CreationOptional<Date>;
 
   // Associations
   declare getUser: BelongsToGetAssociationMixin<User>;
@@ -71,6 +72,10 @@ UserFavorite.init(
       type: DataTypes.DATE,
       allowNull: false,
     },
+    deleted_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -79,11 +84,16 @@ UserFavorite.init(
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    deletedAt: 'deleted_at',
+    paranoid: true,
     indexes: [
       {
         unique: true,
         fields: ['user_id', 'pet_id'],
         name: 'unique_user_pet_favorite',
+        where: {
+          deleted_at: null,
+        },
       },
       {
         fields: ['user_id'],
