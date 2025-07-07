@@ -33,6 +33,7 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   helperText?: string;
   isFullWidth?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'success' | 'error';
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   startIcon?: React.ReactNode;
@@ -74,9 +75,9 @@ export type {
 } from './components/layout/Stack';
 export type { BreadcrumbItem, BreadcrumbsProps } from './components/navigation/Breadcrumbs';
 export type {
-  NavItem,
   NavbarProps,
   NavbarVariant,
+  NavItem,
   UserMenuAction,
 } from './components/navigation/Navbar';
 

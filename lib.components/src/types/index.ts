@@ -140,6 +140,10 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
    */
   size?: 'sm' | 'md' | 'lg';
   /**
+   * Input visual variant
+   */
+  variant?: 'default' | 'success' | 'error';
+  /**
    * Icon to display at the start of the input
    */
   startIcon?: React.ReactNode;

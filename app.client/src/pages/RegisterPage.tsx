@@ -4,6 +4,7 @@ import { Alert, Button, Card, Input } from '@adopt-dont-shop/components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { MdCheck } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { z } from 'zod';
@@ -16,8 +17,8 @@ const Container = styled.div`
   padding: 2rem;
   background: linear-gradient(
     135deg,
-    ${props => props.theme.background.body} 0%,
-    ${props => props.theme.background.contrast} 100%
+    ${props => props.theme.background.primary} 0%,
+    ${props => props.theme.background.secondary} 100%
   );
 `;
 
@@ -34,11 +35,11 @@ const Header = styled.div`
   h1 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
-    color: ${props => props.theme.text.body};
+    color: ${props => props.theme.text.primary};
   }
 
   p {
-    color: ${props => props.theme.text.dim};
+    color: ${props => props.theme.text.secondary};
   }
 `;
 
@@ -66,23 +67,49 @@ const FormGroup = styled.div`
 
 const PasswordRequirements = styled.div`
   font-size: 0.8rem;
-  color: ${props => props.theme.text.dim};
+  color: ${props => props.theme.text.secondary};
   margin-top: 0.5rem;
 
   ul {
     margin: 0.5rem 0 0 1rem;
     padding: 0;
+    list-style: none;
   }
 
   li {
     margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s ease;
+
+    .check-icon {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      transition: all 0.2s ease;
+    }
 
     &.valid {
-      color: ${props => props.theme.colors.semantic.success.main};
+      color: ${props => props.theme.colors.semantic.success[600]};
+
+      .check-icon {
+        background-color: ${props => props.theme.colors.semantic.success[600]};
+        color: white;
+      }
     }
 
     &.invalid {
-      color: ${props => props.theme.colors.semantic.error.main};
+      color: ${props => props.theme.colors.semantic.error[600]};
+
+      .check-icon {
+        background-color: ${props => props.theme.colors.neutral[200]};
+        color: ${props => props.theme.colors.neutral[400]};
+      }
     }
   }
 `;
@@ -99,11 +126,11 @@ const TermsCheckbox = styled.div`
 
   label {
     font-size: 0.9rem;
-    color: ${props => props.theme.text.dim};
+    color: ${props => props.theme.text.secondary};
     line-height: 1.4;
 
     a {
-      color: ${props => props.theme.colors.primary.main};
+      color: ${props => props.theme.colors.primary[600]};
       text-decoration: none;
 
       &:hover {
@@ -117,15 +144,15 @@ const LoginPrompt = styled.div`
   text-align: center;
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid ${props => props.theme.border.color.default};
+  border-top: 1px solid ${props => props.theme.border.color.secondary};
 
   p {
-    color: ${props => props.theme.text.dim};
+    color: ${props => props.theme.text.secondary};
     margin-bottom: 0.5rem;
   }
 
   a {
-    color: ${props => props.theme.colors.primary.main};
+    color: ${props => props.theme.colors.primary[600]};
     text-decoration: none;
     font-weight: 500;
 
@@ -190,6 +217,9 @@ export const RegisterPage: React.FC = () => {
     ];
   };
 
+  const passwordRequirements = getPasswordRequirements();
+  const allRequirementsMet = passwordRequirements.every(req => req.valid);
+
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     setError(null);
@@ -205,11 +235,29 @@ export const RegisterPage: React.FC = () => {
 
       await registerUser(registerData);
       navigate('/', { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Registration error:', err);
-      setError(
-        err.response?.data?.message || err.message || 'Registration failed. Please try again.'
-      );
+
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof err.response === 'object' &&
+        err.response !== null &&
+        'data' in err.response &&
+        typeof err.response.data === 'object' &&
+        err.response.data !== null &&
+        'message' in err.response.data &&
+        typeof err.response.data.message === 'string'
+      ) {
+        errorMessage = err.response.data.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -261,14 +309,16 @@ export const RegisterPage: React.FC = () => {
               type='password'
               placeholder='Create a strong password'
               error={errors.password?.message}
+              variant={allRequirementsMet ? 'success' : 'default'}
               {...register('password')}
             />
-            {watchPassword && (
+            {watchPassword && !allRequirementsMet && (
               <PasswordRequirements>
                 <div>Password requirements:</div>
                 <ul>
-                  {getPasswordRequirements().map((req, index) => (
+                  {passwordRequirements.map((req, index) => (
                     <li key={index} className={req.valid ? 'valid' : 'invalid'}>
+                      <span className='check-icon'>{req.valid && <MdCheck />}</span>
                       {req.text}
                     </li>
                   ))}

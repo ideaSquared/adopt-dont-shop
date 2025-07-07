@@ -4,6 +4,7 @@ import { InputProps } from '../../types';
 
 interface StyledInputWrapperProps {
   $hasError: boolean;
+  $variant: 'default' | 'success' | 'error';
   $size: 'sm' | 'md' | 'lg';
   $isFullWidth: boolean;
 }
@@ -19,11 +20,11 @@ const InputLabel = styled.label`
   font-size: ${({ theme }) => theme.typography.size.sm};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
   margin-bottom: ${({ theme }) => theme.spacing.xs};
-  color: ${({ theme }) => theme.text.body};
+  color: ${({ theme }) => theme.text.primary};
 `;
 
 const RequiredIndicator = styled.span`
-  color: ${({ theme }) => theme.text.danger};
+  color: ${({ theme }) => theme.text.error};
   margin-left: ${({ theme }) => theme.spacing.xs};
 `;
 
@@ -35,22 +36,31 @@ const InputContainer = styled.div`
 
 const StyledInput = styled.input<StyledInputWrapperProps>`
   width: 100%;
-  background-color: ${({ theme }) => theme.background.content};
-  color: ${({ theme }) => theme.text.body};
+  background-color: ${({ theme }) => theme.background.primary};
+  color: ${({ theme }) => theme.text.primary};
   border: ${({ theme }) => theme.border.width.thin} solid
-    ${({ theme, $hasError }) =>
-      $hasError ? theme.border.color.danger : theme.border.color.default};
+    ${({ theme, $hasError, $variant }) => {
+      if ($hasError || $variant === 'error') return theme.border.color.error;
+      if ($variant === 'success') return theme.colors.semantic.success[500];
+      return theme.border.color.secondary;
+    }};
   border-radius: ${({ theme }) => theme.border.radius.md};
   outline: none;
   transition: all ${({ theme }) => theme.transitions.fast};
-  font-family: ${({ theme }) => theme.typography.family.body};
+  font-family: ${({ theme }) => theme.typography.family.sans};
 
   &:focus {
-    border-color: ${({ theme, $hasError }) =>
-      $hasError ? theme.border.color.danger : theme.border.color.focus};
+    border-color: ${({ theme, $hasError, $variant }) => {
+      if ($hasError || $variant === 'error') return theme.border.color.error;
+      if ($variant === 'success') return theme.colors.semantic.success[500];
+      return theme.border.color.focus;
+    }};
     box-shadow: 0 0 0 2px
-      ${({ theme, $hasError }) =>
-        $hasError ? `${theme.background.danger}40` : `${theme.background.primary}40`};
+      ${({ theme, $hasError, $variant }) => {
+        if ($hasError || $variant === 'error') return `${theme.background.error}40`;
+        if ($variant === 'success') return `${theme.colors.semantic.success[500]}40`;
+        return `${theme.background.secondary}40`;
+      }};
   }
 
   &:disabled {
@@ -60,7 +70,7 @@ const StyledInput = styled.input<StyledInputWrapperProps>`
   }
 
   &::placeholder {
-    color: ${({ theme }) => theme.text.dim};
+    color: ${({ theme }) => theme.text.secondary};
   }
 
   /* Apply size styles */
@@ -104,7 +114,7 @@ const IconWrapper = styled.div`
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  color: ${({ theme }) => theme.text.dim};
+  color: ${({ theme }) => theme.text.secondary};
 `;
 
 const StartIconWrapper = styled(IconWrapper)`
@@ -118,7 +128,7 @@ const EndIconWrapper = styled(IconWrapper)`
 const HelperText = styled.p<{ $hasError: boolean }>`
   font-size: ${({ theme }) => theme.typography.size.xs};
   margin-top: ${({ theme }) => theme.spacing.xs};
-  color: ${({ theme, $hasError }) => ($hasError ? theme.text.danger : theme.text.dim)};
+  color: ${({ theme, $hasError }) => ($hasError ? theme.text.error : theme.text.secondary)};
 `;
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -132,6 +142,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       required = false,
       isFullWidth = true,
       size = 'md',
+      variant = 'default',
       startIcon,
       endIcon,
       ...props
@@ -142,6 +153,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const hasError = !!error;
     const helpText = error || helperText;
     const helperId = helpText ? `${inputId}-helper` : undefined;
+
+    // Determine the actual variant - error takes precedence
+    const actualVariant = hasError ? 'error' : variant;
 
     const startIconClass = startIcon ? 'has-start-icon' : '';
     const endIconClass = endIcon ? 'has-end-icon' : '';
@@ -162,6 +176,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             ref={ref}
             $hasError={hasError}
+            $variant={actualVariant}
             $size={size}
             $isFullWidth={isFullWidth}
             className={`${className} ${startIconClass} ${endIconClass}`.trim()}
