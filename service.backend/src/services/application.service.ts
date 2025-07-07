@@ -166,7 +166,16 @@ export class ApplicationService {
         {
           model: Pet,
           as: 'Pet',
-          attributes: ['pet_id', 'name', 'type', 'breed', 'age'],
+          attributes: [
+            'pet_id',
+            'name',
+            'type',
+            'breed',
+            'age_years',
+            'age_months',
+            'age_group',
+            'status',
+          ],
         },
       ];
 
@@ -350,7 +359,16 @@ export class ApplicationService {
         includeOptions.push({
           model: Pet,
           as: 'Pet',
-          attributes: ['pet_id', 'name', 'type', 'breed', 'age', 'status'],
+          attributes: [
+            'pet_id',
+            'name',
+            'type',
+            'breed',
+            'age_years',
+            'age_months',
+            'age_group',
+            'status',
+          ],
         });
       }
 

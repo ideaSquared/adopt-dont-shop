@@ -4,9 +4,16 @@ import { applicationService } from '@/services/applicationService';
 import { authService } from '@/services/authService';
 import { Application, User } from '@/types';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+
+// Extended interface for applications with pet info
+interface ApplicationWithPetInfo extends Application {
+  petName?: string;
+  petType?: string;
+  petBreed?: string;
+}
 
 const Container = styled.div`
   max-width: 1000px;
@@ -205,13 +212,34 @@ export const ProfilePage: React.FC = () => {
   const { user, isAuthenticated, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
-  const [applications, setApplications] = useState<Application[]>([]);
+  const [applications, setApplications] = useState<ApplicationWithPetInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const loadApplications = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Check if user is an adopter - only adopters have applications
+      if (user?.userType !== 'adopter') {
+        setApplications([]);
+        return;
+      }
+
+      const userApplications = await applicationService.getUserApplications();
+      setApplications(userApplications as ApplicationWithPetInfo[]);
+    } catch (error) {
+      console.error('Failed to load applications:', error);
+      setError('Failed to load applications. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.userType]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -222,21 +250,7 @@ export const ProfilePage: React.FC = () => {
     if (activeTab === 'applications') {
       loadApplications();
     }
-  }, [isAuthenticated, navigate, activeTab]);
-
-  const loadApplications = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const userApplications = await applicationService.getUserApplications();
-      setApplications(userApplications);
-    } catch (error) {
-      console.error('Failed to load applications:', error);
-      setError('Failed to load applications. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [isAuthenticated, navigate, activeTab, loadApplications]);
 
   const handleProfileSave = async (updatedData: Partial<User>) => {
     if (!user) return;
@@ -427,7 +441,12 @@ export const ProfilePage: React.FC = () => {
           <Alert variant='error'>{error}</Alert>
         </div>
       )}
-      {isLoading ? (
+      {user?.userType !== 'adopter' ? (
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Applications are only available for adopter accounts.</p>
+          <p>As a {user?.userType}, you don&apos;t submit adoption applications.</p>
+        </div>
+      ) : isLoading ? (
         <LoadingContainer>
           <Spinner />
         </LoadingContainer>
@@ -444,8 +463,13 @@ export const ProfilePage: React.FC = () => {
             <ApplicationCard key={application.id}>
               <ApplicationInfo>
                 <h3>Application #{application.id.slice(-6)}</h3>
-                <p>Submitted {formatDate(application.createdAt)}</p>
-                {application.petId && <p>Pet ID: {application.petId}</p>}
+                <p>Submitted {formatDate(application.submittedAt || application.createdAt)}</p>
+                {application.petName && (
+                  <p>
+                    Pet: {application.petName} ({application.petType})
+                  </p>
+                )}
+                {application.petId && !application.petName && <p>Pet ID: {application.petId}</p>}
               </ApplicationInfo>
               <div>
                 <StatusBadge $status={application.status}>

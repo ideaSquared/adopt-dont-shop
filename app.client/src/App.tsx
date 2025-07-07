@@ -1,6 +1,7 @@
 import { AuthProvider } from '@/contexts/AuthContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import {
+  ApplicationDetailsPage,
   ApplicationPage,
   FavoritesPage,
   HomePage,
@@ -36,6 +37,7 @@ function App() {
               <Route path='/pets/:id' element={<PetDetailsPage />} />
               <Route path='/rescues/:id' element={<RescueDetailsPage />} />
               <Route path='/apply/:petId' element={<ApplicationPage />} />
+              <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
               <Route path='/profile' element={<ProfilePage />} />
               <Route path='/favorites' element={<FavoritesPage />} />
               <Route path='/login' element={<LoginPage />} />

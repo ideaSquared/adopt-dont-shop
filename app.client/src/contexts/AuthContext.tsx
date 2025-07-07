@@ -80,6 +80,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (currentUser && authService.isAuthenticated()) {
           // Verify token is still valid by fetching fresh user data
           const freshUser = await authService.getProfile();
+
+          // Check if user type is allowed in the client app
+          if (freshUser && freshUser.userType !== 'adopter') {
+            // Clear auth data for non-adopter users
+            await authService.logout();
+            setUser(null);
+            setIsLoading(false);
+            return;
+          }
+
           setUser(freshUser);
         }
       } catch (error) {
@@ -106,6 +116,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authService.login(credentials);
       // eslint-disable-next-line no-console
       console.log('🔑 AuthContext: authService.login() response:', response.user?.email);
+
+      // Check if user type is allowed in the client app
+      if (response.user && response.user.userType !== 'adopter') {
+        // Clear any stored auth data
+        await authService.logout();
+        setUser(null);
+
+        // Provide helpful redirect information
+        let redirectApp = '';
+        switch (response.user.userType) {
+          case 'rescue_staff':
+            redirectApp = 'rescue app (port 3002)';
+            break;
+          case 'admin':
+          case 'moderator':
+            redirectApp = 'admin app (port 3001)';
+            break;
+          default:
+            redirectApp = 'appropriate application';
+        }
+
+        throw new Error(
+          `This app is for pet adopters only. As a ${response.user.userType}, please use the ${redirectApp}.`
+        );
+      }
+
       setUser(response.user);
     } catch (error) {
       // eslint-disable-next-line no-console

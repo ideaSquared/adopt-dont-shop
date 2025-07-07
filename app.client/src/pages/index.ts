@@ -1,3 +1,4 @@
+export { ApplicationDetailsPage } from './ApplicationDetailsPage';
 export { ApplicationPage } from './ApplicationPage';
 export { FavoritesPage } from './FavoritesPage';
 export { HomePage } from './HomePage';

@@ -110,6 +110,14 @@ const PasswordHint = styled.small`
   margin-top: 0.25rem;
 `;
 
+const HelperText = styled.small`
+  color: #6b7280;
+  margin-top: 0.5rem;
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.4;
+`;
+
 const AuthButton = styled.button<{ $primary?: boolean }>`
   padding: 0.875rem 1.5rem;
   border: none;
@@ -261,6 +269,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
             <AuthButton type='submit' $primary disabled={isLoading}>
               {isLoading ? 'Signing In...' : 'Sign In'}
             </AuthButton>
+
+            <HelperText>
+              <strong>Adopters only:</strong> This app is for pet adopters. <br />
+              Rescue staff should use the <strong>Rescue App</strong> (port 3002) <br />
+              Admins should use the <strong>Admin App</strong> (port 3001)
+            </HelperText>
           </AuthForm>
         ) : (
           <AuthForm onSubmit={handleRegister}>
@@ -352,13 +366,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                 onChange={e =>
                   setRegisterForm({
                     ...registerForm,
-                    userType: e.target.value as 'adopter' | 'rescue_staff',
+                    userType: e.target.value as 'adopter',
                   })
                 }
               >
                 <option value='adopter'>Pet Adopter</option>
-                <option value='rescue_staff'>Rescue Organization Staff</option>
               </Select>
+              <HelperText>
+                Rescue staff should register at the <strong>Rescue App</strong> (port 3002)
+              </HelperText>
             </FormGroup>
 
             <AuthButton type='submit' $primary disabled={isLoading}>

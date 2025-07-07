@@ -48,7 +48,10 @@ export class ApplicationController {
   ];
 
   static validateUpdateApplication = [
-    param('applicationId').isUUID().withMessage('Valid application ID is required'),
+    param('applicationId')
+      .isString()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Valid application ID is required'),
     body('answers').optional().isObject().withMessage('Answers must be an object'),
     body('references').optional().isArray({ max: 5 }).withMessage('Maximum 5 references allowed'),
     body('priority')
@@ -78,7 +81,10 @@ export class ApplicationController {
   ];
 
   static validateUpdateApplicationStatus = [
-    param('applicationId').isUUID().withMessage('Valid application ID is required'),
+    param('applicationId')
+      .isString()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Valid application ID is required'),
     body('status').isIn(Object.values(ApplicationStatus)).withMessage('Invalid status value'),
     body('rejection_reason')
       .optional()
@@ -102,7 +108,10 @@ export class ApplicationController {
   ];
 
   static validateApplicationId = [
-    param('applicationId').isUUID().withMessage('Valid application ID is required'),
+    param('applicationId')
+      .isString()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Valid application ID is required'),
   ];
 
   static validateGetApplications = [
@@ -146,7 +155,10 @@ export class ApplicationController {
   ];
 
   static validateDocumentUpload = [
-    param('applicationId').isUUID().withMessage('Valid application ID is required'),
+    param('applicationId')
+      .isString()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Valid application ID is required'),
     body('document_type')
       .trim()
       .isLength({ min: 1, max: 100 })
@@ -159,7 +171,10 @@ export class ApplicationController {
   ];
 
   static validateReferenceUpdate = [
-    param('applicationId').isUUID().withMessage('Valid application ID is required'),
+    param('applicationId')
+      .isString()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Valid application ID is required'),
     body('reference_index')
       .isInt({ min: 0, max: 4 })
       .withMessage('Reference index must be between 0 and 4'),
