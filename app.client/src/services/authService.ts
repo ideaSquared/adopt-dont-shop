@@ -152,6 +152,27 @@ class AuthService {
       newPassword,
     });
   }
+  // Delete user account
+  async deleteAccount(reason?: string): Promise<void> {
+    const body = reason ? { reason } : undefined;
+    await apiService.fetchWithAuth('/api/v1/users/account', {
+      method: 'DELETE',
+      body,
+    });
+
+    // Clear all stored data
+    this.clearStorage();
+
+    // Clear token from API service
+    apiService.setToken('');
+  }
+
+  // Clear all stored data
+  private clearStorage(): void {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+  }
 }
 
 export const authService = new AuthService();

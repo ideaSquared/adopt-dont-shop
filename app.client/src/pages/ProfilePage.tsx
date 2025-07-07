@@ -1,6 +1,7 @@
 import { ProfileEditForm, SettingsForm } from '@/components/profile';
 import { useAuth } from '@/contexts/AuthContext';
 import { applicationService } from '@/services/applicationService';
+import { authService } from '@/services/authService';
 import { Application, User } from '@/types';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
@@ -309,10 +310,13 @@ export const ProfilePage: React.FC = () => {
     }
 
     try {
-      // In dev mode, just clear localStorage and redirect
+      setError(null);
+
+      // In dev mode, check if using dev token before calling API
       if (import.meta.env.DEV) {
         const token = localStorage.getItem('accessToken');
         if (token?.startsWith('dev-token-')) {
+          // Clear dev mode data
           localStorage.removeItem('dev_user');
           localStorage.removeItem('accessToken');
           localStorage.removeItem('authToken');
@@ -322,10 +326,11 @@ export const ProfilePage: React.FC = () => {
         }
       }
 
-      // For real users, this would call the API
-      // TODO: Implement API call when backend is ready
-      // eslint-disable-next-line no-console
-      console.log('Account deletion would be sent to API');
+      // Call the API to delete account
+      await authService.deleteAccount('User requested account deletion');
+
+      // Navigate to home page
+      navigate('/');
     } catch (error) {
       console.error('Failed to delete account:', error);
       setError('Failed to delete account. Please try again.');

@@ -363,6 +363,10 @@ jest.mock('jsonwebtoken', () => ({
 jest.mock('crypto', () => ({
   randomUUID: jest.fn(() => 'mock-uuid-123'),
   randomBytes: jest.fn(() => Buffer.from('mock-random-bytes')),
+  createHash: jest.fn(() => ({
+    update: jest.fn().mockReturnThis(),
+    digest: jest.fn(() => 'mock-hash'),
+  })),
 }));
 
 // Mock nodemailer

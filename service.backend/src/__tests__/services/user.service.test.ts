@@ -1,10 +1,18 @@
+import Application from '../../models/Application';
+import ChatParticipant from '../../models/ChatParticipant';
 import User, { UserStatus, UserType } from '../../models/User';
+import UserFavorite from '../../models/UserFavorite';
+import { AuditLogService } from '../../services/auditLog.service';
 import { UserService } from '../../services/user.service';
 import { UserUpdateData } from '../../types/user';
 
 // Mock dependencies
 jest.mock('../../models/User');
+jest.mock('../../models/Application');
+jest.mock('../../models/UserFavorite');
+jest.mock('../../models/ChatParticipant');
 jest.mock('../../models/AuditLog');
+jest.mock('../../services/auditLog.service');
 jest.mock('../../utils/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -30,6 +38,10 @@ jest.mock('sequelize', () => {
 
 // Create proper mock for User model
 const MockedUser = User as jest.Mocked<typeof User>;
+const MockedApplication = Application as jest.Mocked<typeof Application>;
+const MockedUserFavorite = UserFavorite as jest.Mocked<typeof UserFavorite>;
+const MockedChatParticipant = ChatParticipant as jest.Mocked<typeof ChatParticipant>;
+const MockedAuditLogService = AuditLogService as jest.Mocked<typeof AuditLogService>;
 
 describe('UserService', () => {
   beforeEach(() => {
@@ -459,6 +471,141 @@ describe('UserService', () => {
       expect(result.limit).toBe(25);
       expect(result.sortBy).toBe('firstName');
       expect(result.sortOrder).toBe('ASC');
+    });
+  });
+  describe('deleteAccount', () => {
+    it('should delete user account successfully', async () => {
+      const userId = 'user-123';
+      const reason = 'User requested account deletion';
+
+      const mockUser = {
+        userId,
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+        destroy: jest.fn().mockResolvedValue(undefined),
+      };
+
+      // Mock dependencies
+      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedApplication.update = jest.fn().mockResolvedValue([1]);
+      MockedUserFavorite.destroy = jest.fn().mockResolvedValue(5);
+      MockedChatParticipant.destroy = jest.fn().mockResolvedValue(3);
+      MockedAuditLogService.log = jest.fn().mockResolvedValue(undefined);
+
+      await UserService.deleteAccount(userId, reason);
+
+      // Verify user lookup
+      expect(MockedUser.findByPk).toHaveBeenCalledWith(userId);
+
+      // Verify related data cleanup
+      expect(MockedApplication.update).toHaveBeenCalledWith(
+        { deleted_at: expect.any(Date) },
+        { where: { user_id: userId, deleted_at: null } }
+      );
+
+      expect(MockedUserFavorite.destroy).toHaveBeenCalledWith({
+        where: { user_id: userId },
+      });
+
+      expect(MockedChatParticipant.destroy).toHaveBeenCalledWith({
+        where: { participant_id: userId },
+      });
+
+      // Verify user deletion
+      expect(mockUser.destroy).toHaveBeenCalled();
+
+      // Verify audit logging
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith({
+        action: 'DELETE',
+        entity: 'User',
+        entityId: userId,
+        details: {
+          reason,
+          selfDeleted: true,
+        },
+        userId,
+      });
+    });
+
+    it('should delete user account without reason', async () => {
+      const userId = 'user-123';
+
+      const mockUser = {
+        userId,
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        destroy: jest.fn().mockResolvedValue(undefined),
+      };
+
+      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedApplication.update = jest.fn().mockResolvedValue([1]);
+      MockedUserFavorite.destroy = jest.fn().mockResolvedValue(0);
+      MockedChatParticipant.destroy = jest.fn().mockResolvedValue(0);
+      MockedAuditLogService.log = jest.fn().mockResolvedValue(undefined);
+
+      await UserService.deleteAccount(userId);
+
+      expect(MockedUser.findByPk).toHaveBeenCalledWith(userId);
+      expect(mockUser.destroy).toHaveBeenCalled();
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: expect.objectContaining({
+            reason: 'Self-deletion',
+            selfDeleted: true,
+          }),
+        })
+      );
+    });
+
+    it('should throw error for non-existent user', async () => {
+      const userId = 'non-existent';
+      const reason = 'Test deletion';
+
+      MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+
+      await expect(UserService.deleteAccount(userId, reason)).rejects.toThrow('User not found');
+
+      expect(MockedUser.findByPk).toHaveBeenCalledWith(userId);
+    });
+
+    it('should handle deletion errors gracefully', async () => {
+      const userId = 'user-123';
+      const reason = 'Test deletion';
+
+      const mockUser = {
+        userId,
+        destroy: jest.fn().mockRejectedValue(new Error('Database error')),
+      };
+
+      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedApplication.update = jest.fn().mockResolvedValue([1]);
+      MockedUserFavorite.destroy = jest.fn().mockResolvedValue(0);
+      MockedChatParticipant.destroy = jest.fn().mockResolvedValue(0);
+
+      await expect(UserService.deleteAccount(userId, reason)).rejects.toThrow('Database error');
+    });
+
+    it('should handle audit log service errors without failing deletion', async () => {
+      const userId = 'user-123';
+      const reason = 'Test deletion';
+
+      const mockUser = {
+        userId,
+        destroy: jest.fn().mockResolvedValue(undefined),
+      };
+
+      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedApplication.update = jest.fn().mockResolvedValue([1]);
+      MockedUserFavorite.destroy = jest.fn().mockResolvedValue(0);
+      MockedChatParticipant.destroy = jest.fn().mockResolvedValue(0);
+      MockedAuditLogService.log = jest.fn().mockRejectedValue(new Error('Audit log error'));
+
+      // Should throw if audit logging fails (current implementation)
+      await expect(UserService.deleteAccount(userId, reason)).rejects.toThrow('Audit log error');
     });
   });
 });

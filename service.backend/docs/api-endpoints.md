@@ -334,6 +334,32 @@ Get user activity summary.
 }
 ```
 
+### DELETE /api/v1/users/account
+Delete current user account (self-deletion).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request (optional):**
+```json
+{
+  "reason": "No longer need the service"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Account deleted successfully"
+}
+```
+
+**Notes:**
+- This action is irreversible
+- All user data, applications, and associated records will be soft-deleted
+- The user will be automatically logged out
+- Only users can delete their own accounts (admins use a different endpoint)
+
 ## Pet Management Endpoints
 
 ### GET /api/v1/pets
@@ -1324,4 +1350,4 @@ X-RateLimit-Reset: 1642248600
 
 ---
 
-This comprehensive API documentation provides all the information needed to integrate with the Adopt Don't Shop Backend Service. 
+This comprehensive API documentation provides all the information needed to integrate with the Adopt Don't Shop Backend Service.

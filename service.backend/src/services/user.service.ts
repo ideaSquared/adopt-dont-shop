@@ -745,11 +745,21 @@ export class UserService {
   private static mapActionToActivityType(
     action: string
   ): 'application' | 'chat' | 'favorite' | 'profile_update' | 'login' {
-    if (action.includes('APPLICATION')) return 'application';
-    if (action.includes('CHAT') || action.includes('MESSAGE')) return 'chat';
-    if (action.includes('FAVORITE')) return 'favorite';
-    if (action.includes('PROFILE') || action.includes('USER_UPDATE')) return 'profile_update';
-    if (action.includes('LOGIN')) return 'login';
+    if (action.includes('APPLICATION')) {
+      return 'application';
+    }
+    if (action.includes('CHAT') || action.includes('MESSAGE')) {
+      return 'chat';
+    }
+    if (action.includes('FAVORITE')) {
+      return 'favorite';
+    }
+    if (action.includes('PROFILE') || action.includes('USER_UPDATE')) {
+      return 'profile_update';
+    }
+    if (action.includes('LOGIN')) {
+      return 'login';
+    }
     return 'profile_update'; // default fallback
   }
 
@@ -1205,6 +1215,64 @@ export class UserService {
         error: error instanceof Error ? error.message : String(error),
         updateCount: updates.length,
         updatedBy,
+        duration: Date.now() - startTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Delete user account (self-deletion)
+   */
+  static async deleteAccount(userId: string, reason?: string): Promise<void> {
+    const startTime = Date.now();
+
+    try {
+      const user = await User.findByPk(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Soft delete related data first
+      await Application.update(
+        { deleted_at: new Date() },
+        { where: { user_id: userId, deleted_at: null } }
+      );
+
+      await UserFavorite.destroy({ where: { user_id: userId } });
+
+      // Remove from chats
+      await ChatParticipant.destroy({ where: { participant_id: userId } });
+
+      // Soft delete the user
+      await user.destroy();
+
+      await AuditLogService.log({
+        action: 'DELETE',
+        entity: 'User',
+        entityId: userId,
+        details: {
+          reason: reason || 'Self-deletion',
+          selfDeleted: true,
+        },
+        userId,
+      });
+
+      safeLoggerHelpers.logBusiness(
+        'User Account Self-Deleted',
+        {
+          userId,
+          reason,
+          timestamp: new Date().toISOString(),
+        },
+        userId
+      );
+
+      logger.info('User account deleted successfully', { userId });
+    } catch (error) {
+      logger.error('Error deleting user account:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
         duration: Date.now() - startTime,
       });
       throw error;

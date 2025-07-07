@@ -24,6 +24,9 @@ router.put('/preferences', UserController.updateUserPreferences);
 // POST /users/preferences/reset - Reset user preferences to defaults
 router.post('/preferences/reset', UserController.resetUserPreferences);
 
+// DELETE /users/account - Delete current user account
+router.delete('/account', UserController.deleteAccount);
+
 // GET /users/search - Search users (admin/rescue staff only)
 router.get('/search', requireAdmin, userValidation.searchUsers, UserController.searchUsers);
 

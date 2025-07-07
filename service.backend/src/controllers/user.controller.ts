@@ -465,6 +465,46 @@ export class UserController {
       });
     }
   }
+
+  /**
+   * Delete current user account
+   */
+  async deleteAccount(req: AuthenticatedRequest, res: Response) {
+    const startTime = Date.now();
+
+    try {
+      const userId = req.user!.userId;
+      const { reason } = req.body;
+
+      await UserService.deleteAccount(userId, reason);
+
+      // Clear the user's session by logging them out
+      res.clearCookie('authToken');
+
+      res.json({
+        success: true,
+        message: 'Account deleted successfully',
+      });
+
+      logger.info('User account deleted', { userId, duration: Date.now() - startTime });
+    } catch (error) {
+      logger.error('Error deleting account:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId: req.user?.userId,
+        duration: Date.now() - startTime,
+      });
+
+      if (error instanceof Error && error.message === 'User not found') {
+        return res.status(404).json({
+          error: 'User not found',
+        });
+      }
+
+      res.status(500).json({
+        error: 'Failed to delete account',
+      });
+    }
+  }
 }
 
 export default new UserController();
