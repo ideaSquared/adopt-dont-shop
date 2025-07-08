@@ -179,8 +179,8 @@ describe('DiscoveryService', () => {
         include: [
           {
             model: Rescue,
-            as: 'rescue',
-            attributes: ['rescue_id', 'name'],
+            as: 'Rescue',
+            attributes: ['rescue_id', 'name', 'status'],
           },
         ],
         limit: 10,

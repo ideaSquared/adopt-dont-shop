@@ -26,24 +26,44 @@ describe('AuditLogService', () => {
     it('should create audit log successfully', async () => {
       const mockLog = {
         id: 'log-1',
-        ...mockAuditData,
+        service: 'adopt-dont-shop-backend',
+        user: mockAuditData.userId,
+        action: mockAuditData.action,
+        level: 'INFO',
         timestamp: new Date(),
-      };
-
-      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as any);
-
-      const result = await AuditLogService.log(mockAuditData);
-
-      expect(MockedAuditLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: mockAuditData.userId,
-          action: mockAuditData.action,
+        metadata: {
           entity: mockAuditData.entity,
           entityId: mockAuditData.entityId,
           details: mockAuditData.details,
           ipAddress: mockAuditData.ipAddress,
           userAgent: mockAuditData.userAgent,
+        },
+        category: mockAuditData.entity,
+        ip_address: mockAuditData.ipAddress,
+        user_agent: mockAuditData.userAgent,
+      };
+
+      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
+
+      const result = await AuditLogService.log(mockAuditData);
+
+      expect(MockedAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          service: 'adopt-dont-shop-backend',
+          user: mockAuditData.userId,
+          action: mockAuditData.action,
+          level: 'INFO',
           timestamp: expect.any(Date),
+          metadata: {
+            entity: mockAuditData.entity,
+            entityId: mockAuditData.entityId,
+            details: mockAuditData.details,
+            ipAddress: mockAuditData.ipAddress,
+            userAgent: mockAuditData.userAgent,
+          },
+          category: mockAuditData.entity,
+          ip_address: mockAuditData.ipAddress,
+          user_agent: mockAuditData.userAgent,
         })
       );
       expect(result).toEqual(mockLog);
@@ -59,25 +79,44 @@ describe('AuditLogService', () => {
 
       const mockLog = {
         id: 'log-2',
-        ...minimalData,
-        details: {},
-        ipAddress: undefined,
-        userAgent: undefined,
+        service: 'adopt-dont-shop-backend',
+        user: minimalData.userId,
+        action: minimalData.action,
+        level: 'INFO',
         timestamp: new Date(),
+        metadata: {
+          entity: minimalData.entity,
+          entityId: minimalData.entityId,
+          details: {},
+          ipAddress: undefined,
+          userAgent: undefined,
+        },
+        category: minimalData.entity,
+        ip_address: undefined,
+        user_agent: undefined,
       };
 
-      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as any);
+      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
 
       const result = await AuditLogService.log(minimalData);
 
       expect(MockedAuditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          userId: minimalData.userId,
+          service: 'adopt-dont-shop-backend',
+          user: minimalData.userId,
           action: minimalData.action,
-          entity: minimalData.entity,
-          entityId: minimalData.entityId,
-          details: {},
+          level: 'INFO',
           timestamp: expect.any(Date),
+          metadata: {
+            entity: minimalData.entity,
+            entityId: minimalData.entityId,
+            details: {},
+            ipAddress: undefined,
+            userAgent: undefined,
+          },
+          category: minimalData.entity,
+          ip_address: undefined,
+          user_agent: undefined,
         })
       );
       expect(result).toEqual(mockLog);
