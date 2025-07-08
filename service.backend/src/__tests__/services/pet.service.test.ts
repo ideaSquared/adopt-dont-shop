@@ -1,4 +1,16 @@
 import { Op } from 'sequelize';
+// Mock sequelize functions that are used in the service
+const mockCol = jest.fn();
+const mockFn = jest.fn();
+const mockLiteral = jest.fn();
+
+jest.doMock('sequelize', () => ({
+  ...jest.requireActual('sequelize'),
+  col: mockCol,
+  fn: mockFn,
+  literal: mockLiteral,
+}));
+
 import { AuditLog } from '../../models/AuditLog';
 import Pet, {
   AgeGroup,
@@ -24,6 +36,14 @@ import {
 // Mock dependencies
 jest.mock('../../models/Pet');
 jest.mock('../../models/Rescue');
+jest.mock('../../models/Report', () => ({
+  default: {
+    create: jest.fn(),
+  },
+  ReportCategory: { INAPPROPRIATE_CONTENT: 'INAPPROPRIATE_CONTENT' },
+  ReportStatus: { PENDING: 'PENDING' },
+  ReportSeverity: { MEDIUM: 'MEDIUM' },
+}));
 jest.mock('../../services/auditLog.service');
 jest.mock('../../utils/logger', () => ({
   logger: {
@@ -610,6 +630,10 @@ describe('PetService', () => {
   });
 
   describe('getPetStatistics', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
     it('should get pet statistics', async () => {
       // Mock the count queries for basic statistics
       (MockedPet.count as jest.Mock)
@@ -620,34 +644,60 @@ describe('PetService', () => {
         .mockResolvedValueOnce(5) // featured pets
         .mockResolvedValueOnce(8); // special needs pets
 
-      // Mock the findAll queries for grouped statistics
-      (MockedPet.findAll as jest.Mock)
-        .mockResolvedValueOnce([
-          { type: 'dog', count: '60' },
-          { type: 'cat', count: '30' },
-          { type: 'rabbit', count: '10' },
-        ]) // getPetCountByType
-        .mockResolvedValueOnce([
-          { status: 'available', count: '50' },
-          { status: 'adopted', count: '30' },
-          { status: 'foster', count: '10' },
-          { status: 'pending', count: '10' },
-        ]) // getPetCountByStatus
-        .mockResolvedValueOnce([
-          { size: 'small', count: '20' },
-          { size: 'medium', count: '35' },
-          { size: 'large', count: '30' },
-          { size: 'extra_large', count: '15' },
-        ]) // getPetCountBySize
-        .mockResolvedValueOnce([
-          { age_group: 'baby', count: '15' },
-          { age_group: 'young', count: '25' },
-          { age_group: 'adult', count: '40' },
-          { age_group: 'senior', count: '20' },
-        ]); // getPetCountByAgeGroup
+      // Mock the private helper methods via spies on the PetService class
+      const getPetCountByTypeSpy = jest
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .spyOn(PetService as any, 'getPetCountByType')
+        .mockResolvedValue({
+          dog: 60,
+          cat: 30,
+          rabbit: 10,
+          bird: 0,
+          fish: 0,
+          reptile: 0,
+          small_animal: 0,
+          horse: 0,
+          pig: 0,
+          barnyard: 0,
+        });
 
-      // Mock Pet.findOne for getAverageAdoptionTime
-      (MockedPet.findOne as jest.Mock).mockResolvedValueOnce({ avg_days: '45' });
+      const getPetCountByStatusSpy = jest
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .spyOn(PetService as any, 'getPetCountByStatus')
+        .mockResolvedValue({
+          available: 50,
+          adopted: 30,
+          foster: 10,
+          pending: 10,
+          hold: 0,
+          medical_hold: 0,
+          not_available: 0,
+        });
+
+      const getPetCountBySizeSpy = jest
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .spyOn(PetService as any, 'getPetCountBySize')
+        .mockResolvedValue({
+          small: 20,
+          medium: 35,
+          large: 30,
+          extra_large: 15,
+        });
+
+      const getPetCountByAgeGroupSpy = jest
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .spyOn(PetService as any, 'getPetCountByAgeGroup')
+        .mockResolvedValue({
+          baby: 15,
+          young: 25,
+          adult: 40,
+          senior: 20,
+        });
+
+      const getAverageAdoptionTimeSpy = jest
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .spyOn(PetService as any, 'getAverageAdoptionTime')
+        .mockResolvedValue(45);
 
       const result = await PetService.getPetStatistics();
 
@@ -658,14 +708,50 @@ describe('PetService', () => {
         fosterPets: 10,
         featuredPets: 5,
         specialNeedsPets: 8,
-        petsByType: expect.any(Object),
-        petsByStatus: expect.any(Object),
-        petsBySize: expect.any(Object),
-        petsByAgeGroup: expect.any(Object),
+        petsByType: {
+          dog: 60,
+          cat: 30,
+          rabbit: 10,
+          bird: 0,
+          fish: 0,
+          reptile: 0,
+          small_animal: 0,
+          horse: 0,
+          pig: 0,
+          barnyard: 0,
+        },
+        petsByStatus: {
+          available: 50,
+          adopted: 30,
+          foster: 10,
+          pending: 10,
+          hold: 0,
+          medical_hold: 0,
+          not_available: 0,
+        },
+        petsBySize: {
+          small: 20,
+          medium: 35,
+          large: 30,
+          extra_large: 15,
+        },
+        petsByAgeGroup: {
+          baby: 15,
+          young: 25,
+          adult: 40,
+          senior: 20,
+        },
         averageAdoptionTime: 45,
         monthlyAdoptions: [],
         popularBreeds: [],
       });
+
+      // Clean up spies
+      getPetCountByTypeSpy.mockRestore();
+      getPetCountByStatusSpy.mockRestore();
+      getPetCountBySizeSpy.mockRestore();
+      getPetCountByAgeGroupSpy.mockRestore();
+      getAverageAdoptionTimeSpy.mockRestore();
     });
   });
 
@@ -768,6 +854,10 @@ describe('PetService', () => {
   });
 
   describe('getRecentPets', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
     it('should return recent pets with default limit', async () => {
       const mockPets = [
         { pet_id: 'pet1', name: 'Buddy', type: 'dog', created_at: '2025-07-08T10:00:00Z' },
@@ -897,6 +987,10 @@ describe('PetService', () => {
   });
 
   describe('getSimilarPets', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
     const mockReferencePet = {
       pet_id: 'ref-pet-1',
       breed: 'Golden Retriever',
@@ -963,14 +1057,9 @@ describe('PetService', () => {
 
       (MockedPet.findByPk as jest.Mock).mockResolvedValueOnce(mockPet);
 
-      // Mock the dynamic import
-      const mockCreate = jest.fn().mockResolvedValue(mockReport);
-      jest.doMock('../../models/Report', () => ({
-        default: { create: mockCreate },
-        ReportCategory: { INAPPROPRIATE_CONTENT: 'INAPPROPRIATE_CONTENT' },
-        ReportStatus: { PENDING: 'PENDING' },
-        ReportSeverity: { MEDIUM: 'MEDIUM' },
-      }));
+      // Mock Report.create using the mocked module
+      const { default: Report } = jest.requireMock('../../models/Report');
+      Report.create.mockResolvedValue(mockReport);
 
       const result = await PetService.reportPet(
         'pet-123',
@@ -980,6 +1069,16 @@ describe('PetService', () => {
       );
 
       expect(MockedPet.findByPk).toHaveBeenCalledWith('pet-123');
+      expect(Report.create).toHaveBeenCalledWith({
+        reportedEntityType: 'pet',
+        reportedEntityId: 'pet-123',
+        reporterId: 'user-456',
+        category: 'INAPPROPRIATE_CONTENT',
+        title: 'inappropriate_content',
+        description: 'This pet listing contains inappropriate images',
+        status: 'PENDING',
+        severity: 'MEDIUM',
+      });
       expect(result).toEqual({
         reportId: 'report-123',
         message: 'Report submitted successfully',
@@ -998,12 +1097,9 @@ describe('PetService', () => {
       const mockPet = { pet_id: 'pet-123', name: 'Buddy' };
       (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPet);
 
-      // Mock dynamic import to throw error
-      jest.doMock('../../models/Report', () => ({
-        default: {
-          create: jest.fn().mockRejectedValue(new Error('Report creation failed')),
-        },
-      }));
+      // Mock Report.create to throw an error using the mocked module
+      const { default: Report } = jest.requireMock('../../models/Report');
+      Report.create.mockRejectedValue(new Error('Report creation failed'));
 
       await expect(PetService.reportPet('pet-123', 'user-456', 'spam')).rejects.toThrow(
         'Failed to submit pet report'

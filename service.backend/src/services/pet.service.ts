@@ -859,13 +859,13 @@ export class PetService {
         ]);
 
       // Get counts by type
-      const petsByType = await this.getPetCountByType(rescueId);
-      const petsByStatus = await this.getPetCountByStatus(rescueId);
-      const petsBySize = await this.getPetCountBySize(rescueId);
-      const petsByAgeGroup = await this.getPetCountByAgeGroup(rescueId);
+      const petsByType = await PetService.getPetCountByType(rescueId);
+      const petsByStatus = await PetService.getPetCountByStatus(rescueId);
+      const petsBySize = await PetService.getPetCountBySize(rescueId);
+      const petsByAgeGroup = await PetService.getPetCountByAgeGroup(rescueId);
 
       // Get adoption time average
-      const averageAdoptionTime = await this.getAverageAdoptionTime(rescueId);
+      const averageAdoptionTime = await PetService.getAverageAdoptionTime(rescueId);
 
       // Get monthly adoption stats and popular breeds
       const monthlyAdoptions: MonthlyAdoptionStats[] = [];
@@ -1557,12 +1557,11 @@ export class PetService {
       }
 
       // Import Report model dynamically to avoid circular dependencies
-      const {
-        default: Report,
-        ReportCategory,
-        ReportStatus,
-        ReportSeverity,
-      } = await import('../models/Report');
+      const reportModule = await import('../models/Report');
+      // Handle the mocked structure for tests
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Report = (reportModule.default as any).default || reportModule.default;
+      const { ReportCategory, ReportStatus, ReportSeverity } = reportModule;
 
       // Create the report
       const report = await Report.create({
