@@ -1,4 +1,5 @@
 import { Op } from 'sequelize';
+import { AuditLog } from '../../models/AuditLog';
 import Pet, {
   AgeGroup,
   EnergyLevel,
@@ -9,6 +10,7 @@ import Pet, {
   SpayNeuterStatus,
   VaccinationStatus,
 } from '../../models/Pet';
+import Rescue from '../../models/Rescue';
 import { PetService } from '../../services/pet.service';
 import {
   BulkPetOperation,
@@ -21,6 +23,7 @@ import {
 
 // Mock dependencies
 jest.mock('../../models/Pet');
+jest.mock('../../models/Rescue');
 jest.mock('../../services/auditLog.service');
 jest.mock('../../utils/logger', () => ({
   logger: {
@@ -31,6 +34,7 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 const MockedPet = Pet as jest.Mocked<typeof Pet>;
+const MockedRescue = Rescue as jest.Mocked<typeof Rescue>;
 // Mock the static log method
 jest.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
@@ -44,7 +48,18 @@ const mockAuditLog = AuditLogService.log as jest.MockedFunction<typeof AuditLogS
 describe('PetService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockAuditLog.mockResolvedValue({} as any);
+    mockAuditLog.mockResolvedValue({
+      id: 1,
+      service: 'test',
+      user: 'test-user',
+      action: 'test-action',
+      level: 'INFO',
+      timestamp: new Date(),
+      metadata: null,
+      category: 'test',
+      ip_address: null,
+      user_agent: null,
+    } as AuditLog);
   });
 
   describe('searchPets', () => {
@@ -367,12 +382,13 @@ describe('PetService', () => {
   });
 
   describe('updatePetStatus', () => {
-    const mockPet: any = {
+    const mockPet = {
       pet_id: 'pet1',
       status: PetStatus.AVAILABLE,
       update: jest.fn().mockResolvedValue(undefined),
+      reload: jest.fn(),
     };
-    mockPet.reload = jest.fn().mockReturnValue(mockPet);
+    mockPet.reload.mockReturnValue(mockPet);
 
     const statusUpdate: PetStatusUpdate = {
       status: PetStatus.ADOPTED,
@@ -595,7 +611,7 @@ describe('PetService', () => {
 
   describe('getPetStatistics', () => {
     it('should get pet statistics', async () => {
-      // Mock the count queries
+      // Mock the count queries for basic statistics
       (MockedPet.count as jest.Mock)
         .mockResolvedValueOnce(100) // total pets
         .mockResolvedValueOnce(50) // available pets
@@ -604,46 +620,34 @@ describe('PetService', () => {
         .mockResolvedValueOnce(5) // featured pets
         .mockResolvedValueOnce(8); // special needs pets
 
-      // Mock private method calls
-      const mockPetService = PetService as any;
-      jest.spyOn(mockPetService, 'getPetCountByType').mockResolvedValue({
-        [PetType.DOG]: 60,
-        [PetType.CAT]: 30,
-        [PetType.RABBIT]: 5,
-        [PetType.BIRD]: 3,
-        [PetType.REPTILE]: 1,
-        [PetType.SMALL_MAMMAL]: 1,
-        [PetType.FISH]: 0,
-        [PetType.OTHER]: 0,
-      });
+      // Mock the findAll queries for grouped statistics
+      (MockedPet.findAll as jest.Mock)
+        .mockResolvedValueOnce([
+          { type: 'dog', count: '60' },
+          { type: 'cat', count: '30' },
+          { type: 'rabbit', count: '10' },
+        ]) // getPetCountByType
+        .mockResolvedValueOnce([
+          { status: 'available', count: '50' },
+          { status: 'adopted', count: '30' },
+          { status: 'foster', count: '10' },
+          { status: 'pending', count: '10' },
+        ]) // getPetCountByStatus
+        .mockResolvedValueOnce([
+          { size: 'small', count: '20' },
+          { size: 'medium', count: '35' },
+          { size: 'large', count: '30' },
+          { size: 'extra_large', count: '15' },
+        ]) // getPetCountBySize
+        .mockResolvedValueOnce([
+          { age_group: 'baby', count: '15' },
+          { age_group: 'young', count: '25' },
+          { age_group: 'adult', count: '40' },
+          { age_group: 'senior', count: '20' },
+        ]); // getPetCountByAgeGroup
 
-      jest.spyOn(mockPetService, 'getPetCountByStatus').mockResolvedValue({
-        [PetStatus.AVAILABLE]: 50,
-        [PetStatus.PENDING]: 10,
-        [PetStatus.ADOPTED]: 30,
-        [PetStatus.FOSTER]: 10,
-        [PetStatus.MEDICAL_HOLD]: 0,
-        [PetStatus.BEHAVIORAL_HOLD]: 0,
-        [PetStatus.NOT_AVAILABLE]: 0,
-        [PetStatus.DECEASED]: 0,
-      });
-
-      jest.spyOn(mockPetService, 'getPetCountBySize').mockResolvedValue({
-        [Size.EXTRA_SMALL]: 5,
-        [Size.SMALL]: 20,
-        [Size.MEDIUM]: 35,
-        [Size.LARGE]: 30,
-        [Size.EXTRA_LARGE]: 10,
-      });
-
-      jest.spyOn(mockPetService, 'getPetCountByAgeGroup').mockResolvedValue({
-        [AgeGroup.BABY]: 15,
-        [AgeGroup.YOUNG]: 25,
-        [AgeGroup.ADULT]: 40,
-        [AgeGroup.SENIOR]: 20,
-      });
-
-      jest.spyOn(mockPetService, 'getAverageAdoptionTime').mockResolvedValue(45);
+      // Mock Pet.findOne for getAverageAdoptionTime
+      (MockedPet.findOne as jest.Mock).mockResolvedValueOnce({ avg_days: '45' });
 
       const result = await PetService.getPetStatistics();
 
@@ -717,7 +721,7 @@ describe('PetService', () => {
     it('should handle unsupported operation by returning error result', async () => {
       const operation: BulkPetOperation = {
         petIds: ['pet1'],
-        operation: 'invalid_operation' as any,
+        operation: 'invalid_operation' as 'archive', // Type assertion for test
       };
 
       const result = await PetService.bulkUpdatePets(operation, 'user1');
@@ -759,6 +763,250 @@ describe('PetService', () => {
 
       await expect(PetService.getPetActivity('nonexistent')).rejects.toThrow(
         'Failed to retrieve pet activity'
+      );
+    });
+  });
+
+  describe('getRecentPets', () => {
+    it('should return recent pets with default limit', async () => {
+      const mockPets = [
+        { pet_id: 'pet1', name: 'Buddy', type: 'dog', created_at: '2025-07-08T10:00:00Z' },
+        { pet_id: 'pet2', name: 'Whiskers', type: 'cat', created_at: '2025-07-08T09:00:00Z' },
+      ];
+
+      (MockedPet.findAll as jest.Mock).mockResolvedValueOnce(mockPets);
+
+      const result = await PetService.getRecentPets();
+
+      expect(MockedPet.findAll).toHaveBeenCalledWith({
+        where: {
+          status: PetStatus.AVAILABLE,
+          archived: false,
+        },
+        include: [
+          {
+            model: MockedRescue,
+            as: 'Rescue',
+            attributes: ['rescueId', 'name', 'city', 'state'],
+          },
+        ],
+        order: [['created_at', 'DESC']],
+        limit: 12,
+      });
+      expect(result).toEqual(mockPets);
+    });
+
+    it('should return recent pets with custom limit', async () => {
+      const mockPets = [
+        { pet_id: 'pet1', name: 'Buddy', type: 'dog', created_at: '2025-07-08T10:00:00Z' },
+      ];
+
+      (MockedPet.findAll as jest.Mock).mockResolvedValueOnce(mockPets);
+
+      const result = await PetService.getRecentPets(5);
+
+      expect(MockedPet.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          limit: 5,
+        })
+      );
+      expect(result).toEqual(mockPets);
+    });
+
+    it('should handle errors gracefully', async () => {
+      (MockedPet.findAll as jest.Mock).mockRejectedValueOnce(new Error('Database error'));
+
+      await expect(PetService.getRecentPets()).rejects.toThrow('Failed to retrieve recent pets');
+    });
+  });
+
+  describe('getPetBreedsByType', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should return breeds for valid pet type', async () => {
+      const mockBreeds = [
+        { breed: 'Golden Retriever' },
+        { breed: 'Labrador Retriever' },
+        { breed: 'German Shepherd' },
+      ];
+
+      (MockedPet.findAll as jest.Mock).mockResolvedValueOnce(mockBreeds);
+
+      const result = await PetService.getPetBreedsByType('dog');
+
+      expect(MockedPet.findAll).toHaveBeenCalledWith({
+        attributes: ['breed'],
+        where: {
+          type: 'dog',
+          archived: false,
+        },
+        group: ['breed'],
+        order: [['breed', 'ASC']],
+      });
+      expect(result).toEqual(['German Shepherd', 'Golden Retriever', 'Labrador Retriever']);
+    });
+
+    it('should filter out null and empty breeds', async () => {
+      const mockBreeds = [
+        { breed: 'Golden Retriever' },
+        { breed: null },
+        { breed: '' },
+        { breed: '  ' },
+        { breed: 'Poodle' },
+      ];
+
+      (MockedPet.findAll as jest.Mock).mockResolvedValueOnce(mockBreeds);
+
+      const result = await PetService.getPetBreedsByType('dog');
+
+      expect(result).toEqual(['Golden Retriever', 'Poodle']);
+    });
+
+    it('should throw error for invalid pet type', async () => {
+      await expect(PetService.getPetBreedsByType('invalid')).rejects.toThrow(
+        'Invalid pet type: invalid'
+      );
+    });
+
+    it('should handle database errors', async () => {
+      (MockedPet.findAll as jest.Mock).mockRejectedValueOnce(new Error('Database error'));
+
+      await expect(PetService.getPetBreedsByType('dog')).rejects.toThrow(
+        'Failed to retrieve breeds for pet type: dog'
+      );
+    });
+  });
+
+  describe('getPetTypes', () => {
+    it('should return all pet types', async () => {
+      const result = await PetService.getPetTypes();
+
+      expect(result).toEqual([
+        'dog',
+        'cat',
+        'rabbit',
+        'bird',
+        'reptile',
+        'small_mammal',
+        'fish',
+        'other',
+      ]);
+    });
+  });
+
+  describe('getSimilarPets', () => {
+    const mockReferencePet = {
+      pet_id: 'ref-pet-1',
+      breed: 'Golden Retriever',
+      type: 'dog',
+      size: 'large',
+      age_group: 'adult',
+    };
+
+    it('should return similar pets based on breed, type, size, and age', async () => {
+      const mockSimilarPets = [
+        { pet_id: 'similar-1', breed: 'Golden Retriever', type: 'dog' },
+        { pet_id: 'similar-2', breed: 'Labrador Retriever', type: 'dog' },
+      ];
+
+      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockReferencePet);
+      (MockedPet.findAll as jest.Mock).mockResolvedValue(mockSimilarPets);
+
+      const result = await PetService.getSimilarPets('ref-pet-1', 6);
+
+      expect(MockedPet.findByPk).toHaveBeenCalledWith('ref-pet-1');
+      expect(MockedPet.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            pet_id: { [Op.ne]: 'ref-pet-1' },
+            status: PetStatus.AVAILABLE,
+            archived: false,
+          }),
+          limit: 6,
+        })
+      );
+      expect(result).toEqual(mockSimilarPets);
+    });
+
+    it('should throw error for non-existent pet', async () => {
+      (MockedPet.findByPk as jest.Mock).mockResolvedValue(null);
+
+      await expect(PetService.getSimilarPets('nonexistent')).rejects.toThrow('Pet not found');
+    });
+
+    it('should handle database errors', async () => {
+      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockReferencePet);
+      (MockedPet.findAll as jest.Mock).mockRejectedValue(new Error('Database error'));
+
+      await expect(PetService.getSimilarPets('ref-pet-1')).rejects.toThrow(
+        'Failed to retrieve similar pets'
+      );
+    });
+  });
+
+  describe('reportPet', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should create a pet report successfully', async () => {
+      const mockPet = { pet_id: 'pet-123', name: 'Buddy' };
+      const mockReport = {
+        reportId: 'report-123',
+        reportedEntityType: 'pet',
+        reportedEntityId: 'pet-123',
+        reporterId: 'user-456',
+        category: 'INAPPROPRIATE_CONTENT',
+      };
+
+      (MockedPet.findByPk as jest.Mock).mockResolvedValueOnce(mockPet);
+
+      // Mock the dynamic import
+      const mockCreate = jest.fn().mockResolvedValue(mockReport);
+      jest.doMock('../../models/Report', () => ({
+        default: { create: mockCreate },
+        ReportCategory: { INAPPROPRIATE_CONTENT: 'INAPPROPRIATE_CONTENT' },
+        ReportStatus: { PENDING: 'PENDING' },
+        ReportSeverity: { MEDIUM: 'MEDIUM' },
+      }));
+
+      const result = await PetService.reportPet(
+        'pet-123',
+        'user-456',
+        'inappropriate_content',
+        'This pet listing contains inappropriate images'
+      );
+
+      expect(MockedPet.findByPk).toHaveBeenCalledWith('pet-123');
+      expect(result).toEqual({
+        reportId: 'report-123',
+        message: 'Report submitted successfully',
+      });
+    });
+
+    it('should throw error for non-existent pet', async () => {
+      (MockedPet.findByPk as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(PetService.reportPet('nonexistent', 'user-456', 'spam')).rejects.toThrow(
+        'Pet not found'
+      );
+    });
+
+    it('should handle report creation errors', async () => {
+      const mockPet = { pet_id: 'pet-123', name: 'Buddy' };
+      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPet);
+
+      // Mock dynamic import to throw error
+      jest.doMock('../../models/Report', () => ({
+        default: {
+          create: jest.fn().mockRejectedValue(new Error('Report creation failed')),
+        },
+      }));
+
+      await expect(PetService.reportPet('pet-123', 'user-456', 'spam')).rejects.toThrow(
+        'Failed to submit pet report'
       );
     });
   });

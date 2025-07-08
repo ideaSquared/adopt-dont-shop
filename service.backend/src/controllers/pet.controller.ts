@@ -665,17 +665,8 @@ export class PetController {
 
   checkFavoriteStatus = async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const petId = req.params.petId;
       const userId = req.user!.userId;
+      const { petId } = req.params;
 
       const isFavorite = await this.petService.checkFavoriteStatus(userId, petId);
 
@@ -688,6 +679,188 @@ export class PetController {
       res.status(500).json({
         success: false,
         message: 'Failed to check favorite status',
+      });
+    }
+  };
+
+  /**
+   * Get recent pets
+   */
+  getRecentPets = async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 12;
+
+      if (limit < 1 || limit > 50) {
+        return res.status(400).json({
+          success: false,
+          message: 'Limit must be between 1 and 50',
+        });
+      }
+
+      const pets = await this.petService.getRecentPets(limit);
+
+      res.json({
+        success: true,
+        data: pets,
+        message: 'Recent pets retrieved successfully',
+      });
+    } catch (error) {
+      logger.error('Error getting recent pets:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve recent pets',
+      });
+    }
+  };
+
+  /**
+   * Get pet breeds by type
+   */
+  static validatePetType = [
+    param('type')
+      .trim()
+      .isIn(['dog', 'cat', 'rabbit', 'bird', 'reptile', 'small_mammal', 'fish', 'other'])
+      .withMessage('Invalid pet type'),
+  ];
+
+  getPetBreedsByType = async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { type } = req.params;
+      const breeds = await this.petService.getPetBreedsByType(type);
+
+      res.json({
+        success: true,
+        data: breeds,
+        message: `Breeds for ${type} retrieved successfully`,
+      });
+    } catch (error) {
+      logger.error(`Error getting breeds for type ${req.params.type}:`, error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve pet breeds',
+      });
+    }
+  };
+
+  /**
+   * Get all pet types
+   */
+  getPetTypes = async (req: Request, res: Response) => {
+    try {
+      const types = await this.petService.getPetTypes();
+
+      res.json({
+        success: true,
+        data: types,
+        message: 'Pet types retrieved successfully',
+      });
+    } catch (error) {
+      logger.error('Error getting pet types:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve pet types',
+      });
+    }
+  };
+
+  /**
+   * Get similar pets
+   */
+  getSimilarPets = async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { petId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 6;
+
+      if (limit < 1 || limit > 20) {
+        return res.status(400).json({
+          success: false,
+          message: 'Limit must be between 1 and 20',
+        });
+      }
+
+      const similarPets = await this.petService.getSimilarPets(petId, limit);
+
+      res.json({
+        success: true,
+        data: similarPets,
+        message: 'Similar pets retrieved successfully',
+      });
+    } catch (error) {
+      logger.error(`Error getting similar pets for ${req.params.petId}:`, error);
+      res.status(404).json({
+        success: false,
+        message:
+          error instanceof Error && error.message === 'Pet not found'
+            ? 'Pet not found'
+            : 'Failed to retrieve similar pets',
+      });
+    }
+  };
+
+  /**
+   * Report a pet
+   */
+  static validateReportPet = [
+    param('petId').isString().withMessage('Valid pet ID is required'),
+    body('reason')
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Reason must be between 1 and 100 characters'),
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Description must not exceed 500 characters'),
+  ];
+
+  reportPet = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const userId = req.user!.userId;
+      const { petId } = req.params;
+      const { reason, description } = req.body;
+
+      const result = await this.petService.reportPet(petId, userId, reason, description);
+
+      res.status(201).json({
+        success: true,
+        data: result,
+        message: 'Pet reported successfully',
+      });
+    } catch (error) {
+      logger.error(`Error reporting pet ${req.params.petId}:`, error);
+      res.status(404).json({
+        success: false,
+        message:
+          error instanceof Error && error.message === 'Pet not found'
+            ? 'Pet not found'
+            : 'Failed to submit pet report',
       });
     }
   };

@@ -2,6 +2,7 @@ import { col, fn, literal, Op, WhereOptions } from 'sequelize';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
 import Rescue from '../models/Rescue';
 import UserFavorite from '../models/UserFavorite';
+import sequelize from '../sequelize';
 import { SequelizeOperatorFilter } from '../types/database';
 import {
   BreedStats,
@@ -1400,6 +1401,194 @@ export class PetService {
     } catch (error) {
       logger.error('Error checking favorite status:', error);
       throw new Error('Failed to check favorite status');
+    }
+  }
+
+  /**
+   * Get recent pets (recently added)
+   */
+  static async getRecentPets(limit: number = 12): Promise<Pet[]> {
+    try {
+      const pets = await Pet.findAll({
+        where: {
+          status: PetStatus.AVAILABLE,
+          archived: false,
+        },
+        include: [
+          {
+            model: Rescue,
+            as: 'Rescue',
+            attributes: ['rescueId', 'name', 'city', 'state'],
+          },
+        ],
+        order: [['created_at', 'DESC']],
+        limit,
+      });
+
+      logger.info(`Retrieved ${pets.length} recent pets`);
+      return pets;
+    } catch (error) {
+      logger.error('Error getting recent pets:', error);
+      throw new Error('Failed to retrieve recent pets');
+    }
+  }
+
+  /**
+   * Get pet breeds by type
+   */
+  static async getPetBreedsByType(type: string): Promise<string[]> {
+    try {
+      const validType = type.toLowerCase();
+
+      // Validate pet type
+      if (!Object.values(PetType).includes(validType as PetType)) {
+        throw new Error(`Invalid pet type: ${type}`);
+      }
+
+      const breeds = await Pet.findAll({
+        attributes: ['breed'],
+        where: {
+          type: validType,
+          archived: false,
+        },
+        group: ['breed'],
+        order: [['breed', 'ASC']],
+      });
+
+      const breedNames = breeds
+        .map(pet => pet.breed)
+        .filter((breed): breed is string => breed !== null && breed.trim() !== '')
+        .sort();
+
+      logger.info(`Retrieved ${breedNames.length} breeds for type ${type}`);
+      return breedNames;
+    } catch (error) {
+      // Re-throw validation errors as-is
+      if (error instanceof Error && error.message.includes('Invalid pet type:')) {
+        throw error;
+      }
+      logger.error(`Error getting breeds for type ${type}:`, error);
+      throw new Error(`Failed to retrieve breeds for pet type: ${type}`);
+    }
+  }
+
+  /**
+   * Get all available pet types
+   */
+  static async getPetTypes(): Promise<string[]> {
+    try {
+      const types = Object.values(PetType);
+      logger.info(`Retrieved ${types.length} pet types`);
+      return types;
+    } catch (error) {
+      logger.error('Error getting pet types:', error);
+      throw new Error('Failed to retrieve pet types');
+    }
+  }
+
+  /**
+   * Get similar pets based on breed, type, size, and age
+   */
+  static async getSimilarPets(petId: string, limit: number = 6): Promise<Pet[]> {
+    try {
+      // First get the reference pet
+      const referencePet = await Pet.findByPk(petId);
+      if (!referencePet) {
+        throw new Error('Pet not found');
+      }
+
+      // Find similar pets with priority scoring
+      const similarPets = await Pet.findAll({
+        where: {
+          pet_id: { [Op.ne]: petId }, // Exclude the reference pet
+          status: PetStatus.AVAILABLE,
+          archived: false,
+          [Op.or]: [
+            { breed: referencePet.breed }, // Same breed (highest priority)
+            { type: referencePet.type }, // Same type
+            { size: referencePet.size }, // Same size
+            { age_group: referencePet.age_group }, // Same age group
+          ],
+        },
+        include: [
+          {
+            model: Rescue,
+            as: 'Rescue',
+            attributes: ['rescueId', 'name', 'city', 'state'],
+          },
+        ],
+        order: [
+          // Prioritize exact breed matches first
+          [sequelize.literal(`CASE WHEN breed = '${referencePet.breed}' THEN 0 ELSE 1 END`), 'ASC'],
+          // Then by type matches
+          [sequelize.literal(`CASE WHEN type = '${referencePet.type}' THEN 0 ELSE 1 END`), 'ASC'],
+          // Finally by creation date (newest first)
+          ['created_at', 'DESC'],
+        ],
+        limit,
+      });
+
+      logger.info(`Found ${similarPets.length} similar pets for pet ${petId}`);
+      return similarPets;
+    } catch (error) {
+      // Re-throw "Pet not found" errors as-is
+      if (error instanceof Error && error.message === 'Pet not found') {
+        throw error;
+      }
+      logger.error(`Error getting similar pets for ${petId}:`, error);
+      throw new Error('Failed to retrieve similar pets');
+    }
+  }
+
+  /**
+   * Report a pet for inappropriate content or other issues
+   */
+  static async reportPet(
+    petId: string,
+    reportedBy: string,
+    reason: string,
+    description?: string
+  ): Promise<{ reportId: string; message: string }> {
+    try {
+      // Verify pet exists
+      const pet = await Pet.findByPk(petId);
+      if (!pet) {
+        throw new Error('Pet not found');
+      }
+
+      // Import Report model dynamically to avoid circular dependencies
+      const {
+        default: Report,
+        ReportCategory,
+        ReportStatus,
+        ReportSeverity,
+      } = await import('../models/Report');
+
+      // Create the report
+      const report = await Report.create({
+        reportedEntityType: 'pet',
+        reportedEntityId: petId,
+        reporterId: reportedBy,
+        category: ReportCategory.INAPPROPRIATE_CONTENT, // Default category for pet reports
+        title: reason,
+        description: description || '',
+        status: ReportStatus.PENDING,
+        severity: ReportSeverity.MEDIUM, // Default severity
+      });
+
+      logger.info(`Pet ${petId} reported by user ${reportedBy} for reason: ${reason}`);
+
+      return {
+        reportId: report.reportId,
+        message: 'Report submitted successfully',
+      };
+    } catch (error) {
+      // Re-throw "Pet not found" errors as-is
+      if (error instanceof Error && error.message === 'Pet not found') {
+        throw error;
+      }
+      logger.error(`Error reporting pet ${petId}:`, error);
+      throw new Error('Failed to submit pet report');
     }
   }
 }

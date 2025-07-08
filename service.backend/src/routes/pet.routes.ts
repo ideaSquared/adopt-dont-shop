@@ -15,6 +15,12 @@ router.get('/test', (req, res) => {
 
 router.get('/featured', petController.getFeaturedPets);
 
+router.get('/recent', petController.getRecentPets);
+
+router.get('/types', petController.getPetTypes);
+
+router.get('/breeds/:type', PetController.validatePetType, petController.getPetBreedsByType);
+
 router.get('/statistics', petController.getPetStatistics);
 
 router.get('/rescue/:rescueId', petController.getPetsByRescue);
@@ -23,6 +29,8 @@ router.get('/favorites/user', authenticateToken, petController.getUserFavorites)
 
 // Parameterized routes (must come after specific routes)
 router.get('/:petId', PetController.validatePetId, petController.getPetById);
+
+router.get('/:petId/similar', PetController.validatePetId, petController.getSimilarPets);
 
 router.get('/:petId/activity', PetController.validatePetId, petController.getPetActivity);
 
@@ -103,6 +111,13 @@ router.get(
   authenticateToken,
   PetController.validatePetId,
   petController.checkFavoriteStatus
+);
+
+router.post(
+  '/:petId/report',
+  authenticateToken,
+  PetController.validateReportPet,
+  petController.reportPet
 );
 
 export default router;

@@ -159,20 +159,38 @@ class PetService {
     return response.data || [];
   }
 
-  // Get recent pets - TODO: Implement backend endpoint
-  // async getRecentPets(limit: number = 12): Promise<Pet[]> {
-  //   return await apiService.get<Pet[]>('/v1/pets/recent', { limit });
-  // }
+  // Get recent pets
+  async getRecentPets(limit: number = 12): Promise<Pet[]> {
+    try {
+      const response = await apiService.get<ApiResponse<Pet[]>>('/api/v1/pets/recent', { limit });
+      return response.data || [];
+    } catch (error) {
+      console.error('Failed to fetch recent pets:', error);
+      throw error;
+    }
+  }
 
-  // Get pet breeds by type - TODO: Implement backend endpoint
-  // async getBreedsForType(type: string): Promise<string[]> {
-  //   return await apiService.get<string[]>(`/v1/pets/breeds/${type}`);
-  // }
+  // Get pet breeds by type
+  async getPetBreedsByType(type: string): Promise<string[]> {
+    try {
+      const response = await apiService.get<ApiResponse<string[]>>(`/api/v1/pets/breeds/${type}`);
+      return response.data || [];
+    } catch (error) {
+      console.error(`Failed to fetch breeds for type ${type}:`, error);
+      throw error;
+    }
+  }
 
-  // Get all available pet types - TODO: Implement backend endpoint
-  // async getPetTypes(): Promise<string[]> {
-  //   return await apiService.get<string[]>('/v1/pets/types');
-  // }
+  // Get all available pet types
+  async getPetTypes(): Promise<string[]> {
+    try {
+      const response = await apiService.get<ApiResponse<string[]>>('/api/v1/pets/types');
+      return response.data || [];
+    } catch (error) {
+      console.error('Failed to fetch pet types:', error);
+      throw error;
+    }
+  }
 
   // Add pet to favorites (requires authentication)
   async addToFavorites(petId: string): Promise<void> {
@@ -262,18 +280,39 @@ class PetService {
     };
   }
 
-  // Get similar pets - TODO: Implement backend endpoint
-  // async getSimilarPets(petId: string, limit: number = 6): Promise<Pet[]> {
-  //   return await apiService.get<Pet[]>(`/v1/pets/${petId}/similar`, { limit });
-  // }
+  // Get similar pets
+  async getSimilarPets(petId: string, limit: number = 6): Promise<Pet[]> {
+    try {
+      const response = await apiService.get<ApiResponse<Pet[]>>(`/api/v1/pets/${petId}/similar`, {
+        limit,
+      });
+      return response.data || [];
+    } catch (error) {
+      console.error(`Failed to fetch similar pets for ${petId}:`, error);
+      throw error;
+    }
+  }
 
-  // Report a pet - TODO: Implement backend endpoint
-  // async reportPet(petId: string, reason: string, description?: string): Promise<void> {
-  //   await apiService.post(`/v1/pets/${petId}/report`, {
-  //     reason,
-  //     description,
-  //   });
-  // }
+  // Report a pet
+  async reportPet(
+    petId: string,
+    reason: string,
+    description?: string
+  ): Promise<{ reportId: string; message: string }> {
+    try {
+      const response = await apiService.post<ApiResponse<{ reportId: string; message: string }>>(
+        `/api/v1/pets/${petId}/report`,
+        {
+          reason,
+          description,
+        }
+      );
+      return response.data || { reportId: '', message: 'Report submitted successfully' };
+    } catch (error) {
+      console.error(`Failed to report pet ${petId}:`, error);
+      throw error;
+    }
+  }
 
   // Get pet statistics for analytics
   async getPetStats(): Promise<{

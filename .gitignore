@@ -58,3 +58,6 @@ docker-compose.override.yml
 ### Development ###
 .env.development
 .env.development.local
+
+### Tests ###
+*/coverage
