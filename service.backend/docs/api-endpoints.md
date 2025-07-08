@@ -10,8 +10,11 @@ The Adopt Don't Shop Backend API provides comprehensive RESTful endpoints for ma
 - **Pet Management**: Comprehensive pet listing, search, and management capabilities  
 - **Application System**: End-to-end adoption application workflow
 - **Real-time Messaging**: Chat system for adopter-rescue communication
+- **Notification System**: In-app, email, and push notification management with user preferences
+- **Email Management**: Template-based email system with analytics and delivery tracking
 - **Analytics & Insights**: User behavior tracking and swipe analytics
 - **Administrative Tools**: Complete admin dashboard and moderation features
+- **Monitoring & Health Checks**: System health monitoring and diagnostics (development)
 
 ## Base Configuration
 
@@ -882,6 +885,472 @@ Remove pet from user's favorites.
 }
 ```
 
+### GET /api/v1/pets/featured
+Get featured pets for homepage display.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "pets": [
+    {
+      "petId": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Buddy",
+      "type": "DOG",
+      "breed": "Golden Retriever",
+      "age": "ADULT",
+      "gender": "MALE",
+      "size": "LARGE",
+      "description": "Friendly and energetic dog looking for an active family.",
+      "imageUrl": "https://example.com/pets/buddy.jpg",
+      "status": "AVAILABLE",
+      "isFeatured": true,
+      "rescue": {
+        "rescueId": "rescue-123",
+        "name": "Happy Tails Rescue",
+        "location": "San Francisco, CA"
+      },
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total": 6
+}
+```
+
+### GET /api/v1/pets/recent
+Get recently added pets.
+
+**Query Parameters:**
+- `limit` (optional): Number of pets to return (default: 10, max: 20)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "pets": [
+    {
+      "petId": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Luna",
+      "type": "CAT",
+      "breed": "Domestic Shorthair",
+      "age": "YOUNG",
+      "gender": "FEMALE",
+      "size": "MEDIUM",
+      "description": "Sweet and playful cat who loves to cuddle.",
+      "imageUrl": "https://example.com/pets/luna.jpg",
+      "status": "AVAILABLE",
+      "rescue": {
+        "rescueId": "rescue-456",
+        "name": "Feline Friends",
+        "location": "Oakland, CA"
+      },
+      "createdAt": "2024-01-15T12:00:00Z"
+    }
+  ],
+  "total": 8
+}
+```
+
+### GET /api/v1/pets/types
+Get available pet types.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "types": [
+    {
+      "type": "DOG",
+      "displayName": "Dogs",
+      "count": 245,
+      "description": "Loyal and loving companions"
+    },
+    {
+      "type": "CAT",
+      "displayName": "Cats", 
+      "count": 156,
+      "description": "Independent and affectionate friends"
+    },
+    {
+      "type": "RABBIT",
+      "displayName": "Rabbits",
+      "count": 23,
+      "description": "Gentle and social small pets"
+    },
+    {
+      "type": "BIRD",
+      "displayName": "Birds",
+      "count": 12,
+      "description": "Intelligent and vocal companions"
+    }
+  ]
+}
+```
+
+### GET /api/v1/pets/breeds/:type
+Get available breeds for a specific pet type.
+
+**URL Parameters:**
+- `type` (required): Pet type (DOG, CAT, RABBIT, BIRD, etc.)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "type": "DOG",
+  "breeds": [
+    {
+      "breed": "Golden Retriever",
+      "count": 15,
+      "characteristics": ["Friendly", "Intelligent", "Active"]
+    },
+    {
+      "breed": "Labrador Retriever", 
+      "count": 18,
+      "characteristics": ["Outgoing", "Active", "Loyal"]
+    },
+    {
+      "breed": "German Shepherd",
+      "count": 8,
+      "characteristics": ["Confident", "Courageous", "Smart"]
+    },
+    {
+      "breed": "Mixed Breed",
+      "count": 45,
+      "characteristics": ["Unique", "Varied", "Special"]
+    }
+  ],
+  "total": 86
+}
+```
+
+### GET /api/v1/pets/statistics
+Get pet adoption statistics and insights.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "statistics": {
+    "totalPets": 436,
+    "availablePets": 298,
+    "adoptedThisMonth": 42,
+    "adoptedThisYear": 487,
+    "byType": {
+      "DOG": 245,
+      "CAT": 156,
+      "RABBIT": 23,
+      "BIRD": 12
+    },
+    "byAge": {
+      "BABY": 45,
+      "YOUNG": 156,
+      "ADULT": 189,
+      "SENIOR": 46
+    },
+    "bySize": {
+      "SMALL": 145,
+      "MEDIUM": 178,
+      "LARGE": 89,
+      "EXTRA_LARGE": 24
+    },
+    "averageTimeToAdoption": 28,
+    "successRate": 87.3,
+    "topBreeds": [
+      { "breed": "Mixed Breed", "count": 67 },
+      { "breed": "Labrador Retriever", "count": 18 },
+      { "breed": "Golden Retriever", "count": 15 }
+    ]
+  }
+}
+```
+
+### GET /api/v1/pets/rescue/:rescueId
+Get all pets from a specific rescue organization.
+
+**URL Parameters:**
+- `rescueId` (required): Rescue organization ID
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 20, max: 50)
+- `status` (optional): Filter by pet status
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "rescue": {
+    "rescueId": "rescue-123",
+    "name": "Happy Tails Rescue",
+    "location": "San Francisco, CA",
+    "description": "Dedicated to finding loving homes for dogs and cats"
+  },
+  "pets": [
+    {
+      "petId": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Buddy",
+      "type": "DOG",
+      "breed": "Golden Retriever",
+      "age": "ADULT",
+      "gender": "MALE",
+      "size": "LARGE",
+      "imageUrl": "https://example.com/pets/buddy.jpg",
+      "status": "AVAILABLE",
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total": 15,
+  "page": 1,
+  "totalPages": 1,
+  "hasNext": false,
+  "hasPrev": false
+}
+```
+
+### GET /api/v1/pets/favorites/user
+Get current user's favorite pets.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 20, max: 50)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "favorites": [
+    {
+      "petId": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Buddy",
+      "type": "DOG",
+      "breed": "Golden Retriever",
+      "age": "ADULT",
+      "gender": "MALE",
+      "size": "LARGE",
+      "imageUrl": "https://example.com/pets/buddy.jpg",
+      "status": "AVAILABLE",
+      "rescue": {
+        "rescueId": "rescue-123",
+        "name": "Happy Tails Rescue",
+        "location": "San Francisco, CA"
+      },
+      "favoritedAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total": 8,
+  "page": 1,
+  "totalPages": 1,
+  "hasNext": false,
+  "hasPrev": false
+}
+```
+
+### GET /api/v1/pets/:petId/similar
+Get pets similar to the specified pet.
+
+**URL Parameters:**
+- `petId` (required): Pet ID
+
+**Query Parameters:**
+- `limit` (optional): Number of similar pets to return (default: 6, max: 12)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "similarPets": [
+    {
+      "petId": "pet-similar-1",
+      "name": "Max",
+      "type": "DOG",
+      "breed": "Golden Retriever",
+      "age": "YOUNG",
+      "gender": "MALE",
+      "size": "LARGE",
+      "imageUrl": "https://example.com/pets/max.jpg",
+      "status": "AVAILABLE",
+      "similarityScore": 0.85,
+      "rescue": {
+        "rescueId": "rescue-456",
+        "name": "Loving Paws Rescue"
+      }
+    }
+  ],
+  "total": 4,
+  "criteria": {
+    "type": "DOG",
+    "breed": "Golden Retriever",
+    "size": "LARGE",
+    "age": "Similar age range"
+  }
+}
+```
+
+### GET /api/v1/pets/:petId/activity
+Get activity history for a specific pet.
+
+**URL Parameters:**
+- `petId` (required): Pet ID
+
+**Query Parameters:**
+- `limit` (optional): Number of activities to return (default: 20, max: 50)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "activities": [
+    {
+      "activityId": "activity-123",
+      "type": "profile_updated",
+      "description": "Pet profile updated with new photos",
+      "performedBy": {
+        "userId": "user-456",
+        "name": "Sarah Wilson",
+        "role": "RESCUE_STAFF"
+      },
+      "timestamp": "2024-01-15T14:30:00Z",
+      "details": {
+        "field": "images",
+        "action": "added",
+        "count": 3
+      }
+    },
+    {
+      "activityId": "activity-124",
+      "type": "application_received",
+      "description": "New adoption application received",
+      "timestamp": "2024-01-15T11:15:00Z",
+      "details": {
+        "applicationId": "app-789",
+        "applicantName": "John Smith"
+      }
+    }
+  ],
+  "total": 12
+}
+```
+
+### DELETE /api/v1/pets/:petId/images
+Remove specific image from pet's photo gallery.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**URL Parameters:**
+- `petId` (required): Pet ID
+
+**Query Parameters:**
+- `imageId` (required): Image ID to remove
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Pet image removed successfully",
+  "remainingImages": 4
+}
+```
+
+### PATCH /api/v1/pets/:petId/status
+Update pet's availability status.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**URL Parameters:**
+- `petId` (required): Pet ID
+
+**Request:**
+```json
+{
+  "status": "ADOPTED",
+  "notes": "Successfully adopted by the Johnson family!",
+  "adoptionDate": "2024-01-15"
+}
+```
+
+**Valid Statuses:**
+- `AVAILABLE` - Available for adoption
+- `PENDING` - Application pending/under review
+- `ADOPTED` - Successfully adopted
+- `UNAVAILABLE` - Temporarily unavailable
+- `MEDICAL_HOLD` - On medical hold
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "pet": {
+    "petId": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Buddy",
+    "status": "ADOPTED",
+    "adoptionDate": "2024-01-15",
+    "notes": "Successfully adopted by the Johnson family!",
+    "updatedAt": "2024-01-15T15:30:00Z"
+  }
+}
+```
+
+### GET /api/v1/pets/:petId/favorite/status
+Check if current user has favorited this pet.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**URL Parameters:**
+- `petId` (required): Pet ID
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "isFavorited": true,
+  "favoritedAt": "2024-01-15T10:30:00Z"
+}
+```
+
+### POST /api/v1/pets/:petId/report
+Report a pet listing for review.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**URL Parameters:**
+- `petId` (required): Pet ID
+
+**Request:**
+```json
+{
+  "reason": "inappropriate_content",
+  "description": "The pet description contains inappropriate language",
+  "category": "content"
+}
+```
+
+**Valid Reasons:**
+- `inappropriate_content` - Inappropriate content
+- `false_information` - False or misleading information
+- `duplicate_listing` - Duplicate pet listing
+- `spam` - Spam or promotional content
+- `animal_welfare` - Animal welfare concerns
+- `other` - Other reason (description required)
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "report": {
+    "reportId": "report-123",
+    "petId": "550e8400-e29b-41d4-a716-446655440000",
+    "reason": "inappropriate_content",
+    "description": "The pet description contains inappropriate language",
+    "status": "pending_review",
+    "submittedAt": "2024-01-15T16:00:00Z"
+  },
+  "message": "Report submitted successfully. We will review it within 24 hours."
+}
+```
+
 ## Application Management Endpoints
 
 ### GET /api/v1/applications
@@ -1523,6 +1992,798 @@ Comprehensive health check.
     },
     "activeConnections": 45
   }
+}
+```
+
+## Notification Endpoints
+
+### GET /api/v1/notifications
+Get user's notifications with pagination and filtering.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 20, max: 50)
+- `status` (optional): Filter by read/unread status (`read`, `unread`)
+- `type` (optional): Filter by notification type
+- `startDate` (optional): Filter from date (ISO 8601)
+- `endDate` (optional): Filter to date (ISO 8601)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "notifications": [
+    {
+      "notificationId": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "Application Update",
+      "message": "Your adoption application has been approved!",
+      "type": "application_update",
+      "priority": "high",
+      "isRead": false,
+      "data": {
+        "applicationId": "app-123",
+        "petName": "Buddy"
+      },
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total": 45,
+  "page": 1,
+  "totalPages": 3,
+  "hasNext": true,
+  "hasPrev": false
+}
+```
+
+### GET /api/v1/notifications/unread/count
+Get count of unread notifications.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "unreadCount": 12
+}
+```
+
+### GET /api/v1/notifications/preferences
+Get user's notification preferences.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "preferences": {
+    "application_update": {
+      "inApp": true,
+      "email": true,
+      "push": false
+    },
+    "message": {
+      "inApp": true,
+      "email": false,
+      "push": true
+    },
+    "system": {
+      "inApp": true,
+      "email": true,
+      "push": false
+    }
+  }
+}
+```
+
+### PUT /api/v1/notifications/preferences
+Update user's notification preferences.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "preferences": {
+    "application_update": {
+      "inApp": true,
+      "email": true,
+      "push": false
+    },
+    "message": {
+      "inApp": true,
+      "email": false,
+      "push": true
+    }
+  }
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Notification preferences updated successfully"
+}
+```
+
+### POST /api/v1/notifications/read-all
+Mark all notifications as read for the current user.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "All notifications marked as read",
+  "markedCount": 12
+}
+```
+
+### GET /api/v1/notifications/:notificationId
+Get a specific notification by ID.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "notification": {
+    "notificationId": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "Application Update",
+    "message": "Your adoption application has been approved!",
+    "type": "application_update",
+    "priority": "high",
+    "isRead": false,
+    "data": {
+      "applicationId": "app-123",
+      "petName": "Buddy"
+    },
+    "createdAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### PATCH /api/v1/notifications/:notificationId/read
+Mark a specific notification as read.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Notification marked as read"
+}
+```
+
+### DELETE /api/v1/notifications/:notificationId
+Delete a specific notification.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Notification deleted successfully"
+}
+```
+
+### POST /api/v1/notifications
+Create a new notification (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "title": "System Maintenance",
+  "message": "Scheduled maintenance will occur tonight from 2-4 AM.",
+  "type": "system",
+  "priority": "medium",
+  "channels": ["in_app", "email"],
+  "data": {
+    "maintenanceWindow": "2024-01-16T02:00:00Z"
+  },
+  "scheduledFor": "2024-01-15T18:00:00Z"
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "notification": {
+    "notificationId": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "System Maintenance",
+    "message": "Scheduled maintenance will occur tonight from 2-4 AM.",
+    "type": "system",
+    "priority": "medium",
+    "isRead": false,
+    "createdAt": "2024-01-15T15:30:00Z"
+  }
+}
+```
+
+### POST /api/v1/notifications/bulk
+Send notifications to multiple users (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "userIds": ["user-1", "user-2", "user-3"],
+  "title": "Important Update",
+  "message": "Please review the new terms of service.",
+  "type": "system",
+  "priority": "high",
+  "channels": ["in_app", "email"]
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "message": "Bulk notification sent successfully",
+  "sentCount": 3,
+  "failedCount": 0
+}
+```
+
+### POST /api/v1/notifications/broadcast
+Send notification to all users (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "title": "Service Announcement",
+  "message": "We've added new features to improve your experience!",
+  "type": "system",
+  "priority": "medium",
+  "channels": ["in_app"],
+  "filterCriteria": {
+    "userType": "ADOPTER",
+    "isActive": true
+  }
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "message": "Broadcast notification sent successfully",
+  "sentCount": 1250,
+  "failedCount": 5
+}
+```
+
+## Email Management Endpoints
+
+### GET /api/v1/emails/templates
+Get all email templates (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 20)
+- `category` (optional): Filter by template category
+- `status` (optional): Filter by template status (active/inactive)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "templates": [
+    {
+      "templateId": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "welcome_email",
+      "subject": "Welcome to Adopt Don't Shop!",
+      "category": "user_onboarding",
+      "status": "active",
+      "description": "Welcome email for new users",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total": 15,
+  "page": 1,
+  "totalPages": 1
+}
+```
+
+### POST /api/v1/emails/templates
+Create a new email template (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "name": "adoption_approved",
+  "subject": "Congratulations! Your adoption application has been approved",
+  "htmlBody": "<html><body><h1>Congratulations!</h1><p>Your application for {{petName}} has been approved!</p></body></html>",
+  "textBody": "Congratulations! Your application for {{petName}} has been approved!",
+  "category": "adoption",
+  "variables": ["petName", "rescueName", "contactInfo"],
+  "description": "Email sent when adoption application is approved"
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "template": {
+    "templateId": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "adoption_approved",
+    "subject": "Congratulations! Your adoption application has been approved",
+    "category": "adoption",
+    "status": "active",
+    "createdAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### GET /api/v1/emails/templates/:templateId
+Get a specific email template (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "template": {
+    "templateId": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "adoption_approved",
+    "subject": "Congratulations! Your adoption application has been approved",
+    "htmlBody": "<html><body><h1>Congratulations!</h1><p>Your application for {{petName}} has been approved!</p></body></html>",
+    "textBody": "Congratulations! Your application for {{petName}} has been approved!",
+    "category": "adoption",
+    "variables": ["petName", "rescueName", "contactInfo"],
+    "status": "active",
+    "description": "Email sent when adoption application is approved",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### PUT /api/v1/emails/templates/:templateId
+Update an email template (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "subject": "Updated: Your adoption application has been approved!",
+  "htmlBody": "<html><body><h1>Great News!</h1><p>Your application for {{petName}} has been approved!</p></body></html>",
+  "description": "Updated approval email template"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Email template updated successfully"
+}
+```
+
+### DELETE /api/v1/emails/templates/:templateId
+Delete an email template (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Email template deleted successfully"
+}
+```
+
+### POST /api/v1/emails/templates/:templateId/preview
+Preview an email template with sample data (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "variables": {
+    "petName": "Buddy",
+    "rescueName": "Happy Tails Rescue",
+    "contactInfo": "contact@happytails.org"
+  }
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "preview": {
+    "subject": "Congratulations! Your adoption application has been approved",
+    "htmlBody": "<html><body><h1>Congratulations!</h1><p>Your application for Buddy has been approved!</p></body></html>",
+    "textBody": "Congratulations! Your application for Buddy has been approved!"
+  }
+}
+```
+
+### POST /api/v1/emails/templates/:templateId/test
+Send a test email using the template (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "recipientEmail": "test@example.com",
+  "variables": {
+    "petName": "Buddy",
+    "rescueName": "Happy Tails Rescue",
+    "contactInfo": "contact@happytails.org"
+  }
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Test email sent successfully",
+  "messageId": "msg_123456789"
+}
+```
+
+### POST /api/v1/emails/send
+Send an email using a template (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "templateId": "550e8400-e29b-41d4-a716-446655440000",
+  "recipientEmail": "user@example.com",
+  "variables": {
+    "petName": "Buddy",
+    "rescueName": "Happy Tails Rescue"
+  },
+  "scheduledFor": "2024-01-16T09:00:00Z"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Email queued for delivery",
+  "messageId": "msg_123456789"
+}
+```
+
+### POST /api/v1/emails/send/bulk
+Send bulk emails using a template (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "templateId": "550e8400-e29b-41d4-a716-446655440000",
+  "recipients": [
+    {
+      "email": "user1@example.com",
+      "variables": {
+        "petName": "Buddy",
+        "rescueName": "Happy Tails"
+      }
+    },
+    {
+      "email": "user2@example.com", 
+      "variables": {
+        "petName": "Max",
+        "rescueName": "Loving Arms"
+      }
+    }
+  ]
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Bulk emails queued for delivery",
+  "queuedCount": 2,
+  "failedCount": 0
+}
+```
+
+### GET /api/v1/emails/analytics
+Get email analytics and delivery statistics (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `startDate` (optional): Start date for analytics (ISO 8601)
+- `endDate` (optional): End date for analytics (ISO 8601)
+- `templateId` (optional): Filter by specific template
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "analytics": {
+    "totalSent": 1250,
+    "delivered": 1200,
+    "opened": 850,
+    "clicked": 320,
+    "bounced": 25,
+    "complained": 2,
+    "deliveryRate": 96.0,
+    "openRate": 70.8,
+    "clickRate": 37.6,
+    "bounceRate": 2.0
+  }
+}
+```
+
+### GET /api/v1/emails/history
+Get email sending history (Admin only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 20)
+- `status` (optional): Filter by delivery status
+- `templateId` (optional): Filter by template
+- `recipientEmail` (optional): Filter by recipient
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "emails": [
+    {
+      "emailId": "email_123456",
+      "templateId": "550e8400-e29b-41d4-a716-446655440000",
+      "templateName": "adoption_approved",
+      "recipientEmail": "user@example.com",
+      "subject": "Congratulations! Your adoption application has been approved",
+      "status": "delivered",
+      "sentAt": "2024-01-15T10:30:00Z",
+      "deliveredAt": "2024-01-15T10:31:00Z",
+      "openedAt": "2024-01-15T11:15:00Z"
+    }
+  ],
+  "total": 2450,
+  "page": 1,
+  "totalPages": 123
+}
+```
+
+### GET /api/v1/emails/preferences/:userId
+Get user's email preferences.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "preferences": {
+    "marketing": true,
+    "notifications": true,
+    "adoption_updates": true,
+    "newsletters": false,
+    "system_alerts": true,
+    "frequency": "weekly"
+  }
+}
+```
+
+### PUT /api/v1/emails/preferences/:userId
+Update user's email preferences.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request:**
+```json
+{
+  "marketing": false,
+  "notifications": true,
+  "adoption_updates": true,
+  "newsletters": false,
+  "frequency": "daily"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Email preferences updated successfully"
+}
+```
+
+### GET /api/v1/emails/unsubscribe/:token
+Unsubscribe user from emails using token.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Successfully unsubscribed from emails"
+}
+```
+
+### POST /api/v1/emails/webhook/delivery
+Handle email delivery webhooks from email service provider.
+
+**Request:**
+```json
+{
+  "messageId": "msg_123456789",
+  "event": "delivered",
+  "timestamp": "2024-01-15T10:31:00Z",
+  "recipient": "user@example.com"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Webhook processed successfully"
+}
+```
+
+## Monitoring & Health Check Endpoints
+
+### GET /api/v1/monitoring/dashboard
+Get monitoring dashboard (Development only).
+
+**Note:** This endpoint is only available in development environment.
+
+**Response (200):**
+Returns an HTML dashboard showing:
+- System health status
+- Database connectivity
+- Email service status
+- Storage health
+- System metrics
+- Email provider information
+
+### GET /api/v1/monitoring/api/health
+Get overall system health check.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "status": "healthy",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "checks": {
+    "database": "healthy",
+    "email": "healthy", 
+    "storage": "healthy",
+    "system": "healthy"
+  },
+  "uptime": 86400,
+  "version": "1.0.0"
+}
+```
+
+### GET /api/v1/monitoring/api/health/database
+Get database health status.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "status": "healthy",
+  "connectionTime": 15,
+  "activeConnections": 5,
+  "maxConnections": 100,
+  "queryTime": 8,
+  "lastChecked": "2024-01-15T10:30:00Z"
+}
+```
+
+### GET /api/v1/monitoring/api/health/email
+Get email service health status.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "status": "healthy",
+  "provider": "ethereal",
+  "connectionTime": 120,
+  "lastEmailSent": "2024-01-15T10:25:00Z",
+  "queueSize": 5,
+  "lastChecked": "2024-01-15T10:30:00Z"
+}
+```
+
+### GET /api/v1/monitoring/api/health/storage
+Get storage health status.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "status": "healthy",
+  "diskUsage": {
+    "total": "100GB",
+    "used": "45GB",
+    "available": "55GB",
+    "usagePercent": 45
+  },
+  "lastChecked": "2024-01-15T10:30:00Z"
+}
+```
+
+### GET /api/v1/monitoring/api/health/system
+Get system health metrics.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "status": "healthy",
+  "memory": {
+    "total": "8GB",
+    "used": "2.1GB",
+    "available": "5.9GB",
+    "usagePercent": 26.25
+  },
+  "cpu": {
+    "cores": 4,
+    "usage": 15.5,
+    "loadAverage": [1.2, 1.1, 1.0]
+  },
+  "uptime": 86400,
+  "lastChecked": "2024-01-15T10:30:00Z"
+}
+```
+
+### GET /api/v1/monitoring/api/email/provider-info
+Get email provider configuration info (Development only).
+
+**Note:** This endpoint is only available in development environment.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "provider": "ethereal",
+  "testAccount": {
+    "user": "test.account@ethereal.email",
+    "pass": "generated_password",
+    "web": "https://ethereal.email"
+  },
+  "host": "smtp.ethereal.email",
+  "port": 587,
+  "secure": false
 }
 ```
 
