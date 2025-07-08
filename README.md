@@ -5,6 +5,23 @@
 
 A comprehensive pet adoption platform connecting rescue organizations with potential adopters. Built as a multi-service architecture with React frontends and Node.js backend services.
 
+## 🚀 Quick Start
+
+### For Docker Development
+
+1. **Start all services:**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Access the applications:**
+   - **✅ Recommended:** `http://localhost` (through nginx)
+   - **Development only:** `http://localhost:3000` (direct access)
+
+3. **Important:** Use `http://localhost` for proper API routing. Direct access to `:3000` may cause API connectivity issues.
+
+📋 **See [DOCKER-ACCESS-GUIDE.md](./DOCKER-ACCESS-GUIDE.md) for detailed setup instructions and troubleshooting.**
+
 ## 🏗️ Architecture
 
 The platform consists of multiple specialized applications:

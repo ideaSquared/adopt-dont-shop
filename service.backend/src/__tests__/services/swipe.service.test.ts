@@ -18,7 +18,7 @@ describe('SwipeService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    swipeService = new SwipeService();
+    swipeService = new SwipeService(true); // Skip table creation in tests
   });
 
   describe('recordSwipeAction', () => {

@@ -1,5 +1,5 @@
 // Jest polyfills
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 // Setup crypto polyfill for test environment
 Object.assign(global, {

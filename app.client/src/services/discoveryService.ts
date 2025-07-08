@@ -9,17 +9,36 @@ import { apiService } from './api';
 
 const API_BASE_URL = '/api/v1/discovery';
 
+/**
+ * Response interface for the discovery queue endpoint
+ */
 interface DiscoveryQueueResponse {
-  pets: DiscoveryPet[];
-  sessionId: string;
-  hasMore: boolean;
-  nextCursor?: string;
+  success: boolean;
+  message: string;
+  data: {
+    pets: DiscoveryPet[];
+    sessionId: string;
+    hasMore: boolean;
+    nextCursor?: string;
+  };
+  timestamp: string;
 }
 
+/**
+ * Response interface for loading more pets
+ */
 interface LoadMorePetsResponse {
-  pets: DiscoveryPet[];
+  success: boolean;
+  message: string;
+  data: {
+    pets: DiscoveryPet[];
+  };
+  timestamp: string;
 }
 
+/**
+ * Session statistics interface
+ */
 interface SessionStats {
   sessionId: string;
   totalSwipes: number;
@@ -29,11 +48,27 @@ interface SessionStats {
   duration: number;
 }
 
+/**
+ * Pet Discovery Service
+ *
+ * Provides intelligent pet discovery functionality with swipe-based interface,
+ * smart recommendations, and comprehensive analytics. Integrates with the
+ * backend discovery API for personalized pet matching.
+ *
+ * Features:
+ * - Smart pet queue with intelligent sorting
+ * - Infinite scroll with preloading
+ * - Swipe action recording and analytics
+ * - Image preloading for performance
+ * - User behavior tracking
+ */
 export class DiscoveryService {
   private imagePreloadCache = new Set<string>();
 
   /**
-   * Preload images for better performance
+   * Preload images for better user experience and performance
+   * @param pets - Array of pets to preload images for
+   * @param count - Number of pets to preload (default: 5)
    */
   private preloadImages(pets: DiscoveryPet[], count: number = 5): void {
     pets.slice(0, count).forEach(pet => {
@@ -44,8 +79,22 @@ export class DiscoveryService {
       }
     });
   }
+
   /**
-   * Get a queue of pets for swiping based on filters and user preferences
+   * Get a smart discovery queue of pets for swiping
+   *
+   * Uses intelligent sorting algorithm that considers:
+   * - Verified rescues (prioritized)
+   * - Recently added pets (within 7 days)
+   * - High-quality profiles (multiple photos)
+   * - Young pets (popular with adopters)
+   * - Breed diversity to prevent repetition
+   * - User preferences and behavior (when userId provided)
+   *
+   * @param filters - Optional filters for pet characteristics
+   * @param limit - Number of pets to return (default: 20, max: 50)
+   * @param userId - Optional user ID for personalized recommendations
+   * @returns Promise<PetDiscoveryQueue> - Discovery queue with session tracking
    */
   async getDiscoveryQueue(
     filters: PetSearchFilters,
@@ -63,10 +112,13 @@ export class DiscoveryService {
         `${API_BASE_URL}/pets?${queryParams}`
       );
 
+      // Handle both direct response format and nested data format
+      const queueData = data.data;
+
       const result = {
-        pets: data.pets || [],
+        pets: queueData.pets || [],
         currentIndex: 0,
-        hasMore: data.hasMore || false,
+        hasMore: queueData.hasMore || false,
         nextBatchSize: 20, // Default batch size
       };
 
@@ -87,7 +139,17 @@ export class DiscoveryService {
   }
 
   /**
-   * Record a swipe action
+   * Record a user's swipe action for analytics and machine learning
+   *
+   * Supported actions:
+   * - 'like': User likes the pet (right swipe) - adds to favorites
+   * - 'pass': User passes on the pet (left swipe) - won't show again
+   * - 'super_like': User super likes the pet (up swipe) - priority interest
+   * - 'info': User views pet details (down swipe/tap) - interest indicator
+   *
+   * @param action - Swipe action object containing action type, pet ID, session info
+   * @returns Promise<void> - Resolves when action is recorded
+   * @throws Will log warning if backend fails but won't throw error
    */
   async recordSwipeAction(action: SwipeAction): Promise<void> {
     try {
@@ -100,7 +162,18 @@ export class DiscoveryService {
   }
 
   /**
-   * Get user's swipe statistics
+   * Get comprehensive swipe statistics for a user
+   *
+   * Returns analytics including:
+   * - Total swipes and breakdown by action type
+   * - Like rate and engagement metrics
+   * - Average session length
+   * - Top breeds and pet types viewed
+   * - Behavioral insights for personalization
+   *
+   * @param userId - User UUID to get statistics for
+   * @returns Promise<SwipeStats> - Comprehensive user analytics
+   * @throws Will return empty stats if backend fails
    */
   async getSwipeStats(userId: string): Promise<SwipeStats> {
     try {
@@ -138,7 +211,7 @@ export class DiscoveryService {
         requestBody
       );
 
-      const pets = data.pets || [];
+      const pets = data.data.pets || [];
       this.preloadImages(pets);
       return pets;
     } catch (error) {

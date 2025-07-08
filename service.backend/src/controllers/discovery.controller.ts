@@ -61,31 +61,29 @@ export class DiscoveryController {
    * Get discovery queue of pets based on filters and user preferences
    */
   getDiscoveryQueue = async (req: Request, res: Response): Promise<Response | void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const filters = {
+      type: req.query.type as string,
+      breed: req.query.breed as string,
+      ageGroup: req.query.ageGroup as string,
+      size: req.query.size as string,
+      gender: req.query.gender as string,
+      maxDistance: req.query.maxDistance ? parseFloat(req.query.maxDistance as string) : undefined,
+    };
+
+    const limit = parseInt(req.query.limit as string) || 20;
+    const userId = req.query.userId as string;
+
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      const filters = {
-        type: req.query.type as string,
-        breed: req.query.breed as string,
-        ageGroup: req.query.ageGroup as string,
-        size: req.query.size as string,
-        gender: req.query.gender as string,
-        maxDistance: req.query.maxDistance
-          ? parseFloat(req.query.maxDistance as string)
-          : undefined,
-      };
-
-      const limit = parseInt(req.query.limit as string) || 20;
-      const userId = req.query.userId as string;
-
       const discoveryQueue = await this.discoveryService.getDiscoveryQueue(filters, limit, userId);
 
       res.status(200).json({
@@ -95,10 +93,20 @@ export class DiscoveryController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error('Error getting discovery queue:', error);
+      logger.error('Error getting discovery queue:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : '',
+        filtersProvided: filters,
+        userIdProvided: userId,
+        limitProvided: limit,
+      });
+
+      // Return a more user-friendly error response
       res.status(500).json({
         success: false,
-        message: 'Failed to get discovery queue',
+        message:
+          'Failed to get discovery queue. This might be due to database connectivity issues.',
+        error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
       });
     }

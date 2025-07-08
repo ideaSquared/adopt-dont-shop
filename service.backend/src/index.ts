@@ -133,7 +133,19 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/features', featureRoutes);
 app.use('/api/v1/config', configRoutes);
 
-// Health monitoring APIs (available in all environments)
+// Simple health check (no dependencies)
+app.get('/api/v1/health/simple', (req, res) => {
+  res.json({
+    success: true,
+    status: 'healthy',
+    message: 'Backend service is running',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: process.env.npm_package_version || '1.0.0',
+  });
+});
+
+// Full health monitoring APIs (available in all environments)
 app.get('/api/v1/health', async (req, res) => {
   try {
     const health = await HealthCheckService.getFullHealthCheck();

@@ -109,6 +109,7 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
       VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
+      DOCKER_ENV: true
       CHOKIDAR_USEPOLLING: true
     depends_on:
       - service-backend

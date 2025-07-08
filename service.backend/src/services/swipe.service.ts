@@ -38,6 +38,12 @@ export interface SessionStats {
 }
 
 export class SwipeService {
+  private skipTableCreation: boolean = false;
+
+  constructor(skipTableCreation = false) {
+    this.skipTableCreation = skipTableCreation;
+  }
+
   /**
    * Record a swipe action
    */
@@ -48,6 +54,11 @@ export class SwipeService {
         petId: swipeAction.petId,
         sessionId: swipeAction.sessionId,
       });
+
+      // Ensure swipe_actions table exists (skip in tests)
+      if (!this.skipTableCreation) {
+        await this.ensureSwipeActionsTable();
+      }
 
       // Insert swipe action into database
       await sequelize.query(
@@ -91,6 +102,42 @@ export class SwipeService {
     } catch (error) {
       logger.error('Error recording swipe action', { error, swipeAction });
       throw new Error('Failed to record swipe action');
+    }
+  }
+
+  /**
+   * Ensure the swipe_actions table exists
+   */
+  private async ensureSwipeActionsTable(): Promise<void> {
+    try {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS swipe_actions (
+          id SERIAL PRIMARY KEY,
+          action VARCHAR(20) NOT NULL CHECK (action IN ('like', 'pass', 'super_like', 'info')),
+          pet_id VARCHAR(255) NOT NULL,
+          session_id VARCHAR(255) NOT NULL,
+          user_id VARCHAR(255),
+          timestamp TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      // Create indexes separately (PostgreSQL syntax)
+      await sequelize.query(`
+        CREATE INDEX IF NOT EXISTS idx_swipe_pet_id ON swipe_actions (pet_id)
+      `);
+      await sequelize.query(`
+        CREATE INDEX IF NOT EXISTS idx_swipe_session_id ON swipe_actions (session_id)
+      `);
+      await sequelize.query(`
+        CREATE INDEX IF NOT EXISTS idx_swipe_user_id ON swipe_actions (user_id)
+      `);
+      await sequelize.query(`
+        CREATE INDEX IF NOT EXISTS idx_swipe_timestamp ON swipe_actions (timestamp)
+      `);
+    } catch (error) {
+      logger.warn('Could not create swipe_actions table, it may already exist', { error });
     }
   }
 

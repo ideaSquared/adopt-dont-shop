@@ -4,6 +4,15 @@
 
 The Adopt Don't Shop Backend API provides comprehensive RESTful endpoints for managing users, pets, applications, messaging, and administrative functions. All endpoints follow REST conventions and return JSON responses.
 
+**Key Features:**
+- **Pet Discovery System**: Advanced swipe-based pet discovery with intelligent recommendations and analytics
+- **User Management**: Complete authentication, registration, and profile management
+- **Pet Management**: Comprehensive pet listing, search, and management capabilities  
+- **Application System**: End-to-end adoption application workflow
+- **Real-time Messaging**: Chat system for adopter-rescue communication
+- **Analytics & Insights**: User behavior tracking and swipe analytics
+- **Administrative Tools**: Complete admin dashboard and moderation features
+
 ## Base Configuration
 
 ### Base URLs
@@ -359,6 +368,242 @@ Delete current user account (self-deletion).
 - All user data, applications, and associated records will be soft-deleted
 - The user will be automatically logged out
 - Only users can delete their own accounts (admins use a different endpoint)
+
+## Pet Discovery Endpoints
+
+The Pet Discovery system provides intelligent pet recommendations through a swipe-based interface with advanced analytics and personalization features.
+
+### GET /api/v1/discovery/pets
+Get a smart discovery queue of pets based on filters and user preferences.
+
+**Query Parameters:**
+- `limit` (optional): Number of pets to return (default: 20, max: 50)
+- `userId` (optional): User ID for personalized recommendations
+- `type` (optional): Pet type (dog, cat)
+- `breed` (optional): Breed name (partial match supported)
+- `ageGroup` (optional): Age group (puppy, young, adult, senior)
+- `size` (optional): Size (small, medium, large, extra_large)
+- `gender` (optional): Gender (male, female)
+- `maxDistance` (optional): Maximum distance in miles
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Discovery queue retrieved successfully",
+  "data": {
+    "pets": [
+      {
+        "petId": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Buddy",
+        "type": "DOG",
+        "breed": "Golden Retriever",
+        "ageGroup": "ADULT",
+        "ageYears": 3,
+        "ageMonths": 6,
+        "size": "LARGE",
+        "gender": "MALE",
+        "images": [
+          "https://cdn.adoptdontshop.com/pets/buddy-1.jpg",
+          "https://cdn.adoptdontshop.com/pets/buddy-2.jpg"
+        ],
+        "shortDescription": "Friendly and energetic dog who loves to play fetch",
+        "rescueName": "Happy Tails Rescue",
+        "isSponsored": true,
+        "compatibilityScore": 85
+      }
+    ],
+    "sessionId": "session_1641981234567_abc123",
+    "hasMore": true,
+    "nextCursor": "pet-uuid-next"
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Features:**
+- Smart sorting algorithm prioritizing verified rescues, recent additions, and high-quality profiles
+- Breed diversity to prevent showing too many similar pets consecutively
+- Compatibility scoring based on pet characteristics and profile completeness
+- Personalized recommendations when user ID is provided
+
+### POST /api/v1/discovery/pets/more
+Load more pets for infinite scroll functionality.
+
+**Request Body:**
+```json
+{
+  "sessionId": "session_1641981234567_abc123",
+  "lastPetId": "pet-uuid-last",
+  "limit": 10
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "More pets loaded successfully",
+  "data": {
+    "pets": [
+      {
+        "petId": "next-pet-uuid",
+        "name": "Luna",
+        "type": "CAT",
+        "breed": "Maine Coon",
+        "ageGroup": "YOUNG",
+        "ageYears": 1,
+        "ageMonths": 8,
+        "size": "MEDIUM",
+        "gender": "FEMALE",
+        "images": [
+          "https://cdn.adoptdontshop.com/pets/luna-1.jpg"
+        ],
+        "shortDescription": "Playful kitten who loves to explore",
+        "rescueName": "City Cat Rescue",
+        "isSponsored": false,
+        "compatibilityScore": 78
+      }
+    ]
+  },
+  "timestamp": "2024-01-15T10:31:00Z"
+}
+```
+
+### POST /api/v1/discovery/swipe/action
+Record a user's swipe action for analytics and learning.
+
+**Request Body:**
+```json
+{
+  "action": "like",
+  "petId": "550e8400-e29b-41d4-a716-446655440000",
+  "sessionId": "session_1641981234567_abc123",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "userId": "user-uuid-optional"
+}
+```
+
+**Action Types:**
+- `like`: User likes the pet (right swipe)
+- `pass`: User passes on the pet (left swipe)
+- `super_like`: User super likes the pet (up swipe)
+- `info`: User views pet details (down swipe/tap)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Swipe action recorded successfully",
+  "data": null,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Notes:**
+- Actions are used for analytics and improving personalization algorithms
+- User ID is optional but recommended for logged-in users
+- All swipe data is anonymized and aggregated for insights
+
+### GET /api/v1/discovery/swipe/stats/:userId
+Get comprehensive swipe statistics for a specific user.
+
+**Authentication:** Required (JWT Token)
+
+**Path Parameters:**
+- `userId`: User UUID
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Swipe statistics retrieved successfully",
+  "data": {
+    "totalSwipes": 245,
+    "likes": 98,
+    "passes": 132,
+    "superLikes": 12,
+    "infoViews": 67,
+    "likeRate": 0.40,
+    "averageSessionLength": 12.5,
+    "topBreeds": [
+      {
+        "breed": "Golden Retriever",
+        "count": 15
+      },
+      {
+        "breed": "Labrador",
+        "count": 12
+      }
+    ],
+    "topTypes": [
+      {
+        "type": "DOG",
+        "count": 156
+      },
+      {
+        "type": "CAT",
+        "count": 89
+      }
+    ]
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+### GET /api/v1/discovery/swipe/session/:sessionId
+Get statistics for a specific discovery session.
+
+**Path Parameters:**
+- `sessionId`: Session identifier
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Session statistics retrieved successfully",
+  "data": {
+    "sessionId": "session_1641981234567_abc123",
+    "totalSwipes": 25,
+    "likes": 8,
+    "passes": 15,
+    "superLikes": 2,
+    "infoViews": 12,
+    "startTime": "2024-01-15T10:15:00Z",
+    "lastActivity": "2024-01-15T10:30:00Z",
+    "duration": 15
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Error Responses:**
+
+All discovery endpoints may return these error responses:
+
+**400 Bad Request:**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "limit",
+      "message": "Limit must be between 1 and 50"
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**500 Internal Server Error:**
+```json
+{
+  "success": false,
+  "message": "Failed to generate discovery queue",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
 
 ## Pet Management Endpoints
 
