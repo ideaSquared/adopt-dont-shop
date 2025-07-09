@@ -8,6 +8,114 @@ const router = Router();
 const discoveryController = new DiscoveryController();
 
 // Health check for discovery service
+
+/**
+ * @swagger
+ * /api/v1/health:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/health
+ *     description: Handle GET request for /api/v1/health
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/health successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/health:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/health
+ *     description: Handle GET request for /api/v1/health
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/health successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/health:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/health
+ *     description: Handle GET request for /api/v1/health
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/health successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/health:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/health
+ *     description: Handle GET request for /api/v1/health
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/health successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/health', (req, res) => {
   res.json({
     success: true,
@@ -18,6 +126,114 @@ router.get('/health', (req, res) => {
 });
 
 // Database connectivity test
+
+/**
+ * @swagger
+ * /api/v1/db-test:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/db-test
+ *     description: Handle GET request for /api/v1/db-test
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/db-test successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/db-test:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/db-test
+ *     description: Handle GET request for /api/v1/db-test
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/db-test successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/db-test:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/db-test
+ *     description: Handle GET request for /api/v1/db-test
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/db-test successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/db-test:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/db-test
+ *     description: Handle GET request for /api/v1/db-test
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/db-test successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/db-test', async (req, res) => {
   try {
     // Test database connection by counting pets
@@ -45,6 +261,114 @@ router.get('/db-test', async (req, res) => {
 });
 
 // Simple test endpoint that doesn't use database
+
+/**
+ * @swagger
+ * /api/v1/test:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/test
+ *     description: Handle GET request for /api/v1/test
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/test successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/test:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/test
+ *     description: Handle GET request for /api/v1/test
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/test successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/test:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/test
+ *     description: Handle GET request for /api/v1/test
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/test successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/test:
+ *   get:
+ *     tags: [Discovery Service]
+ *     summary: GET /api/v1/test
+ *     description: Handle GET request for /api/v1/test
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/test successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/test', (req, res) => {
   res.json({
     success: true,

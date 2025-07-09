@@ -1,15 +1,217 @@
+import { Express } from 'express';
+import path from 'path';
+import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
-import path from 'path';
-import { Express } from 'express';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SwaggerSpec = any;
 
 /**
  * Setup Swagger UI for API documentation
  */
 export function setupSwagger(app: Express) {
   try {
-    // Load the OpenAPI specification
-    const swaggerDocument = YAML.load(path.join(__dirname, '../../docs/openapi.yaml'));
+    // swagger-jsdoc configuration
+    const swaggerOptions = {
+      definition: {
+        openapi: '3.0.3',
+        info: {
+          title: "Adopt Don't Shop API",
+          version: '1.0.0',
+          description:
+            "REST API for the Adopt Don't Shop platform - connecting pets with loving homes",
+          contact: {
+            name: 'API Support',
+            email: 'api@adoptdontshop.com',
+          },
+          license: {
+            name: 'MIT',
+            url: 'https://opensource.org/licenses/MIT',
+          },
+        },
+        servers: [
+          {
+            url:
+              process.env.NODE_ENV === 'production'
+                ? 'https://api.adoptdontshop.com'
+                : process.env.NODE_ENV === 'staging'
+                  ? 'https://api-staging.adoptdontshop.com'
+                  : 'http://localhost:5000',
+            description: `${process.env.NODE_ENV || 'development'} server`,
+          },
+        ],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT',
+            },
+            cookieAuth: {
+              type: 'apiKey',
+              in: 'cookie',
+              name: 'authToken',
+            },
+          },
+          responses: {
+            UnauthorizedError: {
+              description: 'Authentication information is missing or invalid',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: {
+                        type: 'string',
+                        example: 'Unauthorized',
+                      },
+                      message: {
+                        type: 'string',
+                        example: 'Authentication required',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            ForbiddenError: {
+              description: 'Insufficient permissions',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: {
+                        type: 'string',
+                        example: 'Forbidden',
+                      },
+                      message: {
+                        type: 'string',
+                        example: 'Insufficient permissions',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            NotFoundError: {
+              description: 'Resource not found',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: {
+                        type: 'string',
+                        example: 'Not Found',
+                      },
+                      message: {
+                        type: 'string',
+                        example: 'Resource not found',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            ValidationError: {
+              description: 'Validation error',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: {
+                        type: 'string',
+                        example: 'Validation Error',
+                      },
+                      details: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            field: {
+                              type: 'string',
+                            },
+                            message: {
+                              type: 'string',
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        security: [
+          {
+            bearerAuth: [],
+          },
+          {
+            cookieAuth: [],
+          },
+        ],
+      },
+      apis: [
+        // Centralized schema definitions
+        path.join(__dirname, './swagger-schemas.ts'),
+
+        // Routes with JSDoc comments
+        path.join(__dirname, '../routes/*.ts'),
+        path.join(__dirname, '../routes/**/*.ts'),
+
+        // Controllers with JSDoc comments
+        path.join(__dirname, '../controllers/*.ts'),
+        path.join(__dirname, '../controllers/**/*.ts'),
+
+        // Models with JSDoc schema definitions
+        path.join(__dirname, '../models/*.ts'),
+        path.join(__dirname, '../models/**/*.ts'),
+
+        // Services with JSDoc for complex schemas
+        path.join(__dirname, '../services/*.ts'),
+
+        // Types directory for shared schemas
+        path.join(__dirname, '../types/*.ts'),
+
+        // Middleware with JSDoc for common responses
+        path.join(__dirname, '../middleware/*.ts'),
+      ],
+    };
+
+    // Generate OpenAPI specification from JSDoc comments
+    const swaggerSpec: SwaggerSpec = swaggerJsdoc(swaggerOptions);
+
+    // Also try to merge with existing OpenAPI YAML if it exists
+    let finalSpec = swaggerSpec;
+    try {
+      const existingSpec: SwaggerSpec = YAML.load(path.join(__dirname, '../../docs/openapi.yaml'));
+      if (existingSpec) {
+        // Merge the specs - JSDoc takes precedence for paths, existing spec for schemas
+        finalSpec = {
+          ...existingSpec,
+          ...swaggerSpec,
+          paths: {
+            ...existingSpec.paths,
+            ...swaggerSpec.paths,
+          },
+          components: {
+            ...existingSpec.components,
+            ...swaggerSpec.components,
+            securitySchemes: {
+              ...existingSpec.components?.securitySchemes,
+              ...swaggerSpec.components?.securitySchemes,
+            },
+          },
+        };
+      }
+    } catch (yamlError) {
+      console.warn('Could not load existing OpenAPI YAML file, using JSDoc-generated spec only');
+    }
 
     // Swagger UI options
     const options = {
@@ -40,12 +242,18 @@ export function setupSwagger(app: Express) {
 
     // Setup Swagger UI middleware
     app.use('/api/docs', swaggerUi.serve);
-    app.get('/api/docs', swaggerUi.setup(swaggerDocument, options));
+    app.get('/api/docs', swaggerUi.setup(finalSpec, options));
 
     // JSON endpoint for the spec
     app.get('/api/docs/swagger.json', (req, res) => {
       res.setHeader('Content-Type', 'application/json');
-      res.send(swaggerDocument);
+      res.send(finalSpec);
+    });
+
+    // YAML endpoint for the spec
+    app.get('/api/docs/swagger.yaml', (req, res) => {
+      res.setHeader('Content-Type', 'text/yaml');
+      res.send(YAML.stringify(finalSpec, 4));
     });
 
     // Health check endpoint for docs

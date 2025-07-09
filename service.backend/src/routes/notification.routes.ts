@@ -105,16 +105,600 @@ const validatePreferences = [
 router.use(authenticateToken);
 
 // User notification routes
+
+/**
+ * @swagger
+ * /api/v1/:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/
+ *     description: Handle GET request for /api/v1/
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/ successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/
+ *     description: Handle GET request for /api/v1/
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/ successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/
+ *     description: Handle GET request for /api/v1/
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/ successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/
+ *     description: Handle GET request for /api/v1/
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/ successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/', validateNotificationQuery, notificationController.getUserNotifications);
+
+/**
+ * @swagger
+ * /api/v1/unread/count:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/unread/count
+ *     description: Handle GET request for /api/v1/unread/count
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/unread/count successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/unread/count:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/unread/count
+ *     description: Handle GET request for /api/v1/unread/count
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/unread/count successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/unread/count:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/unread/count
+ *     description: Handle GET request for /api/v1/unread/count
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/unread/count successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/unread/count:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/unread/count
+ *     description: Handle GET request for /api/v1/unread/count
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/unread/count successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/unread/count', notificationController.getUnreadCount);
+
+/**
+ * @swagger
+ * /api/v1/preferences:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/preferences
+ *     description: Handle GET request for /api/v1/preferences
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/preferences successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/preferences:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/preferences
+ *     description: Handle GET request for /api/v1/preferences
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/preferences successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/preferences:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/preferences
+ *     description: Handle GET request for /api/v1/preferences
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/preferences successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/preferences:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/preferences
+ *     description: Handle GET request for /api/v1/preferences
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/preferences successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/preferences', notificationController.getNotificationPreferences);
 router.put(
   '/preferences',
   validatePreferences,
   notificationController.updateNotificationPreferences
 );
+
+/**
+ * @swagger
+ * /api/v1/read-all:
+ *   post:
+ *     tags: [Notifications]
+ *     summary: POST /api/v1/read-all
+ *     description: Handle POST request for /api/v1/read-all
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               # Add properties here
+ *     responses:
+ *       201:
+ *         description: POST /api/v1/read-all successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "POST /api/v1/read-all successful"
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/read-all:
+ *   post:
+ *     tags: [Notifications]
+ *     summary: POST /api/v1/read-all
+ *     description: Handle POST request for /api/v1/read-all
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               # Add properties here
+ *     responses:
+ *       201:
+ *         description: POST /api/v1/read-all successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "POST /api/v1/read-all successful"
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/read-all:
+ *   post:
+ *     tags: [Notifications]
+ *     summary: POST /api/v1/read-all
+ *     description: Handle POST request for /api/v1/read-all
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               # Add properties here
+ *     responses:
+ *       201:
+ *         description: POST /api/v1/read-all successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "POST /api/v1/read-all successful"
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/read-all:
+ *   post:
+ *     tags: [Notifications]
+ *     summary: POST /api/v1/read-all
+ *     description: Handle POST request for /api/v1/read-all
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               # Add properties here
+ *     responses:
+ *       201:
+ *         description: POST /api/v1/read-all successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "POST /api/v1/read-all successful"
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
 router.post('/read-all', notificationController.markAllNotificationsAsRead);
 
+
+/**
+ * @swagger
+ * /api/v1/{notificationId}:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/{notificationId}
+ *     description: Handle GET request for /api/v1/{notificationId}
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/{notificationId} successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/{notificationId}:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/{notificationId}
+ *     description: Handle GET request for /api/v1/{notificationId}
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/{notificationId} successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/{notificationId}:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/{notificationId}
+ *     description: Handle GET request for /api/v1/{notificationId}
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/{notificationId} successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /api/v1/{notificationId}:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: GET /api/v1/{notificationId}
+ *     description: Handle GET request for /api/v1/{notificationId}
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/{notificationId} successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/:notificationId', validateNotificationId, notificationController.getNotificationById);
 router.patch(
   '/:notificationId/read',

@@ -20,6 +20,9 @@
     "seed:dev": "ts-node src/seeders/index.ts",
     "seed:clear": "ts-node src/seeders/index.ts clear",
     "security:validate": "node scripts/validate-security.js",
+    "docs:generate": "ts-node scripts/generate-swagger.ts generate",
+    "docs:validate": "ts-node scripts/generate-swagger.ts validate",
+    "docs:watch": "ts-node scripts/generate-swagger.ts watch",
     "prestart": "npm run security:validate",
     "predeploy": "npm run lint && npm run test && npm run security:validate && npm run build"
   },
@@ -70,6 +73,7 @@
     "@types/morgan": "^1.9.4",
     "@types/sequelize": "^4.28.20",
     "@types/supertest": "^2.0.12",
+    "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/yamljs": "^0.2.34",
     "@typescript-eslint/eslint-plugin": "^7.0.0",

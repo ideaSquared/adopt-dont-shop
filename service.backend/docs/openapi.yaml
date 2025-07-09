@@ -115,6 +115,36 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
 
+<<<<<<< HEAD
+=======
+  /api/v1/auth/verify-email/{token}:
+    get:
+      tags: [Authentication]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+>>>>>>> e100a78 (IN PROGRESS)
   /api/v1/auth/logout:
     post:
       tags: [Authentication]
@@ -806,8 +836,14 @@ paths:
 
   /api/v1/discovery/swipe/session/{sessionId}:
     get:
+<<<<<<< HEAD
       tags: [Pet Discovery]
       summary: Get swipe session details
+=======
+      tags: [Discovery Service]
+      summary: Get swipe session statistics
+      description: Get statistics for a specific swipe session
+>>>>>>> e100a78 (IN PROGRESS)
       parameters:
         - name: sessionId
           in: path
@@ -817,7 +853,29 @@ paths:
             format: uuid
       responses:
         '200':
+<<<<<<< HEAD
           description: Swipe session details
+=======
+          description: Session statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                    format: uuid
+                  totalSwipes:
+                    type: integer
+                  likes:
+                    type: integer
+                  passes:
+                    type: integer
+                  superLikes:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+>>>>>>> e100a78 (IN PROGRESS)
 
   # Pet Management Endpoints
   /api/v1/pets:
@@ -1424,6 +1482,14 @@ paths:
           schema:
             type: string
             format: uuid
+<<<<<<< HEAD
+=======
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+>>>>>>> e100a78 (IN PROGRESS)
         - name: page
           in: query
           schema:
@@ -1573,11 +1639,16 @@ paths:
             schema:
               type: object
               properties:
+<<<<<<< HEAD
                 document:
+=======
+                file:
+>>>>>>> e100a78 (IN PROGRESS)
                   type: string
                   format: binary
                 documentType:
                   type: string
+<<<<<<< HEAD
                   enum: [reference, veterinary, identification, other]
                 description:
                   type: string
@@ -1587,6 +1658,13 @@ paths:
           description: Document uploaded successfully
         '400':
           $ref: '#/components/responses/BadRequest'
+=======
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Document uploaded successfully
+>>>>>>> e100a78 (IN PROGRESS)
         '404':
           description: Application not found
 
@@ -1630,7 +1708,10 @@ paths:
       tags: [Application Management]
       summary: Get application form structure
       description: Get the application form structure for a specific rescue
+<<<<<<< HEAD
       security: []
+=======
+>>>>>>> e100a78 (IN PROGRESS)
       parameters:
         - name: rescueId
           in: path
@@ -1660,7 +1741,10 @@ paths:
       tags: [Application Management]
       summary: Validate application answers
       description: Validate application answers against rescue requirements
+<<<<<<< HEAD
       security: []
+=======
+>>>>>>> e100a78 (IN PROGRESS)
       parameters:
         - name: rescueId
           in: path
@@ -1699,7 +1783,11 @@ paths:
     get:
       tags: [Application Management]
       summary: Get application statistics
+<<<<<<< HEAD
       description: Get application statistics (rescue staff/admin only)
+=======
+      description: Get comprehensive application statistics (admin only)
+>>>>>>> e100a78 (IN PROGRESS)
       parameters:
         - name: rescueId
           in: query
@@ -1718,7 +1806,11 @@ paths:
             format: date
       responses:
         '200':
+<<<<<<< HEAD
           description: Statistics retrieved successfully
+=======
+          description: Application statistics retrieved successfully
+>>>>>>> e100a78 (IN PROGRESS)
           content:
             application/json:
               schema:
@@ -1803,7 +1895,461 @@ paths:
     post:
       tags: [Application Management]
       summary: Schedule visit
+<<<<<<< HEAD
       description: Schedule a visit for application review (rescue staff only)
+=======
+      description: Schedule a visit for the application (Rescue staff/admin only)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitSchedule'
+      responses:
+        '201':
+          description: Visit scheduled successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Application not found
+
+  # Discovery Service Test Endpoints
+  /api/v1/discovery/test:
+    get:
+      tags: [Discovery Service]
+      summary: Test discovery endpoint
+      description: Simple test endpoint for discovery service
+      security: []
+      responses:
+        '200':
+          description: Discovery test successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/TestDiscoveryData'
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # Extended Pet Management Endpoints
+  /api/v1/pets/extended:
+    get:
+      tags: [Pet Management]
+      summary: Get extended pet information
+      description: Get detailed information about pets including analytics
+      security: []
+      parameters:
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sessionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Extended pet information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  pet:
+                    $ref: '#/components/schemas/Pet'
+                  analytics:
+                    $ref: '#/components/schemas/PetAnalytics'
+                  recommendations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  similarPets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  userSwipeHistory:
+                    type: object
+                    properties:
+                      liked:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                      passed:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                      superLiked:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                  sessionDetails:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                        format: uuid
+                      startTime:
+                        type: string
+                        format: date-time
+                      endTime:
+                        type: string
+                        format: date-time
+                      actions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SwipeAction'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/analytics:
+    get:
+      tags: [Pet Management]
+      summary: Get pet analytics
+      description: Get analytics data for pets (Admin only)
+      parameters:
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Pet analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      petId:
+                        type: string
+                        format: uuid
+                      views:
+                        type: integer
+                      favorites:
+                        type: integer
+                      applications:
+                        type: integer
+                      adoptions:
+                        type: integer
+                      revenue:
+                        type: number
+                        format: float
+                      cost:
+                        type: number
+                        format: float
+                      profit:
+                        type: number
+                        format: float
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/pets/{petId}/analytics:
+    get:
+      tags: [Pet Management]
+      summary: Get specific pet analytics
+      description: Get detailed analytics for a specific pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pet analytics details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      petId:
+                        type: string
+                        format: uuid
+                      views:
+                        type: integer
+                      favorites:
+                        type: integer
+                      applications:
+                        type: integer
+                      adoptions:
+                        type: integer
+                      revenue:
+                        type: number
+                        format: float
+                      cost:
+                        type: number
+                        format: float
+                      profit:
+                        type: number
+                        format: float
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/recommendations:
+    get:
+      tags: [Pet Management]
+      summary: Get pet adoption recommendations
+      description: Get personalized adoption recommendations for a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Adoption recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  recommendations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/swipe:
+    post:
+      tags: [Pet Management]
+      summary: Record pet swipe action
+      description: Record a swipe action (like, pass, super like) for a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [LIKE, PASS, SUPER_LIKE]
+                sessionId:
+                  type: string
+                  format: uuid
+              required: [action]
+      responses:
+        '200':
+          description: Swipe action recorded
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/favorite/status:
+    get:
+      tags: [Pet Management]
+      summary: Check if pet is favorited by user
+      description: Check if the current user has favorited the pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Favorite status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  isFavorited:
+                    type: boolean
+                  favoritedAt:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/report:
+    post:
+      tags: [Pet Management]
+      summary: Report a pet listing for review
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [inappropriate_content, false_information, duplicate_listing, spam, animal_welfare, other]
+                description:
+                  type: string
+                category:
+                  type: string
+              required: [reason, description]
+      responses:
+        '201':
+          description: Report submitted successfully
+
+  # Application Management Endpoints
+  /api/v1/applications:
+    get:
+      tags: [Application Management]
+      summary: Get adoption applications
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Applications list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationListResponse'
+    post:
+      tags: [Application Management]
+      summary: Submit adoption application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreate'
+      responses:
+        '201':
+          description: Application submitted successfully
+
+  /api/v1/applications/{applicationId}:
+    get:
+      tags: [Application Management]
+      summary: Get application details
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+    delete:
+      tags: [Application Management]
+      summary: Delete/withdraw application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application deleted successfully
+
+  /api/v1/applications/{applicationId}/status:
+    patch:
+      tags: [Application Management]
+      summary: Update application status
+>>>>>>> e100a78 (IN PROGRESS)
       parameters:
         - name: applicationId
           in: path
@@ -1818,6 +2364,7 @@ paths:
             schema:
               type: object
               properties:
+<<<<<<< HEAD
                 scheduledDate:
                   type: string
                   format: date-time
@@ -1827,6 +2374,315 @@ paths:
                 notes:
                   type: string
               required: [scheduledDate, visitType]
+=======
+                status:
+                  type: string
+                  enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+                notes:
+                  type: string
+              required: [status]
+      responses:
+        '200':
+          description: Application status updated
+
+  /api/v1/applications/{applicationId}/submit:
+    post:
+      tags: [Application Management]
+      summary: Submit application for review
+      description: Submit a draft application for rescue review
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application submitted successfully
+        '400':
+          description: Application cannot be submitted
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/withdraw:
+    post:
+      tags: [Application Management]
+      summary: Withdraw application
+      description: Withdraw a submitted application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application withdrawn successfully
+        '400':
+          description: Application cannot be withdrawn
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/documents:
+    post:
+      tags: [Application Management]
+      summary: Add document to application
+      description: Upload and attach a document to an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                documentType:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Document uploaded successfully
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/references:
+    patch:
+      tags: [Application Management]
+      summary: Update reference status
+      description: Update the status of application references (rescue staff only)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                referenceIndex:
+                  type: integer
+                status:
+                  type: string
+                  enum: [pending, verified, failed, not_reachable]
+                notes:
+                  type: string
+              required: [referenceIndex, status]
+      responses:
+        '200':
+          description: Reference status updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Application not found
+
+  /api/v1/applications/form-structure/{rescueId}:
+    get:
+      tags: [Application Management]
+      summary: Get application form structure
+      description: Get the application form structure for a specific rescue
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Form structure retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sections:
+                    type: array
+                    items:
+                      type: object
+                  requirements:
+                    type: object
+        '404':
+          description: Rescue not found
+
+  /api/v1/applications/validate/{rescueId}:
+    post:
+      tags: [Application Management]
+      summary: Validate application answers
+      description: Validate application answers against rescue requirements
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answers:
+                  type: object
+              required: [answers]
+      responses:
+        '200':
+          description: Validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Rescue not found
+
+  /api/v1/applications/statistics:
+    get:
+      tags: [Application Management]
+      summary: Get application statistics
+      description: Get comprehensive application statistics (admin only)
+      parameters:
+        - name: rescueId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Application statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  byStatus:
+                    type: object
+                  trends:
+                    type: object
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/applications/bulk-update:
+    patch:
+      tags: [Application Management]
+      summary: Bulk update applications
+      description: Update multiple applications at once (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                applicationIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                updates:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    notes:
+                      type: string
+              required: [applicationIds, updates]
+      responses:
+        '200':
+          description: Applications updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/applications/{applicationId}/history:
+    get:
+      tags: [Application Management]
+      summary: Get application history
+      description: Get the history of changes for an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    action:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+                    userId:
+                      type: string
+                      format: uuid
+                    details:
+                      type: object
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/schedule-visit:
+    post:
+      tags: [Application Management]
+      summary: Schedule visit
+      description: Schedule a visit for the application (Rescue staff/admin only)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitSchedule'
+>>>>>>> e100a78 (IN PROGRESS)
       responses:
         '201':
           description: Visit scheduled successfully
@@ -1835,6 +2691,7 @@ paths:
         '404':
           description: Application not found
 
+<<<<<<< HEAD
   # Messaging Endpoints
   /api/v1/conversations:
     get:
@@ -2660,6 +3517,18 @@ paths:
       responses:
         '200':
           description: All notifications marked as read
+=======
+  # Discovery Service Test Endpoints
+  /api/v1/discovery/test:
+    get:
+      tags: [Discovery Service]
+      summary: Test discovery endpoint
+      description: Simple test endpoint for discovery service
+      security: []
+      responses:
+        '200':
+          description: Discovery test successful
+>>>>>>> e100a78 (IN PROGRESS)
           content:
             application/json:
               schema:
@@ -2669,6 +3538,7 @@ paths:
                     type: boolean
                   message:
                     type: string
+<<<<<<< HEAD
                   markedCount:
                     type: integer
 
@@ -2680,11 +3550,40 @@ paths:
         - name: notificationId
           in: path
           required: true
+=======
+                  data:
+                    $ref: '#/components/schemas/TestDiscoveryData'
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # Extended Pet Management Endpoints
+  /api/v1/pets/extended:
+    get:
+      tags: [Pet Management]
+      summary: Get extended pet information
+      description: Get detailed information about pets including analytics
+      security: []
+      parameters:
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sessionId
+          in: query
+>>>>>>> e100a78 (IN PROGRESS)
           schema:
             type: string
             format: uuid
       responses:
         '200':
+<<<<<<< HEAD
           description: Notification details
           content:
             application/json:
@@ -2792,6 +3691,321 @@ paths:
       tags: [Email Management]
       summary: Get all email templates (Admin only)
       parameters:
+=======
+          description: Extended pet information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  pet:
+                    $ref: '#/components/schemas/Pet'
+                  analytics:
+                    $ref: '#/components/schemas/PetAnalytics'
+                  recommendations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  similarPets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  userSwipeHistory:
+                    type: object
+                    properties:
+                      liked:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                      passed:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                      superLiked:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                  sessionDetails:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                        format: uuid
+                      startTime:
+                        type: string
+                        format: date-time
+                      endTime:
+                        type: string
+                        format: date-time
+                      actions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SwipeAction'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/analytics:
+    get:
+      tags: [Pet Management]
+      summary: Get pet analytics
+      description: Get analytics data for pets (Admin only)
+      parameters:
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Pet analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      petId:
+                        type: string
+                        format: uuid
+                      views:
+                        type: integer
+                      favorites:
+                        type: integer
+                      applications:
+                        type: integer
+                      adoptions:
+                        type: integer
+                      revenue:
+                        type: number
+                        format: float
+                      cost:
+                        type: number
+                        format: float
+                      profit:
+                        type: number
+                        format: float
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/pets/{petId}/analytics:
+    get:
+      tags: [Pet Management]
+      summary: Get specific pet analytics
+      description: Get detailed analytics for a specific pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pet analytics details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      petId:
+                        type: string
+                        format: uuid
+                      views:
+                        type: integer
+                      favorites:
+                        type: integer
+                      applications:
+                        type: integer
+                      adoptions:
+                        type: integer
+                      revenue:
+                        type: number
+                        format: float
+                      cost:
+                        type: number
+                        format: float
+                      profit:
+                        type: number
+                        format: float
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/recommendations:
+    get:
+      tags: [Pet Management]
+      summary: Get pet adoption recommendations
+      description: Get personalized adoption recommendations for a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Adoption recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  recommendations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/swipe:
+    post:
+      tags: [Pet Management]
+      summary: Record pet swipe action
+      description: Record a swipe action (like, pass, super like) for a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [LIKE, PASS, SUPER_LIKE]
+                sessionId:
+                  type: string
+                  format: uuid
+              required: [action]
+      responses:
+        '200':
+          description: Swipe action recorded
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/favorite/status:
+    get:
+      tags: [Pet Management]
+      summary: Check if pet is favorited by user
+      description: Check if the current user has favorited the pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Favorite status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  isFavorited:
+                    type: boolean
+                  favoritedAt:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/report:
+    post:
+      tags: [Pet Management]
+      summary: Report a pet listing for review
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [inappropriate_content, false_information, duplicate_listing, spam, animal_welfare, other]
+                description:
+                  type: string
+                category:
+                  type: string
+              required: [reason, description]
+      responses:
+        '201':
+          description: Report submitted successfully
+
+  # Application Management Endpoints
+  /api/v1/applications:
+    get:
+      tags: [Application Management]
+      summary: Get adoption applications
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+>>>>>>> e100a78 (IN PROGRESS)
         - name: page
           in: query
           schema:
@@ -2802,6 +4016,7 @@ paths:
           schema:
             type: integer
             default: 20
+<<<<<<< HEAD
         - name: category
           in: query
           schema:
@@ -2821,11 +4036,24 @@ paths:
     post:
       tags: [Email Management]
       summary: Create new email template (Admin only)
+=======
+      responses:
+        '200':
+          description: Applications list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationListResponse'
+    post:
+      tags: [Application Management]
+      summary: Submit adoption application
+>>>>>>> e100a78 (IN PROGRESS)
       requestBody:
         required: true
         content:
           application/json:
             schema:
+<<<<<<< HEAD
               $ref: '#/components/schemas/EmailTemplateCreate'
       responses:
         '201':
@@ -2837,6 +4065,19 @@ paths:
       summary: Get specific email template (Admin only)
       parameters:
         - name: templateId
+=======
+              $ref: '#/components/schemas/ApplicationCreate'
+      responses:
+        '201':
+          description: Application submitted successfully
+
+  /api/v1/applications/{applicationId}:
+    get:
+      tags: [Application Management]
+      summary: Get application details
+      parameters:
+        - name: applicationId
+>>>>>>> e100a78 (IN PROGRESS)
           in: path
           required: true
           schema:
@@ -2844,6 +4085,7 @@ paths:
             format: uuid
       responses:
         '200':
+<<<<<<< HEAD
           description: Email template details
           content:
             application/json:
@@ -2854,6 +4096,33 @@ paths:
       summary: Update email template (Admin only)
       parameters:
         - name: templateId
+=======
+          description: Application details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+    delete:
+      tags: [Application Management]
+      summary: Delete/withdraw application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application deleted successfully
+
+  /api/v1/applications/{applicationId}/status:
+    patch:
+      tags: [Application Management]
+      summary: Update application status
+      parameters:
+        - name: applicationId
+>>>>>>> e100a78 (IN PROGRESS)
           in: path
           required: true
           schema:
@@ -2864,10 +4133,100 @@ paths:
         content:
           application/json:
             schema:
+<<<<<<< HEAD
               $ref: '#/components/schemas/EmailTemplateUpdate'
       responses:
         '200':
           description: Email template updated successfully
+=======
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+                notes:
+                  type: string
+              required: [status]
+      responses:
+        '200':
+          description: Application status updated
+
+  /api/v1/applications/{applicationId}/submit:
+    post:
+      tags: [Application Management]
+      summary: Submit application for review
+      description: Submit a draft application for rescue review
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application submitted successfully
+        '400':
+          description: Application cannot be submitted
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/withdraw:
+    post:
+      tags: [Application Management]
+      summary: Withdraw application
+      description: Withdraw a submitted application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application withdrawn successfully
+        '400':
+          description: Application cannot be withdrawn
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/documents:
+    post:
+      tags: [Application Management]
+      summary: Add document to application
+      description: Upload and attach a document to an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                documentType:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Document uploaded successfully
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/references:
+    patch:
+      tags: [Application Management]
+>>>>>>> e100a78 (IN PROGRESS)
     delete:
       tags: [Email Management]
       summary: Delete email template (Admin only)
@@ -3104,7 +4463,11 @@ paths:
           in: path
           required: true
           schema:
+<<<<<<< HEAD
             type: string
+=======
+                       type: string
+>>>>>>> e100a78 (IN PROGRESS)
       responses:
         '200':
           description: Successfully unsubscribed from emails
@@ -3251,6 +4614,21 @@ paths:
       responses:
         '200':
           description: Logout successful
+
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user
+      description: Get the current authenticated user's information
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   # User Management Endpoints
   /api/v1/users:
@@ -3436,11 +4814,21 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
         - name: page
           in: query
           schema:
             type: integer
             default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
       responses:
         '200':
           description: Applications retrieved successfully
@@ -3448,7 +4836,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApplicationSearchResponse'
-
     post:
       tags: [Applications]
       summary: Submit application
@@ -3501,6 +4888,194 @@ paths:
               schema:
                 $ref: '#/components/schemas/Conversation'
 
+  /api/v1/chat/messages/{messageId}/reactions:
+    delete:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/chat/{chatId}:
+    delete:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/chat/{chatId}/participants/{userId}:
+    delete:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/chat/search:
+    get:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/chat/{chatId}:
+    get:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/chat/{chatId}/messages:
+    get:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/chat/{chatId}/unread-count:
+    get:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
   # Health Check Endpoints
   /health:
     get:
@@ -3542,13 +5117,18 @@ paths:
     get:
       tags: [Admin Management]
       summary: Get platform metrics
+<<<<<<< HEAD
       description: Get comprehensive platform metrics and analytics
+=======
+      description: Get comprehensive platform metrics and statistics (Admin only)
+>>>>>>> e100a78 (IN PROGRESS)
       responses:
         '200':
           description: Platform metrics retrieved successfully
           content:
             application/json:
               schema:
+<<<<<<< HEAD
                 type: object
                 properties:
                   success:
@@ -3935,558 +5515,1970 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+=======
+                $ref: '#/components/schemas/PlatformMetrics'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+>>>>>>> e100a78 (IN PROGRESS)
 
-  schemas:
-    # Authentication Schemas
-    RegisterRequest:
-      type: object
-      required: [email, password, firstName, lastName, userType]
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          minLength: 8
-        firstName:
-          type: string
-          minLength: 1
-        lastName:
-          type: string
-          minLength: 1
-        userType:
-          $ref: '#/components/schemas/UserType'
-        phoneNumber:
-          type: string
+  /api/v1/admin/analytics/usage:
+    get:
+      tags: [Admin Management]
+      summary: Get usage analytics
+      description: Get platform usage analytics (Admin only)
+      responses:
+        '200':
+          description: Usage analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageAnalytics'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
-    LoginRequest:
-      type: object
-      required: [email, password]
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
+  /api/v1/admin/system/health:
+    get:
+      tags: [Admin Management]
+      summary: Get system health status
+      description: Get detailed system health information (Admin only)
+      responses:
+        '200':
+          description: System health status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealth'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
-    AuthResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        user:
-          $ref: '#/components/schemas/User'
-        accessToken:
-          type: string
-        refreshToken:
-          type: string
-        expiresIn:
-          type: number
-
-    # User Schemas
-    User:
-      type: object
-      properties:
-        userId:
-          type: string
-          format: uuid
-        email:
-          type: string
-          format: email
-        firstName:
-          type: string
-        lastName:
-          type: string
-        phoneNumber:
-          type: string
-        userType:
-          $ref: '#/components/schemas/UserType'
-        status:
-          $ref: '#/components/schemas/UserStatus'
-        emailVerified:
-          type: boolean
-        profileImageUrl:
-          type: string
-        bio:
-          type: string
-        location:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        lastLoginAt:
-          type: string
-          format: date-time
-
-    UserType:
-      type: string
-      enum: [ADOPTER, RESCUE_STAFF, ADMIN]
-
-    UserStatus:
-      type: string
-      enum: [ACTIVE, INACTIVE, PENDING_VERIFICATION, SUSPENDED]
-
-    UserUpdateRequest:
-      type: object
-      properties:
-        firstName:
-          type: string
-        lastName:
-          type: string
-        phoneNumber:
-          type: string
-        bio:
-          type: string
-        location:
-          type: string
-        profileImageUrl:
-          type: string
-
-    UserSearchResponse:
-      type: object
-      properties:
-        users:
-          type: array
-          items:
-            $ref: '#/components/schemas/User'
-        total:
-          type: integer
-        page:
-          type: integer
-        totalPages:
-          type: integer
-
-    # Pet Schemas
-    Pet:
-      type: object
-      properties:
-        petId:
-          type: string
-          format: uuid
-        name:
-          type: string
-        rescueId:
-          type: string
-          format: uuid
-        type:
-          $ref: '#/components/schemas/PetType'
-        breed:
-          type: string
-        age:
-          type: object
-          properties:
-            years:
-              type: integer
-            months:
-              type: integer
-        gender:
-          $ref: '#/components/schemas/Gender'
-        size:
-          $ref: '#/components/schemas/PetSize'
-        status:
-          $ref: '#/components/schemas/PetStatus'
-        description:
-          type: string
-        images:
-          type: array
-          items:
-            $ref: '#/components/schemas/PetImage'
-        adoptionFee:
-          type: number
-        specialNeeds:
-          type: boolean
-        goodWithChildren:
-          type: boolean
-        goodWithDogs:
-          type: boolean
-        goodWithCats:
-          type: boolean
-        energyLevel:
-          $ref: '#/components/schemas/EnergyLevel'
-        createdAt:
-          type: string
-          format: date-time
-
-    PetType:
-      type: string
-      enum: [DOG, CAT, RABBIT, BIRD, REPTILE, SMALL_MAMMAL, FISH, OTHER]
-
-    PetSize:
-      type: string
-      enum: [EXTRA_SMALL, SMALL, MEDIUM, LARGE, EXTRA_LARGE]
-
-    Gender:
-      type: string
-      enum: [MALE, FEMALE, UNKNOWN]
-
-    PetStatus:
-      type: string
-      enum: [AVAILABLE, PENDING, ADOPTED, FOSTER, MEDICAL_HOLD, BEHAVIORAL_HOLD, NOT_AVAILABLE]
-
-    AgeGroup:
-      type: string
-      enum: [BABY, YOUNG, ADULT, SENIOR]
-
-    EnergyLevel:
-      type: string
-      enum: [LOW, MEDIUM, HIGH, VERY_HIGH]
-
-    PetImage:
-      type: object
-      properties:
-        imageId:
-          type: string
-        url:
-          type: string
-        thumbnailUrl:
-          type: string
-        caption:
-          type: string
-        isPrimary:
-          type: boolean
-
-    PetCreateRequest:
-      type: object
-      required: [name, type, gender, size, ageGroup]
-      properties:
-        name:
-          type: string
-        type:
-          $ref: '#/components/schemas/PetType'
-        breed:
-          type: string
-        ageYears:
-          type: integer
-        ageMonths:
-          type: integer
-        ageGroup:
-          $ref: '#/components/schemas/AgeGroup'
-        gender:
-          $ref: '#/components/schemas/Gender'
-        size:
-          $ref: '#/components/schemas/PetSize'
-        shortDescription:
-          type: string
-        longDescription:
-          type: string
-        adoptionFee:
-          type: number
-
-    PetSearchResponse:
-      type: object
-      properties:
-        pets:
-          type: array
-          items:
-            $ref: '#/components/schemas/Pet'
-        total:
-          type: integer
-        page:
-          type: integer
-        totalPages:
-          type: integer
-
-    # Application Schemas
-    Application:
-      type: object
-      properties:
-        applicationId:
-          type: string
-          format: uuid
-        userId:
-          type: string
-          format: uuid
-        petId:
-          type: string
-          format: uuid
-        rescueId:
-          type: string
-          format: uuid
-        status:
-          $ref: '#/components/schemas/ApplicationStatus'
-        priority:
-          $ref: '#/components/schemas/ApplicationPriority'
-        answers:
-          type: object
-        submittedAt:
-          type: string
-          format: date-time
-        createdAt:
-          type: string
-          format: date-time
-
-    ApplicationStatus:
-      type: string
-      enum:
-        [
-          DRAFT,
-          SUBMITTED,
-          UNDER_REVIEW,
-          PENDING_REFERENCES,
-          REFERENCE_CHECK,
-          INTERVIEW_SCHEDULED,
-          INTERVIEW_COMPLETED,
-          HOME_VISIT_SCHEDULED,
-          HOME_VISIT_COMPLETED,
-          APPROVED,
-          CONDITIONALLY_APPROVED,
-          REJECTED,
-          WITHDRAWN,
-          EXPIRED,
-        ]
-
-    ApplicationPriority:
-      type: string
-      enum: [LOW, NORMAL, HIGH, URGENT]
-
-    ApplicationCreateRequest:
-      type: object
-      required: [petId, answers]
-      properties:
-        petId:
-          type: string
-          format: uuid
-        answers:
-          type: object
-        references:
-          type: array
-          items:
-            $ref: '#/components/schemas/Reference'
-
-    Reference:
-      type: object
-      properties:
-        name:
-          type: string
-        relationship:
-          type: string
-        phone:
-          type: string
-        email:
-          type: string
-
-    ApplicationSearchResponse:
-      type: object
-      properties:
-        applications:
-          type: array
-          items:
-            $ref: '#/components/schemas/Application'
-        total:
-          type: integer
-        page:
-          type: integer
-        totalPages:
-          type: integer
-
-    # Messaging Schemas
-    Conversation:
-      type: object
-      properties:
-        chatId:
-          type: string
-          format: uuid
-        applicationId:
-          type: string
-          format: uuid
-        rescueId:
-          type: string
-          format: uuid
-        status:
-          type: string
-          enum: [active, locked, archived]
-        participants:
-          type: array
-          items:
-            $ref: '#/components/schemas/ChatParticipant'
-        lastMessage:
-          $ref: '#/components/schemas/Message'
-        createdAt:
-          type: string
-          format: date-time
-
-    ChatParticipant:
-      type: object
-      properties:
-        userId:
-          type: string
-          format: uuid
-        role:
-          type: string
-          enum: [rescue, user]
-        lastReadAt:
-          type: string
-          format: date-time
-
-    Message:
-      type: object
-      properties:
-        messageId:
-          type: string
-          format: uuid
-        chatId:
-          type: string
-          format: uuid
-        senderId:
-          type: string
-          format: uuid
+  /api/v1/admin/system/config:
+    get:
+      tags: [Admin Management]
+      summary: Get system configuration
+      description: Get system configuration settings (Admin only)
+      responses:
+        '200':
+          description: Configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemConfiguration'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    patch:
+      tags: [Admin Management]
+      summary: Update system configuration
+      description: Update system configuration settings (Admin only)
+      requestBody:
+        required: true
         content:
-          type: string
-        contentFormat:
-          type: string
-          enum: [plain, markdown, html]
-        attachments:
-          type: array
-          items:
-            $ref: '#/components/schemas/MessageAttachment'
-        createdAt:
-          type: string
-          format: date-time
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SystemConfigurationUpdate'
+      responses:
+        '200':
+          description: Configuration updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
-    MessageAttachment:
-      type: object
-      properties:
-        attachmentId:
-          type: string
-        filename:
-          type: string
-        originalName:
-          type: string
-        mimeType:
-          type: string
-        size:
-          type: integer
-        url:
-          type: string
+  /api/v1/admin/users:
+    get:
+      tags: [Admin Management]
+      summary: Search and manage users
+      description: Search users with admin capabilities (Admin only)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Users search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserSearchResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
-    ConversationCreateRequest:
-      type: object
-      required: [participantIds]
-      properties:
-        participantIds:
-          type: array
-          items:
+  /api/v1/admin/users/{userId}:
+    get:
+      tags: [Admin Management]
+      summary: Get user details
+      description: Get detailed user information (Admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
             type: string
             format: uuid
-        applicationId:
-          type: string
-          format: uuid
-        initialMessage:
-          type: string
+      responses:
+        '200':
+          description: User details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
-    # Health Check Schemas
-    HealthCheckResult:
-      type: object
-      properties:
-        status:
-          type: string
-          enum: [healthy, unhealthy, degraded]
-        uptime:
-          type: number
-        timestamp:
-          type: string
-          format: date-time
-        version:
-          type: string
-        environment:
-          type: string
-        services:
-          type: object
-          properties:
-            database:
-              $ref: '#/components/schemas/ServiceHealth'
-            email:
-              $ref: '#/components/schemas/ServiceHealth'
-            storage:
-              $ref: '#/components/schemas/ServiceHealth'
-            fileSystem:
-              $ref: '#/components/schemas/ServiceHealth'
-        metrics:
-          type: object
-          properties:
-            memoryUsage:
+  /api/v1/admin/users/{userId}/action:
+    patch:
+      tags: [Admin Management]
+      summary: Perform user action
+      description: Perform administrative actions on a user (Admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAction'
+      responses:
+        '200':
+          description: User action performed successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/rescues:
+    get:
+      tags: [Rescue Organizations]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/rescues/{rescueId}:
+    get:
+      tags: [Rescue Organizations]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/rescues/{rescueId}/pets:
+    get:
+      tags: [Rescue Organizations]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/admin/rescues:
+    get:
+      tags: [Admin Management]
+      summary: Get rescue management data
+      description: Get rescue organizations for admin management (Admin only)
+      responses:
+        '200':
+          description: Rescue management data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RescueManagementResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/rescues/{rescueId}/moderate:
+    patch:
+      tags: [Admin Management]
+      summary: Moderate rescue organization
+      description: Perform moderation actions on rescue organization (Admin only)
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RescueModerationAction'
+      responses:
+        '200':
+          description: Rescue moderation action performed successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/audit-logs:
+    get:
+      tags: [Admin Management]
+      summary: Get audit logs
+      description: Get system audit logs (Admin only)
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Audit logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogsResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/export/{type}:
+    get:
+      tags: [Admin Management]
+      summary: Export data
+      description: Export platform data in various formats (Admin only)
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [users, pets, applications, rescues, analytics]
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, json, xlsx]
+            default: csv
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Data export file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # Application Management Endpoints
+  /api/v1/applications:
+    get:
+      tags: [Application Management]
+      summary: Get adoption applications
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Applications list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationListResponse'
+    post:
+      tags: [Application Management]
+      summary: Submit adoption application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreate'
+      responses:
+        '201':
+          description: Application submitted successfully
+
+  /api/v1/applications/{applicationId}:
+    get:
+      tags: [Application Management]
+      summary: Get application details
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+    delete:
+      tags: [Application Management]
+      summary: Delete/withdraw application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application deleted successfully
+
+  /api/v1/applications/{applicationId}/status:
+    patch:
+      tags: [Application Management]
+      summary: Update application status
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
               type: object
-            cpuUsage:
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+                notes:
+                  type: string
+              required: [status]
+      responses:
+        '200':
+          description: Application status updated
+
+  /api/v1/applications/{applicationId}/submit:
+    post:
+      tags: [Application Management]
+      summary: Submit application for review
+      description: Submit a draft application for rescue review
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application submitted successfully
+        '400':
+          description: Application cannot be submitted
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/withdraw:
+    post:
+      tags: [Application Management]
+      summary: Withdraw application
+      description: Withdraw a submitted application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application withdrawn successfully
+        '400':
+          description: Application cannot be withdrawn
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/documents:
+    post:
+      tags: [Application Management]
+      summary: Add document to application
+      description: Upload and attach a document to an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
               type: object
-            activeConnections:
-              type: integer
+              properties:
+                file:
+                  type: string
+                  format: binary
+                documentType:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Document uploaded successfully
+        '404':
+          description: Application not found
 
-    ServiceHealth:
-      type: object
-      properties:
-        status:
-          type: string
-          enum: [healthy, unhealthy, degraded]
-        responseTime:
-          type: number
-        details:
-          type: string
-        lastChecked:
-          type: string
-          format: date-time
-
-    # Error Schemas
-    Error:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: false
-        error:
-          type: string
-        message:
-          type: string
-        code:
-          type: string
-        details:
-          type: object
-
-  responses:
-    BadRequest:
-      description: Bad request
-      content:
-        application/json:
+  /api/v1/applications/{applicationId}/references:
+    patch:
+      tags: [Application Management]
+      summary: Update reference status
+      description: Update the status of application references (rescue staff only)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
           schema:
-            $ref: '#/components/schemas/Error'
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                referenceIndex:
+                  type: integer
+                status:
+                  type: string
+                  enum: [pending, verified, failed, not_reachable]
+                notes:
+                  type: string
+              required: [referenceIndex, status]
+      responses:
+        '200':
+          description: Reference status updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Application not found
 
-    Unauthorized:
-      description: Unauthorized
-      content:
-        application/json:
+  /api/v1/applications/form-structure/{rescueId}:
+    get:
+      tags: [Application Management]
+      summary: Get application form structure
+      description: Get the application form structure for a specific rescue
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
           schema:
-            $ref: '#/components/schemas/Error'
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Form structure retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sections:
+                    type: array
+                    items:
+                      type: object
+                  requirements:
+                    type: object
+        '404':
+          description: Rescue not found
 
-    Forbidden:
-      description: Forbidden
-      content:
-        application/json:
+  /api/v1/applications/validate/{rescueId}:
+    post:
+      tags: [Application Management]
+      summary: Validate application answers
+      description: Validate application answers against rescue requirements
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
           schema:
-            $ref: '#/components/schemas/Error'
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answers:
+                  type: object
+              required: [answers]
+      responses:
+        '200':
+          description: Validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Rescue not found
 
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
+  /api/v1/applications/statistics:
+    get:
+      tags: [Application Management]
+      summary: Get application statistics
+      description: Get comprehensive application statistics (admin only)
+      parameters:
+        - name: rescueId
+          in: query
           schema:
-            $ref: '#/components/schemas/Error'
-
-    InternalServerError:
-      description: Internal server error
-      content:
-        application/json:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
           schema:
-            $ref: '#/components/schemas/Error'
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Application statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  byStatus:
+                    type: object
+                  trends:
+                    type: object
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
-tags:
-  - name: Authentication
-    description: User authentication and authorization
-  - name: Users
-    description: User management and profiles
-  - name: Pets
-    description: Pet management and search
-  - name: Applications
-    description: Adoption application workflow
-  - name: Messaging
-    description: Real-time messaging system
-  - name: Health
-    description: System health and monitoring
+  /api/v1/applications/bulk-update:
+    patch:
+      tags: [Application Management]
+      summary: Bulk update applications
+      description: Update multiple applications at once (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                applicationIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                updates:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    notes:
+                      type: string
+              required: [applicationIds, updates]
+      responses:
+        '200':
+          description: Applications updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/applications/{applicationId}/history:
+    get:
+      tags: [Application Management]
+      summary: Get application history
+      description: Get the history of changes for an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    action:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+                    userId:
+                      type: string
+                      format: uuid
+                    details:
+                      type: object
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/schedule-visit:
+    post:
+      tags: [Application Management]
+      summary: Schedule visit
+      description: Schedule a visit for the application (Rescue staff/admin only)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitSchedule'
+      responses:
+        '201':
+          description: Visit scheduled successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Application not found
+
+  # Discovery Service Test Endpoints
+  /api/v1/discovery/test:
+    get:
+      tags: [Discovery Service]
+      summary: Test discovery endpoint
+      description: Simple test endpoint for discovery service
+      security: []
+      responses:
+        '200':
+          description: Discovery test successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/TestDiscoveryData'
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # Extended Pet Management Endpoints
+  /api/v1/pets/extended:
+    get:
+      tags: [Pet Management]
+      summary: Get extended pet information
+      description: Get detailed information about pets including analytics
+      security: []
+      parameters:
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sessionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Extended pet information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  pet:
+                    $ref: '#/components/schemas/Pet'
+                  analytics:
+                    $ref: '#/components/schemas/PetAnalytics'
+                  recommendations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  similarPets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  userSwipeHistory:
+                    type: object
+                    properties:
+                      liked:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                      passed:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                      superLiked:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                  sessionDetails:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                        format: uuid
+                      startTime:
+                        type: string
+                        format: date-time
+                      endTime:
+                        type: string
+                        format: date-time
+                      actions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SwipeAction'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/analytics:
+    get:
+      tags: [Pet Management]
+      summary: Get pet analytics
+      description: Get analytics data for pets (Admin only)
+      parameters:
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Pet analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      petId:
+                        type: string
+                        format: uuid
+                      views:
+                        type: integer
+                      favorites:
+                        type: integer
+                      applications:
+                        type: integer
+                      adoptions:
+                        type: integer
+                      revenue:
+                        type: number
+                        format: float
+                      cost:
+                        type: number
+                        format: float
+                      profit:
+                        type: number
+                        format: float
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/pets/{petId}/analytics:
+    get:
+      tags: [Pet Management]
+      summary: Get specific pet analytics
+      description: Get detailed analytics for a specific pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pet analytics details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      petId:
+                        type: string
+                        format: uuid
+                      views:
+                        type: integer
+                      favorites:
+                        type: integer
+                      applications:
+                        type: integer
+                      adoptions:
+                        type: integer
+                      revenue:
+                        type: number
+                        format: float
+                      cost:
+                        type: number
+                        format: float
+                      profit:
+                        type: number
+                        format: float
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/recommendations:
+    get:
+      tags: [Pet Management]
+      summary: Get pet adoption recommendations
+      description: Get personalized adoption recommendations for a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Adoption recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  recommendations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/swipe:
+    post:
+      tags: [Pet Management]
+      summary: Record pet swipe action
+      description: Record a swipe action (like, pass, super like) for a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [LIKE, PASS, SUPER_LIKE]
+                sessionId:
+                  type: string
+                  format: uuid
+              required: [action]
+      responses:
+        '200':
+          description: Swipe action recorded
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/favorite/status:
+    get:
+      tags: [Pet Management]
+      summary: Check if pet is favorited by user
+      description: Check if the current user has favorited the pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Favorite status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  isFavorited:
+                    type: boolean
+                  favoritedAt:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/pets/{petId}/report:
+    post:
+      tags: [Pet Management]
+      summary: Report a pet listing
+      description: Report a pet listing for review (admin only)
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [inappropriate_content, false_information, duplicate_listing, spam, animal_welfare, other]
+                description:
+                  type: string
+                category:
+                  type: string
+              required: [reason, description]
+      responses:
+        '201':
+          description: Report submitted successfully
+
+  # Application Management Endpoints
+  /api/v1/applications:
+    get:
+      tags: [Application Management]
+      summary: Get adoption applications
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Applications list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationListResponse'
+    post:
+      tags: [Application Management]
+      summary: Submit adoption application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreate'
+      responses:
+        '201':
+          description: Application submitted successfully
+
+  /api/v1/applications/{applicationId}:
+    get:
+      tags: [Application Management]
+      summary: Get application details
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+    delete:
+      tags: [Application Management]
+      summary: Delete/withdraw application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application deleted successfully
+
+  /api/v1/applications/{applicationId}/status:
+    patch:
+      tags: [Application Management]
+      summary: Update application status
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+                notes:
+                  type: string
+              required: [status]
+      responses:
+        '200':
+          description: Application status updated
+
+  /api/v1/applications/{applicationId}/submit:
+    post:
+      tags: [Application Management]
+      summary: Submit application for review
+      description: Submit a draft application for rescue review
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application submitted successfully
+        '400':
+          description: Application cannot be submitted
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/withdraw:
+    post:
+      tags: [Application Management]
+      summary: Withdraw application
+      description: Withdraw a submitted application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application withdrawn successfully
+        '400':
+          description: Application cannot be withdrawn
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/documents:
+    post:
+      tags: [Application Management]
+      summary: Add document to application
+      description: Upload and attach a document to an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                documentType:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Document uploaded successfully
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/references:
+    patch:
+      tags: [Application Management]
+      summary: Update reference status
+      description: Update the status of application references (rescue staff only)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                referenceIndex:
+                  type: integer
+                status:
+                  type: string
+                  enum: [pending, verified, failed, not_reachable]
+                notes:
+                  type: string
+              required: [referenceIndex, status]
+      responses:
+        '200':
+          description: Reference status updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Application not found
+
+  /api/v1/applications/form-structure/{rescueId}:
+    get:
+      tags: [Application Management]
+      summary: Get application form structure
+      description: Get the application form structure for a specific rescue
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Form structure retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sections:
+                    type: array
+                    items:
+                      type: object
+                  requirements:
+                    type: object
+        '404':
+          description: Rescue not found
+
+  /api/v1/applications/validate/{rescueId}:
+    post:
+      tags: [Application Management]
+      summary: Validate application answers
+      description: Validate application answers against rescue requirements
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answers:
+                  type: object
+              required: [answers]
+      responses:
+        '200':
+          description: Validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Rescue not found
+
+  /api/v1/applications/statistics:
+    get:
+      tags: [Application Management]
+      summary: Get application statistics
+      description: Get comprehensive application statistics (admin only)
+      parameters:
+        - name: rescueId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Application statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  byStatus:
+                    type: object
+                  trends:
+                    type: object
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/applications/bulk-update:
+    patch:
+      tags: [Application Management]
+      summary: Bulk update applications
+      description: Update multiple applications at once (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                applicationIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                updates:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    notes:
+                      type: string
+              required: [applicationIds, updates]
+      responses:
+        '200':
+          description: Applications updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/applications/{applicationId}/history:
+    get:
+      tags: [Application Management]
+      summary: Get application history
+      description: Get the history of changes for an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    action:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+                    userId:
+                      type: string
+                      format: uuid
+                    details:
+                      type: object
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/schedule-visit:
+    post:
+      tags: [Application Management]
+      summary: Schedule visit
+      description: Schedule a visit for the application (Rescue staff/admin only)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitSchedule'
+      responses:
+        '201':
+          description: Visit scheduled successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Application not found
+
+# Notifications
+/api/v1/notifications:
+    get:
+      tags: [User Management]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/notifications/preferences:
+    get:
+      tags: [User Management]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/notifications/unread/count:
+    get:
+      tags: [User Management]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+  /api/v1/notifications/{notificationId}:
+    get:
+      tags: [User Management]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+
+ /api/v1/chat/{chatId}:
+    patch:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # Add properties here
+
+  /api/v1/chat/{chatId}/read:
+    patch:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # Add properties here
+
+  /api/v1/chat:
+    post:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # Add properties here
+
+  /api/v1/chat/messages/{messageId}/reactions:
+    post:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # Add properties here
+
+  /api/v1/chat/{chatId}/messages:
+    post:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # Add properties here
+
+  /api/v1/chat/{chatId}/participants:
+    post:
+      tags: [Messaging]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # Add properties here
+
+  /api/v1/notifications/read-all:
+    post:
+      tags: [User Management]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+          description: Server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+          application/json:
+            schema:
+              type: object
+              properties:
+              type: object
+              properties:
+              properties:
+                # Add properties here
+                # Add properties here
+
+  /api/v1/rescues:
+    post:
+
+  /api/v1/rescues:
+    post:
+      tags: [Rescue Organizations]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+  /api/v1/rescues:
+    post:
+      tags: [Rescue Organizations]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+      tags: [Rescue Organizations]
+      summary: REPLACE_WITH_SUMMARY
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+      description: REPLACE_WITH_DESCRIPTION
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+          description: Not found
+        '500':
+          description: Server error
+        '500':
+          description: Server error
+          description: Server error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # Add properties here
