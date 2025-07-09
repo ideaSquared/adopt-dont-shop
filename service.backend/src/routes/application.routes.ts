@@ -7,20 +7,194 @@ import { UserType } from '../models/User';
 const router = express.Router();
 const applicationController = new ApplicationController();
 
-// Public routes (no authentication required)
-// None for applications - all require authentication
-
 // Routes requiring authentication
 router.use(authenticateToken);
 
-// Get applications with filtering and pagination
+/**
+ * @swagger
+ * /api/v1/applications:
+ *   get:
+ *     tags: [Application Management]
+ *     summary: Get adoption applications
+ *     description: Get adoption applications with filtering and pagination
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *         description: Filter by application status
+ *       - in: query
+ *         name: petId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by pet ID
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by user ID (admin/rescue staff only)
+ *       - in: query
+ *         name: rescueId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by rescue organization ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: Applications retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 applications:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       applicationId:
+ *                         type: string
+ *                         format: uuid
+ *                       status:
+ *                         type: string
+ *                         enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *                       pet:
+ *                         type: object
+ *                         properties:
+ *                           petId:
+ *                             type: string
+ *                             format: uuid
+ *                           name:
+ *                             type: string
+ *                           type:
+ *                             type: string
+ *                           breed:
+ *                             type: string
+ *                       applicant:
+ *                         type: object
+ *                         properties:
+ *                           userId:
+ *                             type: string
+ *                             format: uuid
+ *                           firstName:
+ *                             type: string
+ *                           lastName:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                       submittedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     totalItems:
+ *                       type: integer
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
 router.get(
   '/',
   ApplicationController.validateGetApplications,
   applicationController.getApplications
 );
 
-// Create new application (adopters only)
+/**
+ * @swagger
+ * /api/v1/applications:
+ *   post:
+ *     tags: [Application Management]
+ *     summary: Create new adoption application
+ *     description: Submit a new adoption application for a pet. Adopter role required.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - petId
+ *               - answers
+ *             properties:
+ *               petId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the pet being applied for
+ *               answers:
+ *                 type: object
+ *                 description: Application form answers based on rescue requirements
+ *                 example:
+ *                   experience: "5 years with dogs"
+ *                   housing: "House with fenced yard"
+ *                   otherPets: "One cat, friendly with dogs"
+ *               notes:
+ *                 type: string
+ *                 maxLength: 1000
+ *                 description: Additional notes or comments
+ *                 example: "Very excited to provide a loving home"
+ *     responses:
+ *       201:
+ *         description: Application created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Application created successfully"
+ *                 applicationId:
+ *                   type: string
+ *                   format: uuid
+ *                 status:
+ *                   type: string
+ *                   example: "DRAFT"
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       409:
+ *         description: Application already exists for this pet
+ */
 router.post(
   '/',
   requireRole(UserType.ADOPTER),
@@ -28,7 +202,110 @@ router.post(
   applicationController.createApplication
 );
 
-// Get application by ID
+/**
+ * @swagger
+ * /api/v1/applications/{applicationId}:
+ *   get:
+ *     tags: [Application Management]
+ *     summary: Get application details by ID
+ *     description: Get detailed information about a specific application
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: applicationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Application ID
+ *     responses:
+ *       200:
+ *         description: Application details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 application:
+ *                   type: object
+ *                   properties:
+ *                     applicationId:
+ *                       type: string
+ *                       format: uuid
+ *                     status:
+ *                       type: string
+ *                       enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *                     pet:
+ *                       type: object
+ *                       properties:
+ *                         petId:
+ *                           type: string
+ *                           format: uuid
+ *                         name:
+ *                           type: string
+ *                         type:
+ *                           type: string
+ *                         breed:
+ *                           type: string
+ *                         images:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                     applicant:
+ *                       type: object
+ *                       properties:
+ *                         userId:
+ *                           type: string
+ *                           format: uuid
+ *                         firstName:
+ *                           type: string
+ *                         lastName:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         phone:
+ *                           type: string
+ *                     answers:
+ *                       type: object
+ *                       description: Application form answers
+ *                     notes:
+ *                       type: string
+ *                     documents:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           documentId:
+ *                             type: string
+ *                             format: uuid
+ *                           fileName:
+ *                             type: string
+ *                           fileType:
+ *                             type: string
+ *                           uploadedAt:
+ *                             type: string
+ *                             format: date-time
+ *                     submittedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get(
   '/:applicationId',
   ApplicationController.validateApplicationId,

@@ -99,13 +99,145 @@ router.get(
 );
 
 // User Email Preferences (User can access their own, Admin can access any)
+
+/**
+ * @swagger
+ * /api/v1/preferences/{userId}:
+ *   get:
+ *     tags: [Email Management]
+ *     summary: GET /api/v1/preferences/{userId}
+ *     description: Handle GET request for /api/v1/preferences/{userId}
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/preferences/{userId} successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/preferences/:userId', authenticateToken, emailController.getUserPreferences);
+
+/**
+ * @swagger
+ * /api/v1/preferences/{userId}:
+ *   put:
+ *     tags: [Email Management]
+ *     summary: PUT /api/v1/preferences/{userId}
+ *     description: Handle PUT request for /api/v1/preferences/{userId}
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               # Add properties here
+ *     responses:
+ *       200:
+ *         description: PUT /api/v1/preferences/{userId} successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "PUT /api/v1/preferences/{userId} successful"
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.put('/preferences/:userId', authenticateToken, emailController.updateUserPreferences);
 
 // Public Unsubscribe (No authentication required)
+
+/**
+ * @swagger
+ * /api/v1/unsubscribe/{token}:
+ *   get:
+ *     tags: [Email Management]
+ *     summary: GET /api/v1/unsubscribe/{token}
+ *     description: Handle GET request for /api/v1/unsubscribe/{token}
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: GET /api/v1/unsubscribe/{token} successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/unsubscribe/:token', emailController.unsubscribeUser);
 
 // Webhooks (No authentication required - handled by provider verification)
+
+/**
+ * @swagger
+ * /api/v1/webhook/delivery:
+ *   post:
+ *     tags: [Email Management]
+ *     summary: POST /api/v1/webhook/delivery
+ *     description: Handle POST request for /api/v1/webhook/delivery
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               # Add properties here
+ *     responses:
+ *       201:
+ *         description: POST /api/v1/webhook/delivery successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "POST /api/v1/webhook/delivery successful"
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
 router.post('/webhook/delivery', emailController.handleDeliveryWebhook);
 
 export default router;

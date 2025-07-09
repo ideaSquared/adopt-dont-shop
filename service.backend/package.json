@@ -70,6 +70,10 @@
     "@types/morgan": "^1.9.4",
     "@types/sequelize": "^4.28.20",
     "@types/supertest": "^2.0.12",
+<<<<<<< HEAD
+=======
+    "@types/swagger-jsdoc": "^6.0.4",
+>>>>>>> e100a78 (IN PROGRESS)
     "@types/swagger-ui-express": "^4.1.8",
     "@types/yamljs": "^0.2.34",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
