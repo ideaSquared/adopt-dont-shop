@@ -1,0 +1,150 @@
+### Adopt Don't Shop API Testing
+### Use this file with VS Code REST Client extension
+
+@baseUrl = http://localhost:5000
+@contentType = application/json
+
+### Variables (update these)
+@email = test@example.com
+@password = password123
+@authToken = your_jwt_token_here
+
+### Health Check
+GET {{baseUrl}}/api/v1/health/simple
+
+### Register User
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "firstName": "John",
+  "lastName": "Doe",
+  "userType": "ADOPTER",
+  "phoneNumber": "+1234567890"
+}
+
+### Login
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Get Current User Profile
+GET {{baseUrl}}/api/v1/users/me
+Authorization: Bearer {{authToken}}
+
+### Search Pets
+GET {{baseUrl}}/api/v1/pets?type=DOG&limit=10
+Content-Type: {{contentType}}
+
+### Get Featured Pets
+GET {{baseUrl}}/api/v1/pets/featured
+
+### Get Pet Types
+GET {{baseUrl}}/api/v1/pets/types
+
+### Get Pet Statistics
+GET {{baseUrl}}/api/v1/pets/statistics
+
+### Get User Notifications
+GET {{baseUrl}}/api/v1/notifications?limit=10
+Authorization: Bearer {{authToken}}
+
+### Get Notification Count
+GET {{baseUrl}}/api/v1/notifications/unread/count
+Authorization: Bearer {{authToken}}
+
+### Get Email Templates (Admin)
+GET {{baseUrl}}/api/v1/emails/templates
+Authorization: Bearer {{authToken}}
+
+### System Health Check
+GET {{baseUrl}}/api/v1/monitoring/api/health
+
+### Database Health Check
+GET {{baseUrl}}/api/v1/monitoring/api/health/database
+
+### Email Service Health Check  
+GET {{baseUrl}}/api/v1/monitoring/api/health/email
+
+### Discovery - Get Pet Recommendations
+GET {{baseUrl}}/api/v1/discovery/pets?limit=5
+Authorization: Bearer {{authToken}}
+
+### Pet Discovery - Swipe Action
+POST {{baseUrl}}/api/v1/discovery/swipe/action
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "petId": "550e8400-e29b-41d4-a716-446655440000",
+  "action": "LIKE",
+  "sessionId": "session-123"
+}
+
+### Create Pet (Rescue Staff/Admin)
+POST {{baseUrl}}/api/v1/pets
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Buddy",
+  "type": "DOG",
+  "breed": "Golden Retriever",
+  "age": "ADULT",
+  "gender": "MALE",
+  "size": "LARGE",
+  "description": "Friendly and energetic dog looking for an active family."
+}
+
+### Add Pet to Favorites
+POST {{baseUrl}}/api/v1/pets/550e8400-e29b-41d4-a716-446655440000/favorite
+Authorization: Bearer {{authToken}}
+
+### Get User's Favorite Pets
+GET {{baseUrl}}/api/v1/pets/favorites/user
+Authorization: Bearer {{authToken}}
+
+### Create Notification (Admin)
+POST {{baseUrl}}/api/v1/notifications
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "title": "Welcome!",
+  "message": "Welcome to Adopt Don't Shop!",
+  "type": "system",
+  "priority": "medium",
+  "channels": ["in_app", "email"]
+}
+
+### Update Notification Preferences
+PUT {{baseUrl}}/api/v1/notifications/preferences
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "preferences": {
+    "application_update": {
+      "inApp": true,
+      "email": true,
+      "push": false
+    },
+    "message": {
+      "inApp": true,
+      "email": false,
+      "push": true
+    }
+  }
+}
+
+### Mark All Notifications as Read
+POST {{baseUrl}}/api/v1/notifications/read-all
+Authorization: Bearer {{authToken}}

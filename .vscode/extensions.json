@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "42crunch.vscode-openapi",
+    "humao.rest-client", 
+    "rangav.vscode-thunder-client",
+    "redhat.vscode-yaml",
+    "ms-vscode.vscode-json"
+  ]
+}

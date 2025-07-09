@@ -33,6 +33,7 @@ import path from 'path';
 import ConfigurationService from './services/configuration.service';
 import FeatureFlagService from './services/featureFlag.service';
 import { HealthCheckService } from './services/health-check.service';
+import { setupSwagger } from './config/swagger';
 
 // Create feature flags and config routes
 const featureRoutes = Router();
@@ -114,6 +115,9 @@ if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
   app.use('/uploads', express.static(uploadDir));
   logger.info(`Serving static files from: ${uploadDir}`);
 }
+
+// Setup Swagger UI for API documentation
+setupSwagger(app);
 
 // Monitoring routes (development only)
 app.use('/monitoring', monitoringRoutes);

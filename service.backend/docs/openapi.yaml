@@ -91,13 +91,3142 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/auth/refresh:
+  /api/v1/auth/refresh-token:
     post:
       tags: [Authentication]
       summary: Refresh JWT token
       description: Get new access token using refresh token
       security: []
       requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+              required: [refreshToken]
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: User logout
+      description: Invalidate refresh token and logout user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+              required: [refreshToken]
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      description: Send password reset email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              required: [email]
+      responses:
+        '200':
+          description: Password reset email sent
+
+  /api/v1/auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password
+      description: Reset password using token from email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+              required: [token, newPassword]
+      responses:
+        '200':
+          description: Password reset successfully
+
+  /api/v1/auth/verify-email:
+    get:
+      tags: [Authentication]
+      summary: Verify email address
+      description: Verify email address using token
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Email verified successfully
+
+  /api/v1/auth/resend-verification:
+    post:
+      tags: [Authentication]
+      summary: Resend verification email
+      description: Resend email verification to user's email address
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              required: [email]
+      responses:
+        '200':
+          description: Verification email sent
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: User not found
+
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user profile
+      description: Get the current authenticated user's profile
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [Authentication]
+      summary: Update current user profile
+      description: Update the current authenticated user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # User Management Endpoints
+  /api/v1/users/me:
+    get:
+      tags: [User Management]
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/v1/users:
+    get:
+      tags: [User Management]
+      summary: Search and list users (Admin only)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: userType
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserType'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Users list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+
+  /api/v1/users/{userId}:
+    get:
+      tags: [User Management]
+      summary: Get user profile by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      tags: [User Management]
+      summary: Update user profile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/v1/users/{userId}/activity:
+    get:
+      tags: [User Management]
+      summary: Get user activity history
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: User activity history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  activities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Activity'
+
+  /api/v1/users/account:
+    delete:
+      tags: [User Management]
+      summary: Delete user account
+      responses:
+        '200':
+          description: Account deleted successfully
+
+  /api/v1/users/profile:
+    get:
+      tags: [User Management]
+      summary: Get current user profile
+      description: Get the current authenticated user's profile information
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [User Management]
+      summary: Update current user profile
+      description: Update the current authenticated user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/users/preferences:
+    get:
+      tags: [User Management]
+      summary: Get user preferences
+      description: Get current user's preferences and settings
+      responses:
+        '200':
+          description: User preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+    put:
+      tags: [User Management]
+      summary: Update user preferences
+      description: Update current user's preferences and settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Preferences updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+
+  /api/v1/users/preferences/reset:
+    post:
+      tags: [User Management]
+      summary: Reset user preferences
+      description: Reset user preferences to default values
+      responses:
+        '200':
+          description: Preferences reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+
+  /api/v1/users/search:
+    get:
+      tags: [User Management]
+      summary: Search users
+      description: Search users with various filters (admin/rescue staff only)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [ADOPTER, RESCUE_STAFF, RESCUE_ADMIN, ADMIN]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, pending]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Users search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/users/statistics:
+    get:
+      tags: [User Management]
+      summary: Get user statistics
+      description: Get comprehensive user statistics (admin only)
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: User statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalUsers:
+                    type: integer
+                  activeUsers:
+                    type: integer
+                  usersByRole:
+                    type: object
+                  newUsersThisPeriod:
+                    type: integer
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/users/{userId}/role:
+    put:
+      tags: [User Management]
+      summary: Update user role
+      description: Update a user's role (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [ADOPTER, RESCUE_STAFF, RESCUE_ADMIN, ADMIN]
+              required: [role]
+      responses:
+        '200':
+          description: User role updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{userId}/deactivate:
+    post:
+      tags: [User Management]
+      summary: Deactivate user
+      description: Deactivate a user account (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: User deactivated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{userId}/reactivate:
+    post:
+      tags: [User Management]
+      summary: Reactivate user
+      description: Reactivate a user account (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User reactivated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/bulk-update:
+    post:
+      tags: [User Management]
+      summary: Bulk update users
+      description: Update multiple users at once (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                updates:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    role:
+                      type: string
+              required: [userIds, updates]
+      responses:
+        '200':
+          description: Users updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # Discovery Service Endpoints
+  /api/v1/discovery/health:
+    get:
+      tags: [Discovery Service]
+      summary: Discovery service health check
+      description: Check if the discovery service is running
+      security: []
+      responses:
+        '200':
+          description: Discovery service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  service:
+                    type: string
+
+  /api/v1/discovery/db-test:
+    get:
+      tags: [Discovery Service]
+      summary: Test database connectivity
+      description: Test database connection and return pet count
+      security: []
+      responses:
+        '200':
+          description: Database connection successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      petCount:
+                        type: integer
+                      timestamp:
+                        type: string
+                        format: date-time
+        '500':
+          description: Database connection failed
+
+  # Pet Discovery Endpoints
+  /api/v1/discovery/pets:
+    get:
+      tags: [Pet Discovery]
+      summary: Get personalized pet recommendations
+      description: Advanced swipe-based pet discovery with intelligent recommendations
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - name: excludeIds
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Personalized pet recommendations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetDiscoveryResponse'
+
+  /api/v1/discovery/pets/more:
+    post:
+      tags: [Pet Discovery]
+      summary: Get more pet recommendations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                excludeIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                limit:
+                  type: integer
+                  default: 10
+      responses:
+        '200':
+          description: Additional pet recommendations
+
+  /api/v1/discovery/swipe/action:
+    post:
+      tags: [Pet Discovery]
+      summary: Record swipe action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                petId:
+                  type: string
+                  format: uuid
+                action:
+                  type: string
+                  enum: [LIKE, PASS, SUPER_LIKE]
+                sessionId:
+                  type: string
+                  format: uuid
+              required: [petId, action]
+      responses:
+        '200':
+          description: Swipe action recorded
+
+  /api/v1/discovery/swipe/stats/{userId}:
+    get:
+      tags: [Pet Discovery]
+      summary: Get user swipe statistics
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User swipe statistics
+
+  /api/v1/discovery/swipe/session/{sessionId}:
+    get:
+      tags: [Pet Discovery]
+      summary: Get swipe session details
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Swipe session details
+
+  # Pet Management Endpoints
+  /api/v1/pets:
+    get:
+      tags: [Pet Management]
+      summary: Search and list pets
+      description: Search pets with advanced filtering and pagination
+      security: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/PetType'
+        - name: breed
+          in: query
+          schema:
+            type: string
+        - name: age
+          in: query
+          schema:
+            $ref: '#/components/schemas/PetAge'
+        - name: size
+          in: query
+          schema:
+            $ref: '#/components/schemas/PetSize'
+        - name: gender
+          in: query
+          schema:
+            $ref: '#/components/schemas/PetGender'
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Pet search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetSearchResponse'
+    post:
+      tags: [Pet Management]
+      summary: Create a new pet listing
+      description: Add a new pet to the adoption system (Rescue Staff/Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetCreate'
+      responses:
+        '201':
+          description: Pet created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+  /api/v1/pets/featured:
+    get:
+      tags: [Pet Management]
+      summary: Get featured pets
+      description: Get featured pets for homepage display
+      security: []
+      responses:
+        '200':
+          description: Featured pets list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  pets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  total:
+                    type: integer
+
+  /api/v1/pets/recent:
+    get:
+      tags: [Pet Management]
+      summary: Get recently added pets
+      security: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 10
+      responses:
+        '200':
+          description: Recently added pets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  pets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  total:
+                    type: integer
+
+  /api/v1/pets/test:
+    get:
+      tags: [Pet Management]
+      summary: Test pet routes
+      description: Simple endpoint to test pet routes connectivity
+      security: []
+      responses:
+        '200':
+          description: Pet routes are working
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Pet routes are working!"
+
+  /api/v1/pets/types:
+    get:
+      tags: [Pet Management]
+      summary: Get available pet types
+      security: []
+      responses:
+        '200':
+          description: Pet types with counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  types:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PetTypeInfo'
+
+  /api/v1/pets/breeds/{type}:
+    get:
+      tags: [Pet Management]
+      summary: Get available breeds for a specific pet type
+      security: []
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PetType'
+      responses:
+        '200':
+          description: Breeds for pet type
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  type:
+                    $ref: '#/components/schemas/PetType'
+                  breeds:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        breed:
+                          type: string
+                        count:
+                          type: integer
+                        characteristics:
+                          type: array
+                          items:
+                            type: string
+
+  /api/v1/pets/statistics:
+    get:
+      tags: [Pet Management]
+      summary: Get pet adoption statistics
+      security: []
+      responses:
+        '200':
+          description: Pet adoption statistics and insights
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  statistics:
+                    $ref: '#/components/schemas/PetStatistics'
+
+  /api/v1/pets/rescue/{rescueId}:
+    get:
+      tags: [Pet Management]
+      summary: Get all pets from a specific rescue
+      security: []
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/PetStatus'
+      responses:
+        '200':
+          description: Pets from rescue organization
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetSearchResponse'
+
+  /api/v1/pets/favorites/user:
+    get:
+      tags: [Pet Management]
+      summary: Get current user's favorite pets
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: User's favorite pets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetSearchResponse'
+
+  /api/v1/pets/{petId}:
+    get:
+      tags: [Pet Management]
+      summary: Get pet details by ID
+      security: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pet details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Pet Management]
+      summary: Update pet listing
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetUpdate'
+      responses:
+        '200':
+          description: Pet updated successfully
+    patch:
+      tags: [Pet Management]
+      summary: Partially update pet listing
+      description: Update specific fields of a pet listing
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetUpdate'
+      responses:
+        '200':
+          description: Pet updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Pet Management]
+      summary: Delete pet listing
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pet deleted successfully
+
+  /api/v1/pets/{petId}/similar:
+    get:
+      tags: [Pet Management]
+      summary: Get pets similar to the specified pet
+      security: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            default: 6
+      responses:
+        '200':
+          description: Similar pets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  similarPets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+                  total:
+                    type: integer
+                  criteria:
+                    type: object
+
+  /api/v1/pets/{petId}/activity:
+    get:
+      tags: [Pet Management]
+      summary: Get activity history for a specific pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Pet activity history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  activities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Activity'
+
+  /api/v1/pets/{petId}/images:
+    post:
+      tags: [Pet Management]
+      summary: Add images to pet listing
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '200':
+          description: Images added successfully
+    delete:
+      tags: [Pet Management]
+      summary: Remove specific image from pet gallery
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: imageId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Image removed successfully
+
+  /api/v1/pets/{petId}/status:
+    patch:
+      tags: [Pet Management]
+      summary: Update pet availability status
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/PetStatus'
+                notes:
+                  type: string
+                adoptionDate:
+                  type: string
+                  format: date
+              required: [status]
+      responses:
+        '200':
+          description: Pet status updated successfully
+
+  /api/v1/pets/{petId}/favorite:
+    post:
+      tags: [Pet Management]
+      summary: Add pet to user's favorites
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pet added to favorites
+    delete:
+      tags: [Pet Management]
+      summary: Remove pet from user's favorites
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pet removed from favorites
+
+  /api/v1/pets/{petId}/favorite/status:
+    get:
+      tags: [Pet Management]
+      summary: Check if current user has favorited this pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Favorite status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  isFavorited:
+                    type: boolean
+                  favoritedAt:
+                    type: string
+                    format: date-time
+
+  /api/v1/pets/{petId}/report:
+    post:
+      tags: [Pet Management]
+      summary: Report a pet listing for review
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [inappropriate_content, false_information, duplicate_listing, spam, animal_welfare, other]
+                description:
+                  type: string
+                category:
+                  type: string
+              required: [reason, description]
+      responses:
+        '201':
+          description: Report submitted successfully
+
+  # Application Management Endpoints
+  /api/v1/applications:
+    get:
+      tags: [Application Management]
+      summary: Get adoption applications
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+        - name: petId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Applications list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationListResponse'
+    post:
+      tags: [Application Management]
+      summary: Submit adoption application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreate'
+      responses:
+        '201':
+          description: Application submitted successfully
+
+  /api/v1/applications/{applicationId}:
+    get:
+      tags: [Application Management]
+      summary: Get application details
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+    delete:
+      tags: [Application Management]
+      summary: Delete/withdraw application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application deleted successfully
+
+  /api/v1/applications/{applicationId}/status:
+    patch:
+      tags: [Application Management]
+      summary: Update application status
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, APPROVED, REJECTED, WITHDRAWN]
+                notes:
+                  type: string
+              required: [status]
+      responses:
+        '200':
+          description: Application status updated
+
+  /api/v1/applications/{applicationId}/submit:
+    post:
+      tags: [Application Management]
+      summary: Submit application for review
+      description: Submit a draft application for rescue review
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application submitted successfully
+        '400':
+          description: Application cannot be submitted
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/withdraw:
+    post:
+      tags: [Application Management]
+      summary: Withdraw application
+      description: Withdraw a submitted application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application withdrawn successfully
+        '400':
+          description: Application cannot be withdrawn
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/documents:
+    post:
+      tags: [Application Management]
+      summary: Add document to application
+      description: Upload and attach a document to an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                document:
+                  type: string
+                  format: binary
+                documentType:
+                  type: string
+                  enum: [reference, veterinary, identification, other]
+                description:
+                  type: string
+              required: [document, documentType]
+      responses:
+        '201':
+          description: Document uploaded successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/references:
+    patch:
+      tags: [Application Management]
+      summary: Update reference status
+      description: Update the status of application references (rescue staff only)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                referenceIndex:
+                  type: integer
+                status:
+                  type: string
+                  enum: [pending, verified, failed, not_reachable]
+                notes:
+                  type: string
+              required: [referenceIndex, status]
+      responses:
+        '200':
+          description: Reference status updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Application not found
+
+  /api/v1/applications/form-structure/{rescueId}:
+    get:
+      tags: [Application Management]
+      summary: Get application form structure
+      description: Get the application form structure for a specific rescue
+      security: []
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Form structure retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sections:
+                    type: array
+                    items:
+                      type: object
+                  requirements:
+                    type: object
+        '404':
+          description: Rescue not found
+
+  /api/v1/applications/validate/{rescueId}:
+    post:
+      tags: [Application Management]
+      summary: Validate application answers
+      description: Validate application answers against rescue requirements
+      security: []
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answers:
+                  type: object
+              required: [answers]
+      responses:
+        '200':
+          description: Validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Rescue not found
+
+  /api/v1/applications/statistics:
+    get:
+      tags: [Application Management]
+      summary: Get application statistics
+      description: Get application statistics (rescue staff/admin only)
+      parameters:
+        - name: rescueId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  byStatus:
+                    type: object
+                  trends:
+                    type: object
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/applications/bulk-update:
+    patch:
+      tags: [Application Management]
+      summary: Bulk update applications
+      description: Update multiple applications at once (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                applicationIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                updates:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    notes:
+                      type: string
+              required: [applicationIds, updates]
+      responses:
+        '200':
+          description: Applications updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/applications/{applicationId}/history:
+    get:
+      tags: [Application Management]
+      summary: Get application history
+      description: Get the history of changes for an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    action:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+                    userId:
+                      type: string
+                      format: uuid
+                    details:
+                      type: object
+        '404':
+          description: Application not found
+
+  /api/v1/applications/{applicationId}/schedule-visit:
+    post:
+      tags: [Application Management]
+      summary: Schedule visit
+      description: Schedule a visit for application review (rescue staff only)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scheduledDate:
+                  type: string
+                  format: date-time
+                visitType:
+                  type: string
+                  enum: [home_visit, meet_greet, interview]
+                notes:
+                  type: string
+              required: [scheduledDate, visitType]
+      responses:
+        '201':
+          description: Visit scheduled successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Application not found
+
+  # Messaging Endpoints
+  /api/v1/conversations:
+    get:
+      tags: [Messaging]
+      summary: Get user conversations
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Conversations list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationListResponse'
+    post:
+      tags: [Messaging]
+      summary: Create new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                participantId:
+                  type: string
+                  format: uuid
+                applicationId:
+                  type: string
+                  format: uuid
+                initialMessage:
+                  type: string
+              required: [participantId]
+      responses:
+        '201':
+          description: Conversation created
+
+  /api/v1/conversations/{chatId}/messages:
+    get:
+      tags: [Messaging]
+      summary: Get conversation messages
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Conversation messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageListResponse'
+    post:
+      tags: [Messaging]
+      summary: Send message
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                attachments:
+                  type: array
+                  items:
+                    type: string
+              required: [content]
+      responses:
+        '201':
+          description: Message sent
+
+  /api/v1/conversations/{chatId}/read:
+    post:
+      tags: [Messaging]
+      summary: Mark conversation as read
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conversation marked as read
+
+  /api/v1/conversations/search:
+    get:
+      tags: [Messaging]
+      summary: Search conversations
+      description: Search through conversations by content or participants
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                  pagination:
+                    type: object
+
+  /api/v1/conversations/{chatId}:
+    get:
+      tags: [Messaging]
+      summary: Get conversation details
+      description: Get detailed information about a specific conversation
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '404':
+          description: Conversation not found
+    patch:
+      tags: [Messaging]
+      summary: Update conversation
+      description: Update conversation settings or metadata
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                archived:
+                  type: boolean
+                muted:
+                  type: boolean
+      responses:
+        '200':
+          description: Conversation updated successfully
+        '404':
+          description: Conversation not found
+    delete:
+      tags: [Messaging]
+      summary: Delete conversation
+      description: Delete a conversation (only for conversation owner)
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Conversation deleted successfully
+        '404':
+          description: Conversation not found
+
+  /api/v1/conversations/{chatId}/unread-count:
+    get:
+      tags: [Messaging]
+      summary: Get unread message count
+      description: Get the number of unread messages in a conversation
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Unread count retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unreadCount:
+                    type: integer
+
+  /api/v1/conversations/{chatId}/participants:
+    post:
+      tags: [Messaging]
+      summary: Add participant to conversation
+      description: Add a new participant to the conversation
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+              required: [userId]
+      responses:
+        '201':
+          description: Participant added successfully
+        '404':
+          description: Conversation or user not found
+
+  /api/v1/conversations/{chatId}/participants/{userId}:
+    delete:
+      tags: [Messaging]
+      summary: Remove participant from conversation
+      description: Remove a participant from the conversation
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Participant removed successfully
+        '404':
+          description: Conversation or participant not found
+
+  /api/v1/conversations/messages/{messageId}/reactions:
+    post:
+      tags: [Messaging]
+      summary: Add reaction to message
+      description: Add an emoji reaction to a message
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emoji:
+                  type: string
+              required: [emoji]
+      responses:
+        '201':
+          description: Reaction added successfully
+        '404':
+          description: Message not found
+    delete:
+      tags: [Messaging]
+      summary: Remove reaction from message
+      description: Remove an emoji reaction from a message
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emoji:
+                  type: string
+              required: [emoji]
+      responses:
+        '204':
+          description: Reaction removed successfully
+        '404':
+          description: Message not found
+
+  /api/v1/conversations/analytics/overview:
+    get:
+      tags: [Messaging]
+      summary: Get chat analytics
+      description: Get conversation analytics for rescue organizations
+      responses:
+        '200':
+          description: Analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalConversations:
+                    type: integer
+                  activeConversations:
+                    type: integer
+                  messageVolume:
+                    type: object
+                  responseTime:
+                    type: object
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # Rescue Management Endpoints
+  /api/v1/rescues:
+    get:
+      tags: [Rescue Management]
+      summary: Get rescue organizations
+      security: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Rescue organizations list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RescueListResponse'
+    post:
+      tags: [Rescue Management]
+      summary: Create rescue organization
+      description: Apply to create a new rescue organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRescueRequest'
+      responses:
+        '201':
+          description: Rescue application submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rescue'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/rescues/{rescueId}:
+    get:
+      tags: [Rescue Management]
+      summary: Get rescue details
+      security: []
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Rescue details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rescue'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Rescue Management]
+      summary: Update rescue organization
+      description: Update rescue organization details (rescue admin/staff only)
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRescueRequest'
+      responses:
+        '200':
+          description: Rescue updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rescue'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Rescue Management]
+      summary: Partially update rescue organization
+      description: Update specific fields of rescue organization (rescue admin/staff only)
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRescueRequest'
+      responses:
+        '200':
+          description: Rescue updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rescue'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Rescue Management]
+      summary: Delete rescue organization
+      description: Delete rescue organization (admin only)
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '204':
+          description: Rescue deleted successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/rescues/{rescueId}/pets:
+    get:
+      tags: [Rescue Management]
+      summary: Get pets from rescue
+      description: Get all pets managed by a specific rescue organization
+      security: []
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, pending, adopted, unavailable]
+      responses:
+        '200':
+          description: Rescue pets retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/rescues/{rescueId}/staff:
+    get:
+      tags: [Rescue Management]
+      summary: Get rescue staff
+      description: Get all staff members of a rescue organization
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Staff members retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RescueStaff'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Rescue Management]
+      summary: Add staff member
+      description: Add a new staff member to the rescue organization
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                  maxLength: 100
+              required: [userId]
+      responses:
+        '201':
+          description: Staff member added successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/rescues/{rescueId}/staff/{userId}:
+    delete:
+      tags: [Rescue Management]
+      summary: Remove staff member
+      description: Remove a staff member from the rescue organization
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Staff member removed successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/rescues/{rescueId}/analytics:
+    get:
+      tags: [Rescue Management]
+      summary: Get rescue analytics
+      description: Get analytics data for a rescue organization
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  petStats:
+                    type: object
+                  applicationStats:
+                    type: object
+                  adoptionStats:
+                    type: object
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/rescues/{rescueId}/verify:
+    post:
+      tags: [Rescue Management]
+      summary: Verify rescue organization
+      description: Verify rescue organization status (admin only)
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Rescue verified successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Notification Endpoints
+  /api/v1/notifications:
+    get:
+      tags: [Notifications]
+      summary: Get user notifications
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [read, unread]
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/NotificationType'
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: User notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+    post:
+      tags: [Notifications]
+      summary: Create a new notification (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationCreate'
+      responses:
+        '201':
+          description: Notification created successfully
+
+  /api/v1/notifications/unread/count:
+    get:
+      tags: [Notifications]
+      summary: Get count of unread notifications
+      responses:
+        '200':
+          description: Unread notification count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  unreadCount:
+                    type: integer
+
+  /api/v1/notifications/preferences:
+    get:
+      tags: [Notifications]
+      summary: Get user notification preferences
+      responses:
+        '200':
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+    put:
+      tags: [Notifications]
+      summary: Update user notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferences'
+      responses:
+        '200':
+          description: Preferences updated successfully
+
+  /api/v1/notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  markedCount:
+                    type: integer
+
+  /api/v1/notifications/{notificationId}:
+    get:
+      tags: [Notifications]
+      summary: Get specific notification by ID
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+    delete:
+      tags: [Notifications]
+      summary: Delete specific notification
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification deleted successfully
+
+  /api/v1/notifications/{notificationId}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark specific notification as read
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read
+
+  /api/v1/notifications/bulk:
+    post:
+      tags: [Notifications]
+      summary: Send notifications to multiple users (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                title:
+                  type: string
+                message:
+                  type: string
+                type:
+                  $ref: '#/components/schemas/NotificationType'
+                priority:
+                  type: string
+                  enum: [low, medium, high, urgent]
+                channels:
+                  type: array
+                  items:
+                    type: string
+                    enum: [in_app, email, push, sms]
+              required: [userIds, title, message, type, channels]
+      responses:
+        '201':
+          description: Bulk notification sent successfully
+
+  /api/v1/notifications/broadcast:
+    post:
+      tags: [Notifications]
+      summary: Send notification to all users (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                message:
+                  type: string
+                type:
+                  $ref: '#/components/schemas/NotificationType'
+                priority:
+                  type: string
+                  enum: [low, medium, high, urgent]
+                channels:
+                  type: array
+                  items:
+                    type: string
+                    enum: [in_app, email, push, sms]
+                filterCriteria:
+                  type: object
+              required: [title, message, type, channels]
+      responses:
+        '201':
+          description: Broadcast notification sent successfully
+
+  # Email Management Endpoints
+  /api/v1/emails/templates:
+    get:
+      tags: [Email Management]
+      summary: Get all email templates (Admin only)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive]
+      responses:
+        '200':
+          description: Email templates list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailTemplateListResponse'
+    post:
+      tags: [Email Management]
+      summary: Create new email template (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailTemplateCreate'
+      responses:
+        '201':
+          description: Email template created successfully
+
+  /api/v1/emails/templates/{templateId}:
+    get:
+      tags: [Email Management]
+      summary: Get specific email template (Admin only)
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Email template details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailTemplate'
+    put:
+      tags: [Email Management]
+      summary: Update email template (Admin only)
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailTemplateUpdate'
+      responses:
+        '200':
+          description: Email template updated successfully
+    delete:
+      tags: [Email Management]
+      summary: Delete email template (Admin only)
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Email template deleted successfully
+
+  /api/v1/emails/templates/{templateId}/preview:
+    post:
+      tags: [Email Management]
+      summary: Preview email template with sample data (Admin only)
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variables:
+                  type: object
+              required: [variables]
+      responses:
+        '200':
+          description: Email template preview
+
+  /api/v1/emails/templates/{templateId}/test:
+    post:
+      tags: [Email Management]
+      summary: Send test email using template (Admin only)
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipientEmail:
+                  type: string
+                  format: email
+                variables:
+                  type: object
+              required: [recipientEmail, variables]
+      responses:
+        '200':
+          description: Test email sent successfully
+
+  /api/v1/emails/send:
+    post:
+      tags: [Email Management]
+      summary: Send email using template (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                templateId:
+                  type: string
+                  format: uuid
+                recipientEmail:
+                  type: string
+                  format: email
+                variables:
+                  type: object
+                scheduledFor:
+                  type: string
+                  format: date-time
+              required: [templateId, recipientEmail, variables]
+      responses:
+        '200':
+          description: Email queued for delivery
+
+  /api/v1/emails/send/bulk:
+    post:
+      tags: [Email Management]
+      summary: Send bulk emails using template (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                templateId:
+                  type: string
+                  format: uuid
+                recipients:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        format: email
+                      variables:
+                        type: object
+              required: [templateId, recipients]
+      responses:
+        '200':
+          description: Bulk emails queued for delivery
+
+  /api/v1/emails/analytics:
+    get:
+      tags: [Email Management]
+      summary: Get email analytics and delivery statistics (Admin only)
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: templateId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Email analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailAnalytics'
+
+  /api/v1/emails/history:
+    get:
+      tags: [Email Management]
+      summary: Get email sending history (Admin only)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: templateId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: recipientEmail
+          in: query
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Email sending history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailHistoryResponse'
+
+  /api/v1/emails/preferences/{userId}:
+    get:
+      tags: [Email Management]
+      summary: Get user email preferences
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User email preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailPreferences'
+    put:
+      tags: [Email Management]
+      summary: Update user email preferences
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailPreferences'
+      responses:
+        '200':
+          description: Email preferences updated successfully
+
+  /api/v1/emails/unsubscribe/{token}:
+    get:
+      tags: [Email Management]
+      summary: Unsubscribe user from emails using token
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully unsubscribed from emails
+
+  /api/v1/emails/webhook/delivery:
+    post:
+      tags: [Email Management]
+      summary: Handle email delivery webhooks from service provider
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messageId:
+                  type: string
+                event:
+                  type: string
+                timestamp:
+                  type: string
+                  format: date-time
+                recipient:
+                  type: string
+                  format: email
+              required: [messageId, event, timestamp, recipient]
+      responses:
+        '200':
+          description: Webhook processed successfully
+
+  # Monitoring & Health Check Endpoints
+  /api/v1/monitoring/dashboard:
+    get:
+      tags: [Monitoring]
+      summary: Get monitoring dashboard (Development only)
+      security: []
+      responses:
+        '200':
+          description: HTML monitoring dashboard
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /api/v1/monitoring/api/health:
+    get:
+      tags: [Monitoring]
+      summary: Get overall system health check
+      security: []
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+
+  /api/v1/monitoring/api/health/database:
+    get:
+      tags: [Monitoring]
+      summary: Get database health status
+      security: []
+      responses:
+        '200':
+          description: Database health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseHealthResponse'
+
+  /api/v1/monitoring/api/health/email:
+    get:
+      tags: [Monitoring]
+      summary: Get email service health status
+      security: []
+      responses:
+        '200':
+          description: Email service health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailHealthResponse'
+
+  /api/v1/monitoring/api/health/storage:
+    get:
+      tags: [Monitoring]
+      summary: Get storage health status
+      security: []
+      responses:
+        '200':
+          description: Storage health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorageHealthResponse'
+
+  /api/v1/monitoring/api/health/system:
+    get:
+      tags: [Monitoring]
+      summary: Get system health metrics
+      security: []
+      responses:
+        '200':
+          description: System health metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+
+  /api/v1/monitoring/api/email/provider-info:
+    get:
+      tags: [Monitoring]
+      summary: Get email provider configuration info (Development only)
+      security: []
+      responses:
+        '200':
+          description: Email provider configuration info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailProviderInfoResponse'
         required: true
         content:
           application/json:
@@ -407,6 +3536,398 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthCheckResult'
+
+  # Admin Management Endpoints
+  /api/v1/admin/metrics:
+    get:
+      tags: [Admin Management]
+      summary: Get platform metrics
+      description: Get comprehensive platform metrics and analytics
+      responses:
+        '200':
+          description: Platform metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: object
+                      pets:
+                        type: object
+                      applications:
+                        type: object
+                      rescues:
+                        type: object
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/analytics/usage:
+    get:
+      tags: [Admin Management]
+      summary: Get usage analytics
+      description: Get detailed platform usage analytics
+      responses:
+        '200':
+          description: Usage analytics retrieved successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/system/health:
+    get:
+      tags: [Admin Management]
+      summary: Get system health
+      description: Get comprehensive system health information
+      responses:
+        '200':
+          description: System health retrieved successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/system/config:
+    get:
+      tags: [Admin Management]
+      summary: Get system configuration
+      description: Get current system configuration
+      responses:
+        '200':
+          description: Configuration retrieved successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    patch:
+      tags: [Admin Management]
+      summary: Update system configuration
+      description: Update system configuration settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Configuration updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/users:
+    get:
+      tags: [Admin Management]
+      summary: Search users
+      description: Search and filter users with admin privileges
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Users retrieved successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/users/{userId}:
+    get:
+      tags: [Admin Management]
+      summary: Get user details
+      description: Get detailed information about a specific user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User details retrieved successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: User not found
+
+  /api/v1/admin/users/{userId}/action:
+    patch:
+      tags: [Admin Management]
+      summary: Perform user action
+      description: Perform administrative actions on a user (suspend, activate, etc.)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [suspend, activate, delete, verify]
+                reason:
+                  type: string
+              required: [action]
+      responses:
+        '200':
+          description: Action performed successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: User not found
+
+  /api/v1/admin/rescues:
+    get:
+      tags: [Admin Management]
+      summary: Get rescue management
+      description: Get list of rescue organizations for administrative management
+      responses:
+        '200':
+          description: Rescue organizations retrieved successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/rescues/{rescueId}/moderate:
+    patch:
+      tags: [Admin Management]
+      summary: Moderate rescue organization
+      description: Perform moderation actions on rescue organizations
+      parameters:
+        - name: rescueId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [approve, suspend, flag, verify]
+                reason:
+                  type: string
+              required: [action]
+      responses:
+        '200':
+          description: Moderation action performed successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Rescue organization not found
+
+  /api/v1/admin/audit-logs:
+    get:
+      tags: [Admin Management]
+      summary: Get audit logs
+      description: Get comprehensive audit logs for system activities
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Audit logs retrieved successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/export/{type}:
+    get:
+      tags: [Admin Management]
+      summary: Export data
+      description: Export platform data in various formats
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [users, pets, applications, rescues, analytics]
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, xlsx, json]
+            default: csv
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Data exported successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # Feature Flags and Configuration
+  /api/v1/features:
+    get:
+      tags: [Feature Management]
+      summary: Get public feature flags
+      description: Get publicly available feature flags
+      security: []
+      responses:
+        '200':
+          description: Feature flags retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: boolean
+
+  /api/v1/features/{feature}:
+    get:
+      tags: [Feature Management]
+      summary: Get specific feature flag
+      description: Get status of a specific feature flag
+      security: []
+      parameters:
+        - name: feature
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Feature flag status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+
+  /api/v1/config:
+    get:
+      tags: [Configuration]
+      summary: Get public configuration
+      description: Get publicly available configuration settings
+      security: []
+      responses:
+        '200':
+          description: Configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # Health Check Endpoints
+  /api/v1/health/simple:
+    get:
+      tags: [Health Check]
+      summary: Simple health check
+      description: Basic health check without dependencies
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                  version:
+                    type: string
+
+  /api/v1/health/services:
+    get:
+      tags: [Health Check]
+      summary: Get service health
+      description: Get health status of all services
+      security: []
+      responses:
+        '200':
+          description: Service health retrieved successfully
+
+  /api/v1/health/metrics:
+    get:
+      tags: [Health Check]
+      summary: Get health metrics
+      description: Get detailed health metrics
+      security: []
+      responses:
+        '200':
+          description: Health metrics retrieved successfully
 
 components:
   securitySchemes:

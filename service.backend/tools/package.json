@@ -1,0 +1,16 @@
+{
+  "name": "openapi-tools",
+  "version": "1.0.0",
+  "description": "Tools for working with OpenAPI specifications",
+  "scripts": {
+    "swagger:serve": "swagger-ui-serve docs/openapi.yaml -p 3001",
+    "swagger:codegen": "openapi-generator-cli generate -i docs/openapi.yaml -g typescript-axios -o generated/client",
+    "swagger:validate": "swagger-codegen validate -i docs/openapi.yaml",
+    "swagger:preview": "redoc-cli serve docs/openapi.yaml --port 3002"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.7.0",
+    "redoc-cli": "^0.13.21",
+    "swagger-ui-serve": "^0.1.4"
+  }
+}
