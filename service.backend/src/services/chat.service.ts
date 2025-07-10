@@ -477,16 +477,10 @@ export class ChatService {
         whereConditions.created_at = { [Op.gt]: after }; // Fix: use snake_case
       }
 
+      // Remove the include for debugging, and order ASC (oldest first)
       const { rows: messages, count: total } = await Message.findAndCountAll({
         where: whereConditions,
-        include: [
-          {
-            model: User,
-            as: 'Sender', // Fix: use correct association name
-            attributes: ['userId', 'firstName', 'lastName', 'email'],
-          },
-        ],
-        order: [['created_at', 'DESC']], // Fix: use snake_case
+        order: [['created_at', 'ASC']],
         limit,
         offset: (page - 1) * limit,
       });

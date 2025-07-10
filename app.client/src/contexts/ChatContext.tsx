@@ -1,4 +1,9 @@
-import { chatService, Conversation, Message, TypingIndicator } from '@/services/chatService';
+import {
+  Conversation as BaseConversation,
+  chatService,
+  Message,
+  TypingIndicator,
+} from '@/services/chatService';
 import {
   createContext,
   ReactNode,
@@ -56,7 +61,15 @@ export function ChatProvider({ children }: ChatProviderProps) {
       setIsLoading(true);
       setError(null);
       const conversationList = await chatService.getConversations();
-      setConversations(conversationList);
+      // Map chat_id to id for frontend compatibility
+      const mappedConversations = (conversationList || []).map(
+        (conv: ConversationApiResponse) =>
+          ({
+            ...conv,
+            id: conv.id || conv.chat_id,
+          }) as Conversation
+      );
+      setConversations(mappedConversations);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversations');
     } finally {
@@ -117,7 +130,15 @@ export function ChatProvider({ children }: ChatProviderProps) {
           setIsLoading(true);
           setError(null);
           const conversationList = await chatService.getConversations();
-          setConversations(conversationList);
+          // Map chat_id to id for frontend compatibility
+          const mappedConversations = (conversationList || []).map(
+            (conv: ConversationApiResponse) =>
+              ({
+                ...conv,
+                id: conv.id || conv.chat_id,
+              }) as Conversation
+          );
+          setConversations(mappedConversations);
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Failed to load conversations');
         } finally {
@@ -284,4 +305,14 @@ export function useChat() {
     throw new Error('useChat must be used within a ChatProvider');
   }
   return context;
+}
+
+// Define a type for API response that may include chat_id
+interface ConversationApiResponse extends BaseConversation {
+  chat_id?: string;
+}
+
+// Extend the imported Conversation type to add chat_id
+export interface Conversation extends BaseConversation {
+  chat_id?: string;
 }
