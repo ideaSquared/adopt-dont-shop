@@ -121,6 +121,56 @@ All endpoints are prefixed with `/api/v1` and follow RESTful conventions.
 ### Health Check
 - GET `/health` - Server health status
 
+## ⚡ Rate Limiting
+
+### Development vs Production
+
+**Development Mode:**
+- Rate limits are **BYPASSED** to allow rapid testing
+- Console warnings are logged when limits would be hit
+- Perfect for testing without 429 errors blocking development
+
+**Production Mode:**
+- Rate limits are **ACTIVE** and enforced
+- Exceeding limits returns 429 status codes
+- Protects against abuse and ensures service stability
+
+### Rate Limits by Endpoint Type
+
+| Endpoint Type | Limit | Window | Notes |
+|---------------|-------|--------|-------|
+| General API | 100 requests | 15 minutes | Most endpoints |
+| Authentication | 5 requests | 15 minutes | Login, register |
+| Password Reset | 3 requests | 1 hour | Forgot/reset password |
+| File Upload | 20 requests | 15 minutes | Image/document uploads |
+
+### Testing Rate Limits (Development)
+
+When `NODE_ENV=development`, use these test endpoints:
+
+```bash
+# Test general rate limiter
+curl http://localhost:5000/monitoring/test-rate-limit
+
+# Test auth rate limiter (5 requests/15min)
+curl http://localhost:5000/monitoring/test-auth-rate-limit
+
+# Test upload rate limiter (20 requests/15min) 
+curl http://localhost:5000/monitoring/test-upload-rate-limit
+
+# Check current rate limit status
+curl http://localhost:5000/monitoring/rate-limit-status
+```
+
+**Development Dashboard:** Visit [http://localhost:5000/monitoring/dashboard](http://localhost:5000/monitoring/dashboard) to see rate limiting status and test endpoints.
+
+### Console Warning Example
+
+In development, when you would hit a rate limit, you'll see warnings like:
+```
+🚨 RATE LIMIT WARNING (AUTH): Would have been blocked in production! IP: ::1, Path: /api/v1/auth/login, Limit: 5 per 900s
+```
+
 ## Development
 
 ```bash

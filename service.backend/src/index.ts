@@ -30,10 +30,10 @@ import userRoutes from './routes/user.routes';
 
 // Import additional routes for PRD compliance
 import path from 'path';
+import { setupSwagger } from './config/swagger';
 import ConfigurationService from './services/configuration.service';
 import FeatureFlagService from './services/featureFlag.service';
 import { HealthCheckService } from './services/health-check.service';
-import { setupSwagger } from './config/swagger';
 
 // Create feature flags and config routes
 const featureRoutes = Router();
@@ -316,6 +316,15 @@ const startServer = async () => {
       logger.info(`🚀 Server running on port ${config.port} in ${config.nodeEnv} mode`);
       logger.info(`📊 Health check available at http://localhost:${config.port}/health`);
       logger.info(`💬 Socket.IO enabled for real-time messaging`);
+
+      // Log rate limiting mode
+      if (config.nodeEnv === 'development') {
+        logger.warn(
+          `⚠️  DEVELOPMENT MODE: Rate limiting is BYPASSED - warnings will be logged when limits would be hit`
+        );
+      } else {
+        logger.info(`🛡️  Rate limiting is ACTIVE for production`);
+      }
     });
 
     // Graceful shutdown
