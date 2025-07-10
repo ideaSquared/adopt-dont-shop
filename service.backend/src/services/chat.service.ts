@@ -246,6 +246,10 @@ export class ChatService {
               },
             ],
           },
+          {
+            association: 'rescue',
+            attributes: ['name'],
+          },
         ],
         limit,
         offset,
@@ -339,6 +343,10 @@ export class ChatService {
               },
             ],
           },
+          {
+            association: 'rescue',
+            attributes: ['name'],
+          },
         ],
         limit,
         offset,
@@ -415,6 +423,17 @@ export class ChatService {
         { transaction }
       );
 
+      // Reload message with Sender included
+      await message.reload({
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName'],
+          },
+        ],
+      });
+
       // Update chat's last activity
       await Chat.update(
         { updated_at: new Date() },
@@ -477,12 +496,19 @@ export class ChatService {
         whereConditions.created_at = { [Op.gt]: after }; // Fix: use snake_case
       }
 
-      // Remove the include for debugging, and order ASC (oldest first)
+      // Include Sender (User) with firstName for each message
       const { rows: messages, count: total } = await Message.findAndCountAll({
         where: whereConditions,
         order: [['created_at', 'ASC']],
         limit,
         offset: (page - 1) * limit,
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName'],
+          },
+        ],
       });
 
       loggerHelpers.logPerformance('Message List', {

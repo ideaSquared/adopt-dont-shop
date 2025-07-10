@@ -155,9 +155,33 @@ export class ChatController {
         sortOrder: sortOrder as 'ASC' | 'DESC',
       });
 
+      // Add rescueName and lastMessage to each chat in the response
+      const chatsWithRescueName = result.chats.map(chat => {
+        const chatObj = chat.toJSON();
+        // Get the latest message (should be first in Messages array due to DESC order)
+        let lastMessage = null;
+        if (Array.isArray(chatObj.Messages) && chatObj.Messages.length > 0) {
+          const msg = chatObj.Messages[0];
+          lastMessage = {
+            id: msg.message_id,
+            content:
+              typeof msg.content === 'string' && msg.content.length > 120
+                ? msg.content.slice(0, 120) + '...'
+                : msg.content,
+            senderId: msg.sender_id,
+            createdAt: msg.created_at,
+            // Add more fields if needed
+          };
+        }
+        return {
+          ...chatObj,
+          rescueName: chat.rescue?.name || null,
+          lastMessage,
+        };
+      });
       res.json({
         success: true,
-        data: result.chats,
+        data: chatsWithRescueName,
         pagination: result.pagination,
       });
     } catch (error) {
@@ -202,9 +226,31 @@ export class ChatController {
         sortOrder: sortOrder as 'ASC' | 'DESC',
       });
 
+      // Add rescueName and lastMessage to each chat in the response
+      const chatsWithRescueName = result.chats.map(chat => {
+        const chatObj = chat.toJSON();
+        let lastMessage = null;
+        if (Array.isArray(chatObj.Messages) && chatObj.Messages.length > 0) {
+          const msg = chatObj.Messages[0];
+          lastMessage = {
+            id: msg.message_id,
+            content:
+              typeof msg.content === 'string' && msg.content.length > 120
+                ? msg.content.slice(0, 120) + '...'
+                : msg.content,
+            senderId: msg.sender_id,
+            createdAt: msg.created_at,
+          };
+        }
+        return {
+          ...chatObj,
+          rescueName: chat.rescue?.name || null,
+          lastMessage,
+        };
+      });
       res.json({
         success: true,
-        data: result.chats,
+        data: chatsWithRescueName,
         pagination: result.pagination,
         message: `Found ${result.pagination.total} conversations matching "${query}"`,
       });
@@ -247,9 +293,25 @@ export class ChatController {
         attachments,
       });
 
+      // Fetch sender's first name for sender_name
+      let senderName = undefined;
+      if (
+        message &&
+        typeof (message as any).Sender === 'object' &&
+        (message as any).Sender &&
+        typeof (message as any).Sender.firstName === 'string'
+      ) {
+        senderName = (message as any).Sender.firstName;
+      } else if (message && typeof (message as any).sender_name === 'string') {
+        senderName = (message as any).sender_name;
+      }
+
       res.status(201).json({
         success: true,
-        data: message,
+        data: {
+          ...message.toJSON(),
+          sender_name: senderName,
+        },
         message: 'Message sent successfully',
       });
     } catch (error) {
@@ -287,10 +349,29 @@ export class ChatController {
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
+      // Attach sender_name to each message if possible
+      const messagesWithSenderName = result.messages.map((msg: any) => {
+        let senderName = undefined;
+        if (
+          msg &&
+          typeof msg.Sender === 'object' &&
+          msg.Sender &&
+          typeof msg.Sender.firstName === 'string'
+        ) {
+          senderName = msg.Sender.firstName;
+        } else if (msg && typeof msg.sender_name === 'string') {
+          senderName = msg.sender_name;
+        }
+        return {
+          ...msg.toJSON(),
+          sender_name: senderName,
+        };
+      });
+
       res.json({
         success: true,
         data: {
-          messages: result.messages,
+          messages: messagesWithSenderName,
           pagination: {
             page: result.page,
             limit: parsedLimit,

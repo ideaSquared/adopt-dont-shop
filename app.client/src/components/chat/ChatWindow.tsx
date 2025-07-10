@@ -1,4 +1,5 @@
 import { useChat } from '@/contexts/ChatContext';
+import type { Conversation } from '@/services/chatService';
 import { Button, Spinner } from '@adopt-dont-shop/components';
 import { useEffect, useRef, useState } from 'react';
 import { MdArrowBack } from 'react-icons/md';
@@ -26,8 +27,8 @@ const ChatHeader = styled.div`
   gap: 1.2rem;
   background: linear-gradient(
     90deg,
-    ${props => props.theme.colors.primary.light},
-    ${props => props.theme.colors.primary.main}
+    ${props => props.theme.colors.primary[100]},
+    ${props => props.theme.colors.primary[500]}
   );
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   min-height: 64px;
@@ -117,9 +118,9 @@ const LoadingContainer = styled.div`
 const ErrorMessage = styled.div`
   margin: 1.5rem;
   padding: 1.25rem;
-  background: ${props => props.theme.colors.semantic.error.light};
-  border: 1px solid ${props => props.theme.colors.semantic.error.dark};
-  color: ${props => props.theme.colors.semantic.error.main};
+  background: ${props => props.theme.colors.semantic.error[100]};
+  border: 1px solid ${props => props.theme.colors.semantic.error[800]};
+  color: ${props => props.theme.colors.semantic.error[500]};
   border-radius: ${props => props.theme.border.radius.md};
   text-align: center;
   font-size: 1.05rem;
@@ -253,6 +254,21 @@ export function ChatWindow() {
     );
   }
 
+  // Prefer rescueName from backend, fallback to participants, then default
+  type ConversationWithRescueName = Conversation & { rescueName?: string };
+  const conversationTyped = activeConversation as ConversationWithRescueName;
+  let rescueName = '';
+  if (
+    typeof conversationTyped.rescueName === 'string' &&
+    conversationTyped.rescueName.trim().length > 0
+  ) {
+    rescueName = conversationTyped.rescueName;
+  } else if (Array.isArray(conversationTyped.participants)) {
+    const rescueParticipant = conversationTyped.participants.find(p => p.type === 'rescue');
+    rescueName = rescueParticipant?.name || '';
+  }
+  if (!rescueName) rescueName = 'Rescue Organization';
+
   return (
     <ChatContainer>
       <ChatHeader>
@@ -266,7 +282,7 @@ export function ChatWindow() {
         </BackButton>
 
         <ConversationInfo>
-          <h3>Rescue Organization</h3>
+          <h3>{rescueName}</h3>
           <p>
             {activeConversation.petId
               ? `About Pet #${activeConversation.petId}`

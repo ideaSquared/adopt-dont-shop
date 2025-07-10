@@ -5,6 +5,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
+// Extend Conversation type to allow rescueName from backend if present
+type ConversationWithRescueName = Conversation & { rescueName?: string };
+
 const ConversationContainer = styled.div`
   background: ${props => props.theme.background.primary};
   border-right: 1px solid ${props => props.theme.border.color.secondary};
@@ -123,9 +126,9 @@ export function ConversationList() {
     navigate(`/chat/${conversation.id}`);
   };
 
-  const getUnreadCount = (_conversation: Conversation) => {
-    // TODO: Implement unread count logic
-    return 0;
+  // Use the unreadCount property from the conversation object
+  const getUnreadCount = (conversation: Conversation) => {
+    return conversation.unreadCount || 0;
   };
 
   if (isLoading && (!conversations || conversations.length === 0)) {
@@ -156,9 +159,20 @@ export function ConversationList() {
         </EmptyState>
       ) : (
         <ConversationsList>
-          {(conversations || []).map(conversation => {
+          {(conversations || []).map(conversationRaw => {
+            const conversation = conversationRaw as ConversationWithRescueName;
             const unreadCount = getUnreadCount(conversation);
             const isActive = activeConversation?.id === conversation.id;
+
+            // Prefer rescueName from backend, fallback to participants, then default
+            let rescueName = '';
+            if (conversation.rescueName) {
+              rescueName = conversation.rescueName;
+            } else if (Array.isArray(conversation.participants)) {
+              const rescueParticipant = conversation.participants.find(p => p.type === 'rescue');
+              rescueName = rescueParticipant?.name || '';
+            }
+            if (!rescueName) rescueName = 'Rescue Organization';
 
             return (
               <ConversationItem
@@ -168,8 +182,7 @@ export function ConversationList() {
               >
                 <ConversationHeader>
                   <RescueName>
-                    {/* TODO: Get rescue name from participants or API */}
-                    Rescue Organization
+                    {rescueName}
                     {unreadCount > 0 && <UnreadBadge>{unreadCount}</UnreadBadge>}
                   </RescueName>
                   <Timestamp>

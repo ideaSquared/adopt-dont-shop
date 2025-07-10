@@ -1,6 +1,8 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
+
 import { Message } from './Message';
+import Rescue from './Rescue';
 
 interface ChatAttributes {
   chat_id: string;
@@ -11,6 +13,7 @@ interface ChatAttributes {
   created_at?: Date;
   updated_at?: Date;
   Messages?: Message[];
+  rescue?: Rescue | null; // Add optional rescue association
 }
 
 interface ChatCreationAttributes
@@ -25,6 +28,7 @@ export class Chat extends Model<ChatAttributes, ChatCreationAttributes> implemen
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
   public Messages?: Message[];
+  public rescue?: Rescue | null;
 
   // Add association methods
   public static associate(models: any) {

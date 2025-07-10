@@ -5,6 +5,7 @@ export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
+  senderName?: string; // The sender's first name
   senderType: 'user' | 'rescue';
   content: string;
   messageType: 'text' | 'image' | 'file';
@@ -98,6 +99,10 @@ export class ChatService {
       conversationId:
         (backendMessage.chat_id as string) || (backendMessage.conversationId as string) || '',
       senderId: (backendMessage.sender_id as string) || (backendMessage.senderId as string) || '',
+      senderName:
+        (backendMessage.sender_name as string) ||
+        (backendMessage.senderName as string) ||
+        undefined,
       senderType: ((backendMessage.sender_type as string) ||
         (backendMessage.senderType as string) ||
         'user') as 'user' | 'rescue',

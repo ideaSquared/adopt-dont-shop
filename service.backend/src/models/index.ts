@@ -106,6 +106,9 @@ Message.belongsTo(Chat, { foreignKey: 'chat_id', as: 'Chat' });
 User.hasMany(Message, { foreignKey: 'sender_id', as: 'SentMessages' });
 Message.belongsTo(User, { foreignKey: 'sender_id', as: 'Sender' });
 
+// Ensure Chat belongsTo Rescue with alias 'rescue'
+Chat.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' });
+
 // Notification associations
 User.hasMany(Notification, { foreignKey: 'user_id', as: 'Notifications' });
 Notification.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
