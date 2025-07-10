@@ -1,28 +1,43 @@
+import { Request } from 'express';
 import rateLimit from 'express-rate-limit';
 import { config } from '../config';
 import { logger } from '../utils/logger';
+
+// Extend Request interface to include rateLimit property
+interface RateLimitRequest extends Request {
+  rateLimit: {
+    used: number;
+    limit: number;
+    remaining: number;
+    resetTime: Date;
+  };
+}
 
 // Development rate limiter that tracks but doesn't block
 const createDevLimiter = (windowMs: number, max: number, name: string) => {
   return rateLimit({
     windowMs,
-    max: Number.MAX_SAFE_INTEGER, // Never actually block in dev
+    max, // Use actual limit for tracking
     message: { error: 'Rate limit bypassed in development' },
     standardHeaders: true,
     legacyHeaders: false,
-    onLimitReached: req => {
+    handler: (request, response, next, _options) => {
+      const req = request as RateLimitRequest;
+
+      // Check if this would have been the first request to exceed the limit
+      if (req.rateLimit.used === req.rateLimit.limit + 1) {
+        // This is the equivalent of onLimitReached
+        logger.warn(
+          `🚨 RATE LIMIT WARNING (${name}): Would have been blocked in production! IP: ${req.ip}, Path: ${req.path}, Limit: ${max} per ${
+            windowMs / 1000
+          }s`
+        );
+      }
+      // In development, log but don't block - continue processing
       logger.warn(
-        `🚨 RATE LIMIT WARNING (${name}): Would have been blocked in production! IP: ${req.ip}, Path: ${req.path}, Limit: ${max} per ${
-          windowMs / 1000
-        }s`
+        `🚨 RATE LIMIT WARNING (${name}): Request would be blocked in production! IP: ${req.ip}, Path: ${req.path} (${req.rateLimit.used}/${req.rateLimit.limit})`
       );
-    },
-    handler: (req, res, next) => {
-      // In development, log but don't block
-      logger.warn(
-        `🚨 RATE LIMIT WARNING (${name}): Request would be blocked in production! IP: ${req.ip}, Path: ${req.path}`
-      );
-      next(); // Continue processing the request
+      next(); // Continue processing the request instead of blocking
     },
   });
 };
