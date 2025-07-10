@@ -42,7 +42,7 @@ export const mswHandlers = [
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '10');
     const type = url.searchParams.get('type');
-    
+
     let filteredPets = mockPets;
     if (type) {
       filteredPets = mockPets.filter(pet => pet.type === type);
@@ -67,7 +67,7 @@ export const mswHandlers = [
       lastPetId?: string;
       limit?: number;
     };
-    
+
     if (!body.sessionId || !body.lastPetId) {
       return HttpResponse.json(
         {
@@ -113,7 +113,7 @@ export const mswHandlers = [
       timestamp?: string;
       userId?: string;
     };
-    
+
     if (!body.sessionId || !body.petId || !body.action) {
       return HttpResponse.json(
         {

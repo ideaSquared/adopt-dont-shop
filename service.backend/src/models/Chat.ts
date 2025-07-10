@@ -6,6 +6,7 @@ interface ChatAttributes {
   chat_id: string;
   application_id?: string; // Optional - links to adoption application if chat was initiated from one
   rescue_id: string; // Add rescue_id to attributes
+  pet_id?: string; // Optional - links to specific pet if chat was initiated from pet page
   status: 'active' | 'locked' | 'archived';
   created_at?: Date;
   updated_at?: Date;
@@ -19,6 +20,7 @@ export class Chat extends Model<ChatAttributes, ChatCreationAttributes> implemen
   public chat_id!: string;
   public application_id?: string;
   public rescue_id!: string; // Add rescue_id to class
+  public pet_id?: string; // Add pet_id to class
   public status!: 'active' | 'locked' | 'archived';
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -33,7 +35,7 @@ export class Chat extends Model<ChatAttributes, ChatCreationAttributes> implemen
     });
     Chat.hasMany(models.ChatParticipant, {
       foreignKey: 'chat_id',
-      as: 'participants',
+      as: 'Participants',
       onDelete: 'CASCADE',
     });
     Chat.belongsTo(models.Application, {
@@ -69,6 +71,15 @@ Chat.init(
       references: {
         model: 'rescues',
         key: 'rescue_id',
+      },
+    },
+    pet_id: {
+      // Add pet_id field
+      type: DataTypes.STRING,
+      allowNull: true,
+      references: {
+        model: 'pets',
+        key: 'pet_id',
       },
     },
     status: {

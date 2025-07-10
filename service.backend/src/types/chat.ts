@@ -5,9 +5,11 @@ export interface ChatCreateData {
   participantIds: string[];
   rescueId?: string;
   applicationId?: string;
+  petId?: string;
   title?: string;
   description?: string;
   type?: string;
+  initialMessage?: string;
 }
 
 export interface ChatUpdateData {

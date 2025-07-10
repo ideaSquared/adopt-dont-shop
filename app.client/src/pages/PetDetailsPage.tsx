@@ -1,9 +1,10 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useChat } from '@/contexts/ChatContext';
 import { petService } from '@/services/petService';
 import { Pet } from '@/types';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 const PageContainer = styled.div`
@@ -362,17 +363,24 @@ const ErrorContainer = styled.div`
   }
 `;
 
+const ContactButton = styled(Button)`
+  width: 100%;
+  margin-top: 0.5rem;
+`;
+
 interface PetDetailsPageProps {}
 
 export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated } = useAuth();
+  const { startConversation } = useChat();
   const [pet, setPet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPet = async () => {
@@ -423,6 +431,22 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
       console.error('Failed to toggle favorite:', error);
     } finally {
       setFavoriteLoading(false);
+    }
+  };
+
+  const handleContactRescue = async () => {
+    if (!pet?.rescue_id || !isAuthenticated) return;
+
+    try {
+      // Start a conversation with the rescue
+      const conversation = await startConversation(pet.rescue_id, pet.pet_id);
+
+      // Navigate to the specific conversation
+      navigate(`/chat/${conversation.id}`);
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      // Add user-visible error handling
+      alert('Failed to start conversation. Please try again.');
     }
   };
 
@@ -635,6 +659,11 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                 <ActionLink to={`/rescues/${pet.rescue_id}`} className='outline'>
                   View Rescue Profile
                 </ActionLink>
+              )}
+              {pet.rescue_id && isAuthenticated && (
+                <ContactButton variant='primary' size='lg' onClick={handleContactRescue}>
+                  Contact Rescue
+                </ContactButton>
               )}
             </div>
           </ActionCard>

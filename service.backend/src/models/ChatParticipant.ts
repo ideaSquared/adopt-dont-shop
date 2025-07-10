@@ -38,7 +38,7 @@ export class ChatParticipant
     });
     ChatParticipant.belongsTo(models.User, {
       foreignKey: 'participant_id',
-      as: 'participant',
+      as: 'User',
     });
   }
 }

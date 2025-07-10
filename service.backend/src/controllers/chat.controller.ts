@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import User from '../models/User';
 import { ChatService } from '../services/chat.service';
 import { logger, loggerHelpers } from '../utils/logger';
 
@@ -18,23 +19,73 @@ export class ChatController {
     const startTime = Date.now();
 
     try {
-      const { participantIds, rescueId, applicationId } = req.body;
+      const { rescueId, petId, applicationId, type, initialMessage } = req.body;
       const createdBy = req.user!.userId;
+
+      // Create participant IDs array: start with the user who created the chat
+      const participantIds = [createdBy];
+
+      // If there's a rescue involved, add the rescue staff users as participants
+      if (rescueId && rescueId !== createdBy) {
+        try {
+          // Find users who belong to this rescue
+          const rescueUsers = await User.findAll({
+            where: { rescueId: rescueId },
+            attributes: ['userId'],
+          });
+
+          // Add rescue staff user IDs to participants (avoid duplicates)
+          rescueUsers.forEach(user => {
+            if (!participantIds.includes(user.userId)) {
+              participantIds.push(user.userId);
+            }
+          });
+        } catch (error) {
+          logger.error('Error finding rescue users:', error);
+          // Continue with chat creation even if we can't find rescue users
+        }
+      }
 
       const chat = await ChatService.createChat(
         {
           participantIds,
           rescueId,
           applicationId,
+          petId,
+          type: type || 'application',
+          initialMessage,
         },
         createdBy
       );
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
+      // Format the response to match frontend Conversation interface expectations
+      const response = {
+        id: chat.chat_id,
+        userId: createdBy, // The user who created the chat
+        rescueId: chat.rescue_id,
+        petId: chat.pet_id,
+        applicationId: chat.application_id,
+        type: type || 'application',
+        status: chat.status,
+        participants: [], // Will be populated by frontend when needed
+        unreadCount: 0, // New conversation starts with 0 unread
+        isTyping: [], // Empty initially
+        createdAt: chat.created_at,
+        updatedAt: chat.updated_at,
+        // Keep backward compatibility fields
+        chat_id: chat.chat_id,
+        rescue_id: chat.rescue_id,
+        pet_id: chat.pet_id,
+        application_id: chat.application_id,
+        created_at: chat.created_at,
+        updated_at: chat.updated_at,
+      };
+
       res.json({
         success: true,
-        data: chat,
+        data: response,
       });
     } catch (error) {
       logger.error('Error creating chat:', {
@@ -89,7 +140,7 @@ export class ChatController {
         type,
         page = 1,
         limit = 20,
-        sortBy = 'lastActivity',
+        sortBy = 'updated_at',
         sortOrder = 'DESC',
       } = req.query;
 
@@ -130,7 +181,7 @@ export class ChatController {
         type,
         page = 1,
         limit = 20,
-        sortBy = 'lastActivity',
+        sortBy = 'updated_at',
         sortOrder = 'DESC',
       } = req.query;
 
@@ -225,11 +276,13 @@ export class ChatController {
     try {
       const { chatId } = req.params;
       const { page = 1, limit = 50 } = req.query;
-      const userId = req.user!.userId;
+
+      const parsedPage = parseInt(page as string);
+      const parsedLimit = parseInt(limit as string);
 
       const result = await ChatService.getMessages(chatId, {
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
+        page: parsedPage,
+        limit: parsedLimit,
       });
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
@@ -240,7 +293,7 @@ export class ChatController {
           messages: result.messages,
           pagination: {
             page: result.page,
-            limit: 20,
+            limit: parsedLimit,
             total: result.total,
             pages: result.totalPages,
           },

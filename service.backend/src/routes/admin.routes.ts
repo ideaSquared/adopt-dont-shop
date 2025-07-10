@@ -120,7 +120,6 @@ router.use(requireRole(['ADMIN', 'SUPER_ADMIN']));
  */
 router.get('/metrics', generalLimiter, AdminController.getPlatformMetrics);
 
-
 /**
  * @swagger
  * /api/v1/analytics/usage:
@@ -341,7 +340,6 @@ router.get('/analytics/usage', generalLimiter, AdminController.getUsageAnalytics
  */
 router.get('/system/health', generalLimiter, AdminController.getSystemHealth);
 
-
 /**
  * @swagger
  * /api/v1/system/config:
@@ -450,7 +448,6 @@ router.get('/system/health', generalLimiter, AdminController.getSystemHealth);
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get('/system/config', generalLimiter, AdminController.getConfiguration);
-
 
 /**
  * @swagger
@@ -724,7 +721,6 @@ router.patch('/system/config', authLimiter, AdminController.updateConfiguration)
  */
 router.get('/users', generalLimiter, AdminController.searchUsers);
 
-
 /**
  * @swagger
  * /api/v1/users/{userId}:
@@ -833,7 +829,6 @@ router.get('/users', generalLimiter, AdminController.searchUsers);
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get('/users/:userId', generalLimiter, AdminController.getUserDetails);
-
 
 /**
  * @swagger
@@ -1106,7 +1101,6 @@ router.patch('/users/:userId/action', authLimiter, AdminController.performUserAc
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get('/rescues', generalLimiter, AdminController.getRescueManagement);
-
 
 /**
  * @swagger

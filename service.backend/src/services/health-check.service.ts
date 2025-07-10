@@ -238,8 +238,11 @@ export class HealthCheckService {
     const hasDegraded = Object.values(services).some(service => service.status === 'degraded');
 
     let overallStatus: 'healthy' | 'unhealthy' | 'degraded' = 'healthy';
-    if (hasUnhealthy) overallStatus = 'unhealthy';
-    else if (hasDegraded) overallStatus = 'degraded';
+    if (hasUnhealthy) {
+      overallStatus = 'unhealthy';
+    } else if (hasDegraded) {
+      overallStatus = 'degraded';
+    }
 
     return {
       status: overallStatus,

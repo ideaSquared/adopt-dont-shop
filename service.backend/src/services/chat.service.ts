@@ -123,8 +123,33 @@ export class ChatService {
       const chat = await Chat.create({
         rescue_id: chatData.rescueId || '',
         application_id: chatData.applicationId,
+        pet_id: chatData.petId,
         status: 'active',
       });
+
+      // Create chat participants
+      if (chatData.participantIds && chatData.participantIds.length > 0) {
+        const participantPromises = chatData.participantIds
+          .filter(participantId => participantId && participantId.trim()) // Filter out null/undefined/empty values
+          .map(participantId =>
+            ChatParticipant.create({
+              chat_id: chat.chat_id,
+              participant_id: participantId,
+              role: participantId === createdBy ? 'user' : 'rescue',
+            })
+          );
+        await Promise.all(participantPromises);
+      }
+
+      // Send initial message if provided
+      if (chatData.initialMessage) {
+        await Message.create({
+          chat_id: chat.chat_id,
+          sender_id: createdBy,
+          content: chatData.initialMessage,
+          content_format: 'plain',
+        });
+      }
 
       await AuditLogService.log({
         action: 'CREATE',
@@ -191,14 +216,14 @@ export class ChatService {
       if (userId) {
         participantFilter = {
           model: ChatParticipant,
-          as: 'participants',
+          as: 'Participants',
           where: { participant_id: userId },
           required: true,
           include: [
             {
               model: User,
-              as: 'user',
-              attributes: ['userId', 'firstName', 'lastName', 'profileImage'],
+              as: 'User',
+              attributes: ['userId', 'firstName', 'lastName', 'profileImageUrl'],
             },
           ],
         };
@@ -210,13 +235,13 @@ export class ChatService {
           participantFilter,
           {
             model: Message,
-            as: 'messages',
+            as: 'Messages',
             limit: 1,
             order: [['created_at', 'DESC']],
             include: [
               {
                 model: User,
-                as: 'sender',
+                as: 'Sender',
                 attributes: ['userId', 'firstName', 'lastName'],
               },
             ],
@@ -282,14 +307,14 @@ export class ChatService {
       if (userId) {
         participantFilter = {
           model: ChatParticipant,
-          as: 'participants',
+          as: 'Participants',
           where: { participant_id: userId },
           required: true,
           include: [
             {
               model: User,
-              as: 'user',
-              attributes: ['userId', 'firstName', 'lastName', 'profileImage'],
+              as: 'User',
+              attributes: ['userId', 'firstName', 'lastName', 'profileImageUrl'],
             },
           ],
         };
@@ -301,7 +326,7 @@ export class ChatService {
           participantFilter,
           {
             model: Message,
-            as: 'messages',
+            as: 'Messages',
             where: messageSearchConditions,
             required: true,
             limit: 1,
@@ -309,7 +334,7 @@ export class ChatService {
             include: [
               {
                 model: User,
-                as: 'sender',
+                as: 'Sender',
                 attributes: ['userId', 'firstName', 'lastName'],
               },
             ],
@@ -350,7 +375,7 @@ export class ChatService {
         include: [
           {
             model: ChatParticipant,
-            as: 'participants',
+            as: 'Participants',
             where: { participant_id: data.senderId }, // Use snake_case
           },
         ],
@@ -435,24 +460,33 @@ export class ChatService {
     try {
       const { page = 1, limit = 50, before, after } = options;
 
-      const whereConditions: WhereOptions = { chatId };
+      // Validate inputs
+      if (page < 1) {
+        throw new Error('Page must be greater than 0');
+      }
+      if (limit < 1 || limit > 100) {
+        throw new Error('Limit must be between 1 and 100');
+      }
+
+      const whereConditions: WhereOptions = { chat_id: chatId }; // Fix: use snake_case
 
       if (before) {
-        whereConditions.createdAt = { [Op.lt]: before };
+        whereConditions.created_at = { [Op.lt]: before }; // Fix: use snake_case
       }
       if (after) {
-        whereConditions.createdAt = { [Op.gt]: after };
+        whereConditions.created_at = { [Op.gt]: after }; // Fix: use snake_case
       }
 
       const { rows: messages, count: total } = await Message.findAndCountAll({
         where: whereConditions,
         include: [
           {
-            association: 'User',
+            model: User,
+            as: 'Sender', // Fix: use correct association name
             attributes: ['userId', 'firstName', 'lastName', 'email'],
           },
         ],
-        order: [['createdAt', 'DESC']],
+        order: [['created_at', 'DESC']], // Fix: use snake_case
         limit,
         offset: (page - 1) * limit,
       });
@@ -532,17 +566,17 @@ export class ChatService {
    */
   static async addParticipant(chatId: string, userId: string, addedBy: string, role = 'member') {
     try {
-      // Verify the person adding has moderator role
+      // Verify the person adding has rescue role
       const adder = await ChatParticipant.findOne({
         where: {
           chat_id: chatId,
           participant_id: addedBy,
-          role: 'ADMIN',
+          role: 'rescue',
         },
       });
 
       if (!adder) {
-        throw new Error('Only chat moderators can add participants');
+        throw new Error('Only rescue staff can add participants');
       }
 
       // Check if user is already a participant
@@ -558,7 +592,7 @@ export class ChatService {
       await ChatParticipant.create({
         chat_id: chatId,
         participant_id: userId,
-        role: role === 'moderator' ? ('ADMIN' as any) : ('MEMBER' as any),
+        role: role === 'rescue' ? 'rescue' : 'user',
       });
 
       // Log the action
@@ -582,18 +616,18 @@ export class ChatService {
    */
   static async removeParticipant(chatId: string, userId: string, removedBy: string) {
     try {
-      // Verify the person removing has moderator role or is removing themselves
+      // Verify the person removing has rescue role or is removing themselves
       if (userId !== removedBy) {
         const remover = await ChatParticipant.findOne({
           where: {
             chat_id: chatId,
             participant_id: removedBy,
-            role: 'ADMIN',
+            role: 'rescue',
           },
         });
 
         if (!remover) {
-          throw new Error('Only chat moderators can remove other participants');
+          throw new Error('Only rescue staff can remove other participants');
         }
       }
 

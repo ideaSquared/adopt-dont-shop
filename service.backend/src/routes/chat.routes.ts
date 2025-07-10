@@ -163,7 +163,6 @@ router.use(authenticateToken);
  */
 router.post('/', authLimiter, ChatController.createChat);
 
-
 /**
  * @swagger
  * /api/v1/:
@@ -272,7 +271,6 @@ router.post('/', authLimiter, ChatController.createChat);
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get('/', generalLimiter, ChatController.getChats);
-
 
 /**
  * @swagger
@@ -383,7 +381,6 @@ router.get('/', generalLimiter, ChatController.getChats);
  */
 router.get('/search', generalLimiter, ChatController.searchConversations);
 
-
 /**
  * @swagger
  * /api/v1/{chatId}:
@@ -492,7 +489,6 @@ router.get('/search', generalLimiter, ChatController.searchConversations);
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get('/:chatId', generalLimiter, ChatController.getChatById);
-
 
 /**
  * @swagger
@@ -654,7 +650,6 @@ router.get('/:chatId', generalLimiter, ChatController.getChatById);
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.patch('/:chatId', authLimiter, ChatController.updateChat);
-
 
 /**
  * @swagger
@@ -932,7 +927,6 @@ router.delete('/:chatId', authLimiter, ChatController.deleteChat);
  */
 router.post('/:chatId/messages', authLimiter, ChatController.sendMessage);
 
-
 /**
  * @swagger
  * /api/v1/{chatId}/messages:
@@ -1042,7 +1036,6 @@ router.post('/:chatId/messages', authLimiter, ChatController.sendMessage);
  */
 router.get('/:chatId/messages', generalLimiter, ChatController.getMessages);
 
-
 /**
  * @swagger
  * /api/v1/{chatId}/read:
@@ -1202,8 +1195,7 @@ router.get('/:chatId/messages', generalLimiter, ChatController.getMessages);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.patch('/:chatId/read', generalLimiter, ChatController.markAsRead);
-
+router.post('/:chatId/read', generalLimiter, ChatController.markAsRead);
 
 /**
  * @swagger
@@ -1468,7 +1460,6 @@ router.get('/:chatId/unread-count', generalLimiter, ChatController.getUnreadCoun
  *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post('/:chatId/participants', authLimiter, ChatController.addParticipant);
-
 
 /**
  * @swagger
@@ -1745,7 +1736,6 @@ router.delete('/:chatId/participants/:userId', authLimiter, ChatController.remov
  *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post('/messages/:messageId/reactions', generalLimiter, ChatController.addReaction);
-
 
 /**
  * @swagger

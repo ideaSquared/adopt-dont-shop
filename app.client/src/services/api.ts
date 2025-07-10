@@ -258,6 +258,11 @@ class ApiService {
       if (contentType && contentType.includes('application/json')) {
         const jsonResponse = (await response.json()) as T | ApiResponse<T>;
 
+        // Debug logging for conversation creation
+        if (fullUrl.includes('/conversations') && method === 'POST') {
+          console.log('🔍 Debug: Raw response for conversation creation:', jsonResponse);
+        }
+
         // Check if response has the nested success structure from service.backend
         if (
           typeof jsonResponse === 'object' &&
@@ -266,7 +271,14 @@ class ApiService {
           'data' in jsonResponse
         ) {
           // Handle the nested success response structure from service.backend
-          return (jsonResponse as ApiResponse<T>).data;
+          const extractedData = (jsonResponse as ApiResponse<T>).data;
+
+          // Debug logging for conversation creation
+          if (fullUrl.includes('/conversations') && method === 'POST') {
+            console.log('🔍 Debug: Extracted data:', extractedData);
+          }
+
+          return extractedData;
         }
 
         // Return the response directly (like auth endpoints)

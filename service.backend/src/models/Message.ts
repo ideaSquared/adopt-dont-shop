@@ -163,7 +163,7 @@ export class Message
     });
     Message.belongsTo(models.User, {
       foreignKey: 'sender_id',
-      as: 'User',
+      as: 'Sender',
     });
   }
 }
