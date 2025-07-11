@@ -4,8 +4,7 @@ import { MdAttachFile, MdClose, MdSend } from 'react-icons/md';
 import styled from 'styled-components';
 
 const InputContainer = styled.div`
-  padding: 1rem;
-  border-top: 1px solid ${props => props.theme.border.color.secondary};
+  padding: 0.75rem 1rem 1.25rem 1rem;
   background: ${props => props.theme.background.primary};
 `;
 
@@ -17,26 +16,48 @@ const InputRow = styled.div`
 
 const MessageTextArea = styled(TextArea)`
   flex: 1;
-  min-height: 40px;
+  min-height: 44px;
   max-height: 120px;
   resize: none;
+  border-radius: 22px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  background: ${props => props.theme.colors.neutral[100]};
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  overflow-y: auto;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+
+  &:focus {
+    outline: none;
+    background: ${props => props.theme.background.primary};
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+  }
+
+  &::placeholder {
+    color: ${props => props.theme.text.tertiary};
+  }
 `;
 
 const AttachmentPreview = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 `;
 
 const AttachmentItem = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem;
-  background: ${props => props.theme.background.secondary};
-  border: 1px solid ${props => props.theme.border.color.secondary};
-  border-radius: ${props => props.theme.border.radius.sm};
+  padding: 0.5rem 0.75rem;
+  background: ${props => props.theme.colors.primary[50]};
+  border: 1px solid ${props => props.theme.colors.primary[200]};
+  border-radius: 18px;
   font-size: 0.875rem;
 `;
 
@@ -46,24 +67,26 @@ const AttachmentName = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
 `;
 
 const RemoveButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: none;
   background: ${props => props.theme.colors.semantic.error[500]};
   color: white;
   border-radius: 50%;
   cursor: pointer;
   font-size: 0.75rem;
-  transition: background-color 0.2s ease;
+  transition: all 0.15s ease;
 
   &:hover {
     background: ${props => props.theme.colors.semantic.error[600]};
+    transform: scale(1.1);
   }
 
   &:focus {
@@ -76,18 +99,21 @@ const AttachButton = styled.label`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem;
-  border: 1px solid ${props => props.theme.border.color.primary};
-  background: ${props => props.theme.background.primary};
-  border-radius: ${props => props.theme.border.radius.sm};
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: ${props => props.theme.colors.neutral[200]};
+  border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: ${props => props.theme.text.secondary};
+  color: ${props => props.theme.colors.neutral[600]};
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: ${props => props.theme.background.secondary};
-    border-color: ${props => props.theme.colors.primary[500]};
+    background: ${props => props.theme.colors.primary[50]};
+    border-color: ${props => props.theme.colors.primary[300]};
     color: ${props => props.theme.colors.primary[500]};
+    transform: scale(1.05);
   }
 
   &:focus-within {
@@ -109,11 +135,26 @@ const AttachButton = styled.label`
 `;
 
 const SendButton = styled(Button)`
-  min-width: auto;
-  padding: 0.5rem;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+  border: none;
+  background: ${props => props.theme.colors.primary[500]};
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+
+  &:enabled:hover {
+    transform: scale(1.05);
+  }
+
+  &:enabled:active {
+    transform: scale(0.95);
+  }
 
   &:disabled {
     opacity: 0.5;

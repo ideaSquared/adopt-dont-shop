@@ -14,59 +14,63 @@ const ChatContainer = styled.div`
   flex-direction: column;
   height: 100%;
   background: ${props => props.theme.background.primary};
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 0;
   overflow: hidden;
 `;
 
 const ChatHeader = styled.div`
-  padding: 1.25rem 1.5rem 1.25rem 1rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid ${props => props.theme.border.color.secondary};
   display: flex;
   align-items: center;
-  gap: 1.2rem;
-  background: linear-gradient(
-    90deg,
-    ${props => props.theme.colors.primary[100]},
-    ${props => props.theme.colors.primary[500]}
-  );
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  gap: 0.75rem;
+  background: ${props => props.theme.background.secondary};
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   min-height: 64px;
 
   @media (max-width: 768px) {
-    padding: 0.75rem 1rem;
+    padding: 0.875rem 1rem;
     min-height: 56px;
   }
 `;
 
 const BackButton = styled(Button)`
-  display: none;
-  padding: 0.5rem;
-  min-width: auto;
-  border-radius: 50%;
-  background: ${props => props.theme.background.primary};
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
-
-  @media (max-width: 768px) {
-    display: flex;
+  @media (min-width: 769px) {
+    display: none;
   }
+
+  min-width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const ConversationInfo = styled.div`
   flex: 1;
+  min-width: 0;
 
   h3 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.125rem;
     color: ${props => props.theme.text.primary};
-    font-weight: 600;
-    letter-spacing: -0.5px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
   }
 
   p {
-    margin: 0;
-    font-size: 0.9rem;
+    margin: 0.125rem 0 0 0;
+    font-size: 0.8125rem;
     color: ${props => props.theme.text.secondary};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
   }
 `;
 
@@ -76,12 +80,7 @@ const ChatBody = styled.div`
   flex-direction: column;
   min-height: 0;
   position: relative;
-  background: ${props => props.theme.background.secondary};
-  padding: 0.5rem 0.5rem 0.5rem 0.5rem;
-
-  @media (max-width: 768px) {
-    padding: 0.25rem 0;
-  }
+  background: ${props => props.theme.background.primary};
 `;
 
 const EmptyState = styled.div`
@@ -133,30 +132,15 @@ const MessagesContainer = styled.div`
   flex-direction: column;
   min-height: 0;
   background: ${props => props.theme.background.primary};
-  border-radius: 12px;
-  margin: 0.5rem 0 0.5rem 0;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.03);
-  padding: 1.2rem 1rem 0.5rem 1rem;
-
-  @media (max-width: 768px) {
-    border-radius: 8px;
-    margin: 0.25rem 0;
-    padding: 0.7rem 0.5rem 0.3rem 0.5rem;
-  }
 `;
 
 const TypingContainer = styled.div`
-  padding: 0.5rem 1rem 0.5rem 0.5rem;
+  padding: 0.5rem 1rem;
 `;
 
 const InputArea = styled.div`
+  flex: 0 0 auto;
   background: ${props => props.theme.background.primary};
-  border-top: 1px solid ${props => props.theme.border.color.secondary};
-  padding: 0.5rem 1rem 0.5rem 1rem;
-
-  @media (max-width: 768px) {
-    padding: 0.25rem 0.5rem;
-  }
 `;
 
 export function ChatWindow() {

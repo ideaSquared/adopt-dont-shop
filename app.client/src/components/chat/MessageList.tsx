@@ -9,23 +9,27 @@ interface MessageListProps {
 const MessageListWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.5rem;
   width: 100%;
-  max-height: 60vh;
+  flex: 1 1 auto;
   overflow-y: auto;
-  padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+  padding: 1rem 0.75rem;
   background: ${props => props.theme.background.primary};
   scrollbar-width: thin;
-  scrollbar-color: ${props => props.theme.colors.primary[100]}
+  scrollbar-color: ${props => props.theme.colors.neutral[300]}
     ${props => props.theme.background.primary};
 
   &::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
     background: ${props => props.theme.background.primary};
   }
   &::-webkit-scrollbar-thumb {
-    background: ${props => props.theme.colors.primary[100]};
-    border-radius: 8px;
+    background: ${props => props.theme.colors.neutral[300]};
+    border-radius: 6px;
+    transition: background 0.15s ease;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: ${props => props.theme.colors.neutral[400]};
   }
 `;
 

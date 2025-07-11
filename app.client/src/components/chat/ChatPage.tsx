@@ -13,13 +13,10 @@ const ChatContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   background: ${props => props.theme.background.primary};
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  border-radius: 18px;
   overflow: hidden;
 
   @media (max-width: 768px) {
-    border-radius: 0;
-    box-shadow: none;
+    height: 100vh;
   }
 `;
 
@@ -97,33 +94,35 @@ const ConversationPanel = styled.div`
 `;
 
 const Header = styled.div`
-  padding: 2.5rem 1rem 1.5rem 1rem;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(
-    90deg,
-    ${props => props.theme.colors.primary.light},
-    ${props => props.theme.colors.primary.main}
-  );
+  padding: 1.5rem 2rem 1rem 2rem;
+  background: ${props => props.theme.background.primary};
   border-bottom: 1px solid ${props => props.theme.border.color.secondary};
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  text-align: center;
-
-  @media (max-width: 768px) {
-    padding: 1.5rem 0.5rem 1rem 0.5rem;
-  }
 
   h1 {
-    font-size: 2.2rem;
+    margin: 0 0 0.25rem 0;
+    font-size: 1.75rem;
+    font-weight: 800;
     color: ${props => props.theme.text.primary};
-    margin: 0;
-    font-weight: 700;
-    letter-spacing: -1px;
+    letter-spacing: -0.025em;
   }
 
   p {
+    margin: 0;
+    font-size: 1rem;
     color: ${props => props.theme.text.secondary};
-    margin: 0.5rem 0 0 0;
-    font-size: 1.1rem;
+    line-height: 1.4;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1.25rem 1rem 0.875rem 1rem;
+
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    p {
+      font-size: 0.9375rem;
+    }
   }
 `;
 
@@ -136,9 +135,9 @@ const LoadingContainer = styled.div`
 `;
 
 const ErrorMessage = styled.div`
-  background: ${props => props.theme.colors.semantic.error.light};
-  color: ${props => props.theme.colors.semantic.error.main};
-  border: 1px solid ${props => props.theme.colors.semantic.error.dark};
+  background: ${props => props.theme.colors.semantic.error[100]};
+  color: ${props => props.theme.colors.semantic.error[700]};
+  border: 1px solid ${props => props.theme.colors.semantic.error[300]};
   padding: 1.5rem;
   border-radius: 8px;
   margin: 2rem auto;

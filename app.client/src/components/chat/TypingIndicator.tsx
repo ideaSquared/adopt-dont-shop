@@ -13,13 +13,15 @@ const TypingContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  margin: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  margin: 0.25rem 1rem 0.5rem 1rem;
   background: ${props => props.theme.background.secondary};
   border-radius: 18px 18px 18px 4px;
   max-width: 200px;
   color: ${props => props.theme.text.secondary};
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 `;
 
 const TypingDots = styled.div`
@@ -28,9 +30,9 @@ const TypingDots = styled.div`
 `;
 
 const Dot = styled.div<{ delay: number }>`
-  width: 4px;
-  height: 4px;
-  background: ${props => props.theme.text.secondary};
+  width: 3px;
+  height: 3px;
+  background: ${props => props.theme.text.tertiary};
   border-radius: 50%;
   animation: ${bounce} 1.4s infinite;
   animation-delay: ${props => props.delay}s;
