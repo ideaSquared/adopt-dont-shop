@@ -4,11 +4,17 @@ import sequelize from '../sequelize';
 import {
   ChatCreateData,
   ChatListResponse,
+  ChatMessage,
   ChatStatistics,
+  ChatStatus,
+  ChatType,
   ChatUpdateData,
+  MessageContentFormat,
   MessageCreateData,
   MessageListResponse,
+  MessageType,
   MessageUpdateData,
+  ParticipantRole,
 } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
@@ -70,6 +76,77 @@ interface UpdateChatData {
 
 export class ChatService {
   /**
+   * Helper function to convert attachments from frontend format to backend format
+   */
+  private static convertAttachmentsToModelFormat(
+    attachments: import('../types/chat').MessageAttachment[]
+  ): import('../models/Message').MessageAttachment[] {
+    return attachments.map(att => ({
+      attachment_id: att.id,
+      filename: att.filename,
+      originalName: att.filename, // Use filename as originalName if not provided
+      mimeType: att.mimeType,
+      size: att.size,
+      url: att.url,
+    }));
+  }
+
+  /**
+   * Helper function to convert Message model to ChatMessage interface
+   */
+  private static convertMessageToInterface(message: Message): ChatMessage {
+    return {
+      message_id: message.message_id,
+      chat_id: message.chat_id,
+      sender_id: message.sender_id,
+      content: message.content,
+      content_format: message.content_format,
+      type: MessageType.TEXT, // Default to text type
+      attachments:
+        message.attachments?.map(att => ({
+          id: att.attachment_id,
+          filename: att.filename,
+          url: att.url,
+          mimeType: att.mimeType,
+          size: att.size,
+        })) || [],
+      created_at: message.created_at.toISOString(),
+      updated_at: message.updated_at.toISOString(),
+    };
+  }
+
+  /**
+   * Helper function to convert Chat model to Chat interface
+   */
+  private static convertChatToInterface(
+    chat: Chat & { Messages?: Message[]; Participants?: any[] }
+  ): import('../types/chat').Chat {
+    return {
+      chat_id: chat.chat_id,
+      rescue_id: chat.rescue_id,
+      pet_id: chat.pet_id,
+      application_id: chat.application_id,
+      type: ChatType.DIRECT, // Default type - should be determined by business logic
+      status: chat.status as ChatStatus,
+      created_at: chat.created_at.toISOString(),
+      updated_at: chat.updated_at.toISOString(),
+      participants:
+        chat.Participants?.map(p => ({
+          participant_id: p.participant_id,
+          chat_id: p.chat_id,
+          user_id: p.user_id,
+          role: p.role,
+          joined_at: p.joined_at?.toISOString() || new Date().toISOString(),
+          last_read_at: p.last_read_at?.toISOString(),
+        })) || [],
+      last_message: chat.Messages?.[0]
+        ? this.convertMessageToInterface(chat.Messages[0])
+        : undefined,
+      unread_count: 0, // Should be calculated based on business logic
+    };
+  }
+
+  /**
    * Get chat by ID with messages
    */
   static async getChatById(chatId: string, userId?: string): Promise<Chat | null> {
@@ -124,7 +201,7 @@ export class ChatService {
         rescue_id: chatData.rescueId || '',
         application_id: chatData.applicationId,
         pet_id: chatData.petId,
-        status: 'active',
+        status: ChatStatus.ACTIVE,
       });
 
       // Create chat participants
@@ -135,7 +212,7 @@ export class ChatService {
             ChatParticipant.create({
               chat_id: chat.chat_id,
               participant_id: participantId,
-              role: participantId === createdBy ? 'user' : 'rescue',
+              role: participantId === createdBy ? ParticipantRole.USER : ParticipantRole.RESCUE,
             })
           );
         await Promise.all(participantPromises);
@@ -147,7 +224,7 @@ export class ChatService {
           chat_id: chat.chat_id,
           sender_id: createdBy,
           content: chatData.initialMessage,
-          content_format: 'plain',
+          content_format: MessageContentFormat.PLAIN,
         });
       }
 
@@ -416,15 +493,15 @@ export class ChatService {
           chat_id: data.chatId,
           sender_id: data.senderId,
           content: data.content,
-          content_format: 'plain',
+          content_format: MessageContentFormat.PLAIN,
           attachments: data.attachments || [],
           created_at: new Date(),
         },
         { transaction }
       );
 
-      // Reload message with Sender included
-      await message.reload({
+      // Instead of reloading, let's find the message with includes to avoid the reload issue
+      const messageWithSender = await Message.findByPk(message.message_id, {
         include: [
           {
             model: User,
@@ -432,7 +509,12 @@ export class ChatService {
             attributes: ['userId', 'firstName'],
           },
         ],
+        transaction,
       });
+
+      if (!messageWithSender) {
+        throw new Error('Failed to retrieve created message');
+      }
 
       // Update chat's last activity
       await Chat.update(
@@ -447,14 +529,14 @@ export class ChatService {
         userId: data.senderId,
         action: 'MESSAGE_SENT',
         entity: 'Message',
-        entityId: message.message_id,
+        entityId: messageWithSender.message_id,
         details: {
           chatId: data.chatId,
           messageType: 'text',
         },
       });
 
-      return message;
+      return messageWithSender;
     } catch (error) {
       await transaction.rollback();
       logger.error('Error sending message:', error);
@@ -520,7 +602,7 @@ export class ChatService {
       });
 
       return {
-        messages,
+        messages: messages.map(message => this.convertMessageToInterface(message)),
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -612,7 +694,7 @@ export class ChatService {
       await ChatParticipant.create({
         chat_id: chatId,
         participant_id: userId,
-        role: role === 'rescue' ? 'rescue' : 'user',
+        role: role === 'rescue' ? ParticipantRole.RESCUE : ParticipantRole.USER,
       });
 
       // Log the action
@@ -1146,7 +1228,7 @@ export class ChatService {
       });
 
       return {
-        chats,
+        chats: chats.map(chat => this.convertChatToInterface(chat as any)),
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -1169,8 +1251,10 @@ export class ChatService {
         chat_id: messageData.chatId,
         sender_id: createdBy,
         content: messageData.content,
-        content_format: 'plain',
-        attachments: messageData.attachments || [],
+        content_format: MessageContentFormat.PLAIN,
+        attachments: messageData.attachments
+          ? this.convertAttachmentsToModelFormat(messageData.attachments)
+          : [],
       });
 
       await AuditLogService.log({

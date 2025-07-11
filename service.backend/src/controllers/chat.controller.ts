@@ -363,7 +363,7 @@ export class ChatController {
           senderName = msg.sender_name;
         }
         return {
-          ...msg.toJSON(),
+          ...msg,
           sender_name: senderName,
         };
       });

@@ -1,5 +1,6 @@
 import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize';
 import sequelize from '../sequelize';
+import { MessageContentFormat } from '../types/chat';
 import Chat from './Chat';
 
 export interface MessageReaction {
@@ -27,11 +28,11 @@ interface MessageAttributes {
   chat_id: string;
   sender_id: string;
   content: string;
-  content_format: 'plain' | 'markdown' | 'html';
+  content_format: MessageContentFormat;
   attachments?: MessageAttachment[];
   reactions?: MessageReaction[];
   read_status?: MessageReadStatus[];
-  search_vector?: any; // tsvector type for full-text search
+  search_vector?: unknown; // tsvector type for full-text search
   created_at?: Date;
   updated_at?: Date;
   Chat?: Chat;
@@ -57,11 +58,11 @@ export class Message
   public chat_id!: string;
   public sender_id!: string;
   public content!: string;
-  public content_format!: 'plain' | 'markdown' | 'html';
+  public content_format!: MessageContentFormat;
   public attachments?: MessageAttachment[];
   public reactions?: MessageReaction[];
   public read_status?: MessageReadStatus[];
-  public search_vector?: any;
+  public search_vector?: unknown;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
   public length!: number;
@@ -155,7 +156,8 @@ export class Message
   ) => Promise<Message[]>;
 
   // Add association methods
-  public static associate(models: any) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public static associate(models: Record<string, any>) {
     Message.belongsTo(models.Chat, {
       foreignKey: 'chat_id',
       as: 'Chat',
@@ -201,11 +203,11 @@ Message.init(
       },
     },
     content_format: {
-      type: DataTypes.ENUM('plain', 'markdown', 'html'),
+      type: DataTypes.ENUM(...Object.values(MessageContentFormat)),
       allowNull: false,
-      defaultValue: 'plain',
+      defaultValue: MessageContentFormat.PLAIN,
       validate: {
-        isIn: [['plain', 'markdown', 'html']],
+        isIn: [Object.values(MessageContentFormat)],
       },
     },
     attachments: {
@@ -304,7 +306,7 @@ Message.init(
             replacements: [message.content],
             type: QueryTypes.SELECT,
           });
-          message.search_vector = (results as any).vector;
+          message.search_vector = (results as { vector: unknown }).vector;
         }
       },
     },
@@ -318,7 +320,7 @@ Message.searchMessages = async function (
   limit = 50,
   offset = 0
 ): Promise<Message[]> {
-  const whereClause: any = {
+  const whereClause: Record<string, unknown> = {
     search_vector: {
       [Op.match]: sequelize.fn('plainto_tsquery', 'english', query),
     },
