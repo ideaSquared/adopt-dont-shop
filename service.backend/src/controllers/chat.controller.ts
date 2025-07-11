@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
 import { ChatService } from '../services/chat.service';
+import { ChatMessage } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
 
 interface AuthenticatedRequest extends Request {
@@ -9,6 +10,12 @@ interface AuthenticatedRequest extends Request {
     role: string;
     rescueId?: string;
   };
+}
+
+// Interface for messages with populated Sender
+interface MessageWithSender extends ChatMessage {
+  Sender?: { firstName?: string; lastName?: string };
+  sender_name?: string;
 }
 
 export class ChatController {
@@ -174,7 +181,18 @@ export class ChatController {
           };
         }
         return {
-          ...chatObj,
+          id: chatObj.chat_id,
+          userId: undefined, // No user_id field in chat model
+          rescueId: chatObj.rescue_id,
+          petId: chatObj.pet_id,
+          applicationId: chatObj.application_id,
+          type: 'general', // Default type since not in model
+          status: chatObj.status,
+          participants: chatObj.Participants || [],
+          unreadCount: 0, // TODO: Calculate unread count
+          isTyping: [],
+          createdAt: chatObj.created_at,
+          updatedAt: chatObj.updated_at,
           rescueName: chat.rescue?.name || null,
           lastMessage,
         };
@@ -295,15 +313,16 @@ export class ChatController {
 
       // Fetch sender's first name for sender_name
       let senderName = undefined;
+      const messageWithSender = message as unknown as MessageWithSender;
       if (
-        message &&
-        typeof (message as any).Sender === 'object' &&
-        (message as any).Sender &&
-        typeof (message as any).Sender.firstName === 'string'
+        messageWithSender &&
+        typeof messageWithSender.Sender === 'object' &&
+        messageWithSender.Sender &&
+        typeof messageWithSender.Sender.firstName === 'string'
       ) {
-        senderName = (message as any).Sender.firstName;
-      } else if (message && typeof (message as any).sender_name === 'string') {
-        senderName = (message as any).sender_name;
+        senderName = messageWithSender.Sender.firstName;
+      } else if (messageWithSender && typeof messageWithSender.sender_name === 'string') {
+        senderName = messageWithSender.sender_name;
       }
 
       res.status(201).json({
@@ -350,20 +369,21 @@ export class ChatController {
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
       // Attach sender_name to each message if possible
-      const messagesWithSenderName = result.messages.map((msg: any) => {
+      const messagesWithSenderName = result.messages.map(msg => {
+        const messageWithSender = msg as unknown as MessageWithSender;
         let senderName = undefined;
         if (
-          msg &&
-          typeof msg.Sender === 'object' &&
-          msg.Sender &&
-          typeof msg.Sender.firstName === 'string'
+          messageWithSender &&
+          typeof messageWithSender.Sender === 'object' &&
+          messageWithSender.Sender &&
+          typeof messageWithSender.Sender.firstName === 'string'
         ) {
-          senderName = msg.Sender.firstName;
-        } else if (msg && typeof msg.sender_name === 'string') {
-          senderName = msg.sender_name;
+          senderName = messageWithSender.Sender.firstName;
+        } else if (messageWithSender && typeof messageWithSender.sender_name === 'string') {
+          senderName = messageWithSender.sender_name;
         }
         return {
-          ...msg,
+          ...messageWithSender,
           sender_name: senderName,
         };
       });

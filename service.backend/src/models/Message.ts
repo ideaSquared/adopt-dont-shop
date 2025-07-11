@@ -36,6 +36,7 @@ interface MessageAttributes {
   created_at?: Date;
   updated_at?: Date;
   Chat?: Chat;
+  Sender?: { firstName?: string; lastName?: string };
 }
 
 interface MessageCreationAttributes
@@ -67,6 +68,7 @@ export class Message
   public readonly updated_at!: Date;
   public length!: number;
   public Chat?: Chat;
+  public Sender?: { firstName?: string; lastName?: string };
 
   // Instance methods for reactions
   public addReaction(userId: string, emoji: string): void {
