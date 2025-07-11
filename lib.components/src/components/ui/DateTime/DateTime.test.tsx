@@ -1,15 +1,33 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from '../../../styles/ThemeProvider';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 
 // Mock Radix UI tooltip
 jest.mock('@radix-ui/react-tooltip', () => ({
-  Provider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Root: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Trigger: React.forwardRef<HTMLElement, any>(({ children, asChild, ...props }, ref) => {
+  Provider: Object.assign(
+    function MockTooltipProvider({ children }: { children: React.ReactNode }) {
+      return <div>{children}</div>;
+    },
+    { displayName: 'MockTooltipProvider' }
+  ),
+  Root: Object.assign(
+    function MockTooltipRoot({ children }: { children: React.ReactNode }) {
+      return <div>{children}</div>;
+    },
+    { displayName: 'MockTooltipRoot' }
+  ),
+  Trigger: React.forwardRef(function MockTooltipTrigger(
+    {
+      children,
+      asChild,
+      ...props
+    }: { children: React.ReactNode; asChild?: boolean } & React.HTMLAttributes<HTMLDivElement>,
+    ref: React.ForwardedRef<HTMLDivElement>
+  ) {
     if (asChild && React.isValidElement(children)) {
-      return React.cloneElement(children, { ...props, ref });
+      // Avoid passing ref if not supported by the child
+      return React.cloneElement(children, { ...props });
     }
     return (
       <div {...props} ref={ref}>
@@ -17,21 +35,34 @@ jest.mock('@radix-ui/react-tooltip', () => ({
       </div>
     );
   }),
-  Portal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Content: ({ children, ...props }: { children: React.ReactNode }) => (
-    <div {...props} data-testid='tooltip-content'>
-      {children}
-    </div>
+  Portal: Object.assign(
+    function MockTooltipPortal({ children }: { children: React.ReactNode }) {
+      return <div>{children}</div>;
+    },
+    { displayName: 'MockTooltipPortal' }
   ),
-  Arrow: React.forwardRef<HTMLElement, any>((props, ref) => (
-    <div {...props} ref={ref} data-testid='tooltip-arrow' />
-  )),
+  Content: Object.assign(
+    function MockTooltipContent({ children, ...props }: { children: React.ReactNode }) {
+      return (
+        <div {...props} data-testid='tooltip-content'>
+          {children}
+        </div>
+      );
+    },
+    { displayName: 'MockTooltipContent' }
+  ),
+  Arrow: React.forwardRef(function MockTooltipArrow(
+    props: React.HTMLAttributes<HTMLDivElement>,
+    ref: React.ForwardedRef<HTMLDivElement>
+  ) {
+    return <div {...props} ref={ref} data-testid='tooltip-arrow' />;
+  }),
 }));
 
 import DateTime from './DateTime';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('DateTime Component', () => {

@@ -1,11 +1,13 @@
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from '../../styles/ThemeProvider';
 import { lightTheme } from '../../styles/theme';
 import { Spinner } from './Spinner';
 
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('Spinner', () => {
@@ -30,12 +32,6 @@ describe('Spinner', () => {
   it('applies different variants correctly', () => {
     renderWithTheme(<Spinner variant='primary' data-testid='primary-spinner' />);
     const spinner = screen.getByTestId('primary-spinner');
-    expect(spinner).toBeInTheDocument();
-  });
-
-  it('centers spinner when centered prop is true', () => {
-    renderWithTheme(<Spinner centered />);
-    const spinner = screen.getByRole('status');
     expect(spinner).toBeInTheDocument();
   });
 

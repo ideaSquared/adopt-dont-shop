@@ -53,7 +53,7 @@ export const Footer: React.FC<FooterProps> = ({ className }) => {
           <FooterLink href='/contact'>Contact</FooterLink>
         </FooterLinks>
         <FooterText>
-          © {new Date().getFullYear()} Adopt Don't Shop. All rights reserved.
+          © {new Date().getFullYear()} Adopt Don&apos;t Shop. All rights reserved.
         </FooterText>
       </FooterContainer>
     </StyledFooter>
@@ -61,4 +61,3 @@ export const Footer: React.FC<FooterProps> = ({ className }) => {
 };
 
 Footer.displayName = 'Footer';
-

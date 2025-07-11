@@ -1,11 +1,12 @@
+import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 import { Toast, ToastContainer } from './Toast';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 const mockToast = {
@@ -37,23 +38,23 @@ describe('Toast', () => {
     expect(screen.getByText('Test notification')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <Toast {...mockToast} type='error' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
     expect(screen.getByText('Test notification')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <Toast {...mockToast} type='warning' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
     expect(screen.getByText('Test notification')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <Toast {...mockToast} type='info' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
     expect(screen.getByText('Test notification')).toBeInTheDocument();
   });

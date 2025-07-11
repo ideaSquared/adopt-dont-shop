@@ -1,12 +1,13 @@
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider } from '../../../styles/ThemeProvider';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 import { Table } from './Table';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 const mockData = [
@@ -67,7 +68,7 @@ describe('Table', () => {
   });
 
   it('renders with different variants', () => {
-    const variants = ['default', 'striped', 'bordered'] as const;
+    const variants = ['default', 'minimal', 'bordered'] as const;
 
     variants.forEach(variant => {
       renderWithTheme(
@@ -113,7 +114,7 @@ describe('Table', () => {
       {
         key: 'name',
         header: 'Name',
-        render: (value: string) => <strong>{value}</strong>,
+        render: (value: unknown) => <strong>{String(value)}</strong>,
       },
       { key: 'email', header: 'Email' },
     ];

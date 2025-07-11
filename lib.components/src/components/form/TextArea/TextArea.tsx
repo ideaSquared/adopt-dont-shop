@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type TextAreaSize = 'sm' | 'md' | 'lg';
 export type TextAreaVariant = 'default' | 'filled' | 'underlined';
@@ -50,16 +50,16 @@ const getSizeStyles = (size: TextAreaSize) => {
   return sizes[size];
 };
 
-const getVariantStyles = (variant: TextAreaVariant, theme: any) => {
+const getVariantStyles = (variant: TextAreaVariant, theme: DefaultTheme) => {
   const variants = {
     default: css`
       border: 1px solid ${theme.colors.neutral[300]};
-      background-color: ${theme.colors.neutral.white};
+      background-color: ${theme.colors.neutral[50]};
       border-radius: ${theme.spacing.xs};
 
       &:focus {
-        border-color: ${theme.colors.primary.main};
-        box-shadow: 0 0 0 3px ${theme.colors.primary.light}40;
+        border-color: ${theme.colors.primary[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.primary[100]}40;
       }
     `,
     filled: css`
@@ -68,9 +68,9 @@ const getVariantStyles = (variant: TextAreaVariant, theme: any) => {
       border-radius: ${theme.spacing.xs};
 
       &:focus {
-        background-color: ${theme.colors.neutral.white};
-        border-color: ${theme.colors.primary.main};
-        box-shadow: 0 0 0 3px ${theme.colors.primary.light}40;
+        background-color: ${theme.colors.neutral[50]};
+        border-color: ${theme.colors.primary[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.primary[100]}40;
       }
     `,
     underlined: css`
@@ -82,7 +82,7 @@ const getVariantStyles = (variant: TextAreaVariant, theme: any) => {
       padding-right: 0;
 
       &:focus {
-        border-bottom-color: ${theme.colors.primary.main};
+        border-bottom-color: ${theme.colors.primary[500]};
         box-shadow: none;
       }
     `,
@@ -90,28 +90,28 @@ const getVariantStyles = (variant: TextAreaVariant, theme: any) => {
   return variants[variant];
 };
 
-const getStateStyles = (state: TextAreaState, theme: any) => {
+const getStateStyles = (state: TextAreaState, theme: DefaultTheme) => {
   const states = {
     default: css``,
     error: css`
-      border-color: ${theme.colors.semantic.error.main};
+      border-color: ${theme.colors.semantic.error[500]};
       &:focus {
-        border-color: ${theme.colors.semantic.error.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.error.light}40;
+        border-color: ${theme.colors.semantic.error[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.semantic.error[100]}40;
       }
     `,
     success: css`
-      border-color: ${theme.colors.semantic.success.main};
+      border-color: ${theme.colors.semantic.success[500]};
       &:focus {
-        border-color: ${theme.colors.semantic.success.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.success.light}40;
+        border-color: ${theme.colors.semantic.success[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.semantic.success[100]}40;
       }
     `,
     warning: css`
-      border-color: ${theme.colors.semantic.warning.main};
+      border-color: ${theme.colors.semantic.warning[500]};
       &:focus {
-        border-color: ${theme.colors.semantic.warning.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.warning.light}40;
+        border-color: ${theme.colors.semantic.warning[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.semantic.warning[100]}40;
       }
     `,
   };
@@ -135,7 +135,7 @@ const Label = styled.label<{ $required: boolean }>`
     css`
       &::after {
         content: ' *';
-        color: ${({ theme }) => theme.colors.semantic.error.main};
+        color: ${({ theme }) => theme.colors.semantic.error[500]};
       }
     `}
 `;
@@ -191,11 +191,11 @@ const HelperText = styled.div<{ $state: TextAreaState }>`
   font-size: ${({ theme }) => theme.typography.size.xs};
   color: ${({ theme, $state }) =>
     $state === 'error'
-      ? theme.colors.semantic.error.main
+      ? theme.colors.semantic.error[500]
       : $state === 'success'
-        ? theme.colors.semantic.success.main
+        ? theme.colors.semantic.success[500]
         : $state === 'warning'
-          ? theme.colors.semantic.warning.main
+          ? theme.colors.semantic.warning[500]
           : theme.colors.neutral[600]};
   line-height: ${({ theme }) => theme.typography.lineHeight.normal};
   flex: 1;
@@ -204,12 +204,12 @@ const HelperText = styled.div<{ $state: TextAreaState }>`
 const CharacterCount = styled.div<{ $isOverLimit: boolean }>`
   font-size: ${({ theme }) => theme.typography.size.xs};
   color: ${({ theme, $isOverLimit }) =>
-    $isOverLimit ? theme.colors.semantic.error.main : theme.colors.neutral[500]};
+    $isOverLimit ? theme.colors.semantic.error[500] : theme.colors.neutral[500]};
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 `;
 
-export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
+const TextAreaComponent = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   (
     {
       label,
@@ -259,7 +259,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
     const effectiveHelperText = error || helperText;
 
     // Auto-resize functionality
-    const adjustHeight = () => {
+    const adjustHeight = React.useCallback(() => {
       const textArea = textAreaRef.current;
       if (!textArea || !autoResize) return;
 
@@ -276,7 +276,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
 
       const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
       textArea.style.height = `${newHeight}px`;
-    };
+    }, [autoResize, minRows, maxRows]);
 
     // Handle value changes
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -303,14 +303,14 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           adjustHeight();
         }
       }
-    }, [value, defaultValue, autoResize]);
+    }, [value, defaultValue, autoResize, adjustHeight]);
 
     // Adjust height when value changes externally
     useEffect(() => {
       if (autoResize) {
         adjustHeight();
       }
-    }, [value]);
+    }, [value, autoResize, adjustHeight]);
 
     const isOverLimit = maxLength !== undefined && characterCount > maxLength;
     const showFooter = effectiveHelperText || showCharacterCount;
@@ -363,3 +363,6 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   }
 );
 
+TextAreaComponent.displayName = 'TextArea';
+
+export const TextArea = TextAreaComponent;

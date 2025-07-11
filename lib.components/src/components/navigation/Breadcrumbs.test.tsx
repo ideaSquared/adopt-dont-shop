@@ -1,12 +1,13 @@
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider } from '../../styles/ThemeProvider';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../styles/theme';
 import { Breadcrumbs } from './Breadcrumbs';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 const mockItems = [
@@ -43,7 +44,8 @@ describe('Breadcrumbs', () => {
 
     // Last item should not be a link
     const smartphonesText = screen.getByText('Smartphones');
-    expect(smartphonesText.tagName).not.toBe('A');
+    // Should be a <button> or <span> for current, not <a>
+    expect(['BUTTON', 'SPAN']).toContain(smartphonesText.tagName);
   });
 
   it('handles click events on breadcrumb items', async () => {
@@ -100,7 +102,7 @@ describe('Breadcrumbs', () => {
     const homeText = screen.getByText('Home');
     expect(homeText).toBeInTheDocument();
     // Single item should not be a link (it's the current page)
-    expect(homeText.tagName).not.toBe('A');
+    expect(['BUTTON', 'SPAN']).toContain(homeText.tagName);
   });
 
   it('applies data-testid when provided', () => {
@@ -167,6 +169,7 @@ describe('Breadcrumbs', () => {
     const productsText = screen.getByText('Products');
 
     expect(homeLink).toBeInTheDocument();
-    expect(productsText.tagName).not.toBe('A'); // Disabled item should not be a link
+    // Disabled item should not be a link, should be a button or span
+    expect(['BUTTON', 'SPAN']).toContain(productsText.tagName);
   });
 });

@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type RadioInputSize = 'sm' | 'md' | 'lg';
 export type RadioInputState = 'default' | 'error' | 'success' | 'warning';
@@ -47,19 +47,19 @@ const getSizeStyles = (size: RadioInputSize) => {
   return sizes[size];
 };
 
-const getStateStyles = (state: RadioInputState, theme: any) => {
+const getStateStyles = (state: RadioInputState, theme: DefaultTheme) => {
   const states = {
     default: css`
       border-color: ${theme.colors.neutral[300]};
     `,
     error: css`
-      border-color: ${theme.colors.semantic.error.main};
+      border-color: ${theme.colors.semantic.error[500]};
     `,
     success: css`
-      border-color: ${theme.colors.semantic.success.main};
+      border-color: ${theme.colors.semantic.success[500]};
     `,
     warning: css`
-      border-color: ${theme.colors.semantic.warning.main};
+      border-color: ${theme.colors.semantic.warning[500]};
     `,
   };
   return states[state];
@@ -82,7 +82,7 @@ const Label = styled.label<{ $required: boolean }>`
     css`
       &::after {
         content: ' *';
-        color: ${({ theme }) => theme.colors.semantic.error.main};
+        color: ${({ theme }) => theme.colors.semantic.error[500]};
       }
     `}
 `;
@@ -128,8 +128,8 @@ const StyledRadio = styled.div<{
   ${({ $checked, theme }) =>
     $checked &&
     css`
-      border-color: ${theme.colors.primary.main};
-      background-color: ${theme.colors.primary.main};
+      border-color: ${theme.colors.primary[500]};
+      background-color: ${theme.colors.primary[500]};
 
       &::after {
         content: '';
@@ -140,7 +140,7 @@ const StyledRadio = styled.div<{
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        background-color: ${theme.colors.neutral.white};
+        background-color: ${theme.colors.neutral[50]};
       }
     `}
 
@@ -152,11 +152,11 @@ const StyledRadio = styled.div<{
     `}
 
   ${RadioOptionContainer}:hover &:not([disabled]) {
-    border-color: ${({ theme }) => theme.colors.primary.main};
+    border-color: ${({ theme }) => theme.colors.primary[500]};
   }
 
   ${HiddenRadio}:focus + & {
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary.light}40;
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary[100]}40;
   }
 `;
 
@@ -172,11 +172,11 @@ const HelperText = styled.div<{ $state: RadioInputState }>`
   color: ${({ theme, $state }) => {
     switch ($state) {
       case 'error':
-        return theme.colors.semantic.error.main;
+        return theme.colors.semantic.error[500];
       case 'success':
-        return theme.colors.semantic.success.main;
+        return theme.colors.semantic.success[500];
       case 'warning':
-        return theme.colors.semantic.warning.main;
+        return theme.colors.semantic.warning[500];
       default:
         return theme.colors.neutral[600];
     }

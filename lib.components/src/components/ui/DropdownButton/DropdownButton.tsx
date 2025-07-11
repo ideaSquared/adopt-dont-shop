@@ -1,40 +1,40 @@
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import React from 'react'
-import styled from 'styled-components'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import React from 'react';
+import styled from 'styled-components';
 
 // Type definitions
 type DropdownItem = {
   /** The text to display for this item */
-  label: string
+  label: string;
   /** Optional URL if the item should act as a link */
-  to?: string
+  to?: string;
   /** Optional click handler for the item */
-  onClick?: () => void
-}
+  onClick?: () => void;
+};
 
 type DropdownButtonProps = {
   /** The text to display in the trigger button */
-  triggerLabel: string
+  triggerLabel: string;
   /** Array of items to display in the dropdown */
-  items: DropdownItem[]
+  items: DropdownItem[];
   /** Optional className for styling */
-  className?: string
-}
+  className?: string;
+};
 
 // Style definitions
 const ButtonTrigger = styled.button`
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.fast};
-  background-color: ${({ theme }) => theme.background.content};
+  background-color: ${({ theme }) => theme.background.overlay};
   border: ${({ theme }) => theme.border.width.thin} solid
-    ${({ theme }) => theme.border.color.default};
+    ${({ theme }) => theme.border.color.primary};
   border-radius: ${({ theme }) => theme.border.radius.md};
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  color: ${({ theme }) => theme.text.body};
+  color: ${({ theme }) => theme.text.primary};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
 
   &:hover {
-    background-color: ${({ theme }) => theme.background.contrast};
+    background-color: ${({ theme }) => theme.background.overlay};
   }
 
   &:focus-visible {
@@ -42,22 +42,22 @@ const ButtonTrigger = styled.button`
       ${({ theme }) => theme.border.color.focus};
     outline-offset: 2px;
   }
-`
+`;
 
 const DropdownContent = styled(DropdownMenu.Content)`
-  background-color: ${({ theme }) => theme.background.content};
+  background-color: ${({ theme }) => theme.background.overlay};
   border: ${({ theme }) => theme.border.width.thin} solid
-    ${({ theme }) => theme.border.color.default};
+    ${({ theme }) => theme.border.color.primary};
   border-radius: ${({ theme }) => theme.border.radius.md};
   padding: ${({ theme }) => theme.spacing.xs} 0;
   min-width: 150px;
   z-index: ${({ theme }) => theme.zIndex.dropdown};
   box-shadow: ${({ theme }) => theme.shadows.md};
-`
+`;
 
 const DropdownItem = styled(DropdownMenu.Item)`
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  color: ${({ theme }) => theme.text.body};
+  color: ${({ theme }) => theme.text.primary};
   text-decoration: none;
   cursor: pointer;
   display: block;
@@ -65,8 +65,8 @@ const DropdownItem = styled(DropdownMenu.Item)`
 
   &:hover,
   &:focus {
-    background-color: ${({ theme }) => theme.background.contrast};
-    color: ${({ theme }) => theme.text.dark};
+    background-color: ${({ theme }) => theme.background.overlay};
+    color: ${({ theme }) => theme.text.inverse};
     outline: none;
   }
 
@@ -75,7 +75,7 @@ const DropdownItem = styled(DropdownMenu.Item)`
       ${({ theme }) => theme.border.color.focus};
     outline-offset: -2px;
   }
-`
+`;
 
 export const DropdownButton: React.FC<DropdownButtonProps> = ({
   triggerLabel,
@@ -91,7 +91,7 @@ export const DropdownButton: React.FC<DropdownButtonProps> = ({
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>
-        <DropdownContent sideOffset={5} align="end">
+        <DropdownContent sideOffset={5} align='end'>
           {items.map((item, index) => (
             <DropdownItem
               as={item.to ? 'a' : 'div'}
@@ -105,7 +105,7 @@ export const DropdownButton: React.FC<DropdownButtonProps> = ({
         </DropdownContent>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
-  )
-}
+  );
+};
 
-export default DropdownButton
+export default DropdownButton;

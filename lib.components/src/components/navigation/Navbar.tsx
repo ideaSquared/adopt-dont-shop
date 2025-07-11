@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 import { Avatar } from '../ui/Avatar';
 
 export type NavbarVariant = 'default' | 'transparent' | 'solid';
@@ -40,10 +40,10 @@ export type NavbarProps = {
   'data-testid'?: string;
 };
 
-const getVariantStyles = (variant: NavbarVariant, theme: any) => {
+const getVariantStyles = (variant: NavbarVariant, theme: DefaultTheme) => {
   const variants = {
     default: css`
-      background-color: ${theme.colors.neutral.white};
+      background-color: ${theme.colors.neutral[50]};
       border-bottom: 1px solid ${theme.colors.neutral[200]};
     `,
     transparent: css`
@@ -51,11 +51,11 @@ const getVariantStyles = (variant: NavbarVariant, theme: any) => {
       border-bottom: none;
     `,
     solid: css`
-      background-color: ${theme.colors.primary.main};
+      background-color: ${theme.colors.primary[500]};
       border-bottom: none;
 
       * {
-        color: ${theme.colors.neutral.white} !important;
+        color: ${theme.colors.neutral[50]} !important;
       }
     `,
   };
@@ -122,7 +122,7 @@ const NavItems = styled.div<{ $isOpen: boolean }>`
     left: 0;
     right: 0;
     flex-direction: column;
-    background-color: ${({ theme }) => theme.colors.neutral.white};
+    background-color: ${({ theme }) => theme.colors.neutral[50]};
     border-bottom: 1px solid ${({ theme }) => theme.colors.neutral[200]};
     padding: ${({ theme }) => theme.spacing.md};
     gap: ${({ theme }) => theme.spacing.md};
@@ -137,7 +137,7 @@ const NavItem = styled.a<{ $active: boolean; $disabled: boolean }>`
   gap: ${({ theme }) => theme.spacing.xs};
   padding: ${({ theme }) => `${theme.spacing.sm} ${theme.spacing.md}`};
   color: ${({ theme, $active }) =>
-    $active ? theme.colors.primary.main : theme.colors.neutral[700]};
+    $active ? theme.colors.primary[500] : theme.colors.neutral[700]};
   text-decoration: none;
   font-weight: ${({ theme, $active }) =>
     $active ? theme.typography.weight.medium : theme.typography.weight.normal};
@@ -149,7 +149,7 @@ const NavItem = styled.a<{ $active: boolean; $disabled: boolean }>`
   &:hover {
     background-color: ${({ theme, $disabled }) =>
       $disabled ? 'transparent' : theme.colors.neutral[100]};
-    color: ${({ theme, $disabled }) => ($disabled ? 'inherit' : theme.colors.primary.main)};
+    color: ${({ theme, $disabled }) => ($disabled ? 'inherit' : theme.colors.primary[500])};
   }
 
   @media (max-width: 768px) {
@@ -209,7 +209,7 @@ const UserMenu = styled.div<{ $isOpen: boolean }>`
   position: absolute;
   top: 100%;
   right: 0;
-  background: ${({ theme }) => theme.colors.neutral.white};
+  background: ${({ theme }) => theme.colors.neutral[50]};
   border: 1px solid ${({ theme }) => theme.colors.neutral[200]};
   border-radius: ${({ theme }) => theme.spacing.sm};
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

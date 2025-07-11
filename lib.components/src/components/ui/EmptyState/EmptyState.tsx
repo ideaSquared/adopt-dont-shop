@@ -1,5 +1,5 @@
 import React from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type EmptyStateSize = 'sm' | 'md' | 'lg';
 export type EmptyStateVariant = 'default' | 'error' | 'search' | 'loading';
@@ -59,7 +59,7 @@ const getSizeStyles = (size: EmptyStateSize) => {
       }
 
       .description {
-        font-size: ${({ theme }) => theme.typography.size.md};
+        font-size: ${({ theme }) => theme.typography.size.base};
         margin-bottom: ${({ theme }) => theme.spacing.lg};
       }
     `,
@@ -86,7 +86,7 @@ const getSizeStyles = (size: EmptyStateSize) => {
   return sizes[size];
 };
 
-const getVariantStyles = (variant: EmptyStateVariant, theme: any) => {
+const getVariantStyles = (variant: EmptyStateVariant, theme: DefaultTheme) => {
   const variants = {
     default: css`
       .icon {
@@ -101,10 +101,10 @@ const getVariantStyles = (variant: EmptyStateVariant, theme: any) => {
     `,
     error: css`
       .icon {
-        color: ${theme.colors.semantic.error.main};
+        color: ${theme.colors.semantic.error[500]};
       }
       .title {
-        color: ${theme.colors.semantic.error.dark};
+        color: ${theme.colors.semantic.error[900]};
       }
       .description {
         color: ${theme.colors.neutral[600]};
@@ -112,7 +112,7 @@ const getVariantStyles = (variant: EmptyStateVariant, theme: any) => {
     `,
     search: css`
       .icon {
-        color: ${theme.colors.primary.main};
+        color: ${theme.colors.primary[500]};
       }
       .title {
         color: ${theme.colors.neutral[700]};
@@ -206,13 +206,13 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
   ${({ $variant, theme }) =>
     $variant === 'primary'
       ? css`
-          background-color: ${theme.colors.primary.main};
-          border-color: ${theme.colors.primary.main};
-          color: ${theme.colors.neutral.white};
+          background-color: ${theme.colors.primary[500]};
+          border-color: ${theme.colors.primary[500]};
+          color: ${theme.colors.neutral[50]};
 
           &:hover:not(:disabled) {
-            background-color: ${theme.colors.primary.dark};
-            border-color: ${theme.colors.primary.dark};
+            background-color: ${theme.colors.primary[700]};
+            border-color: ${theme.colors.primary[700]};
           }
         `
       : css`
@@ -237,63 +237,10 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
   }
 
   &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors.primary.main};
+    outline: 2px solid ${({ theme }) => theme.colors.primary[500]};
     outline-offset: 2px;
   }
 `;
-
-// Default icons for different variants
-const DefaultIcon = () => (
-  <svg viewBox='0 0 24 24' fill='currentColor'>
-    <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' />
-  </svg>
-);
-
-const ErrorIcon = () => (
-  <svg viewBox='0 0 24 24' fill='currentColor'>
-    <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z' />
-  </svg>
-);
-
-const SearchIcon = () => (
-  <svg viewBox='0 0 24 24' fill='currentColor'>
-    <path d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' />
-  </svg>
-);
-
-const LoadingIcon = () => (
-  <svg viewBox='0 0 24 24' fill='currentColor'>
-    <path d='M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z'>
-      <animateTransform
-        attributeName='transform'
-        type='rotate'
-        from='0 12 12'
-        to='360 12 12'
-        dur='1s'
-        repeatCount='indefinite'
-      />
-    </path>
-  </svg>
-);
-
-const BoxIcon = () => (
-  <svg viewBox='0 0 24 24' fill='currentColor'>
-    <path d='M12,2L2,7L12,12L22,7L12,2M17,16L12,18.5L7,16V10.5L12,13L17,10.5V16Z' />
-  </svg>
-);
-
-const getDefaultIcon = (variant: EmptyStateVariant) => {
-  switch (variant) {
-    case 'error':
-      return <ErrorIcon />;
-    case 'search':
-      return <SearchIcon />;
-    case 'loading':
-      return <LoadingIcon />;
-    default:
-      return <BoxIcon />;
-  }
-};
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
@@ -306,7 +253,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   className,
   'data-testid': testId,
 }) => {
-  const displayIcon = icon || getDefaultIcon(variant);
+  const displayIcon = icon;
 
   return (
     <EmptyStateContainer

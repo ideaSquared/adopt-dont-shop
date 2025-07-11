@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 import { FileUpload } from './FileUpload';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 // Mock file for testing
@@ -43,10 +43,9 @@ describe('FileUpload', () => {
     const input = screen.getByTestId('file-upload').querySelector('input[type="file"]');
     const file = createMockFile('test.txt', 1024, 'text/plain');
 
-    if (input) {
-      fireEvent.change(input, { target: { files: [file] } });
-      expect(handleFilesSelect).toHaveBeenCalledWith([file]);
-    }
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { files: [file] } });
+    expect(handleFilesSelect).toHaveBeenCalledWith([file]);
   });
 
   it('displays error message', () => {
@@ -128,11 +127,10 @@ describe('FileUpload', () => {
     const input = screen.getByTestId('file-upload').querySelector('input[type="file"]');
     const largeFile = createMockFile('large.txt', 2048, 'text/plain');
 
-    if (input) {
-      fireEvent.change(input, { target: { files: [largeFile] } });
-      expect(handleError).toHaveBeenCalledWith('large.txt is too large. Maximum size is 1 KB');
-      expect(handleFilesSelect).not.toHaveBeenCalled();
-    }
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { files: [largeFile] } });
+    expect(handleError).toHaveBeenCalledWith('large.txt is too large. Maximum size is 1 KB');
+    expect(handleFilesSelect).not.toHaveBeenCalled();
   });
 
   it('validates file type', () => {
@@ -151,11 +149,10 @@ describe('FileUpload', () => {
     const input = screen.getByTestId('file-upload').querySelector('input[type="file"]');
     const wrongTypeFile = createMockFile('document.txt', 1024, 'text/plain');
 
-    if (input) {
-      fireEvent.change(input, { target: { files: [wrongTypeFile] } });
-      expect(handleError).toHaveBeenCalledWith('document.txt is not an accepted file type');
-      expect(handleFilesSelect).not.toHaveBeenCalled();
-    }
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { files: [wrongTypeFile] } });
+    expect(handleError).toHaveBeenCalledWith('document.txt is not an accepted file type');
+    expect(handleFilesSelect).not.toHaveBeenCalled();
   });
 
   it('validates max files count', () => {
@@ -174,10 +171,9 @@ describe('FileUpload', () => {
     const input = screen.getByTestId('file-upload').querySelector('input[type="file"]');
     const newFile = createMockFile('new.pdf', 1024, 'application/pdf');
 
-    if (input) {
-      fireEvent.change(input, { target: { files: [newFile] } });
-      expect(handleError).toHaveBeenCalledWith('Maximum 1 files allowed');
-    }
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { files: [newFile] } });
+    expect(handleError).toHaveBeenCalledWith('Maximum 1 files allowed');
   });
 
   it('applies different sizes', () => {
@@ -186,9 +182,9 @@ describe('FileUpload', () => {
     expect(screen.getByTestId('file-upload')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <FileUpload size='lg' data-testid='file-upload' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
 
     expect(screen.getByTestId('file-upload')).toBeInTheDocument();
@@ -200,9 +196,9 @@ describe('FileUpload', () => {
     expect(screen.getByTestId('file-upload')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <FileUpload state='warning' data-testid='file-upload' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
 
     expect(screen.getByTestId('file-upload')).toBeInTheDocument();

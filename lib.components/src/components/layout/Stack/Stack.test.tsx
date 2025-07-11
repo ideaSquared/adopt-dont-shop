@@ -1,11 +1,12 @@
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from '../../../styles/ThemeProvider';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 import { Stack } from './Stack';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('Stack', () => {
@@ -26,7 +27,7 @@ describe('Stack', () => {
   });
 
   it('renders with different directions', () => {
-    const directions = ['row', 'column'] as const;
+    const directions = ['horizontal', 'vertical'] as const;
 
     directions.forEach(direction => {
       renderWithTheme(
@@ -139,7 +140,7 @@ describe('Stack', () => {
   it('combines all props correctly', () => {
     renderWithTheme(
       <Stack
-        direction='row'
+        direction='horizontal'
         spacing='lg'
         align='center'
         justify='between'
@@ -197,7 +198,7 @@ describe('Stack', () => {
   });
 
   it('handles empty stack', () => {
-    renderWithTheme(<Stack data-testid='empty-stack' />);
+    renderWithTheme(<Stack data-testid='empty-stack'>{null}</Stack>);
     const stack = screen.getByTestId('empty-stack');
     expect(stack).toBeInTheDocument();
   });

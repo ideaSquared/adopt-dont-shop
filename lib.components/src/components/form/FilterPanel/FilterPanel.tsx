@@ -11,7 +11,7 @@ const FiltersContainer = styled.div`
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 1rem;
-  background: ${props => props.theme.background.content};
+  background: ${props => props.theme.background.overlay};
   border-radius: ${props => props.theme.border.radius.md};
 
   /* Ensure filters have a reasonable minimum width while allowing them to grow */
@@ -39,7 +39,8 @@ type GenericFiltersProps<T> = {
   filterConfig: FilterConfig[];
 };
 
-const GenericFilters = <T extends Record<string, any>>({
+type FilterRecord = Record<string, string | boolean | number | undefined>;
+const GenericFilters = <T extends FilterRecord>({
   filters,
   onFilterChange,
   filterConfig,
@@ -61,13 +62,14 @@ const GenericFilters = <T extends Record<string, any>>({
     <FiltersContainer role='search' aria-label='Filter options'>
       {filterConfig.map(({ name, label, type, placeholder, options }) => {
         const inputId = `filter-${name}`;
+        const value = filters[name];
         return (
           <div key={name}>
             {type === 'text' && (
               <Input
                 id={inputId}
                 label={label}
-                value={filters[name] || ''}
+                value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
                 onChange={handleChange(name, type)}
                 placeholder={placeholder || ''}
                 type='text'
@@ -76,24 +78,19 @@ const GenericFilters = <T extends Record<string, any>>({
             {type === 'date' && (
               <DateInput
                 id={inputId}
-                value={filters[name] || ''}
+                value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
                 onChange={handleChange(name, type)}
               />
             )}
             {type === 'select' && options && (
               <SelectInput
-                id={inputId}
-                value={filters[name] || ''}
+                value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
                 onChange={handleSelectChange(name)}
                 options={options}
               />
             )}
             {type === 'checkbox' && (
-              <CheckboxInput
-                id={inputId}
-                checked={!!filters[name]}
-                onChange={handleChange(name, type)}
-              />
+              <CheckboxInput id={inputId} checked={!!value} onChange={handleChange(name, type)} />
             )}
           </div>
         );

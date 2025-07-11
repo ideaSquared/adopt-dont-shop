@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { css, DefaultTheme, keyframes } from 'styled-components';
 import { ToastMessage } from '../../../hooks/useToast';
 
 export type ToastPosition =
@@ -163,27 +163,40 @@ const getAnimationStyles = (position: ToastPosition, isExiting: boolean) => {
   }
 };
 
-const getToastColors = (type: ToastMessage['type'], theme: any) => {
+// ...existing code...
+const getToastColors = (type: ToastMessage['type'], theme: DefaultTheme) => {
+  const getColor = (scale: Record<string | number, string>, fallback: string) => {
+    // Prefer 100 for light, 500 for main, 900 for dark if available
+    return {
+      light: scale[100] || fallback,
+      main: scale[500] || fallback,
+      dark: scale[900] || fallback,
+    };
+  };
+  const success = getColor(theme.colors.semantic.success, '#22c55e');
+  const error = getColor(theme.colors.semantic.error, '#ef4444');
+  const warning = getColor(theme.colors.semantic.warning, '#f59e42');
+  const info = getColor(theme.colors.semantic.info, '#3b82f6');
   const colors = {
     success: css`
-      background-color: ${theme.colors.semantic.success.light}20;
-      border-color: ${theme.colors.semantic.success.main};
-      color: ${theme.colors.semantic.success.dark};
+      background-color: ${success.light}20;
+      border-color: ${success.main};
+      color: ${success.dark};
     `,
     error: css`
-      background-color: ${theme.colors.semantic.error.light}20;
-      border-color: ${theme.colors.semantic.error.main};
-      color: ${theme.colors.semantic.error.dark};
+      background-color: ${error.light}20;
+      border-color: ${error.main};
+      color: ${error.dark};
     `,
     warning: css`
-      background-color: ${theme.colors.semantic.warning.light}20;
-      border-color: ${theme.colors.semantic.warning.main};
-      color: ${theme.colors.semantic.warning.dark};
+      background-color: ${warning.light}20;
+      border-color: ${warning.main};
+      color: ${warning.dark};
     `,
     info: css`
-      background-color: ${theme.colors.semantic.info.light}20;
-      border-color: ${theme.colors.semantic.info.main};
-      color: ${theme.colors.semantic.info.dark};
+      background-color: ${info.light}20;
+      border-color: ${info.main};
+      color: ${info.dark};
     `,
   };
   return colors[type];
@@ -390,7 +403,12 @@ export const Toast: React.FC<ToastProps> = ({
   useEffect(() => {
     if (autoClose && duration && duration > 0 && onClose) {
       const timer = setTimeout(() => {
-        handleClose();
+        setIsExiting(true);
+        setTimeout(() => {
+          if (onClose) {
+            onClose(id);
+          }
+        }, 200);
       }, duration);
 
       return () => clearTimeout(timer);

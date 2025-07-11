@@ -346,4 +346,3 @@ export const Alert: React.FC<AlertProps> = ({
 };
 
 Alert.displayName = 'Alert';
-

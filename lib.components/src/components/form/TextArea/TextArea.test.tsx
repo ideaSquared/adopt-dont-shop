@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider } from '../../../styles/ThemeProvider';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 import { TextArea } from './TextArea';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('TextArea', () => {
@@ -36,6 +36,8 @@ describe('TextArea', () => {
     const textarea = screen.getByRole('textbox');
     await user.type(textarea, 'test content');
 
+    // Flush all effects/state updates
+    await Promise.resolve();
     expect(handleChange).toHaveBeenCalled();
   });
 
@@ -127,6 +129,8 @@ describe('TextArea', () => {
     expect(helperText).toBeInTheDocument();
 
     await user.type(textarea, 'test value');
+    // Flush all effects/state updates
+    await Promise.resolve();
     expect(handleChange).toHaveBeenCalled();
   });
 });

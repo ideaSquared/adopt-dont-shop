@@ -1,11 +1,12 @@
+import '@testing-library/jest-dom/';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 import { Pagination } from './Pagination';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('Pagination', () => {
@@ -163,9 +164,9 @@ describe('Pagination', () => {
     expect(screen.getByTestId('pagination')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <Pagination {...defaultProps} size='lg' data-testid='pagination' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
 
     expect(screen.getByTestId('pagination')).toBeInTheDocument();
@@ -179,9 +180,9 @@ describe('Pagination', () => {
     expect(screen.getByTestId('pagination')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <Pagination {...defaultProps} variant='minimal' data-testid='pagination' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
 
     expect(screen.getByTestId('pagination')).toBeInTheDocument();

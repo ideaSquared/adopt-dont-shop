@@ -1,11 +1,13 @@
+import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from '../../styles/ThemeProvider';
+
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../styles/theme';
 import { Alert } from './Alert';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('Alert', () => {
@@ -53,10 +55,15 @@ describe('Alert', () => {
   });
 
   it('renders with different variant styles', () => {
-    const variants = ['info', 'success', 'warning', 'danger'] as const;
+    const variants: Array<'info' | 'success' | 'warning' | 'error'> = [
+      'info',
+      'success',
+      'warning',
+      'error',
+    ];
 
     variants.forEach(variant => {
-      const { rerender } = renderWithTheme(<Alert variant={variant}>{variant} alert</Alert>);
+      renderWithTheme(<Alert variant={variant}>{variant} alert</Alert>);
       const alert = screen.getByText(`${variant} alert`);
       expect(alert).toBeInTheDocument();
     });

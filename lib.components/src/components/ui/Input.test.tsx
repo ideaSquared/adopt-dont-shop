@@ -1,12 +1,13 @@
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider } from '../../styles/ThemeProvider';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../styles/theme';
 import { Input } from './Input';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('Input', () => {
@@ -137,18 +138,19 @@ describe('Input', () => {
   });
 
   it('applies fullWidth styles when fullWidth prop is true', () => {
-    renderWithTheme(<Input fullWidth data-testid='full-width-input' />);
+    renderWithTheme(<Input isFullWidth data-testid='full-width-input' />);
     const input = screen.getByTestId('full-width-input');
     expect(input).toBeInTheDocument();
   });
 
   it('handles different input variants', () => {
-    const variants = ['outlined', 'filled', 'standard'] as const;
+    const variants = ['default', 'error', 'success'] as const;
 
     variants.forEach(variant => {
       renderWithTheme(<Input variant={variant} data-testid={`input-${variant}`} />);
       const input = screen.getByTestId(`input-${variant}`);
       expect(input).toBeInTheDocument();
+      // Optionally, check for a class or attribute if the variant is reflected in the DOM
     });
   });
 
@@ -159,8 +161,8 @@ describe('Input', () => {
         size='lg'
         placeholder='Enter email'
         required
-        fullWidth
-        variant='outlined'
+        isFullWidth
+        variant='default'
         className='combined-input'
         data-testid='combined-input'
       />

@@ -160,11 +160,11 @@ const getWeightStyles = (weight: HeadingWeight, theme: Theme) => {
 const getColorStyles = (color: HeadingColor, theme: Theme) => {
   switch (color) {
     case 'dark':
-      return `color: ${theme.text.dark};`;
+      return `color: ${theme.text.primary};`;
     case 'light':
-      return `color: ${theme.text.light};`;
+      return `color: ${theme.text.inverse};`;
     case 'muted':
-      return `color: ${theme.text.dim};`;
+      return `color: ${theme.text.disabled};`;
     case 'primary':
       return `color: ${theme.text.primary};`;
     case 'secondary':
@@ -172,14 +172,14 @@ const getColorStyles = (color: HeadingColor, theme: Theme) => {
     case 'success':
       return `color: ${theme.text.success};`;
     case 'danger':
-      return `color: ${theme.text.danger};`;
+      return `color: ${theme.text.error};`;
     case 'warning':
       return `color: ${theme.text.warning};`;
     case 'info':
       return `color: ${theme.text.info};`;
     case 'body':
     default:
-      return `color: ${theme.text.body};`;
+      return `color: ${theme.text.primary};`;
   }
 };
 
@@ -206,7 +206,7 @@ const StyledHeading = styled.h1.withConfig({
   shouldForwardProp: prop => !prop.startsWith('$'),
 })<StyledHeadingProps>`
   /* Base heading styles */
-  font-family: ${({ theme }) => theme.typography.family.heading};
+  font-family: ${({ theme }) => theme.typography.family.display};
 
   /* Apply size styles */
   ${({ $size, theme }) => getSizeStyles($size, theme)}

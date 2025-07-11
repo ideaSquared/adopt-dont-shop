@@ -60,7 +60,29 @@ export type AvatarProps = {
   'data-testid'?: string;
 };
 
-const getSizeStyles = (size: AvatarSize, theme: any) => {
+type Theme = {
+  spacing: Record<string | number, string>;
+  typography: {
+    size: Record<string, string>;
+    family: { sans: string };
+    weight: { medium: number | string };
+  };
+  colors: {
+    semantic: {
+      success: Record<string, string>;
+      warning: Record<string, string>;
+      error: Record<string, string>;
+    };
+    neutral: Record<string, string>;
+  };
+  border: { radius: { full: string; lg: string } };
+  transitions: { fast: string };
+  mode?: string;
+  shadows: { md: string; focus: string };
+  background: { secondary: string };
+};
+
+const getSizeStyles = (size: AvatarSize, theme: Theme) => {
   const sizes = {
     xs: css`
       width: ${theme.spacing[6]};
@@ -96,7 +118,7 @@ const getSizeStyles = (size: AvatarSize, theme: any) => {
   return sizes[size];
 };
 
-const getStatusColor = (status: StatusIndicator, theme: any) => {
+const getStatusColor = (status: StatusIndicator, theme: Theme) => {
   const colors = {
     online: theme.colors.semantic.success[500],
     offline: theme.colors.neutral[400],
@@ -323,14 +345,13 @@ export const Avatar: React.FC<AvatarProps> = ({
   'data-testid': dataTestId,
 }) => {
   const [imageError, setImageError] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleImageError = () => {
     setImageError(true);
   };
 
+  // Removed imageLoaded state and handler as it was unused
   const handleImageLoad = () => {
-    setImageLoaded(true);
     setImageError(false);
   };
 
@@ -401,4 +422,3 @@ export const Avatar: React.FC<AvatarProps> = ({
 };
 
 Avatar.displayName = 'Avatar';
-

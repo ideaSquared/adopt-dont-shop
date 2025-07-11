@@ -1,5 +1,5 @@
 import React from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type ListGroupVariant = 'default' | 'flush' | 'bordered';
 export type ListGroupSize = 'sm' | 'md' | 'lg';
@@ -36,7 +36,7 @@ interface ListGroupProps {
   'data-testid'?: string;
 }
 
-const getVariantStyles = (variant: ListGroupVariant, theme: any) => {
+const getVariantStyles = (variant: ListGroupVariant, theme: DefaultTheme) => {
   const variants = {
     default: css`
       border: 1px solid ${theme.border.color.primary};
@@ -64,7 +64,7 @@ const getVariantStyles = (variant: ListGroupVariant, theme: any) => {
   return variants[variant];
 };
 
-const getSizeStyles = (size: ListGroupSize, theme: any) => {
+const getSizeStyles = (size: ListGroupSize, theme: DefaultTheme) => {
   const sizes = {
     sm: css`
       li {

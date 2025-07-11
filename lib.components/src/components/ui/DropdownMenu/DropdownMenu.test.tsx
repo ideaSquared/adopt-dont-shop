@@ -1,12 +1,14 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider } from '../../../styles/ThemeProvider';
-import { lightTheme as theme } from '../../../styles/theme';
+
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+import { lightTheme } from '../../../styles/theme';
 import Dropdown from './DropdownMenu';
 
 describe('Dropdown', () => {
-  const renderWithTheme = (ui: React.ReactElement) => {
-    return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
+  const renderWithTheme = (component: React.ReactElement) => {
+    return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
   };
 
   it('renders the trigger label correctly', () => {
@@ -17,18 +19,19 @@ describe('Dropdown', () => {
     expect(triggerElement).toBeInTheDocument();
   });
 
-  // TODO: Fix
   it.skip('shows dropdown items when the trigger is clicked', async () => {
     const items = [
       { label: 'Item 1', to: '/item1' },
       { label: 'Item 2', to: '/item2' },
     ];
 
+    const user = userEvent.setup();
     renderWithTheme(<Dropdown triggerLabel='Menu' items={items} />);
 
-    // Click the trigger to open the dropdown
+    // The trigger is a span, so use keyboard to open (Space or Enter)
     const triggerElement = screen.getByText('Menu');
-    fireEvent.click(triggerElement);
+    triggerElement.focus();
+    await user.keyboard('{Enter}');
 
     // Ensure the dropdown has opened by checking for the presence of the dropdown items
     await waitFor(() => {
@@ -38,18 +41,18 @@ describe('Dropdown', () => {
     });
   });
 
-  // TODO: Fix
   it.skip('renders dropdown items with correct href attributes', async () => {
     const items = [
       { label: 'Item 1', to: '/item1' },
       { label: 'Item 2', to: '/item2' },
     ];
 
+    const user = userEvent.setup();
     renderWithTheme(<Dropdown triggerLabel='Menu' items={items} />);
 
-    // Click the trigger to open the dropdown
     const triggerElement = screen.getByText('Menu');
-    fireEvent.click(triggerElement);
+    triggerElement.focus();
+    await user.keyboard('{Enter}');
 
     // Wait for the dropdown items to appear and check href attributes
     await waitFor(() => {

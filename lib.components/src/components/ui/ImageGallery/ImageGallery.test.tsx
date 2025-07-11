@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ThemeProvider } from '../../../styles/ThemeProvider';
-import { lightTheme as theme } from '../../../styles/theme';
+
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+import { lightTheme } from '../../../styles/theme';
 import ImageGallery from './ImageGallery';
 
 describe('ImageGallery Component', () => {
@@ -12,7 +13,7 @@ describe('ImageGallery Component', () => {
   ];
 
   const renderWithTheme = (ui: React.ReactElement) => {
-    return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
+    return render(<StyledThemeProvider theme={lightTheme}>{ui}</StyledThemeProvider>);
   };
 
   it('renders images correctly in gallery view', () => {
@@ -20,7 +21,7 @@ describe('ImageGallery Component', () => {
 
     // Query all visible <img> elements
     const images = screen.getAllByRole('img');
-    expect(images.length).toBe(initialImages.length);
+    expect(images).toHaveLength(initialImages.length);
 
     initialImages.forEach((src, index) => {
       expect(images[index]).toHaveAttribute('src', src);
@@ -31,7 +32,7 @@ describe('ImageGallery Component', () => {
     renderWithTheme(<ImageGallery images={initialImages} viewMode='carousel' />);
 
     const images = screen.getAllByRole('img');
-    expect(images.length).toBe(1);
+    expect(images).toHaveLength(1);
     expect(images[0]).toHaveAttribute('src', initialImages[0]);
   });
 
@@ -67,7 +68,7 @@ describe('ImageGallery Component', () => {
     const deleteButtons = screen.getAllByRole('button', {
       name: /delete image/i,
     });
-    expect(deleteButtons.length).toBe(initialImages.length);
+    expect(deleteButtons).toHaveLength(initialImages.length);
 
     // Click the first delete button
     fireEvent.click(deleteButtons[0]);
@@ -98,7 +99,7 @@ describe('ImageGallery Component', () => {
     const deleteButtons = screen.queryAllByRole('button', {
       name: /delete image/i,
     });
-    expect(deleteButtons.length).toBe(0);
+    expect(deleteButtons).toHaveLength(0);
   });
 
   it('does not show upload button if onUpload is not provided', () => {
@@ -112,7 +113,7 @@ describe('ImageGallery Component', () => {
     renderWithTheme(<ImageGallery images={initialImages} viewMode='carousel' />);
 
     const dots = screen.getAllByRole('button', { name: /dot/i }); // Ensure dots have accessible names
-    expect(dots.length).toBe(initialImages.length);
+    expect(dots).toHaveLength(initialImages.length);
 
     fireEvent.click(dots[1]); // Click the second dot
     const image = screen.getByRole('img');

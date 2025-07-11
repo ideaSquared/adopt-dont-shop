@@ -1,5 +1,5 @@
 import React from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { css, DefaultTheme, keyframes } from 'styled-components';
 
 export type ProgressBarSize = 'sm' | 'md' | 'lg';
 export type ProgressBarVariant = 'default' | 'success' | 'warning' | 'error';
@@ -52,19 +52,19 @@ const getSizeStyles = (size: ProgressBarSize) => {
   return sizes[size];
 };
 
-const getVariantStyles = (variant: ProgressBarVariant, theme: any) => {
+const getVariantStyles = (variant: ProgressBarVariant, theme: DefaultTheme) => {
   const variants = {
     default: css`
-      background-color: ${theme.colors.primary.main};
+      background-color: ${theme.colors.primary[500]};
     `,
     success: css`
-      background-color: ${theme.colors.semantic.success.main};
+      background-color: ${theme.colors.semantic.success[500]};
     `,
     warning: css`
-      background-color: ${theme.colors.semantic.warning.main};
+      background-color: ${theme.colors.semantic.warning[500]};
     `,
     error: css`
-      background-color: ${theme.colors.semantic.error.main};
+      background-color: ${theme.colors.semantic.error[500]};
     `,
   };
   return variants[variant];
@@ -117,17 +117,17 @@ const ProgressFill = styled.div<{
 
   ${({ $variant, theme }) => getVariantStyles($variant, theme)}
 
-  ${({ $indeterminate }) =>
+  ${({ $indeterminate, $progress }) =>
     $indeterminate
       ? css`
           width: 25%;
           animation: ${indeterminateAnimation} 2s infinite linear;
         `
       : css`
-          width: ${({ $progress }) => $progress}%;
+          width: ${$progress}%;
         `}
 
-  ${({ $striped, theme }) =>
+  ${({ $striped }) =>
     $striped &&
     css`
       background-image: linear-gradient(
