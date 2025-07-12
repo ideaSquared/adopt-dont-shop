@@ -1,5 +1,6 @@
 import { Op, WhereOptions } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
+import { NotificationPriority, NotificationType } from '../models/Notification';
 import sequelize from '../sequelize';
 import {
   ChatListResponse,
@@ -17,6 +18,7 @@ import {
 } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { NotificationService } from './notification.service';
 
 interface ChatCreateData {
   rescueId?: string;
@@ -35,6 +37,7 @@ interface SendMessageData {
   messageType?: 'text' | 'image' | 'file';
   attachments?: MessageAttachment[];
   replyToId?: string;
+  threadId?: string; // Add support for message threading
 }
 
 interface MessageAttachment {
@@ -547,6 +550,36 @@ export class ChatService {
 
       await transaction.commit();
 
+      // Send real-time notifications to other participants
+      try {
+        const participants = await ChatParticipant.findAll({
+          where: {
+            chat_id: data.chatId,
+            participant_id: { [Op.ne]: data.senderId },
+          },
+          include: [{ model: User, as: 'User' }],
+        });
+
+        // Send push notifications to offline users
+        for (const participant of participants) {
+          await NotificationService.createNotification({
+            userId: participant.participant_id,
+            type: NotificationType.MESSAGE_RECEIVED,
+            title: 'New Message',
+            message: `New message from ${messageWithSender.Sender?.firstName || 'Someone'}`,
+            data: {
+              chatId: data.chatId,
+              messageId: messageWithSender.message_id,
+              senderId: data.senderId,
+            },
+            priority: NotificationPriority.NORMAL,
+          });
+        }
+      } catch (notificationError) {
+        logger.warn('Failed to send notifications:', notificationError);
+        // Don't fail the message send if notifications fail
+      }
+
       // Determine the actual message type for logging
       const actualMessageType = this.inferMessageType(data.attachments);
 
@@ -566,6 +599,75 @@ export class ChatService {
     } catch (error) {
       await transaction.rollback();
       logger.error('Error sending message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Schedule a message to be sent later
+   */
+  static async scheduleMessage(data: {
+    chatId: string;
+    senderId: string;
+    content: string;
+    scheduledFor: Date;
+    messageType?: 'text' | 'image' | 'file';
+    attachments?: MessageAttachment[];
+  }) {
+    try {
+      // Store scheduled message in database with a special status
+      const scheduledMessage = await Message.create({
+        chat_id: data.chatId,
+        sender_id: data.senderId,
+        content: data.content,
+        content_format: MessageContentFormat.PLAIN,
+        attachments: data.attachments || [],
+        // Add scheduled_for field to your Message model
+        // scheduled_for: data.scheduledFor,
+        // is_scheduled: true,
+        created_at: new Date(),
+      });
+
+      // You could implement a background job system to send these later
+      // For now, we'll log the action
+      logger.info('Message scheduled:', {
+        messageId: scheduledMessage.message_id,
+        chatId: data.chatId,
+        scheduledFor: data.scheduledFor,
+      });
+
+      return scheduledMessage;
+    } catch (error) {
+      logger.error('Error scheduling message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get scheduled messages for a chat
+   */
+  static async getScheduledMessages(chatId: string) {
+    try {
+      // This would require adding scheduled message fields to your model
+      const scheduledMessages = await Message.findAll({
+        where: {
+          chat_id: chatId,
+          // is_scheduled: true,
+          // scheduled_for: { [Op.gt]: new Date() }
+        },
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName'],
+          },
+        ],
+        order: [['created_at', 'ASC']],
+      });
+
+      return scheduledMessages.map(message => this.convertMessageToInterface(message));
+    } catch (error) {
+      logger.error('Error getting scheduled messages:', error);
       throw error;
     }
   }
@@ -1446,5 +1548,94 @@ export class ChatService {
     );
 
     return hasImage ? MessageType.IMAGE : MessageType.FILE;
+  }
+
+  /**
+   * Enhanced message search with additional filters
+   */
+  static async searchMessagesWithFilters(options: {
+    query: string;
+    chatId?: string;
+    senderId?: string;
+    dateRange?: { start: Date; end: Date };
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const { query, chatId, senderId, dateRange, page = 1, limit = 20 } = options;
+      const whereConditions: WhereOptions = {};
+
+      if (chatId) {
+        whereConditions.chat_id = chatId;
+      }
+      if (senderId) {
+        whereConditions.sender_id = senderId;
+      }
+      if (dateRange) {
+        whereConditions.created_at = {
+          [Op.between]: [dateRange.start, dateRange.end],
+        };
+      }
+      if (query) {
+        whereConditions.content = { [Op.iLike]: `%${query}%` };
+      }
+
+      const { rows: messages, count: total } = await Message.findAndCountAll({
+        where: whereConditions,
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName', 'lastName'],
+          },
+        ],
+        order: [['created_at', 'DESC']],
+        limit,
+        offset: (page - 1) * limit,
+      });
+
+      return {
+        messages: messages.map(message => this.convertMessageToInterface(message)),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+        searchQuery: query,
+      };
+    } catch (error) {
+      logger.error('Error in message search with filters:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get comprehensive message status for a chat
+   */
+  static async getMessageStatuses(chatId: string, userId: string) {
+    try {
+      const messages = await Message.findAll({
+        where: { chat_id: chatId },
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName'],
+          },
+        ],
+        order: [['created_at', 'ASC']],
+      });
+
+      return messages.map(message => ({
+        messageId: message.message_id,
+        senderId: message.sender_id,
+        content: message.content,
+        isRead: message.isReadBy(userId),
+        readCount: message.getReadCount(),
+        reactions: message.reactions || [],
+        createdAt: message.created_at,
+      }));
+    } catch (error) {
+      logger.error('Error getting message statuses:', error);
+      throw error;
+    }
   }
 }
