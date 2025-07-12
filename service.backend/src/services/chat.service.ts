@@ -22,7 +22,7 @@ interface ChatCreateData {
   rescueId?: string;
   applicationId?: string;
   participantIds: string[];
-  type: 'direct' | 'group' | 'application';
+  type?: 'direct' | 'group' | 'application'; // Make type optional since we infer it
   name?: string;
   petId?: string;
   initialMessage?: string;
@@ -89,13 +89,16 @@ export class ChatService {
    * Helper function to convert Message model to ChatMessage interface
    */
   private static convertMessageToInterface(message: Message): ChatMessage {
+    // Determine message type based on attachments
+    const messageType = this.inferMessageType(message.attachments);
+
     return {
       message_id: message.message_id,
       chat_id: message.chat_id,
       sender_id: message.sender_id,
       content: message.content,
       content_format: message.content_format,
-      type: MessageType.TEXT, // Default to text type
+      type: messageType,
       attachments:
         message.attachments?.map(att => ({
           id: att.attachment_id,
@@ -115,12 +118,20 @@ export class ChatService {
   private static convertChatToInterface(
     chat: Chat & { Messages?: Message[]; Participants?: ChatParticipant[] }
   ): import('../types/chat').Chat {
+    // Determine chat type based on chat properties
+    let chatType: ChatType = ChatType.DIRECT;
+    if (chat.application_id) {
+      chatType = ChatType.APPLICATION;
+    } else if (chat.Participants && chat.Participants.length > 2) {
+      chatType = ChatType.GROUP;
+    }
+
     return {
       chat_id: chat.chat_id,
       rescue_id: chat.rescue_id,
       pet_id: chat.pet_id,
       application_id: chat.application_id,
-      type: ChatType.DIRECT, // Default type - should be determined by business logic
+      type: chatType,
       status: chat.status as ChatStatus,
       created_at: chat.created_at.toISOString(),
       updated_at: chat.updated_at.toISOString(),
@@ -272,8 +283,6 @@ export class ChatService {
       const {
         userId,
         rescueId,
-        petId,
-        type,
         page = 1,
         limit = 20,
         sortBy = 'created_at',
@@ -283,7 +292,7 @@ export class ChatService {
       const offset = (page - 1) * limit;
 
       // Build where conditions
-      const whereConditions: any = {
+      const whereConditions: WhereOptions = {
         status: { [Op.ne]: 'archived' },
       };
 
@@ -363,7 +372,6 @@ export class ChatService {
         userId,
         rescueId,
         query,
-        type,
         page = 1,
         limit = 20,
         sortBy = 'created_at',
@@ -373,7 +381,7 @@ export class ChatService {
       const offset = (page - 1) * limit;
 
       // Build where conditions for chats
-      const chatWhereConditions: any = {
+      const chatWhereConditions: WhereOptions = {
         status: { [Op.ne]: 'archived' },
       };
 
@@ -382,7 +390,7 @@ export class ChatService {
       }
 
       // Search in messages for the query
-      const messageSearchConditions: any = {
+      const messageSearchConditions: WhereOptions = {
         [Op.or]: [{ content: { [Op.iLike]: `%${query}%` } }],
       };
 
@@ -490,6 +498,18 @@ export class ChatService {
         throw new Error('Rate limit exceeded. Please wait before sending more messages.');
       }
 
+      // Validate message type if provided
+      if (data.messageType) {
+        const inferredType = this.inferMessageType(data.attachments);
+        if (data.messageType !== inferredType) {
+          logger.warn('Message type mismatch:', {
+            providedType: data.messageType,
+            inferredType,
+            hasAttachments: !!(data.attachments && data.attachments.length > 0),
+          });
+        }
+      }
+
       // Create the message with proper field names
       const message = await Message.create(
         {
@@ -527,6 +547,9 @@ export class ChatService {
 
       await transaction.commit();
 
+      // Determine the actual message type for logging
+      const actualMessageType = this.inferMessageType(data.attachments);
+
       // Log the action
       await AuditLogService.log({
         userId: data.senderId,
@@ -535,7 +558,7 @@ export class ChatService {
         entityId: messageWithSender.message_id,
         details: {
           chatId: data.chatId,
-          messageType: 'text',
+          messageType: actualMessageType,
         },
       });
 
@@ -776,9 +799,9 @@ export class ChatService {
       const originalData = chat.toJSON();
 
       // Only update valid Chat model fields
-      const validUpdateData: any = {};
+      const validUpdateData: Partial<{ status: ChatStatus }> = {};
       if (updateData.status !== undefined) {
-        validUpdateData.status = updateData.status as 'active' | 'locked' | 'archived';
+        validUpdateData.status = updateData.status as ChatStatus;
       }
 
       await chat.update(validUpdateData);
@@ -932,7 +955,7 @@ export class ChatService {
       };
 
       // Build where conditions
-      const whereConditions: any = {
+      const whereConditions: WhereOptions = {
         created_at: dateFilter,
       };
 
@@ -1201,7 +1224,9 @@ export class ChatService {
       }
 
       if (search) {
-        whereConditions[Op.or as any] = [{ chat_id: { [Op.iLike]: `%${search}%` } }];
+        (whereConditions as WhereOptions & { [Op.or]: WhereOptions[] })[Op.or] = [
+          { chat_id: { [Op.iLike]: `%${search}%` } },
+        ];
       }
 
       const { rows: chats, count: total } = await Chat.findAndCountAll({
@@ -1231,7 +1256,11 @@ export class ChatService {
       });
 
       return {
-        chats: chats.map(chat => this.convertChatToInterface(chat as any)),
+        chats: chats.map(chat =>
+          this.convertChatToInterface(
+            chat as Chat & { Messages?: Message[]; Participants?: ChatParticipant[] }
+          )
+        ),
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -1399,5 +1428,23 @@ export class ChatService {
     // This method should return a number representing the user engagement
     // For now, we'll return a placeholder value
     return 0;
+  }
+
+  /**
+   * Helper function to infer message type from attachments
+   */
+  private static inferMessageType(attachments?: MessageAttachment[]): MessageType {
+    if (!attachments || attachments.length === 0) {
+      return MessageType.TEXT;
+    }
+
+    // Check if any attachment is an image
+    const hasImage = attachments.some(
+      att =>
+        att.mimeType?.startsWith('image/') ||
+        /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(att.filename || '')
+    );
+
+    return hasImage ? MessageType.IMAGE : MessageType.FILE;
   }
 }

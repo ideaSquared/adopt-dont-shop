@@ -23,8 +23,10 @@ export const chatValidation = {
       .isIn(Object.values(ChatType))
       .withMessage(`Type must be one of: ${Object.values(ChatType).join(', ')}`),
     body('participantIds')
-      .isArray({ min: 1, max: 10 })
-      .withMessage('Participant IDs must be an array with 1-10 participants'),
+      .isArray({ min: 1, max: CHAT_CONSTANTS.MAX_PARTICIPANTS })
+      .withMessage(
+        `Participant IDs must be an array with 1-${CHAT_CONSTANTS.MAX_PARTICIPANTS} participants`
+      ),
     body('participantIds.*').isUUID().withMessage('Each participant ID must be a valid UUID'),
     body('title')
       .optional()
