@@ -1,8 +1,18 @@
 import { Message } from '@/services/chatService';
 import { formatDistanceToNow } from 'date-fns';
-import { MdDownload, MdImage, MdInsertDriveFile, MdPictureAsPdf } from 'react-icons/md';
+import { useState } from 'react';
+import {
+  MdDownload,
+  MdImage,
+  MdInsertDriveFile,
+  MdPictureAsPdf,
+  MdVisibility,
+} from 'react-icons/md';
 import styled from 'styled-components';
+import { FEATURES } from '../../config/features';
 import { resolveFileUrl } from '../../utils/fileUtils';
+import { ImageLightbox } from './ImageLightbox';
+import { PDFPreview } from './PDFPreview';
 
 const MessageBubbleWrapper = styled.div<{ $isOwn: boolean }>`
   display: flex;
@@ -103,10 +113,17 @@ const ImageAttachment = styled.img`
   height: auto;
   border-radius: 6px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
 
   &:hover {
     transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 `;
 
@@ -186,7 +203,36 @@ const isImageFile = (mimeType: string): boolean => {
   return mimeType.startsWith('image/');
 };
 
+// Helper function to check if file is a PDF
+const isPDFFile = (mimeType: string): boolean => {
+  return mimeType === 'application/pdf';
+};
+
 export function MessageBubbleComponent({ message, isOwn }: { message: Message; isOwn: boolean }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
+  const [pdfPreviewFilename, setPdfPreviewFilename] = useState('');
+
+  // Get all image attachments for the lightbox
+  const imageAttachments = message.attachments?.filter(att => isImageFile(att.mimeType)) || [];
+
+  const handleImageClick = (attachment: NonNullable<Message['attachments']>[0]) => {
+    const imageIndex = imageAttachments.findIndex(img => img.id === attachment.id);
+    setLightboxIndex(imageIndex >= 0 ? imageIndex : 0);
+    setLightboxOpen(true);
+  };
+
+  const handlePDFClick = (attachment: NonNullable<Message['attachments']>[0]) => {
+    const resolvedUrl = resolveFileUrl(attachment.url);
+    if (resolvedUrl) {
+      setPdfPreviewUrl(resolvedUrl);
+      setPdfPreviewFilename(attachment.filename);
+      setPdfPreviewOpen(true);
+    }
+  };
+
   return (
     <MessageBubbleWrapper $isOwn={isOwn}>
       <MessageBubble
@@ -202,11 +248,47 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
             {message.attachments.map((attachment, index) => (
               <AttachmentItem key={attachment.id || index} $isOwn={isOwn}>
                 {isImageFile(attachment.mimeType) ? (
-                  <ImageAttachment
-                    src={resolveFileUrl(attachment.url)}
-                    alt={attachment.filename}
-                    onClick={() => window.open(resolveFileUrl(attachment.url), '_blank')}
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                    <ImageAttachment
+                      src={resolveFileUrl(attachment.url) || attachment.url}
+                      alt={attachment.filename}
+                      onClick={() => handleImageClick(attachment)}
+                      onError={_e => {
+                        // Image failed to load - could add fallback here
+                      }}
+                      loading='lazy'
+                      title={`Click to view ${attachment.filename}`}
+                    />
+                  </div>
+                ) : isPDFFile(attachment.mimeType) ? (
+                  <>
+                    <FileIcon $isOwn={isOwn}>{getFileIcon(attachment.mimeType)}</FileIcon>
+                    <FileInfo>
+                      <FileName $isOwn={isOwn}>{attachment.filename}</FileName>
+                      <FileSize $isOwn={isOwn}>{formatFileSize(attachment.size)}</FileSize>
+                    </FileInfo>
+                    {FEATURES.PDF_VIEWER_ENABLED && (
+                      <DownloadButton
+                        $isOwn={isOwn}
+                        href='#'
+                        onClick={e => {
+                          e.preventDefault();
+                          handlePDFClick(attachment);
+                        }}
+                      >
+                        <MdVisibility size={16} />
+                      </DownloadButton>
+                    )}
+                    <DownloadButton
+                      $isOwn={isOwn}
+                      href={resolveFileUrl(attachment.url)}
+                      download={attachment.filename}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
+                      <MdDownload size={16} />
+                    </DownloadButton>
+                  </>
                 ) : (
                   <>
                     <FileIcon $isOwn={isOwn}>{getFileIcon(attachment.mimeType)}</FileIcon>
@@ -234,6 +316,35 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
           {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
         </MessageInfo>
       </MessageBubble>
+
+      {/* Image Lightbox */}
+      {FEATURES.IMAGE_LIGHTBOX_ENABLED && (
+        <ImageLightbox
+          images={imageAttachments.map(att => {
+            const resolvedUrl = resolveFileUrl(att.url);
+            return {
+              id: att.id,
+              url: resolvedUrl || att.url,
+              filename: att.filename,
+              mimeType: att.mimeType,
+            };
+          })}
+          currentIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          onNavigate={setLightboxIndex}
+        />
+      )}
+
+      {/* PDF Preview - only render if feature is enabled */}
+      {FEATURES.PDF_VIEWER_ENABLED && (
+        <PDFPreview
+          url={pdfPreviewUrl}
+          filename={pdfPreviewFilename}
+          isOpen={pdfPreviewOpen}
+          onClose={() => setPdfPreviewOpen(false)}
+        />
+      )}
     </MessageBubbleWrapper>
   );
 }

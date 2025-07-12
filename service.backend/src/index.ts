@@ -112,8 +112,39 @@ app.use('/api', apiLimiter);
 // Serve uploaded files in development
 if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
   const uploadDir = path.resolve(config.storage.local.directory);
-  app.use('/uploads', express.static(uploadDir));
-  logger.info(`Serving static files from: ${uploadDir}`);
+
+  // Configure static file serving with proper CORS headers
+  app.use(
+    '/uploads',
+    (req, res, next) => {
+      // Set CORS headers for uploaded files
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept'
+      );
+
+      // Set cache headers for better performance
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year
+
+      // Set proper content types
+      if (req.path.endsWith('.jpg') || req.path.endsWith('.jpeg')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      } else if (req.path.endsWith('.png')) {
+        res.setHeader('Content-Type', 'image/png');
+      } else if (req.path.endsWith('.pdf')) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline'); // Show PDFs in browser instead of downloading
+      }
+
+      next();
+    },
+    express.static(uploadDir)
+  );
+
+  logger.info(`Serving static files from: ${uploadDir} with CORS enabled`);
 }
 
 // Setup Swagger UI for API documentation
