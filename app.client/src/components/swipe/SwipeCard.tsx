@@ -234,7 +234,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
         pet_name: pet.name || 'unknown',
         pet_type: pet.type || 'unknown',
         pet_breed: pet.breed || 'unknown',
-        has_image: pet.imageUrls && pet.imageUrls.length > 0 ? 'true' : 'false',
+        has_image: pet.images && pet.images.length > 0 ? 'true' : 'false',
         card_position: 'top',
       });
     }
