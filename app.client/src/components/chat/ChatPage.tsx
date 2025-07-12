@@ -1,7 +1,8 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/contexts/ChatContext';
 import { Spinner } from '@adopt-dont-shop/components';
 import { useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { ChatWindow } from './ChatWindow';
 import { ConversationList } from './ConversationList';
@@ -136,8 +137,8 @@ const LoadingContainer = styled.div`
 
 const ErrorMessage = styled.div`
   background: ${props => props.theme.colors.semantic.error[100]};
-  color: ${props => props.theme.colors.semantic.error[600]};
-  border: 1px solid ${props => props.theme.colors.semantic.error[500]};
+  color: ${props => props.theme.colors.semantic.error[800]};
+  border: 1px solid ${props => props.theme.colors.semantic.error[300]};
   padding: 1.5rem;
   border-radius: 8px;
   margin: 2rem auto;
@@ -146,9 +147,50 @@ const ErrorMessage = styled.div`
   font-size: 1.1rem;
 `;
 
+const LoginPrompt = styled.div`
+  text-align: center;
+  padding: 4rem 2rem;
+  background: ${props => props.theme.background.secondary};
+  border-radius: 12px;
+  margin: 2rem 0;
+
+  h2 {
+    font-size: 1.8rem;
+    color: ${props => props.theme.text.primary};
+    margin-bottom: 1rem;
+  }
+
+  p {
+    font-size: 1.1rem;
+    color: ${props => props.theme.text.secondary};
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+`;
+
+const CTAButton = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 2rem;
+  background: ${props => props.theme.colors.primary[600]};
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.theme.colors.primary[700]};
+    transform: translateY(-1px);
+  }
+`;
+
 export function ChatPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const { conversations, activeConversation, setActiveConversation, isLoading, error } = useChat();
+  const { isAuthenticated } = useAuth();
   const lastSetConversationId = useRef<string | null>(null);
 
   // Set active conversation from URL
@@ -165,6 +207,22 @@ export function ChatPage() {
       lastSetConversationId.current = null;
     }
   }, [conversationId, conversations, setActiveConversation]);
+
+  // Show login prompt for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <ChatContainer>
+        <LoginPrompt>
+          <h2>🔐 Login Required</h2>
+          <p>
+            Please log in to access your messages. Connect with rescue organizations and stay
+            updated on your adoption applications.
+          </p>
+          <CTAButton to='/login'>Sign In to View Messages</CTAButton>
+        </LoginPrompt>
+      </ChatContainer>
+    );
+  }
 
   if (error) {
     return (
