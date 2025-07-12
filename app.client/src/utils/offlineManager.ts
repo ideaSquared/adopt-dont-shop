@@ -78,7 +78,11 @@ class OfflineManager {
   private async checkConnectionQuality(): Promise<void> {
     try {
       const startTime = Date.now();
-      const response = await fetch('/api/health', {
+      // Use the same API base URL as the rest of the app to avoid calling localhost:3000
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const healthUrl = `${apiBaseUrl}/api/v1/health/simple`;
+
+      const response = await fetch(healthUrl, {
         method: 'GET',
         cache: 'no-cache',
         signal: AbortSignal.timeout(5000), // 5 second timeout
