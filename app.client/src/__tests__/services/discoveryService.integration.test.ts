@@ -27,36 +27,32 @@ describe('Discovery Service Integration Tests', () => {
 
   describe('getDiscoveryQueue', () => {
     it('should fetch discovery queue successfully', async () => {
-      const mockResponse = {
-        success: true,
-        message: 'Discovery queue retrieved successfully',
-        data: {
-          pets: [
-            {
-              petId: 'pet1',
-              name: 'Buddy',
-              type: 'dog',
-              breed: 'Golden Retriever',
-              ageGroup: 'adult',
-              size: 'large',
-              gender: 'male',
-              images: ['image1.jpg'],
-              rescueName: 'Test Rescue',
-            },
-          ],
-          sessionId: 'session-123',
-          hasMore: false,
-        },
-        timestamp: '2025-07-07T21:30:00.000Z',
+      // Mock the data that apiService.get returns after extracting the 'data' field
+      const mockResponseData = {
+        pets: [
+          {
+            petId: 'pet1',
+            name: 'Buddy',
+            type: 'dog',
+            breed: 'Golden Retriever',
+            ageGroup: 'adult',
+            size: 'large',
+            gender: 'male',
+            images: ['image1.jpg'],
+            rescueName: 'Test Rescue',
+          },
+        ],
+        sessionId: 'session-123',
+        hasMore: false,
       };
 
-      mockApiService.get.mockResolvedValueOnce(mockResponse);
+      mockApiService.get.mockResolvedValueOnce(mockResponseData);
 
       const result = await discoveryService.getDiscoveryQueue({}, 10);
 
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/discovery/pets?limit=10');
 
-      expect(result.pets).toEqual(mockResponse.data.pets);
+      expect(result.pets).toEqual(mockResponseData.pets);
       expect(result.currentIndex).toBe(0);
       expect(result.hasMore).toBe(false);
     });
@@ -72,13 +68,10 @@ describe('Discovery Service Integration Tests', () => {
     });
 
     it('should build query parameters correctly', async () => {
-      const mockResponse = {
-        success: true,
-        data: { pets: [], sessionId: 'session-123', hasMore: false },
-        timestamp: '2025-07-07T21:30:00.000Z',
-      };
+      // Mock the data that apiService.get returns after extracting the 'data' field
+      const mockResponseData = { pets: [], sessionId: 'session-123', hasMore: false };
 
-      mockApiService.get.mockResolvedValueOnce(mockResponse);
+      mockApiService.get.mockResolvedValueOnce(mockResponseData);
 
       const filters = {
         type: 'dog',
@@ -109,22 +102,18 @@ describe('Discovery Service Integration Tests', () => {
 
   describe('loadMorePets', () => {
     it('should load more pets successfully', async () => {
-      const mockResponse = {
-        success: true,
-        message: 'More pets loaded successfully',
-        data: {
-          pets: [
-            {
-              petId: 'pet2',
-              name: 'Max',
-              type: 'cat',
-            },
-          ],
-        },
-        timestamp: '2025-07-07T21:30:00.000Z',
+      // Mock the data that apiService.post returns after extracting the 'data' field
+      const mockResponseData = {
+        pets: [
+          {
+            petId: 'pet2',
+            name: 'Max',
+            type: 'cat',
+          },
+        ],
       };
 
-      mockApiService.post.mockResolvedValueOnce(mockResponse);
+      mockApiService.post.mockResolvedValueOnce(mockResponseData);
 
       const result = await discoveryService.loadMorePets('session-123', 'pet1');
 
@@ -134,7 +123,7 @@ describe('Discovery Service Integration Tests', () => {
         limit: 10,
       });
 
-      expect(result).toEqual(mockResponse.data.pets);
+      expect(result).toEqual(mockResponseData.pets);
     });
   });
 
