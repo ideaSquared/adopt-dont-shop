@@ -38,7 +38,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Debug user state changes in development
   useEffect(() => {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
       console.log('AuthContext: User state changed:', {
         user: user?.email || 'null',
         isAuthenticated: !!user,
@@ -55,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // In development mode, check for dev user first
         if (import.meta.env.DEV) {
           const devUser = localStorage.getItem('dev_user');
-          // eslint-disable-next-line no-console
+
           console.log('AuthContext init - checking dev user:', devUser ? 'found' : 'not found');
           if (devUser) {
             const parsedUser = JSON.parse(devUser);
@@ -66,12 +65,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               const mockToken = `dev-token-${parsedUser.userId}-${Date.now()}`;
               localStorage.setItem('accessToken', mockToken);
               localStorage.setItem('authToken', mockToken);
-              // eslint-disable-next-line no-console
+
               console.log('AuthContext init - generated mock token for dev user');
             }
 
             setUser(parsedUser);
-            // eslint-disable-next-line no-console
+
             console.log('AuthContext init - dev user loaded:', parsedUser.email);
             setIsLoading(false);
             return;
@@ -109,7 +108,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (credentials: LoginRequest) => {
-    // eslint-disable-next-line no-console
     console.log('🔑 AuthContext: login() called with:', credentials.email);
     setIsLoading(true);
     try {
@@ -118,10 +116,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: credentials.email,
       });
 
-      // eslint-disable-next-line no-console
       console.log('🔑 AuthContext: calling authService.login()');
       const response = await authService.login(credentials);
-      // eslint-disable-next-line no-console
+
       console.log('🔑 AuthContext: authService.login() response:', response.user?.email);
 
       // Check if user type is allowed in the client app
@@ -166,7 +163,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         has_profile_image: (!!response.user.profileImageUrl).toString(),
       });
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('🔑 AuthContext: login error:', error);
       setUser(null);
 
@@ -309,12 +305,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Development only method to directly set user
   const setDevUser = (devUser: User) => {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
       console.log('setDevUser called with:', devUser.email);
       setUser(devUser);
       // Store in localStorage for persistence during dev
       localStorage.setItem('dev_user', JSON.stringify(devUser));
-      // eslint-disable-next-line no-console
+
       console.log('Dev user stored in localStorage');
     }
   };

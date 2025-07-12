@@ -271,11 +271,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
       // Check if we're offline and queue the message
       if (!isOnline) {
-        const queuedId = queueMessageForOffline(activeConversation.id, content);
+        const tempId = queueMessageForOffline(activeConversation.id, content);
 
         // Add temporary message to UI for immediate feedback
         const tempMessage: Message = {
-          id: queuedId,
+          id: tempId,
           conversationId: activeConversation.id,
           senderId: user.userId,
           senderName: user.firstName,
@@ -323,7 +323,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
         setError(`⚠️ ${errorMessage}`);
       } else if (!isOnline) {
         // If we're offline, queue the message instead of showing error
-        const queuedId = queueMessageForOffline(activeConversation.id, content);
+        queueMessageForOffline(activeConversation.id, content);
         setError("📡 Message queued for when you're back online");
       } else {
         setError(errorMessage);
@@ -387,35 +387,39 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   };
 
+  const forceSyncOfflineData = useCallback(async () => {
+    if (isOnline) {
+      try {
+        await offlineManager.forcSync();
+      } catch (error) {
+        console.error('Failed to force sync offline data:', error);
+        setError('Failed to sync offline messages');
+      }
+    }
+  }, [isOnline]);
+
   // Offline state management
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      setConnectionQuality('excellent');
-      // Attempt to resend any pending messages
-      forceSyncOfflineData();
-    };
+    const handleOfflineStateChange = (state: OfflineState) => {
+      // Update all offline-related state
+      setIsOnline(state.isOnline);
+      setConnectionQuality(state.connectionQuality);
+      setPendingMessageCount(state.pendingMessages.length + state.pendingActions.length);
 
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
-
-    const handleQualityChange = (quality: 'excellent' | 'good' | 'poor' | 'offline') => {
-      setConnectionQuality(quality);
+      // If we just came back online, trigger sync
+      if (state.isOnline && !isOnline) {
+        forceSyncOfflineData();
+      }
     };
 
     // Listen to offline manager events
-    onOfflineStateChange('online', handleOnline);
-    onOfflineStateChange('offline', handleOffline);
-    onOfflineStateChange('qualityChange', handleQualityChange);
+    onOfflineStateChange(handleOfflineStateChange);
 
     return () => {
       // Clean up listeners on unmount
-      removeOfflineStateListener('online', handleOnline);
-      removeOfflineStateListener('offline', handleOffline);
-      removeOfflineStateListener('qualityChange', handleQualityChange);
+      removeOfflineStateListener(handleOfflineStateChange);
     };
-  }, []);
+  }, [forceSyncOfflineData, isOnline]);
 
   // Setup offline state management
   useEffect(() => {
@@ -466,17 +470,6 @@ export function ChatProvider({ children }: ChatProviderProps) {
       removeOfflineStateListener(handleOfflineStateChange);
     };
   }, []);
-
-  const forceSyncOfflineData = useCallback(async () => {
-    if (isOnline) {
-      try {
-        await offlineManager.forcSync();
-      } catch (error) {
-        console.error('Failed to force sync offline data:', error);
-        setError('Failed to sync offline messages');
-      }
-    }
-  }, [isOnline]);
 
   const value: ChatContextType = {
     conversations,

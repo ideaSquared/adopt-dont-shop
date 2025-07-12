@@ -121,11 +121,12 @@ export const LoginPage: React.FC = () => {
     try {
       await login(data);
       navigate(from, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
+      const error = err as Error & { response?: { data?: { message?: string } } };
       setError(
-        err.response?.data?.message ||
-          err.message ||
+        error.response?.data?.message ||
+          error.message ||
           'Login failed. Please check your credentials and try again.'
       );
     } finally {
@@ -177,7 +178,7 @@ export const LoginPage: React.FC = () => {
         </Form>
 
         <SignupPrompt>
-          <p>Don't have an account?</p>
+          <p>Don&apos;t have an account?</p>
           <Link to='/register'>Create a new account</Link>
         </SignupPrompt>
       </LoginCard>

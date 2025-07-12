@@ -9,6 +9,19 @@ interface LivingSituationStepProps {
   onComplete: (data: ApplicationData['livingsituation']) => void;
 }
 
+interface LivingSituationFormData {
+  housingType: string;
+  isOwned: boolean;
+  hasYard: boolean;
+  yardSize: string;
+  yardFenced: boolean;
+  allowsPets: boolean;
+  landlordContact: string;
+  householdSize: number;
+  hasAllergies: boolean;
+  allergyDetails: string;
+}
+
 const StepContainer = styled.div`
   max-width: 600px;
 `;
@@ -57,7 +70,7 @@ const CheckboxGroup = styled.div`
 `;
 
 export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({ data, onComplete }) => {
-  const { register, handleSubmit } = useForm({
+  const { register, handleSubmit } = useForm<LivingSituationFormData>({
     defaultValues: {
       housingType: data.housingType || '',
       isOwned: data.isOwned || false,
@@ -72,15 +85,15 @@ export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({ data, 
     },
   });
 
-  const onSubmit = (formData: any) => {
-    onComplete(formData);
+  const onSubmit = (formData: LivingSituationFormData) => {
+    onComplete(formData as ApplicationData['livingsituation']);
   };
 
   return (
     <StepContainer>
       <StepTitle>Living Situation</StepTitle>
       <StepDescription>
-        Tell us about your living environment to help us ensure it's a good fit for the pet.
+        Tell us about your living environment to help us ensure it&apos;s a good fit for the pet.
       </StepDescription>
 
       <Form id='step-2-form' onSubmit={handleSubmit(onSubmit)}>
