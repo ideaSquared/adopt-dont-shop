@@ -75,6 +75,13 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Build components library first (if not already built)
+        run: npm run build
+        working-directory: lib.components
+
       - name: Install dependencies
         run: npm install
         working-directory: ${{ matrix.app }}
@@ -106,7 +113,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Build components library
+        run: npm run build
+        working-directory: lib.components
+
+      - name: Install client dependencies
         run: npm install
         working-directory: app.client
 
