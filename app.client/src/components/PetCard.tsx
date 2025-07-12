@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder } from 'react-icons/md';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { resolveFileUrl } from '../utils/fileUtils';
 
 const StyledCard = styled(Card)`
   height: 100%;
@@ -188,6 +189,7 @@ export const PetCard: React.FC<PetCardProps> = ({
     propIsFavorite !== undefined ? propIsFavorite : favorites.isFavorite(pet.pet_id);
 
   const primaryPhoto = pet.images?.find(image => image.is_primary) || pet.images?.[0];
+  const resolvedImageUrl = resolveFileUrl(primaryPhoto?.url);
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -264,10 +266,10 @@ export const PetCard: React.FC<PetCardProps> = ({
   return (
     <StyledCard as={Link} to={`/pets/${pet.pet_id}`}>
       <ImageContainer>
-        {primaryPhoto?.url ? (
+        {resolvedImageUrl ? (
           <>
             <img
-              src={primaryPhoto.url}
+              src={resolvedImageUrl}
               alt={pet.name}
               loading='lazy'
               onError={e => {

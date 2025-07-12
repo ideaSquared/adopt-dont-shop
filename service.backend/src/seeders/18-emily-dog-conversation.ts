@@ -6,6 +6,8 @@ import ChatParticipant from '../models/ChatParticipant';
 
 import Message from '../models/Message';
 
+import FileUpload from '../models/FileUpload';
+
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
 // Emily Davis (user_adopter_002) conversation with Happy Tails Dog Rescue about a senior dog
@@ -216,6 +218,30 @@ const emilyDogConversationData = {
       updated_at: new Date('2024-07-16T16:30:00Z'),
     },
   ],
+
+  // File attachments shared in the dog conversation
+  attachments: [
+    {
+      upload_id: uuidv4(), // Generate proper UUID
+      original_filename: 'previous-dog-medical-records.pdf',
+      stored_filename: 'emily-dog-conversation-document.pdf',
+      file_path: 'uploads/chat/emily-dog-conversation-document.pdf',
+      file_size: 524288,
+      mime_type: 'application/pdf',
+      url: '/uploads/chat/emily-dog-conversation-document.pdf',
+      uploaded_by: 'user_adopter_002', // Emily Davis
+      entity_type: 'chat',
+      entity_id: 'chat_emily_dog_inquiry_001',
+      purpose: 'chat_attachment',
+      metadata: {
+        description:
+          'Medical records from my previous senior dog to show experience with senior pet care',
+        attachedToMessage: 'msg_emily_dog_003',
+      },
+      created_at: new Date('2024-07-15T16:45:00Z'),
+      updated_at: new Date('2024-07-15T16:45:00Z'),
+    },
+  ],
 };
 
 export async function seedEmilyDogConversation() {
@@ -252,7 +278,13 @@ export async function seedEmilyDogConversation() {
       });
     }
 
-    // eslint-disable-next-line no-console
+    // Create file attachments
+    for (const attachment of emilyDogConversationData.attachments) {
+      await FileUpload.findOrCreate({
+        where: { upload_id: attachment.upload_id },
+        defaults: attachment,
+      });
+    }
 
     // eslint-disable-next-line no-console
 
@@ -269,6 +301,10 @@ export async function seedEmilyDogConversation() {
     // eslint-disable-next-line no-console
 
     console.log(`   - Messages: ${emilyDogConversationData.messages.length}`);
+
+    // eslint-disable-next-line no-console
+
+    console.log(`   - Attachments: ${emilyDogConversationData.attachments.length}`);
   } catch (error) {
     // eslint-disable-next-line no-console
 

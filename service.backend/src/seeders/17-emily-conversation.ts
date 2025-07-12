@@ -6,6 +6,8 @@ import ChatParticipant from '../models/ChatParticipant';
 
 import Message from '../models/Message';
 
+import FileUpload from '../models/FileUpload';
+
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
 // Emily Davis (user_adopter_002) conversation with Paws Rescue Austin
@@ -197,6 +199,48 @@ const emilyConversationData = {
       updated_at: new Date('2024-07-10T09:15:00Z'),
     },
   ],
+
+  // File attachments shared in the conversation
+  attachments: [
+    {
+      upload_id: uuidv4(), // Generate proper UUID
+      original_filename: 'my-previous-cat.jpg',
+      stored_filename: 'emily-conversation-1-sample.jpg',
+      file_path: 'uploads/chat/emily-conversation-1-sample.jpg',
+      file_size: 145632,
+      mime_type: 'image/jpeg',
+      url: '/uploads/chat/emily-conversation-1-sample.jpg',
+      uploaded_by: 'user_adopter_002', // Emily Davis
+      entity_type: 'chat',
+      entity_id: 'chat_emily_general_inquiry_001',
+      purpose: 'chat_attachment',
+      metadata: {
+        description: 'Photo of my previous senior cat to show experience with older cats',
+        attachedToMessage: 'msg_emily_003',
+      },
+      created_at: new Date('2024-07-08T16:25:00Z'),
+      updated_at: new Date('2024-07-08T16:25:00Z'),
+    },
+    {
+      upload_id: uuidv4(), // Generate proper UUID
+      original_filename: 'cat-area-setup.jpg',
+      stored_filename: 'emily-conversation-1-sample-thumb.jpg',
+      file_path: 'uploads/chat/emily-conversation-1-sample-thumb.jpg',
+      file_size: 89421,
+      mime_type: 'image/jpeg',
+      url: '/uploads/chat/emily-conversation-1-sample-thumb.jpg',
+      uploaded_by: 'user_adopter_002', // Emily Davis
+      entity_type: 'chat',
+      entity_id: 'chat_emily_general_inquiry_001',
+      purpose: 'chat_attachment',
+      metadata: {
+        description: 'Photo of my home setup for a senior cat',
+        attachedToMessage: 'msg_emily_005',
+      },
+      created_at: new Date('2024-07-09T11:18:00Z'),
+      updated_at: new Date('2024-07-09T11:18:00Z'),
+    },
+  ],
 };
 
 export async function seedEmilyConversation() {
@@ -233,6 +277,14 @@ export async function seedEmilyConversation() {
       });
     }
 
+    // Create file attachments
+    for (const attachment of emilyConversationData.attachments) {
+      await FileUpload.findOrCreate({
+        where: { upload_id: attachment.upload_id },
+        defaults: attachment,
+      });
+    }
+
     // eslint-disable-next-line no-console
 
     console.log('✅ Created Emily Davis conversation with Paws Rescue Austin');
@@ -248,6 +300,10 @@ export async function seedEmilyConversation() {
     // eslint-disable-next-line no-console
 
     console.log(`   - Messages: ${emilyConversationData.messages.length}`);
+
+    // eslint-disable-next-line no-console
+
+    console.log(`   - Attachments: ${emilyConversationData.attachments.length}`);
   } catch (error) {
     // eslint-disable-next-line no-console
 

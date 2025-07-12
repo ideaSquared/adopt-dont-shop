@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
+import { ChatParticipant } from '../models/ChatParticipant';
 import User from '../models/User';
 import { ChatService } from '../services/chat.service';
+import { FileUploadService } from '../services/file-upload.service';
 import { ChatMessage } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
 
@@ -702,6 +704,80 @@ export class ChatController {
       logger.error('Error getting chat analytics:', error);
       res.status(500).json({
         error: 'Failed to get chat analytics',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * Upload attachment for chat conversation
+   */
+  static async uploadAttachment(req: AuthenticatedRequest, res: Response) {
+    const startTime = Date.now();
+
+    try {
+      const { conversationId } = req.params;
+      const userId = req.user!.userId;
+
+      if (!req.file) {
+        return res.status(400).json({
+          error: 'No file uploaded',
+        });
+      }
+
+      // Verify user has access to this conversation by checking if they're a participant
+      const chat = await ChatService.getChatById(conversationId, userId);
+      if (!chat) {
+        return res.status(404).json({
+          error: 'Conversation not found',
+        });
+      }
+
+      // Check if user is a participant in the chat
+      const isParticipant = chat.Participants?.some(
+        (p: ChatParticipant) => p.participant_id === userId
+      );
+      if (!isParticipant) {
+        return res.status(403).json({
+          error: 'Access denied to this conversation',
+        });
+      }
+
+      // Process the uploaded file using FileUploadService
+      const fileUploadResult = await FileUploadService.uploadFile(req.file, 'chat', {
+        uploadedBy: userId,
+        entityId: conversationId,
+        entityType: 'chat',
+        purpose: 'attachment',
+      });
+
+      if (!fileUploadResult.success || !fileUploadResult.upload) {
+        throw new Error('File upload failed');
+      }
+
+      logger.info('Chat attachment uploaded successfully', {
+        conversationId,
+        userId,
+        fileId: fileUploadResult.upload.upload_id,
+        filename: fileUploadResult.upload.original_filename,
+        size: fileUploadResult.upload.file_size,
+        duration: Date.now() - startTime,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          id: fileUploadResult.upload.upload_id,
+          filename: fileUploadResult.upload.original_filename,
+          url: fileUploadResult.upload.url,
+          mimeType: fileUploadResult.upload.mime_type,
+          size: fileUploadResult.upload.file_size,
+        },
+      });
+    } catch (error) {
+      logger.error('Error uploading chat attachment:', error);
+      res.status(500).json({
+        error: 'Failed to upload attachment',
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }

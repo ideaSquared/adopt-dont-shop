@@ -6,6 +6,7 @@ import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { resolveFileUrl } from '../utils/fileUtils';
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -516,6 +517,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   }
 
   const primaryPhoto = pet.images?.[selectedImageIndex] || pet.images?.[0];
+  const resolvedPrimaryPhotoUrl = resolveFileUrl(primaryPhoto?.url);
 
   return (
     <PageContainer>
@@ -550,9 +552,9 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
       <MainContent>
         <ImageSection>
           <div className='primary-image'>
-            {primaryPhoto?.url ? (
+            {resolvedPrimaryPhotoUrl ? (
               <img
-                src={primaryPhoto.url}
+                src={resolvedPrimaryPhotoUrl}
                 alt={pet.name}
                 onError={e => {
                   e.currentTarget.style.display = 'none';
@@ -560,7 +562,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                 }}
               />
             ) : null}
-            <PlaceholderImage style={{ display: primaryPhoto?.url ? 'none' : 'flex' }} />
+            <PlaceholderImage style={{ display: resolvedPrimaryPhotoUrl ? 'none' : 'flex' }} />
           </div>
           {pet.images && pet.images.length > 1 && (
             <div className='thumbnail-grid'>
@@ -579,10 +581,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                   tabIndex={0}
                   aria-label={`View photo ${index + 1} of ${pet.name}`}
                 >
-                  {image.url ? (
+                  {resolveFileUrl(image.url) ? (
                     <>
                       <img
-                        src={image.url}
+                        src={resolveFileUrl(image.url)!}
                         alt={`${pet.name} ${index + 1}`}
                         onError={e => {
                           e.currentTarget.style.display = 'none';

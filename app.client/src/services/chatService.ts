@@ -673,8 +673,8 @@ export class ChatService {
   }
 
   async uploadAttachment(
-    _conversationId: string,
-    _file: File
+    conversationId: string,
+    file: File
   ): Promise<{
     id: string;
     filename: string;
@@ -682,8 +682,28 @@ export class ChatService {
     mimeType: string;
     size: number;
   }> {
-    // TODO: Implement attachment upload endpoint in backend
-    throw new Error('Attachment upload not yet implemented in backend');
+    try {
+      const response = await api.uploadFile<{
+        success: boolean;
+        data: {
+          id: string;
+          filename: string;
+          url: string;
+          mimeType: string;
+          size: number;
+        };
+        error?: string;
+      }>(`${this.baseUrl}/${conversationId}/attachments/upload`, file);
+
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Error uploading chat attachment:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to upload attachment');
+    }
   }
 
   // Typing indicators

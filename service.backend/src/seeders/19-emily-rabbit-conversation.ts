@@ -6,6 +6,8 @@ import ChatParticipant from '../models/ChatParticipant';
 
 import Message from '../models/Message';
 
+import FileUpload from '../models/FileUpload';
+
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
 // Emily Davis (user_adopter_002) conversation with Bunny Haven Rabbit Rescue
@@ -235,6 +237,29 @@ const emilyRabbitConversationData = {
       updated_at: new Date('2024-07-19T13:45:00Z'),
     },
   ],
+
+  // File attachments shared in the rabbit conversation
+  attachments: [
+    {
+      upload_id: uuidv4(), // Generate proper UUID
+      original_filename: 'rabbit-housing-area.jpg',
+      stored_filename: 'emily-rabbit-conversation-sample.jpg',
+      file_path: 'uploads/chat/emily-rabbit-conversation-sample.jpg',
+      file_size: 89421,
+      mime_type: 'image/jpeg',
+      url: '/uploads/chat/emily-rabbit-conversation-sample.jpg',
+      uploaded_by: 'user_adopter_002', // Emily Davis
+      entity_type: 'chat',
+      entity_id: 'chat_emily_rabbit_inquiry_001',
+      purpose: 'chat_attachment',
+      metadata: {
+        description: 'Photo of my rabbit housing setup and exercise area',
+        attachedToMessage: 'msg_emily_rabbit_003',
+      },
+      created_at: new Date('2024-07-18T15:30:00Z'),
+      updated_at: new Date('2024-07-18T15:30:00Z'),
+    },
+  ],
 };
 
 export async function seedEmilyRabbitConversation() {
@@ -271,6 +296,14 @@ export async function seedEmilyRabbitConversation() {
       });
     }
 
+    // Create file attachments
+    for (const attachment of emilyRabbitConversationData.attachments) {
+      await FileUpload.findOrCreate({
+        where: { upload_id: attachment.upload_id },
+        defaults: attachment,
+      });
+    }
+
     // eslint-disable-next-line no-console
 
     console.log('✅ Created Emily Davis rabbit conversation with Bunny Haven Rabbit Rescue');
@@ -286,6 +319,10 @@ export async function seedEmilyRabbitConversation() {
     // eslint-disable-next-line no-console
 
     console.log(`   - Messages: ${emilyRabbitConversationData.messages.length}`);
+
+    // eslint-disable-next-line no-console
+
+    console.log(`   - Attachments: ${emilyRabbitConversationData.attachments.length}`);
   } catch (error) {
     // eslint-disable-next-line no-console
 

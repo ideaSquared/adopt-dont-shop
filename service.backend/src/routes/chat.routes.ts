@@ -3,6 +3,7 @@ import { ChatController } from '../controllers/chat.controller';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
+import { chatAttachmentUpload } from '../services/file-upload.service';
 import { chatValidation } from '../validation/chat.validation';
 
 const router = express.Router();
@@ -906,6 +907,77 @@ router.get(
   requireRole(['admin', 'moderator']),
   generalLimiter,
   ChatController.getChatAnalytics
+);
+
+/**
+ * @swagger
+ * /api/chats/{conversationId}/attachments/upload:
+ *   post:
+ *     summary: Upload attachment for chat conversation
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The chat conversation ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The file to upload
+ *     responses:
+ *       200:
+ *         description: File uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440001"
+ *                     filename:
+ *                       type: string
+ *                       example: "document.pdf"
+ *                     url:
+ *                       type: string
+ *                       example: "/uploads/chat/document.pdf"
+ *                     mimeType:
+ *                       type: string
+ *                       example: "application/pdf"
+ *                     size:
+ *                       type: number
+ *                       example: 1048576
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.post(
+  '/:conversationId/attachments/upload',
+  generalLimiter,
+  chatAttachmentUpload.single('file'),
+  ChatController.uploadAttachment
 );
 
 export default router;

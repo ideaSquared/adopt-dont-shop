@@ -1,6 +1,8 @@
 import { Message } from '@/services/chatService';
 import { formatDistanceToNow } from 'date-fns';
+import { MdDownload, MdImage, MdInsertDriveFile, MdPictureAsPdf } from 'react-icons/md';
 import styled from 'styled-components';
+import { resolveFileUrl } from '../../utils/fileUtils';
 
 const MessageBubbleWrapper = styled.div<{ $isOwn: boolean }>`
   display: flex;
@@ -69,6 +71,121 @@ const MessageInfo = styled.div<{ $isOwn: boolean }>`
   font-weight: 500;
 `;
 
+const AttachmentsContainer = styled.div`
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const AttachmentItem = styled.div<{ $isOwn: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: ${props =>
+    props.$isOwn ? 'rgba(255, 255, 255, 0.15)' : props.theme.colors.neutral[100]};
+  border-radius: 8px;
+  border: 1px solid
+    ${props => (props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.neutral[200])};
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props =>
+      props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.neutral[200]};
+  }
+`;
+
+const ImageAttachment = styled.img`
+  max-width: 200px;
+  max-height: 150px;
+  width: auto;
+  height: auto;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+`;
+
+const FileIcon = styled.div<{ $isOwn: boolean }>`
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: ${props =>
+    props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.primary[100]};
+  color: ${props => (props.$isOwn ? 'white' : props.theme.colors.primary[600])};
+`;
+
+const FileInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const FileName = styled.div<{ $isOwn: boolean }>`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: ${props => (props.$isOwn ? 'white' : props.theme.text.primary)};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const FileSize = styled.div<{ $isOwn: boolean }>`
+  font-size: 0.75rem;
+  color: ${props => (props.$isOwn ? 'rgba(255, 255, 255, 0.8)' : props.theme.text.secondary)};
+`;
+
+const DownloadButton = styled.a<{ $isOwn: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: ${props =>
+    props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.primary[500]};
+  color: ${props => (props.$isOwn ? 'white' : 'white')};
+  text-decoration: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props =>
+      props.$isOwn ? 'rgba(255, 255, 255, 0.3)' : props.theme.colors.primary[600]};
+    transform: scale(1.05);
+  }
+`;
+
+// Helper function to format file size
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+// Helper function to get file icon based on MIME type
+const getFileIcon = (mimeType: string) => {
+  if (mimeType.startsWith('image/')) {
+    return <MdImage size={20} />;
+  } else if (mimeType === 'application/pdf') {
+    return <MdPictureAsPdf size={20} />;
+  } else {
+    return <MdInsertDriveFile size={20} />;
+  }
+};
+
+// Helper function to check if file is an image
+const isImageFile = (mimeType: string): boolean => {
+  return mimeType.startsWith('image/');
+};
+
 export function MessageBubbleComponent({ message, isOwn }: { message: Message; isOwn: boolean }) {
   return (
     <MessageBubbleWrapper $isOwn={isOwn}>
@@ -78,6 +195,41 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
         aria-label={isOwn ? 'Your message' : 'Received message'}
       >
         <MessageContent>{message.content}</MessageContent>
+
+        {/* Render attachments if they exist */}
+        {message.attachments && message.attachments.length > 0 && (
+          <AttachmentsContainer>
+            {message.attachments.map((attachment, index) => (
+              <AttachmentItem key={attachment.id || index} $isOwn={isOwn}>
+                {isImageFile(attachment.mimeType) ? (
+                  <ImageAttachment
+                    src={resolveFileUrl(attachment.url)}
+                    alt={attachment.filename}
+                    onClick={() => window.open(resolveFileUrl(attachment.url), '_blank')}
+                  />
+                ) : (
+                  <>
+                    <FileIcon $isOwn={isOwn}>{getFileIcon(attachment.mimeType)}</FileIcon>
+                    <FileInfo>
+                      <FileName $isOwn={isOwn}>{attachment.filename}</FileName>
+                      <FileSize $isOwn={isOwn}>{formatFileSize(attachment.size)}</FileSize>
+                    </FileInfo>
+                    <DownloadButton
+                      $isOwn={isOwn}
+                      href={resolveFileUrl(attachment.url)}
+                      download={attachment.filename}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
+                      <MdDownload size={16} />
+                    </DownloadButton>
+                  </>
+                )}
+              </AttachmentItem>
+            ))}
+          </AttachmentsContainer>
+        )}
+
         <MessageInfo $isOwn={isOwn} aria-label={'Message time'}>
           {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
         </MessageInfo>

@@ -8,6 +8,7 @@ import UserFavorite from './UserFavorite';
 // Communication Models
 import Chat from './Chat';
 import ChatParticipant from './ChatParticipant';
+import FileUpload from './FileUpload';
 import Message from './Message';
 
 // Notification Models
@@ -69,6 +70,7 @@ const models = {
   EmailPreference,
   SwipeSession,
   SwipeAction,
+  FileUpload,
 };
 
 // Setup associations (done explicitly below instead of using associate methods)
@@ -225,6 +227,10 @@ UserFavorite.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 Pet.hasMany(UserFavorite, { foreignKey: 'pet_id', as: 'Favorites' });
 UserFavorite.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
 
+// FileUpload associations
+User.hasMany(FileUpload, { foreignKey: 'uploaded_by', as: 'UploadedFiles' });
+FileUpload.belongsTo(User, { foreignKey: 'uploaded_by', as: 'Uploader' });
+
 // Export all models
 export {
   Application,
@@ -237,6 +243,7 @@ export {
   EmailQueue,
   EmailTemplate,
   FeatureFlag,
+  FileUpload,
   Invitation,
   Message,
   ModeratorAction,

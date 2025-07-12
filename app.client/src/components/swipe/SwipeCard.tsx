@@ -5,6 +5,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { MdCheckCircle, MdPets, MdRefresh, MdStar } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { resolveFileUrl } from '../../utils/fileUtils';
 
 interface SwipeCardProps {
   pet: DiscoveryPet;
@@ -399,26 +400,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
 
   const primaryImage = pet.images?.[0];
 
-  // Create a fallback image URL for better reliability
-  const getImageUrl = (url: string | undefined): string | undefined => {
-    if (!url) return undefined;
-
-    // If it's a via.placeholder.com URL (which might not work), return undefined to use our own placeholder
-    if (url.includes('via.placeholder.com') || url.includes('placeholder')) {
-      return undefined;
-    }
-
-    // If it's a valid http/https URL, use it as is
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-
-    // If it's a relative path, you might want to prepend your base URL
-    // For now, just return the URL as is
-    return url;
-  };
-
-  const imageUrl = getImageUrl(primaryImage);
+  const imageUrl = resolveFileUrl(primaryImage);
 
   // Calculate age display - handle undefined values properly
   let age = '';

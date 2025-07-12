@@ -6,6 +6,8 @@ import ChatParticipant from '../models/ChatParticipant';
 
 import Message from '../models/Message';
 
+import FileUpload from '../models/FileUpload';
+
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
 // Emily Davis (user_adopter_002) conversation with Happy Tails Dog Rescue
@@ -216,6 +218,29 @@ const emilyConversation2Data = {
       updated_at: new Date('2024-07-15T16:45:00Z'),
     },
   ],
+
+  // File attachments shared in the conversation
+  attachments: [
+    {
+      upload_id: uuidv4(), // Generate proper UUID
+      original_filename: 'backyard-dog-area.jpg',
+      stored_filename: 'emily-dog-conversation-2-sample.jpg',
+      file_path: 'uploads/chat/emily-dog-conversation-2-sample.jpg',
+      file_size: 145632,
+      mime_type: 'image/jpeg',
+      url: '/uploads/chat/emily-dog-conversation-2-sample.jpg',
+      uploaded_by: 'user_adopter_002', // Emily Davis
+      entity_type: 'chat',
+      entity_id: 'chat_emily_dog_inquiry_002',
+      purpose: 'chat_attachment',
+      metadata: {
+        description: 'Photo of my backyard setup for a senior dog',
+        attachedToMessage: 'msg_emily_dog_2_002',
+      },
+      created_at: new Date('2024-07-14T14:30:00Z'),
+      updated_at: new Date('2024-07-14T14:30:00Z'),
+    },
+  ],
 };
 
 export async function seedEmilyConversation2() {
@@ -252,6 +277,14 @@ export async function seedEmilyConversation2() {
       });
     }
 
+    // Create file attachments
+    for (const attachment of emilyConversation2Data.attachments) {
+      await FileUpload.findOrCreate({
+        where: { upload_id: attachment.upload_id },
+        defaults: attachment,
+      });
+    }
+
     // eslint-disable-next-line no-console
 
     console.log('✅ Created Emily Davis conversation #2 with Happy Tails Dog Rescue');
@@ -267,6 +300,10 @@ export async function seedEmilyConversation2() {
     // eslint-disable-next-line no-console
 
     console.log(`   - Messages: ${emilyConversation2Data.messages.length}`);
+
+    // eslint-disable-next-line no-console
+
+    console.log(`   - Attachments: ${emilyConversation2Data.attachments.length}`);
   } catch (error) {
     // eslint-disable-next-line no-console
 
