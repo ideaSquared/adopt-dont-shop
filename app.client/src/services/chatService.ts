@@ -1,6 +1,12 @@
 import { conversationCache, messageCache } from '@/utils/chatCache';
-import { trackApiCall, trackCacheOperation, trackMessageSend, trackMessageDelivered } from '@/utils/performanceMonitor';
+import {
+  trackApiCall,
+  trackCacheOperation,
+  trackMessageDelivered,
+  trackMessageSend,
+} from '@/utils/performanceMonitor';
 import { messageRateLimiter, typingRateLimiter } from '@/utils/rateLimiter';
+import { SearchResult } from '@/utils/searchCache';
 import { io, Socket } from 'socket.io-client';
 import { api } from './api';
 
@@ -567,7 +573,7 @@ export class ChatService {
 
     const tempId = `temp_${Date.now()}_${Math.random()}`;
     const startTime = Date.now();
-    
+
     // Track message sending performance
     trackMessageSend(tempId, messageType, content.length);
 
@@ -580,7 +586,7 @@ export class ChatService {
           messageType,
         }
       );
-      
+
       // Track API call performance
       trackApiCall(`${this.baseUrl}/${conversationId}/messages`, 'POST', startTime);
 
@@ -617,7 +623,7 @@ export class ChatService {
 
       // Track message delivery completion
       trackMessageDelivered(persistedMessage.id);
-      
+
       // Invalidate relevant caches
       messageCache.invalidateConversation(conversationId);
       const userId = this.getCurrentUserId();
@@ -842,74 +848,70 @@ export class ChatService {
     this.socket?.emit('stopTyping', { conversationId });
   }
 
-  // Search messages
-  async searchMessages(
-    query: string,
-    conversationId?: string
-  ): Promise<{
-    messages: Message[];
+  // Search functionality
+  async searchMessages(options: {
+    query: string;
+    conversationId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    results: SearchResult[];
     total: number;
+    page: number;
+    totalPages: number;
+    cached: boolean;
   }> {
+    const startTime = Date.now();
+    const { query, conversationId, page = 1, limit = 50 } = options;
+
     try {
-      const response = await api.get<
-        ApiResponse<{
-          messages: Message[];
-          total: number;
-        }>
-      >(`${this.baseUrl}/search`, {
-        query,
-        conversationId,
+      // Build search parameters
+      const params = new URLSearchParams({
+        q: query,
+        page: page.toString(),
+        limit: limit.toString(),
       });
 
-      // Handle different response structures
-      if (response && typeof response === 'object') {
-        // If response has success and data properties (backend format)
-        if ('success' in response && 'data' in response && response.data) {
-          const data = response.data as unknown as {
-            messages: Record<string, unknown>[];
-            total: number;
-          };
-          return {
-            messages: data.messages.map(msg => this.convertMessageFormat(msg)),
-            total: data.total,
-          };
-        }
-        // If response.data exists, use it (wrapped response)
-        if ('data' in response && response.data) {
-          const data = response.data as unknown as {
-            messages: Record<string, unknown>[];
-            total: number;
-          };
-          return {
-            messages: data.messages.map(msg => this.convertMessageFormat(msg)),
-            total: data.total,
-          };
-        }
-        // If response is directly the expected object
-        if ('messages' in response && 'total' in response) {
-          const data = response as unknown as {
-            messages: Record<string, unknown>[];
-            total: number;
-          };
-          return {
-            messages: data.messages.map(msg => this.convertMessageFormat(msg)),
-            total: data.total,
-          };
-        }
+      if (conversationId) {
+        params.append('conversationId', conversationId);
       }
 
-      // Fallback to empty results
-      console.warn('Unable to parse search messages response:', response);
+      const response = await api.get(`/api/v1/search/messages?${params.toString()}`);
+
+      trackApiCall('/api/v1/search/messages', 'GET', startTime);
+
+      if (!response || typeof response !== 'object' || !('data' in response)) {
+        throw new Error('Invalid search response');
+      }
+
+      const responseData = response.data as Record<string, unknown>;
+
       return {
-        messages: [],
-        total: 0,
+        results: (responseData.results || []) as SearchResult[],
+        total: Number(responseData.total || 0),
+        page: Number(responseData.page || 1),
+        totalPages: Number(responseData.totalPages || 1),
+        cached: Boolean(responseData.cached || false),
       };
     } catch (error) {
-      console.error('Error searching messages:', error);
-      return {
-        messages: [],
-        total: 0,
-      };
+      console.error('Message search failed:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to search messages');
+    }
+  }
+
+  async getSearchSuggestions(query: string): Promise<string[]> {
+    try {
+      const response = await api.get(`/api/v1/search/suggestions?q=${encodeURIComponent(query)}`);
+
+      if (!response || typeof response !== 'object' || !('data' in response)) {
+        return [];
+      }
+
+      const responseData = response.data as Record<string, unknown>;
+      return (responseData.suggestions || []) as string[];
+    } catch (error) {
+      console.error('Failed to get search suggestions:', error);
+      return [];
     }
   }
 }

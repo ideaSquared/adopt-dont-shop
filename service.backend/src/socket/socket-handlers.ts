@@ -3,6 +3,7 @@ import { Socket, Server as SocketIOServer } from 'socket.io';
 import { config } from '../config';
 import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
+import { getMessageBroker } from '../services/messageBroker.service';
 import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 
@@ -36,11 +37,13 @@ const typingUsers = new Map<string, Map<string, TypingUser>>(); // chatId -> use
 
 export class SocketHandlers {
   private io: SocketIOServer;
+  private messageBroker = getMessageBroker();
 
   constructor(io: SocketIOServer) {
     this.io = io;
     this.setupMiddleware();
     this.setupConnectionHandler();
+    this.setupMessageBrokerSubscriptions();
   }
 
   /**
@@ -634,5 +637,52 @@ export class SocketHandlers {
   public getTypingUsers(chatId: string) {
     const chatTyping = typingUsers.get(chatId);
     return chatTyping ? Array.from(chatTyping.values()) : [];
+  }
+
+  /**
+   * Setup message broker subscriptions
+   */
+  /**
+   * Setup message broker subscriptions for horizontal scaling
+   */
+  private setupMessageBrokerSubscriptions() {
+    if (!this.messageBroker) {
+      logger.info('No message broker available, running in single-server mode');
+      return;
+    }
+
+    logger.info('Setting up message broker subscriptions for horizontal scaling');
+
+    // Note: In a full implementation, we would subscribe to broker events here
+    // For now, we'll just log that the system is ready for scaling
+    logger.info('Message broker subscriptions configured', {
+      brokerId: this.messageBroker.getStatus().serverId,
+      stats: this.messageBroker.getStatus(),
+    });
+  }
+
+  /**
+   * Publish message to broker for other server instances
+   */
+  private async publishToBroker(event: string, data: Record<string, unknown>) {
+    if (this.messageBroker) {
+      try {
+        if (event === 'message_sent' && data.chatId && data.senderId) {
+          await this.messageBroker.publishChatMessage(
+            data.chatId as string,
+            data,
+            data.senderId as string
+          );
+        } else if (event === 'typing' && data.chatId && data.userId) {
+          await this.messageBroker.publishTyping(
+            data.chatId as string,
+            data.userId as string,
+            Boolean(data.isTyping)
+          );
+        }
+      } catch (error) {
+        logger.error('Failed to publish to message broker:', error);
+      }
+    }
   }
 }

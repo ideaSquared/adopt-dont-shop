@@ -93,14 +93,11 @@ Rescue.hasMany(ApplicationQuestion, { foreignKey: 'rescue_id', as: 'Questions' }
 ApplicationQuestion.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
 
 // Chat and messaging associations
-User.hasMany(Chat, { foreignKey: 'created_by', as: 'CreatedChats' });
-Chat.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
-
 Chat.hasMany(ChatParticipant, { foreignKey: 'chat_id', as: 'Participants' });
 ChatParticipant.belongsTo(Chat, { foreignKey: 'chat_id', as: 'Chat' });
 
-User.hasMany(ChatParticipant, { foreignKey: 'user_id', as: 'ChatMemberships' });
-ChatParticipant.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+User.hasMany(ChatParticipant, { foreignKey: 'participant_id', as: 'ChatMemberships' });
+ChatParticipant.belongsTo(User, { foreignKey: 'participant_id', as: 'User' });
 
 Chat.hasMany(Message, { foreignKey: 'chat_id', as: 'Messages' });
 Message.belongsTo(Chat, { foreignKey: 'chat_id', as: 'Chat' });

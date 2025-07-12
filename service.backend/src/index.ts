@@ -8,6 +8,7 @@ import { config } from './config';
 import { errorHandler } from './middleware/error-handler';
 import { apiLimiter } from './middleware/rate-limiter';
 import sequelize from './sequelize';
+import { initializeMessageBroker } from './services/messageBroker.service';
 import { SocketHandlers } from './socket/socket-handlers';
 import { logger } from './utils/logger';
 import { printEnvironmentInfo, validateEnvironment } from './utils/validate-env';
@@ -26,6 +27,7 @@ import monitoringRoutes from './routes/monitoring.routes';
 import notificationRoutes from './routes/notification.routes';
 import petRoutes from './routes/pet.routes';
 import rescueRoutes from './routes/rescue.routes';
+import searchRoutes from './routes/search.routes';
 import userRoutes from './routes/user.routes';
 
 // Import additional routes for PRD compliance
@@ -164,6 +166,7 @@ app.use('/api/v1/email', emailRoutes);
 app.use('/api/v1/pets', petRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/rescues', rescueRoutes);
+app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/features', featureRoutes);
 app.use('/api/v1/config', configRoutes);
@@ -286,15 +289,19 @@ app.get('/health/ready', async (req, res) => {
 // Apply error handler middleware
 app.use(errorHandler);
 
-// Initialize Socket.IO handlers
-new SocketHandlers(io);
-
 // Start server
 const startServer = async () => {
   try {
     // Validate environment variables first
     validateEnvironment();
     printEnvironmentInfo();
+
+    // Initialize message broker for scaling
+    await initializeMessageBroker();
+    logger.info('Message broker initialized');
+
+    // Initialize Socket.IO handlers
+    new SocketHandlers(io);
 
     // Test database connection with retry mechanism
     let retries = 5;

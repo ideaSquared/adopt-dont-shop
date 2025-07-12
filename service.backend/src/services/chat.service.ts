@@ -2,7 +2,6 @@ import { Op, WhereOptions } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
 import sequelize from '../sequelize';
 import {
-  ChatCreateData,
   ChatListResponse,
   ChatMessage,
   ChatStatistics,
@@ -19,12 +18,14 @@ import {
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 
-interface CreateChatData {
+interface ChatCreateData {
   rescueId?: string;
   applicationId?: string;
   participantIds: string[];
   type: 'direct' | 'group' | 'application';
   name?: string;
+  petId?: string;
+  initialMessage?: string;
 }
 
 interface SendMessageData {
@@ -65,13 +66,6 @@ interface ConversationSearchOptions {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'ASC' | 'DESC';
-}
-
-interface UpdateChatData {
-  name?: string;
-  description?: string;
-  status?: 'active' | 'locked' | 'archived';
-  updatedBy: string;
 }
 
 export class ChatService {
@@ -119,7 +113,7 @@ export class ChatService {
    * Helper function to convert Chat model to Chat interface
    */
   private static convertChatToInterface(
-    chat: Chat & { Messages?: Message[]; Participants?: any[] }
+    chat: Chat & { Messages?: Message[]; Participants?: ChatParticipant[] }
   ): import('../types/chat').Chat {
     return {
       chat_id: chat.chat_id,
@@ -134,9 +128,9 @@ export class ChatService {
         chat.Participants?.map(p => ({
           participant_id: p.participant_id,
           chat_id: p.chat_id,
-          user_id: p.user_id,
+          user_id: p.participant_id, // Use participant_id as user_id for interface compatibility
           role: p.role,
-          joined_at: p.joined_at?.toISOString() || new Date().toISOString(),
+          joined_at: p.created_at?.toISOString() || new Date().toISOString(), // Use created_at as joined_at
           last_read_at: p.last_read_at?.toISOString(),
         })) || [],
       last_message: chat.Messages?.[0]
@@ -156,18 +150,27 @@ export class ChatService {
       const chat = await Chat.findByPk(chatId, {
         include: [
           {
-            association: 'User',
-            attributes: ['userId', 'firstName', 'lastName', 'email'],
-          },
-          {
-            association: 'Messages',
+            association: 'Participants',
             include: [
               {
                 association: 'User',
                 attributes: ['userId', 'firstName', 'lastName', 'email'],
               },
             ],
-            order: [['createdAt', 'ASC']],
+          },
+          {
+            association: 'Messages',
+            include: [
+              {
+                association: 'Sender',
+                attributes: ['userId', 'firstName', 'lastName', 'email'],
+              },
+            ],
+            order: [['created_at', 'ASC']],
+          },
+          {
+            association: 'rescue',
+            attributes: ['rescue_id', 'name'],
           },
         ],
       });
