@@ -16,6 +16,8 @@ const InputRow = styled.div`
 
 const MessageTextArea = styled(TextArea)`
   flex: 1;
+  width: 100%;
+  min-width: 0;
   min-height: 44px;
   max-height: 120px;
   resize: none;
@@ -23,7 +25,7 @@ const MessageTextArea = styled(TextArea)`
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   line-height: 1.4;
-  background: ${props => props.theme.colors.neutral[100]};
+  background: ${props => props.theme.background.secondary};
   border: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
@@ -39,7 +41,7 @@ const MessageTextArea = styled(TextArea)`
   }
 
   &::placeholder {
-    color: ${props => props.theme.text.tertiary};
+    color: ${props => props.theme.text.secondary};
   }
 `;
 
@@ -55,8 +57,8 @@ const AttachmentItem = styled.div`
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: ${props => props.theme.colors.primary[50]};
-  border: 1px solid ${props => props.theme.colors.primary[200]};
+  background: ${props => props.theme.colors.primary.light};
+  border: 1px solid ${props => props.theme.colors.primary.main};
   border-radius: 18px;
   font-size: 0.875rem;
 `;
@@ -77,7 +79,7 @@ const RemoveButton = styled.button`
   width: 18px;
   height: 18px;
   border: none;
-  background: ${props => props.theme.colors.semantic.error[500]};
+  background: ${props => props.theme.colors.semantic.error.main};
   color: white;
   border-radius: 50%;
   cursor: pointer;
@@ -85,12 +87,12 @@ const RemoveButton = styled.button`
   transition: all 0.15s ease;
 
   &:hover {
-    background: ${props => props.theme.colors.semantic.error[600]};
+    background: ${props => props.theme.colors.semantic.error.dark};
     transform: scale(1.1);
   }
 
   &:focus {
-    outline: 2px solid ${props => props.theme.colors.semantic.error[300]};
+    outline: 2px solid ${props => props.theme.colors.semantic.error.light};
     outline-offset: 2px;
   }
 `;
@@ -102,22 +104,22 @@ const AttachButton = styled.label`
   width: 44px;
   height: 44px;
   border: none;
-  background: ${props => props.theme.colors.neutral[200]};
+  background: ${props => props.theme.background.secondary};
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: ${props => props.theme.colors.neutral[600]};
+  color: ${props => props.theme.text.secondary};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: ${props => props.theme.colors.primary[50]};
-    border-color: ${props => props.theme.colors.primary[300]};
-    color: ${props => props.theme.colors.primary[500]};
+    background: ${props => props.theme.colors.primary.light};
+    border-color: ${props => props.theme.colors.primary.main};
+    color: ${props => props.theme.colors.primary.main};
     transform: scale(1.05);
   }
 
   &:focus-within {
-    outline: 2px solid ${props => props.theme.colors.primary[300]};
+    outline: 2px solid ${props => props.theme.colors.primary.main};
     outline-offset: 2px;
   }
 
@@ -144,7 +146,7 @@ const SendButton = styled(Button)`
   justify-content: center;
   transition: all 0.2s ease;
   border: none;
-  background: ${props => props.theme.colors.primary[500]};
+  background: ${props => props.theme.colors.primary.main};
   color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 
@@ -368,6 +370,7 @@ export function MessageInput({
           placeholder={placeholder}
           disabled={disabled}
           maxLength={maxLength}
+          fullWidth={true}
           aria-label='Message input'
           aria-describedby='char-count file-input-help'
         />

@@ -14,6 +14,8 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  flex: 1;
+  min-width: 0;
   background: ${props => props.theme.background.primary};
   border-radius: 0;
   overflow: hidden;
@@ -118,9 +120,9 @@ const LoadingContainer = styled.div`
 const ErrorMessage = styled.div`
   margin: 1.5rem;
   padding: 1.25rem;
-  background: ${props => props.theme.colors.semantic.error[100]};
-  border: 1px solid ${props => props.theme.colors.semantic.error[800]};
-  color: ${props => props.theme.colors.semantic.error[500]};
+  background: ${props => props.theme.colors.semantic.error.light};
+  border: 1px solid ${props => props.theme.colors.semantic.error.dark};
+  color: ${props => props.theme.colors.semantic.error.main};
   border-radius: ${props => props.theme.border.radius.md};
   text-align: center;
   font-size: 1.05rem;

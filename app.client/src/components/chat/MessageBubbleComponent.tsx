@@ -33,8 +33,10 @@ const MessageBubble = styled.div<{ $isOwn: boolean }>`
   padding: 0.5rem 0.875rem 0.375rem 0.875rem;
   border-radius: ${props => (props.$isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px')};
   background: ${props =>
-    props.$isOwn ? props.theme.colors.primary[500] : props.theme.background.secondary};
-  color: ${props => (props.$isOwn ? props.theme.text.inverse : props.theme.text.primary)};
+    props.$isOwn
+      ? (props.theme.colors.primary as Record<number, string>)[500]
+      : props.theme.background.secondary};
+  color: ${props => (props.$isOwn ? 'white' : props.theme.text.primary)};
   word-break: break-word;
   overflow-wrap: anywhere;
   box-shadow: ${props =>
@@ -71,9 +73,8 @@ const MessageContent = styled.div`
 
 const MessageInfo = styled.div<{ $isOwn: boolean }>`
   align-self: flex-end;
-  font-size: 0.6875rem;
-  color: ${props => (props.$isOwn ? 'rgba(255, 255, 255, 0.7)' : props.theme.text.tertiary)};
-  opacity: 0.9;
+  font-size: 0.75rem;
+  color: ${props => (props.$isOwn ? 'rgba(255, 255, 255, 0.9)' : props.theme.text.secondary)};
   text-align: right;
   white-space: nowrap;
   letter-spacing: 0.01em;
@@ -94,15 +95,15 @@ const AttachmentItem = styled.div<{ $isOwn: boolean }>`
   gap: 0.5rem;
   padding: 0.5rem;
   background: ${props =>
-    props.$isOwn ? 'rgba(255, 255, 255, 0.15)' : props.theme.colors.neutral[100]};
+    props.$isOwn ? 'rgba(255, 255, 255, 0.15)' : props.theme.background.secondary};
   border-radius: 8px;
   border: 1px solid
-    ${props => (props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.neutral[200])};
+    ${props => (props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.border.color.secondary)};
   transition: all 0.2s ease;
 
   &:hover {
     background: ${props =>
-      props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.neutral[200]};
+      props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.background.highlight};
   }
 `;
 
@@ -135,8 +136,11 @@ const FileIcon = styled.div<{ $isOwn: boolean }>`
   justify-content: center;
   border-radius: 4px;
   background: ${props =>
-    props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.primary[100]};
-  color: ${props => (props.$isOwn ? 'white' : props.theme.colors.primary[600])};
+    props.$isOwn
+      ? 'rgba(255, 255, 255, 0.2)'
+      : (props.theme.colors.primary as Record<number, string>)[100]};
+  color: ${props =>
+    props.$isOwn ? 'white' : (props.theme.colors.primary as Record<number, string>)[800]};
 `;
 
 const FileInfo = styled.div`
@@ -155,7 +159,7 @@ const FileName = styled.div<{ $isOwn: boolean }>`
 
 const FileSize = styled.div<{ $isOwn: boolean }>`
   font-size: 0.75rem;
-  color: ${props => (props.$isOwn ? 'rgba(255, 255, 255, 0.8)' : props.theme.text.secondary)};
+  color: ${props => (props.$isOwn ? 'rgba(255, 255, 255, 0.9)' : props.theme.text.secondary)};
 `;
 
 const DownloadButton = styled.a<{ $isOwn: boolean }>`
@@ -166,14 +170,18 @@ const DownloadButton = styled.a<{ $isOwn: boolean }>`
   height: 32px;
   border-radius: 4px;
   background: ${props =>
-    props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.primary[500]};
+    props.$isOwn
+      ? 'rgba(255, 255, 255, 0.2)'
+      : (props.theme.colors.primary as Record<number, string>)[500]};
   color: ${props => (props.$isOwn ? 'white' : 'white')};
   text-decoration: none;
   transition: all 0.2s ease;
 
   &:hover {
     background: ${props =>
-      props.$isOwn ? 'rgba(255, 255, 255, 0.3)' : props.theme.colors.primary[600]};
+      props.$isOwn
+        ? 'rgba(255, 255, 255, 0.3)'
+        : (props.theme.colors.primary as Record<number, string>)[600]};
     transform: scale(1.05);
   }
 `;

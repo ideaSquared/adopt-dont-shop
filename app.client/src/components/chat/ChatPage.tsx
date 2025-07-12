@@ -10,7 +10,7 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   background: ${props => props.theme.background.primary};
   overflow: hidden;
@@ -135,9 +135,9 @@ const LoadingContainer = styled.div`
 `;
 
 const ErrorMessage = styled.div`
-  background: ${props => props.theme.colors.semantic.error[100]};
-  color: ${props => props.theme.colors.semantic.error[700]};
-  border: 1px solid ${props => props.theme.colors.semantic.error[300]};
+  background: ${props => props.theme.colors.semantic.error.light};
+  color: ${props => props.theme.colors.semantic.error.dark};
+  border: 1px solid ${props => props.theme.colors.semantic.error.main};
   padding: 1.5rem;
   border-radius: 8px;
   margin: 2rem auto;
