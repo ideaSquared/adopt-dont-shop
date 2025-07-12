@@ -1,3 +1,4 @@
+import { useStatsig } from '@/hooks/useStatsig';
 import { DiscoveryPet } from '@/types';
 import { animated, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
@@ -223,6 +224,21 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
   const [imageError, setImageError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { logEvent } = useStatsig();
+
+  // Log when card is displayed
+  React.useEffect(() => {
+    if (isTop) {
+      logEvent('swipe_card_displayed', 1, {
+        pet_id: pet.petId,
+        pet_name: pet.name || 'unknown',
+        pet_type: pet.type || 'unknown',
+        pet_breed: pet.breed || 'unknown',
+        has_image: pet.imageUrls && pet.imageUrls.length > 0 ? 'true' : 'false',
+        card_position: 'top',
+      });
+    }
+  }, [isTop, pet, logEvent]);
 
   // Image loading handlers
   const handleImageLoad = useCallback(() => {
@@ -246,32 +262,55 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
     (event: React.KeyboardEvent) => {
       if (!isTop) return;
 
+      let action: string = '';
       switch (event.key) {
         case 'ArrowLeft':
           event.preventDefault();
+          action = 'pass';
           onSwipe('pass', pet.petId);
           break;
         case 'ArrowRight':
           event.preventDefault();
+          action = 'like';
           onSwipe('like', pet.petId);
           break;
         case 'ArrowUp':
           event.preventDefault();
+          action = 'super_like';
           onSwipe('super_like', pet.petId);
           break;
         case 'ArrowDown':
         case 'Enter':
         case ' ':
           event.preventDefault();
+          action = 'info';
+          logEvent('swipe_pet_details_viewed', 1, {
+            pet_id: pet.petId,
+            pet_name: pet.name || 'unknown',
+            pet_type: pet.type || 'unknown',
+            interaction_method: 'keyboard',
+            key_pressed: event.key,
+          });
           navigate(`/pets/${pet.petId}`);
           break;
         case 'Escape':
           event.preventDefault();
+          action = 'pass';
           onSwipe('pass', pet.petId);
           break;
       }
+
+      // Log keyboard interaction
+      if (action) {
+        logEvent('swipe_keyboard_action', 1, {
+          pet_id: pet.petId,
+          action,
+          key_pressed: event.key,
+          pet_name: pet.name || 'unknown',
+        });
+      }
     },
-    [isTop, onSwipe, pet.petId, navigate]
+    [isTop, onSwipe, pet, navigate, logEvent]
   );
 
   const [{ x, y, rotate, scale, opacity }, api] = useSpring(() => ({
@@ -346,6 +385,13 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
           let finalAction: 'like' | 'pass' | 'super_like' | 'info';
           if (overlayAction === 'info' && my > 50) {
             // Navigate to pet details instead of swiping away
+            logEvent('swipe_pet_details_viewed', 1, {
+              pet_id: pet.petId,
+              pet_name: pet.name || 'unknown',
+              pet_type: pet.type || 'unknown',
+              interaction_method: 'swipe_down',
+              movement_y: my.toString(),
+            });
             navigate(`/pets/${pet.petId}`);
             // Reset card position
             api.start({
@@ -362,6 +408,20 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
             // Regular horizontal swipe
             finalAction = mx > 0 ? 'like' : 'pass';
           }
+
+          // Log swipe action
+          logEvent('swipe_action_performed', 1, {
+            pet_id: pet.petId,
+            pet_name: pet.name || 'unknown',
+            pet_type: pet.type || 'unknown',
+            pet_breed: pet.breed || 'unknown',
+            action: finalAction,
+            interaction_method: 'swipe',
+            movement_x: mx.toString(),
+            movement_y: my.toString(),
+            velocity_x: vx.toString(),
+            is_flick: isFlick.toString(),
+          });
 
           // Animate card off screen
           api.start({

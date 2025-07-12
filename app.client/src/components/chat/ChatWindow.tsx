@@ -1,4 +1,5 @@
 import { useChat } from '@/contexts/ChatContext';
+import { useStatsig } from '@/hooks/useStatsig';
 import type { Conversation } from '@/services/chatService';
 import { Button, Spinner } from '@adopt-dont-shop/components';
 import { useEffect, useRef, useState } from 'react';
@@ -145,6 +146,7 @@ const InputArea = styled.div`
 
 export function ChatWindow() {
   const navigate = useNavigate();
+  const { logEvent } = useStatsig();
   const {
     activeConversation,
     messages,
@@ -193,10 +195,32 @@ export function ChatWindow() {
 
     try {
       setIsSending(true);
+
+      // Log message send attempt
+      if (activeConversation) {
+        logEvent('chat_message_sent', 1, {
+          conversation_id: activeConversation.id.toString(),
+          message_length: messageText.trim().length.toString(),
+          has_attachments: attachments && attachments.length > 0 ? 'true' : 'false',
+          attachment_count: attachments?.length.toString() || '0',
+          pet_id: activeConversation.petId?.toString() || 'unknown',
+          rescue_id: activeConversation.rescueId?.toString() || 'unknown',
+        });
+      }
+
       await sendMessage(messageText.trim(), attachments);
       setMessageText('');
     } catch (err) {
       console.error('Failed to send message:', err);
+
+      // Log message send error
+      if (activeConversation) {
+        logEvent('chat_message_error', 1, {
+          conversation_id: activeConversation.id.toString(),
+          error_message: err instanceof Error ? err.message : 'unknown_error',
+          pet_id: activeConversation.petId?.toString() || 'unknown',
+        });
+      }
     } finally {
       setIsSending(false);
     }

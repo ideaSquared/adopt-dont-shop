@@ -1,5 +1,6 @@
 import { ApplicationForm, ApplicationProgress, PetSummary } from '@/components/application';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStatsig } from '@/hooks/useStatsig';
 import { applicationService, petService } from '@/services';
 import { Application, ApplicationData, Pet } from '@/types';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
@@ -84,6 +85,7 @@ export const ApplicationPage: React.FC = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { logEvent } = useStatsig();
 
   const [pet, setPet] = useState<Pet | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -138,6 +140,14 @@ export const ApplicationPage: React.FC = () => {
         const petData = await petService.getPet(petId);
         setPet(petData);
 
+        // Log application page view
+        logEvent('application_page_viewed', 1, {
+          pet_id: petId,
+          pet_name: petData.name || 'unknown',
+          pet_type: petData.type || 'unknown',
+          user_authenticated: isAuthenticated.toString(),
+        });
+
         // Check for existing application
         try {
           const existing = await applicationService.getApplicationByPetId(petId);
@@ -176,7 +186,7 @@ export const ApplicationPage: React.FC = () => {
     };
 
     loadData();
-  }, [petId, isAuthenticated, navigate, user, authLoading]);
+  }, [petId, isAuthenticated, navigate, user, authLoading, logEvent]);
 
   const handleStepComplete = (stepData: Partial<ApplicationData>) => {
     setApplicationData(prev => ({ ...prev, ...stepData }));
@@ -200,6 +210,16 @@ export const ApplicationPage: React.FC = () => {
         throw new Error('Application data is incomplete');
       }
 
+      // Log application submission attempt
+      logEvent('application_submission_attempted', 1, {
+        pet_id: pet.pet_id.toString(),
+        pet_name: pet.name || 'unknown',
+        pet_type: pet.type || 'unknown',
+        rescue_id: pet.rescue_id?.toString() || 'unknown',
+        is_update: existingApplication ? 'true' : 'false',
+        user_authenticated: isAuthenticated.toString(),
+      });
+
       const submissionData: ApplicationData = {
         ...(applicationData as ApplicationData),
         petId: pet.pet_id,
@@ -214,6 +234,16 @@ export const ApplicationPage: React.FC = () => {
         result = await applicationService.submitApplication(submissionData);
       }
 
+      // Log successful application submission
+      logEvent('application_submission_successful', 1, {
+        pet_id: pet.pet_id.toString(),
+        pet_name: pet.name || 'unknown',
+        application_id: result.id.toString(),
+        rescue_id: pet.rescue_id?.toString() || 'unknown',
+        is_update: existingApplication ? 'true' : 'false',
+        user_authenticated: isAuthenticated.toString(),
+      });
+
       // Navigate to success page or application tracking
       navigate(`/applications/${result.id}`, {
         state: {
@@ -224,6 +254,19 @@ export const ApplicationPage: React.FC = () => {
       });
     } catch (error) {
       console.error('Failed to submit application:', error);
+
+      // Log application submission error
+      if (pet) {
+        logEvent('application_submission_error', 1, {
+          pet_id: pet.pet_id.toString(),
+          pet_name: pet.name || 'unknown',
+          rescue_id: pet.rescue_id?.toString() || 'unknown',
+          error_message: error instanceof Error ? error.message : 'unknown_error',
+          is_update: existingApplication ? 'true' : 'false',
+          user_authenticated: isAuthenticated.toString(),
+        });
+      }
+
       setError('Failed to submit application. Please try again.');
     } finally {
       setIsSubmitting(false);

@@ -1,3 +1,4 @@
+import { useStatsig } from '@/hooks/useStatsig';
 import { authService } from '@/services/authService';
 import { LoginRequest, RegisterRequest, User } from '@/types';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
@@ -32,6 +33,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { logEvent } = useStatsig();
 
   // Debug user state changes in development
   useEffect(() => {
@@ -111,6 +113,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log('🔑 AuthContext: login() called with:', credentials.email);
     setIsLoading(true);
     try {
+      // Log login attempt
+      logEvent('auth_login_attempted', 1, {
+        email: credentials.email,
+      });
+
       // eslint-disable-next-line no-console
       console.log('🔑 AuthContext: calling authService.login()');
       const response = await authService.login(credentials);
@@ -122,6 +129,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Clear any stored auth data
         await authService.logout();
         setUser(null);
+
+        // Log wrong app usage
+        logEvent('auth_wrong_app_access', 1, {
+          user_type: response.user.userType,
+          expected_app: 'client',
+          email: response.user.email,
+        });
 
         // Provide helpful redirect information
         let redirectApp = '';
@@ -143,10 +157,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       setUser(response.user);
+
+      // Log successful login
+      logEvent('auth_login_successful', 1, {
+        user_id: response.user.userId,
+        user_type: response.user.userType,
+        email: response.user.email,
+        has_profile_image: (!!response.user.profileImageUrl).toString(),
+      });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('🔑 AuthContext: login error:', error);
       setUser(null);
+
+      // Log login error
+      logEvent('auth_login_failed', 1, {
+        email: credentials.email,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+      });
       throw error;
     } finally {
       setIsLoading(false);
@@ -156,10 +184,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: RegisterRequest) => {
     setIsLoading(true);
     try {
+      // Log registration attempt
+      logEvent('auth_registration_attempted', 1, {
+        email: userData.email,
+        user_type: userData.userType || 'adopter',
+      });
+
       const response = await authService.register(userData);
       setUser(response.user);
+
+      // Log successful registration
+      logEvent('auth_registration_successful', 1, {
+        user_id: response.user.userId,
+        email: response.user.email,
+        user_type: response.user.userType,
+      });
     } catch (error) {
       setUser(null);
+
+      // Log registration error
+      logEvent('auth_registration_failed', 1, {
+        email: userData.email,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+      });
+
       throw error;
     } finally {
       setIsLoading(false);
@@ -167,10 +215,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
+    const currentUserId = user?.userId;
+    const currentEmail = user?.email;
+
     setIsLoading(true);
     try {
       await authService.logout();
       setUser(null);
+
+      // Log successful logout
+      if (currentUserId) {
+        logEvent('auth_logout_successful', 1, {
+          user_id: currentUserId,
+          email: currentEmail || 'unknown',
+        });
+      }
+
       // Clear dev user data in development mode
       if (import.meta.env.DEV) {
         localStorage.removeItem('dev_user');
@@ -183,6 +243,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Logout error:', error);
+
+      // Log logout error
+      if (currentUserId) {
+        logEvent('auth_logout_failed', 1, {
+          user_id: currentUserId,
+          error_message: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+
       // Even if logout fails, clear local state
       setUser(null);
       if (import.meta.env.DEV) {

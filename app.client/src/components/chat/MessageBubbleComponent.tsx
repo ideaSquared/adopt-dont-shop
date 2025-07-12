@@ -9,7 +9,7 @@ import {
   MdVisibility,
 } from 'react-icons/md';
 import styled from 'styled-components';
-import { FEATURES } from '../../config/features';
+import { useStatsig } from '../../hooks/useStatsig';
 import { resolveFileUrl } from '../../utils/fileUtils';
 import { ImageLightbox } from './ImageLightbox';
 import { PDFPreview } from './PDFPreview';
@@ -209,6 +209,9 @@ const isPDFFile = (mimeType: string): boolean => {
 };
 
 export function MessageBubbleComponent({ message, isOwn }: { message: Message; isOwn: boolean }) {
+  // Statsig feature flags
+  const { checkGate, logEvent } = useStatsig();
+
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
@@ -222,6 +225,13 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
     const imageIndex = imageAttachments.findIndex(img => img.id === attachment.id);
     setLightboxIndex(imageIndex >= 0 ? imageIndex : 0);
     setLightboxOpen(true);
+
+    // Log feature usage
+    logEvent('image_lightbox_opened', 1, {
+      attachment_id: attachment.id,
+      filename: attachment.filename,
+      mime_type: attachment.mimeType,
+    });
   };
 
   const handlePDFClick = (attachment: NonNullable<Message['attachments']>[0]) => {
@@ -230,6 +240,13 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
       setPdfPreviewUrl(resolvedUrl);
       setPdfPreviewFilename(attachment.filename);
       setPdfPreviewOpen(true);
+
+      // Log feature usage
+      logEvent('pdf_viewer_opened', 1, {
+        attachment_id: attachment.id,
+        filename: attachment.filename,
+        file_size: attachment.size.toString(),
+      });
     }
   };
 
@@ -267,7 +284,7 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
                       <FileName $isOwn={isOwn}>{attachment.filename}</FileName>
                       <FileSize $isOwn={isOwn}>{formatFileSize(attachment.size)}</FileSize>
                     </FileInfo>
-                    {FEATURES.PDF_VIEWER_ENABLED && (
+                    {checkGate('pdf_viewer_enabled') && (
                       <DownloadButton
                         $isOwn={isOwn}
                         href='#'
@@ -318,7 +335,7 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
       </MessageBubble>
 
       {/* Image Lightbox */}
-      {FEATURES.IMAGE_LIGHTBOX_ENABLED && (
+      {checkGate('image_lightbox_enabled') && (
         <ImageLightbox
           images={imageAttachments.map(att => {
             const resolvedUrl = resolveFileUrl(att.url);
@@ -337,7 +354,7 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
       )}
 
       {/* PDF Preview - only render if feature is enabled */}
-      {FEATURES.PDF_VIEWER_ENABLED && (
+      {checkGate('pdf_viewer_enabled') && (
         <PDFPreview
           url={pdfPreviewUrl}
           filename={pdfPreviewFilename}
