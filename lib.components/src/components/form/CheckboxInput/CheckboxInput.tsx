@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type CheckboxSize = 'sm' | 'md' | 'lg';
 export type CheckboxState = 'default' | 'error' | 'success' | 'warning';
@@ -38,50 +38,52 @@ const getSizeStyles = (size: CheckboxSize) => {
   return sizes[size];
 };
 
-const getStateStyles = (state: CheckboxState, theme: any) => {
+//
+
+const getStateStyles = (state: CheckboxState, theme: DefaultTheme) => {
   const states = {
     default: css`
       border-color: ${theme.colors.neutral[300]};
       &:focus {
-        border-color: ${theme.colors.primary.main};
-        box-shadow: 0 0 0 3px ${theme.colors.primary.light}40;
+        border-color: ${theme.colors.primary[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.primary[100]}40;
       }
       &:checked {
-        background-color: ${theme.colors.primary.main};
-        border-color: ${theme.colors.primary.main};
+        background-color: ${theme.colors.primary[500]};
+        border-color: ${theme.colors.primary[500]};
       }
     `,
     error: css`
-      border-color: ${theme.colors.semantic.error.main};
+      border-color: ${theme.colors.semantic.error[500]};
       &:focus {
-        border-color: ${theme.colors.semantic.error.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.error.light}40;
+        border-color: ${theme.colors.semantic.error[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.semantic.error[100]}40;
       }
       &:checked {
-        background-color: ${theme.colors.semantic.error.main};
-        border-color: ${theme.colors.semantic.error.main};
+        background-color: ${theme.colors.semantic.error[500]};
+        border-color: ${theme.colors.semantic.error[500]};
       }
     `,
     success: css`
-      border-color: ${theme.colors.semantic.success.main};
+      border-color: ${theme.colors.semantic.success[500]};
       &:focus {
-        border-color: ${theme.colors.semantic.success.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.success.light}40;
+        border-color: ${theme.colors.semantic.success[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.semantic.success[100]}40;
       }
       &:checked {
-        background-color: ${theme.colors.semantic.success.main};
-        border-color: ${theme.colors.semantic.success.main};
+        background-color: ${theme.colors.semantic.success[500]};
+        border-color: ${theme.colors.semantic.success[500]};
       }
     `,
     warning: css`
-      border-color: ${theme.colors.semantic.warning.main};
+      border-color: ${theme.colors.semantic.warning[500]};
       &:focus {
-        border-color: ${theme.colors.semantic.warning.main};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.warning.light}40;
+        border-color: ${theme.colors.semantic.warning[500]};
+        box-shadow: 0 0 0 3px ${theme.colors.semantic.warning[100]}40;
       }
       &:checked {
-        background-color: ${theme.colors.semantic.warning.main};
-        border-color: ${theme.colors.semantic.warning.main};
+        background-color: ${theme.colors.semantic.warning[500]};
+        border-color: ${theme.colors.semantic.warning[500]};
       }
     `,
   };
@@ -101,7 +103,7 @@ const CheckboxContainer = styled.div`
   cursor: pointer;
 
   &:hover input:not(:disabled) {
-    border-color: ${({ theme }) => theme.colors.primary.main};
+    border-color: ${({ theme }) => theme.colors.primary[500]};
   }
 `;
 
@@ -126,7 +128,7 @@ const StyledCheckbox = styled.div<{
   justify-content: center;
   border: 2px solid;
   border-radius: ${({ theme }) => theme.spacing.xs};
-  background-color: ${({ theme }) => theme.colors.neutral.white};
+  background-color: ${({ theme }) => theme.colors.neutral[50]};
   transition: all ${({ theme }) => theme.transitions.fast};
   flex-shrink: 0;
   margin-top: 2px; /* Align with first line of text */
@@ -193,7 +195,7 @@ const Label = styled.label<{ $disabled: boolean; $required: boolean }>`
     css`
       &::after {
         content: ' *';
-        color: ${({ theme }) => theme.colors.semantic.error.main};
+        color: ${({ theme }) => theme.colors.semantic.error[500]};
       }
     `}
 `;
@@ -210,15 +212,15 @@ const HelperText = styled.div<{ $state: CheckboxState }>`
   font-size: ${({ theme }) => theme.typography.size.xs};
   color: ${({ theme, $state }) =>
     $state === 'error'
-      ? theme.colors.semantic.error.main
+      ? theme.colors.semantic.error[500]
       : $state === 'success'
-        ? theme.colors.semantic.success.main
+        ? theme.colors.semantic.success[500]
         : $state === 'warning'
-          ? theme.colors.semantic.warning.main
+          ? theme.colors.semantic.warning[500]
           : theme.colors.neutral[600]};
 `;
 
-export const CheckboxInput = forwardRef<HTMLInputElement, CheckboxInputProps>(
+const CheckboxInputComponent = forwardRef<HTMLInputElement, CheckboxInputProps>(
   (
     {
       label,
@@ -295,3 +297,5 @@ export const CheckboxInput = forwardRef<HTMLInputElement, CheckboxInputProps>(
     );
   }
 );
+CheckboxInputComponent.displayName = 'CheckboxInput';
+export const CheckboxInput = CheckboxInputComponent;

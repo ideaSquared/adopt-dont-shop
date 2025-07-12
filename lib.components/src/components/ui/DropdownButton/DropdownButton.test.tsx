@@ -1,56 +1,90 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider } from '../../../styles/ThemeProvider';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 
 // Create comprehensive mocks for Radix UI components
 const mockRadixUI = {
-  Root: ({ children, ...props }: { children: React.ReactNode; [key: string]: any }) => (
-    <div data-testid="dropdown-root" {...props}>
-      {children}
-    </div>
+  Root: Object.assign(
+    function MockDropdownRoot({
+      children,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) {
+      return (
+        <div data-testid='dropdown-root' {...props}>
+          {children}
+        </div>
+      );
+    },
+    { displayName: 'MockDropdownRoot' }
   ),
-  Trigger: React.forwardRef<HTMLButtonElement, any>(({ children, asChild, ...props }, ref) => {
+  Trigger: React.forwardRef<
+    HTMLButtonElement,
+    React.PropsWithChildren<{ asChild?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>>
+  >(function MockDropdownTrigger(props, ref) {
+    const { children, asChild, ...rest } = props;
     if (asChild && React.isValidElement(children)) {
-      return React.cloneElement(children as React.ReactElement<any>, {
-        ...props,
+      return React.cloneElement(children as React.ReactElement, {
+        ...rest,
         ref,
         'data-testid': 'dropdown-trigger',
       });
     }
     return (
-      <button {...props} ref={ref} data-testid="dropdown-trigger">
+      <button {...rest} ref={ref} data-testid='dropdown-trigger'>
         {children}
       </button>
     );
   }),
-  Portal: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="dropdown-portal">{children}</div>
+  Portal: Object.assign(
+    function MockDropdownPortal({ children }: { children: React.ReactNode }) {
+      return <div data-testid='dropdown-portal'>{children}</div>;
+    },
+    { displayName: 'MockDropdownPortal' }
   ),
-  Content: React.forwardRef<HTMLDivElement, any>(
-    ({ children, sideOffset, align, ...props }, ref) => (
+  Content: React.forwardRef<
+    HTMLDivElement,
+    React.PropsWithChildren<
+      { sideOffset?: number; align?: string } & React.HTMLAttributes<HTMLDivElement>
+    >
+  >(function MockDropdownContent(props, ref) {
+    const { children, sideOffset, align, ...rest } = props;
+    return (
       <div
-        {...props}
+        {...rest}
         ref={ref}
-        data-testid="dropdown-content"
+        data-testid='dropdown-content'
         data-side-offset={sideOffset}
         data-align={align}
       >
         {children}
       </div>
-    )
-  ),
-  Item: React.forwardRef<HTMLDivElement, any>(({ children, as, href, onClick, ...props }, ref) => {
-    const Element = as || 'div';
+    );
+  }),
+  Item: React.forwardRef<
+    HTMLDivElement,
+    React.PropsWithChildren<
+      {
+        as?: React.ElementType;
+        href?: string;
+        onClick?: React.MouseEventHandler;
+      } & React.HTMLAttributes<HTMLDivElement>
+    >
+  >(function MockDropdownItem(props, ref) {
+    const { children, as, href, onClick, ...rest } = props;
+    const Element: React.ElementType = as || (href ? 'a' : 'div');
     return (
       <Element
-        {...props}
+        {...rest}
         ref={ref}
         href={href}
         onClick={onClick}
-        data-testid="dropdown-item"
-        role="menuitem"
+        data-testid='dropdown-item'
+        role='menuitem'
       >
         {children}
       </Element>
@@ -65,7 +99,7 @@ jest.mock('@radix-ui/react-dropdown-menu', () => mockRadixUI);
 import { DropdownButton } from './DropdownButton';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('DropdownButton', () => {
@@ -84,7 +118,7 @@ describe('DropdownButton', () => {
   });
 
   it('renders correctly with trigger label', () => {
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={sampleItems} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={sampleItems} />);
 
     const trigger = screen.getByTestId('dropdown-trigger');
     expect(trigger).toBeInTheDocument();
@@ -94,7 +128,7 @@ describe('DropdownButton', () => {
 
   it('applies custom className when provided', () => {
     renderWithTheme(
-      <DropdownButton triggerLabel="Actions" items={sampleItems} className="custom-dropdown" />
+      <DropdownButton triggerLabel='Actions' items={sampleItems} className='custom-dropdown' />
     );
 
     const trigger = screen.getByTestId('dropdown-trigger');
@@ -102,7 +136,7 @@ describe('DropdownButton', () => {
   });
 
   it('handles empty items array', () => {
-    renderWithTheme(<DropdownButton triggerLabel="Empty" items={[]} />);
+    renderWithTheme(<DropdownButton triggerLabel='Empty' items={[]} />);
 
     const trigger = screen.getByTestId('dropdown-trigger');
     expect(trigger).toBeInTheDocument();
@@ -110,7 +144,7 @@ describe('DropdownButton', () => {
   });
 
   it('renders dropdown structure with Radix components', () => {
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={sampleItems} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={sampleItems} />);
 
     // Check that the Radix UI structure is rendered
     expect(screen.getByTestId('dropdown-root')).toBeInTheDocument();
@@ -120,7 +154,7 @@ describe('DropdownButton', () => {
   });
 
   it('renders all dropdown items with correct content', () => {
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={sampleItems} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={sampleItems} />);
 
     // Check item content is rendered
     expect(screen.getByText('Edit')).toBeInTheDocument();
@@ -134,7 +168,7 @@ describe('DropdownButton', () => {
   });
 
   it('handles click events on dropdown items', () => {
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={sampleItems} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={sampleItems} />);
 
     const editItem = screen.getByText('Edit');
     const deleteItem = screen.getByText('Delete');
@@ -147,7 +181,7 @@ describe('DropdownButton', () => {
   });
 
   it('renders items with correct element types', () => {
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={sampleItems} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={sampleItems} />);
 
     const editItem = screen.getByText('Edit');
     const linkItem = screen.getByText('View Details');
@@ -161,14 +195,14 @@ describe('DropdownButton', () => {
   });
 
   it('applies correct accessibility attributes to trigger', () => {
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={sampleItems} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={sampleItems} />);
 
     const trigger = screen.getByTestId('dropdown-trigger');
     expect(trigger).toHaveAttribute('aria-label', 'Actions');
   });
 
   it('passes sideOffset and align props to Content', () => {
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={sampleItems} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={sampleItems} />);
 
     const content = screen.getByTestId('dropdown-content');
     expect(content).toHaveAttribute('data-side-offset', '5');
@@ -177,7 +211,7 @@ describe('DropdownButton', () => {
 
   it('supports keyboard interaction on trigger', async () => {
     const user = userEvent.setup();
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={sampleItems} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={sampleItems} />);
 
     const trigger = screen.getByTestId('dropdown-trigger');
 
@@ -191,19 +225,16 @@ describe('DropdownButton', () => {
   });
 
   it('handles items without onClick or to props', () => {
-    const itemsWithoutHandlers = [
-      { label: 'Read Only Item' },
-      { label: 'Another Item' },
-    ];
+    const itemsWithoutHandlers = [{ label: 'Read Only Item' }, { label: 'Another Item' }];
 
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={itemsWithoutHandlers} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={itemsWithoutHandlers} />);
 
     expect(screen.getByText('Read Only Item')).toBeInTheDocument();
     expect(screen.getByText('Another Item')).toBeInTheDocument();
   });
 
   it('renders items in correct order', () => {
-    renderWithTheme(<DropdownButton triggerLabel="Actions" items={sampleItems} />);
+    renderWithTheme(<DropdownButton triggerLabel='Actions' items={sampleItems} />);
 
     const content = screen.getByTestId('dropdown-content');
     const childElements = Array.from(content.children);

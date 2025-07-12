@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   MdAutoFixHigh,
+  MdChat,
   MdClose,
   MdFavorite,
   MdMenu,
@@ -258,6 +259,15 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
           >
             <MdFavorite className='nav-icon' />
             Favorites
+          </NavLink>
+
+          <NavLink
+            to='/chat'
+            $isActive={isActive('/chat')}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <MdChat className='nav-icon' />
+            Messages
           </NavLink>
 
           <NavLink

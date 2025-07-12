@@ -1,7 +1,8 @@
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider } from '../../../styles/ThemeProvider';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -18,7 +19,7 @@ jest.mock('../../../styles/ThemeProvider', () => ({
 }));
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('ThemeToggle', () => {
@@ -83,16 +84,16 @@ describe('ThemeToggle', () => {
 
 // Test with dark theme - Create a simple test for dark mode without complex mocking
 describe('ThemeToggle - Dark Mode Integration', () => {
-  it('should toggle from light to dark mode', async () => {
-    const user = userEvent.setup();
+  it('should toggle from light to dark mode', () => {
+    // Import ThemeProvider at the top for proper ES import usage
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const ThemeProviderModule = require('../../../styles/ThemeProvider');
 
-    // Create a test wrapper with mock
     const TestWrapper = () => {
       const [mode, setMode] = React.useState<'light' | 'dark'>('light');
 
       React.useEffect(() => {
-        const originalUseTheme = require('../../../styles/ThemeProvider').useTheme;
-        jest.spyOn(require('../../../styles/ThemeProvider'), 'useTheme').mockReturnValue({
+        jest.spyOn(ThemeProviderModule, 'useTheme').mockReturnValue({
           themeMode: mode,
           setThemeMode: setMode,
           theme: lightTheme,

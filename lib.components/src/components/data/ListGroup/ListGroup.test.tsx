@@ -1,36 +1,42 @@
-import React from 'react'
-import { render, screen } from '@testing-library/react'
-import ListGroup from './ListGroup'
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+import { lightTheme } from '../../../styles/theme';
+import ListGroup from './ListGroup';
+
+const renderWithTheme = (component: React.ReactElement) =>
+  render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 
 describe('ListGroup', () => {
   it('renders correctly with items', () => {
-    const items = ['Item 1', 'Item 2', 'Item 3']
+    const items = ['Item 1', 'Item 2', 'Item 3'];
 
-    render(<ListGroup items={items} />)
+    renderWithTheme(<ListGroup items={items} />);
 
     // Ensure the list is in the document
-    const list = screen.getByRole('list')
-    expect(list).toBeInTheDocument()
+    const list = screen.getByRole('list');
+    expect(list).toBeInTheDocument();
 
     // Ensure the correct number of items are rendered
-    const listItems = screen.getAllByRole('listitem')
-    expect(listItems).toHaveLength(items.length)
+    const listItems = screen.getAllByRole('listitem');
+    expect(listItems).toHaveLength(items.length);
 
     // Ensure the items contain the correct text
     items.forEach((item, index) => {
-      expect(listItems[index]).toHaveTextContent(item)
-    })
-  })
+      expect(listItems[index]).toHaveTextContent(item);
+    });
+  });
 
   it('renders correctly with no items', () => {
-    render(<ListGroup items={[]} />)
+    renderWithTheme(<ListGroup items={[]} />);
 
     // Ensure the list is in the document
-    const list = screen.getByRole('list')
-    expect(list).toBeInTheDocument()
+    const list = screen.getByRole('list');
+    expect(list).toBeInTheDocument();
 
     // Ensure no list items are rendered
-    const listItems = screen.queryAllByRole('listitem')
-    expect(listItems).toHaveLength(0)
-  })
-})
+    const listItems = screen.queryAllByRole('listitem');
+    expect(listItems).toHaveLength(0);
+  });
+});

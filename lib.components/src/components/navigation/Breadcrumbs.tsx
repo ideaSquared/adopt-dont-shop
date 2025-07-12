@@ -1,5 +1,5 @@
 import React from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type BreadcrumbItem = {
   label: string;
@@ -27,7 +27,7 @@ export type BreadcrumbsProps = {
   size?: 'sm' | 'md' | 'lg';
 };
 
-const getSizeStyles = (size: 'sm' | 'md' | 'lg', theme: any) => {
+const getSizeStyles = (size: 'sm' | 'md' | 'lg', theme: DefaultTheme) => {
   const sizes = {
     sm: css`
       font-size: ${theme.typography.size.sm};
@@ -223,30 +223,48 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
       );
     }
 
-    const content = item.href ? (
-      <BreadcrumbLink
-        href={item.href}
-        $active={isActive}
-        $disabled={!!item.disabled}
-        aria-current={isActive ? 'page' : undefined}
-      >
-        {item.label}
-      </BreadcrumbLink>
-    ) : (
-      <BreadcrumbButton
-        onClick={item.onClick}
-        $active={isActive}
-        $disabled={!!item.disabled}
-        aria-current={isActive ? 'page' : undefined}
-        type='button'
-      >
-        {item.label}
-      </BreadcrumbButton>
-    );
+    // Render current (active) or disabled item as plain text (span), not a link or button
+    if (isActive || item.disabled) {
+      return (
+        <React.Fragment key={index}>
+          <span
+            aria-current={isActive ? 'page' : undefined}
+            style={{
+              color: item.disabled ? undefined : isActive ? undefined : undefined,
+              fontWeight: isActive ? 'bold' : undefined,
+              cursor: item.disabled ? 'not-allowed' : isActive ? 'default' : undefined,
+              opacity: item.disabled ? 0.5 : 1,
+            }}
+          >
+            {item.label}
+          </span>
+          {!isLast && <Separator>{separator}</Separator>}
+        </React.Fragment>
+      );
+    }
+
+    // Otherwise, render as link or button
+    if (item.href) {
+      return (
+        <React.Fragment key={index}>
+          <BreadcrumbLink href={item.href} $active={false} $disabled={!!item.disabled}>
+            {item.label}
+          </BreadcrumbLink>
+          {!isLast && <Separator>{separator}</Separator>}
+        </React.Fragment>
+      );
+    }
 
     return (
       <React.Fragment key={index}>
-        {content}
+        <BreadcrumbButton
+          onClick={item.onClick}
+          $active={false}
+          $disabled={!!item.disabled}
+          type='button'
+        >
+          {item.label}
+        </BreadcrumbButton>
         {!isLast && <Separator>{separator}</Separator>}
       </React.Fragment>
     );
@@ -285,14 +303,13 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
       data-testid={dataTestId}
     >
       <BreadcrumbList>
-        <BreadcrumbItem>
-          {showHome && renderHomeItem()}
-          {displayItems.map((item, index) => renderBreadcrumbItem(item, index))}
-        </BreadcrumbItem>
+        {showHome && <BreadcrumbItem key='home'>{renderHomeItem()}</BreadcrumbItem>}
+        {displayItems.map((item, index) => (
+          <BreadcrumbItem key={index}>{renderBreadcrumbItem(item, index)}</BreadcrumbItem>
+        ))}
       </BreadcrumbList>
     </BreadcrumbContainer>
   );
 };
 
 Breadcrumbs.displayName = 'Breadcrumbs';
-

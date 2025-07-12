@@ -1,11 +1,13 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useStatsig } from '@/hooks/useStatsig';
 import { Pet } from '@/types';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder } from 'react-icons/md';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { resolveFileUrl } from '../utils/fileUtils';
 
 const StyledCard = styled(Card)`
   height: 100%;
@@ -182,19 +184,40 @@ export const PetCard: React.FC<PetCardProps> = ({
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
   const { isAuthenticated } = useAuth();
   const favorites = useFavorites();
+  const { logEvent } = useStatsig();
 
   // Use prop if provided, otherwise check favorites context
   const isFavorite =
     propIsFavorite !== undefined ? propIsFavorite : favorites.isFavorite(pet.pet_id);
 
   const primaryPhoto = pet.images?.find(image => image.is_primary) || pet.images?.[0];
+  const resolvedImageUrl = resolveFileUrl(primaryPhoto?.url);
+
+  const handleCardClick = () => {
+    // Log pet card click
+    logEvent('pet_card_clicked', 1, {
+      pet_id: pet.pet_id,
+      pet_name: pet.name,
+      pet_type: pet.type,
+      pet_breed: pet.breed || 'unknown',
+      pet_age_years: pet.age_years?.toString() || 'unknown',
+      pet_status: pet.status,
+      has_image: (!!resolvedImageUrl).toString(),
+      is_favorite: isFavorite.toString(),
+    });
+  };
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      // Redirect to login or show login modal
+      // Log unauthorized favorite attempt
+      logEvent('pet_favorite_unauthorized', 1, {
+        pet_id: pet.pet_id,
+        pet_name: pet.name,
+        pet_type: pet.type,
+      });
       return;
     }
 
@@ -204,14 +227,35 @@ export const PetCard: React.FC<PetCardProps> = ({
       if (isFavorite) {
         await favorites.removeFromFavorites(pet.pet_id);
         onFavoriteToggle?.(pet.pet_id, false);
+
+        // Log favorite removal
+        logEvent('pet_unfavorited', 1, {
+          pet_id: pet.pet_id,
+          pet_name: pet.name,
+          pet_type: pet.type,
+          pet_breed: pet.breed || 'unknown',
+        });
       } else {
         await favorites.addToFavorites(pet.pet_id);
         onFavoriteToggle?.(pet.pet_id, true);
+
+        // Log favorite addition
+        logEvent('pet_favorited', 1, {
+          pet_id: pet.pet_id,
+          pet_name: pet.name,
+          pet_type: pet.type,
+          pet_breed: pet.breed || 'unknown',
+        });
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
-      // Could show a toast notification here in the future
-      // For now, just log the error - the favorites context handles the "already favorited" case
+
+      // Log favorite error
+      logEvent('pet_favorite_error', 1, {
+        pet_id: pet.pet_id,
+        action: isFavorite ? 'remove' : 'add',
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       setIsLoadingFavorite(false);
     }
@@ -262,12 +306,12 @@ export const PetCard: React.FC<PetCardProps> = ({
     }
   };
   return (
-    <StyledCard as={Link} to={`/pets/${pet.pet_id}`}>
+    <StyledCard as={Link} to={`/pets/${pet.pet_id}`} onClick={handleCardClick}>
       <ImageContainer>
-        {primaryPhoto?.url ? (
+        {resolvedImageUrl ? (
           <>
             <img
-              src={primaryPhoto.url}
+              src={resolvedImageUrl}
               alt={pet.name}
               loading='lazy'
               onError={e => {

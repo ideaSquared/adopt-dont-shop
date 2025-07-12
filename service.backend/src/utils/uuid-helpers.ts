@@ -3,6 +3,7 @@
  * Different approaches to manage UUIDs without external packages
  */
 
+import { randomUUID } from 'crypto';
 import { QueryInterface, QueryTypes } from 'sequelize';
 
 /**
@@ -12,7 +13,7 @@ import { QueryInterface, QueryTypes } from 'sequelize';
 export const insertWithPgUuid = async (
   queryInterface: QueryInterface,
   tableName: string,
-  data: Record<string, any>[],
+  data: Record<string, unknown>[],
   uuidColumn = 'id'
 ) => {
   const columns = Object.keys(data[0]).filter(key => key !== uuidColumn);
@@ -50,13 +51,12 @@ export const generateSimpleUuid = (): string => {
  * Best for: Modern Node.js environments, no external deps
  */
 export const generateCryptoUuid = (): string => {
-  // Check if crypto.randomUUID is available
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
+  try {
+    return randomUUID();
+  } catch {
+    // Fallback to simple implementation if randomUUID is not available
+    return generateSimpleUuid();
   }
-
-  // Fallback to simple implementation
-  return generateSimpleUuid();
 };
 
 /**
@@ -64,11 +64,12 @@ export const generateCryptoUuid = (): string => {
  * Let the database handle UUID generation automatically
  */
 export const prepareBulkDataWithoutUuid = (
-  data: Record<string, any>[],
+  data: Record<string, unknown>[],
   uuidColumn = 'id'
-): Record<string, any>[] => {
+): Record<string, unknown>[] => {
   return data.map(row => {
-    const { [uuidColumn]: _, ...rest } = row;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [uuidColumn]: _removed, ...rest } = row;
     return rest;
   });
 };
@@ -77,7 +78,11 @@ export const prepareBulkDataWithoutUuid = (
  * OPTION 5: Use Sequelize model creation (recommended for ORM)
  * Best for: When using Sequelize models properly
  */
-export const createWithSequelizeModel = async (Model: any, data: Record<string, any>[]) => {
+export const createWithSequelizeModel = async (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Model: any,
+  data: Record<string, unknown>[]
+) => {
   const results = [];
   for (const row of data) {
     const instance = await Model.create(row);

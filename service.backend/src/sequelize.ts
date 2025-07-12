@@ -38,7 +38,7 @@ const sequelize = new Sequelize(database, process.env.DB_USERNAME!, process.env.
     paranoid: true,
   },
   logging:
-    process.env.NODE_ENV === 'development'
+    process.env.NODE_ENV === 'development' && process.env.DB_LOGGING === 'true'
       ? (sql: string) => {
           // eslint-disable-next-line no-console
           console.log(sql);

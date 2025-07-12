@@ -1,6 +1,7 @@
 import { PetCard } from '@/components/PetCard';
 import { SwipeHero } from '@/components/hero/SwipeHero';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStatsig } from '@/hooks/useStatsig';
 import { petService } from '@/services/petService';
 import { Pet } from '@/types';
 import { Button, Spinner } from '@adopt-dont-shop/components';
@@ -126,23 +127,56 @@ export const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
+  const { logEvent } = useStatsig();
 
   useEffect(() => {
+    // Log page view
+    logEvent('homepage_viewed', 1, {
+      user_authenticated: isAuthenticated.toString(),
+      timestamp: new Date().toISOString(),
+    });
+
     const loadFeaturedPets = async () => {
       try {
         setIsLoading(true);
         const pets = await petService.getFeaturedPets(8);
         setFeaturedPets(pets);
+
+        // Log successful load
+        logEvent('featured_pets_loaded', pets.length, {
+          pet_count: pets.length.toString(),
+          load_time_ms: (Date.now() - performance.now()).toString(),
+        });
       } catch (err) {
         setError('Failed to load featured pets. Please try again later.');
         console.error('Error loading featured pets:', err);
+
+        // Log error
+        logEvent('featured_pets_load_error', 1, {
+          error_message: err instanceof Error ? err.message : 'Unknown error',
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     loadFeaturedPets();
-  }, []);
+  }, [isAuthenticated, logEvent]);
+
+  const handleViewAllPetsClick = () => {
+    logEvent('homepage_view_all_pets_clicked', 1, {
+      featured_pets_count: featuredPets.length.toString(),
+      user_authenticated: isAuthenticated.toString(),
+    });
+  };
+
+  const handleCTAClick = (action: 'browse_pets' | 'get_started') => {
+    logEvent('homepage_cta_clicked', 1, {
+      cta_action: action,
+      user_authenticated: isAuthenticated.toString(),
+      featured_pets_visible: featuredPets.length.toString(),
+    });
+  };
 
   return (
     <div>
@@ -171,7 +205,7 @@ export const HomePage: React.FC = () => {
               </PetGrid>
 
               <div style={{ textAlign: 'center' }}>
-                <Link to='/search'>
+                <Link to='/search' onClick={handleViewAllPetsClick}>
                   <Button variant='outline'>View All Pets</Button>
                 </Link>
               </div>
@@ -214,13 +248,13 @@ export const HomePage: React.FC = () => {
               : 'Create your account and start your adoption journey today!'}
           </p>
           {isAuthenticated ? (
-            <Link to='/search'>
+            <Link to='/search' onClick={() => handleCTAClick('browse_pets')}>
               <Button size='lg' variant='secondary'>
                 Browse Pets
               </Button>
             </Link>
           ) : (
-            <Link to='/register'>
+            <Link to='/register' onClick={() => handleCTAClick('get_started')}>
               <Button size='lg' variant='secondary'>
                 Get Started
               </Button>

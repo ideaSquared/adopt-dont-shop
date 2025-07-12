@@ -1,22 +1,22 @@
 import React, { useMemo, useState } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { css, keyframes, type DefaultTheme } from 'styled-components';
 
 export type SortDirection = 'asc' | 'desc' | null;
 
-export type TableColumn<T = any> = {
+export type TableColumn<T = Record<string, unknown>> = {
   key: string;
   header: string;
-  accessor?: string | ((row: T) => any);
+  accessor?: string | ((row: T) => unknown);
   sortable?: boolean;
   width?: string;
   minWidth?: string;
   maxWidth?: string;
   align?: 'left' | 'center' | 'right';
-  render?: (value: any, row: T, index: number) => React.ReactNode;
+  render?: (value: unknown, row: T, index: number) => React.ReactNode;
   headerRender?: () => React.ReactNode;
 };
 
-export type TableProps<T = any> = {
+export type TableProps<T = Record<string, unknown>> = {
   columns: TableColumn<T>[];
   data: T[];
   loading?: boolean;
@@ -62,7 +62,7 @@ const pulse = keyframes`
   }
 `;
 
-const getSizeStyles = (size: 'sm' | 'md' | 'lg', theme: any) => {
+const getSizeStyles = (size: 'sm' | 'md' | 'lg', theme: DefaultTheme) => {
   const sizes = {
     sm: css`
       font-size: ${theme.typography.size.sm};
@@ -92,7 +92,7 @@ const getSizeStyles = (size: 'sm' | 'md' | 'lg', theme: any) => {
   return sizes[size];
 };
 
-const getVariantStyles = (variant: 'default' | 'minimal' | 'bordered', theme: any) => {
+const getVariantStyles = (variant: 'default' | 'minimal' | 'bordered', theme: DefaultTheme) => {
   const variants = {
     default: css`
       border: 1px solid ${theme.border.color.primary};
@@ -345,13 +345,6 @@ const EmptyIcon = () => (
   </svg>
 );
 
-const LoadingContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${({ theme }) => theme.spacing[12]} ${({ theme }) => theme.spacing[6]};
-`;
-
 const LoadingRow = styled.tr`
   td {
     padding: ${({ theme }) => theme.spacing[4]};
@@ -368,13 +361,17 @@ const LoadingRow = styled.tr`
   }
 `;
 
-const getValue = <T,>(row: T, accessor: string | ((row: T) => any)): any => {
+const getValue = <T,>(row: T, accessor: string | ((row: T) => unknown)): unknown => {
   if (typeof accessor === 'function') {
     return accessor(row);
   }
 
-  return accessor.split('.').reduce((obj: any, key: string) => {
-    return obj?.[key];
+  return accessor.split('.').reduce((obj: unknown, key: string) => {
+    if (typeof obj === 'object' && obj !== null && key in obj) {
+      // @ts-expect-error: index signature
+      return obj[key];
+    }
+    return undefined;
   }, row);
 };
 
@@ -384,9 +381,9 @@ export const Table = <T,>({
   loading = false,
   sortable = false,
   striped = false,
-  bordered = false,
+  // bordered = false,
   hoverable = true,
-  compact = false,
+  // compact = false,
   responsive = true,
   emptyMessage = 'No data available',
   sortBy,
@@ -430,8 +427,8 @@ export const Table = <T,>({
       if (aValue === bValue) return 0;
 
       let comparison = 0;
-      if (aValue == null) comparison = 1;
-      else if (bValue == null) comparison = -1;
+      if (aValue === null || aValue === undefined) comparison = 1;
+      else if (bValue === null || bValue === undefined) comparison = -1;
       else if (typeof aValue === 'string' && typeof bValue === 'string') {
         comparison = aValue.localeCompare(bValue);
       } else {
@@ -476,12 +473,29 @@ export const Table = <T,>({
     if (typeof rowKey === 'function') {
       return rowKey(row, index);
     }
-    return getValue(row, rowKey) || index.toString();
+    const value = getValue(row, rowKey);
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return value.toString();
+    return index.toString();
   };
 
   if (loading) {
     return (
       <TableContainer $responsive={responsive} $maxHeight={maxHeight} className={className}>
+        {/* Visually hidden spinner for a11y */}
+        <div
+          role='status'
+          aria-live='polite'
+          style={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+          }}
+        >
+          Loading…
+        </div>
         <StyledTable
           $size={size}
           $variant={variant}
@@ -615,10 +629,17 @@ export const Table = <T,>({
               {columns.map(column => {
                 const accessor = column.accessor || column.key;
                 const value = getValue(row, accessor);
-
+                let cellContent: React.ReactNode;
+                if (column.render) {
+                  cellContent = column.render(value, row, index);
+                } else if (typeof value === 'object' && value !== null) {
+                  cellContent = JSON.stringify(value);
+                } else {
+                  cellContent = value as React.ReactNode;
+                }
                 return (
                   <TableCell key={column.key} $align={column.align || 'left'}>
-                    {column.render ? column.render(value, row, index) : value}
+                    {cellContent}
                   </TableCell>
                 );
               })}

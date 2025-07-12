@@ -1,8 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
+import { ParticipantRole } from '../types/chat';
 import Chat from './Chat';
-
-export type ParticipantRole = 'rescue' | 'user';
 
 interface ChatParticipantAttributes {
   chat_participant_id: string;
@@ -30,7 +29,8 @@ export class ChatParticipant
   public readonly updated_at!: Date;
 
   // Add association methods
-  public static associate(models: any) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public static associate(models: Record<string, any>) {
     ChatParticipant.belongsTo(models.Chat, {
       foreignKey: 'chat_id',
       as: 'chat',
@@ -38,7 +38,7 @@ export class ChatParticipant
     });
     ChatParticipant.belongsTo(models.User, {
       foreignKey: 'participant_id',
-      as: 'participant',
+      as: 'User',
     });
   }
 }
@@ -68,7 +68,7 @@ ChatParticipant.init(
       },
     },
     role: {
-      type: DataTypes.ENUM('rescue', 'user'),
+      type: DataTypes.ENUM(...Object.values(ParticipantRole)),
       allowNull: false,
     },
     last_read_at: {

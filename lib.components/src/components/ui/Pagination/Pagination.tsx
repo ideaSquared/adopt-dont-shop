@@ -1,5 +1,5 @@
 import React from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type PaginationSize = 'sm' | 'md' | 'lg';
 export type PaginationVariant = 'default' | 'outlined' | 'minimal';
@@ -31,47 +31,45 @@ const getSizeStyles = (size: PaginationSize) => {
       height: 40px;
       min-width: 40px;
       padding: 0 12px;
-      font-size: ${({ theme }) => theme.typography.size.sm};
+      font-size: ${({ theme }) => theme.typography.size.base};
     `,
     lg: css`
       height: 48px;
       min-width: 48px;
       padding: 0 16px;
-      font-size: ${({ theme }) => theme.typography.size.md};
+      font-size: ${({ theme }) => theme.typography.size.lg};
     `,
   };
   return sizes[size];
 };
 
-const getVariantStyles = (variant: PaginationVariant, theme: any, isActive: boolean) => {
+const getVariantStyles = (variant: PaginationVariant, theme: DefaultTheme, isActive: boolean) => {
   const variants = {
     default: css`
-      background-color: ${isActive ? theme.colors.primary.main : theme.colors.neutral.white};
-      border: 1px solid ${isActive ? theme.colors.primary.main : theme.colors.neutral[300]};
-      color: ${isActive ? theme.colors.neutral.white : theme.colors.neutral[700]};
+      background-color: ${isActive ? theme.colors.primary[500] : theme.colors.neutral[50]};
+      border: 1px solid ${isActive ? theme.colors.primary[500] : theme.colors.neutral[300]};
+      color: ${isActive ? theme.colors.neutral[50] : theme.colors.neutral[700]};
 
       &:hover:not(:disabled) {
-        background-color: ${isActive ? theme.colors.primary.dark : theme.colors.neutral[50]};
-        border-color: ${isActive ? theme.colors.primary.dark : theme.colors.neutral[400]};
+        background-color: ${isActive ? theme.colors.primary[700] : theme.colors.neutral[50]};
+        border-color: ${isActive ? theme.colors.primary[700] : theme.colors.neutral[400]};
       }
     `,
     outlined: css`
       background-color: transparent;
-      border: 1px solid ${isActive ? theme.colors.primary.main : theme.colors.neutral[300]};
-      color: ${isActive ? theme.colors.primary.main : theme.colors.neutral[700]};
+      border: 1px solid ${isActive ? theme.colors.primary[500] : theme.colors.neutral[300]};
+      color: ${isActive ? theme.colors.primary[500] : theme.colors.neutral[700]};
 
       &:hover:not(:disabled) {
-        background-color: ${isActive
-          ? theme.colors.primary.light + '20'
-          : theme.colors.neutral[50]};
-        border-color: ${theme.colors.primary.main};
-        color: ${theme.colors.primary.main};
+        background-color: ${isActive ? theme.colors.primary[100] + '20' : theme.colors.neutral[50]};
+        border-color: ${theme.colors.primary[500]};
+        color: ${theme.colors.primary[500]};
       }
     `,
     minimal: css`
       background-color: transparent;
       border: 1px solid transparent;
-      color: ${isActive ? theme.colors.primary.main : theme.colors.neutral[600]};
+      color: ${isActive ? theme.colors.primary[500] : theme.colors.neutral[600]};
 
       &:hover:not(:disabled) {
         background-color: ${theme.colors.neutral[100]};
@@ -122,7 +120,7 @@ const PaginationButton = styled.button<{
   }
 
   &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors.primary.main};
+    outline: 2px solid ${({ theme }) => theme.colors.primary[500]};
     outline-offset: 2px;
   }
 
@@ -286,30 +284,27 @@ export const Pagination: React.FC<PaginationProps> = ({
       )}
 
       {pages.map((page, index) => {
-        if (page === '...') {
+        if (typeof page === 'number') {
           return (
-            <EllipsisIndicator key={`ellipsis-${index}`} $size={size}>
-              ...
-            </EllipsisIndicator>
+            <PaginationButton
+              key={page}
+              $size={size}
+              $variant={variant}
+              $isActive={page === currentPage}
+              onClick={() => handlePageChange(page)}
+              disabled={disabled}
+              aria-label={`Go to page ${page}`}
+              aria-current={page === currentPage ? 'page' : undefined}
+            >
+              {page}
+            </PaginationButton>
           );
         }
 
-        const pageNumber = page as number;
-        const isActive = pageNumber === currentPage;
-
         return (
-          <PaginationButton
-            key={pageNumber}
-            $size={size}
-            $variant={variant}
-            $isActive={isActive}
-            onClick={() => handlePageChange(pageNumber)}
-            disabled={disabled}
-            aria-label={`Go to page ${pageNumber}`}
-            aria-current={isActive ? 'page' : undefined}
-          >
-            {pageNumber}
-          </PaginationButton>
+          <EllipsisIndicator key={index} $size={size}>
+            ...
+          </EllipsisIndicator>
         );
       })}
 

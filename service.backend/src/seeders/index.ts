@@ -16,6 +16,12 @@ import { seedRatings } from './13-ratings';
 import { seedEmailTemplates } from './14-email-templates';
 import { up as seedSwipeSessions } from './15-swipe-sessions';
 import { up as seedSwipeActions } from './16-swipe-actions';
+import { seedEmilyConversation } from './17-emily-conversation';
+import { seedEmilyConversation2 } from './19-emily-conversation-2';
+import { seedEmilyAttachmentTest } from './20-emily-attachment-test';
+import { seedEmilyConversation3 } from './20-emily-conversation-3';
+import { seedFileUploads } from './20250111-file-uploads-seeder';
+import { seedEmilyConversation4 } from './21-emily-conversation-4';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -30,9 +36,15 @@ const seeders = [
   { name: 'Applications', seeder: seedApplications },
   { name: 'Chats', seeder: seedChats },
   { name: 'Messages', seeder: seedMessages },
+  { name: 'File Uploads', seeder: seedFileUploads },
   { name: 'Notifications', seeder: seedNotifications },
   { name: 'Ratings', seeder: seedRatings },
   { name: 'Email Templates', seeder: seedEmailTemplates },
+  { name: 'Emily Conversation', seeder: seedEmilyConversation },
+  { name: 'Emily Conversation 2', seeder: seedEmilyConversation2 },
+  { name: 'Emily Conversation 3', seeder: seedEmilyConversation3 },
+  { name: 'Emily Conversation 4', seeder: seedEmilyConversation4 },
+  { name: 'Emily Attachment Test', seeder: seedEmilyAttachmentTest },
   { name: 'Swipe Sessions', seeder: () => seedSwipeSessions(sequelize.getQueryInterface()) },
   { name: 'Swipe Actions', seeder: () => seedSwipeActions(sequelize.getQueryInterface()) },
 ];

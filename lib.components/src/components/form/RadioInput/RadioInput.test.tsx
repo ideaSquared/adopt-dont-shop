@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 import { RadioInput } from './RadioInput';
 
@@ -11,7 +11,7 @@ const mockOptions = [
 ];
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('RadioInput', () => {
@@ -159,9 +159,9 @@ describe('RadioInput', () => {
     expect(screen.getByTestId('radio-input')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <RadioInput name='test' options={mockOptions} size='lg' data-testid='radio-input' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
 
     expect(screen.getByTestId('radio-input')).toBeInTheDocument();
@@ -175,9 +175,9 @@ describe('RadioInput', () => {
     expect(screen.getByTestId('radio-input')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <RadioInput name='test' options={mockOptions} state='warning' data-testid='radio-input' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
 
     expect(screen.getByTestId('radio-input')).toBeInTheDocument();

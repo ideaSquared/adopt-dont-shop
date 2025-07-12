@@ -1,4 +1,5 @@
 import { PetCard } from '@/components/PetCard';
+import { useStatsig } from '@/hooks/useStatsig';
 import { petService } from '@/services/petService';
 import { PaginatedResponse, Pet, PetSearchFilters } from '@/types';
 import {
@@ -205,6 +206,8 @@ export const SearchPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginatedResponse<Pet>['pagination'] | null>(null);
+  const { logEvent } = useStatsig();
+
   // Search filters state
   const [filters, setFilters] = useState<PetSearchFilters>({
     type: searchParams.get('type') || '',
@@ -221,6 +224,17 @@ export const SearchPage: React.FC = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+
+  // Log page view
+  useEffect(() => {
+    logEvent('search_page_viewed', 1, {
+      has_initial_query: (!!searchQuery).toString(),
+      initial_type_filter: filters.type || 'none',
+      page_number: (filters.page || 1).toString(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Load pets based on current filters
   const loadPets = useCallback(async () => {
     setIsLoading(true);
@@ -234,23 +248,49 @@ export const SearchPage: React.FC = () => {
         searchFilters.search = searchQuery.trim();
       }
 
-      console.log('Making API call with filters:', searchFilters);
+      // Log search execution
+      logEvent('pet_search_executed', 1, {
+        search_query: searchQuery || 'none',
+        type_filter: filters.type || 'none',
+        breed_filter: filters.breed || 'none',
+        size_filter: filters.size || 'none',
+        gender_filter: filters.gender || 'none',
+        location_filter: filters.location || 'none',
+        age_group_filter: filters.ageGroup || 'none',
+        status_filter: filters.status || 'none',
+        sort_by: filters.sortBy || 'created_at',
+        sort_order: filters.sortOrder || 'desc',
+        page: (filters.page || 1).toString(),
+      });
+
       const response = await petService.searchPets(searchFilters);
-      console.log('API response:', response);
-      console.log('Response data:', response.data);
-      console.log('Response pagination:', response.pagination);
 
       setPets(response.data || []);
       setPagination(response.pagination || null);
+
+      // Log search results
+      logEvent('pet_search_results', (response.data || []).length, {
+        total_results: response.pagination?.total?.toString() || '0',
+        results_on_page: (response.data || []).length.toString(),
+        has_filters: Object.values(filters).some(v => v && v !== '' && v !== 1) ? 'true' : 'false',
+        search_query: searchQuery || 'none',
+      });
     } catch (err) {
       console.error('Search error details:', err);
       setError('Failed to load pets. Please try again.');
       setPets([]);
       setPagination(null);
+
+      // Log search error
+      logEvent('pet_search_error', 1, {
+        error_message: err instanceof Error ? err.message : 'Unknown error',
+        search_query: searchQuery || 'none',
+        filters_applied: JSON.stringify(filters),
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [filters, searchQuery]);
+  }, [filters, searchQuery, logEvent]);
   // Update URL search params when filters change
   useEffect(() => {
     const params = new URLSearchParams();

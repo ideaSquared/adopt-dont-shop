@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type TextInputSize = 'sm' | 'md' | 'lg';
 export type TextInputVariant = 'default' | 'filled' | 'underlined';
@@ -48,7 +48,7 @@ const getSizeStyles = (size: TextInputSize) => {
   return sizes[size];
 };
 
-const getVariantStyles = (variant: TextInputVariant, theme: any) => {
+const getVariantStyles = (variant: TextInputVariant, theme: DefaultTheme) => {
   const variants = {
     default: css`
       background: ${theme.background.secondary};
@@ -72,7 +72,7 @@ const getVariantStyles = (variant: TextInputVariant, theme: any) => {
   return variants[variant];
 };
 
-const getStateStyles = (state: TextInputState, theme: any) => {
+const getStateStyles = (state: TextInputState, theme: DefaultTheme) => {
   const states = {
     default: css`
       border-color: ${theme.border.color.primary};
@@ -180,7 +180,7 @@ const InputWrapper = styled.div<{
       background: ${theme.background.disabled};
     `}
 
-  ${({ $hasLeftAddon, $hasRightAddon, theme }) => {
+  ${({ $hasLeftAddon, $hasRightAddon }) => {
     if ($hasLeftAddon && $hasRightAddon) {
       return css`
         border-radius: 0;
@@ -337,18 +337,14 @@ const AddonGroup = styled.div`
 const HelperText = styled.div<{ $state: TextInputState }>`
   font-size: ${({ theme }) => theme.typography.size.xs};
   line-height: ${({ theme }) => theme.typography.lineHeight.relaxed};
-  color: ${({ theme, $state }) => {
-    switch ($state) {
-      case 'error':
-        return theme.colors.semantic.error[600];
-      case 'success':
-        return theme.colors.semantic.success[600];
-      case 'warning':
-        return theme.colors.semantic.warning[600];
-      default:
-        return theme.text.tertiary;
-    }
-  }};
+  color: ${({ theme, $state }) =>
+    $state === 'error'
+      ? theme.colors.semantic.error[600]
+      : $state === 'success'
+        ? theme.colors.semantic.success[600]
+        : $state === 'warning'
+          ? theme.colors.semantic.warning[600]
+          : theme.text.tertiary};
 `;
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(

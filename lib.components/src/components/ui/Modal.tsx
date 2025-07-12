@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 
@@ -248,6 +248,9 @@ export const Modal: React.FC<ModalProps> = ({
   header,
   footer,
 }) => {
+  // Focus trap: ref for modal container
+  const modalRef = useRef<HTMLDivElement>(null);
+
   // Handle escape key
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
@@ -262,6 +265,18 @@ export const Modal: React.FC<ModalProps> = ({
     if (isOpen) {
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
+
+      // Focus the first focusable element in the modal
+      setTimeout(() => {
+        if (modalRef.current) {
+          const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable.length > 0) {
+            focusable[0].focus();
+          }
+        }
+      }, 0);
 
       if (closeOnEscape) {
         document.addEventListener('keydown', handleEscape);
@@ -282,9 +297,27 @@ export const Modal: React.FC<ModalProps> = ({
     }
   };
 
+  // Focus trap logic
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape' && closeOnEscape) {
       onClose();
+      return;
+    }
+    if (event.key === 'Tab' && modalRef.current) {
+      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      }
     }
   };
 
@@ -300,19 +333,19 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal='true'
         aria-labelledby={title ? 'modal-title' : undefined}
         data-testid={dataTestId}
+        ref={modalRef}
       >
-        {(title || header || showCloseButton) && (
-          <ModalHeader>
-            {header || <ModalTitle id='modal-title'>{title}</ModalTitle>}
-            {showCloseButton && (
-              <CloseButton onClick={onClose} aria-label='Close modal' type='button'>
-                <CloseIcon />
-              </CloseButton>
-            )}
-          </ModalHeader>
+        {(title || header) && (
+          <ModalHeader>{header || <ModalTitle id='modal-title'>{title}</ModalTitle>}</ModalHeader>
         )}
 
         <ModalContent>{children}</ModalContent>
+
+        {showCloseButton && (
+          <CloseButton onClick={onClose} aria-label='Close modal' type='button'>
+            <CloseIcon />
+          </CloseButton>
+        )}
 
         {footer && <ModalFooter>{footer}</ModalFooter>}
       </ModalContainer>
@@ -324,4 +357,3 @@ export const Modal: React.FC<ModalProps> = ({
 };
 
 Modal.displayName = 'Modal';
-

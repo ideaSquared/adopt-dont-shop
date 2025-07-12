@@ -1,6 +1,7 @@
 import { Pet } from '@/types';
 import React from 'react';
 import styled from 'styled-components';
+import { resolveFileUrl } from '../../utils/fileUtils';
 
 interface PetSummaryProps {
   pet: Pet;
@@ -98,7 +99,7 @@ const FeeAmount = styled.div`
 `;
 
 export const PetSummary: React.FC<PetSummaryProps> = ({ pet }) => {
-  const primaryImage = pet.images?.[0]?.url;
+  const primaryImageUrl = resolveFileUrl(pet.images?.[0]?.url);
   const ageDisplay =
     pet.age_years > 0
       ? `${pet.age_years} year${pet.age_years > 1 ? 's' : ''}${
@@ -108,7 +109,7 @@ export const PetSummary: React.FC<PetSummaryProps> = ({ pet }) => {
 
   return (
     <SummaryCard>
-      {primaryImage && <PetImage src={primaryImage} alt={pet.name} loading='lazy' />}
+      {primaryImageUrl && <PetImage src={primaryImageUrl} alt={pet.name} loading='lazy' />}
 
       <PetName>{pet.name}</PetName>
 

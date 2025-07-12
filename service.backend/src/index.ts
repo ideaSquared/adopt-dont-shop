@@ -8,6 +8,7 @@ import { config } from './config';
 import { errorHandler } from './middleware/error-handler';
 import { apiLimiter } from './middleware/rate-limiter';
 import sequelize from './sequelize';
+import { initializeMessageBroker } from './services/messageBroker.service';
 import { SocketHandlers } from './socket/socket-handlers';
 import { logger } from './utils/logger';
 import { printEnvironmentInfo, validateEnvironment } from './utils/validate-env';
@@ -26,14 +27,15 @@ import monitoringRoutes from './routes/monitoring.routes';
 import notificationRoutes from './routes/notification.routes';
 import petRoutes from './routes/pet.routes';
 import rescueRoutes from './routes/rescue.routes';
+import searchRoutes from './routes/search.routes';
 import userRoutes from './routes/user.routes';
 
 // Import additional routes for PRD compliance
 import path from 'path';
+import { setupSwagger } from './config/swagger';
 import ConfigurationService from './services/configuration.service';
 import FeatureFlagService from './services/featureFlag.service';
 import { HealthCheckService } from './services/health-check.service';
-import { setupSwagger } from './config/swagger';
 
 // Create feature flags and config routes
 const featureRoutes = Router();
@@ -112,8 +114,39 @@ app.use('/api', apiLimiter);
 // Serve uploaded files in development
 if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
   const uploadDir = path.resolve(config.storage.local.directory);
-  app.use('/uploads', express.static(uploadDir));
-  logger.info(`Serving static files from: ${uploadDir}`);
+
+  // Configure static file serving with proper CORS headers
+  app.use(
+    '/uploads',
+    (req, res, next) => {
+      // Set CORS headers for uploaded files
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept'
+      );
+
+      // Set cache headers for better performance
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year
+
+      // Set proper content types
+      if (req.path.endsWith('.jpg') || req.path.endsWith('.jpeg')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      } else if (req.path.endsWith('.png')) {
+        res.setHeader('Content-Type', 'image/png');
+      } else if (req.path.endsWith('.pdf')) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline'); // Show PDFs in browser instead of downloading
+      }
+
+      next();
+    },
+    express.static(uploadDir)
+  );
+
+  logger.info(`Serving static files from: ${uploadDir} with CORS enabled`);
 }
 
 // Setup Swagger UI for API documentation
@@ -133,6 +166,7 @@ app.use('/api/v1/email', emailRoutes);
 app.use('/api/v1/pets', petRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/rescues', rescueRoutes);
+app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/features', featureRoutes);
 app.use('/api/v1/config', configRoutes);
@@ -255,15 +289,19 @@ app.get('/health/ready', async (req, res) => {
 // Apply error handler middleware
 app.use(errorHandler);
 
-// Initialize Socket.IO handlers
-new SocketHandlers(io);
-
 // Start server
 const startServer = async () => {
   try {
     // Validate environment variables first
     validateEnvironment();
     printEnvironmentInfo();
+
+    // Initialize message broker for scaling
+    await initializeMessageBroker();
+    logger.info('Message broker initialized');
+
+    // Initialize Socket.IO handlers
+    new SocketHandlers(io);
 
     // Test database connection with retry mechanism
     let retries = 5;
@@ -316,6 +354,15 @@ const startServer = async () => {
       logger.info(`🚀 Server running on port ${config.port} in ${config.nodeEnv} mode`);
       logger.info(`📊 Health check available at http://localhost:${config.port}/health`);
       logger.info(`💬 Socket.IO enabled for real-time messaging`);
+
+      // Log rate limiting mode
+      if (config.nodeEnv === 'development') {
+        logger.warn(
+          `⚠️  DEVELOPMENT MODE: Rate limiting is BYPASSED - warnings will be logged when limits would be hit`
+        );
+      } else {
+        logger.info(`🛡️  Rate limiting is ACTIVE for production`);
+      }
     });
 
     // Graceful shutdown

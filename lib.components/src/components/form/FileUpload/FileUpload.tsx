@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type FileUploadSize = 'sm' | 'md' | 'lg';
 export type FileUploadState = 'default' | 'error' | 'success' | 'warning';
@@ -44,22 +44,22 @@ const getSizeStyles = (size: FileUploadSize) => {
   return sizes[size];
 };
 
-const getStateStyles = (state: FileUploadState, theme: any) => {
+const getStateStyles = (state: FileUploadState, theme: DefaultTheme) => {
   const states = {
     default: css`
       border-color: ${theme.colors.neutral[300]};
     `,
     error: css`
-      border-color: ${theme.colors.semantic.error.main};
-      background-color: ${theme.colors.semantic.error.light}20;
+      border-color: ${theme.colors.semantic.error[500]};
+      background-color: ${theme.colors.semantic.error[100]}20;
     `,
     success: css`
-      border-color: ${theme.colors.semantic.success.main};
-      background-color: ${theme.colors.semantic.success.light}20;
+      border-color: ${theme.colors.semantic.success[500]};
+      background-color: ${theme.colors.semantic.success[100]}20;
     `,
     warning: css`
-      border-color: ${theme.colors.semantic.warning.main};
-      background-color: ${theme.colors.semantic.warning.light}20;
+      border-color: ${theme.colors.semantic.warning[500]};
+      background-color: ${theme.colors.semantic.warning[100]}20;
     `,
   };
   return states[state];
@@ -82,7 +82,7 @@ const Label = styled.label<{ $required: boolean }>`
     css`
       &::after {
         content: ' *';
-        color: ${({ theme }) => theme.colors.semantic.error.main};
+        color: ${({ theme }) => theme.colors.semantic.error[500]};
       }
     `}
 `;
@@ -117,8 +117,8 @@ const DropZone = styled.div<{
   ${({ $isDragging, theme }) =>
     $isDragging &&
     css`
-      border-color: ${theme.colors.primary.main};
-      background-color: ${theme.colors.primary.light}20;
+      border-color: ${theme.colors.primary[500]};
+      background-color: ${theme.colors.primary[100]}20;
     `}
 
   ${({ $disabled, theme }) =>
@@ -130,8 +130,8 @@ const DropZone = styled.div<{
     `}
 
   &:hover:not([disabled]) {
-    border-color: ${({ theme }) => theme.colors.primary.main};
-    background-color: ${({ theme }) => theme.colors.primary.light}10;
+    border-color: ${({ theme }) => theme.colors.primary[500]};
+    background-color: ${({ theme }) => theme.colors.primary[100]}10;
   }
 `;
 
@@ -169,7 +169,7 @@ const FileItem = styled.div`
   padding: ${({ theme }) => theme.spacing.sm};
   border: 1px solid ${({ theme }) => theme.colors.neutral[200]};
   border-radius: ${({ theme }) => theme.border.radius.sm};
-  background-color: ${({ theme }) => theme.colors.neutral.white};
+  background-color: ${({ theme }) => theme.colors.neutral[50]};
   margin-bottom: ${({ theme }) => theme.spacing.xs};
 
   &:last-child {
@@ -196,18 +196,18 @@ const FileSize = styled.span`
 const RemoveButton = styled.button`
   background: none;
   border: none;
-  color: ${({ theme }) => theme.colors.semantic.error.main};
+  color: ${({ theme }) => theme.colors.semantic.error[500]};
   cursor: pointer;
   padding: ${({ theme }) => theme.spacing.xs};
   border-radius: ${({ theme }) => theme.border.radius.sm};
   transition: background-color ${({ theme }) => theme.transitions.fast};
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.semantic.error.light}20;
+    background-color: ${({ theme }) => theme.colors.semantic.error[100]}20;
   }
 
   &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors.semantic.error.main};
+    outline: 2px solid ${({ theme }) => theme.colors.semantic.error[500]};
     outline-offset: 2px;
   }
 `;
@@ -218,11 +218,11 @@ const HelperText = styled.div<{ $state: FileUploadState }>`
   color: ${({ theme, $state }) => {
     switch ($state) {
       case 'error':
-        return theme.colors.semantic.error.main;
+        return theme.colors.semantic.error[500];
       case 'success':
-        return theme.colors.semantic.success.main;
+        return theme.colors.semantic.success[500];
       case 'warning':
-        return theme.colors.semantic.warning.main;
+        return theme.colors.semantic.warning[500];
       default:
         return theme.colors.neutral[600];
     }

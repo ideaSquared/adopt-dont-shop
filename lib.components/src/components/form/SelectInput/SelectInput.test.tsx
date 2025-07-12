@@ -1,70 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+import { lightTheme } from '../../../styles/theme';
 import { SelectInput, SelectOption } from './SelectInput';
 
-// Mock theme for testing
-const mockTheme = {
-  colors: {
-    neutral: {
-      50: '#f9fafb',
-      100: '#f3f4f6',
-      200: '#e5e7eb',
-      300: '#d1d5db',
-      400: '#9ca3af',
-      600: '#4b5563',
-      700: '#374151',
-      900: '#111827',
-    },
-    primary: {
-      100: '#dbeafe',
-      200: '#bfdbfe',
-      500: '#3b82f6',
-      600: '#2563eb',
-      700: '#1d4ed8',
-    },
-    semantic: {
-      error: {
-        200: '#fecaca',
-        500: '#ef4444',
-      },
-      success: {
-        200: '#a7f3d0',
-        500: '#10b981',
-      },
-      warning: {
-        200: '#fde68a',
-        500: '#f59e0b',
-      },
-    },
-  },
-  spacing: {
-    xs: '4px',
-    sm: '8px',
-    md: '12px',
-  },
-  typography: {
-    size: {
-      sm: '14px',
-    },
-    weight: {
-      medium: '500',
-    },
-  },
-  transitions: {
-    fast: '150ms',
-  },
-  shadows: {
-    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-  },
-  zIndex: {
-    dropdown: '1000',
-  },
-};
-
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 const mockOptions: SelectOption[] = [
@@ -128,7 +70,7 @@ describe('SelectInput', () => {
   });
 
   it('shows selected values in multiple mode', async () => {
-    const user = userEvent.setup();
+    // const user = userEvent.setup();
     renderWithTheme(<SelectInput options={mockOptions} multiple value={['option1', 'option2']} />);
 
     expect(screen.getByText('Option 1')).toBeInTheDocument();

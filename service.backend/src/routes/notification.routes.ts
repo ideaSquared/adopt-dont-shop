@@ -591,7 +591,6 @@ router.put(
  */
 router.post('/read-all', notificationController.markAllNotificationsAsRead);
 
-
 /**
  * @swagger
  * /api/v1/{notificationId}:

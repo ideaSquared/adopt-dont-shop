@@ -1,118 +1,119 @@
 import { Router } from 'express';
+import { config } from '../config';
+import { authLimiter, uploadLimiter } from '../middleware/rate-limiter';
 import { HealthCheckService } from '../services/health-check.service';
 
 const router = Router();
 
 // Only enable in development
 if (process.env.NODE_ENV === 'development') {
+  /**
+   * @swagger
+   * /api/v1/dashboard:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/dashboard
+   *     description: Handle GET request for /api/v1/dashboard
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/dashboard successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/dashboard:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/dashboard
- *     description: Handle GET request for /api/v1/dashboard
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/dashboard successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/dashboard:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/dashboard
+   *     description: Handle GET request for /api/v1/dashboard
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/dashboard successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/dashboard:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/dashboard
- *     description: Handle GET request for /api/v1/dashboard
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/dashboard successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/dashboard:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/dashboard
+   *     description: Handle GET request for /api/v1/dashboard
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/dashboard successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/dashboard:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/dashboard
- *     description: Handle GET request for /api/v1/dashboard
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/dashboard successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
-
-/**
- * @swagger
- * /api/v1/dashboard:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/dashboard
- *     description: Handle GET request for /api/v1/dashboard
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/dashboard successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/dashboard:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/dashboard
+   *     description: Handle GET request for /api/v1/dashboard
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/dashboard successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
   router.get('/dashboard', async (req, res) => {
     const health = await HealthCheckService.getFullHealthCheck();
 
@@ -332,6 +333,57 @@ if (process.env.NODE_ENV === 'development') {
            `
                : ''
            }
+
+          <h2>🛡️ Rate Limiting Status</h2>
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #dee2e6;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+              <div>
+                <h5 style="color: #495057; margin-bottom: 10px;">⚙️ Current Status</h5>
+                <div style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
+                  <div style="margin-bottom: 10px;">
+                    <strong>Mode:</strong> 
+                    <span style="background: ${
+                      health.environment === 'development' ? '#fff3cd' : '#d4edda'
+                    }; color: ${
+                      health.environment === 'development' ? '#856404' : '#155724'
+                    }; padding: 2px 8px; border-radius: 12px; font-weight: bold;">
+                      ${health.environment === 'development' ? 'BYPASSED' : 'ACTIVE'}
+                    </span>
+                  </div>
+                  <div><strong>Environment:</strong> ${health.environment}</div>
+                  <div><strong>API Limit:</strong> ${config.rateLimit.maxRequests} requests per ${
+                    config.rateLimit.windowMs / 60000
+                  } minutes</div>
+                </div>
+              </div>
+              <div>
+                <h5 style="color: #495057; margin-bottom: 10px;">🧪 Test Endpoints</h5>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <a href="/monitoring/test-rate-limit" target="_blank" style="padding: 8px 12px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; text-align: center; font-size: 0.9em;">
+                    Test General Rate Limit
+                  </a>
+                  <a href="/monitoring/test-auth-rate-limit" target="_blank" style="padding: 8px 12px; background: #dc3545; color: white; text-decoration: none; border-radius: 4px; text-align: center; font-size: 0.9em;">
+                    Test Auth Rate Limit (5/15min)
+                  </a>
+                  <a href="/monitoring/test-upload-rate-limit" target="_blank" style="padding: 8px 12px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; text-align: center; font-size: 0.9em;">
+                    Test Upload Rate Limit (20/15min)
+                  </a>
+                  <a href="/monitoring/rate-limit-status" target="_blank" style="padding: 8px 12px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px; text-align: center; font-size: 0.9em;">
+                    Rate Limit Status JSON
+                  </a>
+                </div>
+              </div>
+            </div>
+            ${
+              health.environment === 'development'
+                ? `<div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px; color: #856404; font-size: 0.9em;">
+                     ⚠️ <strong>Development Mode:</strong> Rate limits are bypassed! Warnings will be logged to console when limits would be hit. Check your terminal for rate limit warning messages.
+                   </div>`
+                : `<div style="margin-top: 15px; padding: 10px; background: #d4edda; border-radius: 5px; color: #155724; font-size: 0.9em;">
+                     🛡️ <strong>Production Mode:</strong> Rate limits are active. Exceeding limits will result in 429 status codes.
+                   </div>`
+            }
+          </div>
         </div>
       </body>
       </html>
@@ -342,113 +394,113 @@ if (process.env.NODE_ENV === 'development') {
 
   // API endpoint for dashboard data
 
-/**
- * @swagger
- * /api/v1/api/health:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health
- *     description: Handle GET request for /api/v1/api/health
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health
+   *     description: Handle GET request for /api/v1/api/health
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health
- *     description: Handle GET request for /api/v1/api/health
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health
+   *     description: Handle GET request for /api/v1/api/health
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health
- *     description: Handle GET request for /api/v1/api/health
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health
+   *     description: Handle GET request for /api/v1/api/health
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health
- *     description: Handle GET request for /api/v1/api/health
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health
+   *     description: Handle GET request for /api/v1/api/health
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
   router.get('/api/health', async (req, res) => {
     try {
       const health = await HealthCheckService.getFullHealthCheck();
@@ -460,113 +512,113 @@ if (process.env.NODE_ENV === 'development') {
 
   // Individual service health endpoints for frontend
 
-/**
- * @swagger
- * /api/v1/api/health/database:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/database
- *     description: Handle GET request for /api/v1/api/health/database
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/database successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/database:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/database
+   *     description: Handle GET request for /api/v1/api/health/database
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/database successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/database:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/database
- *     description: Handle GET request for /api/v1/api/health/database
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/database successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/database:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/database
+   *     description: Handle GET request for /api/v1/api/health/database
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/database successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/database:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/database
- *     description: Handle GET request for /api/v1/api/health/database
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/database successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/database:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/database
+   *     description: Handle GET request for /api/v1/api/health/database
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/database successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/database:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/database
- *     description: Handle GET request for /api/v1/api/health/database
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/database successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/database:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/database
+   *     description: Handle GET request for /api/v1/api/health/database
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/database successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
   router.get('/api/health/database', async (req, res) => {
     try {
       const dbHealth = await HealthCheckService.checkDatabaseHealth();
@@ -576,114 +628,113 @@ if (process.env.NODE_ENV === 'development') {
     }
   });
 
+  /**
+   * @swagger
+   * /api/v1/api/health/email:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/email
+   *     description: Handle GET request for /api/v1/api/health/email
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/email successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/email:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/email
- *     description: Handle GET request for /api/v1/api/health/email
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/email successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/email:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/email
+   *     description: Handle GET request for /api/v1/api/health/email
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/email successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/email:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/email
- *     description: Handle GET request for /api/v1/api/health/email
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/email successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/email:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/email
+   *     description: Handle GET request for /api/v1/api/health/email
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/email successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/email:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/email
- *     description: Handle GET request for /api/v1/api/health/email
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/email successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
-
-/**
- * @swagger
- * /api/v1/api/health/email:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/email
- *     description: Handle GET request for /api/v1/api/health/email
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/email successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/email:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/email
+   *     description: Handle GET request for /api/v1/api/health/email
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/email successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
   router.get('/api/health/email', async (req, res) => {
     try {
       const emailHealth = await HealthCheckService.checkEmailHealth();
@@ -693,114 +744,113 @@ if (process.env.NODE_ENV === 'development') {
     }
   });
 
+  /**
+   * @swagger
+   * /api/v1/api/health/storage:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/storage
+   *     description: Handle GET request for /api/v1/api/health/storage
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/storage successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/storage:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/storage
- *     description: Handle GET request for /api/v1/api/health/storage
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/storage successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/storage:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/storage
+   *     description: Handle GET request for /api/v1/api/health/storage
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/storage successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/storage:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/storage
- *     description: Handle GET request for /api/v1/api/health/storage
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/storage successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/storage:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/storage
+   *     description: Handle GET request for /api/v1/api/health/storage
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/storage successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/storage:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/storage
- *     description: Handle GET request for /api/v1/api/health/storage
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/storage successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
-
-/**
- * @swagger
- * /api/v1/api/health/storage:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/storage
- *     description: Handle GET request for /api/v1/api/health/storage
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/storage successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/storage:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/storage
+   *     description: Handle GET request for /api/v1/api/health/storage
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/storage successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
   router.get('/api/health/storage', async (req, res) => {
     try {
       const storageHealth = await HealthCheckService.checkStorageHealth();
@@ -810,114 +860,113 @@ if (process.env.NODE_ENV === 'development') {
     }
   });
 
+  /**
+   * @swagger
+   * /api/v1/api/health/system:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/system
+   *     description: Handle GET request for /api/v1/api/health/system
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/system successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/system:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/system
- *     description: Handle GET request for /api/v1/api/health/system
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/system successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/system:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/system
+   *     description: Handle GET request for /api/v1/api/health/system
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/system successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/system:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/system
- *     description: Handle GET request for /api/v1/api/health/system
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/system successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/system:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/system
+   *     description: Handle GET request for /api/v1/api/health/system
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/system successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/health/system:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/system
- *     description: Handle GET request for /api/v1/api/health/system
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/system successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
-
-/**
- * @swagger
- * /api/v1/api/health/system:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/health/system
- *     description: Handle GET request for /api/v1/api/health/system
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/health/system successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/health/system:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/health/system
+   *     description: Handle GET request for /api/v1/api/health/system
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/health/system successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
   router.get('/api/health/system', async (req, res) => {
     try {
       const health = await HealthCheckService.getFullHealthCheck();
@@ -935,113 +984,113 @@ if (process.env.NODE_ENV === 'development') {
 
   // Email provider info (development only)
 
-/**
- * @swagger
- * /api/v1/api/email/provider-info:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/email/provider-info
- *     description: Handle GET request for /api/v1/api/email/provider-info
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/email/provider-info successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/email/provider-info:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/email/provider-info
+   *     description: Handle GET request for /api/v1/api/email/provider-info
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/email/provider-info successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/email/provider-info:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/email/provider-info
- *     description: Handle GET request for /api/v1/api/email/provider-info
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/email/provider-info successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/email/provider-info:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/email/provider-info
+   *     description: Handle GET request for /api/v1/api/email/provider-info
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/email/provider-info successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/email/provider-info:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/email/provider-info
- *     description: Handle GET request for /api/v1/api/email/provider-info
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/email/provider-info successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/email/provider-info:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/email/provider-info
+   *     description: Handle GET request for /api/v1/api/email/provider-info
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/email/provider-info successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
 
-/**
- * @swagger
- * /api/v1/api/email/provider-info:
- *   get:
- *     tags: [Monitoring]
- *     summary: GET /api/v1/api/email/provider-info
- *     description: Handle GET request for /api/v1/api/email/provider-info
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: GET /api/v1/api/email/provider-info successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
+  /**
+   * @swagger
+   * /api/v1/api/email/provider-info:
+   *   get:
+   *     tags: [Monitoring]
+   *     summary: GET /api/v1/api/email/provider-info
+   *     description: Handle GET request for /api/v1/api/email/provider-info
+   *     security:
+   *       - bearerAuth: []
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: GET /api/v1/api/email/provider-info successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundError'
+   */
   router.get('/api/email/provider-info', async (req, res) => {
     try {
       const EmailService = (await import('../services/email.service')).default;
@@ -1063,6 +1112,78 @@ if (process.env.NODE_ENV === 'development') {
     } catch (error) {
       res.status(500).json({ error: 'Failed to get email provider info' });
     }
+  });
+
+  // Rate limit testing endpoint (development only)
+  router.get('/test-rate-limit', async (req, res) => {
+    res.json({
+      message: 'Rate limit test endpoint hit successfully',
+      timestamp: new Date(),
+      ip: req.ip,
+      note:
+        config.nodeEnv === 'development'
+          ? 'In development mode - check console for rate limit warnings'
+          : 'Rate limiting is active in production',
+    });
+  });
+
+  // Multiple endpoints with different rate limiters for testing
+  router.get('/test-auth-rate-limit', authLimiter, async (req, res) => {
+    res.json({
+      message: 'Auth rate limit test endpoint hit successfully',
+      timestamp: new Date(),
+      ip: req.ip,
+      note: 'This endpoint uses auth rate limiter (5 requests per 15 minutes)',
+    });
+  });
+
+  router.get('/test-upload-rate-limit', uploadLimiter, async (req, res) => {
+    res.json({
+      message: 'Upload rate limit test endpoint hit successfully',
+      timestamp: new Date(),
+      ip: req.ip,
+      note: 'This endpoint uses upload rate limiter (20 requests per 15 minutes)',
+    });
+  });
+
+  // Rate limiting status endpoint
+  router.get('/rate-limit-status', async (req, res) => {
+    res.json({
+      rateLimitingMode: config.nodeEnv === 'development' ? 'BYPASSED' : 'ACTIVE',
+      environment: config.nodeEnv,
+      limits: {
+        api: {
+          windowMs: config.rateLimit.windowMs,
+          maxRequests: config.rateLimit.maxRequests,
+          windowMinutes: config.rateLimit.windowMs / 60000,
+        },
+        auth: {
+          windowMs: 15 * 60 * 1000,
+          maxRequests: 5,
+          windowMinutes: 15,
+        },
+        upload: {
+          windowMs: 15 * 60 * 1000,
+          maxRequests: 20,
+          windowMinutes: 15,
+        },
+        passwordReset: {
+          windowMs: 60 * 60 * 1000,
+          maxRequests: 3,
+          windowMinutes: 60,
+        },
+      },
+      testEndpoints: [
+        '/monitoring/test-rate-limit',
+        '/monitoring/test-auth-rate-limit',
+        '/monitoring/test-upload-rate-limit',
+      ],
+      note:
+        config.nodeEnv === 'development'
+          ? 'Rate limits are BYPASSED in development. Hit the test endpoints multiple times to see console warnings.'
+          : 'Rate limits are ACTIVE. Exceeding limits will result in 429 status codes.',
+      timestamp: new Date(),
+    });
   });
 }
 

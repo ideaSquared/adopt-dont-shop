@@ -1,15 +1,22 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
+import { ChatStatus } from '../types/chat';
+
+import { ChatParticipant } from './ChatParticipant';
 import { Message } from './Message';
+import Rescue from './Rescue';
 
 interface ChatAttributes {
   chat_id: string;
   application_id?: string; // Optional - links to adoption application if chat was initiated from one
   rescue_id: string; // Add rescue_id to attributes
-  status: 'active' | 'locked' | 'archived';
+  pet_id?: string; // Optional - links to specific pet if chat was initiated from pet page
+  status: ChatStatus;
   created_at?: Date;
   updated_at?: Date;
   Messages?: Message[];
+  Participants?: ChatParticipant[];
+  rescue?: Rescue | null; // Add optional rescue association
 }
 
 interface ChatCreationAttributes
@@ -19,13 +26,17 @@ export class Chat extends Model<ChatAttributes, ChatCreationAttributes> implemen
   public chat_id!: string;
   public application_id?: string;
   public rescue_id!: string; // Add rescue_id to class
-  public status!: 'active' | 'locked' | 'archived';
+  public pet_id?: string; // Add pet_id to class
+  public status!: ChatStatus;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
   public Messages?: Message[];
+  public Participants?: ChatParticipant[];
+  public rescue?: Rescue | null;
 
   // Add association methods
-  public static associate(models: any) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public static associate(models: Record<string, any>) {
     Chat.hasMany(models.Message, {
       foreignKey: 'chat_id',
       as: 'Messages',
@@ -33,7 +44,7 @@ export class Chat extends Model<ChatAttributes, ChatCreationAttributes> implemen
     });
     Chat.hasMany(models.ChatParticipant, {
       foreignKey: 'chat_id',
-      as: 'participants',
+      as: 'Participants',
       onDelete: 'CASCADE',
     });
     Chat.belongsTo(models.Application, {
@@ -71,12 +82,21 @@ Chat.init(
         key: 'rescue_id',
       },
     },
+    pet_id: {
+      // Add pet_id field
+      type: DataTypes.STRING,
+      allowNull: true,
+      references: {
+        model: 'pets',
+        key: 'pet_id',
+      },
+    },
     status: {
-      type: DataTypes.ENUM('active', 'locked', 'archived'),
+      type: DataTypes.ENUM(...Object.values(ChatStatus)),
       allowNull: false,
-      defaultValue: 'active',
+      defaultValue: ChatStatus.ACTIVE,
       validate: {
-        isIn: [['active', 'locked', 'archived']],
+        isIn: [Object.values(ChatStatus)],
       },
     },
   },

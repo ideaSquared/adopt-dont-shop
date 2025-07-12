@@ -1,3 +1,32 @@
+type Theme = {
+  spacing: Record<string | number, string>;
+  typography: {
+    size: Record<string, string>;
+    lineHeight: Record<string, number>;
+    family: { sans: string };
+    weight: { medium: number | string };
+  };
+  colors: {
+    primary: Record<string, string>;
+    secondary: Record<string, string>;
+    semantic: {
+      success: Record<string, string>;
+      warning: Record<string, string>;
+      error: Record<string, string>;
+      info: Record<string, string>;
+    };
+    neutral: Record<string, string>;
+  };
+  border: {
+    radius: { full: string; md: string };
+    color: { secondary: string };
+  };
+  transitions: { fast: string };
+  mode?: string;
+  shadows?: { md: string; focus: string };
+  background?: { secondary: string };
+  text: { secondary: string };
+};
 import React from 'react';
 import styled, { css } from 'styled-components';
 
@@ -36,7 +65,7 @@ export type BadgeProps = {
   dot?: boolean;
 };
 
-const getSizeStyles = (size: BadgeSize, theme: any) => {
+const getSizeStyles = (size: BadgeSize, theme: Theme) => {
   const sizes = {
     xs: css`
       padding: ${theme.spacing[0.5]} ${theme.spacing[1.5]};
@@ -66,7 +95,7 @@ const getSizeStyles = (size: BadgeSize, theme: any) => {
   return sizes[size];
 };
 
-const getVariantStyles = (variant: BadgeVariant, theme: any) => {
+const getVariantStyles = (variant: BadgeVariant, theme: Theme) => {
   const variants = {
     primary: css`
       background: ${theme.colors.primary[100]};
@@ -189,7 +218,7 @@ const StyledBadge = styled.span<{
   ${({ $size, theme }) => getSizeStyles($size, theme)}
   ${({ $variant, theme }) => getVariantStyles($variant, theme)}
 
-  ${({ $disabled, theme }) =>
+  ${({ $disabled }) =>
     $disabled &&
     css`
       opacity: 0.5;
@@ -349,7 +378,8 @@ export const Badge: React.FC<BadgeProps> = ({
   rounded = false,
   dot = false,
 }) => {
-  const handleRemove = (event: React.MouseEvent) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleRemove = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     if (onRemove && !disabled) {
       onRemove();
@@ -390,4 +420,3 @@ export const Badge: React.FC<BadgeProps> = ({
 };
 
 Badge.displayName = 'Badge';
-

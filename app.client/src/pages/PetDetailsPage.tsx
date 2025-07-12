@@ -1,10 +1,13 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useChat } from '@/contexts/ChatContext';
+import { useStatsig } from '@/hooks/useStatsig';
 import { petService } from '@/services/petService';
 import { Pet } from '@/types';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { resolveFileUrl } from '../utils/fileUtils';
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -362,17 +365,25 @@ const ErrorContainer = styled.div`
   }
 `;
 
+const ContactButton = styled(Button)`
+  width: 100%;
+  margin-top: 0.5rem;
+`;
+
 interface PetDetailsPageProps {}
 
 export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated } = useAuth();
+  const { startConversation } = useChat();
+  const { logEvent } = useStatsig();
   const [pet, setPet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPet = async () => {
@@ -386,6 +397,21 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
         setLoading(true);
         const petData = await petService.getPet(id);
         setPet(petData);
+
+        // Log pet details view
+        logEvent('pet_details_viewed', 1, {
+          pet_id: id,
+          pet_name: petData.name,
+          pet_type: petData.type,
+          pet_breed: petData.breed || 'unknown',
+          pet_age_years: petData.age_years?.toString() || 'unknown',
+          pet_status: petData.status,
+          pet_gender: petData.gender || 'unknown',
+          pet_size: petData.size || 'unknown',
+          has_images: petData.images && petData.images.length > 0 ? 'true' : 'false',
+          image_count: (petData.images?.length || 0).toString(),
+          user_authenticated: isAuthenticated.toString(),
+        });
 
         // Check if pet is in favorites
         if (isAuthenticated) {
@@ -405,7 +431,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     };
 
     fetchPet();
-  }, [id, isAuthenticated]);
+  }, [id, isAuthenticated, logEvent]);
 
   const handleFavoriteToggle = async () => {
     if (!isAuthenticated || !pet) return;
@@ -415,14 +441,130 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
       if (isFavorite) {
         await petService.removeFromFavorites(pet.pet_id);
         setIsFavorite(false);
+
+        // Log unfavorite event
+        logEvent('pet_unfavorited', 1, {
+          pet_id: pet.pet_id.toString(),
+          pet_name: pet.name || 'unknown',
+          pet_type: pet.type || 'unknown',
+          pet_breed: pet.breed || 'unknown',
+          source_page: 'pet_details',
+          user_authenticated: isAuthenticated.toString(),
+        });
       } else {
         await petService.addToFavorites(pet.pet_id);
         setIsFavorite(true);
+
+        // Log favorite event
+        logEvent('pet_favorited', 1, {
+          pet_id: pet.pet_id.toString(),
+          pet_name: pet.name || 'unknown',
+          pet_type: pet.type || 'unknown',
+          pet_breed: pet.breed || 'unknown',
+          source_page: 'pet_details',
+          user_authenticated: isAuthenticated.toString(),
+        });
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
+
+      // Log favorite error
+      logEvent('pet_favorite_error', 1, {
+        pet_id: pet.pet_id.toString(),
+        action: isFavorite ? 'remove' : 'add',
+        error_message: error instanceof Error ? error.message : 'unknown_error',
+        user_authenticated: isAuthenticated.toString(),
+      });
     } finally {
       setFavoriteLoading(false);
+    }
+  };
+
+  const handleContactRescue = async () => {
+    if (!pet?.rescue_id || !isAuthenticated) return;
+
+    // Log contact attempt
+    logEvent('rescue_contact_attempted', 1, {
+      pet_id: pet.pet_id.toString(),
+      pet_name: pet.name || 'unknown',
+      pet_type: pet.type || 'unknown',
+      rescue_id: pet.rescue_id.toString(),
+      source_page: 'pet_details',
+      user_authenticated: isAuthenticated.toString(),
+    });
+
+    try {
+      // Start a conversation with the rescue
+      const conversation = await startConversation(pet.rescue_id, pet.pet_id);
+
+      // Log successful contact initiation
+      logEvent('rescue_contact_successful', 1, {
+        pet_id: pet.pet_id.toString(),
+        pet_name: pet.name || 'unknown',
+        rescue_id: pet.rescue_id.toString(),
+        conversation_id: conversation.id.toString(),
+        source_page: 'pet_details',
+        user_authenticated: isAuthenticated.toString(),
+      });
+
+      // Navigate to the specific conversation
+      navigate(`/chat/${conversation.id}`);
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+
+      // Log contact error
+      logEvent('rescue_contact_error', 1, {
+        pet_id: pet.pet_id.toString(),
+        rescue_id: pet.rescue_id.toString(),
+        error_message: error instanceof Error ? error.message : 'unknown_error',
+        source_page: 'pet_details',
+        user_authenticated: isAuthenticated.toString(),
+      });
+
+      // Add user-visible error handling
+      alert('Failed to start conversation. Please try again.');
+    }
+  };
+
+  const handleImageSelect = (index: number) => {
+    setSelectedImageIndex(index);
+
+    // Log image gallery interaction
+    if (pet) {
+      logEvent('pet_image_selected', 1, {
+        pet_id: pet.pet_id.toString(),
+        pet_name: pet.name || 'unknown',
+        image_index: index.toString(),
+        total_images: pet.images?.length.toString() || '0',
+        source_page: 'pet_details',
+        user_authenticated: isAuthenticated.toString(),
+      });
+    }
+  };
+
+  const handleApplyClick = () => {
+    if (pet) {
+      logEvent('adoption_application_started', 1, {
+        pet_id: pet.pet_id.toString(),
+        pet_name: pet.name || 'unknown',
+        pet_type: pet.type || 'unknown',
+        pet_breed: pet.breed || 'unknown',
+        pet_age_years: pet.age_years?.toString() || 'unknown',
+        pet_status: pet.status || 'unknown',
+        source_page: 'pet_details',
+        user_authenticated: isAuthenticated.toString(),
+      });
+    }
+  };
+
+  const handleRescueProfileClick = () => {
+    if (pet) {
+      logEvent('rescue_profile_viewed', 1, {
+        pet_id: pet.pet_id.toString(),
+        rescue_id: pet.rescue_id?.toString() || 'unknown',
+        source_page: 'pet_details',
+        user_authenticated: isAuthenticated.toString(),
+      });
     }
   };
 
@@ -492,6 +634,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   }
 
   const primaryPhoto = pet.images?.[selectedImageIndex] || pet.images?.[0];
+  const resolvedPrimaryPhotoUrl = resolveFileUrl(primaryPhoto?.url);
 
   return (
     <PageContainer>
@@ -526,9 +669,9 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
       <MainContent>
         <ImageSection>
           <div className='primary-image'>
-            {primaryPhoto?.url ? (
+            {resolvedPrimaryPhotoUrl ? (
               <img
-                src={primaryPhoto.url}
+                src={resolvedPrimaryPhotoUrl}
                 alt={pet.name}
                 onError={e => {
                   e.currentTarget.style.display = 'none';
@@ -536,7 +679,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                 }}
               />
             ) : null}
-            <PlaceholderImage style={{ display: primaryPhoto?.url ? 'none' : 'flex' }} />
+            <PlaceholderImage style={{ display: resolvedPrimaryPhotoUrl ? 'none' : 'flex' }} />
           </div>
           {pet.images && pet.images.length > 1 && (
             <div className='thumbnail-grid'>
@@ -544,21 +687,21 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                 <div
                   key={image.image_id}
                   className={`thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
-                  onClick={() => setSelectedImageIndex(index)}
+                  onClick={() => handleImageSelect(index)}
                   onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      setSelectedImageIndex(index);
+                      handleImageSelect(index);
                     }
                   }}
                   role='button'
                   tabIndex={0}
                   aria-label={`View photo ${index + 1} of ${pet.name}`}
                 >
-                  {image.url ? (
+                  {resolveFileUrl(image.url) ? (
                     <>
                       <img
-                        src={image.url}
+                        src={resolveFileUrl(image.url)!}
                         alt={`${pet.name} ${index + 1}`}
                         onError={e => {
                           e.currentTarget.style.display = 'none';
@@ -627,14 +770,27 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
             )}
             <div className='actions'>
               {pet.status === 'available' && (
-                <ActionLink to={`/apply/${pet.pet_id}`} className='primary large'>
+                <ActionLink
+                  to={`/apply/${pet.pet_id}`}
+                  className='primary large'
+                  onClick={handleApplyClick}
+                >
                   Apply to Adopt
                 </ActionLink>
               )}
               {pet.rescue_id && (
-                <ActionLink to={`/rescues/${pet.rescue_id}`} className='outline'>
+                <ActionLink
+                  to={`/rescues/${pet.rescue_id}`}
+                  className='outline'
+                  onClick={handleRescueProfileClick}
+                >
                   View Rescue Profile
                 </ActionLink>
+              )}
+              {pet.rescue_id && isAuthenticated && (
+                <ContactButton variant='primary' size='lg' onClick={handleContactRescue}>
+                  Contact Rescue
+                </ContactButton>
               )}
             </div>
           </ActionCard>

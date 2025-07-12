@@ -1,5 +1,5 @@
 import React from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, DefaultTheme } from 'styled-components';
 
 export type StackDirection = 'vertical' | 'horizontal';
 export type StackAlign = 'start' | 'center' | 'end' | 'stretch';
@@ -29,7 +29,7 @@ const getDirectionStyles = (direction: StackDirection) => {
       `;
 };
 
-const getSpacingStyles = (spacing: StackSpacing, theme: any) => {
+const getSpacingStyles = (spacing: StackSpacing, theme: DefaultTheme) => {
   if (spacing === 'none') return css``;
 
   const spacingValue = theme.spacing[spacing];
@@ -132,4 +132,3 @@ export const Stack: React.FC<StackProps> = ({
     </StyledStack>
   );
 };
-

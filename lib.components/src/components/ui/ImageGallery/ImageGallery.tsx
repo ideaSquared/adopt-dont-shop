@@ -95,21 +95,21 @@ const Dot = styled.button<{ active: boolean }>`
   width: ${({ theme }) => theme.spacing.xs};
   height: ${({ theme }) => theme.spacing.xs};
   margin: 0 ${({ theme }) => theme.spacing.xs};
-  background-color: ${({ active, theme }) => (active ? theme.text.link : theme.text.dim)};
+  background-color: ${({ active, theme }) => (active ? theme.text.link : theme.text.disabled)};
   border: none;
   border-radius: ${({ theme }) => theme.border.radius.full};
   cursor: pointer;
   transition: background-color ${({ theme }) => theme.transitions.fast};
 
   &:hover {
-    background-color: ${({ theme }) => theme.text.highlight};
+    background-color: ${({ theme }) => theme.text.linkHover};
   }
 `;
 
 const UploadButton = styled.label`
   display: block;
   background-color: ${({ theme }) => theme.background.info};
-  color: ${({ theme }) => theme.text.light};
+  color: ${({ theme }) => theme.text.inverse};
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
   margin: ${({ theme }) => theme.spacing.md} auto;
   text-align: center;
@@ -119,7 +119,7 @@ const UploadButton = styled.label`
   transition: background-color ${({ theme }) => theme.transitions.fast};
 
   &:hover {
-    background-color: ${({ theme }) => theme.text.highlight};
+    background-color: ${({ theme }) => theme.text.linkHover};
   }
 `;
 
@@ -163,7 +163,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
     });
 
     return () => {
-      fallbackImages.forEach(src => {
+      fallbackImages.forEach(() => {
         const img = new window.Image();
         img.onload = null;
       });

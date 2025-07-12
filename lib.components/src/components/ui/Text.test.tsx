@@ -1,11 +1,13 @@
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from '../../styles/ThemeProvider';
 import { lightTheme } from '../../styles/theme';
+
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { Text } from './Text';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('Text', () => {
@@ -16,7 +18,8 @@ describe('Text', () => {
   });
 
   it('renders with different variants', () => {
-    const variants = ['body', 'caption', 'overline', 'subtitle1', 'subtitle2'] as const;
+    // Only use supported variants from TextVariant type
+    const variants = ['body', 'caption', 'small', 'lead', 'muted', 'highlight'] as const;
 
     variants.forEach(variant => {
       renderWithTheme(<Text variant={variant}>{variant} text</Text>);
@@ -26,7 +29,8 @@ describe('Text', () => {
   });
 
   it('renders with different sizes', () => {
-    const sizes = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'] as const;
+    // Only use supported sizes from TextSize type
+    const sizes = ['xs', 'sm', 'base', 'lg', 'xl'] as const;
 
     sizes.forEach(size => {
       renderWithTheme(<Text size={size}>{size} text</Text>);
@@ -46,14 +50,18 @@ describe('Text', () => {
   });
 
   it('renders with different colors', () => {
+    // Only use supported colors from TextColor type (remove 'error')
     const colors = [
+      'body',
+      'dark',
+      'light',
+      'muted',
       'primary',
       'secondary',
       'success',
-      'error',
+      'danger',
       'warning',
       'info',
-      'muted',
     ] as const;
 
     colors.forEach(color => {
@@ -106,19 +114,22 @@ describe('Text', () => {
   });
 
   it('applies uppercase transform when transform is uppercase', () => {
-    renderWithTheme(<Text transform='uppercase'>uppercase text</Text>);
+    // Remove unsupported transform prop
+    renderWithTheme(<Text style={{ textTransform: 'uppercase' }}>uppercase text</Text>);
     const text = screen.getByText('uppercase text');
     expect(text).toBeInTheDocument();
   });
 
   it('applies lowercase transform when transform is lowercase', () => {
-    renderWithTheme(<Text transform='lowercase'>LOWERCASE TEXT</Text>);
+    // Remove unsupported transform prop
+    renderWithTheme(<Text style={{ textTransform: 'lowercase' }}>LOWERCASE TEXT</Text>);
     const text = screen.getByText('LOWERCASE TEXT');
     expect(text).toBeInTheDocument();
   });
 
   it('applies capitalize transform when transform is capitalize', () => {
-    renderWithTheme(<Text transform='capitalize'>capitalize text</Text>);
+    // Remove unsupported transform prop
+    renderWithTheme(<Text style={{ textTransform: 'capitalize' }}>capitalize text</Text>);
     const text = screen.getByText('capitalize text');
     expect(text).toBeInTheDocument();
   });
@@ -145,14 +156,14 @@ describe('Text', () => {
   it('combines all props correctly', () => {
     renderWithTheme(
       <Text
-        variant='subtitle1'
+        variant='body'
         size='lg'
         weight='bold'
         color='primary'
         align='center'
         italic
         underline
-        transform='uppercase'
+        style={{ textTransform: 'uppercase' }}
         truncate
         as='h2'
         className='combined-text'
@@ -185,8 +196,9 @@ describe('Text', () => {
   });
 
   it('renders with line height when provided', () => {
+    // Remove unsupported lineHeight prop
     renderWithTheme(
-      <Text lineHeight='tight' data-testid='tight-text'>
+      <Text style={{ lineHeight: 1.25 }} data-testid='tight-text'>
         Tight line height
       </Text>
     );

@@ -113,7 +113,7 @@ const getVariantStyles = (variant: SpinnerVariant, theme: Theme) => {
     case 'default':
     default:
       return css`
-        border-color: ${theme.border.color.default};
+        border-color: ${theme.border.color.primary};
         border-right-color: transparent;
       `;
   }
@@ -140,7 +140,7 @@ const StyledSpinner = styled.div<StyledSpinnerProps>`
 
 const SpinnerLabel = styled.span`
   font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.text.dim};
+  color: ${({ theme }) => theme.text.disabled};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
 
@@ -204,7 +204,7 @@ const SpinnerDot = styled.div<{ $size: SpinnerSize; $variant: SpinnerVariant; $d
       case 'default':
       default:
         return css`
-          background-color: ${theme.border.color.default};
+          background-color: ${theme.border.color.primary};
         `;
     }
   }}

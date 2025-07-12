@@ -35,7 +35,8 @@
     "test:client": "turbo run test --filter=@adopt-dont-shop/app-client",
     "test:admin": "turbo run test --filter=@adopt-dont-shop/app-admin",
     "test:rescue": "turbo run test --filter=@adopt-dont-shop/app-rescue",
-    "test:components": "turbo run test --filter=@adopt-dont-shop/components"
+    "test:components": "turbo run test --filter=@adopt-dont-shop/components",
+    "generate:attachments": "node scripts/generate-test-attachments.js"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",

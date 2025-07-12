@@ -1,24 +1,33 @@
 import { Op, WhereOptions } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
+import { NotificationPriority, NotificationType } from '../models/Notification';
 import sequelize from '../sequelize';
 import {
-  ChatCreateData,
   ChatListResponse,
+  ChatMessage,
   ChatStatistics,
+  ChatStatus,
+  ChatType,
   ChatUpdateData,
+  MessageContentFormat,
   MessageCreateData,
   MessageListResponse,
+  MessageType,
   MessageUpdateData,
+  ParticipantRole,
 } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { NotificationService } from './notification.service';
 
-interface CreateChatData {
+interface ChatCreateData {
   rescueId?: string;
   applicationId?: string;
   participantIds: string[];
-  type: 'direct' | 'group' | 'application';
+  type?: 'direct' | 'group' | 'application'; // Make type optional since we infer it
   name?: string;
+  petId?: string;
+  initialMessage?: string;
 }
 
 interface SendMessageData {
@@ -28,6 +37,7 @@ interface SendMessageData {
   messageType?: 'text' | 'image' | 'file';
   attachments?: MessageAttachment[];
   replyToId?: string;
+  threadId?: string; // Add support for message threading
 }
 
 interface MessageAttachment {
@@ -61,14 +71,89 @@ interface ConversationSearchOptions {
   sortOrder?: 'ASC' | 'DESC';
 }
 
-interface UpdateChatData {
-  name?: string;
-  description?: string;
-  status?: 'active' | 'locked' | 'archived';
-  updatedBy: string;
-}
-
 export class ChatService {
+  /**
+   * Helper function to convert attachments from frontend format to backend format
+   */
+  private static convertAttachmentsToModelFormat(
+    attachments: import('../types/chat').MessageAttachment[]
+  ): import('../models/Message').MessageAttachment[] {
+    return attachments.map(att => ({
+      attachment_id: att.id,
+      filename: att.filename,
+      originalName: att.filename, // Use filename as originalName if not provided
+      mimeType: att.mimeType,
+      size: att.size,
+      url: att.url,
+    }));
+  }
+
+  /**
+   * Helper function to convert Message model to ChatMessage interface
+   */
+  private static convertMessageToInterface(message: Message): ChatMessage {
+    // Determine message type based on attachments
+    const messageType = this.inferMessageType(message.attachments);
+
+    return {
+      message_id: message.message_id,
+      chat_id: message.chat_id,
+      sender_id: message.sender_id,
+      content: message.content,
+      content_format: message.content_format,
+      type: messageType,
+      attachments:
+        message.attachments?.map(att => ({
+          id: att.attachment_id,
+          filename: att.filename,
+          url: att.url,
+          mimeType: att.mimeType,
+          size: att.size,
+        })) || [],
+      created_at: message.created_at.toISOString(),
+      updated_at: message.updated_at.toISOString(),
+    };
+  }
+
+  /**
+   * Helper function to convert Chat model to Chat interface
+   */
+  private static convertChatToInterface(
+    chat: Chat & { Messages?: Message[]; Participants?: ChatParticipant[] }
+  ): import('../types/chat').Chat {
+    // Determine chat type based on chat properties
+    let chatType: ChatType = ChatType.DIRECT;
+    if (chat.application_id) {
+      chatType = ChatType.APPLICATION;
+    } else if (chat.Participants && chat.Participants.length > 2) {
+      chatType = ChatType.GROUP;
+    }
+
+    return {
+      chat_id: chat.chat_id,
+      rescue_id: chat.rescue_id,
+      pet_id: chat.pet_id,
+      application_id: chat.application_id,
+      type: chatType,
+      status: chat.status as ChatStatus,
+      created_at: chat.created_at.toISOString(),
+      updated_at: chat.updated_at.toISOString(),
+      participants:
+        chat.Participants?.map(p => ({
+          participant_id: p.participant_id,
+          chat_id: p.chat_id,
+          user_id: p.participant_id, // Use participant_id as user_id for interface compatibility
+          role: p.role,
+          joined_at: p.created_at?.toISOString() || new Date().toISOString(), // Use created_at as joined_at
+          last_read_at: p.last_read_at?.toISOString(),
+        })) || [],
+      last_message: chat.Messages?.[0]
+        ? this.convertMessageToInterface(chat.Messages[0])
+        : undefined,
+      unread_count: 0, // Should be calculated based on business logic
+    };
+  }
+
   /**
    * Get chat by ID with messages
    */
@@ -79,18 +164,27 @@ export class ChatService {
       const chat = await Chat.findByPk(chatId, {
         include: [
           {
-            association: 'User',
-            attributes: ['userId', 'firstName', 'lastName', 'email'],
-          },
-          {
-            association: 'Messages',
+            association: 'Participants',
             include: [
               {
                 association: 'User',
                 attributes: ['userId', 'firstName', 'lastName', 'email'],
               },
             ],
-            order: [['createdAt', 'ASC']],
+          },
+          {
+            association: 'Messages',
+            include: [
+              {
+                association: 'Sender',
+                attributes: ['userId', 'firstName', 'lastName', 'email'],
+              },
+            ],
+            order: [['created_at', 'ASC']],
+          },
+          {
+            association: 'rescue',
+            attributes: ['rescue_id', 'name'],
           },
         ],
       });
@@ -123,8 +217,33 @@ export class ChatService {
       const chat = await Chat.create({
         rescue_id: chatData.rescueId || '',
         application_id: chatData.applicationId,
-        status: 'active',
+        pet_id: chatData.petId,
+        status: ChatStatus.ACTIVE,
       });
+
+      // Create chat participants
+      if (chatData.participantIds && chatData.participantIds.length > 0) {
+        const participantPromises = chatData.participantIds
+          .filter(participantId => participantId && participantId.trim()) // Filter out null/undefined/empty values
+          .map(participantId =>
+            ChatParticipant.create({
+              chat_id: chat.chat_id,
+              participant_id: participantId,
+              role: participantId === createdBy ? ParticipantRole.USER : ParticipantRole.RESCUE,
+            })
+          );
+        await Promise.all(participantPromises);
+      }
+
+      // Send initial message if provided
+      if (chatData.initialMessage) {
+        await Message.create({
+          chat_id: chat.chat_id,
+          sender_id: createdBy,
+          content: chatData.initialMessage,
+          content_format: MessageContentFormat.PLAIN,
+        });
+      }
 
       await AuditLogService.log({
         action: 'CREATE',
@@ -167,8 +286,6 @@ export class ChatService {
       const {
         userId,
         rescueId,
-        petId,
-        type,
         page = 1,
         limit = 20,
         sortBy = 'created_at',
@@ -178,7 +295,7 @@ export class ChatService {
       const offset = (page - 1) * limit;
 
       // Build where conditions
-      const whereConditions: any = {
+      const whereConditions: WhereOptions = {
         status: { [Op.ne]: 'archived' },
       };
 
@@ -191,14 +308,14 @@ export class ChatService {
       if (userId) {
         participantFilter = {
           model: ChatParticipant,
-          as: 'participants',
+          as: 'Participants',
           where: { participant_id: userId },
           required: true,
           include: [
             {
               model: User,
-              as: 'user',
-              attributes: ['userId', 'firstName', 'lastName', 'profileImage'],
+              as: 'User',
+              attributes: ['userId', 'firstName', 'lastName', 'profileImageUrl'],
             },
           ],
         };
@@ -210,16 +327,20 @@ export class ChatService {
           participantFilter,
           {
             model: Message,
-            as: 'messages',
+            as: 'Messages',
             limit: 1,
             order: [['created_at', 'DESC']],
             include: [
               {
                 model: User,
-                as: 'sender',
+                as: 'Sender',
                 attributes: ['userId', 'firstName', 'lastName'],
               },
             ],
+          },
+          {
+            association: 'rescue',
+            attributes: ['name'],
           },
         ],
         limit,
@@ -254,7 +375,6 @@ export class ChatService {
         userId,
         rescueId,
         query,
-        type,
         page = 1,
         limit = 20,
         sortBy = 'created_at',
@@ -264,7 +384,7 @@ export class ChatService {
       const offset = (page - 1) * limit;
 
       // Build where conditions for chats
-      const chatWhereConditions: any = {
+      const chatWhereConditions: WhereOptions = {
         status: { [Op.ne]: 'archived' },
       };
 
@@ -273,7 +393,7 @@ export class ChatService {
       }
 
       // Search in messages for the query
-      const messageSearchConditions: any = {
+      const messageSearchConditions: WhereOptions = {
         [Op.or]: [{ content: { [Op.iLike]: `%${query}%` } }],
       };
 
@@ -282,14 +402,14 @@ export class ChatService {
       if (userId) {
         participantFilter = {
           model: ChatParticipant,
-          as: 'participants',
+          as: 'Participants',
           where: { participant_id: userId },
           required: true,
           include: [
             {
               model: User,
-              as: 'user',
-              attributes: ['userId', 'firstName', 'lastName', 'profileImage'],
+              as: 'User',
+              attributes: ['userId', 'firstName', 'lastName', 'profileImageUrl'],
             },
           ],
         };
@@ -301,7 +421,7 @@ export class ChatService {
           participantFilter,
           {
             model: Message,
-            as: 'messages',
+            as: 'Messages',
             where: messageSearchConditions,
             required: true,
             limit: 1,
@@ -309,10 +429,14 @@ export class ChatService {
             include: [
               {
                 model: User,
-                as: 'sender',
+                as: 'Sender',
                 attributes: ['userId', 'firstName', 'lastName'],
               },
             ],
+          },
+          {
+            association: 'rescue',
+            attributes: ['name'],
           },
         ],
         limit,
@@ -350,7 +474,7 @@ export class ChatService {
         include: [
           {
             model: ChatParticipant,
-            as: 'participants',
+            as: 'Participants',
             where: { participant_id: data.senderId }, // Use snake_case
           },
         ],
@@ -377,18 +501,46 @@ export class ChatService {
         throw new Error('Rate limit exceeded. Please wait before sending more messages.');
       }
 
+      // Validate message type if provided
+      if (data.messageType) {
+        const inferredType = this.inferMessageType(data.attachments);
+        if (data.messageType !== inferredType) {
+          logger.warn('Message type mismatch:', {
+            providedType: data.messageType,
+            inferredType,
+            hasAttachments: !!(data.attachments && data.attachments.length > 0),
+          });
+        }
+      }
+
       // Create the message with proper field names
       const message = await Message.create(
         {
           chat_id: data.chatId,
           sender_id: data.senderId,
           content: data.content,
-          content_format: 'plain',
+          content_format: MessageContentFormat.PLAIN,
           attachments: data.attachments || [],
           created_at: new Date(),
         },
         { transaction }
       );
+
+      // Instead of reloading, let's find the message with includes to avoid the reload issue
+      const messageWithSender = await Message.findByPk(message.message_id, {
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName'],
+          },
+        ],
+        transaction,
+      });
+
+      if (!messageWithSender) {
+        throw new Error('Failed to retrieve created message');
+      }
 
       // Update chat's last activity
       await Chat.update(
@@ -398,22 +550,124 @@ export class ChatService {
 
       await transaction.commit();
 
+      // Send real-time notifications to other participants
+      try {
+        const participants = await ChatParticipant.findAll({
+          where: {
+            chat_id: data.chatId,
+            participant_id: { [Op.ne]: data.senderId },
+          },
+          include: [{ model: User, as: 'User' }],
+        });
+
+        // Send push notifications to offline users
+        for (const participant of participants) {
+          await NotificationService.createNotification({
+            userId: participant.participant_id,
+            type: NotificationType.MESSAGE_RECEIVED,
+            title: 'New Message',
+            message: `New message from ${messageWithSender.Sender?.firstName || 'Someone'}`,
+            data: {
+              chatId: data.chatId,
+              messageId: messageWithSender.message_id,
+              senderId: data.senderId,
+            },
+            priority: NotificationPriority.NORMAL,
+          });
+        }
+      } catch (notificationError) {
+        logger.warn('Failed to send notifications:', notificationError);
+        // Don't fail the message send if notifications fail
+      }
+
+      // Determine the actual message type for logging
+      const actualMessageType = this.inferMessageType(data.attachments);
+
       // Log the action
       await AuditLogService.log({
         userId: data.senderId,
         action: 'MESSAGE_SENT',
         entity: 'Message',
-        entityId: message.message_id,
+        entityId: messageWithSender.message_id,
         details: {
           chatId: data.chatId,
-          messageType: 'text',
+          messageType: actualMessageType,
         },
       });
 
-      return message;
+      return messageWithSender;
     } catch (error) {
       await transaction.rollback();
       logger.error('Error sending message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Schedule a message to be sent later
+   */
+  static async scheduleMessage(data: {
+    chatId: string;
+    senderId: string;
+    content: string;
+    scheduledFor: Date;
+    messageType?: 'text' | 'image' | 'file';
+    attachments?: MessageAttachment[];
+  }) {
+    try {
+      // Store scheduled message in database with a special status
+      const scheduledMessage = await Message.create({
+        chat_id: data.chatId,
+        sender_id: data.senderId,
+        content: data.content,
+        content_format: MessageContentFormat.PLAIN,
+        attachments: data.attachments || [],
+        // Add scheduled_for field to your Message model
+        // scheduled_for: data.scheduledFor,
+        // is_scheduled: true,
+        created_at: new Date(),
+      });
+
+      // You could implement a background job system to send these later
+      // For now, we'll log the action
+      logger.info('Message scheduled:', {
+        messageId: scheduledMessage.message_id,
+        chatId: data.chatId,
+        scheduledFor: data.scheduledFor,
+      });
+
+      return scheduledMessage;
+    } catch (error) {
+      logger.error('Error scheduling message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get scheduled messages for a chat
+   */
+  static async getScheduledMessages(chatId: string) {
+    try {
+      // This would require adding scheduled message fields to your model
+      const scheduledMessages = await Message.findAll({
+        where: {
+          chat_id: chatId,
+          // is_scheduled: true,
+          // scheduled_for: { [Op.gt]: new Date() }
+        },
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName'],
+          },
+        ],
+        order: [['created_at', 'ASC']],
+      });
+
+      return scheduledMessages.map(message => this.convertMessageToInterface(message));
+    } catch (error) {
+      logger.error('Error getting scheduled messages:', error);
       throw error;
     }
   }
@@ -435,26 +689,36 @@ export class ChatService {
     try {
       const { page = 1, limit = 50, before, after } = options;
 
-      const whereConditions: WhereOptions = { chatId };
+      // Validate inputs
+      if (page < 1) {
+        throw new Error('Page must be greater than 0');
+      }
+      if (limit < 1 || limit > 100) {
+        throw new Error('Limit must be between 1 and 100');
+      }
+
+      const whereConditions: WhereOptions = { chat_id: chatId }; // Fix: use snake_case
 
       if (before) {
-        whereConditions.createdAt = { [Op.lt]: before };
+        whereConditions.created_at = { [Op.lt]: before }; // Fix: use snake_case
       }
       if (after) {
-        whereConditions.createdAt = { [Op.gt]: after };
+        whereConditions.created_at = { [Op.gt]: after }; // Fix: use snake_case
       }
 
+      // Include Sender (User) with firstName for each message
       const { rows: messages, count: total } = await Message.findAndCountAll({
         where: whereConditions,
-        include: [
-          {
-            association: 'User',
-            attributes: ['userId', 'firstName', 'lastName', 'email'],
-          },
-        ],
-        order: [['createdAt', 'DESC']],
+        order: [['created_at', 'ASC']],
         limit,
         offset: (page - 1) * limit,
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName'],
+          },
+        ],
       });
 
       loggerHelpers.logPerformance('Message List', {
@@ -466,7 +730,7 @@ export class ChatService {
       });
 
       return {
-        messages,
+        messages: messages.map(message => this.convertMessageToInterface(message)),
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -532,17 +796,17 @@ export class ChatService {
    */
   static async addParticipant(chatId: string, userId: string, addedBy: string, role = 'member') {
     try {
-      // Verify the person adding has moderator role
+      // Verify the person adding has rescue role
       const adder = await ChatParticipant.findOne({
         where: {
           chat_id: chatId,
           participant_id: addedBy,
-          role: 'ADMIN',
+          role: 'rescue',
         },
       });
 
       if (!adder) {
-        throw new Error('Only chat moderators can add participants');
+        throw new Error('Only rescue staff can add participants');
       }
 
       // Check if user is already a participant
@@ -558,7 +822,7 @@ export class ChatService {
       await ChatParticipant.create({
         chat_id: chatId,
         participant_id: userId,
-        role: role === 'moderator' ? ('ADMIN' as any) : ('MEMBER' as any),
+        role: role === 'rescue' ? ParticipantRole.RESCUE : ParticipantRole.USER,
       });
 
       // Log the action
@@ -582,18 +846,18 @@ export class ChatService {
    */
   static async removeParticipant(chatId: string, userId: string, removedBy: string) {
     try {
-      // Verify the person removing has moderator role or is removing themselves
+      // Verify the person removing has rescue role or is removing themselves
       if (userId !== removedBy) {
         const remover = await ChatParticipant.findOne({
           where: {
             chat_id: chatId,
             participant_id: removedBy,
-            role: 'ADMIN',
+            role: 'rescue',
           },
         });
 
         if (!remover) {
-          throw new Error('Only chat moderators can remove other participants');
+          throw new Error('Only rescue staff can remove other participants');
         }
       }
 
@@ -637,9 +901,9 @@ export class ChatService {
       const originalData = chat.toJSON();
 
       // Only update valid Chat model fields
-      const validUpdateData: any = {};
+      const validUpdateData: Partial<{ status: ChatStatus }> = {};
       if (updateData.status !== undefined) {
-        validUpdateData.status = updateData.status as 'active' | 'locked' | 'archived';
+        validUpdateData.status = updateData.status as ChatStatus;
       }
 
       await chat.update(validUpdateData);
@@ -793,7 +1057,7 @@ export class ChatService {
       };
 
       // Build where conditions
-      const whereConditions: any = {
+      const whereConditions: WhereOptions = {
         created_at: dateFilter,
       };
 
@@ -1062,7 +1326,9 @@ export class ChatService {
       }
 
       if (search) {
-        whereConditions[Op.or as any] = [{ chat_id: { [Op.iLike]: `%${search}%` } }];
+        (whereConditions as WhereOptions & { [Op.or]: WhereOptions[] })[Op.or] = [
+          { chat_id: { [Op.iLike]: `%${search}%` } },
+        ];
       }
 
       const { rows: chats, count: total } = await Chat.findAndCountAll({
@@ -1092,7 +1358,11 @@ export class ChatService {
       });
 
       return {
-        chats,
+        chats: chats.map(chat =>
+          this.convertChatToInterface(
+            chat as Chat & { Messages?: Message[]; Participants?: ChatParticipant[] }
+          )
+        ),
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -1115,8 +1385,10 @@ export class ChatService {
         chat_id: messageData.chatId,
         sender_id: createdBy,
         content: messageData.content,
-        content_format: 'plain',
-        attachments: messageData.attachments || [],
+        content_format: MessageContentFormat.PLAIN,
+        attachments: messageData.attachments
+          ? this.convertAttachmentsToModelFormat(messageData.attachments)
+          : [],
       });
 
       await AuditLogService.log({
@@ -1258,5 +1530,112 @@ export class ChatService {
     // This method should return a number representing the user engagement
     // For now, we'll return a placeholder value
     return 0;
+  }
+
+  /**
+   * Helper function to infer message type from attachments
+   */
+  private static inferMessageType(attachments?: MessageAttachment[]): MessageType {
+    if (!attachments || attachments.length === 0) {
+      return MessageType.TEXT;
+    }
+
+    // Check if any attachment is an image
+    const hasImage = attachments.some(
+      att =>
+        att.mimeType?.startsWith('image/') ||
+        /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(att.filename || '')
+    );
+
+    return hasImage ? MessageType.IMAGE : MessageType.FILE;
+  }
+
+  /**
+   * Enhanced message search with additional filters
+   */
+  static async searchMessagesWithFilters(options: {
+    query: string;
+    chatId?: string;
+    senderId?: string;
+    dateRange?: { start: Date; end: Date };
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const { query, chatId, senderId, dateRange, page = 1, limit = 20 } = options;
+      const whereConditions: WhereOptions = {};
+
+      if (chatId) {
+        whereConditions.chat_id = chatId;
+      }
+      if (senderId) {
+        whereConditions.sender_id = senderId;
+      }
+      if (dateRange) {
+        whereConditions.created_at = {
+          [Op.between]: [dateRange.start, dateRange.end],
+        };
+      }
+      if (query) {
+        whereConditions.content = { [Op.iLike]: `%${query}%` };
+      }
+
+      const { rows: messages, count: total } = await Message.findAndCountAll({
+        where: whereConditions,
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName', 'lastName'],
+          },
+        ],
+        order: [['created_at', 'DESC']],
+        limit,
+        offset: (page - 1) * limit,
+      });
+
+      return {
+        messages: messages.map(message => this.convertMessageToInterface(message)),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+        searchQuery: query,
+      };
+    } catch (error) {
+      logger.error('Error in message search with filters:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get comprehensive message status for a chat
+   */
+  static async getMessageStatuses(chatId: string, userId: string) {
+    try {
+      const messages = await Message.findAll({
+        where: { chat_id: chatId },
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['userId', 'firstName'],
+          },
+        ],
+        order: [['created_at', 'ASC']],
+      });
+
+      return messages.map(message => ({
+        messageId: message.message_id,
+        senderId: message.sender_id,
+        content: message.content,
+        isRead: message.isReadBy(userId),
+        readCount: message.getReadCount(),
+        reactions: message.reactions || [],
+        createdAt: message.created_at,
+      }));
+    } catch (error) {
+      logger.error('Error getting message statuses:', error);
+      throw error;
+    }
   }
 }

@@ -1,11 +1,12 @@
+import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { lightTheme } from '../../../styles/theme';
 import { EmptyState } from './EmptyState';
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={lightTheme}>{component}</ThemeProvider>);
+  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
 };
 
 describe('EmptyState', () => {
@@ -117,17 +118,17 @@ describe('EmptyState', () => {
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <EmptyState title='Medium' size='md' data-testid='empty-state' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
 
     rerender(
-      <ThemeProvider theme={lightTheme}>
+      <StyledThemeProvider theme={lightTheme}>
         <EmptyState title='Large' size='lg' data-testid='empty-state' />
-      </ThemeProvider>
+      </StyledThemeProvider>
     );
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();

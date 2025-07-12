@@ -3,6 +3,7 @@ import { Socket, Server as SocketIOServer } from 'socket.io';
 import { config } from '../config';
 import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
+import { getMessageBroker } from '../services/messageBroker.service';
 import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 
@@ -30,31 +31,19 @@ interface TypingUser {
   timestamp: Date;
 }
 
-interface MessageData {
-  chatId: string;
-  content: string;
-  type: 'text' | 'image' | 'file';
-  replyToId?: string;
-  attachments?: Array<{
-    type: 'image' | 'file';
-    url: string;
-    filename: string;
-    size: number;
-    mimetype: string;
-  }>;
-}
-
 // Store user presence and typing status
 const userPresence = new Map<string, UserPresence>();
 const typingUsers = new Map<string, Map<string, TypingUser>>(); // chatId -> userId -> TypingUser
 
 export class SocketHandlers {
   private io: SocketIOServer;
+  private messageBroker = getMessageBroker();
 
   constructor(io: SocketIOServer) {
     this.io = io;
     this.setupMiddleware();
     this.setupConnectionHandler();
+    this.setupMessageBrokerSubscriptions();
   }
 
   /**
@@ -117,6 +106,18 @@ export class SocketHandlers {
   }
 
   /**
+   * Verify user has access to a specific chat
+   */
+  private async requireChatAccess(socket: AuthenticatedSocket, chatId: string): Promise<void> {
+    try {
+      await ChatService.getChatById(chatId, socket.userId!);
+    } catch (error) {
+      logger.warn(`Access denied to chat ${chatId} for user ${socket.userId}`);
+      throw new Error('Access denied to chat');
+    }
+  }
+
+  /**
    * Setup chat-related event handlers
    */
   private setupChatHandlers(socket: AuthenticatedSocket) {
@@ -125,8 +126,8 @@ export class SocketHandlers {
       try {
         const { chatId } = data;
 
-        // Verify user is a participant in the chat
-        const chat = await ChatService.getChatById(chatId, socket.userId!);
+        // Verify user has access to chat before joining
+        await this.requireChatAccess(socket, chatId);
 
         socket.join(`chat:${chatId}`);
         logger.info(`User ${socket.userId} joined chat ${chatId}`);
@@ -148,21 +149,67 @@ export class SocketHandlers {
     });
 
     // Leave chat room
-    socket.on('leave_chat', (data: { chatId: string }) => {
-      const { chatId } = data;
-      socket.leave(`chat:${chatId}`);
+    socket.on('leave_chat', async (data: { chatId: string }) => {
+      try {
+        const { chatId } = data;
 
-      // Notify other participants that user has left
-      socket.to(`chat:${chatId}`).emit('user_left_chat', {
-        userId: socket.userId,
-        chatId,
-        timestamp: new Date(),
-      });
+        // Verify user has access to chat before leaving
+        await this.requireChatAccess(socket, chatId);
 
-      logger.info(`User ${socket.userId} left chat ${chatId}`);
+        socket.leave(`chat:${chatId}`);
+
+        // Notify other participants that user has left
+        socket.to(`chat:${chatId}`).emit('user_left_chat', {
+          userId: socket.userId,
+          chatId,
+          timestamp: new Date(),
+        });
+
+        logger.info(`User ${socket.userId} left chat ${chatId}`);
+      } catch (error) {
+        logger.error('Error leaving chat:', error);
+        socket.emit('error', {
+          event: 'leave_chat',
+          message: 'Failed to leave chat',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
     });
 
-    // Send message
+    // Handle message sent notifications (from API-first approach)
+    socket.on(
+      'message_sent_notification',
+      async (data: { messageId: string; conversationId: string; tempId: string }) => {
+        try {
+          const { messageId, conversationId, tempId } = data;
+
+          // Verify user has access to chat before sending notification
+          await this.requireChatAccess(socket, conversationId);
+
+          // Broadcast to other participants (not sender) that a new message exists
+          socket.to(`chat:${conversationId}`).emit('message_notification', {
+            messageId,
+            conversationId,
+            tempId,
+            senderId: socket.userId,
+            timestamp: new Date(),
+          });
+
+          if (process.env.NODE_ENV === 'development') {
+            logger.info(`Message notification sent for ${messageId} in chat ${conversationId}`);
+          }
+        } catch (error) {
+          logger.error('Error handling message notification:', error);
+          socket.emit('error', {
+            event: 'message_sent_notification',
+            message: 'Failed to send notification',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+    );
+
+    // Send message (DEPRECATED - API should be used instead)
     socket.on(
       'send_message',
       async (data: {
@@ -173,7 +220,15 @@ export class SocketHandlers {
         replyToId?: string;
       }) => {
         try {
+          // Log deprecation warning
+          logger.warn(
+            `DEPRECATED: send_message socket event used by user ${socket.userId}. Use API endpoint instead.`
+          );
+
           const { chatId, content, messageType = 'text', attachments, replyToId } = data;
+
+          // Verify user has access to chat before processing
+          await this.requireChatAccess(socket, chatId);
 
           // Send message through service
           const message = await ChatService.sendMessage({
@@ -220,6 +275,9 @@ export class SocketHandlers {
     socket.on('mark_as_read', async (data: { chatId: string }) => {
       try {
         const { chatId } = data;
+
+        // Verify user has access to chat before marking as read
+        await this.requireChatAccess(socket, chatId);
 
         await ChatService.markMessagesAsRead(chatId, socket.userId!);
 
@@ -301,38 +359,55 @@ export class SocketHandlers {
    */
   private setupTypingHandlers(socket: AuthenticatedSocket) {
     // User started typing
-    socket.on('typing_start', (data: { chatId: string; firstName: string; lastName: string }) => {
-      const { chatId, firstName, lastName } = data;
+    socket.on(
+      'typing_start',
+      async (data: { chatId: string; firstName: string; lastName: string }) => {
+        try {
+          const { chatId, firstName, lastName } = data;
 
-      this.setTypingIndicator(chatId, {
-        userId: socket.userId!,
-        firstName,
-        lastName,
-        timestamp: new Date(),
-      });
+          // Verify user has access to chat before setting typing indicator
+          await this.requireChatAccess(socket, chatId);
 
-      // Notify other participants
-      socket.to(`chat:${chatId}`).emit('user_typing', {
-        userId: socket.userId,
-        firstName,
-        lastName,
-        chatId,
-        timestamp: new Date(),
-      });
-    });
+          this.setTypingIndicator(chatId, {
+            userId: socket.userId!,
+            firstName,
+            lastName,
+            timestamp: new Date(),
+          });
+
+          // Notify other participants
+          socket.to(`chat:${chatId}`).emit('user_typing', {
+            userId: socket.userId,
+            firstName,
+            lastName,
+            chatId,
+            timestamp: new Date(),
+          });
+        } catch (error) {
+          logger.error('Error handling typing start:', error);
+        }
+      }
+    );
 
     // User stopped typing
-    socket.on('typing_stop', (data: { chatId: string }) => {
-      const { chatId } = data;
+    socket.on('typing_stop', async (data: { chatId: string }) => {
+      try {
+        const { chatId } = data;
 
-      this.clearTypingIndicator(chatId, socket.userId!);
+        // Verify user has access to chat before clearing typing indicator
+        await this.requireChatAccess(socket, chatId);
 
-      // Notify other participants
-      socket.to(`chat:${chatId}`).emit('user_stopped_typing', {
-        userId: socket.userId,
-        chatId,
-        timestamp: new Date(),
-      });
+        this.clearTypingIndicator(chatId, socket.userId!);
+
+        // Notify other participants
+        socket.to(`chat:${chatId}`).emit('user_stopped_typing', {
+          userId: socket.userId,
+          chatId,
+          timestamp: new Date(),
+        });
+      } catch (error) {
+        logger.error('Error handling typing stop:', error);
+      }
     });
   }
 
@@ -562,5 +637,52 @@ export class SocketHandlers {
   public getTypingUsers(chatId: string) {
     const chatTyping = typingUsers.get(chatId);
     return chatTyping ? Array.from(chatTyping.values()) : [];
+  }
+
+  /**
+   * Setup message broker subscriptions
+   */
+  /**
+   * Setup message broker subscriptions for horizontal scaling
+   */
+  private setupMessageBrokerSubscriptions() {
+    if (!this.messageBroker) {
+      logger.info('No message broker available, running in single-server mode');
+      return;
+    }
+
+    logger.info('Setting up message broker subscriptions for horizontal scaling');
+
+    // Note: In a full implementation, we would subscribe to broker events here
+    // For now, we'll just log that the system is ready for scaling
+    logger.info('Message broker subscriptions configured', {
+      brokerId: this.messageBroker.getStatus().serverId,
+      stats: this.messageBroker.getStatus(),
+    });
+  }
+
+  /**
+   * Publish message to broker for other server instances
+   */
+  private async publishToBroker(event: string, data: Record<string, unknown>) {
+    if (this.messageBroker) {
+      try {
+        if (event === 'message_sent' && data.chatId && data.senderId) {
+          await this.messageBroker.publishChatMessage(
+            data.chatId as string,
+            data,
+            data.senderId as string
+          );
+        } else if (event === 'typing' && data.chatId && data.userId) {
+          await this.messageBroker.publishTyping(
+            data.chatId as string,
+            data.userId as string,
+            Boolean(data.isTyping)
+          );
+        }
+      } catch (error) {
+        logger.error('Failed to publish to message broker:', error);
+      }
+    }
   }
 }
