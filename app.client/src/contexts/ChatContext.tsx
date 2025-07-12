@@ -390,7 +390,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const forceSyncOfflineData = useCallback(async () => {
     if (isOnline) {
       try {
-        await offlineManager.forcSync();
+        await offlineManager.forceSync();
       } catch (error) {
         console.error('Failed to force sync offline data:', error);
         setError('Failed to sync offline messages');
