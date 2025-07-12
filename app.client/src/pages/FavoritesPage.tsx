@@ -173,7 +173,6 @@ export const FavoritesPage: React.FC = () => {
         setLoading(true);
         setError(null);
         const favoritePets = await petService.getFavorites();
-        console.log('getFavorites returned:', favoritePets);
         setFavorites(favoritePets);
       } catch (err) {
         console.error('Failed to fetch favorites:', err);

@@ -57,7 +57,6 @@ class PetService {
 
     try {
       // Call the API directly without transformations to debug
-      console.log('Calling API with filters:', apiFilters);
 
       // Build URL with query parameters
       const searchParams = new URLSearchParams();
@@ -68,7 +67,6 @@ class PetService {
       });
 
       const url = `/api/v1/pets?${searchParams.toString()}`;
-      console.log('Full URL:', url);
 
       // Make direct fetch to avoid API service transformations
       const response = await fetch(
@@ -86,7 +84,6 @@ class PetService {
       }
 
       const rawData = await response.json();
-      console.log('Raw API response:', rawData);
 
       // Transform according to the actual API response structure
       if (rawData.success && rawData.data && rawData.meta) {
@@ -139,7 +136,6 @@ class PetService {
       }
 
       const rawData = await response.json();
-      console.log('Raw pet API response:', rawData);
 
       // Handle the API response structure
       if (rawData.success && rawData.data) {

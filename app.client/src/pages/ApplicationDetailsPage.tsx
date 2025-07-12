@@ -264,7 +264,6 @@ export const ApplicationDetailsPage: React.FC = () => {
             variant='secondary'
             onClick={() => {
               // TODO: Implement withdraw functionality
-              console.log('Withdraw application:', application.id);
             }}
           >
             Withdraw Application

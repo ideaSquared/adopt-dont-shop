@@ -38,12 +38,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Debug user state changes in development
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log('AuthContext: User state changed:', {
-        user: user?.email || 'null',
-        isAuthenticated: !!user,
-        isLoading,
-        timestamp: new Date().toISOString(),
-      });
+      // Development logging is handled by dev tools
     }
   }, [user, isLoading]);
 
@@ -55,7 +50,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (import.meta.env.DEV) {
           const devUser = localStorage.getItem('dev_user');
 
-          console.log('AuthContext init - checking dev user:', devUser ? 'found' : 'not found');
           if (devUser) {
             const parsedUser = JSON.parse(devUser);
 
@@ -65,13 +59,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               const mockToken = `dev-token-${parsedUser.userId}-${Date.now()}`;
               localStorage.setItem('accessToken', mockToken);
               localStorage.setItem('authToken', mockToken);
-
-              console.log('AuthContext init - generated mock token for dev user');
             }
 
             setUser(parsedUser);
-
-            console.log('AuthContext init - dev user loaded:', parsedUser.email);
             setIsLoading(false);
             return;
           }
@@ -108,7 +98,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (credentials: LoginRequest) => {
-    console.log('🔑 AuthContext: login() called with:', credentials.email);
     setIsLoading(true);
     try {
       // Log login attempt
@@ -116,10 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: credentials.email,
       });
 
-      console.log('🔑 AuthContext: calling authService.login()');
       const response = await authService.login(credentials);
-
-      console.log('🔑 AuthContext: authService.login() response:', response.user?.email);
 
       // Check if user type is allowed in the client app
       if (response.user && response.user.userType !== 'adopter') {
@@ -305,12 +291,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Development only method to directly set user
   const setDevUser = (devUser: User) => {
     if (import.meta.env.DEV) {
-      console.log('setDevUser called with:', devUser.email);
       setUser(devUser);
       // Store in localStorage for persistence during dev
       localStorage.setItem('dev_user', JSON.stringify(devUser));
-
-      console.log('Dev user stored in localStorage');
     }
   };
 
