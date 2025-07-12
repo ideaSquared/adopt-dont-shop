@@ -57,8 +57,8 @@ const AttachmentItem = styled.div`
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: ${props => props.theme.colors.primary.light};
-  border: 1px solid ${props => props.theme.colors.primary.main};
+  background: ${props => props.theme.colors.primary[100]};
+  border: 1px solid ${props => props.theme.colors.primary[500]};
   border-radius: 18px;
   font-size: 0.875rem;
 `;
@@ -79,7 +79,7 @@ const RemoveButton = styled.button`
   width: 18px;
   height: 18px;
   border: none;
-  background: ${props => props.theme.colors.semantic.error.main};
+  background: ${props => props.theme.colors.semantic.error[500]};
   color: white;
   border-radius: 50%;
   cursor: pointer;
@@ -87,12 +87,12 @@ const RemoveButton = styled.button`
   transition: all 0.15s ease;
 
   &:hover {
-    background: ${props => props.theme.colors.semantic.error.dark};
+    background: ${props => props.theme.colors.semantic.error[600]};
     transform: scale(1.1);
   }
 
   &:focus {
-    outline: 2px solid ${props => props.theme.colors.semantic.error.light};
+    outline: 2px solid ${props => props.theme.colors.semantic.error[200]};
     outline-offset: 2px;
   }
 `;
@@ -112,14 +112,14 @@ const AttachButton = styled.label`
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: ${props => props.theme.colors.primary.light};
-    border-color: ${props => props.theme.colors.primary.main};
-    color: ${props => props.theme.colors.primary.main};
+    background: ${props => props.theme.colors.primary[100]};
+    border-color: ${props => props.theme.colors.primary[500]};
+    color: ${props => props.theme.colors.primary[500]};
     transform: scale(1.05);
   }
 
   &:focus-within {
-    outline: 2px solid ${props => props.theme.colors.primary.main};
+    outline: 2px solid ${props => props.theme.colors.primary[500]};
     outline-offset: 2px;
   }
 
@@ -146,7 +146,7 @@ const SendButton = styled(Button)`
   justify-content: center;
   transition: all 0.2s ease;
   border: none;
-  background: ${props => props.theme.colors.primary.main};
+  background: ${props => props.theme.colors.primary[500]};
   color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 
