@@ -3,8 +3,6 @@
  * Manages network state, message queuing, and reconnection logic
  */
 
-import { Message } from '@/services/chatService';
-
 export interface QueuedMessage {
   id: string;
   conversationId: string;
@@ -58,7 +56,7 @@ class OfflineManager {
   private setupEventListeners(): void {
     window.addEventListener('online', this.handleOnline.bind(this));
     window.addEventListener('offline', this.handleOffline.bind(this));
-    
+
     // Also listen for visibility change to check connection when app becomes visible
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && this.state.isOnline) {
@@ -85,23 +83,23 @@ class OfflineManager {
         cache: 'no-cache',
         signal: AbortSignal.timeout(5000), // 5 second timeout
       });
-      
+
       if (response.ok) {
         const responseTime = Date.now() - startTime;
         let quality: OfflineState['connectionQuality'] = 'excellent';
-        
+
         if (responseTime > 2000) {
           quality = 'poor';
         } else if (responseTime > 1000) {
           quality = 'good';
         }
-        
+
         this.updateState({ connectionQuality: quality });
       }
     } catch (error) {
       // If health check fails, connection might be poor or offline
       this.updateState({ connectionQuality: 'poor' });
-      
+
       // Double-check if we're actually offline
       if (!navigator.onLine) {
         this.handleOffline();
@@ -116,10 +114,10 @@ class OfflineManager {
       lastOnline: Date.now(),
       connectionQuality: 'good', // Will be updated by connection check
     });
-    
+
     // Start syncing when connection is restored
     this.syncPendingData();
-    
+
     // Check connection quality
     this.checkConnectionQuality();
   }
@@ -218,14 +216,14 @@ class OfflineManager {
   // Remove a queued message
   removeQueuedMessage(messageId: string): void {
     this.updateState({
-      pendingMessages: this.state.pendingMessages.filter(m => m.id !== messageId)
+      pendingMessages: this.state.pendingMessages.filter(m => m.id !== messageId),
     });
   }
 
   // Remove a queued action
   removeQueuedAction(actionId: string): void {
     this.updateState({
-      pendingActions: this.state.pendingActions.filter(a => a.id !== actionId)
+      pendingActions: this.state.pendingActions.filter(a => a.id !== actionId),
     });
   }
 
@@ -239,27 +237,31 @@ class OfflineManager {
 
     try {
       // Sort messages by timestamp to maintain order
-      const messagesToSync = [...this.state.pendingMessages].sort((a, b) => a.timestamp - b.timestamp);
-      
+      const messagesToSync = [...this.state.pendingMessages].sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
+
       // Sort actions by timestamp
-      const actionsToSync = [...this.state.pendingActions].sort((a, b) => a.timestamp - b.timestamp);
+      const actionsToSync = [...this.state.pendingActions].sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
 
       if (messagesToSync.length > 0 || actionsToSync.length > 0) {
         await this.syncCallback(messagesToSync, actionsToSync);
       }
     } catch (error) {
       console.error('Failed to sync pending data:', error);
-      
+
       // Increment retry count for failed items
       this.updateState({
         pendingMessages: this.state.pendingMessages.map(msg => ({
           ...msg,
-          retryCount: msg.retryCount + 1
+          retryCount: msg.retryCount + 1,
         })),
         pendingActions: this.state.pendingActions.map(action => ({
           ...action,
-          retryCount: action.retryCount + 1
-        }))
+          retryCount: action.retryCount + 1,
+        })),
       });
 
       // Remove items that have exceeded max retries
@@ -272,11 +274,13 @@ class OfflineManager {
   // Remove items that have exceeded their retry limits
   private cleanupFailedItems(): void {
     const validMessages = this.state.pendingMessages.filter(msg => msg.retryCount < msg.maxRetries);
-    const validActions = this.state.pendingActions.filter(action => action.retryCount < action.maxRetries);
+    const validActions = this.state.pendingActions.filter(
+      action => action.retryCount < action.maxRetries
+    );
 
     this.updateState({
       pendingMessages: validMessages,
-      pendingActions: validActions
+      pendingActions: validActions,
     });
   }
 
@@ -299,7 +303,7 @@ class OfflineManager {
   getPendingCount(): { messages: number; actions: number } {
     return {
       messages: this.state.pendingMessages.length,
-      actions: this.state.pendingActions.length
+      actions: this.state.pendingActions.length,
     };
   }
 
@@ -338,7 +342,7 @@ class OfflineManager {
   clearPendingData(): void {
     this.updateState({
       pendingMessages: [],
-      pendingActions: []
+      pendingActions: [],
     });
   }
 
@@ -354,10 +358,10 @@ class OfflineManager {
     if (this.connectionCheckInterval) {
       clearInterval(this.connectionCheckInterval);
     }
-    
+
     window.removeEventListener('online', this.handleOnline.bind(this));
     window.removeEventListener('offline', this.handleOffline.bind(this));
-    
+
     this.listeners = [];
   }
 }
