@@ -1,1 +1,1 @@
-export { default } from './MarkdownEditor'
+export { default } from './MarkdownEditor';

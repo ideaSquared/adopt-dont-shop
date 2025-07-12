@@ -103,7 +103,7 @@ const AttachmentItem = styled.div<{ $isOwn: boolean }>`
 
   &:hover {
     background: ${props =>
-      props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.background.highlight};
+      props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.background.tertiary};
   }
 `;
 

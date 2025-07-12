@@ -22,9 +22,7 @@
   "paths": {
     "/api/v1/metrics": {
       "get": {
-        "tags": [
-          "Admin Management"
-        ],
+        "tags": ["Admin Management"],
         "summary": "GET /api/v1/metrics",
         "description": "Handle GET request for /api/v1/metrics",
         "security": [
@@ -63,9 +61,7 @@
     },
     "/api/v1/analytics/usage": {
       "get": {
-        "tags": [
-          "Admin Management"
-        ],
+        "tags": ["Admin Management"],
         "summary": "GET /api/v1/analytics/usage",
         "description": "Handle GET request for /api/v1/analytics/usage",
         "security": [
@@ -104,9 +100,7 @@
     },
     "/api/v1/system/health": {
       "get": {
-        "tags": [
-          "Admin Management"
-        ],
+        "tags": ["Admin Management"],
         "summary": "GET /api/v1/system/health",
         "description": "Handle GET request for /api/v1/system/health",
         "security": [
@@ -145,9 +139,7 @@
     },
     "/api/v1/system/config": {
       "get": {
-        "tags": [
-          "Admin Management"
-        ],
+        "tags": ["Admin Management"],
         "summary": "GET /api/v1/system/config",
         "description": "Handle GET request for /api/v1/system/config",
         "security": [
@@ -184,9 +176,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Admin Management"
-        ],
+        "tags": ["Admin Management"],
         "summary": "PATCH /api/v1/system/config",
         "description": "Handle PATCH request for /api/v1/system/config",
         "security": [
@@ -243,9 +233,7 @@
     },
     "/api/v1/users": {
       "get": {
-        "tags": [
-          "Admin Management"
-        ],
+        "tags": ["Admin Management"],
         "summary": "GET /api/v1/users",
         "description": "Handle GET request for /api/v1/users",
         "security": [
@@ -284,9 +272,7 @@
     },
     "/api/v1/users/{userId}": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Get user by ID",
         "description": "Get detailed user information by ID. Users can view their own profile, admins can view any.",
         "security": [
@@ -373,9 +359,7 @@
         ]
       },
       "put": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Update user profile by ID",
         "description": "Update user profile information by ID. Users can update their own profile, admins can update any.",
         "security": [
@@ -469,9 +453,7 @@
     },
     "/api/v1/users/{userId}/action": {
       "patch": {
-        "tags": [
-          "Admin Management"
-        ],
+        "tags": ["Admin Management"],
         "summary": "PATCH /api/v1/users/{userId}/action",
         "description": "Handle PATCH request for /api/v1/users/{userId}/action",
         "security": [
@@ -528,9 +510,7 @@
     },
     "/api/v1/rescues": {
       "get": {
-        "tags": [
-          "Rescue Organizations"
-        ],
+        "tags": ["Rescue Organizations"],
         "summary": "Search rescue organizations",
         "description": "Search and filter rescue organizations with pagination",
         "security": [
@@ -630,12 +610,7 @@
             "name": "status",
             "schema": {
               "type": "string",
-              "enum": [
-                "pending",
-                "verified",
-                "suspended",
-                "inactive"
-              ]
+              "enum": ["pending", "verified", "suspended", "inactive"]
             },
             "description": "Filter by verification status"
           },
@@ -653,11 +628,7 @@
             "name": "sortBy",
             "schema": {
               "type": "string",
-              "enum": [
-                "name",
-                "createdAt",
-                "verifiedAt"
-              ]
+              "enum": ["name", "createdAt", "verifiedAt"]
             },
             "description": "Sort field"
           },
@@ -666,10 +637,7 @@
             "name": "sortOrder",
             "schema": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "description": "Sort order"
           },
@@ -699,9 +667,7 @@
     },
     "/api/v1/rescues/{rescueId}/moderate": {
       "patch": {
-        "tags": [
-          "Admin Management"
-        ],
+        "tags": ["Admin Management"],
         "summary": "PATCH /api/v1/rescues/{rescueId}/moderate",
         "description": "Handle PATCH request for /api/v1/rescues/{rescueId}/moderate",
         "security": [
@@ -758,9 +724,7 @@
     },
     "/api/v1/audit-logs": {
       "get": {
-        "tags": [
-          "Admin Management"
-        ],
+        "tags": ["Admin Management"],
         "summary": "GET /api/v1/audit-logs",
         "description": "Handle GET request for /api/v1/audit-logs",
         "security": [
@@ -799,9 +763,7 @@
     },
     "/api/v1/applications": {
       "get": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Get adoption applications",
         "description": "Get adoption applications with filtering and pagination",
         "security": [
@@ -818,14 +780,7 @@
             "name": "status",
             "schema": {
               "type": "string",
-              "enum": [
-                "DRAFT",
-                "SUBMITTED",
-                "UNDER_REVIEW",
-                "APPROVED",
-                "REJECTED",
-                "WITHDRAWN"
-              ]
+              "enum": ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "WITHDRAWN"]
             },
             "description": "Filter by application status"
           },
@@ -982,9 +937,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Create new adoption application",
         "description": "Submit a new adoption application for a pet. Adopter role required.",
         "security": [
@@ -1001,10 +954,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "petId",
-                  "answers"
-                ],
+                "required": ["petId", "answers"],
                 "properties": {
                   "petId": {
                     "type": "string",
@@ -1077,9 +1027,7 @@
     },
     "/api/v1/applications/{applicationId}": {
       "get": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Get application details by ID",
         "description": "Get detailed information about a specific application",
         "security": [
@@ -1237,9 +1185,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Update adoption application",
         "description": "Update application details. Only allowed for applications in DRAFT or SUBMITTED status by the owner.",
         "security": [
@@ -1322,9 +1268,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Delete application",
         "description": "Permanently delete an application. Only the application owner can delete their own application, and only if it's in DRAFT status.",
         "security": [
@@ -1385,9 +1329,7 @@
     },
     "/api/v1/applications/{applicationId}/submit": {
       "post": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Submit application for review",
         "description": "Submit a draft application for review by rescue staff. Only the application owner can submit their own application.",
         "security": [
@@ -1456,9 +1398,7 @@
     },
     "/api/v1/applications/{applicationId}/status": {
       "patch": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Update application status",
         "description": "Update the status of an application. Only rescue staff and admins can update application status.",
         "security": [
@@ -1487,17 +1427,11 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "status"
-                ],
+                "required": ["status"],
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "UNDER_REVIEW",
-                      "APPROVED",
-                      "REJECTED"
-                    ],
+                    "enum": ["UNDER_REVIEW", "APPROVED", "REJECTED"],
                     "description": "New application status"
                   },
                   "reviewNotes": {
@@ -1560,9 +1494,7 @@
     },
     "/api/v1/applications/{applicationId}/withdraw": {
       "post": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Withdraw application",
         "description": "Withdraw a submitted application. Only the application owner can withdraw their own application.",
         "security": [
@@ -1643,9 +1575,7 @@
     },
     "/api/v1/applications/{applicationId}/documents": {
       "post": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Add document to application",
         "description": "Upload and attach a document to an application. Only the application owner can add documents.",
         "security": [
@@ -1674,9 +1604,7 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "document"
-                ],
+                "required": ["document"],
                 "properties": {
                   "document": {
                     "type": "string",
@@ -1685,12 +1613,7 @@
                   },
                   "documentType": {
                     "type": "string",
-                    "enum": [
-                      "REFERENCE",
-                      "VETERINARY_RECORD",
-                      "PROOF_OF_RESIDENCE",
-                      "OTHER"
-                    ],
+                    "enum": ["REFERENCE", "VETERINARY_RECORD", "PROOF_OF_RESIDENCE", "OTHER"],
                     "description": "Type of document being uploaded"
                   },
                   "description": {
@@ -1763,9 +1686,7 @@
     },
     "/api/v1/applications/{applicationId}/references": {
       "patch": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Update reference status",
         "description": "Update the status of references for an application. Only rescue staff and admins can update reference status.",
         "security": [
@@ -1794,10 +1715,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "referenceId",
-                  "status"
-                ],
+                "required": ["referenceId", "status"],
                 "properties": {
                   "referenceId": {
                     "type": "string",
@@ -1806,12 +1724,7 @@
                   },
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "PENDING",
-                      "CONTACTED",
-                      "COMPLETED",
-                      "FAILED"
-                    ],
+                    "enum": ["PENDING", "CONTACTED", "COMPLETED", "FAILED"],
                     "description": "New reference status"
                   },
                   "notes": {
@@ -1867,9 +1780,7 @@
     },
     "/api/v1/applications/form-structure/{rescueId}": {
       "get": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Get application form structure",
         "description": "Get the custom application form structure for a specific rescue organization",
         "security": [
@@ -1973,9 +1884,7 @@
     },
     "/api/v1/form-structure/{rescueId}": {
       "get": {
-        "tags": [
-          "Applications"
-        ],
+        "tags": ["Applications"],
         "summary": "GET /api/v1/form-structure/{rescueId}",
         "description": "Handle GET request for /api/v1/form-structure/{rescueId}",
         "security": [
@@ -2014,9 +1923,7 @@
     },
     "/api/v1/applications/validate/{rescueId}": {
       "post": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Validate application answers",
         "description": "Validate application form answers against rescue-specific requirements before submission",
         "security": [
@@ -2045,9 +1952,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "answers"
-                ],
+                "required": ["answers"],
                 "properties": {
                   "answers": {
                     "type": "object",
@@ -2126,9 +2031,7 @@
     },
     "/api/v1/validate/{rescueId}": {
       "post": {
-        "tags": [
-          "Applications"
-        ],
+        "tags": ["Applications"],
         "summary": "POST /api/v1/validate/{rescueId}",
         "description": "Handle POST request for /api/v1/validate/{rescueId}",
         "security": [
@@ -2182,9 +2085,7 @@
     },
     "/api/v1/applications/statistics": {
       "get": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Get application statistics",
         "description": "Get statistical data about applications for dashboard and reporting. Only rescue staff and admins can access this data.",
         "security": [
@@ -2307,9 +2208,7 @@
     },
     "/api/v1/applications/bulk-update": {
       "patch": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Bulk update applications",
         "description": "Update multiple applications at once. Only admins can perform bulk updates.",
         "security": [
@@ -2326,10 +2225,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "applicationIds",
-                  "updates"
-                ],
+                "required": ["applicationIds", "updates"],
                 "properties": {
                   "applicationIds": {
                     "type": "array",
@@ -2344,12 +2240,7 @@
                     "properties": {
                       "status": {
                         "type": "string",
-                        "enum": [
-                          "UNDER_REVIEW",
-                          "APPROVED",
-                          "REJECTED",
-                          "WITHDRAWN"
-                        ],
+                        "enum": ["UNDER_REVIEW", "APPROVED", "REJECTED", "WITHDRAWN"],
                         "description": "New status for all selected applications"
                       },
                       "reviewNotes": {
@@ -2424,9 +2315,7 @@
     },
     "/api/v1/applications/{applicationId}/history": {
       "get": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Get application history",
         "description": "Get the history of changes and status updates for an application. Legacy endpoint for backwards compatibility.",
         "security": [
@@ -2518,9 +2407,7 @@
     },
     "/api/v1/applications/{applicationId}/schedule-visit": {
       "post": {
-        "tags": [
-          "Application Management"
-        ],
+        "tags": ["Application Management"],
         "summary": "Schedule home visit",
         "description": "Schedule a home visit for an approved application. Only rescue staff and admins can schedule visits.",
         "security": [
@@ -2549,10 +2436,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "scheduledDate",
-                  "scheduledTime"
-                ],
+                "required": ["scheduledDate", "scheduledTime"],
                 "properties": {
                   "scheduledDate": {
                     "type": "string",
@@ -2571,11 +2455,7 @@
                   },
                   "visitType": {
                     "type": "string",
-                    "enum": [
-                      "PRE_ADOPTION",
-                      "POST_ADOPTION",
-                      "FOLLOW_UP"
-                    ],
+                    "enum": ["PRE_ADOPTION", "POST_ADOPTION", "FOLLOW_UP"],
                     "default": "PRE_ADOPTION",
                     "description": "Type of visit being scheduled"
                   }
@@ -2639,9 +2519,7 @@
     },
     "/api/v1/auth/register": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Register a new user account",
         "description": "Create a new user account with email verification",
         "requestBody": {
@@ -2650,13 +2528,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "password",
-                  "firstName",
-                  "lastName",
-                  "userType"
-                ],
+                "required": ["email", "password", "firstName", "lastName", "userType"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -2682,11 +2554,7 @@
                   },
                   "userType": {
                     "type": "string",
-                    "enum": [
-                      "ADOPTER",
-                      "RESCUE_STAFF",
-                      "ADMIN"
-                    ],
+                    "enum": ["ADOPTER", "RESCUE_STAFF", "ADMIN"],
                     "example": "ADOPTER"
                   },
                   "phone": {
@@ -2737,9 +2605,7 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Authenticate user and get access token",
         "description": "Login with email and password to receive JWT token",
         "requestBody": {
@@ -2748,10 +2614,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "password"
-                ],
+                "required": ["email", "password"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -2848,9 +2711,7 @@
     },
     "/api/v1/auth/logout": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Logout user and invalidate tokens",
         "description": "Invalidate refresh token and clear authentication cookies",
         "security": [
@@ -2898,9 +2759,7 @@
     },
     "/api/v1/auth/refresh-token": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Refresh access token",
         "description": "Get a new access token using refresh token",
         "requestBody": {
@@ -2909,9 +2768,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "refreshToken"
-                ],
+                "required": ["refreshToken"],
                 "properties": {
                   "refreshToken": {
                     "type": "string",
@@ -2961,9 +2818,7 @@
     },
     "/api/v1/auth/forgot-password": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Request password reset",
         "description": "Send password reset email to user",
         "requestBody": {
@@ -2972,9 +2827,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email"
-                ],
+                "required": ["email"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -3021,9 +2874,7 @@
     },
     "/api/v1/auth/reset-password": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Reset password with token",
         "description": "Reset user password using reset token from email",
         "requestBody": {
@@ -3032,10 +2883,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "token",
-                  "password"
-                ],
+                "required": ["token", "password"],
                 "properties": {
                   "token": {
                     "type": "string",
@@ -3086,9 +2934,7 @@
     },
     "/api/v1/auth/verify-email/{token}": {
       "get": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Verify email address",
         "description": "Verify user email address using verification token",
         "parameters": [
@@ -3138,9 +2984,7 @@
     },
     "/api/v1/auth/resend-verification": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Resend email verification",
         "description": "Send new email verification link to user",
         "requestBody": {
@@ -3149,9 +2993,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email"
-                ],
+                "required": ["email"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -3201,9 +3043,7 @@
     },
     "/api/v1/auth/me": {
       "get": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Get current user profile",
         "description": "Get authenticated user's profile information",
         "security": [
@@ -3245,11 +3085,7 @@
                         },
                         "userType": {
                           "type": "string",
-                          "enum": [
-                            "ADOPTER",
-                            "RESCUE_STAFF",
-                            "ADMIN"
-                          ]
+                          "enum": ["ADOPTER", "RESCUE_STAFF", "ADMIN"]
                         },
                         "isVerified": {
                           "type": "boolean"
@@ -3271,9 +3107,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Update current user profile",
         "description": "Update authenticated user's profile information",
         "security": [
@@ -3368,9 +3202,7 @@
     },
     "/api/v1/": {
       "post": {
-        "tags": [
-          "Rescue Organizations"
-        ],
+        "tags": ["Rescue Organizations"],
         "summary": "POST /api/v1/",
         "description": "Handle POST request for /api/v1/",
         "security": [
@@ -3422,9 +3254,7 @@
         }
       },
       "get": {
-        "tags": [
-          "Rescue Organizations"
-        ],
+        "tags": ["Rescue Organizations"],
         "summary": "GET /api/v1/",
         "description": "Handle GET request for /api/v1/",
         "security": [
@@ -3463,9 +3293,7 @@
     },
     "/api/v1/search": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "GET /api/v1/search",
         "description": "Handle GET request for /api/v1/search",
         "security": [
@@ -3504,9 +3332,7 @@
     },
     "/api/v1/{chatId}": {
       "get": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "GET /api/v1/{chatId}",
         "description": "Handle GET request for /api/v1/{chatId}",
         "security": [
@@ -3543,9 +3369,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "PATCH /api/v1/{chatId}",
         "description": "Handle PATCH request for /api/v1/{chatId}",
         "security": [
@@ -3600,9 +3424,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "DELETE /api/v1/{chatId}",
         "description": "Handle DELETE request for /api/v1/{chatId}",
         "security": [
@@ -3645,9 +3467,7 @@
     },
     "/api/v1/{chatId}/messages": {
       "post": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "POST /api/v1/{chatId}/messages",
         "description": "Handle POST request for /api/v1/{chatId}/messages",
         "security": [
@@ -3699,9 +3519,7 @@
         }
       },
       "get": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "GET /api/v1/{chatId}/messages",
         "description": "Handle GET request for /api/v1/{chatId}/messages",
         "security": [
@@ -3740,9 +3558,7 @@
     },
     "/api/v1/{chatId}/read": {
       "patch": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "PATCH /api/v1/{chatId}/read",
         "description": "Handle PATCH request for /api/v1/{chatId}/read",
         "security": [
@@ -3799,9 +3615,7 @@
     },
     "/api/v1/{chatId}/unread-count": {
       "get": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "GET /api/v1/{chatId}/unread-count",
         "description": "Handle GET request for /api/v1/{chatId}/unread-count",
         "security": [
@@ -3840,9 +3654,7 @@
     },
     "/api/v1/{chatId}/participants": {
       "post": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "POST /api/v1/{chatId}/participants",
         "description": "Handle POST request for /api/v1/{chatId}/participants",
         "security": [
@@ -3896,9 +3708,7 @@
     },
     "/api/v1/{chatId}/participants/{userId}": {
       "delete": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "DELETE /api/v1/{chatId}/participants/{userId}",
         "description": "Handle DELETE request for /api/v1/{chatId}/participants/{userId}",
         "security": [
@@ -3941,9 +3751,7 @@
     },
     "/api/v1/messages/{messageId}/reactions": {
       "post": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "POST /api/v1/messages/{messageId}/reactions",
         "description": "Handle POST request for /api/v1/messages/{messageId}/reactions",
         "security": [
@@ -3995,9 +3803,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Messaging"
-        ],
+        "tags": ["Messaging"],
         "summary": "DELETE /api/v1/messages/{messageId}/reactions",
         "description": "Handle DELETE request for /api/v1/messages/{messageId}/reactions",
         "security": [
@@ -4040,9 +3846,7 @@
     },
     "/api/v1/health": {
       "get": {
-        "tags": [
-          "Discovery Service"
-        ],
+        "tags": ["Discovery Service"],
         "summary": "GET /api/v1/health",
         "description": "Handle GET request for /api/v1/health",
         "security": [
@@ -4081,9 +3885,7 @@
     },
     "/api/v1/db-test": {
       "get": {
-        "tags": [
-          "Discovery Service"
-        ],
+        "tags": ["Discovery Service"],
         "summary": "GET /api/v1/db-test",
         "description": "Handle GET request for /api/v1/db-test",
         "security": [
@@ -4122,9 +3924,7 @@
     },
     "/api/v1/test": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "GET /api/v1/test",
         "description": "Handle GET request for /api/v1/test",
         "security": [
@@ -4163,9 +3963,7 @@
     },
     "/api/v1/email/templates": {
       "get": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Get all email templates",
         "description": "Retrieve all email templates for administration. Only admins can access this endpoint.",
         "security": [
@@ -4264,9 +4062,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Create new email template",
         "description": "Create a new email template. Only admins can create templates.",
         "security": [
@@ -4283,12 +4079,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "name",
-                  "type",
-                  "subject",
-                  "htmlContent"
-                ],
+                "required": ["name", "type", "subject", "htmlContent"],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -4376,9 +4167,7 @@
     },
     "/api/v1/email/templates/{templateId}": {
       "get": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Get email template by ID",
         "description": "Retrieve a specific email template by ID. Only admins can access this endpoint.",
         "security": [
@@ -4471,9 +4260,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Update email template",
         "description": "Update an existing email template. Only admins can update templates.",
         "security": [
@@ -4567,9 +4354,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Delete email template",
         "description": "Delete an email template. Only admins can delete templates.",
         "security": [
@@ -4627,9 +4412,7 @@
     },
     "/api/v1/email/templates/{templateId}/preview": {
       "post": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Preview email template",
         "description": "Generate a preview of an email template with sample data. Only admins can preview templates.",
         "security": [
@@ -4718,9 +4501,7 @@
     },
     "/api/v1/email/templates/{templateId}/test": {
       "post": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Send test email",
         "description": "Send a test email using a template to verify it works correctly. Only admins can send test emails.",
         "security": [
@@ -4749,9 +4530,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "testEmail"
-                ],
+                "required": ["testEmail"],
                 "properties": {
                   "testEmail": {
                     "type": "string",
@@ -4814,9 +4593,7 @@
     },
     "/api/v1/email/send": {
       "post": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Send individual email",
         "description": "Send a single email using a template or custom content. Available to admins and rescue staff.",
         "security": [
@@ -4833,10 +4610,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "to",
-                  "subject"
-                ],
+                "required": ["to", "subject"],
                 "properties": {
                   "to": {
                     "type": "string",
@@ -4868,11 +4642,7 @@
                   },
                   "priority": {
                     "type": "string",
-                    "enum": [
-                      "LOW",
-                      "NORMAL",
-                      "HIGH"
-                    ],
+                    "enum": ["LOW", "NORMAL", "HIGH"],
                     "default": "NORMAL",
                     "description": "Email priority"
                   }
@@ -4923,9 +4693,7 @@
     },
     "/api/v1/email/send/bulk": {
       "post": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Send bulk emails",
         "description": "Send emails to multiple recipients using a template. Only admins can send bulk emails.",
         "security": [
@@ -4942,10 +4710,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "templateId",
-                  "recipients"
-                ],
+                "required": ["templateId", "recipients"],
                 "properties": {
                   "templateId": {
                     "type": "string",
@@ -4957,9 +4722,7 @@
                     "maxItems": 1000,
                     "items": {
                       "type": "object",
-                      "required": [
-                        "email"
-                      ],
+                      "required": ["email"],
                       "properties": {
                         "email": {
                           "type": "string",
@@ -4980,11 +4743,7 @@
                   },
                   "priority": {
                     "type": "string",
-                    "enum": [
-                      "LOW",
-                      "NORMAL",
-                      "HIGH"
-                    ],
+                    "enum": ["LOW", "NORMAL", "HIGH"],
                     "default": "NORMAL"
                   }
                 }
@@ -5038,9 +4797,7 @@
     },
     "/api/v1/email/queue": {
       "get": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Get email queue status",
         "description": "Retrieve the current status of the email queue, including pending, processing, and failed emails. Only admins can access this endpoint.",
         "security": [
@@ -5057,13 +4814,7 @@
             "name": "status",
             "schema": {
               "type": "string",
-              "enum": [
-                "PENDING",
-                "PROCESSING",
-                "SENT",
-                "FAILED",
-                "RETRY"
-              ]
+              "enum": ["PENDING", "PROCESSING", "SENT", "FAILED", "RETRY"]
             },
             "description": "Filter by queue status"
           },
@@ -5135,13 +4886,7 @@
                               },
                               "status": {
                                 "type": "string",
-                                "enum": [
-                                  "PENDING",
-                                  "PROCESSING",
-                                  "SENT",
-                                  "FAILED",
-                                  "RETRY"
-                                ]
+                                "enum": ["PENDING", "PROCESSING", "SENT", "FAILED", "RETRY"]
                               },
                               "to": {
                                 "type": "string",
@@ -5152,11 +4897,7 @@
                               },
                               "priority": {
                                 "type": "string",
-                                "enum": [
-                                  "LOW",
-                                  "NORMAL",
-                                  "HIGH"
-                                ]
+                                "enum": ["LOW", "NORMAL", "HIGH"]
                               },
                               "createdAt": {
                                 "type": "string",
@@ -5193,9 +4934,7 @@
     },
     "/api/v1/email/queue/process": {
       "post": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Process email queue",
         "description": "Manually trigger processing of pending emails in the queue. Only admins can trigger queue processing.",
         "security": [
@@ -5214,11 +4953,7 @@
                 "properties": {
                   "priority": {
                     "type": "string",
-                    "enum": [
-                      "LOW",
-                      "NORMAL",
-                      "HIGH"
-                    ],
+                    "enum": ["LOW", "NORMAL", "HIGH"],
                     "description": "Only process emails with this priority"
                   },
                   "maxItems": {
@@ -5273,9 +5008,7 @@
     },
     "/api/v1/email/queue/retry": {
       "post": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Retry failed emails",
         "description": "Retry sending failed emails in the queue. Only admins can retry failed emails.",
         "security": [
@@ -5348,9 +5081,7 @@
     },
     "/api/v1/email/analytics": {
       "get": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Get email analytics overview",
         "description": "Retrieve comprehensive email analytics including delivery rates, open rates, click rates, and bounce rates. Only admins can access analytics.",
         "security": [
@@ -5394,13 +5125,7 @@
             "name": "groupBy",
             "schema": {
               "type": "string",
-              "enum": [
-                "day",
-                "week",
-                "month",
-                "template",
-                "recipient_domain"
-              ],
+              "enum": ["day", "week", "month", "template", "recipient_domain"],
               "default": "day"
             },
             "description": "Group analytics data by time period or category"
@@ -5539,9 +5264,7 @@
     },
     "/api/v1/email/analytics/{templateId}": {
       "get": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Get template-specific analytics",
         "description": "Retrieve detailed analytics for a specific email template including performance metrics and recipient engagement. Only admins can access template analytics.",
         "security": [
@@ -5726,9 +5449,7 @@
     },
     "/api/v1/email/preferences/{userId}": {
       "get": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Get user email preferences",
         "description": "Retrieve email notification preferences for a specific user. Users can access their own preferences, admins can access any user's preferences.",
         "security": [
@@ -5787,11 +5508,7 @@
                         },
                         "frequency": {
                           "type": "string",
-                          "enum": [
-                            "IMMEDIATE",
-                            "DAILY",
-                            "WEEKLY"
-                          ]
+                          "enum": ["IMMEDIATE", "DAILY", "WEEKLY"]
                         }
                       }
                     }
@@ -5812,9 +5529,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Update user email preferences",
         "description": "Update email notification preferences for a specific user. Users can update their own preferences, admins can update any user's preferences.",
         "security": [
@@ -5866,11 +5581,7 @@
                   },
                   "frequency": {
                     "type": "string",
-                    "enum": [
-                      "IMMEDIATE",
-                      "DAILY",
-                      "WEEKLY"
-                    ],
+                    "enum": ["IMMEDIATE", "DAILY", "WEEKLY"],
                     "description": "Email frequency preference"
                   }
                 }
@@ -5916,9 +5627,7 @@
     },
     "/api/v1/preferences/{userId}": {
       "get": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "GET /api/v1/preferences/{userId}",
         "description": "Handle GET request for /api/v1/preferences/{userId}",
         "security": [
@@ -5957,9 +5666,7 @@
     },
     "/api/v1/email/unsubscribe/{token}": {
       "get": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Unsubscribe user from emails",
         "description": "Unsubscribe a user from email notifications using a secure token. This is a public endpoint that doesn't require authentication.",
         "parameters": [
@@ -6028,9 +5735,7 @@
     },
     "/api/v1/email/webhook/delivery": {
       "post": {
-        "tags": [
-          "Email Management"
-        ],
+        "tags": ["Email Management"],
         "summary": "Handle email delivery webhook",
         "description": "Webhook endpoint for email service providers to report delivery status, bounces, and complaints. This is a public endpoint with provider-specific verification.",
         "requestBody": {
@@ -6043,13 +5748,7 @@
                 "properties": {
                   "eventType": {
                     "type": "string",
-                    "enum": [
-                      "delivered",
-                      "bounced",
-                      "complained",
-                      "opened",
-                      "clicked"
-                    ],
+                    "enum": ["delivered", "bounced", "complained", "opened", "clicked"],
                     "description": "Type of email event"
                   },
                   "messageId": {
@@ -6141,9 +5840,7 @@
     },
     "/api/v1/dashboard": {
       "get": {
-        "tags": [
-          "Monitoring"
-        ],
+        "tags": ["Monitoring"],
         "summary": "GET /api/v1/dashboard",
         "description": "Handle GET request for /api/v1/dashboard",
         "security": [
@@ -6182,9 +5879,7 @@
     },
     "/api/v1/api/health": {
       "get": {
-        "tags": [
-          "Monitoring"
-        ],
+        "tags": ["Monitoring"],
         "summary": "GET /api/v1/api/health",
         "description": "Handle GET request for /api/v1/api/health",
         "security": [
@@ -6223,9 +5918,7 @@
     },
     "/api/v1/api/health/database": {
       "get": {
-        "tags": [
-          "Monitoring"
-        ],
+        "tags": ["Monitoring"],
         "summary": "GET /api/v1/api/health/database",
         "description": "Handle GET request for /api/v1/api/health/database",
         "security": [
@@ -6264,9 +5957,7 @@
     },
     "/api/v1/api/health/email": {
       "get": {
-        "tags": [
-          "Monitoring"
-        ],
+        "tags": ["Monitoring"],
         "summary": "GET /api/v1/api/health/email",
         "description": "Handle GET request for /api/v1/api/health/email",
         "security": [
@@ -6305,9 +5996,7 @@
     },
     "/api/v1/api/health/storage": {
       "get": {
-        "tags": [
-          "Monitoring"
-        ],
+        "tags": ["Monitoring"],
         "summary": "GET /api/v1/api/health/storage",
         "description": "Handle GET request for /api/v1/api/health/storage",
         "security": [
@@ -6346,9 +6035,7 @@
     },
     "/api/v1/api/health/system": {
       "get": {
-        "tags": [
-          "Monitoring"
-        ],
+        "tags": ["Monitoring"],
         "summary": "GET /api/v1/api/health/system",
         "description": "Handle GET request for /api/v1/api/health/system",
         "security": [
@@ -6387,9 +6074,7 @@
     },
     "/api/v1/api/email/provider-info": {
       "get": {
-        "tags": [
-          "Monitoring"
-        ],
+        "tags": ["Monitoring"],
         "summary": "GET /api/v1/api/email/provider-info",
         "description": "Handle GET request for /api/v1/api/email/provider-info",
         "security": [
@@ -6428,9 +6113,7 @@
     },
     "/api/v1/unread/count": {
       "get": {
-        "tags": [
-          "Notifications"
-        ],
+        "tags": ["Notifications"],
         "summary": "GET /api/v1/unread/count",
         "description": "Handle GET request for /api/v1/unread/count",
         "security": [
@@ -6469,9 +6152,7 @@
     },
     "/api/v1/preferences": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "GET /api/v1/preferences",
         "description": "Handle GET request for /api/v1/preferences",
         "security": [
@@ -6508,9 +6189,7 @@
         }
       },
       "put": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "PUT /api/v1/preferences",
         "description": "Handle PUT request for /api/v1/preferences",
         "security": [
@@ -6567,9 +6246,7 @@
     },
     "/api/v1/read-all": {
       "post": {
-        "tags": [
-          "Notifications"
-        ],
+        "tags": ["Notifications"],
         "summary": "POST /api/v1/read-all",
         "description": "Handle POST request for /api/v1/read-all",
         "security": [
@@ -6623,9 +6300,7 @@
     },
     "/api/v1/{notificationId}": {
       "get": {
-        "tags": [
-          "Notifications"
-        ],
+        "tags": ["Notifications"],
         "summary": "GET /api/v1/{notificationId}",
         "description": "Handle GET request for /api/v1/{notificationId}",
         "security": [
@@ -6664,9 +6339,7 @@
     },
     "/api/v1/pets": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Search pets",
         "description": "Search available pets with filters and pagination",
         "parameters": [
@@ -6684,13 +6357,7 @@
             "name": "type",
             "schema": {
               "type": "string",
-              "enum": [
-                "DOG",
-                "CAT",
-                "RABBIT",
-                "BIRD",
-                "OTHER"
-              ]
+              "enum": ["DOG", "CAT", "RABBIT", "BIRD", "OTHER"]
             },
             "description": "Filter by pet type"
           },
@@ -6707,12 +6374,7 @@
             "name": "age",
             "schema": {
               "type": "string",
-              "enum": [
-                "PUPPY",
-                "YOUNG",
-                "ADULT",
-                "SENIOR"
-              ]
+              "enum": ["PUPPY", "YOUNG", "ADULT", "SENIOR"]
             },
             "description": "Filter by age group"
           },
@@ -6721,12 +6383,7 @@
             "name": "size",
             "schema": {
               "type": "string",
-              "enum": [
-                "SMALL",
-                "MEDIUM",
-                "LARGE",
-                "EXTRA_LARGE"
-              ]
+              "enum": ["SMALL", "MEDIUM", "LARGE", "EXTRA_LARGE"]
             },
             "description": "Filter by size"
           },
@@ -6735,10 +6392,7 @@
             "name": "gender",
             "schema": {
               "type": "string",
-              "enum": [
-                "MALE",
-                "FEMALE"
-              ]
+              "enum": ["MALE", "FEMALE"]
             },
             "description": "Filter by gender"
           },
@@ -6887,9 +6541,7 @@
     },
     "/api/v1/pets/test": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Test endpoint",
         "description": "Simple test endpoint to verify pet routes are working",
         "responses": {
@@ -6914,9 +6566,7 @@
     },
     "/api/v1/pets/featured": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get featured pets",
         "description": "Get a list of featured pets for homepage display",
         "responses": {
@@ -6972,9 +6622,7 @@
     },
     "/api/v1/featured": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "GET /api/v1/featured",
         "description": "Handle GET request for /api/v1/featured",
         "security": [
@@ -7013,9 +6661,7 @@
     },
     "/api/v1/pets/recent": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get recently added pets",
         "description": "Get a list of recently added pets",
         "responses": {
@@ -7065,9 +6711,7 @@
     },
     "/api/v1/recent": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "GET /api/v1/recent",
         "description": "Handle GET request for /api/v1/recent",
         "security": [
@@ -7106,9 +6750,7 @@
     },
     "/api/v1/pets/types": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get pet types",
         "description": "Get available pet types for filtering",
         "responses": {
@@ -7128,13 +6770,7 @@
                       "items": {
                         "type": "string"
                       },
-                      "example": [
-                        "DOG",
-                        "CAT",
-                        "RABBIT",
-                        "BIRD",
-                        "OTHER"
-                      ]
+                      "example": ["DOG", "CAT", "RABBIT", "BIRD", "OTHER"]
                     }
                   }
                 }
@@ -7146,9 +6782,7 @@
     },
     "/api/v1/types": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "GET /api/v1/types",
         "description": "Handle GET request for /api/v1/types",
         "security": [
@@ -7187,9 +6821,7 @@
     },
     "/api/v1/pets/breeds/{type}": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get breeds by pet type",
         "description": "Get available breeds for a specific pet type",
         "parameters": [
@@ -7199,13 +6831,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": [
-                "DOG",
-                "CAT",
-                "RABBIT",
-                "BIRD",
-                "OTHER"
-              ]
+              "enum": ["DOG", "CAT", "RABBIT", "BIRD", "OTHER"]
             },
             "description": "Pet type",
             "example": "DOG"
@@ -7228,11 +6854,7 @@
                       "items": {
                         "type": "string"
                       },
-                      "example": [
-                        "Golden Retriever",
-                        "Labrador",
-                        "German Shepherd"
-                      ]
+                      "example": ["Golden Retriever", "Labrador", "German Shepherd"]
                     }
                   }
                 }
@@ -7247,9 +6869,7 @@
     },
     "/api/v1/breeds/{type}": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "GET /api/v1/breeds/{type}",
         "description": "Handle GET request for /api/v1/breeds/{type}",
         "security": [
@@ -7288,9 +6908,7 @@
     },
     "/api/v1/pets/statistics": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get pet statistics",
         "description": "Get general pet statistics for the platform",
         "responses": {
@@ -7349,9 +6967,7 @@
     },
     "/api/v1/statistics": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "GET /api/v1/statistics",
         "description": "Handle GET request for /api/v1/statistics",
         "security": [
@@ -7390,9 +7006,7 @@
     },
     "/api/v1/pets/rescue/{rescueId}": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get pets by rescue organization",
         "description": "Get all pets from a specific rescue organization",
         "parameters": [
@@ -7439,11 +7053,7 @@
                           },
                           "status": {
                             "type": "string",
-                            "enum": [
-                              "AVAILABLE",
-                              "PENDING",
-                              "ADOPTED"
-                            ]
+                            "enum": ["AVAILABLE", "PENDING", "ADOPTED"]
                           }
                         }
                       }
@@ -7461,9 +7071,7 @@
     },
     "/api/v1/rescue/{rescueId}": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "GET /api/v1/rescue/{rescueId}",
         "description": "Handle GET request for /api/v1/rescue/{rescueId}",
         "security": [
@@ -7502,9 +7110,7 @@
     },
     "/api/v1/pets/favorites/user": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get user's favorite pets",
         "description": "Get all pets favorited by the authenticated user",
         "security": [
@@ -7571,9 +7177,7 @@
     },
     "/api/v1/favorites/user": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "GET /api/v1/favorites/user",
         "description": "Handle GET request for /api/v1/favorites/user",
         "security": [
@@ -7612,9 +7216,7 @@
     },
     "/api/v1/pets/{petId}": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get pet details by ID",
         "description": "Get detailed information about a specific pet",
         "parameters": [
@@ -7686,11 +7288,7 @@
                         },
                         "energyLevel": {
                           "type": "string",
-                          "enum": [
-                            "LOW",
-                            "MODERATE",
-                            "HIGH"
-                          ]
+                          "enum": ["LOW", "MODERATE", "HIGH"]
                         },
                         "images": {
                           "type": "array",
@@ -7700,11 +7298,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "AVAILABLE",
-                            "PENDING",
-                            "ADOPTED"
-                          ]
+                          "enum": ["AVAILABLE", "PENDING", "ADOPTED"]
                         },
                         "rescue": {
                           "type": "object",
@@ -7747,9 +7341,7 @@
     },
     "/api/v1/{petId}": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "GET /api/v1/{petId}",
         "description": "Handle GET request for /api/v1/{petId}",
         "security": [
@@ -7788,9 +7380,7 @@
     },
     "/api/v1/pets/{petId}/similar": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get similar pets",
         "description": "Get pets similar to the specified pet based on breed, age, and size",
         "parameters": [
@@ -7855,9 +7445,7 @@
     },
     "/api/v1/{petId}/similar": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "GET /api/v1/{petId}/similar",
         "description": "Handle GET request for /api/v1/{petId}/similar",
         "security": [
@@ -7896,9 +7484,7 @@
     },
     "/api/v1/pets/{petId}/activity": {
       "get": {
-        "tags": [
-          "Pet Management"
-        ],
+        "tags": ["Pet Management"],
         "summary": "Get pet activity history",
         "description": "Get activity history and statistics for a specific pet",
         "parameters": [
@@ -7971,9 +7557,7 @@
     },
     "/api/v1/rescues/{rescueId}": {
       "get": {
-        "tags": [
-          "Rescue Organizations"
-        ],
+        "tags": ["Rescue Organizations"],
         "summary": "Get rescue organization details",
         "description": "Get detailed information about a specific rescue organization",
         "parameters": [
@@ -8067,9 +7651,7 @@
     },
     "/api/v1/{rescueId}": {
       "get": {
-        "tags": [
-          "Rescue Organizations"
-        ],
+        "tags": ["Rescue Organizations"],
         "summary": "GET /api/v1/{rescueId}",
         "description": "Handle GET request for /api/v1/{rescueId}",
         "security": [
@@ -8108,9 +7690,7 @@
     },
     "/api/v1/rescues/{rescueId}/pets": {
       "get": {
-        "tags": [
-          "Rescue Organizations"
-        ],
+        "tags": ["Rescue Organizations"],
         "summary": "Get pets from rescue organization",
         "description": "Get all pets available from a specific rescue organization",
         "parameters": [
@@ -8163,11 +7743,7 @@
                           },
                           "status": {
                             "type": "string",
-                            "enum": [
-                              "AVAILABLE",
-                              "PENDING",
-                              "ADOPTED"
-                            ]
+                            "enum": ["AVAILABLE", "PENDING", "ADOPTED"]
                           },
                           "images": {
                             "type": "array",
@@ -8191,9 +7767,7 @@
     },
     "/api/v1/{rescueId}/pets": {
       "get": {
-        "tags": [
-          "Rescue Organizations"
-        ],
+        "tags": ["Rescue Organizations"],
         "summary": "GET /api/v1/{rescueId}/pets",
         "description": "Handle GET request for /api/v1/{rescueId}/pets",
         "security": [
@@ -8232,9 +7806,7 @@
     },
     "/api/v1/users/profile": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Get current user profile",
         "description": "Get the authenticated user's profile information",
         "security": [
@@ -8276,11 +7848,7 @@
                         },
                         "userType": {
                           "type": "string",
-                          "enum": [
-                            "ADOPTER",
-                            "RESCUE_STAFF",
-                            "ADMIN"
-                          ]
+                          "enum": ["ADOPTER", "RESCUE_STAFF", "ADMIN"]
                         },
                         "phone": {
                           "type": "string"
@@ -8308,9 +7876,7 @@
         }
       },
       "put": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Update current user profile",
         "description": "Update the authenticated user's profile information",
         "security": [
@@ -8386,9 +7952,7 @@
     },
     "/api/v1/profile": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "GET /api/v1/profile",
         "description": "Handle GET request for /api/v1/profile",
         "security": [
@@ -8425,9 +7989,7 @@
         }
       },
       "put": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "PUT /api/v1/profile",
         "description": "Handle PUT request for /api/v1/profile",
         "security": [
@@ -8484,9 +8046,7 @@
     },
     "/api/v1/users/preferences": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Get user preferences",
         "description": "Get the authenticated user's notification and app preferences",
         "security": [
@@ -8545,9 +8105,7 @@
         }
       },
       "put": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Update user preferences",
         "description": "Update the authenticated user's notification and app preferences",
         "security": [
@@ -8622,9 +8180,7 @@
     },
     "/api/v1/users/preferences/reset": {
       "post": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Reset user preferences to defaults",
         "description": "Reset all user preferences to their default values",
         "security": [
@@ -8664,9 +8220,7 @@
     },
     "/api/v1/preferences/reset": {
       "post": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "POST /api/v1/preferences/reset",
         "description": "Handle POST request for /api/v1/preferences/reset",
         "security": [
@@ -8720,9 +8274,7 @@
     },
     "/api/v1/users/account": {
       "delete": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Delete user account",
         "description": "Permanently delete the authenticated user's account and all associated data",
         "security": [
@@ -8739,9 +8291,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "reason"
-                ],
+                "required": ["reason"],
                 "properties": {
                   "reason": {
                     "type": "string",
@@ -8798,9 +8348,7 @@
     },
     "/api/v1/account": {
       "delete": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "DELETE /api/v1/account",
         "description": "Handle DELETE request for /api/v1/account",
         "security": [
@@ -8843,9 +8391,7 @@
     },
     "/api/v1/users/search": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Search users (Admin only)",
         "description": "Search and filter users with pagination. Admin access required.",
         "security": [
@@ -8871,11 +8417,7 @@
             "name": "userType",
             "schema": {
               "type": "string",
-              "enum": [
-                "ADOPTER",
-                "RESCUE_STAFF",
-                "ADMIN"
-              ]
+              "enum": ["ADOPTER", "RESCUE_STAFF", "ADMIN"]
             },
             "description": "Filter by user type"
           },
@@ -8989,9 +8531,7 @@
     },
     "/api/v1/users/statistics": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Get user statistics (Admin only)",
         "description": "Get comprehensive user statistics and metrics. Admin access required.",
         "security": [
@@ -9068,9 +8608,7 @@
     },
     "/api/v1/users/{userId}/activity": {
       "get": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Get user activity summary",
         "description": "Get user's activity history and statistics. Users can view their own activity, admins can view any.",
         "security": [
@@ -9163,9 +8701,7 @@
     },
     "/api/v1/users/{userId}/role": {
       "put": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Update user role (Admin only)",
         "description": "Update user's role/type. Admin access required.",
         "security": [
@@ -9194,17 +8730,11 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "userType"
-                ],
+                "required": ["userType"],
                 "properties": {
                   "userType": {
                     "type": "string",
-                    "enum": [
-                      "ADOPTER",
-                      "RESCUE_STAFF",
-                      "ADMIN"
-                    ],
+                    "enum": ["ADOPTER", "RESCUE_STAFF", "ADMIN"],
                     "example": "RESCUE_STAFF"
                   },
                   "reason": {
@@ -9255,9 +8785,7 @@
     },
     "/api/v1/{userId}/role": {
       "put": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "PUT /api/v1/{userId}/role",
         "description": "Handle PUT request for /api/v1/{userId}/role",
         "security": [
@@ -9314,9 +8842,7 @@
     },
     "/api/v1/users/{userId}/deactivate": {
       "post": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Deactivate user (Admin only)",
         "description": "Deactivate a user account. Admin access required.",
         "security": [
@@ -9345,9 +8871,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "reason"
-                ],
+                "required": ["reason"],
                 "properties": {
                   "reason": {
                     "type": "string",
@@ -9402,9 +8926,7 @@
     },
     "/api/v1/{userId}/deactivate": {
       "post": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "POST /api/v1/{userId}/deactivate",
         "description": "Handle POST request for /api/v1/{userId}/deactivate",
         "security": [
@@ -9458,9 +8980,7 @@
     },
     "/api/v1/users/{userId}/reactivate": {
       "post": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Reactivate user (Admin only)",
         "description": "Reactivate a deactivated user account. Admin access required.",
         "security": [
@@ -9543,9 +9063,7 @@
     },
     "/api/v1/{userId}/reactivate": {
       "post": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "POST /api/v1/{userId}/reactivate",
         "description": "Handle POST request for /api/v1/{userId}/reactivate",
         "security": [
@@ -9599,9 +9117,7 @@
     },
     "/api/v1/users/bulk-update": {
       "post": {
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "summary": "Bulk update users (Admin only)",
         "description": "Update multiple users at once. Admin access required.",
         "security": [
@@ -9618,10 +9134,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "userIds",
-                  "updates"
-                ],
+                "required": ["userIds", "updates"],
                 "properties": {
                   "userIds": {
                     "type": "array",
@@ -9639,11 +9152,7 @@
                     "properties": {
                       "userType": {
                         "type": "string",
-                        "enum": [
-                          "ADOPTER",
-                          "RESCUE_STAFF",
-                          "ADMIN"
-                        ]
+                        "enum": ["ADOPTER", "RESCUE_STAFF", "ADMIN"]
                       },
                       "isActive": {
                         "type": "boolean"
@@ -9726,9 +9235,7 @@
             "description": "Response data (varies by endpoint)"
           }
         },
-        "required": [
-          "success"
-        ],
+        "required": ["success"],
         "example": {
           "success": true,
           "message": "Operation completed successfully",
@@ -9768,14 +9275,7 @@
             "description": "Whether there are previous pages"
           }
         },
-        "required": [
-          "page",
-          "limit",
-          "total",
-          "totalPages",
-          "hasNext",
-          "hasPrev"
-        ]
+        "required": ["page", "limit", "total", "totalPages", "hasNext", "hasPrev"]
       },
       "PaginatedResponse": {
         "allOf": [
@@ -9824,11 +9324,7 @@
           },
           "userType": {
             "type": "string",
-            "enum": [
-              "ADOPTER",
-              "RESCUE_STAFF",
-              "ADMIN"
-            ],
+            "enum": ["ADOPTER", "RESCUE_STAFF", "ADMIN"],
             "description": "Type of user account"
           },
           "isEmailVerified": {
@@ -9890,24 +9386,14 @@
           },
           "userType": {
             "type": "string",
-            "enum": [
-              "ADOPTER",
-              "RESCUE_STAFF",
-              "ADMIN"
-            ]
+            "enum": ["ADOPTER", "RESCUE_STAFF", "ADMIN"]
           },
           "phone": {
             "type": "string",
             "pattern": "^[+]?[1-9]\\d{1,14}$"
           }
         },
-        "required": [
-          "email",
-          "password",
-          "firstName",
-          "lastName",
-          "userType"
-        ]
+        "required": ["email", "password", "firstName", "lastName", "userType"]
       },
       "Pet": {
         "type": "object",
@@ -9925,13 +9411,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "DOG",
-              "CAT",
-              "RABBIT",
-              "BIRD",
-              "OTHER"
-            ],
+            "enum": ["DOG", "CAT", "RABBIT", "BIRD", "OTHER"],
             "description": "Type of pet"
           },
           "breed": {
@@ -9941,12 +9421,7 @@
           },
           "age": {
             "type": "string",
-            "enum": [
-              "PUPPY",
-              "YOUNG",
-              "ADULT",
-              "SENIOR"
-            ],
+            "enum": ["PUPPY", "YOUNG", "ADULT", "SENIOR"],
             "description": "Age category"
           },
           "ageYears": {
@@ -9963,21 +9438,12 @@
           },
           "gender": {
             "type": "string",
-            "enum": [
-              "MALE",
-              "FEMALE",
-              "UNKNOWN"
-            ],
+            "enum": ["MALE", "FEMALE", "UNKNOWN"],
             "description": "Pet's gender"
           },
           "size": {
             "type": "string",
-            "enum": [
-              "SMALL",
-              "MEDIUM",
-              "LARGE",
-              "EXTRA_LARGE"
-            ],
+            "enum": ["SMALL", "MEDIUM", "LARGE", "EXTRA_LARGE"],
             "description": "Pet's size category"
           },
           "weight": {
@@ -10001,13 +9467,7 @@
           },
           "adoptionStatus": {
             "type": "string",
-            "enum": [
-              "AVAILABLE",
-              "PENDING",
-              "ADOPTED",
-              "ON_HOLD",
-              "NOT_AVAILABLE"
-            ],
+            "enum": ["AVAILABLE", "PENDING", "ADOPTED", "ON_HOLD", "NOT_AVAILABLE"],
             "description": "Current adoption status"
           },
           "specialNeeds": {
@@ -10138,13 +9598,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "DOG",
-              "CAT",
-              "RABBIT",
-              "BIRD",
-              "OTHER"
-            ]
+            "enum": ["DOG", "CAT", "RABBIT", "BIRD", "OTHER"]
           },
           "breed": {
             "type": "string",
@@ -10162,20 +9616,11 @@
           },
           "gender": {
             "type": "string",
-            "enum": [
-              "MALE",
-              "FEMALE",
-              "UNKNOWN"
-            ]
+            "enum": ["MALE", "FEMALE", "UNKNOWN"]
           },
           "size": {
             "type": "string",
-            "enum": [
-              "SMALL",
-              "MEDIUM",
-              "LARGE",
-              "EXTRA_LARGE"
-            ]
+            "enum": ["SMALL", "MEDIUM", "LARGE", "EXTRA_LARGE"]
           },
           "weight": {
             "type": "number",
@@ -10222,13 +9667,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "name",
-          "type",
-          "breed",
-          "gender",
-          "size"
-        ]
+        "required": ["name", "type", "breed", "gender", "size"]
       },
       "LoginRequest": {
         "type": "object",
@@ -10242,10 +9681,7 @@
             "minLength": 8
           }
         },
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "example": {
           "email": "user@example.com",
           "password": "SecurePass123!"
@@ -10278,11 +9714,7 @@
                     "description": "Token expiration time in seconds"
                   }
                 },
-                "required": [
-                  "token",
-                  "user",
-                  "expiresIn"
-                ]
+                "required": ["token", "user", "expiresIn"]
               }
             }
           }
@@ -10305,13 +9737,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "SUBMITTED",
-              "UNDER_REVIEW",
-              "APPROVED",
-              "REJECTED",
-              "WITHDRAWN"
-            ]
+            "enum": ["SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "WITHDRAWN"]
           },
           "submittedAt": {
             "type": "string",
@@ -10333,13 +9759,7 @@
             "additionalProperties": true
           }
         },
-        "required": [
-          "applicationId",
-          "petId",
-          "adopterId",
-          "status",
-          "submittedAt"
-        ]
+        "required": ["applicationId", "petId", "adopterId", "status", "submittedAt"]
       },
       "Rescue": {
         "type": "object",
@@ -10402,13 +9822,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "rescueId",
-          "name",
-          "email",
-          "isVerified",
-          "createdAt"
-        ]
+        "required": ["rescueId", "name", "email", "isVerified", "createdAt"]
       },
       "Error": {
         "type": "object",
@@ -10431,10 +9845,7 @@
             "description": "Error timestamp"
           }
         },
-        "required": [
-          "error",
-          "message"
-        ],
+        "required": ["error", "message"],
         "example": {
           "error": "VALIDATION_ERROR",
           "message": "Invalid input data",
@@ -10466,10 +9877,7 @@
                       "description": "Invalid value provided"
                     }
                   },
-                  "required": [
-                    "field",
-                    "message"
-                  ]
+                  "required": ["field", "message"]
                 }
               }
             }

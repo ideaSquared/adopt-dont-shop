@@ -1,1 +1,1 @@
-export { default } from './DateTime'
+export { default } from './DateTime';

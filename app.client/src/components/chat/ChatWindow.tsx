@@ -120,9 +120,9 @@ const LoadingContainer = styled.div`
 const ErrorMessage = styled.div`
   margin: 1.5rem;
   padding: 1.25rem;
-  background: ${props => props.theme.colors.semantic.error.light};
-  border: 1px solid ${props => props.theme.colors.semantic.error.dark};
-  color: ${props => props.theme.colors.semantic.error.main};
+  background: ${props => props.theme.colors.semantic.error[100]};
+  border: 1px solid ${props => props.theme.colors.semantic.error[600]};
+  color: ${props => props.theme.colors.semantic.error[500]};
   border-radius: ${props => props.theme.border.radius.md};
   text-align: center;
   font-size: 1.05rem;

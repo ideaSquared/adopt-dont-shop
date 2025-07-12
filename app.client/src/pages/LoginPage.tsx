@@ -15,8 +15,8 @@ const Container = styled.div`
   padding: 2rem;
   background: linear-gradient(
     135deg,
-    ${props => props.theme.background.body} 0%,
-    ${props => props.theme.background.contrast} 100%
+    ${props => props.theme.background.primary} 0%,
+    ${props => props.theme.background.secondary} 100%
   );
 `;
 
@@ -33,11 +33,11 @@ const Header = styled.div`
   h1 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
-    color: ${props => props.theme.text.body};
+    color: ${props => props.theme.text.primary};
   }
 
   p {
-    color: ${props => props.theme.text.dim};
+    color: ${props => props.theme.text.secondary};
   }
 `;
 
@@ -55,7 +55,7 @@ const FormGroup = styled.div`
 
 const ForgotPasswordLink = styled(Link)`
   font-size: 0.9rem;
-  color: ${props => props.theme.colors.primary.main};
+  color: ${props => props.theme.colors.primary[500]};
   text-decoration: none;
   text-align: right;
 
@@ -68,15 +68,15 @@ const SignupPrompt = styled.div`
   text-align: center;
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid ${props => props.theme.border.color.default};
+  border-top: 1px solid ${props => props.theme.border.color.primary};
 
   p {
-    color: ${props => props.theme.text.dim};
+    color: ${props => props.theme.text.secondary};
     margin-bottom: 0.5rem;
   }
 
   a {
-    color: ${props => props.theme.colors.primary.main};
+    color: ${props => props.theme.colors.primary[500]};
     text-decoration: none;
     font-weight: 500;
 
@@ -121,11 +121,12 @@ export const LoginPage: React.FC = () => {
     try {
       await login(data);
       navigate(from, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
+      const error = err as Error & { response?: { data?: { message?: string } } };
       setError(
-        err.response?.data?.message ||
-          err.message ||
+        error.response?.data?.message ||
+          error.message ||
           'Login failed. Please check your credentials and try again.'
       );
     } finally {
@@ -177,7 +178,7 @@ export const LoginPage: React.FC = () => {
         </Form>
 
         <SignupPrompt>
-          <p>Don't have an account?</p>
+          <p>Don&apos;t have an account?</p>
           <Link to='/register'>Create a new account</Link>
         </SignupPrompt>
       </LoginCard>

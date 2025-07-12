@@ -351,7 +351,7 @@ class OfflineManager {
   }
 
   // Manually trigger sync (useful for testing or manual retry)
-  async forcSync(): Promise<void> {
+  async forceSync(): Promise<void> {
     if (this.state.isOnline) {
       await this.syncPendingData();
     }
