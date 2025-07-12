@@ -1,5 +1,5 @@
 import { StatsigContext } from '@statsig/react-bindings';
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 
 /**
  * Custom hook to access Statsig client and common functionality for feature flags,
@@ -61,15 +61,14 @@ export const useStatsig = () => {
    * });
    * ```
    */
-  const logEvent = (
-    eventName: string,
-    value?: string | number,
-    metadata?: Record<string, string>
-  ) => {
-    if (client) {
-      client.logEvent(eventName, value, metadata);
-    }
-  };
+  const logEvent = useCallback(
+    (eventName: string, value?: string | number, metadata?: Record<string, string>) => {
+      if (client) {
+        client.logEvent(eventName, value, metadata);
+      }
+    },
+    [client]
+  );
 
   /**
    * Check if a feature gate is enabled for the current user.
@@ -90,12 +89,15 @@ export const useStatsig = () => {
    * );
    * ```
    */
-  const checkGate = (gateName: string) => {
-    if (client) {
-      return client.checkGate(gateName);
-    }
-    return false;
-  };
+  const checkGate = useCallback(
+    (gateName: string) => {
+      if (client) {
+        return client.checkGate(gateName);
+      }
+      return false;
+    },
+    [client]
+  );
 
   /**
    * Get experiment configuration for A/B testing and variant assignment.
@@ -119,12 +121,15 @@ export const useStatsig = () => {
    * );
    * ```
    */
-  const getExperiment = (experimentName: string) => {
-    if (client) {
-      return client.getExperiment(experimentName);
-    }
-    return null;
-  };
+  const getExperiment = useCallback(
+    (experimentName: string) => {
+      if (client) {
+        return client.getExperiment(experimentName);
+      }
+      return null;
+    },
+    [client]
+  );
 
   /**
    * Get dynamic configuration values that can be updated remotely without code changes.
@@ -143,12 +148,15 @@ export const useStatsig = () => {
    * const uploadLimitText = `Max file size: ${maxFileSize}MB`;
    * ```
    */
-  const getDynamicConfig = (configName: string) => {
-    if (client) {
-      return client.getDynamicConfig(configName);
-    }
-    return null;
-  };
+  const getDynamicConfig = useCallback(
+    (configName: string) => {
+      if (client) {
+        return client.getDynamicConfig(configName);
+      }
+      return null;
+    },
+    [client]
+  );
 
   return {
     /** Direct access to the Statsig client instance */

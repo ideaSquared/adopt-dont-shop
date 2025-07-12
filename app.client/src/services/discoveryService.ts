@@ -10,30 +10,20 @@ import { apiService } from './api';
 const API_BASE_URL = '/api/v1/discovery';
 
 /**
- * Response interface for the discovery queue endpoint
+ * Response interface for the discovery queue endpoint (after apiService extraction)
  */
 interface DiscoveryQueueResponse {
-  success: boolean;
-  message: string;
-  data: {
-    pets: DiscoveryPet[];
-    sessionId: string;
-    hasMore: boolean;
-    nextCursor?: string;
-  };
-  timestamp: string;
+  pets: DiscoveryPet[];
+  sessionId: string;
+  hasMore: boolean;
+  nextCursor?: string;
 }
 
 /**
- * Response interface for loading more pets
+ * Response interface for loading more pets (after apiService extraction)
  */
 interface LoadMorePetsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    pets: DiscoveryPet[];
-  };
-  timestamp: string;
+  pets: DiscoveryPet[];
 }
 
 /**
@@ -112,8 +102,8 @@ export class DiscoveryService {
         `${API_BASE_URL}/pets?${queryParams}`
       );
 
-      // Handle both direct response format and nested data format
-      const queueData = data.data;
+      // The apiService automatically extracts the 'data' field from the backend response
+      const queueData = data;
 
       const result = {
         pets: queueData.pets || [],
@@ -211,7 +201,7 @@ export class DiscoveryService {
         requestBody
       );
 
-      const pets = data.data.pets || [];
+      const pets = data.pets || [];
       this.preloadImages(pets);
       return pets;
     } catch (error) {

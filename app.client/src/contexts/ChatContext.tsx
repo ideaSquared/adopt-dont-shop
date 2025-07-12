@@ -4,14 +4,14 @@ import {
   Message,
   TypingIndicator,
 } from '@/services/chatService';
-import { 
-  offlineManager, 
-  onOfflineStateChange, 
-  removeOfflineStateListener,
-  isCurrentlyOnline,
+import {
   getConnectionQuality,
+  isCurrentlyOnline,
+  offlineManager,
+  onOfflineStateChange,
   queueMessageForOffline,
-  type OfflineState
+  removeOfflineStateListener,
+  type OfflineState,
 } from '@/utils/offlineManager';
 import {
   createContext,
@@ -34,7 +34,7 @@ interface ChatContextType {
   typingUsers: string[];
   hasMoreMessages: boolean;
   isLoadingMoreMessages: boolean;
-  
+
   // Offline state
   isOnline: boolean;
   connectionQuality: 'excellent' | 'good' | 'poor' | 'offline';
@@ -268,11 +268,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
     try {
       setError(null);
-      
+
       // Check if we're offline and queue the message
       if (!isOnline) {
         const queuedId = queueMessageForOffline(activeConversation.id, content);
-        
+
         // Add temporary message to UI for immediate feedback
         const tempMessage: Message = {
           id: queuedId,
@@ -286,9 +286,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        
+
         setMessages(prev => [...(prev || []), tempMessage]);
-        setError('📡 Message queued for when you\'re back online');
+        setError("📡 Message queued for when you're back online");
         return;
       }
 
@@ -324,7 +324,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       } else if (!isOnline) {
         // If we're offline, queue the message instead of showing error
         const queuedId = queueMessageForOffline(activeConversation.id, content);
-        setError('📡 Message queued for when you\'re back online');
+        setError("📡 Message queued for when you're back online");
       } else {
         setError(errorMessage);
       }
@@ -430,7 +430,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
       // Process pending messages
       for (const message of messages) {
         try {
-          await chatService.sendMessage(message.conversationId, message.content, message.messageType);
+          await chatService.sendMessage(
+            message.conversationId,
+            message.content,
+            message.messageType
+          );
           offlineManager.removeQueuedMessage(message.id);
         } catch (error) {
           console.error('Failed to sync message:', error);
