@@ -1,3 +1,6 @@
+import { conversationCache, messageCache } from '@/utils/chatCache';
+import { trackApiCall, trackCacheOperation, trackMessageSend, trackMessageDelivered } from '@/utils/performanceMonitor';
+import { messageRateLimiter, typingRateLimiter } from '@/utils/rateLimiter';
 import { io, Socket } from 'socket.io-client';
 import { api } from './api';
 
@@ -78,6 +81,7 @@ export class ChatService {
   private socket: Socket | null = null;
   private baseUrl = '/api/v1/chats';
   private socketUrl: string;
+  private currentUserId: string | null = null;
 
   constructor() {
     // Check for socket URL in environment variables, fallback to API base URL
@@ -90,6 +94,11 @@ export class ChatService {
       // eslint-disable-next-line no-console
       console.log('ChatService initialized with socket URL:', this.socketUrl);
     }
+  }
+
+  // Get current user ID for caching
+  private getCurrentUserId(): string | null {
+    return this.currentUserId;
   }
 
   // Helper function to convert backend message format to frontend format
@@ -161,6 +170,9 @@ export class ChatService {
 
   // Socket connection management
   connect(userId: string, token: string): void {
+    // Store current user ID for caching
+    this.currentUserId = userId;
+
     // Prevent multiple connections
     if (this.socket?.connected) {
       return;
@@ -188,6 +200,8 @@ export class ChatService {
         // eslint-disable-next-line no-console
         console.log('Socket connected to chat server');
       }
+      // Retry any pending messages when reconnected
+      this.retryAllPendingMessages();
     });
 
     this.socket.on('disconnect', () => {
@@ -252,27 +266,44 @@ export class ChatService {
   // API methods for conversations
   async getConversations(): Promise<Conversation[]> {
     try {
+      // Check cache first
+      const userId = this.getCurrentUserId();
+      if (userId) {
+        const cached = conversationCache.getConversations(userId);
+        if (cached) {
+          trackCacheOperation('hit', 'conversations', userId);
+          return cached;
+        }
+        trackCacheOperation('miss', 'conversations', userId);
+      }
+
+      const startTime = Date.now();
       const response = await api.get<ApiResponse<Conversation[]>>(`${this.baseUrl}`);
+      trackApiCall(`${this.baseUrl}`, 'GET', startTime);
 
       // Handle different response structures
+      let conversations: Conversation[] = [];
       if (response && typeof response === 'object') {
         // If response.data exists, use it
         if ('data' in response && Array.isArray(response.data)) {
-          return response.data;
+          conversations = response.data;
         }
         // If response is directly an array (fallback)
-        if (Array.isArray(response)) {
-          return response as Conversation[];
-        }
-        // If response has success and data properties
-        if ('success' in response && 'data' in response && Array.isArray(response.data)) {
-          return response.data;
+        else if (Array.isArray(response)) {
+          conversations = response as Conversation[];
         }
       }
 
-      // Fallback to empty array if no valid data
-      console.warn('Invalid conversations response structure:', response);
-      return [];
+      if (conversations.length === 0) {
+        console.warn('Invalid conversations response structure:', response);
+      }
+
+      // Cache the result
+      if (userId && conversations.length > 0) {
+        conversationCache.setConversations(userId, conversations);
+      }
+
+      return conversations;
     } catch (error) {
       console.error('Error fetching conversations:', error);
       return [];
@@ -349,14 +380,28 @@ export class ChatService {
   // API methods for messages
   async getMessages(
     conversationId: string,
-    page = 1,
-    limit = 50
+    options: { page?: number; limit?: number } = {}
   ): Promise<{
     messages: Message[];
     hasMore: boolean;
     total: number;
   }> {
+    const { page = 1, limit = 50 } = options;
+
     try {
+      // Check cache first
+      const cached = messageCache.getMessages(conversationId, page);
+      if (cached) {
+        trackCacheOperation('hit', 'messages', `${conversationId}:${page}`);
+        return {
+          messages: cached,
+          hasMore: cached.length === limit, // Assume there's more if we got a full page
+          total: cached.length,
+        };
+      }
+      trackCacheOperation('miss', 'messages', `${conversationId}:${page}`);
+
+      const startTime = Date.now();
       const response = await api.get<
         ApiResponse<{
           messages: Message[];
@@ -371,6 +416,7 @@ export class ChatService {
         page,
         limit,
       });
+      trackApiCall(`${this.baseUrl}/${conversationId}/messages`, 'GET', startTime);
 
       // Handle the case where response is null or undefined
       if (!response) {
@@ -392,6 +438,11 @@ export class ChatService {
           const convertedMessages = (messages as unknown as Record<string, unknown>[]).map(msg =>
             this.convertMessageFormat(msg)
           );
+
+          // Cache the converted messages
+          if (convertedMessages.length > 0) {
+            messageCache.setMessages(conversationId, page, convertedMessages);
+          }
 
           // Provide default values for pagination if missing
           const defaultPagination = {
@@ -499,20 +550,29 @@ export class ChatService {
     }
   }
 
+  private pendingMessages = new Map<string, Message>();
+
   async sendMessage(
     conversationId: string,
     content: string,
     messageType: 'text' | 'image' | 'file' = 'text'
   ): Promise<Message> {
-    const message = {
-      conversationId,
-      content,
-      messageType,
-      tempId: `temp_${Date.now()}_${Math.random()}`,
-    };
+    // Check rate limit before attempting to send
+    if (!messageRateLimiter.canMakeRequest()) {
+      const remainingTime = messageRateLimiter.getTimeUntilReset();
+      throw new Error(
+        `Rate limit exceeded. Try again in ${Math.ceil(remainingTime / 1000)} seconds.`
+      );
+    }
+
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
+    const startTime = Date.now();
+    
+    // Track message sending performance
+    trackMessageSend(tempId, messageType, content.length);
 
     try {
-      // Send via API for persistence (primary method)
+      // Primary: Send via API for persistence
       const response = await api.post<ApiResponse<Message> | Message>(
         `${this.baseUrl}/${conversationId}/messages`,
         {
@@ -520,50 +580,63 @@ export class ChatService {
           messageType,
         }
       );
+      
+      // Track API call performance
+      trackApiCall(`${this.baseUrl}/${conversationId}/messages`, 'POST', startTime);
 
-      // Only emit via socket if API call was successful
-      this.socket?.emit('sendMessage', message);
+      // Parse response to get the persisted message
+      let persistedMessage: Message;
 
-      // Handle different response structures
       if (response && typeof response === 'object') {
         // If response has success and data properties (backend format)
         if ('success' in response && 'data' in response && response.data) {
-          const convertedMessage = this.convertMessageFormat(
+          persistedMessage = this.convertMessageFormat(
             response.data as unknown as Record<string, unknown>
           );
-          if (import.meta.env.DEV) {
-            // eslint-disable-next-line no-console
-            console.log('Message sent successfully via API:', convertedMessage);
-          }
-          return convertedMessage;
-        }
-        // If response.data exists, use it (wrapped response)
-        if ('data' in response && response.data) {
-          const convertedMessage = this.convertMessageFormat(
+        } else if ('data' in response && response.data) {
+          persistedMessage = this.convertMessageFormat(
             response.data as unknown as Record<string, unknown>
           );
-          if (import.meta.env.DEV) {
-            // eslint-disable-next-line no-console
-            console.log('Message sent successfully via API (wrapped):', convertedMessage);
-          }
-          return convertedMessage;
         }
         // If response is directly a message object (direct response)
-        if ('id' in response || 'message_id' in response) {
-          // Convert backend format to frontend format if needed
-          const convertedMessage = this.convertMessageFormat(response as Record<string, unknown>);
-          if (import.meta.env.DEV) {
-            // eslint-disable-next-line no-console
-            console.log('Message sent successfully via API (direct):', convertedMessage);
-          }
-          return convertedMessage;
+        else if ('id' in response || 'message_id' in response) {
+          persistedMessage = this.convertMessageFormat(response as Record<string, unknown>);
+        } else {
+          throw new Error('Unable to parse message response');
         }
+      } else {
+        throw new Error('Invalid response format');
       }
 
-      console.warn('Unable to parse sendMessage response, but continuing...:', response);
-      // Return a mock message to prevent crash - the socket will handle real-time delivery
-      return {
-        id: message.tempId,
+      // Secondary: Notify other participants via socket (NOT for message creation)
+      this.socket?.emit('message_sent_notification', {
+        messageId: persistedMessage.id,
+        conversationId,
+        tempId,
+      });
+
+      // Track message delivery completion
+      trackMessageDelivered(persistedMessage.id);
+      
+      // Invalidate relevant caches
+      messageCache.invalidateConversation(conversationId);
+      const userId = this.getCurrentUserId();
+      if (userId) {
+        conversationCache.invalidateUser(userId);
+      }
+
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('Message sent successfully via API:', persistedMessage);
+        // eslint-disable-next-line no-console
+        console.log(`Message delivery time: ${Date.now() - startTime}ms`);
+      }
+
+      return persistedMessage;
+    } catch (error) {
+      // Queue message for retry instead of attempting socket fallback
+      const failedMessage: Message = {
+        id: tempId,
         conversationId,
         senderId: 'unknown',
         senderType: 'user' as const,
@@ -573,10 +646,57 @@ export class ChatService {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-    } catch (error) {
-      // If API fails, still try socket for real-time delivery
-      this.socket?.emit('sendMessage', message);
+
+      this.queueFailedMessage(failedMessage);
+
+      if (import.meta.env.DEV) {
+        console.error('Message send failed, queued for retry:', error);
+      }
+
       throw error;
+    }
+  }
+
+  private queueFailedMessage(message: Message): void {
+    this.pendingMessages.set(message.id, message);
+
+    // Attempt retry after 5 seconds
+    setTimeout(() => {
+      this.retryFailedMessage(message.id);
+    }, 5000);
+  }
+
+  private async retryFailedMessage(messageId: string): Promise<void> {
+    const message = this.pendingMessages.get(messageId);
+    if (!message) return;
+
+    try {
+      await this.sendMessage(message.conversationId, message.content, message.messageType);
+      this.pendingMessages.delete(messageId);
+
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('Retry successful for message:', messageId);
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Retry failed for message:', messageId, error);
+      }
+      // Will remain in pending queue for manual retry or app restart
+    }
+  }
+
+  private async retryAllPendingMessages(): Promise<void> {
+    if (this.pendingMessages.size === 0) return;
+
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log(`Retrying ${this.pendingMessages.size} pending messages...`);
+    }
+
+    const pendingIds = Array.from(this.pendingMessages.keys());
+    for (const messageId of pendingIds) {
+      await this.retryFailedMessage(messageId);
     }
   }
 
@@ -708,6 +828,13 @@ export class ChatService {
 
   // Typing indicators
   startTyping(conversationId: string): void {
+    if (!typingRateLimiter.canMakeRequest()) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('Typing event rate limited');
+      }
+      return;
+    }
     this.socket?.emit('startTyping', { conversationId });
   }
 
