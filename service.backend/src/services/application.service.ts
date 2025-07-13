@@ -100,7 +100,7 @@ export class ApplicationService {
         user_id: userId,
         pet_id: applicationData.pet_id,
         rescue_id: pet.rescue_id,
-        status: ApplicationStatus.SUBMITTED,
+        status: ApplicationStatus.DRAFT,
         priority: applicationData.priority || ApplicationPriority.NORMAL,
         answers: applicationData.answers,
         references: processedReferences,
