@@ -5,6 +5,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
+import { WithdrawApplicationModal } from '../components/application';
+
 const Container = styled.div`
   max-width: 800px;
   margin: 0 auto;
@@ -129,6 +131,9 @@ export const ApplicationDetailsPage: React.FC = () => {
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const loadApplication = async () => {
@@ -153,6 +158,30 @@ export const ApplicationDetailsPage: React.FC = () => {
 
     loadApplication();
   }, [id]);
+
+  const handleWithdraw = async (reason?: string) => {
+    if (!application) return;
+
+    setIsWithdrawing(true);
+    try {
+      const updatedApplication = await applicationService.withdrawApplication(
+        application.id,
+        reason
+      );
+
+      setApplication(updatedApplication);
+      setSuccessMessage('Application withdrawn successfully');
+      setIsWithdrawModalOpen(false);
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (error) {
+      console.error('Failed to withdraw application:', error);
+      // Error handling is done in the modal
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not available';
@@ -192,6 +221,12 @@ export const ApplicationDetailsPage: React.FC = () => {
         <h1>Application Details</h1>
         <p>Application #{application.id.slice(-6)}</p>
       </Header>
+
+      {successMessage && (
+        <Alert variant='success' title='Success'>
+          {successMessage}
+        </Alert>
+      )}
 
       <Section>
         <SectionTitle>Application Status</SectionTitle>
@@ -262,14 +297,24 @@ export const ApplicationDetailsPage: React.FC = () => {
         {application.status === 'submitted' && (
           <Button
             variant='secondary'
-            onClick={() => {
-              // TODO: Implement withdraw functionality
+            onClick={() => setIsWithdrawModalOpen(true)}
+            style={{
+              backgroundColor: '#dc2626',
+              borderColor: '#dc2626',
+              color: 'white',
             }}
           >
             Withdraw Application
           </Button>
         )}
       </ButtonGroup>
+
+      <WithdrawApplicationModal
+        isOpen={isWithdrawModalOpen}
+        onClose={() => setIsWithdrawModalOpen(false)}
+        onConfirm={handleWithdraw}
+        isLoading={isWithdrawing}
+      />
     </Container>
   );
 };
