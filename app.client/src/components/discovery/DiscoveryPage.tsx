@@ -4,7 +4,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { MdWarning } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useAuth } from '../../contexts/AuthContext';
 import { discoveryService } from '../../services/discoveryService';
+import { LoginPromptModal } from '../modals/LoginPromptModal';
 import { SwipeControls } from '../swipe/SwipeControls';
 import { SwipeStack } from '../swipe/SwipeStack';
 
@@ -234,11 +236,14 @@ const ErrorState = styled.div`
 
 export const DiscoveryPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [pets, setPets] = useState<DiscoveryPet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<PetSearchFilters>({});
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string>('');
   const [session, setSession] = useState<SwipeSession>({
     sessionId: `session-${Date.now()}`,
     startTime: new Date().toISOString(),
@@ -284,8 +289,20 @@ export const DiscoveryPage: React.FC = () => {
     setError(null);
     setFilters(prev => ({ ...prev })); // Trigger useEffect
   }, []);
+
+  const handleCloseLoginPrompt = useCallback(() => {
+    setShowLoginPrompt(false);
+    setPendingAction('');
+  }, []);
   const handleSwipe = useCallback(
     async (action: SwipeAction) => {
+      // Check if user is authenticated for any swipe action
+      if (!isAuthenticated) {
+        setPendingAction(action.action);
+        setShowLoginPrompt(true);
+        return;
+      }
+
       // Update session stats
       setSession(prev => ({
         ...prev,
@@ -308,7 +325,7 @@ export const DiscoveryPage: React.FC = () => {
         console.error('Failed to record swipe action:', error);
       }
     },
-    [session.sessionId]
+    [session.sessionId, isAuthenticated]
   );
 
   const handleEndReached = useCallback(async () => {
@@ -331,10 +348,17 @@ export const DiscoveryPage: React.FC = () => {
       const currentPet = pets[currentPetIndex];
       if (!currentPet) return;
 
-      // Handle info action differently - navigate to pet details
+      // Handle info action differently - navigate to pet details (allow for non-authenticated users)
       if (action === 'info') {
         // Navigate to pet details page
         navigate(`/pets/${currentPet.petId}`);
+        return;
+      }
+
+      // Check if user is authenticated for swipe actions
+      if (!isAuthenticated) {
+        setPendingAction(action);
+        setShowLoginPrompt(true);
         return;
       }
 
@@ -347,7 +371,7 @@ export const DiscoveryPage: React.FC = () => {
 
       handleSwipe(swipeAction);
     },
-    [currentPetIndex, pets, session.sessionId, handleSwipe, navigate]
+    [currentPetIndex, pets, session.sessionId, handleSwipe, navigate, isAuthenticated]
   );
 
   // Set session end time when component unmounts
@@ -360,7 +384,9 @@ export const DiscoveryPage: React.FC = () => {
     };
   }, []);
 
-  const visiblePets = pets.slice(currentPetIndex);
+  // For non-authenticated users, limit to first pet only
+  const visiblePets = isAuthenticated ? pets.slice(currentPetIndex) : pets.slice(0, 1); // Show only first pet for non-authenticated users
+
   const hasNoPets = visiblePets.length === 0;
 
   return (
@@ -463,34 +489,57 @@ export const DiscoveryPage: React.FC = () => {
               onSwipe={handleSwipe}
               onEndReached={handleEndReached}
               sessionId={session.sessionId}
+              disabled={!isAuthenticated}
             />
 
-            {!hasNoPets && <SwipeControls onAction={handleControlAction} disabled={hasNoPets} />}
+            {!hasNoPets && (
+              <SwipeControls
+                onAction={handleControlAction}
+                disabled={hasNoPets || !isAuthenticated}
+              />
+            )}
           </>
         )}
 
         <SessionStats>
-          <div>Session Progress</div>
-          <StatsGrid>
-            <StatItem>
-              <div className='number'>{session.totalSwipes}</div>
-              <div className='label'>Total</div>
-            </StatItem>
-            <StatItem>
-              <div className='number'>{session.likes}</div>
-              <div className='label'>Likes</div>
-            </StatItem>
-            <StatItem>
-              <div className='number'>{session.superLikes}</div>
-              <div className='label'>Super</div>
-            </StatItem>
-            <StatItem>
-              <div className='number'>{session.passes}</div>
-              <div className='label'>Pass</div>
-            </StatItem>
-          </StatsGrid>
+          {isAuthenticated ? (
+            <>
+              <div>Session Progress</div>
+              <StatsGrid>
+                <StatItem>
+                  <div className='number'>{session.totalSwipes}</div>
+                  <div className='label'>Total</div>
+                </StatItem>
+                <StatItem>
+                  <div className='number'>{session.likes}</div>
+                  <div className='label'>Likes</div>
+                </StatItem>
+                <StatItem>
+                  <div className='number'>{session.superLikes}</div>
+                  <div className='label'>Super</div>
+                </StatItem>
+                <StatItem>
+                  <div className='number'>{session.passes}</div>
+                  <div className='label'>Pass</div>
+                </StatItem>
+              </StatsGrid>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '1rem' }}>
+              <p>👋 Welcome to Adopt Don&apos;t Shop!</p>
+              <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                You&apos;re viewing a preview. Sign up to start swiping and save your favorites!
+              </p>
+            </div>
+          )}
         </SessionStats>
       </MainContent>
+
+      <LoginPromptModal
+        isOpen={showLoginPrompt}
+        onClose={handleCloseLoginPrompt}
+        action={pendingAction}
+      />
     </PageContainer>
   );
 };
