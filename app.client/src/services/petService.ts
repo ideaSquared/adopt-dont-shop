@@ -257,24 +257,65 @@ class PetService {
     page: number = 1,
     limit: number = 20
   ): Promise<PaginatedResponse<Pet>> {
-    const response = await apiService.get<Pet[]>(`/api/v1/pets/rescue/${rescueId}`, {
-      page,
-      limit,
-    });
+    try {
+      // Call the API directly to get the full response with metadata
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/v1/pets/rescue/${rescueId}?page=${page}&limit=${limit}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-    // Since apiService extracts the data, response is now the pets array
-    // The pagination info is handled by the backend, but we need to construct a response
-    return {
-      data: response || [],
-      pagination: {
-        page: page,
-        limit,
-        total: response?.length || 0,
-        totalPages: Math.ceil((response?.length || 0) / limit),
-        hasNext: false, // Would need to be calculated based on actual total
-        hasPrev: page > 1,
-      },
-    };
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const rawData = await response.json();
+
+      // Transform according to the actual API response structure
+      if (rawData.success && rawData.data && rawData.meta) {
+        return {
+          data: rawData.data,
+          pagination: {
+            page: rawData.meta.page || page,
+            limit,
+            total: rawData.meta.total || 0,
+            totalPages: rawData.meta.totalPages || 1,
+            hasNext: rawData.meta.hasNext || false,
+            hasPrev: rawData.meta.hasPrev || false,
+          },
+        };
+      } else {
+        // Fallback for unexpected response structure
+        return {
+          data: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        };
+      }
+    } catch (error) {
+      console.error('Failed to get pets by rescue:', error);
+      return {
+        data: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      };
+    }
   }
 
   // Get similar pets
