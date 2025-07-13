@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import ApplicationDraft, { DraftStatus } from '../models/ApplicationDraft';
+import Pet from '../models/Pet';
 import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 import { ApplicationProfileService } from './application-profile.service';
@@ -74,9 +75,17 @@ export class ApplicationDraftService {
         },
       });
 
-      // Get rescue ID for the pet (assuming we have a Pet model)
-      // For now, we'll use a placeholder - this should be properly implemented
-      const rescueId = 'placeholder_rescue_id';
+      // Get rescue ID for the pet
+      const pet = await Pet.findOne({
+        where: { pet_id: request.petId },
+        attributes: ['rescue_id'],
+      });
+
+      if (!pet) {
+        throw new Error(`Pet with ID ${request.petId} not found`);
+      }
+
+      const rescueId = pet.rescue_id;
 
       const completionPercentage = Math.round((request.stepNumber / request.totalSteps) * 100);
 
