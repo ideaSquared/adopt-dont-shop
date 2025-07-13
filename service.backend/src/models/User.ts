@@ -76,15 +76,32 @@ interface UserAttributes {
   notificationPreferences?: JsonObject;
   termsAcceptedAt?: Date | null;
   privacyPolicyAcceptedAt?: Date | null;
+  applicationDefaults?: JsonObject | null;
+  applicationPreferences?: JsonObject;
+  profileCompletionStatus?: JsonObject;
+  applicationTemplateVersion?: number;
   Roles?: Role[];
 }
 
+/**
+ * User Creation Attributes
+ * Interface for creating new user records with optional fields
+ */
 export interface UserCreationAttributes
   extends Optional<
     UserAttributes,
     'userId' | 'status' | 'userType' | 'loginAttempts' | 'createdAt' | 'updatedAt' | 'deletedAt'
   > {}
 
+/**
+ * User Model
+ * Represents a user in the adopt-don't-shop platform.
+ * Enhanced with Phase 1 application profile features including:
+ * - Application defaults for form pre-population
+ * - Application preferences for user behavior
+ * - Profile completion tracking
+ * - Template versioning for future compatibility
+ */
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public userId!: string;
   public firstName!: string;
@@ -126,6 +143,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public notificationPreferences!: JsonObject;
   public termsAcceptedAt!: Date | null;
   public privacyPolicyAcceptedAt!: Date | null;
+  public applicationDefaults!: JsonObject | null;
+  public applicationPreferences!: JsonObject;
+  public profileCompletionStatus!: JsonObject;
+  public applicationTemplateVersion!: number;
 
   // Optional Roles property
   public Roles?: Role[];
@@ -133,11 +154,18 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   // Association methods
   public addRole!: BelongsToManyAddAssociationMixin<Role, number>;
 
-  // Instance methods for security
+  /**
+   * Check if the user account is currently locked due to failed login attempts
+   * @returns True if account is locked, false otherwise
+   */
   public isAccountLocked(): boolean {
     return this.lockedUntil ? new Date() < this.lockedUntil : false;
   }
 
+  /**
+   * Get the user's full name by combining first and last name
+   * @returns Combined first and last name, trimmed of whitespace
+   */
   public getFullName(): string {
     return `${this.firstName || ''} ${this.lastName || ''}`.trim();
   }
@@ -150,6 +178,11 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     return this.status === UserStatus.ACTIVE && this.emailVerified && !this.isAccountLocked();
   }
 
+  /**
+   * Define model associations with other models
+   * @param models - Object containing all Sequelize models
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public static associate(models: any) {
     this.belongsToMany(models.Role, { through: models.UserRole, foreignKey: 'userId' });
   }
@@ -398,6 +431,42 @@ User.init(
       type: DataTypes.DATE,
       allowNull: true,
       field: 'privacy_policy_accepted_at',
+    },
+    applicationDefaults: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      field: 'application_defaults',
+      defaultValue: null,
+    },
+    applicationPreferences: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      field: 'application_preferences',
+      defaultValue: {
+        auto_populate: true,
+        save_drafts: true,
+        quick_apply_enabled: false,
+        completion_reminders: true,
+      },
+    },
+    profileCompletionStatus: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      field: 'profile_completion_status',
+      defaultValue: {
+        basic_info: false,
+        living_situation: false,
+        pet_experience: false,
+        references: false,
+        overall_percentage: 0,
+        last_updated: null,
+      },
+    },
+    applicationTemplateVersion: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      field: 'application_template_version',
+      defaultValue: 1,
     },
   },
   {

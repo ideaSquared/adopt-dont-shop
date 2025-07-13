@@ -12,23 +12,36 @@ import {
 } from '../types/application';
 import { logger } from '../utils/logger';
 
+/**
+ * Application Controller
+ * Handles all HTTP endpoints related to adoption applications.
+ * Provides CRUD operations, status management, document handling,
+ * and advanced search functionality for adoption applications.
+ */
 export class ApplicationController {
   // Validation rules
   static validateCreateApplication = [
-    body('pet_id').isUUID().withMessage('Valid pet ID is required'),
+    body('pet_id')
+      .isString()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Valid pet ID is required'),
     body('answers').isObject().withMessage('Answers must be an object'),
     body('references')
-      .isArray({ min: 1, max: 5 })
-      .withMessage('At least 1 reference is required, maximum 5'),
+      .optional()
+      .isArray({ min: 0, max: 5 })
+      .withMessage('Maximum 5 references allowed'),
     body('references.*.name')
+      .optional()
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Reference name must be between 2 and 100 characters'),
     body('references.*.relationship')
+      .optional()
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Reference relationship must be between 2 and 100 characters'),
     body('references.*.phone')
+      .optional()
       .matches(/^[+]?[1-9]?[0-9]{7,15}$/)
       .withMessage('Valid reference phone number is required'),
     body('references.*.email')
@@ -121,7 +134,11 @@ export class ApplicationController {
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
     query('user_id').optional().isUUID().withMessage('Valid user ID required'),
-    query('pet_id').optional().isUUID().withMessage('Valid pet ID required'),
+    query('pet_id')
+      .optional()
+      .isString()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Valid pet ID required'),
     query('rescue_id').optional().isUUID().withMessage('Valid rescue ID required'),
     query('status')
       .optional()
@@ -287,7 +304,28 @@ export class ApplicationController {
     }
   };
 
-  // Create new application
+  /**
+   * Create a new adoption application with validation and processing
+   * @route POST /api/v1/applications
+   * @param req - Authenticated request containing application data in body
+   * @param res - Express response object
+   * @returns JSON response with created application or validation errors
+   * @example
+   * Request body:
+   * ```json
+   * {
+   *   "pet_id": "pet_123",
+   *   "answers": {
+   *     "personal_info": { "firstName": "John", "email": "john@example.com" },
+   *     "living_situation": { "housingType": "house", "isOwned": true }
+   *   },
+   *   "references": [
+   *     { "name": "Jane Doe", "relationship": "Friend", "phone": "07123456789" }
+   *   ],
+   *   "priority": "normal"
+   * }
+   * ```
+   */
   createApplication = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);

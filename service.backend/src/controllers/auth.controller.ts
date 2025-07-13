@@ -24,8 +24,8 @@ export const authValidation = {
       .withMessage('Last name is required and must be less than 50 characters'),
     body('phone_number')
       .optional()
-      .isMobilePhone('any')
-      .withMessage('Please provide a valid phone number'),
+      .isMobilePhone('en-GB')
+      .withMessage('Please provide a valid UK mobile number'),
     body('user_type')
       .optional()
       .isIn(['ADOPTER', 'RESCUE_STAFF', 'ADMIN'])
@@ -73,8 +73,8 @@ export const authValidation = {
       .withMessage('Last name must be 1-50 characters'),
     body('phoneNumber')
       .optional()
-      .isMobilePhone('any')
-      .withMessage('Please provide a valid phone number'),
+      .isMobilePhone('en-GB')
+      .withMessage('Please provide a valid UK mobile number'),
     body('bio')
       .optional()
       .trim()

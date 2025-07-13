@@ -4,7 +4,6 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import {
   ApplicationDetailsPage,
-  ApplicationPage,
   FavoritesPage,
   HomePage,
   LoginPage,
@@ -14,7 +13,9 @@ import {
   RescueDetailsPage,
   SearchPage,
 } from '@/pages';
+import { EnhancedApplicationPage } from '@/pages/EnhancedApplicationPage';
 import NotificationDemoPage from '@/pages/NotificationDemoPage';
+import { ProfileSetupPage } from '@/pages/ProfileSetupPage';
 import { Footer } from '@adopt-dont-shop/components';
 import { useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
@@ -42,9 +43,10 @@ function App() {
                   <Route path='/search' element={<SearchPage />} />
                   <Route path='/pets/:id' element={<PetDetailsPage />} />
                   <Route path='/rescues/:id' element={<RescueDetailsPage />} />
-                  <Route path='/apply/:petId' element={<ApplicationPage />} />
+                  <Route path='/apply/:petId' element={<EnhancedApplicationPage />} />
                   <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
                   <Route path='/profile' element={<ProfilePage />} />
+                  <Route path='/profile/setup' element={<ProfileSetupPage />} />
                   <Route path='/favorites' element={<FavoritesPage />} />
                   <Route path='/chat' element={<ChatPage />} />
                   <Route path='/chat/:conversationId' element={<ChatPage />} />

@@ -14,10 +14,27 @@ interface ApplicationWithPetInfo extends Application {
   petBreed?: string;
 }
 
+interface ApplicationSubmission {
+  pet_id: string;
+  answers: {
+    personal_info: Record<string, unknown>;
+    living_situation: Record<string, unknown>;
+    pet_experience: Record<string, unknown>;
+    additional_info: Record<string, unknown>;
+  };
+  references?: Array<{
+    name: string;
+    relationship: string;
+    phone: string;
+    email?: string;
+  }>;
+  priority?: string;
+}
+
 export class ApplicationService {
   private baseUrl = '/api/v1/applications';
 
-  async submitApplication(applicationData: ApplicationData): Promise<Application> {
+  async submitApplication(applicationData: ApplicationSubmission): Promise<Application> {
     const response = await api.post<ApiResponse<Application>>(`${this.baseUrl}`, applicationData);
     return response.data;
   }
@@ -194,10 +211,12 @@ export class ApplicationService {
     return response.data;
   }
 
-  async withdrawApplication(applicationId: string, reason?: string): Promise<void> {
-    await api.post(`${this.baseUrl}/${applicationId}/withdraw`, {
-      reason,
-    });
+  async withdrawApplication(applicationId: string, reason?: string): Promise<Application> {
+    const response = await api.post<ApiResponse<Application>>(
+      `${this.baseUrl}/${applicationId}/withdraw`,
+      { reason }
+    );
+    return response.data;
   }
 
   async uploadDocument(

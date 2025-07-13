@@ -257,21 +257,22 @@ class PetService {
     page: number = 1,
     limit: number = 20
   ): Promise<PaginatedResponse<Pet>> {
-    const response = await apiService.get<ApiResponse<Pet[]>>(`/api/v1/pets/rescue/${rescueId}`, {
+    const response = await apiService.get<Pet[]>(`/api/v1/pets/rescue/${rescueId}`, {
       page,
       limit,
     });
 
-    // Transform response to match expected format
+    // Since apiService extracts the data, response is now the pets array
+    // The pagination info is handled by the backend, but we need to construct a response
     return {
-      data: response.data || [],
+      data: response || [],
       pagination: {
-        page: response.meta?.page || page,
+        page: page,
         limit,
-        total: response.meta?.total || 0,
-        totalPages: response.meta?.totalPages || 1,
-        hasNext: response.meta?.hasNext || false,
-        hasPrev: response.meta?.hasPrev || false,
+        total: response?.length || 0,
+        totalPages: Math.ceil((response?.length || 0) / limit),
+        hasNext: false, // Would need to be calculated based on actual total
+        hasPrev: page > 1,
       },
     };
   }

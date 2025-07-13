@@ -323,7 +323,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                 type='tel'
                 value={registerForm.phoneNumber}
                 onChange={e => setRegisterForm({ ...registerForm, phoneNumber: e.target.value })}
-                placeholder='(555) 123-4567'
+                placeholder='07123 456789'
               />
             </FormGroup>
 

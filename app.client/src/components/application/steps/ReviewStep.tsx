@@ -119,6 +119,256 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
               <Label>Phone:</Label>
               <Value>{data.personalInfo.phone}</Value>
             </ReviewItem>
+            <ReviewItem>
+              <Label>Address:</Label>
+              <Value>{data.personalInfo.address}</Value>
+            </ReviewItem>
+            <ReviewItem>
+              <Label>City:</Label>
+              <Value>{data.personalInfo.city}</Value>
+            </ReviewItem>
+            {data.personalInfo.county && (
+              <ReviewItem>
+                <Label>County:</Label>
+                <Value>{data.personalInfo.county}</Value>
+              </ReviewItem>
+            )}
+            <ReviewItem>
+              <Label>Postcode:</Label>
+              <Value>{data.personalInfo.postcode}</Value>
+            </ReviewItem>
+            <ReviewItem>
+              <Label>Country:</Label>
+              <Value>{data.personalInfo.country}</Value>
+            </ReviewItem>
+            {data.personalInfo.dateOfBirth && (
+              <ReviewItem>
+                <Label>Date of Birth:</Label>
+                <Value>{data.personalInfo.dateOfBirth}</Value>
+              </ReviewItem>
+            )}
+            {data.personalInfo.occupation && (
+              <ReviewItem>
+                <Label>Occupation:</Label>
+                <Value>{data.personalInfo.occupation}</Value>
+              </ReviewItem>
+            )}
+          </ReviewSection>
+        )}
+
+        {data.livingsituation && (
+          <ReviewSection>
+            <SectionTitle>Living Situation</SectionTitle>
+            <ReviewItem>
+              <Label>Housing Type:</Label>
+              <Value>{data.livingsituation.housingType}</Value>
+            </ReviewItem>
+            <ReviewItem>
+              <Label>Owned/Rented:</Label>
+              <Value>{data.livingsituation.isOwned ? 'Owned' : 'Rented'}</Value>
+            </ReviewItem>
+            <ReviewItem>
+              <Label>Has Yard:</Label>
+              <Value>{data.livingsituation.hasYard ? 'Yes' : 'No'}</Value>
+            </ReviewItem>
+            {data.livingsituation.hasYard && data.livingsituation.yardSize && (
+              <ReviewItem>
+                <Label>Yard Size:</Label>
+                <Value>{data.livingsituation.yardSize}</Value>
+              </ReviewItem>
+            )}
+            {data.livingsituation.hasYard && (
+              <ReviewItem>
+                <Label>Yard Fenced:</Label>
+                <Value>{data.livingsituation.yardFenced ? 'Yes' : 'No'}</Value>
+              </ReviewItem>
+            )}
+            <ReviewItem>
+              <Label>Pets Allowed:</Label>
+              <Value>{data.livingsituation.allowsPets ? 'Yes' : 'No'}</Value>
+            </ReviewItem>
+            {data.livingsituation.landlordContact && (
+              <ReviewItem>
+                <Label>Landlord Contact:</Label>
+                <Value>{data.livingsituation.landlordContact}</Value>
+              </ReviewItem>
+            )}
+            {data.livingsituation.householdSize && (
+              <ReviewItem>
+                <Label>Household Size:</Label>
+                <Value>{data.livingsituation.householdSize} people</Value>
+              </ReviewItem>
+            )}
+            <ReviewItem>
+              <Label>Allergies in Household:</Label>
+              <Value>{data.livingsituation.hasAllergies ? 'Yes' : 'No'}</Value>
+            </ReviewItem>
+            {data.livingsituation.hasAllergies && data.livingsituation.allergyDetails && (
+              <ReviewItem>
+                <Label>Allergy Details:</Label>
+                <Value>{data.livingsituation.allergyDetails}</Value>
+              </ReviewItem>
+            )}
+          </ReviewSection>
+        )}
+
+        {data.petExperience && (
+          <ReviewSection>
+            <SectionTitle>Pet Experience</SectionTitle>
+            <ReviewItem>
+              <Label>Currently Have Pets:</Label>
+              <Value>{data.petExperience.hasPetsCurrently ? 'Yes' : 'No'}</Value>
+            </ReviewItem>
+            <ReviewItem>
+              <Label>Experience Level:</Label>
+              <Value>{data.petExperience.experienceLevel}</Value>
+            </ReviewItem>
+            <ReviewItem>
+              <Label>Willing to Train:</Label>
+              <Value>{data.petExperience.willingToTrain ? 'Yes' : 'No'}</Value>
+            </ReviewItem>
+            <ReviewItem>
+              <Label>Hours Alone Daily:</Label>
+              <Value>{data.petExperience.hoursAloneDaily} hours</Value>
+            </ReviewItem>
+            {data.petExperience.exercisePlans && (
+              <ReviewItem>
+                <Label>Exercise Plans:</Label>
+                <Value>{data.petExperience.exercisePlans}</Value>
+              </ReviewItem>
+            )}
+            {data.petExperience.currentPets && data.petExperience.currentPets.length > 0 && (
+              <>
+                <Label style={{ marginTop: '1rem', marginBottom: '0.5rem', display: 'block' }}>
+                  Current Pets:
+                </Label>
+                {data.petExperience.currentPets.map((pet, index) => (
+                  <ReviewItem key={index}>
+                    <Label>
+                      {pet.type} - {pet.breed}:
+                    </Label>
+                    <Value>
+                      Age {pet.age},{' '}
+                      {pet.spayedNeutered ? 'Spayed/Neutered' : 'Not Spayed/Neutered'}
+                    </Value>
+                  </ReviewItem>
+                ))}
+              </>
+            )}
+            {data.petExperience.previousPets && data.petExperience.previousPets.length > 0 && (
+              <>
+                <Label style={{ marginTop: '1rem', marginBottom: '0.5rem', display: 'block' }}>
+                  Previous Pets:
+                </Label>
+                {data.petExperience.previousPets.map((pet, index) => (
+                  <ReviewItem key={index}>
+                    <Label>
+                      {pet.type} - {pet.breed}:
+                    </Label>
+                    <Value>
+                      Owned for {pet.yearsOwned} years - {pet.whatHappened}
+                    </Value>
+                  </ReviewItem>
+                ))}
+              </>
+            )}
+          </ReviewSection>
+        )}
+
+        {data.references && (
+          <ReviewSection>
+            <SectionTitle>References</SectionTitle>
+            {data.references.veterinarian && (
+              <>
+                <Label style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 'bold' }}>
+                  Veterinarian Reference:
+                </Label>
+                <ReviewItem>
+                  <Label>Name:</Label>
+                  <Value>{data.references.veterinarian.name}</Value>
+                </ReviewItem>
+                <ReviewItem>
+                  <Label>Clinic:</Label>
+                  <Value>{data.references.veterinarian.clinicName}</Value>
+                </ReviewItem>
+                <ReviewItem>
+                  <Label>Phone:</Label>
+                  <Value>{data.references.veterinarian.phone}</Value>
+                </ReviewItem>
+                {data.references.veterinarian.email && (
+                  <ReviewItem>
+                    <Label>Email:</Label>
+                    <Value>{data.references.veterinarian.email}</Value>
+                  </ReviewItem>
+                )}
+                <ReviewItem>
+                  <Label>Years Used:</Label>
+                  <Value>{data.references.veterinarian.yearsUsed} years</Value>
+                </ReviewItem>
+              </>
+            )}
+            {data.references.personal && data.references.personal.length > 0 && (
+              <>
+                <Label
+                  style={{
+                    marginTop: '1rem',
+                    marginBottom: '0.5rem',
+                    display: 'block',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  Personal References:
+                </Label>
+                {data.references.personal.map((ref, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      marginBottom: '1rem',
+                      paddingBottom: '1rem',
+                      borderBottom: '1px solid #eee',
+                    }}
+                  >
+                    <ReviewItem>
+                      <Label>Name:</Label>
+                      <Value>{ref.name}</Value>
+                    </ReviewItem>
+                    <ReviewItem>
+                      <Label>Relationship:</Label>
+                      <Value>{ref.relationship}</Value>
+                    </ReviewItem>
+                    <ReviewItem>
+                      <Label>Phone:</Label>
+                      <Value>{ref.phone}</Value>
+                    </ReviewItem>
+                    {ref.email && (
+                      <ReviewItem>
+                        <Label>Email:</Label>
+                        <Value>{ref.email}</Value>
+                      </ReviewItem>
+                    )}
+                    <ReviewItem>
+                      <Label>Years Known:</Label>
+                      <Value>{ref.yearsKnown} years</Value>
+                    </ReviewItem>
+                  </div>
+                ))}
+              </>
+            )}
+            {!data.references.veterinarian &&
+              (!data.references.personal || data.references.personal.length === 0) && (
+                <p style={{ fontStyle: 'italic', color: '#666' }}>
+                  No references provided. You may be contacted later for references if needed.
+                </p>
+              )}
+          </ReviewSection>
+        )}
+
+        {!data.references && (
+          <ReviewSection>
+            <SectionTitle>References</SectionTitle>
+            <p style={{ fontStyle: 'italic', color: '#666' }}>
+              No references provided. You may be contacted later for references if needed.
+            </p>
           </ReviewSection>
         )}
 
@@ -130,6 +380,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
               : 'This is a new application submission.'}
           </p>
           <p>By submitting this application, you agree to our terms and conditions.</p>
+          <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
+            Please review all information above for accuracy. Once submitted, you may not be able to
+            edit certain details.
+          </p>
         </ReviewSection>
       </Form>
     </StepContainer>

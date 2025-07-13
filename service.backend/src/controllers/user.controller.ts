@@ -20,8 +20,8 @@ export const userValidation = {
       .withMessage('Last name must be between 1 and 50 characters'),
     body('phone_number')
       .optional()
-      .isMobilePhone('any')
-      .withMessage('Please provide a valid phone number'),
+      .isMobilePhone('en-GB')
+      .withMessage('Please provide a valid UK mobile number'),
     body('bio')
       .optional()
       .isLength({ max: 500 })

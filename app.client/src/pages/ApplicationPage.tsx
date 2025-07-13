@@ -172,8 +172,9 @@ export const ApplicationPage: React.FC = () => {
               phone: user.phone || '',
               address: user.location?.address || '',
               city: user.location?.city || '',
-              state: user.location?.state || '',
-              zipCode: user.location?.zipCode || '',
+              county: '', // County field for UK addressing
+              postcode: user.location?.zipCode || '', // Map old zipCode to postcode
+              country: user.country || 'United Kingdom',
             },
           }));
         }
@@ -220,17 +221,63 @@ export const ApplicationPage: React.FC = () => {
         user_authenticated: isAuthenticated.toString(),
       });
 
-      const submissionData: ApplicationData = {
-        ...(applicationData as ApplicationData),
-        petId: pet.pet_id,
-        userId: user.userId,
-        rescueId: pet.rescue_id,
+      // Transform references to the format expected by the backend
+      const references: Array<{
+        name: string;
+        relationship: string;
+        phone: string;
+        email?: string;
+      }> = [];
+
+      if (applicationData.references?.personal) {
+        references.push(
+          ...applicationData.references.personal.map(ref => ({
+            name: ref.name,
+            relationship: ref.relationship,
+            phone: ref.phone,
+            email: ref.email,
+          }))
+        );
+      }
+
+      if (applicationData.references?.veterinarian) {
+        references.push({
+          name: applicationData.references.veterinarian.name,
+          relationship: 'Veterinarian',
+          phone: applicationData.references.veterinarian.phone,
+          email: applicationData.references.veterinarian.email,
+        });
+      }
+
+      const submissionData = {
+        pet_id: pet.pet_id,
+        answers: {
+          personal_info: applicationData.personalInfo || {},
+          living_situation: applicationData.livingsituation || {},
+          pet_experience: applicationData.petExperience || {},
+          additional_info: applicationData.additionalInfo || {
+            whyAdopt: 'I want to provide a loving home for a pet in need.',
+            expectations: 'I expect to provide daily care, exercise, and companionship.',
+            emergencyPlan: 'I have a local emergency vet and backup caregiver.',
+            agreement: true,
+          },
+        },
+        ...(references.length > 0 && { references }),
+        priority: 'normal' as const,
       };
 
       let result;
       if (existingApplication) {
-        result = await applicationService.updateApplication(existingApplication.id, submissionData);
+        // For updates, use the original ApplicationData format
+        const updateData: Partial<ApplicationData> = {
+          ...applicationData,
+          petId: pet.pet_id,
+          userId: user.userId,
+          rescueId: pet.rescue_id,
+        };
+        result = await applicationService.updateApplication(existingApplication.id, updateData);
       } else {
+        // For new applications, use the new ApplicationSubmission format
         result = await applicationService.submitApplication(submissionData);
       }
 

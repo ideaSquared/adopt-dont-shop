@@ -245,8 +245,9 @@ export interface ApplicationData {
     phone: string;
     address: string;
     city: string;
-    state: string;
-    zipCode: string;
+    county: string; // Changed from state to county for UK
+    postcode: string; // Changed from zipCode to postcode for UK
+    country: string; // Added country field for international support
     dateOfBirth?: string;
     occupation?: string;
   };
