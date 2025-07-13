@@ -4,6 +4,7 @@ import notificationService, {
 } from '@/services/notificationService';
 import { Button } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
 const NotificationCenter = styled.div`
@@ -204,6 +205,7 @@ const formatRelativeTime = (dateString: string): string => {
 };
 
 export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({ onClose }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<NotificationFilters>({
@@ -296,7 +298,7 @@ export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({
 
     // Handle navigation based on notification data
     if (notification.data?.action_url) {
-      window.location.href = notification.data.action_url as string;
+      navigate(notification.data.action_url as string);
     }
   };
 

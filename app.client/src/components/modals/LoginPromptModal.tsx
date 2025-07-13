@@ -218,16 +218,16 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
         </Message>
 
         <ButtonGroup>
-          <PrimaryButton to='/register' onClick={onClose}>
+          <PrimaryButton to='/register'>
             <MdPerson />
             Create Account
           </PrimaryButton>
 
-          <SecondaryButton to='/login' onClick={onClose}>
-            Sign In
-          </SecondaryButton>
+          <SecondaryButton to='/login'>Sign In</SecondaryButton>
 
-          <SkipButton onClick={onClose}>Continue browsing</SkipButton>
+          <SkipButton type='button' onClick={onClose}>
+            Continue browsing
+          </SkipButton>
         </ButtonGroup>
       </ModalContent>
     </ModalOverlay>

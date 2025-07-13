@@ -7,6 +7,7 @@ import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { LoginPromptModal } from '../components/modals/LoginPromptModal';
 import { resolveFileUrl } from '../utils/fileUtils';
 
 const PageContainer = styled.div`
@@ -383,6 +384,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -542,7 +544,14 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     }
   };
 
-  const handleApplyClick = () => {
+  const handleApplyClick = (e: React.MouseEvent) => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      e.preventDefault();
+      setShowLoginPrompt(true);
+      return;
+    }
+
     if (pet) {
       logEvent('adoption_application_started', 1, {
         pet_id: pet.pet_id.toString(),
@@ -555,6 +564,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
         user_authenticated: isAuthenticated.toString(),
       });
     }
+  };
+
+  const handleCloseLoginPrompt = () => {
+    setShowLoginPrompt(false);
   };
 
   const handleRescueProfileClick = () => {
@@ -803,6 +816,12 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
           </DescriptionCard>
         )}
       </MainContent>
+
+      <LoginPromptModal
+        isOpen={showLoginPrompt}
+        onClose={handleCloseLoginPrompt}
+        action='apply for adoption'
+      />
     </PageContainer>
   );
 };

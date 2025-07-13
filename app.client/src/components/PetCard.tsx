@@ -5,9 +5,10 @@ import { Pet } from '@/types';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder } from 'react-icons/md';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { resolveFileUrl } from '../utils/fileUtils';
+import { LoginPromptModal } from './modals/LoginPromptModal';
 
 const StyledCard = styled(Card)`
   height: 100%;
@@ -182,9 +183,11 @@ export const PetCard: React.FC<PetCardProps> = ({
   isFavorite: propIsFavorite,
 }) => {
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { isAuthenticated } = useAuth();
   const favorites = useFavorites();
   const { logEvent } = useStatsig();
+  const navigate = useNavigate();
 
   // Use prop if provided, otherwise check favorites context
   const isFavorite =
@@ -259,6 +262,23 @@ export const PetCard: React.FC<PetCardProps> = ({
     } finally {
       setIsLoadingFavorite(false);
     }
+  };
+
+  const handleApplyClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    // If authenticated, navigate to apply page
+    navigate(`/apply/${pet.pet_id}`);
+  };
+
+  const handleCloseLoginPrompt = () => {
+    setShowLoginPrompt(false);
   };
 
   const formatAge = (ageYears: number, ageMonths: number) => {
@@ -381,12 +401,18 @@ export const PetCard: React.FC<PetCardProps> = ({
             View Details
           </Button>
           {pet.status === 'available' && (
-            <Button size='sm' variant='outline' style={{ flex: 1 }}>
+            <Button size='sm' variant='outline' style={{ flex: 1 }} onClick={handleApplyClick}>
               Apply
             </Button>
           )}
         </CardActions>
       </CardContent>
+
+      <LoginPromptModal
+        isOpen={showLoginPrompt}
+        onClose={handleCloseLoginPrompt}
+        action='apply for adoption'
+      />
     </StyledCard>
   );
 };
