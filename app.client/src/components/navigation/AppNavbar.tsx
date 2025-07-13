@@ -11,6 +11,7 @@ import {
 } from 'react-icons/md';
 import { Link, useLocation } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
+import { useAuth } from '../../contexts/AuthContext';
 import { NotificationBell } from '../notifications/NotificationBell';
 
 const pulseGlow = keyframes`
@@ -270,6 +271,7 @@ interface AppNavbarProps {
 export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -305,38 +307,53 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
             Search
           </NavLink>
 
-          <NavLink
-            to='/favorites'
-            $isActive={isActive('/favorites')}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <MdFavorite className='nav-icon' />
-            Favorites
-          </NavLink>
+          {user && (
+            <>
+              <NavLink
+                to='/favorites'
+                $isActive={isActive('/favorites')}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <MdFavorite className='nav-icon' />
+                Favorites
+              </NavLink>
 
-          <NavLink
-            to='/chat'
-            $isActive={isActive('/chat')}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <MdChat className='nav-icon' />
-            Messages
-          </NavLink>
+              <NavLink
+                to='/chat'
+                $isActive={isActive('/chat')}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <MdChat className='nav-icon' />
+                Messages
+              </NavLink>
 
-          <NavLink
-            to='/profile'
-            $isActive={isActive('/profile')}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <MdPerson className='nav-icon' />
-            Profile
-          </NavLink>
+              <NavLink
+                to='/profile'
+                $isActive={isActive('/profile')}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <MdPerson className='nav-icon' />
+                Profile
+              </NavLink>
+            </>
+          )}
         </NavItems>
 
         <RightSection>
-          <UserActionsGroup>
-            <NotificationBell />
-          </UserActionsGroup>
+          {user ? (
+            <UserActionsGroup>
+              <NotificationBell />
+            </UserActionsGroup>
+          ) : (
+            <NavLink
+              to='/login'
+              $isActive={isActive('/login')}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <MdPerson className='nav-icon' />
+              Login
+            </NavLink>
+          )}
 
           <MobileMenuButton onClick={toggleMobileMenu} aria-label='Toggle menu'>
             {mobileMenuOpen ? <MdClose /> : <MdMenu />}
