@@ -6,6 +6,9 @@ export { darkTheme, lightTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
 export { ThemeProvider, useTheme } from './styles/ThemeProvider';
 
+// Type exports
+export * from './types/notifications';
+
 // Foundation Components
 export { Avatar } from './components/ui/Avatar';
 export { Badge } from './components/ui/Badge';

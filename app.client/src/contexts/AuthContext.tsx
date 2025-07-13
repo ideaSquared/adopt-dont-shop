@@ -1,7 +1,14 @@
 import { useStatsig } from '@/hooks/useStatsig';
 import { authService } from '@/services/authService';
+import notificationService from '@/services/notificationService';
 import { LoginRequest, RegisterRequest, User } from '@/types';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import {
+  clearDevUser,
+  devAuthUtils,
+  initializeDevAuth,
+  updateDevUserProfile,
+} from './base/devUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -47,24 +54,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       try {
         // In development mode, check for dev user first
-        if (import.meta.env.DEV) {
-          const devUser = localStorage.getItem('dev_user');
-
-          if (devUser) {
-            const parsedUser = JSON.parse(devUser);
-
-            // Ensure dev user has a mock token
-            const existingToken = localStorage.getItem('accessToken');
-            if (!existingToken || !existingToken.startsWith('dev-token-')) {
-              const mockToken = `dev-token-${parsedUser.userId}-${Date.now()}`;
-              localStorage.setItem('accessToken', mockToken);
-              localStorage.setItem('authToken', mockToken);
-            }
-
-            setUser(parsedUser);
-            setIsLoading(false);
-            return;
-          }
+        const devUser = initializeDevAuth();
+        if (devUser) {
+          setUser(devUser);
+          // Initialize notifications for dev user
+          await notificationService.initializeForUser();
+          setIsLoading(false);
+          return;
         }
 
         const currentUser = authService.getCurrentUser();
@@ -82,11 +78,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
 
           setUser(freshUser);
+
+          // Initialize notifications for existing authenticated user
+          await notificationService.initializeForUser();
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
         // Clear invalid auth data only if we're not in dev mode with a dev user
-        if (!import.meta.env.DEV || !localStorage.getItem('dev_user')) {
+        if (!import.meta.env.DEV || !devAuthUtils.getDevUser()) {
           await authService.logout();
         }
       } finally {
@@ -140,6 +139,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       setUser(response.user);
+
+      // Initialize notifications for the logged-in user
+      await notificationService.initializeForUser();
 
       // Log successful login
       logEvent('auth_login_successful', 1, {
@@ -205,6 +207,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await authService.logout();
       setUser(null);
 
+      // Clear notification state on logout
+      notificationService.clearState();
+
       // Log successful logout
       if (currentUserId) {
         logEvent('auth_logout_successful', 1, {
@@ -236,15 +241,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Even if logout fails, clear local state
       setUser(null);
-      if (import.meta.env.DEV) {
-        localStorage.removeItem('dev_user');
-        // Clear mock tokens for dev users
-        const token = localStorage.getItem('accessToken');
-        if (token?.startsWith('dev-token-')) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('authToken');
-        }
-      }
+
+      // Clear notification state even on logout failure
+      notificationService.clearState();
+
+      // Clear dev user data in development
+      clearDevUser();
     } finally {
       setIsLoading(false);
     }
@@ -254,14 +256,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) throw new Error('No user logged in');
 
     // In development mode, handle dev users differently
-    if (import.meta.env.DEV) {
-      const token = localStorage.getItem('accessToken');
-      if (token?.startsWith('dev-token-')) {
-        const updatedUser = { ...user, ...profileData };
-        setUser(updatedUser);
-        localStorage.setItem('dev_user', JSON.stringify(updatedUser));
-        return;
-      }
+    if (import.meta.env.DEV && devAuthUtils.isDevTokenValid(localStorage.getItem('accessToken'))) {
+      const updatedUser = updateDevUserProfile(user, profileData);
+      setUser(updatedUser);
+      return;
     }
 
     const updatedUser = await authService.updateProfile(profileData);
@@ -270,7 +268,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshUser = async () => {
     // Don't refresh dev users
-    if (import.meta.env.DEV && localStorage.getItem('dev_user')) {
+    if (import.meta.env.DEV && devAuthUtils.getDevUser()) {
       return;
     }
 
@@ -279,10 +277,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const freshUser = await authService.getProfile();
       setUser(freshUser);
+
+      // Initialize notifications when user profile is loaded
+      await notificationService.initializeForUser();
     } catch (error) {
       console.error('Failed to refresh user:', error);
       // If refresh fails, logout user (but not dev users)
-      if (!import.meta.env.DEV || !localStorage.getItem('dev_user')) {
+      if (!import.meta.env.DEV || !devAuthUtils.getDevUser()) {
         await logout();
       }
     }
@@ -292,8 +293,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const setDevUser = (devUser: User) => {
     if (import.meta.env.DEV) {
       setUser(devUser);
-      // Store in localStorage for persistence during dev
-      localStorage.setItem('dev_user', JSON.stringify(devUser));
+      devAuthUtils.setDevUser(devUser);
     }
   };
 

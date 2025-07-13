@@ -11,6 +11,8 @@ import {
 } from 'react-icons/md';
 import { Link, useLocation } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
+import { useAuth } from '../../contexts/AuthContext';
+import { NotificationBell } from '../notifications/NotificationBell';
 
 const pulseGlow = keyframes`
   0%, 100% {
@@ -42,34 +44,36 @@ const NavbarContainer = styled.nav`
 const NavContent = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 70px;
+  height: 72px;
 
   @media (max-width: 768px) {
-    padding: 0 0.75rem;
-    height: 60px;
+    padding: 0 1rem;
+    height: 64px;
   }
 `;
 
 const Logo = styled(Link)`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   font-size: 1.5rem;
   font-weight: 700;
   color: white;
   text-decoration: none;
-  transition: transform 0.2s ease;
+  transition: transform 0.3s ease;
+  margin-right: 2rem;
 
   &:hover {
-    transform: scale(1.02);
+    transform: scale(1.03);
   }
 
   @media (max-width: 768px) {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
+    margin-right: 1rem;
   }
 `;
 
@@ -81,17 +85,17 @@ const LogoIcon = styled.div`
 const NavItems = styled.div<{ $isOpen: boolean }>`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
 
   @media (max-width: 768px) {
     position: fixed;
-    top: 60px;
+    top: 64px;
     left: 0;
     right: 0;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     flex-direction: column;
-    padding: 1rem;
-    gap: 0.75rem;
+    padding: 1.5rem;
+    gap: 1rem;
     transform: translateY(${({ $isOpen }) => ($isOpen ? '0' : '-100%')});
     transition: transform 0.3s ease;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -166,17 +170,24 @@ const NavLink = styled(Link)<{ $isActive?: boolean; $isPrimary?: boolean }>`
 
 const MobileMenuButton = styled.button`
   display: none;
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
   color: white;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 8px;
-  transition: background 0.2s ease;
+  padding: 0.6rem;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 
   @media (max-width: 768px) {
@@ -187,25 +198,68 @@ const MobileMenuButton = styled.button`
 `;
 
 const SwipeCallout = styled.div`
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   padding: 0.5rem 1rem;
-  margin-left: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: white;
-  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.75rem;
   font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+  }
 
   .sparkle {
     color: #ffd700;
-    animation: ${swipeAnimation} 1.5s ease-in-out infinite;
+    animation: ${swipeAnimation} 2s ease-in-out infinite;
+    font-size: 0.85rem;
   }
 
-  @media (max-width: 968px) {
+  @media (max-width: 1100px) {
+    display: none;
+  }
+`;
+
+const RightSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+
+  @media (max-width: 1024px) {
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    gap: 1rem;
+  }
+`;
+
+const UserActionsGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    gap: 0.75rem;
+  }
+`;
+
+const PromoSection = styled.div`
+  position: fixed;
+  top: 1rem;
+  right: 1.5rem;
+  z-index: 1001;
+
+  @media (max-width: 1100px) {
     display: none;
   }
 `;
@@ -217,6 +271,7 @@ interface AppNavbarProps {
 export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -252,43 +307,66 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
             Search
           </NavLink>
 
-          <NavLink
-            to='/favorites'
-            $isActive={isActive('/favorites')}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <MdFavorite className='nav-icon' />
-            Favorites
-          </NavLink>
+          {user && (
+            <>
+              <NavLink
+                to='/favorites'
+                $isActive={isActive('/favorites')}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <MdFavorite className='nav-icon' />
+                Favorites
+              </NavLink>
 
-          <NavLink
-            to='/chat'
-            $isActive={isActive('/chat')}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <MdChat className='nav-icon' />
-            Messages
-          </NavLink>
+              <NavLink
+                to='/chat'
+                $isActive={isActive('/chat')}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <MdChat className='nav-icon' />
+                Messages
+              </NavLink>
 
-          <NavLink
-            to='/profile'
-            $isActive={isActive('/profile')}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <MdPerson className='nav-icon' />
-            Profile
-          </NavLink>
+              <NavLink
+                to='/profile'
+                $isActive={isActive('/profile')}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <MdPerson className='nav-icon' />
+                Profile
+              </NavLink>
+            </>
+          )}
         </NavItems>
 
+        <RightSection>
+          {user ? (
+            <UserActionsGroup>
+              <NotificationBell />
+            </UserActionsGroup>
+          ) : (
+            <NavLink
+              to='/login'
+              $isActive={isActive('/login')}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <MdPerson className='nav-icon' />
+              Login
+            </NavLink>
+          )}
+
+          <MobileMenuButton onClick={toggleMobileMenu} aria-label='Toggle menu'>
+            {mobileMenuOpen ? <MdClose /> : <MdMenu />}
+          </MobileMenuButton>
+        </RightSection>
+      </NavContent>
+
+      <PromoSection>
         <SwipeCallout>
           <MdAutoFixHigh className='sparkle' />
           Try our new swipe feature!
         </SwipeCallout>
-
-        <MobileMenuButton onClick={toggleMobileMenu} aria-label='Toggle menu'>
-          {mobileMenuOpen ? <MdClose /> : <MdMenu />}
-        </MobileMenuButton>
-      </NavContent>
+      </PromoSection>
     </NavbarContainer>
   );
 };

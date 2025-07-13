@@ -104,8 +104,8 @@ const SEEDED_PASSWORD = 'DevPassword123!';
 
 const DevToggle = styled.button`
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 4rem;
+  right: 2rem;
   background: #1f2937;
   color: #fbbf24;
   border: 2px solid #fbbf24;
@@ -125,8 +125,8 @@ const DevToggle = styled.button`
 
 const DevPanel = styled.div<{ $isOpen: boolean }>`
   position: fixed;
-  top: 70px;
-  right: 20px;
+  top: 7rem;
+  right: 2rem;
   width: 350px;
   max-height: 80vh;
   background: white;

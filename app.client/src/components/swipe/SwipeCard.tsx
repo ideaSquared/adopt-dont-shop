@@ -14,9 +14,10 @@ interface SwipeCardProps {
   isTop: boolean;
   zIndex: number;
   style?: React.CSSProperties;
+  disabled?: boolean;
 }
 
-const CardContainer = styled(animated.div)<{ $isTop: boolean }>`
+const CardContainer = styled(animated.div)<{ $isTop: boolean; $disabled: boolean }>`
   position: absolute;
   width: 100%;
   max-width: 350px;
@@ -24,7 +25,7 @@ const CardContainer = styled(animated.div)<{ $isTop: boolean }>`
   background: white;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  cursor: ${props => (props.$isTop ? 'grab' : 'default')};
+  cursor: ${props => (props.$isTop && !props.$disabled ? 'grab' : 'default')};
   user-select: none;
   overflow: hidden;
   will-change: transform;
@@ -215,10 +216,73 @@ const Badge = styled.span<{ $variant: 'age' | 'size' | 'breed' }>`
   }};
 `;
 
+const LoginPromptOverlay = styled.div<{ $show: boolean }>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: ${props => (props.$show ? 'flex' : 'none')};
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 20px;
+  text-align: center;
+  padding: 2rem;
+`;
+
+const PromptIcon = styled.div`
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #4ecdc4;
+`;
+
+const PromptTitle = styled.h3`
+  color: white;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+`;
+
+const PromptText = styled.p`
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+`;
+
+const PromptButton = styled.button`
+  background: linear-gradient(45deg, #4ecdc4, #44a08d);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+  }
+`;
+
 const SWIPE_THRESHOLD = 100;
 const ROTATION_MULTIPLIER = 0.1;
 
-export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zIndex, style }) => {
+export const SwipeCard: React.FC<SwipeCardProps> = ({
+  pet,
+  onSwipe,
+  isTop,
+  zIndex,
+  style,
+  disabled = false,
+}) => {
   const [overlayAction, setOverlayAction] = useState<string>('');
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -266,16 +330,19 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
       switch (event.key) {
         case 'ArrowLeft':
           event.preventDefault();
+          if (disabled) return;
           action = 'pass';
           onSwipe('pass', pet.petId);
           break;
         case 'ArrowRight':
           event.preventDefault();
+          if (disabled) return;
           action = 'like';
           onSwipe('like', pet.petId);
           break;
         case 'ArrowUp':
           event.preventDefault();
+          if (disabled) return;
           action = 'super_like';
           onSwipe('super_like', pet.petId);
           break;
@@ -295,6 +362,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
           break;
         case 'Escape':
           event.preventDefault();
+          if (disabled) return;
           action = 'pass';
           onSwipe('pass', pet.petId);
           break;
@@ -310,7 +378,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
         });
       }
     },
-    [isTop, onSwipe, pet, navigate, logEvent]
+    [isTop, onSwipe, pet, navigate, logEvent, disabled]
   );
 
   const [{ x, y, rotate, scale, opacity }, api] = useSpring(() => ({
@@ -342,7 +410,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
       direction: [number, number];
       cancel?: () => void;
     }) => {
-      if (!isTop) return;
+      if (!isTop || disabled) return;
 
       const trigger = Math.abs(mx) > SWIPE_THRESHOLD;
       const isFlick = Math.abs(vx) > 0.5;
@@ -476,8 +544,9 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
   return (
     <CardContainer
       ref={cardRef}
-      {...bind()}
+      {...(disabled ? {} : bind())}
       $isTop={isTop}
+      $disabled={disabled}
       tabIndex={isTop ? 0 : -1}
       onKeyDown={handleKeyDown}
       role='button'
@@ -564,6 +633,15 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({ pet, onSwipe, isTop, zInde
           </PetDetails>
         </div>
       </CardContent>
+
+      <LoginPromptOverlay $show={disabled && isTop}>
+        <PromptIcon>🐾</PromptIcon>
+        <PromptTitle>Join to Start Swiping!</PromptTitle>
+        <PromptText>
+          Create an account to like pets, save favorites, and find your perfect companion.
+        </PromptText>
+        <PromptButton onClick={() => onSwipe('like', pet.petId)}>Sign Up to Continue</PromptButton>
+      </LoginPromptOverlay>
     </CardContainer>
   );
 };

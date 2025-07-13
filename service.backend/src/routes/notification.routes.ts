@@ -9,11 +9,15 @@ const notificationController = new NotificationController();
 
 // Validation middleware
 const validateNotificationId = param('notificationId')
-  .isUUID()
+  .isLength({ min: 1, max: 50 })
+  .matches(/^[a-zA-Z0-9_-]+$/)
   .withMessage('Invalid notification ID format');
 
 const validateCreateNotification = [
-  body('userId').isUUID().withMessage('Valid user ID is required'),
+  body('userId')
+    .isLength({ min: 1, max: 50 })
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage('Valid user ID is required'),
   body('title').trim().isLength({ min: 1, max: 200 }).withMessage('Title must be 1-200 characters'),
   body('message')
     .trim()
