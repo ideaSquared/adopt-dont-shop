@@ -1,8 +1,9 @@
+import { useNotifications } from '@/contexts/NotificationContext';
 import notificationService, { type Notification } from '@/services/notificationService';
 import React, { useEffect, useRef, useState } from 'react';
 import { MdNotifications } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { NotificationCenterComponent } from './NotificationCenter';
 
 const bellRing = keyframes`
@@ -41,6 +42,7 @@ const NotificationButton = styled.button<{ $hasUnread: boolean }>`
   justify-content: center;
   color: white;
   font-size: 1.25rem;
+  overflow: visible; /* Ensure badge can extend outside */
 
   &:hover {
     background: rgba(255, 255, 255, 0.15);
@@ -54,13 +56,13 @@ const NotificationButton = styled.button<{ $hasUnread: boolean }>`
 
   ${({ $hasUnread }) =>
     $hasUnread &&
-    `
-    animation: ${pulseGlow} 2s ease-in-out infinite;
-    
-    .notification-icon {
-      animation: ${bellRing} 2s ease-in-out infinite;
-    }
-  `}
+    css`
+      animation: ${pulseGlow} 2s ease-in-out infinite;
+
+      .notification-icon {
+        animation: ${bellRing} 2s ease-in-out infinite;
+      }
+    `}
 
   @media (max-width: 768px) {
     padding: 0.6rem;
@@ -70,53 +72,94 @@ const NotificationButton = styled.button<{ $hasUnread: boolean }>`
 
 const NotificationBadge = styled.div<{ $count: number }>`
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -10px;
+  right: -10px;
   background: linear-gradient(45deg, #ff4444, #ff6b6b);
   color: white;
   border-radius: 50%;
-  min-width: 20px;
-  height: 20px;
+  min-width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
-  font-weight: 600;
-  border: 2px solid white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-weight: 700;
+  border: 3px solid white;
+  box-shadow: 0 4px 16px rgba(255, 68, 68, 0.5);
   animation: ${pulseGlow} 1.5s ease-in-out infinite;
+  z-index: 20;
+  pointer-events: none;
 
   ${({ $count }) =>
     $count > 99 &&
     `
-    min-width: 24px;
-    height: 20px;
-    border-radius: 10px;
+    min-width: 28px;
+    height: 24px;
+    border-radius: 12px;
     font-size: 0.7rem;
   `}
+
+  /* Enhanced visibility with glow */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    background: linear-gradient(45deg, #ff4444, #ff6b6b);
+    z-index: -1;
+    filter: blur(6px);
+    opacity: 0.7;
+  }
+
+  /* Ensure it shows up on different backgrounds */
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
 `;
 
 const DropdownContainer = styled.div<{ $isOpen: boolean }>`
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 16px);
   right: 0;
   z-index: 1001;
   opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
   visibility: ${({ $isOpen }) => ($isOpen ? 'visible' : 'hidden')};
   transform: ${({ $isOpen }) =>
     $isOpen ? 'translateY(0) scale(1)' : 'translateY(-10px) scale(0.95)'};
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top right;
+
+  /* Ensure dropdown doesn't go off-screen */
+  @media (min-width: 769px) {
+    right: 0;
+    max-width: 90vw;
+
+    /* If dropdown would go off left edge, align to left instead */
+    &::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      right: 24px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 8px solid ${props => props.theme.background.primary};
+      filter: drop-shadow(0 -2px 4px rgba(0, 0, 0, 0.1));
+    }
+  }
 
   @media (max-width: 768px) {
     position: fixed;
-    top: 60px;
+    top: 70px;
     left: 1rem;
     right: 1rem;
     width: auto;
     transform: ${({ $isOpen }) =>
       $isOpen ? 'translateY(0) scale(1)' : 'translateY(-20px) scale(0.9)'};
     transform-origin: top center;
+
+    &::before {
+      display: none;
+    }
   }
 `;
 
@@ -138,52 +181,96 @@ const QuickPreview = styled.div`
   background: ${props => props.theme.background.primary};
   border: 1px solid ${props => props.theme.border.color.primary};
   border-radius: 12px;
-  padding: 1rem;
-  max-width: 350px;
+  padding: 1.5rem;
+  width: 420px;
+  max-width: 90vw;
   margin-bottom: 1rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+
+  @media (max-width: 768px) {
+    width: calc(100vw - 2rem);
+    padding: 1.25rem;
+  }
 `;
 
 const PreviewHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid ${props => props.theme.border.color.primary};
 
   h3 {
-    font-size: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
     color: ${props => props.theme.text.primary};
     margin: 0;
   }
 `;
 
 const ViewAllButton = styled.button`
-  background: none;
+  background: ${props => props.theme.colors.primary[500]};
   border: none;
-  color: ${props => props.theme.colors.primary[500]};
+  color: white;
   font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  text-decoration: underline;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 
   &:hover {
-    color: ${props => props.theme.colors.primary[600]};
+    background: ${props => props.theme.colors.primary[600]};
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
 const QuickNotificationItem = styled.div<{ $isRead: boolean }>`
-  padding: 0.75rem;
-  border-radius: 8px;
+  padding: 1rem;
+  border-radius: 10px;
   border: 1px solid ${props => props.theme.border.color.primary};
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background: ${props =>
     props.$isRead ? props.theme.background.primary : props.theme.background.secondary};
+  position: relative;
+
+  /* Visual indicator for unread notifications */
+  ${props =>
+    !props.$isRead &&
+    `
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 60%;
+      background: linear-gradient(45deg, #ff4444, #ff6b6b);
+      border-radius: 0 2px 2px 0;
+    }
+    
+    border-left: 3px solid transparent;
+    padding-left: 1.25rem;
+  `}
 
   &:hover {
     background: ${props => props.theme.background.secondary};
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-color: ${props => props.theme.colors.primary[300]};
+  }
+
+  &:active {
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   &:last-child {
@@ -192,11 +279,26 @@ const QuickNotificationItem = styled.div<{ $isRead: boolean }>`
 `;
 
 const QuickNotificationTitle = styled.div<{ $isRead: boolean }>`
-  font-size: 0.875rem;
+  font-size: 0.925rem;
   font-weight: ${props => (props.$isRead ? 'normal' : '600')};
   color: ${props => props.theme.text.primary};
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const QuickNotificationMessage = styled.div`
+  font-size: 0.8rem;
+  color: ${props => props.theme.text.secondary};
+  margin-bottom: 0.5rem;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 `;
 
 const QuickNotificationTime = styled.div`
@@ -231,62 +333,17 @@ const formatRelativeTime = (dateString: string): string => {
 export const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showFullCenter, setShowFullCenter] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Load initial data
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setIsLoading(true);
-
-        // Load unread count
-        const count = await notificationService.getUnreadCount();
-        setUnreadCount(count);
-
-        // Load recent notifications for preview
-        const response = await notificationService.getNotifications({
-          limit: 5,
-          status: undefined, // Get both read and unread for preview
-        });
-        setRecentNotifications(response.notifications);
-      } catch (error) {
-        console.error('Failed to load notification data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadInitialData();
-
-    // Subscribe to unread count changes
-    const unsubscribeCount = notificationService.onUnreadCountChange(setUnreadCount);
-
-    // Subscribe to new notifications
-    const unsubscribeNew = notificationService.onNewNotification(notification => {
-      setRecentNotifications(prev => [notification, ...prev.slice(0, 4)]);
-
-      // Show browser notification if permission granted
-      if (Notification.permission === 'granted') {
-        notificationService.showBrowserNotification(notification.title, notification.message, {
-          icon: '/favicon.ico',
-          tag: notification.notification_id,
-        });
-      }
-    });
-
-    // Start polling for updates (fallback)
-    const stopPolling = notificationService.startPolling(60000); // Poll every minute
-
-    return () => {
-      unsubscribeCount();
-      unsubscribeNew();
-      stopPolling();
-    };
-  }, []);
+  // Use notification context instead of local state
+  const {
+    unreadCount,
+    recentNotifications,
+    isLoading,
+    markAsRead: contextMarkAsRead,
+    refreshUnreadCount,
+  } = useNotifications();
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -330,15 +387,13 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
     try {
       // Mark as read if not already read
       if (!notification.read_at) {
-        await notificationService.markAsRead(notification.notification_id);
-        setUnreadCount(prev => Math.max(0, prev - 1));
-        setRecentNotifications(prev =>
-          prev.map(n =>
-            n.notification_id === notification.notification_id
-              ? { ...n, read_at: new Date().toISOString() }
-              : n
-          )
-        );
+        await contextMarkAsRead(notification.notification_id);
+
+        // Force refresh the unread count after a successful mark as read
+        // This ensures the count is accurate even if optimistic updates fail
+        setTimeout(async () => {
+          await refreshUnreadCount();
+        }, 100);
       }
 
       // Navigate based on notification data
@@ -381,7 +436,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
         >
           <MdNotifications className='notification-icon' />
           {unreadCount > 0 && (
-            <NotificationBadge $count={unreadCount}>{formatCount(unreadCount)}</NotificationBadge>
+            <NotificationBadge $count={unreadCount} data-testid='notification-badge'>
+              {formatCount(unreadCount)}
+            </NotificationBadge>
           )}
         </NotificationButton>
 
@@ -397,7 +454,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
             ) : recentNotifications.length === 0 ? (
               <EmptyState>No notifications yet</EmptyState>
             ) : (
-              recentNotifications.map(notification => (
+              recentNotifications.slice(0, 4).map(notification => (
                 <QuickNotificationItem
                   key={notification.notification_id}
                   $isRead={!!notification.read_at}
@@ -406,6 +463,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
                   <QuickNotificationTitle $isRead={!!notification.read_at}>
                     {notification.title}
                   </QuickNotificationTitle>
+                  <QuickNotificationMessage>{notification.message}</QuickNotificationMessage>
                   <QuickNotificationTime>
                     {formatRelativeTime(notification.created_at)}
                   </QuickNotificationTime>
@@ -426,11 +484,13 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
           <div
             style={{
               position: 'fixed',
-              top: '50%',
+              top: '5vh',
               left: '50%',
-              transform: 'translate(-50%, -50%)',
+              transform: 'translateX(-50%)',
               zIndex: 1002,
               maxHeight: '90vh',
+              width: '90vw',
+              maxWidth: '800px',
               overflow: 'auto',
             }}
           >

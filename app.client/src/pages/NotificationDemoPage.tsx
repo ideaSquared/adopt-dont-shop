@@ -1,5 +1,5 @@
 import NotificationCenterComponent from '@/components/notifications/NotificationCenter';
-import useNotifications from '@/hooks/useNotifications';
+import { useNotifications } from '@/contexts/NotificationContext';
 import notificationService from '@/services/notificationService';
 import { Button } from '@adopt-dont-shop/components';
 import React, { useState } from 'react';

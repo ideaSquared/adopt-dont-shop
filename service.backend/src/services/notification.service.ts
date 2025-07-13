@@ -77,7 +77,10 @@ export class NotificationService {
       } = options;
 
       const offset = (page - 1) * limit;
-      const whereClause: WhereClause = { user_id: userId };
+      const whereClause: WhereClause = {
+        user_id: userId,
+        deleted_at: null,
+      };
 
       // Filter by read status
       if (status === 'read') {
@@ -386,13 +389,15 @@ export class NotificationService {
     const startTime = Date.now();
 
     try {
+      const whereClause = {
+        user_id: userId,
+        read_at: null,
+        deleted_at: null,
+        [Op.or]: [{ expires_at: { [Op.is]: null } }, { expires_at: { [Op.gt]: new Date() } }],
+      };
+
       const count = await Notification.count({
-        where: {
-          user_id: userId,
-          read_at: null,
-          deleted_at: null,
-          [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
-        },
+        where: whereClause,
       });
 
       loggerHelpers.logDatabase('READ', {

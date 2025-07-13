@@ -18,11 +18,13 @@ export interface Notification {
   notification_id: string;
   title: string;
   message: string;
-  type: string;
+  type: string; // Should match NotificationType from types/notifications.ts
   priority: 'low' | 'normal' | 'high' | 'urgent';
   read_at?: string;
   created_at: string;
   data?: Record<string, unknown>;
+  related_entity_type?: string;
+  related_entity_id?: string;
 }
 
 export interface NotificationResponse {
@@ -61,6 +63,7 @@ class NotificationService {
   private static instance: NotificationService;
   private unreadCountCallbacks: ((count: number) => void)[] = [];
   private notificationCallbacks: ((notification: Notification) => void)[] = [];
+  private pollingInterval: NodeJS.Timeout | null = null;
 
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -100,10 +103,25 @@ class NotificationService {
    */
   async getUnreadCount(): Promise<number> {
     try {
-      const response = await api.get<{ success: boolean; data: { unreadCount: number } }>(
-        '/api/v1/notifications/unread/count'
-      );
-      const count = response.data?.unreadCount || 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await api.get<any>('/api/v1/notifications/unread/count');
+
+      // Handle nested response structure: {"success":true,"data":{"count":15}}
+      // The API wrapper might return different structures depending on configuration
+      let count = 0;
+
+      // Check if it's a nested structure with success/data
+      if (response.data?.success && response.data?.data?.count !== undefined) {
+        count = response.data.data.count;
+      }
+      // Check if it's already unwrapped to just the data part
+      else if (response.data?.count !== undefined) {
+        count = response.data.count;
+      }
+      // Check if the count is at the root level
+      else if (response?.count !== undefined) {
+        count = response.count;
+      }
 
       // Notify subscribers
       this.unreadCountCallbacks.forEach(callback => callback(count));
@@ -121,8 +139,8 @@ class NotificationService {
   async markAsRead(notificationId: string): Promise<void> {
     try {
       await api.patch(`/api/v1/notifications/${notificationId}/read`);
-      // Refresh unread count
-      this.getUnreadCount();
+      // Refresh unread count and wait for it to complete
+      await this.getUnreadCount();
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       throw error;
@@ -162,11 +180,29 @@ class NotificationService {
    */
   async getPreferences(): Promise<NotificationPreferences> {
     try {
-      const response = await api.get<{ success: boolean; data: NotificationPreferences }>(
-        '/api/v1/notifications/preferences'
-      );
-      // Handle both wrapped and direct response formats
-      return response.data || (response as unknown as NotificationPreferences);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await api.get<any>('/api/v1/notifications/preferences');
+
+      // Handle nested response structure like other methods
+      if (response.data?.success && response.data?.data) {
+        return response.data.data;
+      } else if (response.data) {
+        return response.data;
+      }
+
+      // Fallback defaults
+      return {
+        email: true,
+        push: false,
+        sms: false,
+        applications: true,
+        messages: true,
+        system: true,
+        marketing: false,
+        reminders: true,
+        quietHoursStart: '22:00',
+        quietHoursEnd: '08:00',
+      };
     } catch (error) {
       console.error('Failed to fetch notification preferences:', error);
       throw error;
@@ -290,11 +326,55 @@ class NotificationService {
    * Start periodic polling for notifications (fallback if websockets not available)
    */
   startPolling(intervalMs: number = 30000): () => void {
-    const interval = setInterval(() => {
+    // Clear any existing polling
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
+
+    this.pollingInterval = setInterval(() => {
       this.getUnreadCount();
     }, intervalMs);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (this.pollingInterval) {
+        clearInterval(this.pollingInterval);
+        this.pollingInterval = null;
+      }
+    };
+  }
+
+  /**
+   * Clear all notification state (call on logout)
+   */
+  clearState(): void {
+    // Stop any active polling
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+
+    // Reset unread count to 0 and notify all subscribers
+    this.unreadCountCallbacks.forEach(callback => callback(0));
+
+    // Clear all callbacks to prevent memory leaks and cross-user data
+    this.unreadCountCallbacks = [];
+    this.notificationCallbacks = [];
+
+    // Note: We don't reset the singleton instance itself since it may be reused
+    // when the same or different user logs in. The subscription system will
+    // handle re-registering callbacks when new components mount.
+  }
+
+  /**
+   * Initialize notifications for a newly authenticated user
+   */
+  async initializeForUser(): Promise<void> {
+    try {
+      // Fetch initial unread count
+      await this.getUnreadCount();
+    } catch (error) {
+      console.error('Failed to initialize notifications for user:', error);
+    }
   }
 }
 

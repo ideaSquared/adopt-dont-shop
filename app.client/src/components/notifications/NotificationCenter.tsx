@@ -2,6 +2,7 @@ import notificationService, {
   Notification,
   NotificationFilters,
 } from '@/services/notificationService';
+import { NotificationType, getNotificationTypeLabel } from '@/types/notifications';
 import { Button } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -341,13 +342,11 @@ export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({
           onChange={e => handleFilterChange('type', e.target.value)}
         >
           <option value=''>All types</option>
-          <option value='application_status'>Application Status</option>
-          <option value='message_received'>Messages</option>
-          <option value='system_announcement'>System</option>
-          <option value='reminder'>Reminders</option>
-          <option value='marketing'>Marketing</option>
-          <option value='pet_available'>Pet Available</option>
-          <option value='pet_update'>Pet Updates</option>
+          {(Object.values(NotificationType) as string[]).map(type => (
+            <option key={type} value={type}>
+              {getNotificationTypeLabel(type)}
+            </option>
+          ))}
         </FilterSelect>
       </FilterBar>
 
