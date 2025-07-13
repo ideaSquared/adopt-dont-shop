@@ -266,9 +266,18 @@ class ApiService {
           'data' in jsonResponse
         ) {
           // Handle the nested success response structure from service.backend
-          const extractedData = (jsonResponse as ApiResponse<T>).data;
+          const apiResponse = jsonResponse as ApiResponse<T>;
 
-          return extractedData;
+          // For endpoints that return pagination alongside data, preserve the full structure
+          if ('pagination' in apiResponse && apiResponse.pagination) {
+            return {
+              data: apiResponse.data,
+              pagination: apiResponse.pagination,
+            } as T;
+          }
+
+          // For other endpoints, extract just the data
+          return apiResponse.data;
         }
 
         // Return the response directly (like auth endpoints)

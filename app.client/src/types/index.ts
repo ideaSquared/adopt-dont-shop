@@ -207,19 +207,18 @@ export interface PetSearchFilters {
   sortOrder?: 'asc' | 'desc';
 }
 
-// API Response Types - Updated to match backend format
+// API Response Types
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
-  message?: string;
-  errors?: string[];
-  meta?: {
-    total: number;
+  pagination?: {
     page: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
+    limit: number;
+    total: number;
+    pages: number;
   };
+  message?: string;
+  error?: string;
 }
 
 export interface PaginatedResponse<T> {

@@ -13,6 +13,7 @@ import {
   RescueDetailsPage,
   SearchPage,
 } from '@/pages';
+import NotificationDemoPage from '@/pages/NotificationDemoPage';
 import { Footer } from '@adopt-dont-shop/components';
 import { useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
@@ -47,6 +48,7 @@ function App() {
                 <Route path='/chat/:conversationId' element={<ChatPage />} />
                 <Route path='/login' element={<LoginPage />} />
                 <Route path='/register' element={<RegisterPage />} />
+                <Route path='/notifications-demo' element={<NotificationDemoPage />} />
               </Routes>
             </main>
             <SwipeFloatingButton />

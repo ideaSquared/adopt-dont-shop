@@ -9,6 +9,7 @@ import User from '../models/User';
 import { JsonObject, WhereClause } from '../types/common';
 import logger, { loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { NotificationChannelService } from './notificationChannelService';
 
 export interface NotificationSearchOptions {
   page?: number;
@@ -76,11 +77,11 @@ export class NotificationService {
       } = options;
 
       const offset = (page - 1) * limit;
-      const whereClause: WhereClause = { userId };
+      const whereClause: WhereClause = { user_id: userId };
 
       // Filter by read status
       if (status === 'read') {
-        whereClause.read_at = { [Op.ne]: null } as any;
+        whereClause.read_at = { [Op.ne]: undefined };
       } else if (status === 'unread') {
         whereClause.read_at = null;
       }
@@ -212,8 +213,19 @@ export class NotificationService {
         duration: Date.now() - startTime,
       });
 
-      // Attempt to deliver immediately if channel is specified
-      if (data.channel) {
+      // Attempt to deliver through appropriate channels based on user preferences
+      const channels = await NotificationChannelService.getDeliveryChannels(
+        data.userId,
+        data.type,
+        data.priority
+      );
+
+      if (channels.length > 0) {
+        this.deliverThroughChannels(notification, channels).catch((error: Error) => {
+          logger.error('Error delivering notification:', error);
+        });
+      } else if (data.channel) {
+        // Fallback to specified channel if no preferences found
         this.deliverNotification(notification, [data.channel]).catch(error => {
           logger.error('Error delivering notification:', error);
         });
@@ -625,6 +637,48 @@ export class NotificationService {
   }
 
   /**
+   * Deliver notification through multiple channels using the channel service
+   */
+  private static async deliverThroughChannels(
+    notification: Notification,
+    channels: ('email' | 'push' | 'sms')[]
+  ): Promise<void> {
+    try {
+      const results = await NotificationChannelService.deliverToChannels(
+        {
+          userId: notification.user_id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          data: notification.data as Record<string, string | number | boolean | null>,
+          priority: notification.priority as 'low' | 'normal' | 'high' | 'urgent',
+        },
+        channels
+      );
+
+      // Log delivery results
+      results.forEach(result => {
+        if (result.success) {
+          logger.info(`Notification delivered via ${result.channel}`, {
+            notificationId: notification.notification_id,
+            channel: result.channel,
+            deliveryId: result.deliveryId,
+          });
+        } else {
+          logger.error(`Failed to deliver notification via ${result.channel}`, {
+            notificationId: notification.notification_id,
+            channel: result.channel,
+            error: result.error,
+          });
+        }
+      });
+    } catch (error) {
+      logger.error('Error in deliverThroughChannels:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Send email notification
    */
   private static async sendEmailNotification(notification: Notification): Promise<void> {
@@ -709,6 +763,7 @@ export class NotificationService {
             notificationId: notification.notification_id,
             deviceToken: deviceToken.token_id,
             userId: notification.user_id,
+            payload: payload.notification.title, // Include payload info in logs
           });
 
           // Update last used timestamp
@@ -765,6 +820,7 @@ export class NotificationService {
         notificationId: notification.notification_id,
         userId: notification.user_id,
         phoneNumber: user.phoneNumber,
+        message: smsMessage, // Include message content in logs
       });
 
       // In real implementation:
