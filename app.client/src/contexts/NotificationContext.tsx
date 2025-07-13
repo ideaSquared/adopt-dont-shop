@@ -49,7 +49,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Subscribe to real-time unread count changes
   const unreadCount = useSubscription(
-    useCallback(callback => notificationService.onUnreadCountChange(callback), []),
+    useCallback(
+      (callback: (count: number) => void) => notificationService.onUnreadCountChange(callback),
+      []
+    ),
     0
   );
 
