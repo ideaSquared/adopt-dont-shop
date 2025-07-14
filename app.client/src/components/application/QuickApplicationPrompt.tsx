@@ -1,7 +1,7 @@
 import { Button } from '@adopt-dont-shop/components';
 import React from 'react';
 import styled from 'styled-components';
-import { QuickApplicationCapability } from '../../types/enhanced-profile';
+import { QuickApplicationCapability } from '../../types';
 
 interface QuickApplicationPromptProps {
   capability: QuickApplicationCapability;

@@ -2,13 +2,13 @@ import User from '../models/User';
 import {
   ApplicationDefaults,
   ApplicationPreferences,
-  ApplicationPrePopulationData,
+  ApplicationPrePopulationDataFlat,
   ProfileCompletionResponse,
   ProfileCompletionStatus,
   QuickApplicationRequest,
   UpdateApplicationDefaultsRequest,
   UpdateApplicationPreferencesRequest,
-} from '../types/enhanced-profile';
+} from '../types';
 import { logger } from '../utils/logger';
 
 /**
@@ -95,7 +95,7 @@ export class ApplicationProfileService {
   }
 
   /**
-   * Get user's application behavior preferences (auto-populate, save drafts, etc.)
+   * Get user's application behavior preferences (auto-populate, quick apply, etc.)
    * @param userId - The unique identifier of the user
    * @returns Promise resolving to user's application preferences with default values
    * @throws Error if user is not found
@@ -119,7 +119,6 @@ export class ApplicationProfileService {
       return (
         (user.applicationPreferences as unknown as ApplicationPreferences) || {
           auto_populate: true,
-          save_drafts: true,
           quick_apply_enabled: false,
           completion_reminders: true,
         }
@@ -208,12 +207,21 @@ export class ApplicationProfileService {
       const completionStatus = this.calculateProfileCompletion(defaults, user);
       const missingFields = this.getMissingFields(defaults, user);
       const recommendations = this.getCompletionRecommendations(completionStatus, missingFields);
+      const canQuickApply =
+        (completionStatus.overall_percentage || completionStatus.overallCompleteness * 100) >= 80;
 
       return {
         completionStatus,
+        quickApplicationCapability: {
+          canProceed: canQuickApply,
+          missingFields,
+          recommendations,
+          canQuickApply,
+        },
+        prePopulationData: defaults,
         missingFields,
         recommendations,
-        canQuickApply: completionStatus.overall_percentage >= 80,
+        canQuickApply,
       };
     } catch (error) {
       logger.error('Error getting profile completion:', error);
@@ -238,7 +246,7 @@ export class ApplicationProfileService {
   static async getPrePopulationData(
     userId: string,
     _petId?: string
-  ): Promise<ApplicationPrePopulationData> {
+  ): Promise<ApplicationPrePopulationDataFlat> {
     try {
       const user = await User.findByPk(userId, {
         attributes: [
@@ -313,7 +321,7 @@ export class ApplicationProfileService {
     request: QuickApplicationRequest
   ): Promise<{
     canProceed: boolean;
-    prePopulationData?: ApplicationPrePopulationData;
+    prePopulationData?: ApplicationPrePopulationDataFlat;
     missingFields?: string[];
   }> {
     try {
@@ -362,7 +370,7 @@ export class ApplicationProfileService {
       livingSituation: { ...current.livingSituation, ...updates.livingSituation },
       petExperience: { ...current.petExperience, ...updates.petExperience },
       references: {
-        veterinarian: updates.references?.veterinarian || current.references?.veterinarian,
+        veterinary: updates.references?.veterinary || current.references?.veterinary,
         personal: updates.references?.personal || current.references?.personal || [],
       },
       additionalInfo: { ...current.additionalInfo, ...updates.additionalInfo },
@@ -395,6 +403,11 @@ export class ApplicationProfileService {
 
     return {
       ...sections,
+      personalInfoComplete: sections.basic_info,
+      livingSituationComplete: sections.living_situation,
+      petExperienceComplete: sections.pet_experience,
+      referencesComplete: sections.references,
+      overallCompleteness: percentage / 100,
       overall_percentage: percentage,
       last_updated: new Date(),
       completed_sections: completedSections,
@@ -521,7 +534,7 @@ export class ApplicationProfileService {
       recommendations.push('Add at least 2 personal references');
     }
 
-    if (status.overall_percentage >= 80) {
+    if ((status.overall_percentage || status.overallCompleteness * 100) >= 80) {
       recommendations.push('Your profile is complete enough for quick applications!');
     }
 

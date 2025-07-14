@@ -126,10 +126,6 @@ router.put(
       .optional()
       .isBoolean()
       .withMessage('auto_populate must be a boolean'),
-    body('applicationPreferences.save_drafts')
-      .optional()
-      .isBoolean()
-      .withMessage('save_drafts must be a boolean'),
     body('applicationPreferences.quick_apply_enabled')
       .optional()
       .isBoolean()

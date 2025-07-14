@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationProfileService } from '../services/applicationProfileService';
-import { ApplicationDefaults, ProfileCompletionResponse } from '../types/enhanced-profile';
+import { ApplicationDefaults, ProfileCompletionResponse } from '../types';
 
 /**
  * Phase 1 - Profile Setup Page

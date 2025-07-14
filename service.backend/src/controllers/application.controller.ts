@@ -498,62 +498,6 @@ export class ApplicationController {
     }
   };
 
-  // Submit application
-  submitApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.submitApplication(
-        applicationId,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application submitted successfully',
-        data: application,
-      });
-    } catch (error) {
-      logger.error('Error submitting application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      if (errorMessage.includes('Only draft applications') || errorMessage.includes('incomplete')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to submit application',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-      });
-    }
-  };
-
   // Update application status
   updateApplicationStatus = async (req: AuthenticatedRequest, res: Response) => {
     try {

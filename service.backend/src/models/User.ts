@@ -444,7 +444,6 @@ User.init(
       field: 'application_preferences',
       defaultValue: {
         auto_populate: true,
-        save_drafts: true,
         quick_apply_enabled: false,
         completion_reminders: true,
       },
