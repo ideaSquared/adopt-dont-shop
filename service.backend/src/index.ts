@@ -336,15 +336,13 @@ const startServer = async () => {
         await sequelize.query('SELECT PostGIS_Version();');
         logger.info('PostGIS extension is ready.');
 
-        // Sync database models (force recreate in development)
-        await sequelize.sync({ force: true });
-        logger.info('Database models synchronized (tables recreated).');
+        // Sync database models (alter existing tables if needed)
+        await sequelize.sync({ alter: true });
+        logger.info('Database models synchronized (tables updated).');
 
-        // Run seeders after models are synced
-        logger.info('Running database seeders...');
-        const { runAllSeeders } = await import('./seeders');
-        await runAllSeeders();
-        logger.info('Database seeding completed.');
+        // Seeders are available but not run automatically
+        // To seed the database, run: npm run seed:dev
+        logger.info('💡 Database is ready. To seed with test data, run: npm run seed:dev');
       } catch (error) {
         logger.error('Failed to sync database models:', error);
         throw error;

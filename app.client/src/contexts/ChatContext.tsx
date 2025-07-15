@@ -434,7 +434,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
           await chatService.sendMessage(
             message.conversationId,
             message.content,
-            message.messageType
+            message.messageType as 'text' | 'image' | 'file'
           );
           offlineManager.removeQueuedMessage(message.id);
         } catch (error) {

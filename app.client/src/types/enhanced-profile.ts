@@ -81,7 +81,6 @@ export interface ApplicationDefaults {
 // Application Preferences
 export interface ApplicationPreferences {
   auto_populate: boolean;
-  save_drafts: boolean;
   quick_apply_enabled: boolean;
   completion_reminders: boolean;
   default_pet_types?: string[];
@@ -115,7 +114,7 @@ export interface ApplicationPrePopulationData {
   livingSituation?: ApplicationDefaults['livingSituation'];
   petExperience?: ApplicationDefaults['petExperience'];
   references?: ApplicationDefaults['references'];
-  source: 'profile_defaults' | 'previous_application' | 'manual_entry' | 'draft_with_defaults';
+  source: 'profile_defaults' | 'previous_application' | 'manual_entry';
   lastUpdated: Date;
   lastSavedStep?: number;
 }
@@ -126,16 +125,6 @@ export interface QuickApplicationCapability {
   prePopulationData?: ApplicationPrePopulationData;
   missingFields?: string[];
   completionPercentage?: number;
-}
-
-// Draft Management Types
-export interface DraftInfo {
-  hasDraft: boolean;
-  draftId?: string;
-  lastSavedStep?: number;
-  completionPercentage?: number;
-  lastAccessedAt?: Date;
-  canRestore: boolean;
 }
 
 // Profile Setup Progress

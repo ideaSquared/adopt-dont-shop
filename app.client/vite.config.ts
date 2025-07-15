@@ -27,12 +27,12 @@ export default defineConfig(({ mode }) => {
       proxy: !isDocker
         ? {
             '/api': {
-              target: 'http://localhost:5000',
+              target: 'http://127.0.0.1:5000',
               changeOrigin: true,
               secure: false,
             },
             '/health': {
-              target: 'http://localhost:5000',
+              target: 'http://127.0.0.1:5000',
               changeOrigin: true,
               secure: false,
             },

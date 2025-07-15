@@ -103,6 +103,12 @@ const StatusBadge = styled.span<{ $status: string }>`
           background: ${props.theme.colors.semantic.error[100]};
           color: ${props.theme.colors.semantic.error[700]};
         `;
+      case 'withdrawn':
+        return `
+          background: ${props.theme.colors.neutral[200]};
+          color: ${props.theme.colors.neutral[600]};
+          border: 1px solid ${props.theme.colors.neutral[300]};
+        `;
       default:
         return `
           background: ${props.theme.colors.neutral[100]};
@@ -228,6 +234,14 @@ export const ApplicationDetailsPage: React.FC = () => {
         </Alert>
       )}
 
+      {application.status === 'withdrawn' && (
+        <Alert variant='info' title='Application Withdrawn'>
+          This application has been withdrawn. You can still view the details below for your
+          records. If you&apos;d like to adopt this pet or another pet, you can submit a new
+          application from the pet&apos;s profile page.
+        </Alert>
+      )}
+
       <Section>
         <SectionTitle>Application Status</SectionTitle>
         <InfoGrid>
@@ -257,6 +271,12 @@ export const ApplicationDetailsPage: React.FC = () => {
             <InfoItem>
               <InfoLabel>Reviewed By</InfoLabel>
               <InfoValue>{application.reviewedBy}</InfoValue>
+            </InfoItem>
+          )}
+          {application.status === 'withdrawn' && application.updatedAt && (
+            <InfoItem>
+              <InfoLabel>Withdrawn On</InfoLabel>
+              <InfoValue>{formatDate(application.updatedAt)}</InfoValue>
             </InfoItem>
           )}
         </InfoGrid>
@@ -305,6 +325,11 @@ export const ApplicationDetailsPage: React.FC = () => {
             }}
           >
             Withdraw Application
+          </Button>
+        )}
+        {application.status === 'withdrawn' && (
+          <Button variant='primary' onClick={() => navigate('/pets')}>
+            Browse Available Pets
           </Button>
         )}
       </ButtonGroup>

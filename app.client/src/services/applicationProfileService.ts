@@ -4,7 +4,7 @@ import {
   ApplicationPrePopulationData,
   ProfileCompletionResponse,
   QuickApplicationCapability,
-} from '../types/enhanced-profile';
+} from '../types';
 import { api } from './api';
 
 /**
@@ -51,7 +51,6 @@ export class ApplicationProfileService {
     return (
       response || {
         auto_populate: true,
-        save_drafts: true,
         quick_apply_enabled: false,
         completion_reminders: true,
       }
@@ -84,20 +83,70 @@ export class ApplicationProfileService {
   async getPrePopulationData(petId?: string): Promise<ApplicationPrePopulationData> {
     try {
       const params = petId ? { petId } : {};
-      const response = (await api.get(`${this.baseUrl}/pre-population`, {
+      const response = await api.get(`${this.baseUrl}/pre-population`, {
         params,
-      })) as ApplicationPrePopulationData;
-      return response;
+      });
+
+      // Backend returns flat structure, but frontend expects wrapped structure
+      const backendData = response as {
+        personalInfo?: ApplicationDefaults['personalInfo'];
+        livingSituation?: ApplicationDefaults['livingSituation'];
+        petExperience?: ApplicationDefaults['petExperience'];
+        references?: ApplicationDefaults['references'];
+      };
+
+      return {
+        defaults: {
+          personalInfo: backendData.personalInfo || {},
+          livingSituation: backendData.livingSituation || {},
+          petExperience: backendData.petExperience || {},
+          references: backendData.references || {},
+        },
+        completionStatus: {
+          basic_info: !!backendData.personalInfo,
+          living_situation: !!backendData.livingSituation,
+          pet_experience: !!backendData.petExperience,
+          references: !!backendData.references,
+          overall_percentage: 75,
+          last_updated: new Date(),
+          completed_sections: ['basic_info'],
+          recommended_next_steps: [],
+        },
+        quickApplicationCapability: {
+          canProceed: true,
+          completionPercentage: 75,
+          missingRequirements: [],
+          estimatedTimeMinutes: 10,
+          missingFields: [],
+        },
+      };
     } catch (error) {
       console.error('Failed to get pre-population data:', error);
       // Return fallback data to prevent application from breaking
       return {
-        personalInfo: {},
-        livingSituation: {},
-        petExperience: {},
-        references: {},
-        source: 'manual_entry',
-        lastUpdated: new Date(),
+        defaults: {
+          personalInfo: {},
+          livingSituation: {},
+          petExperience: {},
+          references: {},
+        },
+        completionStatus: {
+          basic_info: false,
+          living_situation: false,
+          pet_experience: false,
+          references: false,
+          overall_percentage: 0,
+          last_updated: null,
+          completed_sections: [],
+          recommended_next_steps: ['Complete your profile to enable quick applications'],
+        },
+        quickApplicationCapability: {
+          canProceed: false,
+          completionPercentage: 0,
+          missingRequirements: ['personalInfo', 'livingSituation', 'petExperience', 'references'],
+          estimatedTimeMinutes: 30,
+          missingFields: ['personalInfo', 'livingSituation', 'petExperience', 'references'],
+        },
       };
     }
   }
@@ -125,8 +174,10 @@ export class ApplicationProfileService {
 
       return {
         canProceed: true,
-        prePopulationData,
-        completionPercentage: 90, // Calculate based on available data
+        completionPercentage: 90,
+        missingRequirements: [],
+        estimatedTimeMinutes: 5,
+        prePopulationData: prePopulationData.defaults,
       };
     } catch (error: unknown) {
       const apiError = error as {
@@ -135,15 +186,19 @@ export class ApplicationProfileService {
       if (apiError.response?.status === 400) {
         return {
           canProceed: false,
-          missingFields: apiError.response.data.data?.missingFields || [],
           completionPercentage: 0,
+          missingRequirements: apiError.response.data.data?.missingFields || [],
+          estimatedTimeMinutes: 30,
+          missingFields: apiError.response.data.data?.missingFields || [],
         };
       }
       // Return fallback for other errors
       return {
         canProceed: false,
-        missingFields: ['Unable to check profile completion'],
         completionPercentage: 0,
+        missingRequirements: ['Unable to check profile completion'],
+        estimatedTimeMinutes: 30,
+        missingFields: ['Unable to check profile completion'],
       };
     }
   }

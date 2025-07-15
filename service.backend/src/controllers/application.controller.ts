@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import { UserType } from '../models/User';
-import { ApplicationService } from '../services/application.service';
+import { ApplicationService, CreateApplicationInput } from '../services/application.service';
 import { AuthenticatedRequest } from '../types';
 import {
   ApplicationSearchFilters,
@@ -275,9 +275,20 @@ export class ApplicationController {
         include_rescue: false,
       };
 
+      // Merge options into filters for the service call
+      const searchParams = {
+        ...filters,
+        page: options.page,
+        limit: options.limit,
+        sort_by: options.sortBy,
+        sort_order: options.sortOrder,
+        include_user: options.include_user,
+        include_pet: options.include_pet,
+        include_rescue: options.include_rescue,
+      };
+
       const result = await ApplicationService.searchApplications(
-        filters,
-        options,
+        searchParams,
         req.user!.userId,
         req.user!.userType as UserType
       );
@@ -286,8 +297,7 @@ export class ApplicationController {
         success: true,
         data: result.applications,
         pagination: result.pagination,
-        filters_applied: result.filters_applied,
-        total_filtered: result.total_filtered,
+        total: result.total,
       });
     } catch (error) {
       logger.error('Error getting applications:', error);
@@ -347,7 +357,7 @@ export class ApplicationController {
       };
 
       const application = await ApplicationService.createApplication(
-        applicationData,
+        applicationData as unknown as CreateApplicationInput,
         req.user!.userId
       );
 
@@ -498,62 +508,6 @@ export class ApplicationController {
     }
   };
 
-  // Submit application
-  submitApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.submitApplication(
-        applicationId,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application submitted successfully',
-        data: application,
-      });
-    } catch (error) {
-      logger.error('Error submitting application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      if (errorMessage.includes('Only draft applications') || errorMessage.includes('incomplete')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to submit application',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-      });
-    }
-  };
-
   // Update application status
   updateApplicationStatus = async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -578,8 +532,13 @@ export class ApplicationController {
 
       const application = await ApplicationService.updateApplicationStatus(
         applicationId,
-        statusUpdate,
-        req.user!.userId
+        statusUpdate.status,
+        req.user!.userId,
+        req.user!.userType as string,
+        {
+          reason: statusUpdate.rejection_reason,
+          notes: statusUpdate.notes,
+        }
       );
 
       res.status(200).json({
@@ -732,10 +691,14 @@ export class ApplicationController {
       }
 
       const { applicationId } = req.params;
+      const { referenceIndex, ...updateData } = req.body;
+
       const application = await ApplicationService.updateReference(
         applicationId,
-        req.body,
-        req.user!.userId
+        referenceIndex || 0,
+        updateData,
+        req.user!.userId,
+        req.user!.userType as string
       );
 
       res.status(200).json({

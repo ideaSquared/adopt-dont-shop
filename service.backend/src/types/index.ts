@@ -1,6 +1,7 @@
 // Export all main type definitions
 export * from './api';
 export * from './application';
+export * from './enhanced-profile';
 export * from './pet';
 export * from './user';
 

@@ -13,7 +13,7 @@ import {
   RescueDetailsPage,
   SearchPage,
 } from '@/pages';
-import { EnhancedApplicationPage } from '@/pages/EnhancedApplicationPage';
+import { ApplicationPage } from '@/pages/ApplicationPage';
 import NotificationDemoPage from '@/pages/NotificationDemoPage';
 import { ProfileSetupPage } from '@/pages/ProfileSetupPage';
 import { Footer } from '@adopt-dont-shop/components';
@@ -43,7 +43,7 @@ function App() {
                   <Route path='/search' element={<SearchPage />} />
                   <Route path='/pets/:id' element={<PetDetailsPage />} />
                   <Route path='/rescues/:id' element={<RescueDetailsPage />} />
-                  <Route path='/apply/:petId' element={<EnhancedApplicationPage />} />
+                  <Route path='/apply/:petId' element={<ApplicationPage />} />
                   <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
                   <Route path='/profile' element={<ProfilePage />} />
                   <Route path='/profile/setup' element={<ProfileSetupPage />} />

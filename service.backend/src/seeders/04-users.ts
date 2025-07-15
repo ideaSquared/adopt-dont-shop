@@ -8,6 +8,8 @@ const testUsers = [
     lastName: 'Admin',
     email: 'superadmin@adoptdontshop.dev',
     phoneNumber: '+1234567890',
+    auto_populate: true,
+    quick_apply_enabled: false,
     userType: UserType.ADMIN,
     status: UserStatus.ACTIVE,
     emailVerified: true,
@@ -279,7 +281,6 @@ export async function seedUsers() {
             ? JSON.parse(
                 JSON.stringify({
                   auto_populate: true,
-                  save_drafts: true,
                   quick_apply_enabled: true,
                   completion_reminders: true,
                 })

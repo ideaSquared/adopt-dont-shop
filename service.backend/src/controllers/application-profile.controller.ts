@@ -97,7 +97,7 @@ export class ApplicationProfileController {
   }
 
   /**
-   * Get user's application behavior preferences (auto-populate, drafts, notifications)
+   * Get user's application behavior preferences (auto-populate, quick apply, notifications)
    * @route GET /api/v1/profile/application-preferences
    * @param req - Authenticated request containing user information
    * @param res - Express response object
@@ -109,7 +109,6 @@ export class ApplicationProfileController {
    *   "success": true,
    *   "data": {
    *     "auto_populate": true,
-   *     "save_drafts": true,
    *     "quick_apply_enabled": false,
    *     "completion_reminders": true
    *   }

@@ -27,6 +27,8 @@ services:
       - ./lib.components:/app/lib.components
       - /app/app.client/node_modules
       - /app/lib.components/node_modules
+    environment:
+      DOCKER_ENV: true
 
   app-rescue:
     build:

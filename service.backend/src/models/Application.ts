@@ -4,7 +4,6 @@ import { JsonObject } from '../types/common';
 
 // Application status enum for workflow management
 export enum ApplicationStatus {
-  DRAFT = 'draft',
   SUBMITTED = 'submitted',
   UNDER_REVIEW = 'under_review',
   PENDING_REFERENCES = 'pending_references',
@@ -127,7 +126,6 @@ class Application
   // Instance methods for workflow management
   public canTransitionTo(newStatus: ApplicationStatus): boolean {
     const validTransitions: Record<ApplicationStatus, ApplicationStatus[]> = {
-      [ApplicationStatus.DRAFT]: [ApplicationStatus.SUBMITTED, ApplicationStatus.WITHDRAWN],
       [ApplicationStatus.SUBMITTED]: [
         ApplicationStatus.UNDER_REVIEW,
         ApplicationStatus.REJECTED,
@@ -216,7 +214,6 @@ class Application
 
   public getCompletionPercentage(): number {
     const statusWeights: Record<ApplicationStatus, number> = {
-      [ApplicationStatus.DRAFT]: 10,
       [ApplicationStatus.SUBMITTED]: 20,
       [ApplicationStatus.UNDER_REVIEW]: 30,
       [ApplicationStatus.PENDING_REFERENCES]: 40,
@@ -279,7 +276,7 @@ Application.init(
     status: {
       type: DataTypes.ENUM(...Object.values(ApplicationStatus)),
       allowNull: false,
-      defaultValue: ApplicationStatus.DRAFT,
+      defaultValue: ApplicationStatus.SUBMITTED,
     },
     priority: {
       type: DataTypes.ENUM(...Object.values(ApplicationPriority)),

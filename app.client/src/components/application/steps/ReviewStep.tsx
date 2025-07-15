@@ -44,8 +44,52 @@ const SectionTitle = styled.h3`
 
 const ReviewItem = styled.div`
   display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid ${props => props.theme.border.color.primary};
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+`;
+
+const Label = styled.span`
+  font-weight: 500;
+  color: ${props => props.theme.text.secondary};
+  flex-shrink: 0;
+
+  @media (min-width: 768px) {
+    min-width: 200px;
+    max-width: 200px;
+  }
+`;
+
+const Value = styled.span`
+  color: ${props => props.theme.text.primary};
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.4;
+
+  @media (min-width: 768px) {
+    flex: 1;
+    text-align: right;
+  }
+`;
+
+const LongTextReviewItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
   border-bottom: 1px solid ${props => props.theme.border.color.primary};
 
   &:last-child {
@@ -53,13 +97,17 @@ const ReviewItem = styled.div`
   }
 `;
 
-const Label = styled.span`
-  font-weight: 500;
-  color: ${props => props.theme.text.secondary};
-`;
-
-const Value = styled.span`
+const LongTextValue = styled.div`
   color: ${props => props.theme.text.primary};
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  padding: 0.75rem;
+  background: ${props => props.theme.background.tertiary || props.theme.background.primary};
+  border-radius: 4px;
+  border: 1px solid
+    ${props => props.theme.border.color.secondary || props.theme.border.color.primary};
 `;
 
 export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, isUpdate }) => {
@@ -78,7 +126,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
       <StepDescription>Please review your application details before submitting.</StepDescription>
 
       <Form
-        id='step-5-form'
+        id='step-6-form'
         onSubmit={e => {
           e.preventDefault();
           handleContinue();
@@ -204,10 +252,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
               <Value>{data.livingsituation.hasAllergies ? 'Yes' : 'No'}</Value>
             </ReviewItem>
             {data.livingsituation.hasAllergies && data.livingsituation.allergyDetails && (
-              <ReviewItem>
+              <LongTextReviewItem>
                 <Label>Allergy Details:</Label>
-                <Value>{data.livingsituation.allergyDetails}</Value>
-              </ReviewItem>
+                <LongTextValue>{data.livingsituation.allergyDetails}</LongTextValue>
+              </LongTextReviewItem>
             )}
           </ReviewSection>
         )}
@@ -232,10 +280,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
               <Value>{data.petExperience.hoursAloneDaily} hours</Value>
             </ReviewItem>
             {data.petExperience.exercisePlans && (
-              <ReviewItem>
+              <LongTextReviewItem>
                 <Label>Exercise Plans:</Label>
-                <Value>{data.petExperience.exercisePlans}</Value>
-              </ReviewItem>
+                <LongTextValue>{data.petExperience.exercisePlans}</LongTextValue>
+              </LongTextReviewItem>
             )}
             {data.petExperience.currentPets && data.petExperience.currentPets.length > 0 && (
               <>
@@ -369,6 +417,30 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
             <p style={{ fontStyle: 'italic', color: '#666' }}>
               No references provided. You may be contacted later for references if needed.
             </p>
+          </ReviewSection>
+        )}
+
+        {data.additionalInfo && (
+          <ReviewSection>
+            <SectionTitle>Additional Information</SectionTitle>
+            <LongTextReviewItem>
+              <Label>Why do you want to adopt a pet:</Label>
+              <LongTextValue>{data.additionalInfo.whyAdopt}</LongTextValue>
+            </LongTextReviewItem>
+            <LongTextReviewItem>
+              <Label>Pet ownership expectations:</Label>
+              <LongTextValue>{data.additionalInfo.expectations}</LongTextValue>
+            </LongTextReviewItem>
+            <LongTextReviewItem>
+              <Label>Emergency plan:</Label>
+              <LongTextValue>{data.additionalInfo.emergencyPlan}</LongTextValue>
+            </LongTextReviewItem>
+            <ReviewItem>
+              <Label>Agreement:</Label>
+              <Value>
+                {data.additionalInfo.agreement ? 'Agreed to terms and conditions' : 'Not agreed'}
+              </Value>
+            </ReviewItem>
           </ReviewSection>
         )}
 
