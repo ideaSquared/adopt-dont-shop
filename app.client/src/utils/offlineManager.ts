@@ -40,7 +40,6 @@ class OfflineManager {
   private syncInterval: NodeJS.Timeout | null = null;
   private connectionCheckInterval: NodeJS.Timeout | null = null;
   private consecutiveFailures: number = 0;
-  private lastSuccessfulCheck: number = Date.now();
 
   constructor() {
     this.initializeNetworkListeners();
@@ -127,7 +126,6 @@ class OfflineManager {
       }
     }
 
-    this.lastSuccessfulCheck = Date.now();
     this.notifyListeners();
   }
 

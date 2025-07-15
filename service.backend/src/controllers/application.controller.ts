@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import { UserType } from '../models/User';
-import { ApplicationService } from '../services/application.service';
+import { ApplicationService, CreateApplicationInput } from '../services/application.service';
 import { AuthenticatedRequest } from '../types';
 import {
   ApplicationSearchFilters,
@@ -275,9 +275,20 @@ export class ApplicationController {
         include_rescue: false,
       };
 
+      // Merge options into filters for the service call
+      const searchParams = {
+        ...filters,
+        page: options.page,
+        limit: options.limit,
+        sort_by: options.sortBy,
+        sort_order: options.sortOrder,
+        include_user: options.include_user,
+        include_pet: options.include_pet,
+        include_rescue: options.include_rescue,
+      };
+
       const result = await ApplicationService.searchApplications(
-        filters,
-        options,
+        searchParams,
         req.user!.userId,
         req.user!.userType as UserType
       );
@@ -286,8 +297,7 @@ export class ApplicationController {
         success: true,
         data: result.applications,
         pagination: result.pagination,
-        filters_applied: result.filters_applied,
-        total_filtered: result.total_filtered,
+        total: result.total,
       });
     } catch (error) {
       logger.error('Error getting applications:', error);
@@ -347,7 +357,7 @@ export class ApplicationController {
       };
 
       const application = await ApplicationService.createApplication(
-        applicationData,
+        applicationData as unknown as CreateApplicationInput,
         req.user!.userId
       );
 
@@ -522,8 +532,13 @@ export class ApplicationController {
 
       const application = await ApplicationService.updateApplicationStatus(
         applicationId,
-        statusUpdate,
-        req.user!.userId
+        statusUpdate.status,
+        req.user!.userId,
+        req.user!.userType as string,
+        {
+          reason: statusUpdate.rejection_reason,
+          notes: statusUpdate.notes,
+        }
       );
 
       res.status(200).json({
@@ -676,10 +691,14 @@ export class ApplicationController {
       }
 
       const { applicationId } = req.params;
+      const { referenceIndex, ...updateData } = req.body;
+
       const application = await ApplicationService.updateReference(
         applicationId,
-        req.body,
-        req.user!.userId
+        referenceIndex || 0,
+        updateData,
+        req.user!.userId,
+        req.user!.userType as string
       );
 
       res.status(200).json({

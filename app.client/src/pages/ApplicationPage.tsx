@@ -337,12 +337,7 @@ export const ApplicationPage: React.FC = () => {
         personal_info: applicationData.personalInfo || {},
         living_situation: applicationData.livingsituation || {},
         pet_experience: applicationData.petExperience || {},
-        additional_info: {
-          whyAdopt: 'I want to provide a loving home for a pet in need.',
-          expectations: 'I expect to provide daily care, exercise, and companionship.',
-          emergencyPlan: 'I have a local emergency vet and backup caregiver.',
-          agreement: true,
-        },
+        additional_info: applicationData.additionalInfo || {},
       };
 
       const submissionData = {

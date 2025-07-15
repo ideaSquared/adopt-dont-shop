@@ -7,12 +7,6 @@ interface FetchOptions {
   timeout?: number;
 }
 
-interface ApiError {
-  message: string;
-  status?: number;
-  code?: string;
-}
-
 // Pet data interfaces
 interface PetImage {
   image_id?: string;
@@ -174,45 +168,6 @@ class ApiService {
 
   constructor() {
     this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  }
-
-  private static sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  private async retryRequest<T>(operation: () => Promise<T>, maxRetries: number = 3): Promise<T> {
-    let lastError: Error;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error) {
-        lastError = error as Error;
-
-        // Don't retry authentication errors or client errors (4xx except 429)
-        if (
-          lastError.message.includes('401') ||
-          lastError.message.includes('403') ||
-          lastError.message.includes('404')
-        ) {
-          throw lastError;
-        }
-
-        if (attempt === maxRetries) {
-          throw lastError;
-        }
-
-        // Wait before retry (exponential backoff)
-        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-        console.warn(
-          `Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms:`,
-          lastError.message
-        );
-        await ApiService.sleep(delay);
-      }
-    }
-
-    throw lastError!;
   }
 
   private getAuthToken(): string | null {

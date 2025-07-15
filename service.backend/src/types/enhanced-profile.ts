@@ -43,7 +43,7 @@ export interface ApplicationDefaults {
       spayedNeutered: boolean;
       vaccinated: boolean;
     }>;
-    experienceLevel?: 'beginner' | 'intermediate' | 'experienced';
+    experienceLevel?: 'beginner' | 'some' | 'experienced' | 'expert';
     willingToTrain?: boolean;
     hoursAloneDaily?: number;
     exercisePlans?: string;

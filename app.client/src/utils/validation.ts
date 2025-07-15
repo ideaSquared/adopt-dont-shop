@@ -139,7 +139,7 @@ export const livingSituationSchema = z
 export const petExperienceSchema = z.object({
   hasPetsCurrently: z.boolean(),
 
-  experienceLevel: z.enum(['beginner', 'some_experience', 'experienced', 'expert'], {
+  experienceLevel: z.enum(['beginner', 'some', 'experienced', 'expert'], {
     errorMap: () => ({ message: 'Please select your experience level' }),
   }),
 

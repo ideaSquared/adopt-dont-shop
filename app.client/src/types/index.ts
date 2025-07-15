@@ -573,4 +573,7 @@ export interface ProfileCompletionResponse {
   completionStatus: ProfileCompletionStatus;
   quickApplicationCapability: QuickApplicationCapability;
   prePopulationData: ApplicationDefaults;
+  missingFields: string[];
+  recommendations: string[];
+  canQuickApply: boolean;
 }
