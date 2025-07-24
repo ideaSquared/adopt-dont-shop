@@ -10,8 +10,11 @@ export default defineConfig(({ mode }) => ({
       mode === 'development'
         ? {
             '@adopt-dont-shop/components': resolve(__dirname, '../lib.components/src'),
+            '@': resolve(__dirname, './src'),
           }
-        : {},
+        : {
+            '@': resolve(__dirname, './src'),
+          },
   },
 
   server: {

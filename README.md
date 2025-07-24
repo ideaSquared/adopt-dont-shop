@@ -152,6 +152,39 @@ VITE_API_URL=http://api.localhost
 VITE_WS_URL=ws://api.localhost
 ```
 
+### 🌐 CORS Configuration
+
+**⚡ Centralized CORS Management:** All CORS origins are configured in the root `.env` file for consistency across all applications.
+
+```env
+# CORS Configuration - Centralized for all applications
+# Includes both direct container access and nginx proxied access
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost,http://admin.localhost,http://admin.localhost:3001,http://rescue.localhost,http://rescue.localhost:3002,http://api.localhost:5000
+```
+
+**Supported Access Methods:**
+- **Nginx Proxy Access** (Recommended): `http://localhost`, `http://admin.localhost`, `http://rescue.localhost`
+- **Direct Container Access**: `http://localhost:3000`, `http://localhost:3001`, `http://localhost:3002`
+- **API Access**: `http://api.localhost:5000`
+
+**Important Notes:**
+- **Single Source of Truth**: CORS origins are defined once in the root `.env` file
+- **All Apps Included**: Configuration covers both nginx-proxied and direct container access
+- **Docker Integration**: The `docker-compose.yml` automatically uses the centralized CORS configuration
+- **No Individual App Configuration**: Do not modify CORS settings in individual app `.env` files
+
+**Troubleshooting CORS Issues:**
+1. Ensure all your app URLs are included in the root `.env` CORS_ORIGIN setting
+2. Restart Docker services after changing CORS configuration: `docker-compose restart service-backend`
+3. Use browser dev tools to verify Access-Control-Allow-Origin headers are present
+4. Check if you're accessing via nginx proxy (`rescue.localhost`) or direct container (`localhost:3002`)
+
+**⚠️ Important API Endpoint Notes:**
+- **All API endpoints use `/api/v1/` prefix** (e.g., `/api/v1/auth/login`, not `/api/auth/login`)
+- **Backend API Base URL**: `http://api.localhost:5000` for local development  
+- **API Documentation**: Available at `http://api.localhost:5000/api/docs` (Swagger UI)
+- Always check the backend routes in `service.backend/src/index.ts` for the correct endpoint structure
+
 ### Common Commands
 
 #### **Development with Turborepo (Recommended)**

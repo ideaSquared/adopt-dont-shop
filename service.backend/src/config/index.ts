@@ -54,7 +54,15 @@ export const config = {
       if (process.env.NODE_ENV === 'production') {
         throw new Error('CORS_ORIGIN environment variable is required in production');
       }
-      return ['http://localhost:3000', 'http://localhost', 'http://api.localhost']; // Safe defaults for development
+      return [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'http://localhost',
+        'http://admin.localhost',
+        'http://rescue.localhost',
+        'http://api.localhost',
+      ]; // Safe defaults for development
     })(),
     credentials: true,
   },

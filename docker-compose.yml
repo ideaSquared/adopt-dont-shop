@@ -60,7 +60,8 @@ services:
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       API_URL: ${API_URL:-http://api.localhost}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost,http://api.localhost}
+      # Centralized CORS configuration from root .env file
+      CORS_ORIGIN: ${CORS_ORIGIN}
     depends_on:
       database:
         condition: service_healthy
