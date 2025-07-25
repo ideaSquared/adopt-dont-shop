@@ -158,17 +158,19 @@ function generateTsConfig() {
 function generateJestConfig() {
   return `module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
+  setupFilesAfterEnv: ['<rootDir>/src/test-utils/setup-tests.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/**/*.test.ts',
     '!src/**/*.spec.ts',
+    '!src/test-utils/**',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
@@ -500,70 +502,74 @@ describe('${serviceName}', () => {
       expect(config).toBeDefined();
       expect(config.debug).toBe(false);
     });
-
-    it('should initialize with custom config', () => {
-      const customService = new ${serviceName}({
-        debug: true,
-        apiUrl: 'https://test.example.com',
-      });
-      
-      const config = customService.getConfig();
-      expect(config.debug).toBe(true);
-      expect(config.apiUrl).toBe('https://test.example.com');
-    });
   });
 
-  describe('configuration management', () => {
-    it('should update configuration', () => {
-      service.updateConfig({ debug: true });
-      const config = service.getConfig();
-      expect(config.debug).toBe(true);
-    });
-
-    it('should return current configuration', () => {
-      const config = service.getConfig();
-      expect(typeof config).toBe('object');
-      expect(config).toHaveProperty('apiUrl');
-      expect(config).toHaveProperty('debug');
-    });
-  });
-
-  describe('cache management', () => {
-    it('should clear cache without errors', () => {
-      expect(() => service.clearCache()).not.toThrow();
-    });
-  });
-
-  describe('exampleMethod', () => {
-    it('should return success response', async () => {
-      const testData = { test: 'data' };
-      const result = await service.exampleMethod(testData);
-      
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect(result.timestamp).toBeDefined();
-    });
-
-    it('should use cache when enabled', async () => {
-      const testData = { test: 'cached' };
-      
-      // First call
-      const result1 = await service.exampleMethod(testData, { useCache: true });
-      
-      // Second call should use cache
-      const result2 = await service.exampleMethod(testData, { useCache: true });
-      
-      expect(result1).toEqual(result2);
-    });
-  });
-
-  describe('healthCheck', () => {
-    it('should return health status', async () => {
-      const isHealthy = await service.healthCheck();
-      expect(typeof isHealthy).toBe('boolean');
-    });
-  });
+  // TODO: Add your tests here
 });
+`;
+}
+
+/**
+ * Generate test setup file
+ */
+function generateTestSetup() {
+  return `// Test setup file for Jest
+// This file is automatically loaded before each test file
+
+// Mock fetch globally
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
+
+// Mock localStorage
+const mockLocalStorage = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+  length: 0,
+  key: jest.fn(),
+};
+
+// Mock global localStorage (for Node.js environment)
+Object.defineProperty(global, 'localStorage', {
+  value: mockLocalStorage,
+  writable: true,
+});
+
+// Mock window.localStorage (for jsdom environment)
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: mockLocalStorage,
+    writable: true,
+  });
+}
+
+// Mock console methods to reduce noise in tests (optional)
+// global.console = {
+//   ...console,
+//   log: jest.fn(),
+//   debug: jest.fn(),
+//   info: jest.fn(),
+//   warn: jest.fn(),
+//   error: jest.fn(),
+// };
+
+// Global test utilities available in all tests
+global.mockFetch = mockFetch;
+global.mockLocalStorage = mockLocalStorage;
+
+// Clean up after each test
+afterEach(() => {
+  jest.clearAllMocks();
+  mockFetch.mockClear();
+  mockLocalStorage.getItem.mockClear();
+  mockLocalStorage.setItem.mockClear();
+  mockLocalStorage.removeItem.mockClear();
+  mockLocalStorage.clear.mockClear();
+});
+
+// Export for use in individual test files if needed
+export { mockFetch, mockLocalStorage };
 `;
 }
 
@@ -1251,6 +1257,7 @@ async function createNewLibrary() {
     ensureDirectoryExists(libDir);
     ensureDirectoryExists(path.join(libDir, 'src', 'services', '__tests__'));
     ensureDirectoryExists(path.join(libDir, 'src', 'types'));
+    ensureDirectoryExists(path.join(libDir, 'src', 'test-utils'));
 
     // Generate all files
     writeFile(path.join(libDir, 'package.json'), generatePackageJson(libName, libDescription));
@@ -1267,6 +1274,10 @@ async function createNewLibrary() {
     writeFile(
       path.join(libDir, 'src', 'services', '__tests__', `${libName}-service.test.ts`),
       generateTestFile(libName)
+    );
+    writeFile(
+      path.join(libDir, 'src', 'test-utils', 'setup-tests.ts'),
+      generateTestSetup()
     );
     writeFile(path.join(libDir, 'Dockerfile'), generateDockerfile(libName));
     writeFile(path.join(libDir, 'docker-compose.lib.yml'), generateLibDockerCompose(libName));

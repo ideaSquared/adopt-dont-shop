@@ -1,19 +1,15 @@
-# @adopt-dont-shop/lib-auth
+# Auth Library
 
-Authentication and authorization functionality
+Authentication and authorization functionality.
 
-## 📦 Installation
+## Documentation
+
+See the centralized documentation: [docs/libraries/auth.md](../docs/libraries/auth.md)
+
+## Installation
 
 ```bash
-# From the workspace root
 npm install @adopt-dont-shop/lib-auth
-
-# Or add to your package.json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-auth": "workspace:*"
-  }
-}
 ```
 
 ## 🚀 Quick Start

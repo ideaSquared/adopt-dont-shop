@@ -1,6 +1,98 @@
-/**
- * Configuration options for ApiService
- */
+// API Response Types
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+  code?: string;
+  timestamp?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta?: {
+    currentPage?: number;
+    totalItems?: number;
+    itemsPerPage?: number;
+    totalPages?: number;
+  };
+  pagination?: {
+    currentPage?: number;
+    totalItems?: number;
+    itemsPerPage?: number;
+    totalPages?: number;
+  };
+}
+
+// Pet Data Types
+export interface PetImage {
+  image_id?: string;
+  photoId?: string;
+  url: string;
+  is_primary?: boolean;
+  isPrimary?: boolean;
+  caption?: string;
+  order_index?: number;
+  order?: number;
+}
+
+export interface PetLocation {
+  coordinates?: [number, number];
+  type?: string;
+  city?: string;
+  state?: string;
+}
+
+export interface PetRescue {
+  rescue_id?: string;
+  rescueId?: string;
+  name: string;
+  location?: PetLocation | string;
+}
+
+export interface ApiPet {
+  pet_id?: string;
+  petId?: string;
+  images?: PetImage[];
+  short_description?: string;
+  shortDescription?: string;
+  long_description?: string;
+  longDescription?: string;
+  rescue_id?: string;
+  rescueId?: string;
+  location?: PetLocation | string;
+  rescue?: PetRescue;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface TransformedPet {
+  petId?: string;
+  photos: Array<{
+    photoId?: string;
+    url: string;
+    isPrimary: boolean;
+    caption?: string;
+    order: number;
+  }>;
+  shortDescription?: string;
+  longDescription?: string;
+  rescueId?: string;
+  location: string;
+  rescue?: {
+    rescueId?: string;
+    name: string;
+    location?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+// API Service Configuration
 export interface ApiServiceConfig {
   /**
    * API base URL
@@ -13,9 +105,27 @@ export interface ApiServiceConfig {
   debug?: boolean;
   
   /**
+   * Default request timeout in milliseconds
+   */
+  timeout?: number;
+  
+  /**
    * Custom headers to include with requests
    */
   headers?: Record<string, string>;
+
+  /**
+   * Function to get authentication token
+   */
+  getAuthToken?: () => string | null;
+}
+
+export interface FetchOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  headers?: Record<string, string>;
+  body?: unknown;
+  timeout?: number;
+  requireAuth?: boolean;
 }
 
 /**
@@ -54,20 +164,8 @@ export interface BaseResponse<T = unknown> {
 export interface ErrorResponse {
   error: string;
   code?: string;
-  details?: Record<string, unknown>;
   timestamp: string;
+  details?: unknown;
 }
 
-/**
- * Paginated response interface
- */
-export interface PaginatedResponse<T> extends BaseResponse<T[]> {
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
+

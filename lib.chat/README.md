@@ -1,4 +1,16 @@
-# @adopt-dont-shop/lib-chat
+# Chat Library
+
+Real-time chat functionality and components.
+
+## Documentation
+
+See the centralized documentation: [docs/libraries/chat.md](../docs/libraries/chat.md)
+
+## Installation
+
+```bash
+npm install @adopt-dont-shop/lib-chat
+```p/lib-chat
 
 Real-time chat and messaging functionality
 

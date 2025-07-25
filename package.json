@@ -8,10 +8,13 @@
     "app.admin",
     "app.client",
     "app.rescue",
+    "app.test-dashboard",
     "lib.api",
     "lib.auth",
     "lib.chat",
     "lib.components",
+    "lib.demo",
+    "lib.test-lib",
     "lib.utils",
     "lib.validation",
     "service.backend"
@@ -72,7 +75,13 @@
     "test:lib-auth": "turbo run test --filter=@adopt-dont-shop/lib-auth",
     "dev:lib-chat": "turbo run dev --filter=@adopt-dont-shop/lib-chat",
     "build:lib-chat": "turbo run build --filter=@adopt-dont-shop/lib-chat",
-    "test:lib-chat": "turbo run test --filter=@adopt-dont-shop/lib-chat"
+    "test:lib-chat": "turbo run test --filter=@adopt-dont-shop/lib-chat",
+    "dev:lib-test-lib": "turbo run dev --filter=@adopt-dont-shop/lib-test-lib",
+    "build:lib-test-lib": "turbo run build --filter=@adopt-dont-shop/lib-test-lib",
+    "test:lib-test-lib": "turbo run test --filter=@adopt-dont-shop/lib-test-lib",
+    "dev:lib-demo": "turbo run dev --filter=@adopt-dont-shop/lib-demo",
+    "build:lib-demo": "turbo run build --filter=@adopt-dont-shop/lib-demo",
+    "test:lib-demo": "turbo run test --filter=@adopt-dont-shop/lib-demo"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",

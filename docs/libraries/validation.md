@@ -1,15 +1,19 @@
-# Validation Library
+# @adopt-dont-shop/lib-validation
 
-Form validation and data validation utilities.
+Form validation and data validation utilities
 
-## Documentation
-
-See the centralized documentation: [docs/libraries/validation.md](../docs/libraries/validation.md)
-
-## Installation
+## 📦 Installation
 
 ```bash
+# From the workspace root
 npm install @adopt-dont-shop/lib-validation
+
+# Or add to your package.json
+{
+  "dependencies": {
+    "@adopt-dont-shop/lib-validation": "workspace:*"
+  }
+}
 ```
 
 ## 🚀 Quick Start

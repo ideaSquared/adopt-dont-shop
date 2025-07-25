@@ -1,42 +1,46 @@
-# Validation Library
+# @adopt-dont-shop/lib-auth
 
-Form validation and data validation utilities.
+Authentication and authorization functionality
 
-## Documentation
-
-See the centralized documentation: [docs/libraries/validation.md](../docs/libraries/validation.md)
-
-## Installation
+## 📦 Installation
 
 ```bash
-npm install @adopt-dont-shop/lib-validation
+# From the workspace root
+npm install @adopt-dont-shop/lib-auth
+
+# Or add to your package.json
+{
+  "dependencies": {
+    "@adopt-dont-shop/lib-auth": "workspace:*"
+  }
+}
 ```
 
 ## 🚀 Quick Start
 
 ```typescript
-import { ValidationService, ValidationServiceConfig } from '@adopt-dont-shop/lib-validation';
+import { AuthService, AuthServiceConfig } from '@adopt-dont-shop/lib-auth';
 
 // Using the singleton instance
-import { validationService } from '@adopt-dont-shop/lib-validation';
+import { authService } from '@adopt-dont-shop/lib-auth';
 
 // Basic usage
-const result = await validationService.exampleMethod({ test: 'data' });
+const result = await authService.exampleMethod({ test: 'data' });
 console.log(result);
 
 // Or create a custom instance
-const config: ValidationServiceConfig = {
+const config: AuthServiceConfig = {
   apiUrl: 'https://api.example.com',
   debug: true,
 };
 
-const customService = new ValidationService(config);
+const customService = new AuthService(config);
 const customResult = await customService.exampleMethod({ custom: 'data' });
 ```
 
 ## 🔧 Configuration
 
-### ValidationServiceConfig
+### AuthServiceConfig
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
@@ -57,12 +61,12 @@ NODE_ENV=development
 
 ## 📖 API Reference
 
-### ValidationService
+### AuthService
 
 #### Constructor
 
 ```typescript
-new ValidationService(config?: ValidationServiceConfig)
+new AuthService(config?: AuthServiceConfig)
 ```
 
 #### Methods
@@ -84,7 +88,7 @@ await service.exampleMethod(
 
 **Parameters:**
 - `data` (Record<string, unknown>): Input data
-- `options` (ValidationServiceOptions): Operation options
+- `options` (AuthServiceOptions): Operation options
 
 **Returns:** `Promise<BaseResponse>`
 
@@ -128,7 +132,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-validation": "workspace:*"
+    "@adopt-dont-shop/lib-auth": "workspace:*"
   }
 }
 ```
@@ -136,10 +140,10 @@ const isHealthy = await service.healthCheck();
 2. **Import and use:**
 ```typescript
 // src/services/index.ts
-export { validationService } from '@adopt-dont-shop/lib-validation';
+export { authService } from '@adopt-dont-shop/lib-auth';
 
 // In your component
-import { validationService } from '@/services';
+import { authService } from '@/services';
 
 function MyComponent() {
   const [data, setData] = useState(null);
@@ -147,7 +151,7 @@ function MyComponent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await validationService.exampleMethod({ 
+        const result = await authService.exampleMethod({ 
           component: 'MyComponent' 
         });
         setData(result.data);
@@ -169,27 +173,27 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-validation": "workspace:*"
+    "@adopt-dont-shop/lib-auth": "workspace:*"
   }
 }
 ```
 
 2. **Import and use:**
 ```typescript
-// src/services/validation.service.ts
-import { ValidationService } from '@adopt-dont-shop/lib-validation';
+// src/services/auth.service.ts
+import { AuthService } from '@adopt-dont-shop/lib-auth';
 
-export const validationService = new ValidationService({
+export const authService = new AuthService({
   apiUrl: process.env.API_URL,
   debug: process.env.NODE_ENV === 'development',
 });
 
 // In your routes or controllers
-import { validationService } from '../services/validation.service';
+import { authService } from '../services/auth.service';
 
-app.get('/api/validation/example', async (req, res) => {
+app.get('/api/auth/example', async (req, res) => {
   try {
-    const result = await validationService.exampleMethod(req.body);
+    const result = await authService.exampleMethod(req.body);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -204,12 +208,12 @@ app.get('/api/validation/example', async (req, res) => {
 1. **Build the library:**
 ```bash
 # From workspace root
-docker-compose -f docker-compose.lib.yml up lib-validation
+docker-compose -f docker-compose.lib.yml up lib-auth
 ```
 
 2. **Run tests:**
 ```bash
-docker-compose -f docker-compose.lib.yml run lib-validation-test
+docker-compose -f docker-compose.lib.yml run lib-auth-test
 ```
 
 ### Using in App Containers
@@ -218,10 +222,10 @@ Add to your app's Dockerfile:
 
 ```dockerfile
 # Copy shared libraries
-COPY lib.validation /workspace/lib.validation
+COPY lib.auth /workspace/lib.auth
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-validation@workspace:*
+RUN npm install @adopt-dont-shop/lib-auth@workspace:*
 ```
 
 ### Multi-stage Build for Production
@@ -233,13 +237,13 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Copy shared library
-COPY lib.validation ./lib.validation
+COPY lib.auth ./lib.auth
 
 # Copy app package files
 COPY app.client/package*.json ./app.client/
 
 # Install dependencies
-RUN cd lib.validation && npm ci && npm run build
+RUN cd lib.auth && npm ci && npm run build
 RUN cd app.client && npm ci
 
 # Build stage
@@ -276,9 +280,9 @@ npm run test:coverage
 ```
 src/
 ├── services/
-│   ├── validation-service.ts
+│   ├── auth-service.ts
 │   └── __tests__/
-│       └── validation-service.test.ts
+│       └── auth-service.test.ts
 └── types/
     └── index.ts
 ```
@@ -314,12 +318,12 @@ npm run type-check
 ## 📁 Project Structure
 
 ```
-lib.validation/
+lib.auth/
 ├── src/
 │   ├── services/
-│   │   ├── validation-service.ts     # Main service implementation
+│   │   ├── auth-service.ts     # Main service implementation
 │   │   └── __tests__/
-│   │       └── validation-service.test.ts
+│   │       └── auth-service.test.ts
 │   ├── types/
 │   │   └── index.ts                  # TypeScript type definitions
 │   └── index.ts                      # Main entry point
@@ -341,10 +345,10 @@ lib.validation/
 ```typescript
 import { apiService } from '@adopt-dont-shop/lib-api';
 import { authService } from '@adopt-dont-shop/lib-auth';
-import { validationService } from '@adopt-dont-shop/lib-validation';
+import { authService } from '@adopt-dont-shop/lib-auth';
 
 // Configure with shared dependencies
-validationService.updateConfig({
+authService.updateConfig({
   apiUrl: apiService.getConfig().baseUrl,
   headers: {
     'Authorization': `Bearer ${authService.getToken()}`,
@@ -355,10 +359,10 @@ validationService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { validationService, ErrorResponse } from '@adopt-dont-shop/lib-validation';
+import { authService, ErrorResponse } from '@adopt-dont-shop/lib-auth';
 
 try {
-  const result = await validationService.exampleMethod(data);
+  const result = await authService.exampleMethod(data);
   // Handle success
 } catch (error) {
   const errorResponse = error as ErrorResponse;
@@ -388,7 +392,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-validation": "workspace:*"
+    "@adopt-dont-shop/lib-auth": "workspace:*"
   }
 }
 ```
@@ -426,7 +430,7 @@ MIT License - see the LICENSE file for details.
 Enable debug logging:
 
 ```typescript
-validationService.updateConfig({ debug: true });
+authService.updateConfig({ debug: true });
 ```
 
 Or set environment variable:

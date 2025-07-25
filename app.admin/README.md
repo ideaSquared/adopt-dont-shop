@@ -1,70 +1,15 @@
-# app.admin - Administrative Dashboard
+# Admin App
 
-## Overview
+Administration interface for platform management.
 
-This is the administrative dashboard for the Adopt Don't Shop platform, allowing platform administrators to:
+## Documentation
 
-- Manage users and rescue organizations
-- Moderate content
-- View platform analytics
-- Configure system settings
-- Handle support requests
+See the centralized documentation: [docs/frontend/app-admin-prd.md](../docs/frontend/app-admin-prd.md)
 
-## Structure
-
-```
-app.admin/
-├── src/
-│   ├── components/     # Admin-specific components
-│   ├── pages/          # Page components
-│   ├── hooks/          # Custom React hooks
-│   ├── api/            # API integration
-│   ├── store/          # State management
-│   ├── utils/          # Utility functions
-│   ├── types/          # TypeScript type definitions
-│   ├── App.tsx         # Main App component
-│   └── main.tsx        # Entry point
-├── public/             # Static assets
-├── index.html
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
-```
-
-## Features
-
-- User management
-- Rescue organization verification and management
-- Content moderation queue
-- System analytics dashboard
-- Platform configuration
-- Support ticket management
-- Audit logging
-
-## Development
+## Quick Start
 
 ```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
+npm run dev:admin
 ```
 
-## Testing
-
-```bash
-npm run test
-```
-
-## Routes
-
-- `/` - Admin dashboard
-- `/login` - Admin login
-- `/users` - User management
-- `/rescues` - Rescue management
-- `/moderation` - Content moderation
-- `/analytics` - Platform analytics
-- `/support` - Support tickets
-- `/config` - System configuration
-- `/audit` - Audit logs
+Access at: http://localhost:3001

@@ -1,439 +1,276 @@
 # @adopt-dont-shop/lib-api
 
-Core API client functionality for backend communication
+A comprehensive API client library for the Adopt Don't Shop application ecosystem. This library provides type-safe HTTP client functionality with authentication, data transformation, and pet-specific API operations.
 
-## 📦 Installation
+## Features
+
+- **Type-safe API client** with TypeScript support
+- **Authentication management** with token handling and refresh
+- **Automatic data transformation** for pet data (snake_case ↔ camelCase)
+- **Request/response interceptors** for consistent error handling
+- **File upload support** with FormData handling
+- **Caching capabilities** for improved performance
+- **Environment variable support** for different deployment scenarios
+- **PostGIS geometry handling** for location data
+
+## Installation
 
 ```bash
-# From the workspace root
 npm install @adopt-dont-shop/lib-api
-
-# Or add to your package.json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*"
-  }
-}
 ```
 
-## 🚀 Quick Start
+## Quick Start
+
+### Basic API Usage
 
 ```typescript
-import { ApiService, ApiServiceConfig } from '@adopt-dont-shop/lib-api';
+import { apiService, authService } from '@adopt-dont-shop/lib-api';
 
-// Using the singleton instance
-import { apiService } from '@adopt-dont-shop/lib-api';
-
-// Basic usage
-const result = await apiService.exampleMethod({ test: 'data' });
-console.log(result);
-
-// Or create a custom instance
-const config: ApiServiceConfig = {
-  apiUrl: 'https://api.example.com',
+// Configure the API service
+apiService.updateConfig({
+  apiUrl: 'https://api.adopt-dont-shop.com',
   debug: true,
-};
+  timeout: 15000
+});
 
-const customService = new ApiService(config);
-const customResult = await customService.exampleMethod({ custom: 'data' });
+// Make authenticated requests
+const pets = await apiService.get('/api/v1/pets');
+const pet = await apiService.get('/api/v1/pets/123');
 ```
 
-## 🔧 Configuration
+### Authentication
 
-### ApiServiceConfig
+```typescript
+import { authService } from '@adopt-dont-shop/lib-api';
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Base API URL |
-| `debug` | `boolean` | `process.env.NODE_ENV === 'development'` | Enable debug logging |
-| `headers` | `Record<string, string>` | `{}` | Custom headers for requests |
+// Login
+const authResponse = await authService.login({
+  email: 'user@example.com',
+  password: 'password123'
+});
 
-### Environment Variables
+// Check authentication status
+if (authService.isAuthenticated()) {
+  const currentUser = authService.getCurrentUser();
+  console.log('Logged in as:', currentUser?.email);
+}
 
-```bash
-# API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
-
-# Development
-NODE_ENV=development
+// Register new user
+const newUser = await authService.register({
+  email: 'newuser@example.com',
+  password: 'password123',
+  firstName: 'John',
+  lastName: 'Doe',
+  agreeToTerms: true,
+  agreeToPrivacyPolicy: true
+});
 ```
 
-## 📖 API Reference
+### Pet Data Management
+
+```typescript
+// Fetch pets with automatic data transformation
+const petsResponse = await apiService.get('/api/v1/pets', {
+  page: 1,
+  limit: 20,
+  species: 'dog'
+});
+
+// Data is automatically transformed from snake_case to camelCase
+// pet.short_description becomes pet.shortDescription
+// pet.images becomes pet.photos with proper typing
+
+// Upload pet photo
+const file = new File(['...'], 'pet-photo.jpg', { type: 'image/jpeg' });
+const uploadResponse = await apiService.uploadFile('/api/v1/pets/123/photos', file, {
+  caption: 'Cute photo of Max',
+  isPrimary: true
+});
+```
+
+## API Reference
 
 ### ApiService
 
-#### Constructor
-
-```typescript
-new ApiService(config?: ApiServiceConfig)
-```
+The main API client for making HTTP requests.
 
 #### Methods
 
-##### `exampleMethod(data, options)`
+- `get<T>(url: string, params?: object): Promise<T>` - GET request with query parameters
+- `post<T>(url: string, data?: unknown): Promise<T>` - POST request with JSON body
+- `put<T>(url: string, data?: unknown): Promise<T>` - PUT request with JSON body
+- `patch<T>(url: string, data?: unknown): Promise<T>` - PATCH request with JSON body
+- `delete<T>(url: string): Promise<T>` - DELETE request
+- `uploadFile<T>(url: string, file: File, additionalData?: object): Promise<T>` - File upload
+- `healthCheck(): Promise<boolean>` - Check API health status
 
-Example method that demonstrates the library's capabilities.
-
-```typescript
-await service.exampleMethod(
-  { key: 'value' },
-  { 
-    timeout: 5000,
-    useCache: true,
-    metadata: { requestId: 'abc123' }
-  }
-);
-```
-
-**Parameters:**
-- `data` (Record<string, unknown>): Input data
-- `options` (ApiServiceOptions): Operation options
-
-**Returns:** `Promise<BaseResponse>`
-
-##### `updateConfig(config)`
-
-Update the service configuration.
+#### Configuration
 
 ```typescript
-service.updateConfig({ debug: true, apiUrl: 'https://new-api.com' });
+interface ApiServiceConfig {
+  apiUrl?: string;          // Base API URL
+  debug?: boolean;          // Enable debug logging
+  timeout?: number;         // Request timeout in milliseconds
+  headers?: Record<string, string>; // Default headers
+}
 ```
 
-##### `getConfig()`
+### AuthService
 
-Get current configuration.
+Handles authentication and user management.
+
+#### Methods
+
+- `login(credentials: LoginRequest): Promise<AuthResponse>` - User login
+- `register(userData: RegisterRequest): Promise<AuthResponse>` - User registration
+- `logout(): Promise<void>` - User logout
+- `getCurrentUser(): User | null` - Get current user from storage
+- `isAuthenticated(): boolean` - Check authentication status
+- `refreshToken(): Promise<AuthResponse | null>` - Refresh access token
+- `verifyToken(): Promise<boolean>` - Verify token validity
+- `updateProfile(userData: Partial<User>): Promise<User>` - Update user profile
+- `changePassword(oldPassword: string, newPassword: string): Promise<void>` - Change password
+
+## Data Transformation
+
+The library automatically transforms data between different naming conventions:
+
+### Pet Data Transformation
 
 ```typescript
-const config = service.getConfig();
-```
-
-##### `clearCache()`
-
-Clear the internal cache.
-
-```typescript
-service.clearCache();
-```
-
-##### `healthCheck()`
-
-Check service health.
-
-```typescript
-const isHealthy = await service.healthCheck();
-```
-
-## 🏗️ Usage in Apps
-
-### React/Vite Apps (app.client, app.admin, app.rescue)
-
-1. **Add to package.json:**
-```json
+// API Response (snake_case)
 {
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*"
-  }
+  pet_id: "123",
+  short_description: "Friendly dog",
+  images: [
+    {
+      image_id: "456",
+      is_primary: true,
+      order_index: 0
+    }
+  ],
+  created_at: "2023-01-01T00:00:00Z"
 }
-```
 
-2. **Import and use:**
-```typescript
-// src/services/index.ts
-export { apiService } from '@adopt-dont-shop/lib-api';
-
-// In your component
-import { apiService } from '@/services';
-
-function MyComponent() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await apiService.exampleMethod({ 
-          component: 'MyComponent' 
-        });
-        setData(result.data);
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  return <div>{/* Your JSX */}</div>;
-}
-```
-
-### Node.js Backend (service.backend)
-
-1. **Add to package.json:**
-```json
+// Transformed Data (camelCase)
 {
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*"
-  }
+  petId: "123",
+  shortDescription: "Friendly dog",
+  photos: [
+    {
+      photoId: "456",
+      isPrimary: true,
+      order: 0
+    }
+  ],
+  createdAt: "2023-01-01T00:00:00Z"
 }
 ```
 
-2. **Import and use:**
+### Location Handling
+
+PostGIS geometry objects are automatically converted to readable strings:
+
 ```typescript
-// src/services/api.service.ts
-import { ApiService } from '@adopt-dont-shop/lib-api';
-
-export const apiService = new ApiService({
-  apiUrl: process.env.API_URL,
-  debug: process.env.NODE_ENV === 'development',
-});
-
-// In your routes or controllers
-import { apiService } from '../services/api.service';
-
-app.get('/api/api/example', async (req, res) => {
-  try {
-    const result = await apiService.exampleMethod(req.body);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+// API Response
+{
+  location: {
+    type: "Point",
+    coordinates: [-122.4194, 37.7749]
   }
-});
+}
+
+// Transformed Data
+{
+  location: "37.7749, -122.4194"
+}
 ```
 
-## 🐳 Docker Integration
+## Environment Variables
 
-### Development with Docker Compose
+The library supports multiple environment variable naming conventions:
 
-1. **Build the library:**
-```bash
-# From workspace root
-docker-compose -f docker-compose.lib.yml up lib-api
-```
+- `VITE_API_URL` - Vite-based applications
+- `REACT_APP_API_URL` - Create React App applications
+- `NODE_ENV` - Determines debug mode
 
-2. **Run tests:**
-```bash
-docker-compose -f docker-compose.lib.yml run lib-api-test
-```
+## Error Handling
 
-### Using in App Containers
-
-Add to your app's Dockerfile:
-
-```dockerfile
-# Copy shared libraries
-COPY lib.api /workspace/lib.api
-
-# Install dependencies
-RUN npm install @adopt-dont-shop/lib-api@workspace:*
-```
-
-### Multi-stage Build for Production
-
-```dockerfile
-# In your app's Dockerfile
-FROM node:20-alpine AS deps
-
-WORKDIR /app
-
-# Copy shared library
-COPY lib.api ./lib.api
-
-# Copy app package files
-COPY app.client/package*.json ./app.client/
-
-# Install dependencies
-RUN cd lib.api && npm ci && npm run build
-RUN cd app.client && npm ci
-
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-COPY --from=deps /app ./
-
-# Copy app source
-COPY app.client ./app.client
-
-# Build app
-RUN cd app.client && npm run build
-```
-
-## 🧪 Testing
-
-### Run Tests
-
-```bash
-# Unit tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage
-npm run test:coverage
-```
-
-### Test Structure
-
-```
-src/
-├── services/
-│   ├── api-service.ts
-│   └── __tests__/
-│       └── api-service.test.ts
-└── types/
-    └── index.ts
-```
-
-## 🏗️ Development
-
-### Build the Library
-
-```bash
-# Development build with watch
-npm run dev
-
-# Production build
-npm run build
-
-# Clean build artifacts
-npm run clean
-```
-
-### Code Quality
-
-```bash
-# Lint
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Type checking
-npm run type-check
-```
-
-## 📁 Project Structure
-
-```
-lib.api/
-├── src/
-│   ├── services/
-│   │   ├── api-service.ts     # Main service implementation
-│   │   └── __tests__/
-│   │       └── api-service.test.ts
-│   ├── types/
-│   │   └── index.ts                  # TypeScript type definitions
-│   └── index.ts                      # Main entry point
-├── dist/                             # Built output (generated)
-├── docker-compose.lib.yml           # Docker compose for development
-├── Dockerfile                       # Multi-stage Docker build
-├── jest.config.js                   # Jest test configuration
-├── package.json                     # Package configuration
-├── tsconfig.json                    # TypeScript configuration
-├── .eslintrc.json                   # ESLint configuration
-├── .prettierrc.json                 # Prettier configuration
-└── README.md                        # This file
-```
-
-## 🔗 Integration Examples
-
-### With Other Libraries
+The library provides comprehensive error handling:
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { apiService } from '@adopt-dont-shop/lib-api';
-
-// Configure with shared dependencies
-apiService.updateConfig({
-  apiUrl: apiService.getConfig().baseUrl,
-  headers: {
-    'Authorization': `Bearer ${authService.getToken()}`,
-  },
-});
-```
-
-### Error Handling
-
-```typescript
-import { apiService, ErrorResponse } from '@adopt-dont-shop/lib-api';
-
 try {
-  const result = await apiService.exampleMethod(data);
-  // Handle success
+  const pets = await apiService.get('/api/v1/pets');
 } catch (error) {
-  const errorResponse = error as ErrorResponse;
-  console.error('Error:', errorResponse.error);
-  console.error('Code:', errorResponse.code);
-  console.error('Details:', errorResponse.details);
-}
-```
-
-## 🚀 Deployment
-
-### NPM Package (if publishing externally)
-
-```bash
-# Build and test
-npm run build
-npm run test
-
-# Publish
-npm publish
-```
-
-### Workspace Integration
-
-The library is already integrated into the workspace. Apps can import it using:
-
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*"
+  if (error.message.includes('401')) {
+    // Handle authentication error
+    await authService.logout();
+    // Redirect to login
+  } else {
+    // Handle other errors
+    console.error('API Error:', error.message);
   }
 }
 ```
 
-## 🤝 Contributing
+## TypeScript Support
 
-1. Make changes to the library
-2. Add/update tests
-3. Run `npm run build` to ensure it builds correctly
-4. Run `npm test` to ensure tests pass
-5. Update documentation as needed
-
-## 📄 License
-
-MIT License - see the LICENSE file for details.
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Module not found**
-   - Ensure the library is built: `npm run build`
-   - Check workspace dependencies are installed: `npm install`
-
-2. **Type errors**
-   - Run type checking: `npm run type-check`
-   - Ensure TypeScript version compatibility
-
-3. **Build failures**
-   - Clean and rebuild: `npm run clean && npm run build`
-   - Check for circular dependencies
-
-### Debug Mode
-
-Enable debug logging:
+The library is written in TypeScript and provides full type safety:
 
 ```typescript
-apiService.updateConfig({ debug: true });
+import type { 
+  User, 
+  Pet, 
+  AuthResponse, 
+  PaginatedResponse 
+} from '@adopt-dont-shop/lib-api';
+
+// Fully typed responses
+const user: User = await authService.getCurrentUser();
+const pets: PaginatedResponse<Pet> = await apiService.get('/api/v1/pets');
 ```
 
-Or set environment variable:
+## Development
+
+### Building
+
 ```bash
-NODE_ENV=development
+npm run build
 ```
+
+### Testing
+
+```bash
+npm test
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+## Migration from app.client
+
+If you're migrating from the original `app.client` API code, the usage patterns remain the same:
+
+```typescript
+// Before (app.client)
+import { apiService } from '../services/api';
+
+// After (lib.api)
+import { apiService } from '@adopt-dont-shop/lib-api';
+
+// All method signatures and functionality remain identical
+```
+
+## Contributing
+
+1. Follow the existing code style and patterns
+2. Add appropriate TypeScript types for new features
+3. Update this README for any new functionality
+4. Test your changes thoroughly
+
+## License
+
+This package is part of the Adopt Don't Shop project.
