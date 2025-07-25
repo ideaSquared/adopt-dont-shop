@@ -1,0 +1,81 @@
+# Industry Standard Monorepo Workspace Dockerfile
+# Follows patterns used by Uber, Google, and other tech giants
+# Builds libraries once, references via npm workspace
+# Usage: docker build --build-arg APP_NAME=app.client -f Dockerfile.app.optimized .
+
+ARG NODE_VERSION=20
+FROM node:${NODE_VERSION}-alpine AS base
+
+WORKDIR /app
+
+# Install git for potential dependencies
+RUN apk add --no-cache git
+
+# Development stage
+FROM base AS development
+ARG APP_NAME
+
+# Copy workspace configuration
+COPY package*.json ./
+COPY turbo.json ./
+
+# Copy all libraries for workspace resolution
+COPY lib.api/ ./lib.api/
+COPY lib.auth/ ./lib.auth/
+COPY lib.chat/ ./lib.chat/
+COPY lib.validation/ ./lib.validation/
+COPY lib.components/ ./lib.components/
+
+# Copy specific app
+COPY ${APP_NAME}/ ./${APP_NAME}/
+
+# Install all dependencies (workspace resolves libraries automatically)
+RUN npm ci
+
+# Expose port
+EXPOSE 3000
+
+# Development command - Turbo handles library watching
+WORKDIR /app/${APP_NAME}
+CMD ["npm", "run", "dev"]
+
+# Build stage for production
+FROM base AS build
+ARG APP_NAME
+
+# Copy entire workspace for proper dependency resolution
+COPY . .
+
+# Install dependencies
+RUN npm ci
+
+# Build libraries first, then the specific app using Turbo
+RUN npx turbo run build --filter=${APP_NAME}
+
+# Production stage
+FROM nginx:alpine AS production
+ARG APP_NAME
+
+# Copy built app
+COPY --from=build /app/${APP_NAME}/dist /usr/share/nginx/html
+
+# Create default nginx config
+RUN echo 'events { worker_connections 1024; } \
+    http { \
+    include /etc/nginx/mime.types; \
+    default_type application/octet-stream; \
+    server { \
+    listen 80; \
+    location / { \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    try_files $uri $uri/ /index.html; \
+    } \
+    } \
+    }' > /etc/nginx/nginx.conf
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

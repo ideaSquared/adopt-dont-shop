@@ -9,6 +9,7 @@
       "env": ["NODE_ENV", "VITE_*"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
       "env": ["NODE_ENV", "VITE_*", "CHOKIDAR_USEPOLLING"]
@@ -22,7 +23,11 @@
       "outputs": []
     },
     "type-check": {
+      "dependsOn": ["^build"],
       "outputs": []
+    },
+    "clean": {
+      "cache": false
     }
   }
 }

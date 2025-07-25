@@ -21,7 +21,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "dev:server": "vite --port 3010 --mode development",
-    "build": "rm -rf dist && vite build",
+    "build": "rimraf dist && vite build",
     "build:types": "tsc --emitDeclarationOnly",
     "type-check": "tsc --noEmit",
     "preview": "vite preview",
@@ -32,7 +32,7 @@
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
-    "clean": "rm -rf dist"
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -73,7 +73,8 @@
     "eslint-plugin-jest": "^27.9.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
-    "prettier": "^3.2.5"
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

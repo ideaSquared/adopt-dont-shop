@@ -84,7 +84,7 @@ export const getPets = async (params?: PetListParams): Promise<PetListResponse> 
   // The backend returns pets in the data property as an array
   // We need to adapt this to match our expected PetListResponse interface
   const response = await apiService.get<Pet[]>('/api/v1/pets', params);
-  
+
   // If response is an array (which it will be after BaseApiService extracts data),
   // we need to create a proper PetListResponse structure
   if (Array.isArray(response)) {
@@ -96,7 +96,7 @@ export const getPets = async (params?: PetListParams): Promise<PetListResponse> 
       totalPages: Math.ceil(response.length / (params?.limit || 20)),
     };
   }
-  
+
   // If for some reason the response has the expected structure, return it as-is
   return response as PetListResponse;
 };

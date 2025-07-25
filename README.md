@@ -1,33 +1,64 @@
-[![Backend CI](https://github.com/ideaSquared/adopt-dont-shop/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/ideaSquared/adopt-dont-shop/actions/workflows/backend-ci.yml)
-[![Frontend CI](https://github.com/ideaSquared/adopt-dont-shop/actions/workflows/frontend-ci.yml/badge.svg?branch=main)](https://github.com/ideaSquared/adopt-dont-shop/actions/workflows/frontend-ci.yml)
+# 🐾 Adopt Don't Shop - Pet Adoption Platform
 
-# Adopt Don't Shop - Pet Adoption Platform
-
-A comprehensive pet adoption platform connecting rescue organizations with potential adopters. Built as a multi-service architecture with React frontends and Node.js backend services.
+A comprehensive pet adoption platform connecting rescue organizations with potential adopters. Built with **industry-standard monorepo workspace architecture** using React frontends and Node.js backend services.
 
 ## 🚀 Quick Start
 
-### For Docker Development
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v20+)
+- [Docker](https://www.docker.com/) & Docker Compose
+- [Git](https://git-scm.com/)
 
-1. **Start all services:**
-   ```bash
-   docker-compose up -d
-   ```
+### 1. Clone & Setup
+```bash
+git clone <repository-url>
+cd adopt-dont-shop
+npm install
+```
 
-2. **Access the applications:**
-   - **✅ Recommended:** `http://localhost` (through nginx)
-   - **Development only:** `http://localhost:3000` (direct access)
+### 2. Start Development Environment
+```bash
+# Start all services with Docker
+docker-compose up -d
 
-3. **Important:** Use `http://localhost` for proper API routing. Direct access to `:3000` may cause API connectivity issues.
+# Or start individual services locally
+npm run dev:client    # Port 3000
+npm run dev:admin     # Port 3001  
+npm run dev:rescue    # Port 3002
+npm run dev:backend   # Port 5000
+```
 
-📋 **See [DOCKER-ACCESS-GUIDE.md](./DOCKER-ACCESS-GUIDE.md) for detailed setup instructions and troubleshooting.**
+### 3. Access Applications
+- **🌐 Client App**: http://localhost:3000 - Public adoption portal
+- **👨‍💼 Admin App**: http://localhost:3001 - Platform management
+- **🏥 Rescue App**: http://localhost:3002 - Rescue organizations
+- **⚡ Backend API**: http://localhost:5000 - REST API server
+- **🔄 Nginx Proxy**: http://localhost:80 - Reverse proxy (production)
 
-## 🏗️ Architecture
+## 🏗️ **Optimized Architecture**
 
-The platform consists of multiple specialized applications:
-
-- **🐕 Client App** - Public-facing pet adoption interface
-- **👨‍💼 Admin App** - Administrative dashboard for platform management  
+### **Monorepo Workspace Structure**
+```
+adopt-dont-shop/
+├── 📱 Frontend Apps
+│   ├── app.client/         # Public adoption portal
+│   ├── app.admin/          # Internal management
+│   └── app.rescue/         # Rescue organizations
+├── 🔧 Backend Services  
+│   └── service.backend/    # Main API server
+├── 📚 Shared Libraries
+│   ├── lib.api/           # API client utilities
+│   ├── lib.auth/          # Authentication logic
+│   ├── lib.chat/          # Real-time messaging
+│   ├── lib.validation/    # Data validation
+│   └── lib.components/    # React UI components
+├── 🗃️ Infrastructure
+│   ├── docker-compose.yml # Optimized container setup
+│   ├── nginx/             # Reverse proxy config
+│   └── scripts/           # Development utilities
+└── 📖 Documentation
+    └── docs/              # All project documentation
+```  
 - **🏠 Rescue App** - Rescue organization management portal
 - **🔧 Backend Service** - Main API and business logic
 - **📦 Component Library** - Shared UI components across apps
