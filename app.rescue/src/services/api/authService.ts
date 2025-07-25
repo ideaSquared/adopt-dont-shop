@@ -16,7 +16,7 @@ export class AuthService extends BaseApiService {
    * Authenticate user with email and password
    */
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await this.fetch<LoginResponse>('/api/v1/auth/login', {
+    const response = await this.fetch<LoginResponse>('/api/auth/login', {
       method: 'POST',
       body: credentials,
     });
@@ -38,7 +38,7 @@ export class AuthService extends BaseApiService {
   async logout(): Promise<void> {
     try {
       // Attempt to notify the server about logout
-      await this.fetchWithAuth('/api/v1/auth/logout', {
+      await this.fetchWithAuth('/api/auth/logout', {
         method: 'POST',
       });
     } catch (error) {
@@ -56,7 +56,7 @@ export class AuthService extends BaseApiService {
   async refreshToken(refreshToken: string): Promise<LoginResponse> {
     const request: RefreshTokenRequest = { refreshToken };
 
-    const response = await this.fetch<LoginResponse>('/api/v1/auth/refresh', {
+    const response = await this.fetch<LoginResponse>('/api/auth/refresh', {
       method: 'POST',
       body: request,
     });
@@ -76,14 +76,14 @@ export class AuthService extends BaseApiService {
    * Get the current user profile
    */
   async getCurrentUser(): Promise<User> {
-    return this.get<User>('/api/v1/auth/me');
+    return this.get<User>('/api/auth/me');
   }
 
   /**
    * Update the current user's profile
    */
   async updateProfile(userData: Partial<User>): Promise<User> {
-    const response = await this.put<User>('/api/v1/auth/profile', userData);
+    const response = await this.put<User>('/api/auth/profile', userData);
 
     // Update stored user data
     localStorage.setItem('rescue_user', JSON.stringify(response));
@@ -95,14 +95,14 @@ export class AuthService extends BaseApiService {
    * Change the current user's password
    */
   async changePassword(passwordData: ChangePasswordRequest): Promise<void> {
-    await this.put('/api/v1/auth/password', passwordData);
+    await this.put('/api/auth/password', passwordData);
   }
 
   /**
    * Request a password reset email
    */
   async requestPasswordReset(email: string): Promise<void> {
-    await this.fetch('/api/v1/auth/forgot-password', {
+    await this.fetch('/api/auth/forgot-password', {
       method: 'POST',
       body: { email },
     });
@@ -112,7 +112,7 @@ export class AuthService extends BaseApiService {
    * Reset password using a reset token
    */
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    await this.fetch('/api/v1/auth/reset-password', {
+    await this.fetch('/api/auth/reset-password', {
       method: 'POST',
       body: { token, password: newPassword },
     });
@@ -122,7 +122,7 @@ export class AuthService extends BaseApiService {
    * Verify email address using a verification token
    */
   async verifyEmail(token: string): Promise<void> {
-    await this.fetch('/api/v1/auth/verify-email', {
+    await this.fetch('/api/auth/verify-email', {
       method: 'POST',
       body: { token },
     });
@@ -132,7 +132,7 @@ export class AuthService extends BaseApiService {
    * Resend email verification
    */
   async resendEmailVerification(): Promise<void> {
-    await this.fetchWithAuth('/api/v1/auth/resend-verification', {
+    await this.fetchWithAuth('/api/auth/resend-verification', {
       method: 'POST',
     });
   }

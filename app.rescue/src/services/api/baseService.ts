@@ -84,7 +84,7 @@ export class BaseApiService {
   protected defaultTimeout: number = 30000;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://api.localhost';
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
   }
 
   /**
@@ -122,10 +122,6 @@ export class BaseApiService {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
       console.log(`🌐 Rescue API: ${method} ${fullUrl}`);
-      // eslint-disable-next-line no-console
-      console.log(`🌐 Base URL: ${this.baseURL}`);
-      // eslint-disable-next-line no-console
-      console.log(`🌐 VITE_API_URL: ${import.meta.env.VITE_API_URL}`);
       if (body) {
         // eslint-disable-next-line no-console
         console.log('📤 Rescue API: Request body:', body);

@@ -3,8 +3,10 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { ThemeProvider } from '@adopt-dont-shop/components';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/navigation/ProtectedRoute';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
+import { PetsPage } from '@/pages/pets/PetsPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -36,7 +38,20 @@ function App() {
                   path='/dashboard'
                   element={
                     <ProtectedRoute>
-                      <DashboardPage />
+                      <AppLayout>
+                        <DashboardPage />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path='/pets'
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <PetsPage />
+                      </AppLayout>
                     </ProtectedRoute>
                   }
                 />

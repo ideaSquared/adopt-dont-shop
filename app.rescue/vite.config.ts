@@ -2,33 +2,46 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ mode }) => ({
-  plugins: [react()],
+export default defineConfig(({ mode }) => {
+  // Check if we're running in Docker (service-backend hostname is available)
+  const isDocker = process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'production';
 
-  resolve: {
-    alias:
-      mode === 'development'
-        ? {
-            '@adopt-dont-shop/components': resolve(__dirname, '../lib.components/src'),
-            '@': resolve(__dirname, './src'),
-          }
-        : {
-            '@': resolve(__dirname, './src'),
-          },
-  },
-
-  server: {
-    host: '0.0.0.0',
-    port: 3002,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, './src'),
+        ...(mode === 'development'
+          ? { '@adopt-dont-shop/components': resolve(__dirname, '../lib.components/src') }
+          : {}),
       },
+      dedupe: ['styled-components', 'react', 'react-dom'],
     },
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: true,
-  },
-}));
+    optimizeDeps: {
+      include: ['styled-components'],
+    },
+    server: {
+      host: '0.0.0.0',
+      port: 3002,
+      // Use proxy for local development outside Docker
+      proxy: !isDocker
+        ? {
+            '/api': {
+              target: 'http://localhost:5000',
+              changeOrigin: true,
+              secure: false,
+            },
+            '/health': {
+              target: 'http://localhost:5000',
+              changeOrigin: true,
+              secure: false,
+            },
+          }
+        : undefined,
+    },
+    build: {
+      outDir: 'dist',
+      sourcemap: true,
+    },
+  };
+});
