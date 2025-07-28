@@ -37,18 +37,19 @@ npm run dev:backend   # Port 5000
 
 ## 📖 **Documentation**
 
-**Complete documentation is available in the [`docs/`](./docs/) folder:**
+Complete documentation is available in the [`docs/`](./docs/) folder:
 
-- **[📋 Documentation Index](./docs/README.md)** - Start here for all documentation
-- **[🏗️ Infrastructure Setup](./docs/infrastructure/docker-setup.md)** - Get development environment running
-- **[🎯 Architecture Overview](./docs/infrastructure/INFRASTRUCTURE.md)** - Understand system design
-- **[📚 Libraries Guide](./docs/libraries/README.md)** - Shared packages and utilities
+### 🚀 **Quick Links**
+- **[📋 Documentation Index](./docs/README.md)** - Start here for complete documentation
+- **[🏗️ Setup Guide](./docs/infrastructure/docker-setup.md)** - Get development environment running
+- **[📚 Libraries](./docs/libraries/README.md)** - Shared packages and utilities
+- **[🎯 Architecture](./docs/infrastructure/INFRASTRUCTURE.md)** - System design overview
 
-### Quick Navigation
-- **New Developer**: [Docker Setup Guide](./docs/infrastructure/docker-setup.md)
-- **Frontend Developer**: [Frontend Apps](./docs/frontend/)
-- **Backend Developer**: [Backend Services](./docs/backend/)
-- **DevOps Engineer**: [Infrastructure](./docs/infrastructure/)
+### 👥 **Role-Based Entry Points**
+- **New Developer** → [Docker Setup Guide](./docs/infrastructure/docker-setup.md)
+- **Frontend Developer** → [Frontend Apps](./docs/frontend/)
+- **Backend Developer** → [Backend Services](./docs/backend/)
+- **DevOps Engineer** → [Infrastructure](./docs/infrastructure/)
 
 ## 🏗️ **Optimized Architecture**
 

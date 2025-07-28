@@ -1,6 +1,6 @@
 # @adopt-dont-shop/lib-api
 
-Core API client functionality for backend communication
+Pure HTTP transport layer providing the foundation for all domain-specific libraries with authentication, error handling, and interceptors
 
 ## 📦 Installation
 
@@ -19,23 +19,20 @@ npm install @adopt-dont-shop/lib-api
 ## 🚀 Quick Start
 
 ```typescript
-import { ApiService, ApiServiceConfig } from '@adopt-dont-shop/lib-api';
+import { apiService, ApiServiceConfig } from '@adopt-dont-shop/lib-api';
 
-// Using the singleton instance
-import { apiService } from '@adopt-dont-shop/lib-api';
+// Basic API calls
+const data = await apiService.get('/api/pets');
+const newPet = await apiService.post('/api/pets', petData);
+const updatedPet = await apiService.put('/api/pets/123', updates);
+await apiService.delete('/api/pets/123');
 
-// Basic usage
-const result = await apiService.exampleMethod({ test: 'data' });
-console.log(result);
-
-// Or create a custom instance
-const config: ApiServiceConfig = {
+// Custom configuration
+const customApi = new ApiService({
   apiUrl: 'https://api.example.com',
-  debug: true,
-};
-
-const customService = new ApiService(config);
-const customResult = await customService.exampleMethod({ custom: 'data' });
+  timeout: 10000,
+  debug: true
+});
 ```
 
 ## 🔧 Configuration
@@ -45,8 +42,10 @@ const customResult = await customService.exampleMethod({ custom: 'data' });
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `apiUrl` | `string` | `process.env.VITE_API_URL` | Base API URL |
-| `debug` | `boolean` | `process.env.NODE_ENV === 'development'` | Enable debug logging |
-| `headers` | `Record<string, string>` | `{}` | Custom headers for requests |
+| `timeout` | `number` | `10000` | Request timeout in milliseconds |
+| `retries` | `number` | `3` | Number of retry attempts |
+| `headers` | `Record<string, string>` | `{}` | Default headers for all requests |
+| `debug` | `boolean` | `false` | Enable debug logging |
 
 ### Environment Variables
 
@@ -63,377 +62,440 @@ NODE_ENV=development
 
 ### ApiService
 
-#### Constructor
+#### HTTP Methods
+
+##### `get(url, params?, options?)`
+
+Perform GET requests with query parameters.
 
 ```typescript
-new ApiService(config?: ApiServiceConfig)
+// Simple GET request
+const pets = await apiService.get('/api/pets');
+
+// With query parameters
+const filteredPets = await apiService.get('/api/pets', {
+  species: 'dog',
+  status: 'available',
+  limit: 20
+});
+
+// With custom options
+const data = await apiService.get('/api/pets', null, {
+  timeout: 15000,
+  headers: { 'Accept': 'application/json' }
+});
 ```
 
-#### Methods
+##### `post(url, data?, options?)`
 
-##### `exampleMethod(data, options)`
-
-Example method that demonstrates the library's capabilities.
+Perform POST requests with request body.
 
 ```typescript
-await service.exampleMethod(
-  { key: 'value' },
-  { 
-    timeout: 5000,
-    useCache: true,
-    metadata: { requestId: 'abc123' }
+// Create new resource
+const newPet = await apiService.post('/api/pets', {
+  name: 'Buddy',
+  species: 'dog',
+  breed: 'Golden Retriever'
+});
+
+// File upload
+const formData = new FormData();
+formData.append('photo', file);
+const uploadResult = await apiService.post('/api/pets/123/photos', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+});
+```
+
+##### `put(url, data?, options?)`
+
+Perform PUT requests for full resource updates.
+
+```typescript
+const updatedPet = await apiService.put('/api/pets/123', {
+  name: 'Buddy Updated',
+  status: 'adopted',
+  description: 'Now in loving home!'
+});
+```
+
+##### `patch(url, data?, options?)`
+
+Perform PATCH requests for partial updates.
+
+```typescript
+const partialUpdate = await apiService.patch('/api/pets/123', {
+  status: 'adopted'
+});
+```
+
+##### `delete(url, options?)`
+
+Perform DELETE requests.
+
+```typescript
+await apiService.delete('/api/pets/123');
+
+// With confirmation
+await apiService.delete('/api/pets/123', {
+  headers: { 'X-Confirm': 'true' }
+});
+```
+
+#### Request Interceptors
+
+##### `interceptors.addRequestInterceptor(interceptor)`
+
+Add request interceptors for preprocessing requests.
+
+```typescript
+// Add authentication header
+apiService.interceptors.addRequestInterceptor(async (config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${token}`
+    };
   }
-);
+  return config;
+});
+
+// Add request logging
+apiService.interceptors.addRequestInterceptor(async (config) => {
+  console.log(`🌐 ${config.method.toUpperCase()} ${config.url}`);
+  return config;
+});
+
+// Add API version header
+apiService.interceptors.addRequestInterceptor(async (config) => {
+  config.headers = {
+    ...config.headers,
+    'X-API-Version': '1.0'
+  };
+  return config;
+});
 ```
 
-**Parameters:**
-- `data` (Record<string, unknown>): Input data
-- `options` (ApiServiceOptions): Operation options
+##### `interceptors.addResponseInterceptor(interceptor)`
 
-**Returns:** `Promise<BaseResponse>`
-
-##### `updateConfig(config)`
-
-Update the service configuration.
+Add response interceptors for processing responses.
 
 ```typescript
-service.updateConfig({ debug: true, apiUrl: 'https://new-api.com' });
+// Transform response data
+apiService.interceptors.addResponseInterceptor(async (response) => {
+  // Automatically extract data field if present
+  if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+    return response.data.data;
+  }
+  return response.data;
+});
+
+// Response logging
+apiService.interceptors.addResponseInterceptor(async (response) => {
+  console.log(`✅ Response received for ${response.config?.url}`);
+  return response;
+});
+```
+
+##### `interceptors.addErrorInterceptor(interceptor)`
+
+Add error interceptors for handling failures.
+
+```typescript
+// Token refresh on 401 errors
+apiService.interceptors.addErrorInterceptor(async (error) => {
+  if (error instanceof AuthenticationError && error.status === 401) {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        const newTokens = await refreshAuthToken(refreshToken);
+        localStorage.setItem('authToken', newTokens.token);
+        
+        // Retry the original request
+        return await apiService.request(error.config);
+      }
+    } catch (refreshError) {
+      // Redirect to login
+      window.location.href = '/login';
+    }
+  }
+  throw error;
+});
+
+// Error logging
+apiService.interceptors.addErrorInterceptor(async (error) => {
+  console.error(`❌ API Error: ${error.message}`);
+  throw error;
+});
+```
+
+#### Configuration Management
+
+##### `updateConfig(newConfig)`
+
+Update service configuration at runtime.
+
+```typescript
+// Update API URL
+apiService.updateConfig({
+  apiUrl: 'https://production-api.example.com'
+});
+
+// Update headers
+apiService.updateConfig({
+  headers: {
+    'X-App-Version': '2.1.0',
+    'X-Client-Type': 'web'
+  }
+});
+
+// Update timeout and retries
+apiService.updateConfig({
+  timeout: 15000,
+  retries: 5
+});
 ```
 
 ##### `getConfig()`
 
-Get current configuration.
+Get current service configuration.
 
 ```typescript
-const config = service.getConfig();
+const currentConfig = apiService.getConfig();
+console.log('Current API URL:', currentConfig.apiUrl);
+console.log('Current timeout:', currentConfig.timeout);
 ```
 
-##### `clearCache()`
+#### Error Handling
 
-Clear the internal cache.
+##### Custom Error Types
 
 ```typescript
-service.clearCache();
-```
+import { 
+  ApiError, 
+  AuthenticationError, 
+  NetworkError, 
+  ValidationError 
+} from '@adopt-dont-shop/lib-api';
 
-##### `healthCheck()`
-
-Check service health.
-
-```typescript
-const isHealthy = await service.healthCheck();
-```
-
-## 🏗️ Usage in Apps
-
-### React/Vite Apps (app.client, app.admin, app.rescue)
-
-1. **Add to package.json:**
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*"
+try {
+  const data = await apiService.get('/api/protected');
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    // Handle authentication issues
+    console.log('Authentication failed:', error.message);
+    redirectToLogin();
+  } else if (error instanceof ValidationError) {
+    // Handle validation errors
+    console.log('Validation errors:', error.details);
+    showValidationErrors(error.details);
+  } else if (error instanceof NetworkError) {
+    // Handle network issues
+    console.log('Network error:', error.message);
+    showOfflineMessage();
+  } else if (error instanceof ApiError) {
+    // Handle other API errors
+    console.log('API error:', error.status, error.message);
+    showErrorMessage(error.message);
   }
 }
 ```
 
-2. **Import and use:**
+## 🏗️ Architecture Design
+
+### Pure HTTP Transport Layer
+
+`lib.api` is designed as a **pure HTTP transport layer** that provides the foundation for all domain-specific libraries. It handles:
+
+- HTTP methods (GET, POST, PUT, PATCH, DELETE)
+- Authentication headers
+- Request/Response interceptors  
+- Error handling and retries
+- Timeout management
+- Development debugging
+
+### Usage with Domain Libraries
+
 ```typescript
-// src/services/index.ts
-export { apiService } from '@adopt-dont-shop/lib-api';
+// Example: lib.pets
+import { apiService } from '@adopt-dont-shop/lib-api';
 
-// In your component
-import { apiService } from '@/services';
+export class PetService {
+  constructor(private api = apiService) {}
 
-function MyComponent() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await apiService.exampleMethod({ 
-          component: 'MyComponent' 
-        });
-        setData(result.data);
-      } catch (error) {
-        console.error('Error:', error);
+  async searchPets(filters: PetSearchFilters): Promise<PaginatedResponse<Pet>> {
+    try {
+      return await this.api.get('/api/v1/pets', filters);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return { data: [], pagination: { totalItems: 0 } };
       }
-    };
+      throw error;
+    }
+  }
 
-    fetchData();
-  }, []);
+  async getPetById(id: string): Promise<Pet> {
+    return await this.api.get(`/api/v1/pets/${id}`);
+  }
 
-  return <div>{/* Your JSX */}</div>;
-}
-```
-
-### Node.js Backend (service.backend)
-
-1. **Add to package.json:**
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*"
+  async addToFavorites(petId: string): Promise<void> {
+    await this.api.post(`/api/v1/pets/${petId}/favorite`);
   }
 }
 ```
 
-2. **Import and use:**
+### App Integration
+
+#### app.client
+
 ```typescript
-// src/services/api.service.ts
-import { ApiService } from '@adopt-dont-shop/lib-api';
+// app.client/src/services/index.ts
+import { apiService } from '@adopt-dont-shop/lib-api';
 
-export const apiService = new ApiService({
-  apiUrl: process.env.API_URL,
-  debug: process.env.NODE_ENV === 'development',
+// Configure API for client app
+apiService.updateConfig({
+  apiUrl: import.meta.env.VITE_API_URL,
+  debug: import.meta.env.DEV
 });
 
-// In your routes or controllers
-import { apiService } from '../services/api.service';
-
-app.get('/api/api/example', async (req, res) => {
-  try {
-    const result = await apiService.exampleMethod(req.body);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Add client-specific interceptors
+apiService.interceptors.addRequestInterceptor(async (config) => {
+  config.headers = {
+    ...config.headers,
+    'X-App': 'client'
+  };
+  return config;
 });
 ```
 
-## 🐳 Docker Integration
+#### app.rescue
 
-### Development with Docker Compose
+```typescript
+// app.rescue/src/services/index.ts
+import { apiService } from '@adopt-dont-shop/lib-api';
 
-1. **Build the library:**
-```bash
-# From workspace root
-docker-compose -f docker-compose.lib.yml up lib-api
+// Configure API for rescue app
+apiService.updateConfig({
+  apiUrl: import.meta.env.VITE_API_URL,
+  headers: { 'X-App': 'rescue' }
+});
 ```
 
-2. **Run tests:**
-```bash
-docker-compose -f docker-compose.lib.yml run lib-api-test
-```
+#### app.admin
 
-### Using in App Containers
+```typescript
+// app.admin/src/services/index.ts
+import { apiService } from '@adopt-dont-shop/lib-api';
 
-Add to your app's Dockerfile:
-
-```dockerfile
-# Copy shared libraries
-COPY lib.api /workspace/lib.api
-
-# Install dependencies
-RUN npm install @adopt-dont-shop/lib-api@workspace:*
-```
-
-### Multi-stage Build for Production
-
-```dockerfile
-# In your app's Dockerfile
-FROM node:20-alpine AS deps
-
-WORKDIR /app
-
-# Copy shared library
-COPY lib.api ./lib.api
-
-# Copy app package files
-COPY app.client/package*.json ./app.client/
-
-# Install dependencies
-RUN cd lib.api && npm ci && npm run build
-RUN cd app.client && npm ci
-
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-COPY --from=deps /app ./
-
-# Copy app source
-COPY app.client ./app.client
-
-# Build app
-RUN cd app.client && npm run build
+// Configure API for admin app with longer timeouts
+apiService.updateConfig({
+  apiUrl: import.meta.env.VITE_API_URL,
+  timeout: 30000,
+  headers: { 'X-App': 'admin' }
+});
 ```
 
 ## 🧪 Testing
 
-### Run Tests
+The library includes comprehensive Jest tests covering:
 
+- ✅ HTTP method implementations
+- ✅ Request/response interceptors
+- ✅ Error handling and custom error types
+- ✅ Authentication flows
+- ✅ Retry logic and timeout handling
+- ✅ Configuration management
+- ✅ Mock service for testing
+
+Run tests:
 ```bash
-# Unit tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage
-npm run test:coverage
+npm run test:lib-api
 ```
 
-### Test Structure
-
-```
-src/
-├── services/
-│   ├── api-service.ts
-│   └── __tests__/
-│       └── api-service.test.ts
-└── types/
-    └── index.ts
-```
-
-## 🏗️ Development
-
-### Build the Library
-
-```bash
-# Development build with watch
-npm run dev
-
-# Production build
-npm run build
-
-# Clean build artifacts
-npm run clean
-```
-
-### Code Quality
-
-```bash
-# Lint
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Type checking
-npm run type-check
-```
-
-## 📁 Project Structure
-
-```
-lib.api/
-├── src/
-│   ├── services/
-│   │   ├── api-service.ts     # Main service implementation
-│   │   └── __tests__/
-│   │       └── api-service.test.ts
-│   ├── types/
-│   │   └── index.ts                  # TypeScript type definitions
-│   └── index.ts                      # Main entry point
-├── dist/                             # Built output (generated)
-├── docker-compose.lib.yml           # Docker compose for development
-├── Dockerfile                       # Multi-stage Docker build
-├── jest.config.js                   # Jest test configuration
-├── package.json                     # Package configuration
-├── tsconfig.json                    # TypeScript configuration
-├── .eslintrc.json                   # ESLint configuration
-├── .prettierrc.json                 # Prettier configuration
-└── README.md                        # This file
-```
-
-## 🔗 Integration Examples
-
-### With Other Libraries
+### Testing with Domain Libraries
 
 ```typescript
+// Testing pet service with mocked API
 import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { PetService } from '@adopt-dont-shop/lib-pets';
 
-// Configure with shared dependencies
-apiService.updateConfig({
-  apiUrl: apiService.getConfig().baseUrl,
-  headers: {
-    'Authorization': `Bearer ${authService.getToken()}`,
-  },
+// Mock the API service
+jest.mock('@adopt-dont-shop/lib-api');
+const mockApiService = apiService as jest.Mocked<typeof apiService>;
+
+describe('PetService', () => {
+  let petService: PetService;
+
+  beforeEach(() => {
+    petService = new PetService(mockApiService);
+  });
+
+  it('should fetch pets', async () => {
+    const mockPets = [{ id: '1', name: 'Buddy' }];
+    mockApiService.get.mockResolvedValue({ data: mockPets });
+
+    const result = await petService.getAllPets();
+    
+    expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets', undefined);
+    expect(result.data).toEqual(mockPets);
+  });
 });
 ```
 
-### Error Handling
+## 🚀 Key Features
 
-```typescript
-import { apiService, ErrorResponse } from '@adopt-dont-shop/lib-api';
+### Unified HTTP Interface
+- **Consistent API**: Same interface across all HTTP methods
+- **Type Safety**: Full TypeScript support with proper typing
+- **Promise-Based**: Modern async/await support
+- **Error Handling**: Structured error types for different scenarios
 
-try {
-  const result = await apiService.exampleMethod(data);
-  // Handle success
-} catch (error) {
-  const errorResponse = error as ErrorResponse;
-  console.error('Error:', errorResponse.error);
-  console.error('Code:', errorResponse.code);
-  console.error('Details:', errorResponse.details);
-}
-```
+### Flexible Interceptor System
+- **Request Interceptors**: Modify requests before sending
+- **Response Interceptors**: Transform responses after receiving
+- **Error Interceptors**: Handle and transform errors
+- **Chain Support**: Multiple interceptors with proper execution order
 
-## 🚀 Deployment
+### Robust Error Handling
+- **Custom Error Types**: Specific error classes for different scenarios
+- **Automatic Retries**: Configurable retry logic with exponential backoff
+- **Network Resilience**: Graceful handling of network failures
+- **Debug Support**: Comprehensive logging for development
 
-### NPM Package (if publishing externally)
-
-```bash
-# Build and test
-npm run build
-npm run test
-
-# Publish
-npm publish
-```
-
-### Workspace Integration
-
-The library is already integrated into the workspace. Apps can import it using:
-
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*"
-  }
-}
-```
-
-## 🤝 Contributing
-
-1. Make changes to the library
-2. Add/update tests
-3. Run `npm run build` to ensure it builds correctly
-4. Run `npm test` to ensure tests pass
-5. Update documentation as needed
-
-## 📄 License
-
-MIT License - see the LICENSE file for details.
+### Performance Optimization
+- **Connection Pooling**: Efficient HTTP connection management
+- **Request Deduplication**: Prevent duplicate requests
+- **Caching Support**: HTTP cache headers and ETags
+- **Timeout Management**: Configurable timeouts with fallbacks
 
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
-1. **Module not found**
-   - Ensure the library is built: `npm run build`
-   - Check workspace dependencies are installed: `npm install`
+**Authentication errors**:
+- Check token format and Authorization header
+- Verify token refresh logic in error interceptors
+- Review authentication flow and token storage
 
-2. **Type errors**
-   - Run type checking: `npm run type-check`
-   - Ensure TypeScript version compatibility
+**Network connectivity**:
+- Check API URL configuration and reachability
+- Verify CORS settings for cross-origin requests
+- Review network error handling and retry logic
 
-3. **Build failures**
-   - Clean and rebuild: `npm run clean && npm run build`
-   - Check for circular dependencies
+**Request timeouts**:
+- Adjust timeout configuration for slow endpoints
+- Implement proper loading states in UI
+- Consider request cancellation for component unmounting
 
 ### Debug Mode
 
-Enable debug logging:
-
 ```typescript
+const api = new ApiService({
+  debug: true // Enables comprehensive request/response logging
+});
+
+// Or enable debugging on existing instance
 apiService.updateConfig({ debug: true });
 ```
 
-Or set environment variable:
-```bash
-NODE_ENV=development
-```
+This library provides the foundational HTTP transport layer for the entire adopt-dont-shop ecosystem, enabling consistent API communication across all domain-specific libraries with robust error handling, authentication, and performance optimization.
