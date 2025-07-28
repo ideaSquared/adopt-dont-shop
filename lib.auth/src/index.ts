@@ -1,7 +1,8 @@
 // Main exports for @adopt-dont-shop/lib-auth
-export { AuthService } from './services/auth-service';
-export type {
-  AuthServiceConfig,
-  AuthServiceOptions,
-} from './types';
+
+// Services
+export { AuthService, authService } from './services/auth-service';
+
+// Types
 export * from './types';
+

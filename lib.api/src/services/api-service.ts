@@ -1,12 +1,14 @@
-import { 
-  ApiServiceConfig, 
-  FetchOptions, 
+import {
+  ApiServiceConfig,
+  FetchOptions,
   ApiResponse,
   PaginatedResponse,
   ApiPet,
   TransformedPet,
-  PetImage
+  PetImage,
 } from '../types';
+import { InterceptorManager } from '../interceptors';
+import { createHttpError, TimeoutError, NetworkError } from '../errors';
 
 // Data transformation utilities
 const transformPetFromAPI = (pet: ApiPet): TransformedPet => {
@@ -78,29 +80,76 @@ const transformPetsArrayFromAPI = (pets: ApiPet[]): TransformedPet[] => {
 };
 
 /**
- * ApiService - Handles comprehensive API operations
+ * ApiService - Pure HTTP transport layer with interceptors and error handling
  */
 export class ApiService {
   private config: Required<ApiServiceConfig>;
   private cache: Map<string, unknown> = new Map();
   private baseURL: string;
   private defaultTimeout: number = 10000;
+  public interceptors: InterceptorManager;
 
   constructor(config: ApiServiceConfig = {}) {
     // Set up the base URL from environment variables or fallback
     this.baseURL = config.apiUrl || this.getBaseUrl();
-    
+
     this.config = {
       apiUrl: this.baseURL,
-      debug: config.debug ?? (process.env.NODE_ENV === 'development'),
+      debug: config.debug ?? process.env.NODE_ENV === 'development',
       timeout: config.timeout ?? this.defaultTimeout,
       headers: config.headers ?? {},
       getAuthToken: config.getAuthToken ?? (() => null),
     };
 
+    this.interceptors = new InterceptorManager();
+    this.setupDefaultInterceptors();
+
     if (this.config.debug) {
       console.log(`${ApiService.name} initialized with config:`, this.config);
     }
+  }
+
+  private setupDefaultInterceptors(): void {
+    // Add default request interceptor for authentication
+    this.interceptors.addRequestInterceptor(async (config) => {
+      const token = this.getAuthToken();
+      if (token && !config.headers['Authorization']) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+      return config;
+    });
+
+    // Add default response interceptor for error handling
+    this.interceptors.addResponseInterceptor(async (response) => {
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        let errorDetails;
+
+        try {
+          const errorBody = await response.json();
+          errorMessage = errorBody.message || errorBody.error || errorMessage;
+          errorDetails = errorBody.details || errorBody.errors;
+        } catch {
+          // If we can't parse error as JSON, use the default message
+        }
+
+        throw createHttpError(response.status, errorMessage, undefined, errorDetails);
+      }
+      return response;
+    });
+
+    // Add default error interceptor for network errors
+    this.interceptors.addErrorInterceptor(async (error) => {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new TimeoutError(this.config.timeout);
+      }
+
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new NetworkError('Network request failed', error);
+      }
+
+      return error;
+    });
   }
 
   private getBaseUrl(): string {
@@ -108,7 +157,7 @@ export class ApiService {
     if (typeof process !== 'undefined' && process.env) {
       return process.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000';
     }
-    
+
     return 'http://localhost:5000';
   }
 
@@ -117,7 +166,7 @@ export class ApiService {
    */
   updateConfig(config: Partial<ApiServiceConfig>): void {
     this.config = { ...this.config, ...config };
-    
+
     if (this.config.debug) {
       console.log(`${ApiService.name} config updated:`, this.config);
     }
@@ -135,7 +184,7 @@ export class ApiService {
    */
   clearCache(): void {
     this.cache.clear();
-    
+
     if (this.config.debug) {
       console.log(`${ApiService.name} cache cleared`);
     }
@@ -147,12 +196,12 @@ export class ApiService {
     if (this.config.getAuthToken) {
       return this.config.getAuthToken();
     }
-    
+
     // Fallback to localStorage if available
     if (typeof localStorage !== 'undefined') {
       return localStorage.getItem('authToken') || localStorage.getItem('accessToken');
     }
-    
+
     return null;
   }
 
@@ -294,7 +343,7 @@ export class ApiService {
       const searchParams = new URLSearchParams();
 
       const flattenParams = (obj: Record<string, unknown>, prefix = '') => {
-        Object.keys(obj).forEach(key => {
+        Object.keys(obj).forEach((key) => {
           const value = obj[key];
           const paramKey = prefix ? `${prefix}.${key}` : key;
 
@@ -388,7 +437,7 @@ export class ApiService {
     formData.append('file', file);
 
     if (additionalData) {
-      Object.keys(additionalData).forEach(key => {
+      Object.keys(additionalData).forEach((key) => {
         const value = additionalData[key];
         if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
           formData.append(key, String(value));

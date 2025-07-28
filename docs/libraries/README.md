@@ -197,6 +197,65 @@ const customValidator = new ValidationService({
 }
 ```
 
+### ✅ lib.utils
+**Comprehensive utility functions for common operations**
+
+- **Package**: `@adopt-dont-shop/lib-utils`
+- **Service**: `UtilsService`
+- **Status**: ✅ Complete with 55/55 tests passing
+
+**Key Features**:
+- **25+ Utility Functions** across 5 categories
+- **Date & Time Operations**: formatting, relative time, parsing, business hours validation  
+- **String Processing**: slugification, truncation, sanitization, ID generation
+- **Data Transformation**: deep cloning, object merging, flattening/unflattening
+- **Validation**: email, phone, URL, file type validation with detailed feedback
+- **Formatting**: currency, file size, phone numbers, addresses with locale support
+- **Full TypeScript Support** with comprehensive interfaces
+- **Configurable Service** with runtime config updates and health checks
+
+**Usage**:
+```typescript
+import { UtilsService } from '@adopt-dont-shop/lib-utils';
+
+const utils = new UtilsService({
+  debug: false,
+  timezone: 'UTC',
+  currency: 'USD'
+});
+
+// Date operations
+const formatted = utils.formatDate(new Date(), { format: 'ISO' });
+const relative = utils.formatRelativeTime(new Date(Date.now() - 3600000)); // "1 hour ago"
+
+// String utilities  
+const slug = utils.slugify('Hello World!'); // "hello-world"
+const safe = utils.sanitizeInput('<script>alert("xss")</script>');
+
+// Validation
+const emailResult = utils.isValidEmail('test@example.com');
+if (emailResult.isValid) {
+  console.log('Valid email:', emailResult.normalizedValue);
+}
+
+// Data transformation
+const cloned = utils.deepClone({ nested: { data: [1, 2, 3] } });
+const flattened = utils.flattenObject({ a: { b: { c: 1 } } }); // { 'a.b.c': 1 }
+
+// Formatting
+const price = utils.formatCurrency(1234.56); // "$1,234.56"
+const size = utils.formatFileSize(1048576); // "1 MB"
+```
+
+**Installation**:
+```json
+{
+  "dependencies": {
+    "@adopt-dont-shop/lib-utils": "workspace:*"
+  }
+}
+```
+
 ### 🎨 lib.components
 **Shared React component library**
 

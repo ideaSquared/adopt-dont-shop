@@ -1,0 +1,30 @@
+# Docker Compose for lib.feature-flags development
+services:
+  lib-feature-flags:
+    build:
+      context: ./lib.feature-flags
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.feature-flags:/app
+      - /app/node_modules
+      - lib_feature_flags_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Example service that uses the library
+  lib-feature-flags-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.feature-flags:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-feature-flags
+
+volumes:
+  lib_feature_flags_dist:

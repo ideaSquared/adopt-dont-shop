@@ -1,8 +1,38 @@
 # @adopt-dont-shop/lib-api
 
-A comprehensive API client library for the Adopt Don't Shop application ecosystem. This library provides type-safe HTTP client functionality with authentication, data transformation, and pet-specific API operations.
+A **pure HTTP transport layer** for the Adopt Don't Shop application ecosystem. This library provides the foundation for all domain-specific API libraries with type-safe HTTP client functionality, authentication, interceptors, and error handling.
+
+## 🏗️ Architecture
+
+`lib.api` is designed as the **infrastructure layer** that other domain libraries build upon:
+
+```
+┌─────────────────────────────────────────┐
+│        Application Layer                 │
+│  app.client │ app.rescue │ app.admin    │
+└─────────────────────────────────────────┘
+                    │
+┌─────────────────────────────────────────┐
+│         Domain Libraries                 │
+│ lib.pets │ lib.auth │ lib.rescue │ ... │
+└─────────────────────────────────────────┘
+                    │
+┌─────────────────────────────────────────┐
+│       Infrastructure Layer              │
+│              lib.api                    │
+│   HTTP • Auth • Interceptors • Errors  │
+└─────────────────────────────────────────┘
+```
 
 ## Features
+
+- ✅ **Pure HTTP Transport**: GET, POST, PUT, PATCH, DELETE methods
+- ✅ **Request/Response Interceptors**: Extensible middleware system
+- ✅ **Error Handling**: Structured error types with HTTP status mapping
+- ✅ **Authentication**: Automatic token injection and management
+- ✅ **Timeout Management**: Configurable request timeouts with AbortController
+- ✅ **Development Tools**: Debug logging and request tracking
+- ✅ **TypeScript**: Full type safety and IntelliSense support
 
 - **Type-safe API client** with TypeScript support
 - **Authentication management** with token handling and refresh

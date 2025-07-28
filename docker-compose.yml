@@ -171,51 +171,6 @@ services:
 # VOLUMES - Simplified to only what's needed
 # ============================================================================
 
-  # Library: lib.test-lib
-  lib-test-lib:
-    build:
-      context: ./lib.test-lib
-      dockerfile: Dockerfile
-      target: development
-    volumes:
-      - ./lib.test-lib:/app
-      - /app/node_modules
-      - lib_test_lib_dist:/app/dist
-    environment:
-      NODE_ENV: ${NODE_ENV:-development}
-    command: npm run dev
-
-
-  # Library: lib.demo
-  lib-demo:
-    build:
-      context: ./lib.demo
-      dockerfile: Dockerfile
-      target: development
-    volumes:
-      - ./lib.demo:/app
-      - /app/node_modules
-      - lib_demo_dist:/app/dist
-    environment:
-      NODE_ENV: ${NODE_ENV:-development}
-    command: npm run dev
-
-
-  # Library: lib.demo
-  lib-demo:
-    build:
-      context: ./lib.demo
-      dockerfile: Dockerfile
-      target: development
-    volumes:
-      - ./lib.demo:/app
-      - /app/node_modules
-      - lib_demo_dist:/app/dist
-    environment:
-      NODE_ENV: ${NODE_ENV:-development}
-    command: npm run dev
-
-
 volumes:
   postgres_data:
   redis_data:
@@ -227,6 +182,3 @@ volumes:
 networks:
   default:
     name: adopt-dont-shop-network
-  lib_test_lib_dist:
-  lib_demo_dist:
-  lib_demo_dist:

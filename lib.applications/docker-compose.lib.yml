@@ -1,0 +1,30 @@
+# Docker Compose for lib.applications development
+services:
+  lib-applications:
+    build:
+      context: ./lib.applications
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.applications:/app
+      - /app/node_modules
+      - lib_applications_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Example service that uses the library
+  lib-applications-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.applications:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-applications
+
+volumes:
+  lib_applications_dist:

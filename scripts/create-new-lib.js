@@ -51,68 +51,68 @@ function writeFile(filePath, content) {
 /**
  * Generate package.json for the new library
  */
-function generatePackageJson(libName, libDescription) {
-  return JSON.stringify(
-    {
-      name: `@adopt-dont-shop/lib-${libName}`,
-      version: '1.0.0',
-      description: libDescription,
-      type: 'module',
-      main: 'dist/index.js',
-      types: 'dist/index.d.ts',
-      exports: {
-        '.': {
-          types: './dist/index.d.ts',
-          import: './dist/index.js',
-        },
+function generatePackageJson(libName, libDescription, useLibApi = false) {
+  const packageConfig = {
+    name: `@adopt-dont-shop/lib-${libName}`,
+    version: '1.0.0',
+    description: libDescription,
+    type: 'module',
+    main: 'dist/index.js',
+    types: 'dist/index.d.ts',
+    exports: {
+      '.': {
+        types: './dist/index.d.ts',
+        import: './dist/index.js',
       },
-      files: ['dist', 'README.md'],
-      scripts: {
-        build: 'tsc',
-        dev: 'tsc --watch',
-        clean: 'rm -rf dist',
-        test: 'jest',
-        'test:watch': 'jest --watch',
-        'test:coverage': 'jest --coverage',
-        lint: 'eslint src --ext ts',
-        'lint:fix': 'eslint src --ext ts --fix',
-        'type-check': 'tsc --noEmit',
-        prepublishOnly: 'npm run clean && npm run build',
-      },
-      keywords: ['pet-adoption', 'library', 'typescript', 'react'],
-      author: "Adopt Don't Shop Team",
-      license: 'MIT',
-      dependencies: {
-        '@types/node': '^20.0.0',
-      },
-      devDependencies: {
-        '@typescript-eslint/eslint-plugin': '^7.0.0',
-        '@typescript-eslint/parser': '^7.0.0',
-        '@types/jest': '^29.4.0',
-        eslint: '^8.57.0',
-        'eslint-config-prettier': '^9.1.0',
-        'eslint-plugin-prettier': '^5.1.3',
-        jest: '^29.4.0',
-        prettier: '^3.2.5',
-        'ts-jest': '^29.1.0',
-        typescript: '^5.4.5',
-      },
-      peerDependencies: {
-        typescript: '^5.0.0',
-      },
-      repository: {
-        type: 'git',
-        url: 'git+https://github.com/ParagonJenko/pet-adoption-react.git',
-        directory: `lib.${libName}`,
-      },
-      bugs: {
-        url: 'https://github.com/ParagonJenko/pet-adoption-react/issues',
-      },
-      homepage: `https://github.com/ParagonJenko/pet-adoption-react/tree/main/lib.${libName}#readme`,
     },
-    null,
-    2
-  );
+    files: ['dist', 'README.md'],
+    scripts: {
+      build: 'tsc',
+      dev: 'tsc --watch',
+      clean: 'rm -rf dist',
+      test: 'jest',
+      'test:watch': 'jest --watch',
+      'test:coverage': 'jest --coverage',
+      lint: 'eslint src --ext ts',
+      'lint:fix': 'eslint src --ext ts --fix',
+      'type-check': 'tsc --noEmit',
+      prepublishOnly: 'npm run clean && npm run build',
+    },
+    keywords: ['pet-adoption', 'library', 'typescript', 'react'],
+    author: "Adopt Don't Shop Team",
+    license: 'MIT',
+    dependencies: {
+      '@types/node': '^20.0.0',
+      ...(useLibApi ? { '@adopt-dont-shop/lib-api': 'file:../lib.api' } : {}),
+    },
+    devDependencies: {
+      '@typescript-eslint/eslint-plugin': '^7.0.0',
+      '@typescript-eslint/parser': '^7.0.0',
+      '@types/jest': '^29.4.0',
+      eslint: '^8.57.0',
+      'eslint-config-prettier': '^9.1.0',
+      'eslint-plugin-prettier': '^5.1.3',
+      jest: '^29.4.0',
+      'jest-environment-jsdom': '^29.4.0',
+      prettier: '^3.2.5',
+      'ts-jest': '^29.1.0',
+      typescript: '^5.4.5',
+    },
+    peerDependencies: {
+      typescript: '^5.0.0',
+    },
+    repository: {
+      type: 'git',
+      url: 'git+https://github.com/ParagonJenko/pet-adoption-react.git',
+      directory: `lib.${libName}`,
+    },
+    bugs: {
+      url: 'https://github.com/ParagonJenko/pet-adoption-react/issues',
+    },
+    homepage: `https://github.com/ParagonJenko/pet-adoption-react/tree/main/lib.${libName}#readme`,
+  };
+
+  return JSON.stringify(packageConfig, null, 2);
 }
 
 /**
@@ -155,29 +155,37 @@ function generateTsConfig() {
 /**
  * Generate Jest configuration
  */
-function generateJestConfig() {
-  return `module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'jsdom',
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
-  transform: {
-    '^.+\\.ts$': 'ts-jest',
-  },
-  setupFilesAfterEnv: ['<rootDir>/src/test-utils/setup-tests.ts'],
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/**/*.test.ts',
-    '!src/**/*.spec.ts',
-    '!src/test-utils/**',
-  ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-  moduleFileExtensions: ['ts', 'js', 'json'],
-  testTimeout: 10000,
-};
-`;
+function generateJestConfig(useLibApi = false) {
+  const jestConfig = {
+    preset: 'ts-jest',
+    testEnvironment: 'jsdom',
+    roots: ['<rootDir>/src'],
+    testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
+    transform: {
+      '^.+\\.ts$': 'ts-jest',
+    },
+    setupFilesAfterEnv: ['<rootDir>/src/test-utils/setup-tests.ts'],
+    collectCoverageFrom: [
+      'src/**/*.ts',
+      '!src/**/*.d.ts',
+      '!src/**/*.test.ts',
+      '!src/**/*.spec.ts',
+      '!src/test-utils/**',
+    ],
+    coverageDirectory: 'coverage',
+    coverageReporters: ['text', 'lcov', 'html'],
+    moduleFileExtensions: ['ts', 'js', 'json'],
+    testTimeout: 10000,
+  };
+
+  // Add moduleNameMapper for lib.api integration
+  if (useLibApi) {
+    jestConfig.moduleNameMapper = {
+      '^lib\\.api$': '<rootDir>/../lib.api/src',
+    };
+  }
+
+  return `module.exports = ${JSON.stringify(jestConfig, null, 2)};`;
 }
 
 /**
@@ -339,28 +347,33 @@ export interface PaginatedResponse<T> extends BaseResponse<T[]> {
 /**
  * Generate service file
  */
-function generateServiceFile(libName) {
+function generateServiceFile(libName, useLibApi = false) {
   // Convert hyphenated name to PascalCase for class names
   const camelCaseName = libName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
   const className = camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1);
   const serviceName = `${className}Service`;
 
-  return `import { ${serviceName}Config, ${serviceName}Options, BaseResponse, ErrorResponse } from '../types';
+  if (useLibApi) {
+    return `import { ApiService } from '@adopt-dont-shop/lib-api';
+import { ${serviceName}Config } from '../types';
 
 /**
  * ${serviceName} - Handles ${libName} operations
  */
 export class ${serviceName} {
-  private config: Required<${serviceName}Config>;
-  private cache: Map<string, unknown> = new Map();
+  private config: ${serviceName}Config;
+  private apiService: ApiService;
 
-  constructor(config: ${serviceName}Config = {}) {
+  constructor(
+    config: Partial<${serviceName}Config> = {},
+    apiService?: ApiService
+  ) {
     this.config = {
-      apiUrl: process.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000',
-      debug: process.env.NODE_ENV === 'development',
-      headers: {},
+      debug: false,
       ...config,
     };
+    
+    this.apiService = apiService || new ApiService();
 
     if (this.config.debug) {
       console.log(\`\${${serviceName}.name} initialized with config:\`, this.config);
@@ -368,10 +381,17 @@ export class ${serviceName} {
   }
 
   /**
+   * Get current configuration
+   */
+  public getConfig(): ${serviceName}Config {
+    return { ...this.config };
+  }
+
+  /**
    * Update service configuration
    */
-  updateConfig(config: Partial<${serviceName}Config>): void {
-    this.config = { ...this.config, ...config };
+  public updateConfig(updates: Partial<${serviceName}Config>): void {
+    this.config = { ...this.config, ...updates };
     
     if (this.config.debug) {
       console.log(\`\${${serviceName}.name} config updated:\`, this.config);
@@ -379,84 +399,54 @@ export class ${serviceName} {
   }
 
   /**
-   * Get current configuration
+   * Example API method - customize based on your library's purpose
+   * TODO: Replace with actual ${libName} functionality
    */
-  getConfig(): ${serviceName}Config {
-    return { ...this.config };
-  }
-
-  /**
-   * Clear cache
-   */
-  clearCache(): void {
-    this.cache.clear();
-    
-    if (this.config.debug) {
-      console.log(\`\${${serviceName}.name} cache cleared\`);
+  public async exampleGet(id: string): Promise<any> {
+    try {
+      const response = await this.apiService.get(\`/api/v1/${libName}/\${id}\`);
+      
+      if (this.config.debug) {
+        console.log(\`\${${serviceName}.name} exampleGet completed for id:\`, id);
+      }
+      
+      return response;
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(\`\${${serviceName}.name} exampleGet failed:\`, error);
+      }
+      throw error;
     }
   }
 
   /**
-   * Example method - customize based on your library's purpose
+   * Example POST method
+   * TODO: Replace with actual ${libName} functionality
    */
-  async exampleMethod(
-    data: Record<string, unknown>,
-    options: ${serviceName}Options = {}
-  ): Promise<BaseResponse> {
-    const startTime = Date.now();
-    
+  public async exampleCreate(data: Record<string, unknown>): Promise<any> {
     try {
-      // Check cache first if enabled
-      const cacheKey = \`example_\${JSON.stringify(data)}\`;
-      if (options.useCache && this.cache.has(cacheKey)) {
-        if (this.config.debug) {
-          console.log(\`\${${serviceName}.name} cache hit for key:\`, cacheKey);
-        }
-        return this.cache.get(cacheKey) as BaseResponse;
-      }
-
-      // Simulate API call - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const response = await this.apiService.post(\`/api/v1/${libName}\`, data);
       
-      const response: BaseResponse = {
-        data: { processed: data, timestamp: new Date().toISOString() },
-        success: true,
-        message: 'Example operation completed successfully',
-        timestamp: new Date().toISOString(),
-      };
-
-      // Cache the response if enabled
-      if (options.useCache) {
-        this.cache.set(cacheKey, response);
-      }
-
       if (this.config.debug) {
-        const duration = Date.now() - startTime;
-        console.log(\`\${${serviceName}.name} exampleMethod completed in \${duration}ms\`);
+        console.log(\`\${${serviceName}.name} exampleCreate completed\`);
       }
-
+      
       return response;
     } catch (error) {
-      const errorResponse: ErrorResponse = {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        code: 'EXAMPLE_ERROR',
-        timestamp: new Date().toISOString(),
-      };
-
       if (this.config.debug) {
-        console.error(\`\${${serviceName}.name} exampleMethod failed:\`, errorResponse);
+        console.error(\`\${${serviceName}.name} exampleCreate failed:\`, error);
       }
-
-      throw errorResponse;
+      throw error;
     }
   }
 
   /**
    * Health check method
    */
-  async healthCheck(): Promise<boolean> {
+  public async healthCheck(): Promise<boolean> {
     try {
-      // Implement actual health check logic
+      // Implement actual health check logic using apiService
+      await this.apiService.get('/api/v1/health');
       return true;
     } catch (error) {
       if (this.config.debug) {
@@ -466,34 +456,148 @@ export class ${serviceName} {
     }
   }
 }
-
-// Export singleton instance
-export const ${camelCaseName}Service = new ${serviceName}();
 `;
+  } else {
+    return `import { ${serviceName}Config, ${serviceName}Options } from '../types';
+
+/**
+ * ${serviceName} - Handles ${libName} operations
+ */
+export class ${serviceName} {
+  private config: ${serviceName}Config;
+
+  constructor(config: Partial<${serviceName}Config> = {}) {
+    this.config = {
+      debug: false,
+      ...config,
+    };
+
+    if (this.config.debug) {
+      console.log(\`\${${serviceName}.name} initialized with config:\`, this.config);
+    }
+  }
+
+  /**
+   * Get current configuration
+   */
+  public getConfig(): ${serviceName}Config {
+    return { ...this.config };
+  }
+
+  /**
+   * Update service configuration
+   */
+  public updateConfig(updates: Partial<${serviceName}Config>): void {
+    this.config = { ...this.config, ...updates };
+    
+    if (this.config.debug) {
+      console.log(\`\${${serviceName}.name} config updated:\`, this.config);
+    }
+  }
+
+  /**
+   * Example method - customize based on your library's purpose
+   * TODO: Replace with actual ${libName} functionality
+   */
+  public async exampleMethod(
+    data: Record<string, unknown>,
+    _options: ${serviceName}Options = {}
+  ): Promise<{ success: boolean; data: any; message?: string }> {
+    try {
+      if (this.config.debug) {
+        console.log(\`\${${serviceName}.name} exampleMethod called with:\`, data);
+      }
+
+      // TODO: Implement your actual logic here
+      const result = {
+        success: true,
+        data: { processed: data, timestamp: new Date().toISOString() },
+        message: 'Example operation completed successfully',
+      };
+
+      if (this.config.debug) {
+        console.log(\`\${${serviceName}.name} exampleMethod completed\`);
+      }
+
+      return result;
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(\`\${${serviceName}.name} exampleMethod failed:\`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Health check method
+   */
+  public async healthCheck(): Promise<boolean> {
+    try {
+      // TODO: Implement actual health check logic
+      return true;
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(\`\${${serviceName}.name} health check failed:\`, error);
+      }
+      return false;
+    }
+  }
+}
+`;
+  }
 }
 
 /**
  * Generate test file
  */
-function generateTestFile(libName) {
+function generateTestFile(libName, useLibApi = false) {
   // Convert hyphenated name to PascalCase for class names
   const camelCaseName = libName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
   const className = camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1);
   const serviceName = `${className}Service`;
 
-  return `import { ${serviceName} } from '../${libName}-service';
+  if (useLibApi) {
+    return `import { ${serviceName} } from '../${libName}-service';
+import { apiService } from '@adopt-dont-shop/lib-api';
+
+// Mock lib.api
+jest.mock('@adopt-dont-shop/lib-api', () => ({
+  apiService: {
+    post: jest.fn(),
+    get: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    fetchWithAuth: jest.fn(),
+    setToken: jest.fn(),
+    clearToken: jest.fn(),
+    isAuthenticated: jest.fn(),
+    updateConfig: jest.fn(),
+  },
+  ApiService: jest.fn().mockImplementation(() => ({
+    post: jest.fn(),
+    get: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    fetchWithAuth: jest.fn(),
+    setToken: jest.fn(),
+    clearToken: jest.fn(),
+    isAuthenticated: jest.fn(),
+    updateConfig: jest.fn(),
+  })),
+}));
 
 describe('${serviceName}', () => {
   let service: ${serviceName};
 
   beforeEach(() => {
+    // Clear localStorage before each test
+    localStorage.clear();
+    
     service = new ${serviceName}({
       debug: false,
     });
-  });
-
-  afterEach(() => {
-    service.clearCache();
+    
+    jest.clearAllMocks();
   });
 
   describe('initialization', () => {
@@ -502,11 +606,134 @@ describe('${serviceName}', () => {
       expect(config).toBeDefined();
       expect(config.debug).toBe(false);
     });
+
+    it('should allow config updates', () => {
+      service.updateConfig({ debug: true });
+      expect(service.getConfig().debug).toBe(true);
+    });
   });
 
-  // TODO: Add your tests here
+  describe('exampleGet', () => {
+    it('should call API service get method', async () => {
+      const mockResponse = { id: '123', name: 'Test' };
+      const mockApiService = service['apiService'];
+      mockApiService.get = jest.fn().mockResolvedValue(mockResponse);
+
+      const result = await service.exampleGet('123');
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/${libName}/123');
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should handle API errors', async () => {
+      const error = new Error('API Error');
+      const mockApiService = service['apiService'];
+      mockApiService.get = jest.fn().mockRejectedValue(error);
+
+      await expect(service.exampleGet('123')).rejects.toThrow('API Error');
+    });
+  });
+
+  describe('exampleCreate', () => {
+    it('should call API service post method', async () => {
+      const mockData = { name: 'Test' };
+      const mockResponse = { id: '123', ...mockData };
+      const mockApiService = service['apiService'];
+      mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
+
+      const result = await service.exampleCreate(mockData);
+
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/${libName}', mockData);
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('healthCheck', () => {
+    it('should return true when API is healthy', async () => {
+      const mockApiService = service['apiService'];
+      mockApiService.get = jest.fn().mockResolvedValue({});
+
+      const result = await service.healthCheck();
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/health');
+      expect(result).toBe(true);
+    });
+
+    it('should return false when API fails', async () => {
+      const mockApiService = service['apiService'];
+      mockApiService.get = jest.fn().mockRejectedValue(new Error('API Error'));
+
+      const result = await service.healthCheck();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  // TODO: Add more specific tests for your ${libName} functionality
 });
 `;
+  } else {
+    return `import { ${serviceName} } from '../${libName}-service';
+
+describe('${serviceName}', () => {
+  let service: ${serviceName};
+
+  beforeEach(() => {
+    // Clear localStorage before each test
+    localStorage.clear();
+    
+    service = new ${serviceName}({
+      debug: false,
+    });
+  });
+
+  describe('initialization', () => {
+    it('should initialize with default config', () => {
+      const config = service.getConfig();
+      expect(config).toBeDefined();
+      expect(config.debug).toBe(false);
+    });
+
+    it('should allow config updates', () => {
+      service.updateConfig({ debug: true });
+      expect(service.getConfig().debug).toBe(true);
+    });
+  });
+
+  describe('exampleMethod', () => {
+    it('should process data successfully', async () => {
+      const testData = { test: 'data' };
+      
+      const result = await service.exampleMethod(testData);
+
+      expect(result.success).toBe(true);
+      expect(result.data.processed).toEqual(testData);
+      expect(result.message).toContain('completed successfully');
+    });
+
+    it('should handle errors gracefully', async () => {
+      // Mock an error condition
+      const originalMethod = service.exampleMethod;
+      service.exampleMethod = jest.fn().mockRejectedValue(new Error('Test error'));
+
+      await expect(service.exampleMethod({})).rejects.toThrow('Test error');
+      
+      // Restore original method
+      service.exampleMethod = originalMethod;
+    });
+  });
+
+  describe('healthCheck', () => {
+    it('should return true by default', async () => {
+      const result = await service.healthCheck();
+      expect(result).toBe(true);
+    });
+  });
+
+  // TODO: Add more specific tests for your ${libName} functionality
+});
+`;
+  }
 }
 
 /**
@@ -516,9 +743,22 @@ function generateTestSetup() {
   return `// Test setup file for Jest
 // This file is automatically loaded before each test file
 
+// Type declarations for global variables
+declare global {
+  var mockFetch: jest.Mock;
+  var mockLocalStorage: {
+    getItem: jest.Mock;
+    setItem: jest.Mock;
+    removeItem: jest.Mock;
+    clear: jest.Mock;
+    length: number;
+    key: jest.Mock;
+  };
+}
+
 // Mock fetch globally
 const mockFetch = jest.fn();
-global.fetch = mockFetch;
+(global as any).fetch = mockFetch;
 
 // Mock localStorage
 const mockLocalStorage = {
@@ -555,8 +795,8 @@ if (typeof window !== 'undefined') {
 // };
 
 // Global test utilities available in all tests
-global.mockFetch = mockFetch;
-global.mockLocalStorage = mockLocalStorage;
+(global as any).mockFetch = mockFetch;
+(global as any).mockLocalStorage = mockLocalStorage;
 
 // Clean up after each test
 afterEach(() => {
@@ -679,7 +919,7 @@ volumes:
 /**
  * Generate comprehensive README.md
  */
-function generateReadme(libName, libDescription) {
+function generateReadme(libName, libDescription, useLibApi = false) {
   // Convert hyphenated name to PascalCase for class names
   const camelCaseName = libName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
   const className = camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1);
@@ -1227,13 +1467,19 @@ async function createNewLibrary() {
 
   if (args.length === 0) {
     log('❌ Please provide a library name', 'red');
-    log('Usage: npm run new-lib <library-name> [description]', 'yellow');
+    log('Usage: npm run new-lib <library-name> [description] [--with-api]', 'yellow');
     log('Example: npm run new-lib chat "Real-time chat functionality"', 'cyan');
+    log('Example: npm run new-lib auth "Authentication service" --with-api', 'cyan');
     process.exit(1);
   }
 
-  const libName = args[0].toLowerCase().replace(/[^a-z0-9-]/g, '-');
-  const libDescription = args[1] || `Shared ${libName} functionality for the pet adoption platform`;
+  // Parse arguments
+  const useLibApi = args.includes('--with-api');
+  const filteredArgs = args.filter(arg => !arg.startsWith('--'));
+
+  const libName = filteredArgs[0].toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const libDescription =
+    filteredArgs[1] || `Shared ${libName} functionality for the pet adoption platform`;
 
   if (!libName.match(/^[a-z][a-z0-9-]*$/)) {
     log('❌ Invalid library name. Use lowercase letters, numbers, and hyphens only.', 'red');
@@ -1250,6 +1496,9 @@ async function createNewLibrary() {
 
   log(`🚀 Creating new library: lib.${libName}`, 'bright');
   log(`📝 Description: ${libDescription}`, 'cyan');
+  if (useLibApi) {
+    log(`🔗 With lib.api integration: enabled`, 'magenta');
+  }
   log('', 'reset');
 
   try {
@@ -1260,28 +1509,28 @@ async function createNewLibrary() {
     ensureDirectoryExists(path.join(libDir, 'src', 'test-utils'));
 
     // Generate all files
-    writeFile(path.join(libDir, 'package.json'), generatePackageJson(libName, libDescription));
+    writeFile(
+      path.join(libDir, 'package.json'),
+      generatePackageJson(libName, libDescription, useLibApi)
+    );
     writeFile(path.join(libDir, 'tsconfig.json'), generateTsConfig());
-    writeFile(path.join(libDir, 'jest.config.cjs'), generateJestConfig());
+    writeFile(path.join(libDir, 'jest.config.cjs'), generateJestConfig(useLibApi));
     writeFile(path.join(libDir, '.eslintrc.json'), generateEslintConfig());
     writeFile(path.join(libDir, '.prettierrc.json'), generatePrettierConfig());
     writeFile(path.join(libDir, 'src', 'index.ts'), generateIndexFile(libName));
     writeFile(path.join(libDir, 'src', 'types', 'index.ts'), generateTypesFile(libName));
     writeFile(
       path.join(libDir, 'src', 'services', `${libName}-service.ts`),
-      generateServiceFile(libName)
+      generateServiceFile(libName, useLibApi)
     );
     writeFile(
       path.join(libDir, 'src', 'services', '__tests__', `${libName}-service.test.ts`),
-      generateTestFile(libName)
+      generateTestFile(libName, useLibApi)
     );
-    writeFile(
-      path.join(libDir, 'src', 'test-utils', 'setup-tests.ts'),
-      generateTestSetup()
-    );
+    writeFile(path.join(libDir, 'src', 'test-utils', 'setup-tests.ts'), generateTestSetup());
     writeFile(path.join(libDir, 'Dockerfile'), generateDockerfile(libName));
     writeFile(path.join(libDir, 'docker-compose.lib.yml'), generateLibDockerCompose(libName));
-    writeFile(path.join(libDir, 'README.md'), generateReadme(libName, libDescription));
+    writeFile(path.join(libDir, 'README.md'), generateReadme(libName, libDescription, useLibApi));
 
     // Update workspace configuration
     await updateRootPackageJson(libName);

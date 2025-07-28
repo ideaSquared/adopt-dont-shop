@@ -3,19 +3,23 @@
 // Services
 export { ApiService, apiService, api } from './services/api-service';
 
+// Infrastructure
+export * from './interceptors';
+export * from './errors';
+
 // Types
 export type {
   // Configuration types
   ApiServiceConfig,
   ApiServiceOptions,
   FetchOptions,
-  
+
   // Response types
   BaseResponse,
   ErrorResponse,
   ApiResponse,
   PaginatedResponse,
-  
+
   // Pet types
   ApiPet,
   TransformedPet,

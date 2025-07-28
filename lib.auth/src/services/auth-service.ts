@@ -1,124 +1,239 @@
-import { AuthServiceConfig, AuthServiceOptions, BaseResponse, ErrorResponse } from '../types';
+import { apiService } from '@adopt-dont-shop/lib-api';
+import {
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  User,
+  ChangePasswordRequest,
+  RefreshTokenResponse,
+  STORAGE_KEYS,
+} from '../types';
 
 /**
- * AuthService - Handles auth operations
+ * AuthService - Authentication and user management service
+ *
+ * This service handles user authentication, registration, profile management,
+ * and token management using lib.api as the HTTP transport layer.
  */
 export class AuthService {
-  private config: Required<AuthServiceConfig>;
-  private cache: Map<string, unknown> = new Map();
+  constructor() {
+    // Configure the API service to get auth tokens from this service
+    apiService.updateConfig({
+      getAuthToken: () => this.getToken(),
+    });
+  }
 
-  constructor(config: AuthServiceConfig = {}) {
-    this.config = {
-      apiUrl: process.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000',
-      debug: process.env.NODE_ENV === 'development',
-      headers: {},
-      ...config,
+  /**
+   * Login user with credentials
+   */
+  async login(credentials: LoginRequest): Promise<AuthResponse> {
+    const response = await apiService.post<AuthResponse>('/api/v1/auth/login', credentials);
+
+    // Store tokens and user data (backend returns 'token', frontend expects 'accessToken')
+    this.setTokens(response.token, response.refreshToken);
+    this.setUser(response.user);
+
+    return {
+      ...response,
+      accessToken: response.token, // Map backend 'token' to frontend 'accessToken'
     };
-
-    if (this.config.debug) {
-      console.log(`${AuthService.name} initialized with config:`, this.config);
-    }
   }
 
   /**
-   * Update service configuration
+   * Register new user
    */
-  updateConfig(config: Partial<AuthServiceConfig>): void {
-    this.config = { ...this.config, ...config };
-    
-    if (this.config.debug) {
-      console.log(`${AuthService.name} config updated:`, this.config);
-    }
+  async register(userData: RegisterRequest): Promise<AuthResponse> {
+    const response = await apiService.post<AuthResponse>('/api/v1/auth/register', userData);
+
+    // Store tokens and user data (backend returns 'token', frontend expects 'accessToken')
+    this.setTokens(response.token, response.refreshToken);
+    this.setUser(response.user);
+
+    return {
+      ...response,
+      accessToken: response.token, // Map backend 'token' to frontend 'accessToken'
+    };
   }
 
   /**
-   * Get current configuration
+   * Logout user and clear all stored data
    */
-  getConfig(): AuthServiceConfig {
-    return { ...this.config };
-  }
-
-  /**
-   * Clear cache
-   */
-  clearCache(): void {
-    this.cache.clear();
-    
-    if (this.config.debug) {
-      console.log(`${AuthService.name} cache cleared`);
-    }
-  }
-
-  /**
-   * Example method - customize based on your library's purpose
-   */
-  async exampleMethod(
-    data: Record<string, unknown>,
-    options: AuthServiceOptions = {}
-  ): Promise<BaseResponse> {
-    const startTime = Date.now();
-    
+  async logout(): Promise<void> {
     try {
-      // Check cache first if enabled
-      const cacheKey = `example_${JSON.stringify(data)}`;
-      if (options.useCache && this.cache.has(cacheKey)) {
-        if (this.config.debug) {
-          console.log(`${AuthService.name} cache hit for key:`, cacheKey);
-        }
-        return this.cache.get(cacheKey) as BaseResponse;
-      }
-
-      // Simulate API call - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const response: BaseResponse = {
-        data: { processed: data, timestamp: new Date().toISOString() },
-        success: true,
-        message: 'Example operation completed successfully',
-        timestamp: new Date().toISOString(),
-      };
-
-      // Cache the response if enabled
-      if (options.useCache) {
-        this.cache.set(cacheKey, response);
-      }
-
-      if (this.config.debug) {
-        const duration = Date.now() - startTime;
-        console.log(`${AuthService.name} exampleMethod completed in ${duration}ms`);
-      }
-
-      return response;
+      await apiService.post('/api/v1/auth/logout');
     } catch (error) {
-      const errorResponse: ErrorResponse = {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        code: 'EXAMPLE_ERROR',
-        timestamp: new Date().toISOString(),
-      };
-
-      if (this.config.debug) {
-        console.error(`${AuthService.name} exampleMethod failed:`, errorResponse);
-      }
-
-      throw errorResponse;
+      // Continue with logout even if API call fails
+      console.error('Logout API call failed:', error);
+    } finally {
+      this.clearStorage();
     }
   }
 
   /**
-   * Health check method
+   * Get current user from localStorage
    */
-  async healthCheck(): Promise<boolean> {
+  getCurrentUser(): User | null {
+    const userStr = localStorage.getItem(STORAGE_KEYS.USER);
+    if (!userStr) return null;
+
     try {
-      // Implement actual health check logic
-      return true;
+      return JSON.parse(userStr);
     } catch (error) {
-      if (this.config.debug) {
-        console.error(`${AuthService.name} health check failed:`, error);
-      }
-      return false;
+      console.error('Error parsing user data:', error);
+      return null;
     }
+  }
+
+  /**
+   * Check if user is authenticated
+   */
+  isAuthenticated(): boolean {
+    return !!this.getToken() && !!this.getCurrentUser();
+  }
+
+  /**
+   * Refresh access token using refresh token
+   */
+  async refreshToken(): Promise<string> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await apiService.post<RefreshTokenResponse>('/api/v1/auth/refresh-token', {
+      refreshToken,
+    });
+
+    // Update stored tokens
+    this.setTokens(response.token, response.refreshToken);
+
+    return response.token;
+  }
+
+  /**
+   * Get user profile from API
+   */
+  async getProfile(): Promise<User> {
+    return await apiService.get<User>('/api/v1/auth/me');
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(profileData: Partial<User>): Promise<User> {
+    const updatedUser = await apiService.put<User>('/api/v1/auth/me', profileData);
+
+    // Update localStorage
+    this.setUser(updatedUser);
+
+    return updatedUser;
+  }
+
+  /**
+   * Send password reset email
+   */
+  async forgotPassword(email: string): Promise<void> {
+    await apiService.post('/api/v1/auth/forgot-password', { email });
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    await apiService.post('/api/v1/auth/reset-password', { token, newPassword });
+  }
+
+  /**
+   * Change password (when logged in)
+   */
+  async changePassword(data: ChangePasswordRequest): Promise<void> {
+    await apiService.post('/api/v1/auth/change-password', data);
+  }
+
+  /**
+   * Verify email with token
+   */
+  async verifyEmail(token: string): Promise<void> {
+    await apiService.get(`/api/v1/auth/verify-email/${token}`);
+  }
+
+  /**
+   * Resend verification email
+   */
+  async resendVerificationEmail(): Promise<void> {
+    const user = this.getCurrentUser();
+    if (!user?.email) {
+      throw new Error('No user email found');
+    }
+    await apiService.post('/api/v1/auth/resend-verification', { email: user.email });
+  }
+
+  /**
+   * Delete user account
+   */
+  async deleteAccount(reason?: string): Promise<void> {
+    const body = reason ? { reason } : undefined;
+    await apiService.fetchWithAuth('/api/v1/users/account', {
+      method: 'DELETE',
+      body,
+    });
+
+    this.clearStorage();
+  }
+
+  /**
+   * Get stored auth token
+   */
+  getToken(): string | null {
+    return (
+      localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
+      localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
+    );
+  }
+
+  /**
+   * Get stored refresh token
+   */
+  getRefreshToken(): string | null {
+    return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  }
+
+  /**
+   * Set auth token in storage
+   */
+  setToken(token: string): void {
+    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token); // For backward compatibility
+  }
+
+  /**
+   * Clear all stored authentication data
+   */
+  clearTokens(): void {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+  }
+
+  // Private helper methods
+  private setTokens(token: string, refreshToken: string): void {
+    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token); // For backward compatibility
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+  }
+
+  private setUser(user: User): void {
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  }
+
+  private clearStorage(): void {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.USER);
   }
 }
 
 // Export singleton instance
 export const authService = new AuthService();
+

@@ -98,17 +98,17 @@ export interface ApiServiceConfig {
    * API base URL
    */
   apiUrl?: string;
-  
+
   /**
    * Enable debug logging
    */
   debug?: boolean;
-  
+
   /**
    * Default request timeout in milliseconds
    */
   timeout?: number;
-  
+
   /**
    * Custom headers to include with requests
    */
@@ -136,12 +136,12 @@ export interface ApiServiceOptions {
    * Timeout in milliseconds
    */
   timeout?: number;
-  
+
   /**
    * Whether to use caching
    */
   useCache?: boolean;
-  
+
   /**
    * Custom metadata
    */
@@ -168,4 +168,6 @@ export interface ErrorResponse {
   details?: unknown;
 }
 
-
+// Re-export interceptor and error types
+export * from '../interceptors';
+export * from '../errors';

@@ -1,0 +1,30 @@
+# Docker Compose for lib.permissions development
+services:
+  lib-permissions:
+    build:
+      context: ./lib.permissions
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.permissions:/app
+      - /app/node_modules
+      - lib_permissions_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Example service that uses the library
+  lib-permissions-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.permissions:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-permissions
+
+volumes:
+  lib_permissions_dist:

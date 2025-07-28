@@ -1,0 +1,30 @@
+# Docker Compose for lib.discovery development
+services:
+  lib-discovery:
+    build:
+      context: ./lib.discovery
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.discovery:/app
+      - /app/node_modules
+      - lib_discovery_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Example service that uses the library
+  lib-discovery-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.discovery:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-discovery
+
+volumes:
+  lib_discovery_dist:

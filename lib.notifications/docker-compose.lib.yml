@@ -1,0 +1,30 @@
+# Docker Compose for lib.notifications development
+services:
+  lib-notifications:
+    build:
+      context: ./lib.notifications
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.notifications:/app
+      - /app/node_modules
+      - lib_notifications_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Example service that uses the library
+  lib-notifications-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.notifications:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-notifications
+
+volumes:
+  lib_notifications_dist:
