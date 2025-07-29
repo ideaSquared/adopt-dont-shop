@@ -1,4 +1,4 @@
-import { ApplicationData } from '@/types';
+import { ApplicationData } from '@/services';
 import { Input } from '@adopt-dont-shop/components';
 import React from 'react';
 import { useForm } from 'react-hook-form';

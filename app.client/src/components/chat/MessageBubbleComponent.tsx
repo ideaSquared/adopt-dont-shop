@@ -1,4 +1,4 @@
-import { Message } from '@/services/chatService';
+import { Message } from '@/services';
 import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
 import {
@@ -237,23 +237,23 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
     // Log feature usage
     logEvent('image_lightbox_opened', 1, {
       attachment_id: attachment.id,
-      filename: attachment.filename,
+      filename: attachment.fileName,
       mime_type: attachment.mimeType,
     });
   };
 
   const handlePDFClick = (attachment: NonNullable<Message['attachments']>[0]) => {
-    const resolvedUrl = resolveFileUrl(attachment.url);
+    const resolvedUrl = resolveFileUrl(attachment.fileUrl);
     if (resolvedUrl) {
       setPdfPreviewUrl(resolvedUrl);
-      setPdfPreviewFilename(attachment.filename);
+      setPdfPreviewFilename(attachment.fileName);
       setPdfPreviewOpen(true);
 
       // Log feature usage
       logEvent('pdf_viewer_opened', 1, {
         attachment_id: attachment.id,
-        filename: attachment.filename,
-        file_size: attachment.size.toString(),
+        filename: attachment.fileName,
+        file_size: attachment.fileSize.toString(),
       });
     }
   };
@@ -275,22 +275,22 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
                 {isImageFile(attachment.mimeType) ? (
                   <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                     <ImageAttachment
-                      src={resolveFileUrl(attachment.url) || attachment.url}
-                      alt={attachment.filename}
+                      src={resolveFileUrl(attachment.fileUrl) || attachment.fileUrl}
+                      alt={attachment.fileName}
                       onClick={() => handleImageClick(attachment)}
                       onError={_e => {
                         // Image failed to load - could add fallback here
                       }}
                       loading='lazy'
-                      title={`Click to view ${attachment.filename}`}
+                      title={`Click to view ${attachment.fileName}`}
                     />
                   </div>
                 ) : isPDFFile(attachment.mimeType) ? (
                   <>
                     <FileIcon $isOwn={isOwn}>{getFileIcon(attachment.mimeType)}</FileIcon>
                     <FileInfo>
-                      <FileName $isOwn={isOwn}>{attachment.filename}</FileName>
-                      <FileSize $isOwn={isOwn}>{formatFileSize(attachment.size)}</FileSize>
+                      <FileName $isOwn={isOwn}>{attachment.fileName}</FileName>
+                      <FileSize $isOwn={isOwn}>{formatFileSize(attachment.fileSize)}</FileSize>
                     </FileInfo>
                     {checkGate('pdf_viewer_enabled') && (
                       <DownloadButton
@@ -306,8 +306,8 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
                     )}
                     <DownloadButton
                       $isOwn={isOwn}
-                      href={resolveFileUrl(attachment.url)}
-                      download={attachment.filename}
+                      href={resolveFileUrl(attachment.fileUrl)}
+                      download={attachment.fileName}
                       target='_blank'
                       rel='noopener noreferrer'
                     >
@@ -318,13 +318,13 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
                   <>
                     <FileIcon $isOwn={isOwn}>{getFileIcon(attachment.mimeType)}</FileIcon>
                     <FileInfo>
-                      <FileName $isOwn={isOwn}>{attachment.filename}</FileName>
-                      <FileSize $isOwn={isOwn}>{formatFileSize(attachment.size)}</FileSize>
+                      <FileName $isOwn={isOwn}>{attachment.fileName}</FileName>
+                      <FileSize $isOwn={isOwn}>{formatFileSize(attachment.fileSize)}</FileSize>
                     </FileInfo>
                     <DownloadButton
                       $isOwn={isOwn}
-                      href={resolveFileUrl(attachment.url)}
-                      download={attachment.filename}
+                      href={resolveFileUrl(attachment.fileUrl)}
+                      download={attachment.fileName}
                       target='_blank'
                       rel='noopener noreferrer'
                     >
@@ -338,7 +338,7 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
         )}
 
         <MessageInfo $isOwn={isOwn} aria-label={'Message time'}>
-          {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+          {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
         </MessageInfo>
       </MessageBubble>
 
@@ -346,11 +346,11 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
       {checkGate('image_lightbox_enabled') && (
         <ImageLightbox
           images={imageAttachments.map(att => {
-            const resolvedUrl = resolveFileUrl(att.url);
+            const resolvedUrl = resolveFileUrl(att.fileUrl);
             return {
               id: att.id,
-              url: resolvedUrl || att.url,
-              filename: att.filename,
+              url: resolvedUrl || att.fileUrl,
+              filename: att.fileName,
               mimeType: att.mimeType,
             };
           })}

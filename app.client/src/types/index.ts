@@ -322,6 +322,7 @@ export type ApplicationStatus =
   | 'approved'
   | 'rejected'
   | 'withdrawn'
+  | 'expired'
   | 'on_hold';
 
 export interface Application {

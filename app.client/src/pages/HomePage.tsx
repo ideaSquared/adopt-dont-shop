@@ -1,9 +1,11 @@
 import { PetCard } from '@/components/PetCard';
 import { SwipeHero } from '@/components/hero/SwipeHero';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { useFeatureFlags } from '@/contexts/FeatureFlagsContext';
 import { useStatsig } from '@/hooks/useStatsig';
-import { petService } from '@/services/petService';
-import { Pet } from '@/types';
+import { petService } from '@/services';
+import { Pet } from '@/services';
 import { Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -126,11 +128,43 @@ export const HomePage: React.FC = () => {
   const [featuredPets, setFeaturedPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showNewHero, setShowNewHero] = useState(false);
   const { isAuthenticated } = useAuth();
   const { logEvent } = useStatsig();
+  const { trackPageView, trackEvent } = useAnalytics();
+  const { isFeatureEnabled } = useFeatureFlags();
 
   useEffect(() => {
-    // Log page view
+    // Check feature flags
+    const checkFeatureFlags = async () => {
+      try {
+        const newHeroEnabled = await isFeatureEnabled('new_hero_design');
+        setShowNewHero(newHeroEnabled);
+        
+        // Track feature flag impression
+        trackEvent({
+          category: 'feature_flags',
+          action: 'hero_variant_shown',
+          label: newHeroEnabled ? 'new_hero' : 'original_hero',
+          sessionId: 'homepage-session',
+          timestamp: new Date(),
+          properties: {
+            variant: newHeroEnabled ? 'new_hero' : 'original_hero',
+            user_authenticated: isAuthenticated,
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to check feature flags:', error);
+        setShowNewHero(false);
+      }
+    };
+
+    checkFeatureFlags();
+
+    // Track page view with new analytics service
+    trackPageView('/');
+
+    // Log page view (existing Statsig tracking)
     logEvent('homepage_viewed', 1, {
       user_authenticated: isAuthenticated.toString(),
       timestamp: new Date().toISOString(),
@@ -142,7 +176,21 @@ export const HomePage: React.FC = () => {
         const pets = await petService.getFeaturedPets(8);
         setFeaturedPets(pets);
 
-        // Log successful load
+        // Track with new analytics service
+        trackEvent({
+          category: 'homepage',
+          action: 'featured_pets_loaded',
+          label: 'pet_loading_success',
+          value: pets.length,
+          sessionId: 'homepage-session', // This would normally come from a session manager
+          timestamp: new Date(),
+          properties: {
+            pet_count: pets.length,
+            user_authenticated: isAuthenticated,
+          }
+        });
+
+        // Log successful load (existing Statsig tracking)
         logEvent('featured_pets_loaded', pets.length, {
           pet_count: pets.length.toString(),
           load_time_ms: (Date.now() - performance.now()).toString(),
@@ -151,7 +199,20 @@ export const HomePage: React.FC = () => {
         setError('Failed to load featured pets. Please try again later.');
         console.error('Error loading featured pets:', err);
 
-        // Log error
+        // Track error with new analytics service
+        trackEvent({
+          category: 'homepage',
+          action: 'featured_pets_load_error',
+          label: 'pet_loading_failed',
+          sessionId: 'homepage-session',
+          timestamp: new Date(),
+          properties: {
+            error_message: err instanceof Error ? err.message : 'Unknown error',
+            user_authenticated: isAuthenticated,
+          }
+        });
+
+        // Log error (existing Statsig tracking)
         logEvent('featured_pets_load_error', 1, {
           error_message: err instanceof Error ? err.message : 'Unknown error',
         });
@@ -161,9 +222,23 @@ export const HomePage: React.FC = () => {
     };
 
     loadFeaturedPets();
-  }, [isAuthenticated, logEvent]);
+  }, [isAuthenticated, logEvent, trackPageView, trackEvent, isFeatureEnabled]);
 
   const handleViewAllPetsClick = () => {
+    // Track with new analytics service
+    trackEvent({
+      category: 'homepage',
+      action: 'view_all_pets_clicked',
+      label: 'navigation_to_search',
+      sessionId: 'homepage-session',
+      timestamp: new Date(),
+      properties: {
+        featured_pets_count: featuredPets.length,
+        user_authenticated: isAuthenticated,
+      }
+    });
+
+    // Existing Statsig tracking
     logEvent('homepage_view_all_pets_clicked', 1, {
       featured_pets_count: featuredPets.length.toString(),
       user_authenticated: isAuthenticated.toString(),
@@ -171,17 +246,53 @@ export const HomePage: React.FC = () => {
   };
 
   const handleCTAClick = (action: 'browse_pets' | 'get_started') => {
+    // Track with new analytics service
+    trackEvent({
+      category: 'homepage',
+      action: 'cta_clicked',
+      label: action,
+      sessionId: 'homepage-session',
+      timestamp: new Date(),
+      properties: {
+        cta_action: action,
+        user_authenticated: isAuthenticated,
+        featured_pets_visible: featuredPets.length,
+        hero_variant: showNewHero ? 'new_hero' : 'original_hero',
+      }
+    });
+
+    // Existing Statsig tracking
     logEvent('homepage_cta_clicked', 1, {
       cta_action: action,
       user_authenticated: isAuthenticated.toString(),
       featured_pets_visible: featuredPets.length.toString(),
+      hero_variant: showNewHero ? 'new_hero' : 'original_hero',
     });
   };
 
   return (
     <div>
-      {/* Hero Section */}
-      <SwipeHero />
+      {/* Hero Section - A/B Test with Feature Flags */}
+      {showNewHero ? (
+        <Section style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', textAlign: 'center' }}>
+          <Container>
+            <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>Find Your Perfect Companion</h1>
+            <p style={{ fontSize: '1.5rem', marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
+              Every pet deserves a loving home. Browse thousands of adoptable pets and find your new best friend today.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Button variant='primary' size='lg' onClick={() => handleCTAClick('browse_pets')}>
+                Start Browsing Pets
+              </Button>
+              <Button variant='outline' size='lg' onClick={() => handleCTAClick('get_started')}>
+                Learn More
+              </Button>
+            </div>
+          </Container>
+        </Section>
+      ) : (
+        <SwipeHero />
+      )}
 
       {/* Featured Pets Section */}
       <Section>

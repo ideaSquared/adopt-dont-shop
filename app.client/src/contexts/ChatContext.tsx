@@ -1,9 +1,9 @@
 import {
-  Conversation as BaseConversation,
+  Conversation as LibConversation,
   chatService,
-  Message,
+  Message as LibMessage,
   TypingIndicator,
-} from '@/services/chatService';
+} from '@/services';
 import {
   getConnectionQuality,
   isCurrentlyOnline,
@@ -130,22 +130,24 @@ export function ChatProvider({ children }: ChatProviderProps) {
         setConversations(prev =>
           (prev || []).map(conv =>
             conv.id === message.conversationId
-              ? { ...conv, lastMessage: message, updatedAt: message.createdAt }
+              ? { ...conv, lastMessage: message, updatedAt: message.timestamp }
               : conv
           )
         );
       };
 
       const handleTyping = (data: TypingIndicator) => {
-        if (data.isTyping) {
-          setTypingUsers(prev => {
-            const currentUsers = prev || [];
-            if (currentUsers.includes(data.userName)) return currentUsers;
-            return [...currentUsers, data.userName];
-          });
-        } else {
+        // Add user to typing users when we receive a typing indicator
+        setTypingUsers(prev => {
+          const currentUsers = prev || [];
+          if (currentUsers.includes(data.userName)) return currentUsers;
+          return [...currentUsers, data.userName];
+        });
+
+        // Auto-remove user after 3 seconds of no typing indicator
+        setTimeout(() => {
           setTypingUsers(prev => (prev || []).filter(name => name !== data.userName));
-        }
+        }, 3000);
       };
 
       chatService.onMessage(handleMessage);
@@ -209,14 +211,14 @@ export function ChatProvider({ children }: ChatProviderProps) {
         throw new Error('No message data received from API');
       }
 
-      if (!messageData.messages) {
-        throw new Error('No messages array in response data');
+      if (!messageData.data) {
+        throw new Error('No data array in response');
       }
 
-      setMessages(messageData.messages);
+      setMessages(messageData.data);
 
       // Check if there are more messages to load
-      if (messageData.messages.length < 50) {
+      if (messageData.data.length < 50) {
         setHasMoreMessages(false);
       }
     } catch (err) {
@@ -240,18 +242,18 @@ export function ChatProvider({ children }: ChatProviderProps) {
         limit: 50,
       });
 
-      if (!messageData || !messageData.messages) {
+      if (!messageData || !messageData.data) {
         throw new Error('No message data received from API');
       }
 
-      if (messageData.messages.length === 0) {
+      if (messageData.data.length === 0) {
         setHasMoreMessages(false);
       } else {
         // Prepend older messages to the beginning of the array
-        setMessages(prev => [...messageData.messages, ...prev]);
+        setMessages(prev => [...messageData.data, ...prev]);
         setCurrentPage(nextPage);
 
-        if (messageData.messages.length < 50) {
+        if (messageData.data.length < 50) {
           setHasMoreMessages(false);
         }
       }
@@ -279,12 +281,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
           conversationId: activeConversation.id,
           senderId: user.userId,
           senderName: user.firstName,
-          senderType: 'user',
           content,
-          messageType: 'text',
-          readBy: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          timestamp: new Date().toISOString(),
+          type: 'text',
+          status: 'sending',
         };
 
         setMessages(prev => [...(prev || []), tempMessage]);
@@ -309,7 +309,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       setConversations(prev =>
         (prev || []).map(conv =>
           conv.id === activeConversation.id
-            ? { ...conv, lastMessage: sentMessage, updatedAt: sentMessage.createdAt }
+            ? { ...conv, lastMessage: sentMessage, updatedAt: sentMessage.timestamp }
             : conv
         )
       );
@@ -346,7 +346,6 @@ export function ChatProvider({ children }: ChatProviderProps) {
       const conversation = await chatService.createConversation({
         rescueId,
         petId,
-        type: 'application',
       });
 
       setConversations(prev => [conversation, ...(prev || [])]);
@@ -436,8 +435,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
         try {
           await chatService.sendMessage(
             message.conversationId,
-            message.content,
-            message.messageType
+            message.content
           );
           offlineManager.removeQueuedMessage(message.id);
         } catch (error) {
@@ -508,11 +506,10 @@ export function useChat() {
 }
 
 // Define a type for API response that may include chat_id
-interface ConversationApiResponse extends BaseConversation {
+interface ConversationApiResponse extends LibConversation {
   chat_id?: string;
 }
 
-// Extend the imported Conversation type to add chat_id
-export interface Conversation extends BaseConversation {
-  chat_id?: string;
-}
+// Use library types directly
+export type Conversation = LibConversation;
+export type Message = LibMessage;

@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Message } from '@/services/chatService';
+import { Message } from '@/services';
 import styled from 'styled-components';
 // import { formatDistanceToNow } from 'date-fns';
 interface MessageListProps {

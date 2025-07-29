@@ -1,4 +1,4 @@
-import { ApplicationData, Pet } from '@/types';
+import { ApplicationData, Pet } from '@/services';
 import { Button } from '@adopt-dont-shop/components';
 import React from 'react';
 import styled from 'styled-components';

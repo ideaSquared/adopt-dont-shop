@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { RegisterRequest } from '@/types';
+import { RegisterRequest } from '@/services';
 import { Alert, Button, Card, Input } from '@adopt-dont-shop/components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';

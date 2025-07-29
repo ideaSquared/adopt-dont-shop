@@ -1,4 +1,5 @@
-import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest } from '@/types';
+import { ApiResponse } from '@/types';
+import { AuthResponse, LoginRequest, RegisterRequest } from '@/services';
 
 interface FetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

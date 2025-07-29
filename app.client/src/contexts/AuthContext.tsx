@@ -1,6 +1,6 @@
 import { useStatsig } from '@/hooks/useStatsig';
-import { authService } from '@/services/authService';
-import { LoginRequest, RegisterRequest, User } from '@/types';
+import { authService } from '@/services';
+import { LoginRequest, RegisterRequest, User } from '@/services';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {

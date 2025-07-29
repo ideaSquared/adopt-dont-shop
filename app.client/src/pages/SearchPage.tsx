@@ -1,7 +1,9 @@
 import { PetCard } from '@/components/PetCard';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { useFeatureFlags } from '@/contexts/FeatureFlagsContext';
 import { useStatsig } from '@/hooks/useStatsig';
-import { petService } from '@/services/petService';
-import { PaginatedResponse, Pet, PetSearchFilters } from '@/types';
+import { petService } from '@/services';
+import { PaginatedResponse, Pet, PetSearchFilters } from '@/services';
 import {
   Button,
   Card,
@@ -206,7 +208,10 @@ export const SearchPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginatedResponse<Pet>['pagination'] | null>(null);
+  // const [useAdvancedFilters, setUseAdvancedFilters] = useState(false); // Future feature
   const { logEvent } = useStatsig();
+  const { trackPageView, trackEvent } = useAnalytics();
+  const { isFeatureEnabled } = useFeatureFlags();
 
   // Search filters state
   const [filters, setFilters] = useState<PetSearchFilters>({
@@ -227,13 +232,54 @@ export const SearchPage: React.FC = () => {
 
   // Log page view
   useEffect(() => {
+    // Check feature flags first
+    const checkFeatureFlags = async () => {
+      try {
+        const advancedFiltersEnabled = await isFeatureEnabled('advanced_search_filters');
+        // setUseAdvancedFilters(advancedFiltersEnabled); // Future implementation
+        
+        // Track feature flag usage
+        trackEvent({
+          category: 'feature_flags',
+          action: 'search_filters_variant_shown',
+          label: advancedFiltersEnabled ? 'advanced_filters' : 'basic_filters',
+          sessionId: 'search-session',
+          timestamp: new Date(),
+          properties: {
+            variant: advancedFiltersEnabled ? 'advanced_filters' : 'basic_filters',
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to check advanced filters feature flag:', error);
+        // setUseAdvancedFilters(false); // Future implementation
+      }
+    };
+
+    checkFeatureFlags();
+
+    // Track with new analytics service
+    trackPageView('/search');
+    trackEvent({
+      category: 'search',
+      action: 'page_viewed',
+      label: 'search_page_load',
+      sessionId: 'search-session',
+      timestamp: new Date(),
+      properties: {
+        has_initial_query: !!searchQuery,
+        initial_type_filter: filters.type || 'none',
+        page_number: filters.page || 1,
+      }
+    });
+
+    // Existing Statsig tracking
     logEvent('search_page_viewed', 1, {
       has_initial_query: (!!searchQuery).toString(),
       initial_type_filter: filters.type || 'none',
       page_number: (filters.page || 1).toString(),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [trackPageView, trackEvent, isFeatureEnabled]);
 
   // Load pets based on current filters
   const loadPets = useCallback(async () => {
@@ -248,7 +294,30 @@ export const SearchPage: React.FC = () => {
         searchFilters.search = searchQuery.trim();
       }
 
-      // Log search execution
+      // Track search execution with new analytics service
+      trackEvent({
+        category: 'search',
+        action: 'pet_search_executed',
+        label: searchQuery ? 'query_search' : 'filter_search',
+        sessionId: 'search-session',
+        timestamp: new Date(),
+        properties: {
+          search_query: searchQuery || 'none',
+          type_filter: filters.type || 'none',
+          breed_filter: filters.breed || 'none',
+          size_filter: filters.size || 'none',
+          gender_filter: filters.gender || 'none',
+          location_filter: filters.location || 'none',
+          age_group_filter: filters.ageGroup || 'none',
+          status_filter: filters.status || 'none',
+          sort_by: filters.sortBy || 'created_at',
+          sort_order: filters.sortOrder || 'desc',
+          page: filters.page || 1,
+          has_filters: Object.values(filters).some(v => v && v !== '' && v !== 1),
+        }
+      });
+
+      // Log search execution (existing Statsig tracking)
       logEvent('pet_search_executed', 1, {
         search_query: searchQuery || 'none',
         type_filter: filters.type || 'none',
@@ -268,7 +337,23 @@ export const SearchPage: React.FC = () => {
       setPets(response.data || []);
       setPagination(response.pagination || null);
 
-      // Log search results
+      // Track search results with new analytics service
+      trackEvent({
+        category: 'search',
+        action: 'pet_search_results',
+        label: 'search_completed',
+        value: (response.data || []).length,
+        sessionId: 'search-session',
+        timestamp: new Date(),
+        properties: {
+          total_results: response.pagination?.total || 0,
+          results_on_page: (response.data || []).length,
+          has_filters: Object.values(filters).some(v => v && v !== '' && v !== 1),
+          search_query: searchQuery || 'none',
+        }
+      });
+
+      // Log search results (existing Statsig tracking)
       logEvent('pet_search_results', (response.data || []).length, {
         total_results: response.pagination?.total?.toString() || '0',
         results_on_page: (response.data || []).length.toString(),

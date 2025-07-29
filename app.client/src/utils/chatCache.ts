@@ -3,7 +3,23 @@
  * Implements in-memory caching with TTL and LRU eviction
  */
 
-import { Conversation, Message } from '@/services/chatService';
+// Temporary local types until chat library types are fully defined
+interface Conversation {
+  id: string;
+  participants: string[];
+  lastMessage?: Message;
+  unreadCount: number;
+  updatedAt: string;
+}
+
+interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  timestamp: string;
+  type: 'text' | 'image' | 'file';
+}
 
 export interface CacheItem<T> {
   data: T;

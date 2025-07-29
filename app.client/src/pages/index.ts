@@ -3,6 +3,7 @@ export { ApplicationPage } from './ApplicationPage';
 export { FavoritesPage } from './FavoritesPage';
 export { HomePage } from './HomePage';
 export { LoginPage } from './LoginPage';
+export { NotificationsPage } from './NotificationsPage';
 export { PetDetailsPage } from './PetDetailsPage';
 export { ProfilePage } from './ProfilePage';
 export { RegisterPage } from './RegisterPage';

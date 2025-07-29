@@ -1,6 +1,6 @@
 import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
-import type { Conversation } from '@/services/chatService';
+import type { Conversation } from '@/services';
 import { Button, Spinner } from '@adopt-dont-shop/components';
 import { useEffect, useRef, useState } from 'react';
 import { MdArrowBack } from 'react-icons/md';

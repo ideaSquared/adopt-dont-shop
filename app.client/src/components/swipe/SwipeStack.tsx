@@ -1,4 +1,4 @@
-import { DiscoveryPet, SwipeAction } from '@/types';
+import { DiscoveryPet, SwipeAction } from '@/services';
 import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { SwipeCard } from './SwipeCard';

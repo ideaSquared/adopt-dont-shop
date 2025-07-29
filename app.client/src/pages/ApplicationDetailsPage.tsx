@@ -1,5 +1,5 @@
-import { applicationService } from '@/services/applicationService';
-import { Application } from '@/types';
+import { applicationService } from '@/services';
+import { Application } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';

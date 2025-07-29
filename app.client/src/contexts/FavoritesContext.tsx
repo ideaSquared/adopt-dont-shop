@@ -1,5 +1,5 @@
-import { petService } from '@/services/petService';
-import { Pet } from '@/types';
+import { petService } from '@/services';
+import { Pet } from '@/services';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 

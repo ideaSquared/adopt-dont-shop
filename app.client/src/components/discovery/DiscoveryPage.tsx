@@ -1,10 +1,10 @@
-import { DiscoveryPet, PetSearchFilters, SwipeAction, SwipeSession } from '@/types';
+import { DiscoveryPet, PetSearchFilters, SwipeAction, SwipeSession } from '@/services';
 import { Container } from '@adopt-dont-shop/components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { MdWarning } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { discoveryService } from '../../services/discoveryService';
+import { discoveryService } from '@/services';
 import { SwipeControls } from '../swipe/SwipeControls';
 import { SwipeStack } from '../swipe/SwipeStack';
 
@@ -256,7 +256,7 @@ export const DiscoveryPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const discoveryQueue = await discoveryService.getDiscoveryQueue(filters, 20);
+        const discoveryQueue = await discoveryService.getDiscoveryQueue(filters);
         setPets(discoveryQueue.pets);
         setCurrentPetIndex(0); // Reset to first pet when filters change
       } catch (error) {

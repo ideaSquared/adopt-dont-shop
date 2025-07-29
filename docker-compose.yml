@@ -55,11 +55,14 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 5000
-      POSTGRES_USER: ${POSTGRES_USER:-user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop}
-      POSTGRES_HOST: database
-      POSTGRES_PORT: 5432
+      # Database configuration - using backend's expected variable names
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      DEV_DB_NAME: ${POSTGRES_DB:-adopt_dont_shop}
+      DB_LOGGING: false
+      # Other services
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       API_URL: ${API_URL:-http://api.localhost}

@@ -1,4 +1,10 @@
+import { useState } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { PermissionsProvider } from '@/contexts/PermissionsContext';
+import { FeatureFlagsProvider } from '@/contexts/FeatureFlagsContext';
+import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
+import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import {
@@ -7,6 +13,7 @@ import {
   FavoritesPage,
   HomePage,
   LoginPage,
+  NotificationsPage,
   PetDetailsPage,
   ProfilePage,
   RegisterPage,
@@ -14,8 +21,6 @@ import {
   SearchPage,
 } from '@/pages';
 import { Footer } from '@adopt-dont-shop/components';
-import { useState } from 'react';
-import { Route, Routes } from 'react-router-dom';
 import { ChatPage } from './components/chat/ChatPage';
 import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { DiscoveryPage } from './components/discovery/DiscoveryPage';
@@ -28,34 +33,43 @@ function App() {
 
   return (
     <AuthProvider>
-      <ChatProvider>
-        <FavoritesProvider>
-          <div className='app'>
-            <AppNavbar />
-            <main>
-              <Routes>
-                <Route path='/' element={<HomePage />} />
-                <Route path='/discover' element={<DiscoveryPage />} />
-                <Route path='/search' element={<SearchPage />} />
-                <Route path='/pets/:id' element={<PetDetailsPage />} />
-                <Route path='/rescues/:id' element={<RescueDetailsPage />} />
-                <Route path='/apply/:petId' element={<ApplicationPage />} />
-                <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
-                <Route path='/profile' element={<ProfilePage />} />
-                <Route path='/favorites' element={<FavoritesPage />} />
-                <Route path='/chat' element={<ChatPage />} />
-                <Route path='/chat/:conversationId' element={<ChatPage />} />
-                <Route path='/login' element={<LoginPage />} />
-                <Route path='/register' element={<RegisterPage />} />
-              </Routes>
-            </main>
-            <SwipeFloatingButton />
-            <DevLoginPanel />
-            {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
-            <Footer />
-          </div>
-        </FavoritesProvider>
-      </ChatProvider>
+      <PermissionsProvider>
+        <FeatureFlagsProvider>
+          <AnalyticsProvider>
+            <NotificationsProvider>
+              <ChatProvider>
+                <FavoritesProvider>
+                  <div className='app'>
+                    <AppNavbar />
+                    <main>
+                      <Routes>
+                        <Route path='/' element={<HomePage />} />
+                        <Route path='/discover' element={<DiscoveryPage />} />
+                        <Route path='/search' element={<SearchPage />} />
+                        <Route path='/pets/:id' element={<PetDetailsPage />} />
+                        <Route path='/rescues/:id' element={<RescueDetailsPage />} />
+                        <Route path='/apply/:petId' element={<ApplicationPage />} />
+                        <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
+                        <Route path='/profile' element={<ProfilePage />} />
+                        <Route path='/favorites' element={<FavoritesPage />} />
+                        <Route path='/notifications' element={<NotificationsPage />} />
+                        <Route path='/chat' element={<ChatPage />} />
+                        <Route path='/chat/:conversationId' element={<ChatPage />} />
+                        <Route path='/login' element={<LoginPage />} />
+                        <Route path='/register' element={<RegisterPage />} />
+                      </Routes>
+                    </main>
+                    <SwipeFloatingButton />
+                    <DevLoginPanel />
+                    {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
+                    <Footer />
+                  </div>
+                </FavoritesProvider>
+              </ChatProvider>
+            </NotificationsProvider>
+          </AnalyticsProvider>
+        </FeatureFlagsProvider>
+      </PermissionsProvider>
     </AuthProvider>
   );
 }

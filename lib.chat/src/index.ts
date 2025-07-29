@@ -3,5 +3,14 @@ export { ChatService } from './services/chat-service';
 export type {
   ChatServiceConfig,
   ChatServiceOptions,
+  Conversation,
+  Message,
+  Participant,
+  MessageAttachment,
+  TypingIndicator,
+  BaseResponse,
+  ErrorResponse,
+  PaginatedResponse,
 } from './types';
 export * from './types';
+

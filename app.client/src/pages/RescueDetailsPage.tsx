@@ -1,6 +1,5 @@
 import { PetCard } from '@/components/PetCard';
-import { rescueService } from '@/services/rescueService';
-import { Pet, Rescue } from '@/types';
+import { rescueService, petService, Rescue, Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import {
@@ -262,8 +261,6 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
   const [totalPets, setTotalPets] = useState(0);
   const [hasMorePets, setHasMorePets] = useState(false);
 
-  const petsPerPage = 12;
-
   useEffect(() => {
     const fetchRescue = async () => {
       if (!id) {
@@ -276,7 +273,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
         setLoading(true);
         const [rescueData, petsData] = await Promise.all([
           rescueService.getRescue(id),
-          rescueService.getPetsByRescue(id, 1, petsPerPage),
+          petService.getPetsByRescue(id, 1),
         ]);
 
         setRescue(rescueData);
@@ -300,7 +297,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
     try {
       setPetsLoading(true);
       const nextPage = currentPage + 1;
-      const petsData = await rescueService.getPetsByRescue(id, nextPage, petsPerPage);
+      const petsData = await petService.getPetsByRescue(id, nextPage);
 
       setPets(prevPets => [...prevPets, ...petsData.data]);
       setCurrentPage(nextPage);

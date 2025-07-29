@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { LoginRequest, RegisterRequest } from '@/types';
+import { LoginRequest, RegisterRequest } from '@/services';
 import React, { useState } from 'react';
 import styled from 'styled-components';
 

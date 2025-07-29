@@ -1,8 +1,7 @@
 import { ProfileEditForm, SettingsForm } from '@/components/profile';
 import { useAuth } from '@/contexts/AuthContext';
-import { applicationService } from '@/services/applicationService';
-import { authService } from '@/services/authService';
-import { Application, User } from '@/types';
+import { applicationService, authService } from '@/services';
+import { Application, User } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

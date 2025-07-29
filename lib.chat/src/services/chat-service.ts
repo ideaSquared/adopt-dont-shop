@@ -1,4 +1,10 @@
-import { ChatServiceConfig, ChatServiceOptions, BaseResponse, ErrorResponse } from '../types';
+import {
+  ChatServiceConfig,
+  Conversation,
+  Message,
+  TypingIndicator,
+  PaginatedResponse,
+} from '../types';
 
 /**
  * ChatService - Handles chat operations
@@ -6,6 +12,7 @@ import { ChatServiceConfig, ChatServiceOptions, BaseResponse, ErrorResponse } fr
 export class ChatService {
   private config: Required<ChatServiceConfig>;
   private cache: Map<string, unknown> = new Map();
+  private socket: any = null; // Socket.IO client
 
   constructor(config: ChatServiceConfig = {}) {
     this.config = {
@@ -21,11 +28,290 @@ export class ChatService {
   }
 
   /**
+   * Connect to real-time chat using Socket.IO
+   */
+  connect(userId: string, token: string): void {
+    try {
+      // Implementation would use socket.io-client
+      // this.socket = io(this.config.apiUrl, { auth: { token } });
+
+      if (this.config.debug) {
+        console.log(
+          `${ChatService.name} connecting to ${this.config.apiUrl} for user ${userId} with token ${token}`
+        );
+      }
+    } catch (error) {
+      console.error('Failed to connect to chat service:', error);
+    }
+  }
+
+  /**
+   * Disconnect from real-time chat
+   */
+  disconnect(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  /**
+   * Get all conversations for the current user
+   */
+  async getConversations(): Promise<Conversation[]> {
+    try {
+      const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(`${ChatService.name} getConversations error:`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get messages for a conversation
+   */
+  async getMessages(
+    conversationId: string,
+    options: { page?: number; limit?: number } = {}
+  ): Promise<PaginatedResponse<Message>> {
+    try {
+      const params = new URLSearchParams({
+        page: (options.page || 1).toString(),
+        limit: (options.limit || 50).toString(),
+      });
+
+      const response = await fetch(
+        `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages?${params}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.config.headers,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return {
+        data: data.data || [],
+        success: true,
+        message: data.message,
+        timestamp: new Date().toISOString(),
+        pagination: data.pagination || {
+          page: options.page || 1,
+          limit: options.limit || 50,
+          total: 0,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      };
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(`${ChatService.name} getMessages error:`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Send a message
+   */
+  async sendMessage(
+    conversationId: string,
+    content: string,
+    attachments?: File[]
+  ): Promise<Message> {
+    try {
+      const formData = new FormData();
+      formData.append('content', content);
+
+      if (attachments) {
+        attachments.forEach((file, index) => {
+          formData.append(`attachment_${index}`, file);
+        });
+      }
+
+      const response = await fetch(
+        `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages`,
+        {
+          method: 'POST',
+          body: formData,
+          headers: {
+            ...this.config.headers,
+            // Don't set Content-Type for FormData, let browser set it
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(`${ChatService.name} sendMessage error:`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Mark conversation as read
+   */
+  async markAsRead(conversationId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.config.apiUrl}/api/v1/chats/${conversationId}/read`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(`${ChatService.name} markAsRead error:`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new conversation
+   */
+  async createConversation(data: {
+    petId?: string;
+    rescueId: string;
+    initialMessage?: string;
+  }): Promise<Conversation> {
+    try {
+      const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.config.headers,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(`${ChatService.name} createConversation error:`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Upload file attachment
+   */
+  async uploadAttachment(conversationId: string, file: File): Promise<{ url: string; id: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(
+        `${this.config.apiUrl}/api/v1/chats/${conversationId}/attachments`,
+        {
+          method: 'POST',
+          body: formData,
+          headers: {
+            ...this.config.headers,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(`${ChatService.name} uploadAttachment error:`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Start typing indicator
+   */
+  startTyping(conversationId: string): void {
+    if (this.socket) {
+      this.socket.emit('typing_start', { conversationId });
+    }
+  }
+
+  /**
+   * Stop typing indicator
+   */
+  stopTyping(conversationId: string): void {
+    if (this.socket) {
+      this.socket.emit('typing_stop', { conversationId });
+    }
+  }
+
+  /**
+   * Register event listeners
+   */
+  onMessage(callback: (message: Message) => void): void {
+    if (this.socket) {
+      this.socket.on('message', callback);
+    }
+  }
+
+  onTyping(callback: (typing: TypingIndicator) => void): void {
+    if (this.socket) {
+      this.socket.on('typing', callback);
+    }
+  }
+
+  /**
+   * Remove event listeners
+   */
+  off(event: string): void {
+    if (this.socket) {
+      this.socket.off(event);
+    }
+  }
+
+  /**
    * Update service configuration
    */
   updateConfig(config: Partial<ChatServiceConfig>): void {
     this.config = { ...this.config, ...config };
-    
+
     if (this.config.debug) {
       console.log(`${ChatService.name} config updated:`, this.config);
     }
@@ -43,82 +329,9 @@ export class ChatService {
    */
   clearCache(): void {
     this.cache.clear();
-    
+
     if (this.config.debug) {
       console.log(`${ChatService.name} cache cleared`);
     }
   }
-
-  /**
-   * Example method - customize based on your library's purpose
-   */
-  async exampleMethod(
-    data: Record<string, unknown>,
-    options: ChatServiceOptions = {}
-  ): Promise<BaseResponse> {
-    const startTime = Date.now();
-    
-    try {
-      // Check cache first if enabled
-      const cacheKey = `example_${JSON.stringify(data)}`;
-      if (options.useCache && this.cache.has(cacheKey)) {
-        if (this.config.debug) {
-          console.log(`${ChatService.name} cache hit for key:`, cacheKey);
-        }
-        return this.cache.get(cacheKey) as BaseResponse;
-      }
-
-      // Simulate API call - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const response: BaseResponse = {
-        data: { processed: data, timestamp: new Date().toISOString() },
-        success: true,
-        message: 'Example operation completed successfully',
-        timestamp: new Date().toISOString(),
-      };
-
-      // Cache the response if enabled
-      if (options.useCache) {
-        this.cache.set(cacheKey, response);
-      }
-
-      if (this.config.debug) {
-        const duration = Date.now() - startTime;
-        console.log(`${ChatService.name} exampleMethod completed in ${duration}ms`);
-      }
-
-      return response;
-    } catch (error) {
-      const errorResponse: ErrorResponse = {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        code: 'EXAMPLE_ERROR',
-        timestamp: new Date().toISOString(),
-      };
-
-      if (this.config.debug) {
-        console.error(`${ChatService.name} exampleMethod failed:`, errorResponse);
-      }
-
-      throw errorResponse;
-    }
-  }
-
-  /**
-   * Health check method
-   */
-  async healthCheck(): Promise<boolean> {
-    try {
-      // Implement actual health check logic
-      return true;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`${ChatService.name} health check failed:`, error);
-      }
-      return false;
-    }
-  }
 }
-
-// Export singleton instance
-export const chatService = new ChatService();

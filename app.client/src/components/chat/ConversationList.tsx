@@ -1,5 +1,5 @@
 import { useChat } from '@/contexts/ChatContext';
-import { Conversation } from '@/services/chatService';
+import { Conversation } from '@/services';
 import { Button, Spinner } from '@adopt-dont-shop/components';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
