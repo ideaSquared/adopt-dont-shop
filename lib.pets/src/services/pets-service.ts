@@ -95,22 +95,29 @@ export class PetsService {
     }
 
     try {
-      const response = await this.apiService.get<PaginatedResponse<Pet>>(
-        PETS_ENDPOINTS.PETS,
-        apiFilters
-      );
+      const response = await this.apiService.get<{
+        success: boolean;
+        data: Pet[];
+        meta: {
+          page: number;
+          total: number;
+          totalPages: number;
+          hasNext: boolean;
+          hasPrev: boolean;
+        };
+      }>(PETS_ENDPOINTS.PETS, apiFilters);
 
       // Transform according to the actual API response structure
-      if (response.success && response.data && response.data.meta) {
+      if (response.success && response.data && response.meta) {
         return {
-          data: response.data.data,
+          data: response.data,
           pagination: {
-            page: response.data.meta.page || 1,
+            page: response.meta.page || 1,
             limit: typeof apiFilters.limit === 'number' ? apiFilters.limit : 12,
-            total: response.data.meta.total || 0,
-            totalPages: response.data.meta.totalPages || 1,
-            hasNext: response.data.meta.hasNext || false,
-            hasPrev: response.data.meta.hasPrev || false,
+            total: response.meta.total || 0,
+            totalPages: response.meta.totalPages || 1,
+            hasNext: response.meta.hasNext || false,
+            hasPrev: response.meta.hasPrev || false,
           },
         };
       } else {
@@ -196,31 +203,30 @@ export class PetsService {
    */
   async getPetsByRescue(rescueId: string, page: number = 1): Promise<PaginatedResponse<Pet>> {
     try {
-      const response = await this.apiService.get<
-        ApiResponse<{
-          data: Pet[];
-          meta: {
-            page: number;
-            total: number;
-            totalPages: number;
-            hasNext: boolean;
-            hasPrev: boolean;
-          };
-        }>
-      >(PETS_ENDPOINTS.PETS_BY_RESCUE(rescueId), {
+      const response = await this.apiService.get<{
+        success: boolean;
+        data: Pet[];
+        meta: {
+          page: number;
+          total: number;
+          totalPages: number;
+          hasNext: boolean;
+          hasPrev: boolean;
+        };
+      }>(PETS_ENDPOINTS.PETS_BY_RESCUE(rescueId), {
         page,
         limit: 20,
       });
 
       return {
-        data: response.data?.data || [],
+        data: response.data || [],
         pagination: {
-          page: response.data?.meta.page || page,
+          page: response.meta?.page || page,
           limit: 20,
-          total: response.data?.meta.total || 0,
-          totalPages: response.data?.meta.totalPages || 1,
-          hasNext: response.data?.meta.hasNext || false,
-          hasPrev: response.data?.meta.hasPrev || false,
+          total: response.meta?.total || 0,
+          totalPages: response.meta?.totalPages || 1,
+          hasNext: response.meta?.hasNext || false,
+          hasPrev: response.meta?.hasPrev || false,
         },
       };
     } catch (error) {

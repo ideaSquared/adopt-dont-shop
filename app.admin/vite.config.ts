@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
-      port: 3001,
+      port: 3002,
       // Use proxy for local development outside Docker
       proxy: !isDocker
         ? {

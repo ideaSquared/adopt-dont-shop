@@ -1,83 +1,6 @@
-import {
-  ApiServiceConfig,
-  FetchOptions,
-  ApiResponse,
-  PaginatedResponse,
-  ApiPet,
-  TransformedPet,
-  PetImage,
-} from '../types';
+import { ApiServiceConfig, FetchOptions } from '../types';
 import { InterceptorManager } from '../interceptors';
 import { createHttpError, TimeoutError, NetworkError } from '../errors';
-
-// Data transformation utilities
-const transformPetFromAPI = (pet: ApiPet): TransformedPet => {
-  if (!pet) return pet;
-
-  // Handle location object - convert PostGIS geometry to readable format
-  let locationString = pet.location;
-  if (pet.location && typeof pet.location === 'object') {
-    // Handle PostGIS geometry object {type: "Point", coordinates: [lng, lat]}
-    if (pet.location.coordinates && Array.isArray(pet.location.coordinates)) {
-      const [lng, lat] = pet.location.coordinates;
-      locationString = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    } else if (pet.location.city || pet.location.state) {
-      // Handle structured location object
-      const parts = [];
-      if (pet.location.city) parts.push(pet.location.city);
-      if (pet.location.state) parts.push(pet.location.state);
-      locationString = parts.join(', ');
-    } else {
-      // Fallback - just show that location exists
-      locationString = 'Location available';
-    }
-  }
-
-  const transformed = {
-    ...pet,
-    // Map snake_case to camelCase
-    petId: pet.pet_id || pet.petId,
-    // Handle images -> photos transformation
-    photos: pet.images
-      ? pet.images.map((img: PetImage) => ({
-          photoId: img.image_id || img.photoId,
-          url: img.url,
-          isPrimary: img.is_primary || img.isPrimary || false,
-          caption: img.caption,
-          order: img.order_index || img.order || 0,
-        }))
-      : [],
-    // Map other snake_case fields if needed
-    shortDescription: pet.short_description || pet.shortDescription,
-    longDescription: pet.long_description || pet.longDescription,
-    rescueId: pet.rescue_id || pet.rescueId,
-    // Convert location object to string
-    location: locationString,
-    // Handle rescue object
-    rescue: pet.rescue
-      ? {
-          rescueId: pet.rescue.rescue_id || pet.rescue.rescueId,
-          name: pet.rescue.name,
-          // Handle rescue location
-          location:
-            pet.rescue.location && typeof pet.rescue.location === 'object'
-              ? pet.rescue.location.city && pet.rescue.location.state
-                ? `${pet.rescue.location.city}, ${pet.rescue.location.state}`
-                : 'Location available'
-              : pet.rescue.location,
-        }
-      : undefined,
-    createdAt: pet.created_at || pet.createdAt,
-    updatedAt: pet.updated_at || pet.updatedAt,
-  };
-
-  return transformed as TransformedPet;
-};
-
-const transformPetsArrayFromAPI = (pets: ApiPet[]): TransformedPet[] => {
-  if (!Array.isArray(pets)) return pets as unknown as TransformedPet[];
-  return pets.map(transformPetFromAPI);
-};
 
 /**
  * ApiService - Pure HTTP transport layer with interceptors and error handling
@@ -294,22 +217,8 @@ export class ApiService {
       // Parse response
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
-        const jsonResponse = (await response.json()) as T | ApiResponse<T>;
-
-        // Check if response has the nested success structure from service.backend
-        if (
-          typeof jsonResponse === 'object' &&
-          jsonResponse !== null &&
-          'success' in jsonResponse &&
-          'data' in jsonResponse
-        ) {
-          // Handle the nested success response structure from service.backend
-          const extractedData = (jsonResponse as ApiResponse<T>).data;
-          return extractedData;
-        }
-
-        // Return the response directly (like auth endpoints)
-        return jsonResponse as T;
+        const jsonResponse = (await response.json()) as T;
+        return jsonResponse;
       }
 
       // For non-JSON responses, return the response as-is
@@ -382,57 +291,21 @@ export class ApiService {
 
     const response = await this.fetchWithAuth<T>(fullUrl, { method: 'GET' });
 
-    // Transform pet data if this is a pet-related endpoint
-    if (url.includes('/pets')) {
-      if (Array.isArray(response)) {
-        return transformPetsArrayFromAPI(response) as T;
-      } else if (response && typeof response === 'object') {
-        // Handle paginated response
-        if ('data' in response && Array.isArray((response as Record<string, unknown>).data)) {
-          const apiResponse = response as PaginatedResponse<TransformedPet>;
-          // Process pagination metadata
-          const transformedResponse = {
-            data: transformPetsArrayFromAPI(apiResponse.data),
-            pagination: apiResponse.meta || apiResponse.pagination,
-          } as T;
-          // Return the transformed response with pagination
-          return transformedResponse;
-        } else {
-          // Single pet response
-          return transformPetFromAPI(response as unknown as ApiPet) as T;
-        }
-      }
-    }
-
     return response;
   }
 
   async post<T>(url: string, data?: unknown): Promise<T> {
-    const response = await this.fetchWithAuth<T>(url, {
+    return this.fetchWithAuth<T>(url, {
       method: 'POST',
       body: data,
     });
-
-    // Transform pet data if this is a pet-related endpoint
-    if (url.includes('/pets') && response && typeof response === 'object') {
-      return transformPetFromAPI(response as unknown as ApiPet) as T;
-    }
-
-    return response;
   }
 
   async put<T>(url: string, data?: unknown): Promise<T> {
-    const response = await this.fetchWithAuth<T>(url, {
+    return this.fetchWithAuth<T>(url, {
       method: 'PUT',
       body: data,
     });
-
-    // Transform pet data if this is a pet-related endpoint
-    if (url.includes('/pets') && response && typeof response === 'object') {
-      return transformPetFromAPI(response as unknown as ApiPet) as T;
-    }
-
-    return response;
   }
 
   async patch<T>(url: string, data?: unknown): Promise<T> {
