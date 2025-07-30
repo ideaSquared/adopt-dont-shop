@@ -1,5 +1,6 @@
 import { ApiService, ApiResponse } from '@adopt-dont-shop/lib-api';
 import { Pet, PetSearchFilters, PaginatedResponse, PetStats, PetsServiceConfig } from '../types';
+import { PETS_ENDPOINTS } from '../constants/endpoints';
 
 /**
  * Pet Service
@@ -94,7 +95,10 @@ export class PetsService {
     }
 
     try {
-      const response = await this.apiService.get<PaginatedResponse<Pet>>('/v1/pets', apiFilters);
+      const response = await this.apiService.get<PaginatedResponse<Pet>>(
+        PETS_ENDPOINTS.PETS,
+        apiFilters
+      );
 
       // Transform according to the actual API response structure
       if (response.success && response.data && response.data.meta) {
@@ -138,7 +142,7 @@ export class PetsService {
    */
   async getPetById(id: string): Promise<Pet> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet>>(`/v1/pets/${id}`);
+      const response = await this.apiService.get<ApiResponse<Pet>>(PETS_ENDPOINTS.PET_BY_ID(id));
 
       if (response.success && response.data) {
         return response.data;
@@ -158,7 +162,7 @@ export class PetsService {
    */
   async getFeaturedPets(limit: number = 12): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet[]>>('/v1/pets/featured', {
+      const response = await this.apiService.get<ApiResponse<Pet[]>>(PETS_ENDPOINTS.FEATURED_PETS, {
         limit,
       });
       return response.data || [];
@@ -175,7 +179,7 @@ export class PetsService {
    */
   async getRecentPets(limit: number = 12): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet[]>>('/v1/pets/recent', {
+      const response = await this.apiService.get<ApiResponse<Pet[]>>(PETS_ENDPOINTS.RECENT_PETS, {
         limit,
       });
       return response.data || [];
@@ -203,7 +207,7 @@ export class PetsService {
             hasPrev: boolean;
           };
         }>
-      >(`/v1/pets/rescue/${rescueId}`, {
+      >(PETS_ENDPOINTS.PETS_BY_RESCUE(rescueId), {
         page,
         limit: 20,
       });
@@ -232,7 +236,7 @@ export class PetsService {
    */
   async getPetBreeds(type?: string): Promise<string[]> {
     try {
-      const endpoint = type ? `/v1/pets/breeds/${type}` : '/v1/pets/breeds';
+      const endpoint = type ? PETS_ENDPOINTS.PET_BREEDS_BY_TYPE(type) : PETS_ENDPOINTS.PET_BREEDS;
       const response = await this.apiService.get<ApiResponse<string[]>>(endpoint);
       return response.data || [];
     } catch (error) {
@@ -248,7 +252,7 @@ export class PetsService {
    */
   async getPetTypes(): Promise<string[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<string[]>>('/v1/pets/types');
+      const response = await this.apiService.get<ApiResponse<string[]>>(PETS_ENDPOINTS.PET_TYPES);
       return response.data || [];
     } catch (error) {
       if (this.config.debug) {
@@ -262,14 +266,14 @@ export class PetsService {
    * Add pet to favorites (requires authentication)
    */
   async addToFavorites(petId: string): Promise<void> {
-    await this.apiService.post(`/v1/pets/${petId}/favorite`);
+    await this.apiService.post(PETS_ENDPOINTS.ADD_TO_FAVORITES(petId));
   }
 
   /**
    * Remove pet from favorites (requires authentication)
    */
   async removeFromFavorites(petId: string): Promise<void> {
-    await this.apiService.delete(`/v1/pets/${petId}/favorite`);
+    await this.apiService.delete(PETS_ENDPOINTS.REMOVE_FROM_FAVORITES(petId));
   }
 
   /**
@@ -293,7 +297,7 @@ export class PetsService {
           page: number;
           totalPages: number;
         }>
-      >('/v1/pets/favorites/user');
+      >(PETS_ENDPOINTS.USER_FAVORITES);
 
       // Transform the response to match the Pet interface
       const pets = (response.data?.pets || []).map(
@@ -324,7 +328,7 @@ export class PetsService {
   async isFavorite(petId: string): Promise<boolean> {
     try {
       const result = await this.apiService.get<ApiResponse<{ isFavorite: boolean }>>(
-        `/v1/pets/${petId}/favorite/status`
+        PETS_ENDPOINTS.FAVORITE_STATUS(petId)
       );
       return result.data?.isFavorite || false;
     } catch (error) {
@@ -338,9 +342,12 @@ export class PetsService {
    */
   async getSimilarPets(petId: string, limit: number = 6): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet[]>>(`/v1/pets/${petId}/similar`, {
-        limit,
-      });
+      const response = await this.apiService.get<ApiResponse<Pet[]>>(
+        PETS_ENDPOINTS.SIMILAR_PETS(petId),
+        {
+          limit,
+        }
+      );
       return response.data || [];
     } catch (error) {
       if (this.config.debug) {
@@ -361,7 +368,7 @@ export class PetsService {
     try {
       const response = await this.apiService.post<
         ApiResponse<{ reportId: string; message: string }>
-      >(`/v1/pets/${petId}/report`, {
+      >(PETS_ENDPOINTS.REPORT_PET(petId), {
         reason,
         description,
       });
@@ -379,7 +386,9 @@ export class PetsService {
    */
   async getPetStats(): Promise<PetStats> {
     try {
-      const response = await this.apiService.get<ApiResponse<PetStats>>('/v1/pets/statistics');
+      const response = await this.apiService.get<ApiResponse<PetStats>>(
+        PETS_ENDPOINTS.PET_STATISTICS
+      );
       return response.data!;
     } catch (error) {
       if (this.config.debug) {

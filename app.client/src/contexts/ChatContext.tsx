@@ -155,9 +155,16 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
       // Load initial conversations - call directly to avoid dependency loop
       const loadInitialConversations = async () => {
+        // Only load if user is authenticated
+        if (!isAuthenticated || !user?.userId) {
+          console.log('⚠️ ChatContext: Skipping conversation load - user not authenticated');
+          return;
+        }
+
         try {
           setIsLoading(true);
           setError(null);
+          console.log('📞 ChatContext: Loading conversations for authenticated user');
           const conversationList = await chatService.getConversations();
           // Map chat_id to id for frontend compatibility
           const mappedConversations = (conversationList || []).map(

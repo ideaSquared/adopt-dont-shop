@@ -2,4 +2,5 @@
 export { PetsService } from './services/pets-service';
 export type { PetsServiceConfig } from './types';
 export * from './types';
+export * from './constants';
 
