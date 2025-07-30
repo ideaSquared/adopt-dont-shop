@@ -18,6 +18,7 @@ import './models';
 
 // Import routes
 import adminRoutes from './routes/admin.routes';
+import analyticsRoutes from './routes/analytics.routes';
 import applicationRoutes from './routes/application.routes';
 import authRoutes from './routes/auth.routes';
 import chatRoutes from './routes/chat.routes';
@@ -158,6 +159,7 @@ app.use('/monitoring', monitoringRoutes);
 
 // API routes
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/applications', applicationRoutes);
 app.use('/api/v1/chats', chatRoutes);

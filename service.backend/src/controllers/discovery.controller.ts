@@ -257,4 +257,43 @@ export class DiscoveryController {
       });
     }
   };
+
+  /**
+   * Add items to discovery queue
+   */
+  addToQueue = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+        return;
+      }
+
+      // For now, just acknowledge the request
+      // In the future, this could queue pets for discovery or update user preferences
+      logger.info('Discovery queue request received', {
+        service: 'discovery',
+        type: 'queue_request',
+        data: req.body,
+        ip: req.ip,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Added to discovery queue',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Error adding to discovery queue:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to add to discovery queue',
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
 }

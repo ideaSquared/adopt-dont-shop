@@ -212,3 +212,59 @@ export const requireRole = (requiredRoles: string | string[]) => {
     }
   };
 };
+
+/**
+ * Optional authentication middleware - continues if no token provided
+ * Used for endpoints that work with or without authentication
+ */
+export const authenticateOptionalToken = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      // No token provided, continue without authentication
+      next();
+      return;
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+
+    // Fetch user from database to ensure they still exist and are active
+    const user = await User.findByPk(decoded.userId, {
+      include: ['Roles'],
+    });
+
+    if (!user) {
+      // Invalid token, but continue without authentication
+      next();
+      return;
+    }
+
+    // Attach user to request if found
+    req.user = {
+      userId: user.userId,
+      email: user.email,
+      userType: user.userType,
+    };
+
+    logger.info('Optional authentication successful', {
+      userId: user.userId,
+      userType: user.userType,
+      ip: req.ip,
+    });
+
+    next();
+  } catch (error) {
+    // Token verification failed, but continue without authentication
+    logger.warn('Optional authentication failed, continuing without auth', {
+      error: error instanceof Error ? error.message : String(error),
+      ip: req.ip,
+    });
+    next();
+  }
+};
