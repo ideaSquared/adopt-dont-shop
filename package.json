@@ -78,6 +78,8 @@
     "dev:lib-testapi": "turbo run dev --filter=@adopt-dont-shop/lib-testapi",
     "build:lib-testapi": "turbo run build --filter=@adopt-dont-shop/lib-testapi",
     "test:lib-testapi": "turbo run test --filter=@adopt-dont-shop/lib-testapi",
+    "validate:env": "node scripts/validate-env.mjs",
+    "check:env": "npm run validate:env",
     "dev:lib-utils": "turbo run dev --filter=@adopt-dont-shop/lib-utils",
     "build:lib-utils": "turbo run build --filter=@adopt-dont-shop/lib-utils",
     "test:lib-utils": "turbo run test --filter=@adopt-dont-shop/lib-utils",
@@ -152,3 +154,4 @@
     "npm": ">=9.0.0"
   }
 }
+

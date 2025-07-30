@@ -194,9 +194,9 @@ POSTGRES_DB=adopt_dont_shop
 # Security
 JWT_SECRET=your-secure-secret-key
 
-# API URLs
-VITE_API_URL=http://api.localhost
-VITE_WS_URL=ws://api.localhost
+# API URLs - Industry Standard Configuration
+VITE_API_BASE_URL=http://api.localhost:5000
+VITE_WS_BASE_URL=ws://api.localhost:5000
 ```
 
 ### 🌐 CORS Configuration

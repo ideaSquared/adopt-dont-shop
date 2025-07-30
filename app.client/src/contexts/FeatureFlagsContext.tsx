@@ -28,7 +28,7 @@ export const FeatureFlagsProvider = ({ children }: FeatureFlagsProviderProps) =>
   
   const featureFlagsService = useMemo(() => {
     return new FeatureFlagsService({
-      apiUrl: import.meta.env.VITE_API_URL,
+      apiUrl: import.meta.env.VITE_API_BASE_URL,
       debug: import.meta.env.NODE_ENV === 'development'
     });
   }, []);

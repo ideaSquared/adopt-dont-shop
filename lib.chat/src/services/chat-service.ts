@@ -16,8 +16,8 @@ export class ChatService {
 
   constructor(config: ChatServiceConfig = {}) {
     this.config = {
-      apiUrl: process.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000',
-      debug: process.env.NODE_ENV === 'development',
+      apiUrl: '/api',
+      debug: false,
       headers: {},
       ...config,
     };

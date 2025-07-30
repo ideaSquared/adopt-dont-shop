@@ -49,7 +49,98 @@ export interface User {
   // Legacy fields for backward compatibility
   phone?: string;
   preferredContactMethod?: 'email' | 'phone' | 'both';
+  // Rescue-specific fields
+  rescueId?: string;
+  role?: RescueRole;
 }
+
+// Rescue-specific role and permission types
+export enum RescueRole {
+  RESCUE_ADMIN = 'rescue_admin',
+  RESCUE_STAFF = 'rescue_staff',
+  RESCUE_VOLUNTEER = 'rescue_volunteer',
+}
+
+export enum Permission {
+  // Pet management
+  VIEW_PETS = 'view_pets',
+  MANAGE_PETS = 'manage_pets',
+  PETS_VIEW = 'pets_view',
+  PETS_CREATE = 'pets_create',
+
+  // Application management
+  VIEW_APPLICATIONS = 'view_applications',
+  MANAGE_APPLICATIONS = 'manage_applications',
+  APPLICATIONS_VIEW = 'applications_view',
+
+  // Staff management
+  VIEW_STAFF = 'view_staff',
+  MANAGE_STAFF = 'manage_staff',
+  STAFF_VIEW = 'staff_view',
+  STAFF_MANAGE = 'staff_manage',
+
+  // Analytics
+  VIEW_ANALYTICS = 'view_analytics',
+  ANALYTICS_VIEW = 'analytics_view',
+
+  // Settings
+  MANAGE_SETTINGS = 'manage_settings',
+  RESCUE_SETTINGS_VIEW = 'rescue_settings_view',
+  RESCUE_SETTINGS_UPDATE = 'rescue_settings_update',
+}
+
+export interface Rescue {
+  rescueId: string;
+  rescueName: string;
+  rescueType: string;
+  contactEmail: string;
+  contactPhone?: string;
+  websiteUrl?: string;
+  description?: string;
+  logoUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Permission mappings for role-based access control
+export const rolePermissions: Record<RescueRole, Permission[]> = {
+  [RescueRole.RESCUE_ADMIN]: [
+    Permission.VIEW_PETS,
+    Permission.MANAGE_PETS,
+    Permission.PETS_VIEW,
+    Permission.PETS_CREATE,
+    Permission.VIEW_APPLICATIONS,
+    Permission.MANAGE_APPLICATIONS,
+    Permission.APPLICATIONS_VIEW,
+    Permission.VIEW_STAFF,
+    Permission.MANAGE_STAFF,
+    Permission.STAFF_VIEW,
+    Permission.STAFF_MANAGE,
+    Permission.VIEW_ANALYTICS,
+    Permission.ANALYTICS_VIEW,
+    Permission.MANAGE_SETTINGS,
+    Permission.RESCUE_SETTINGS_VIEW,
+    Permission.RESCUE_SETTINGS_UPDATE,
+  ],
+  [RescueRole.RESCUE_STAFF]: [
+    Permission.VIEW_PETS,
+    Permission.MANAGE_PETS,
+    Permission.PETS_VIEW,
+    Permission.PETS_CREATE,
+    Permission.VIEW_APPLICATIONS,
+    Permission.MANAGE_APPLICATIONS,
+    Permission.APPLICATIONS_VIEW,
+    Permission.VIEW_ANALYTICS,
+    Permission.ANALYTICS_VIEW,
+  ],
+  [RescueRole.RESCUE_VOLUNTEER]: [
+    Permission.VIEW_PETS,
+    Permission.PETS_VIEW,
+    Permission.VIEW_APPLICATIONS,
+    Permission.APPLICATIONS_VIEW,
+  ],
+};
 
 export interface LoginRequest {
   email: string;

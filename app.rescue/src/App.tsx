@@ -7,6 +7,11 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { PetsPage } from '@/pages/pets/PetsPage';
+import { ApplicationsPage } from '@/pages/applications/ApplicationsPage';
+import { StaffPage } from '@/pages/staff/StaffPage';
+import { AnalyticsPage } from '@/pages/analytics/AnalyticsPage';
+import { SettingsPage } from '@/pages/settings/SettingsPage';
+import { CommunicationPage } from '@/pages/communication/CommunicationPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -51,6 +56,61 @@ function App() {
                     <ProtectedRoute>
                       <AppLayout>
                         <PetsPage />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path='/applications'
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ApplicationsPage />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path='/staff'
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <StaffPage />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path='/analytics'
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <AnalyticsPage />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path='/communication'
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <CommunicationPage />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path='/settings'
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <SettingsPage />
                       </AppLayout>
                     </ProtectedRoute>
                   }

@@ -29,6 +29,7 @@
     "@adopt-dont-shop/lib-notifications": "*",
     "@adopt-dont-shop/lib-permissions": "*",
     "@adopt-dont-shop/lib-pets": "*",
+    "@adopt-dont-shop/lib-rescue": "*",
     "@adopt-dont-shop/lib-search": "*",
     "@adopt-dont-shop/lib-validation": "*",
     "@hookform/resolvers": "^3.3.4",

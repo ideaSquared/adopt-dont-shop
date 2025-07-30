@@ -13,11 +13,54 @@ import {
 import { useAuth, usePermissions } from '@/contexts/AuthContext';
 import { Permission } from '@/types';
 import { useQuery } from 'react-query';
-import {
-  getDashboardStats,
-  DashboardStats,
-  ActivityItem,
-} from '../../services/api/dashboardService';
+
+// Dashboard types
+interface DashboardStats {
+  totalPets: number;
+  adoptedThisMonth: number;
+  pendingApplications: number;
+  recentActivity: ActivityItem[];
+}
+
+interface ActivityItem {
+  id: string;
+  type: 'application' | 'adoption' | 'pet_added';
+  description: string;
+  timestamp: string;
+  petName?: string;
+  applicantName?: string;
+}
+
+// Mock data for development
+const mockDashboardData: DashboardStats = {
+  totalPets: 42,
+  adoptedThisMonth: 8,
+  pendingApplications: 15,
+  recentActivity: [
+    {
+      id: '1',
+      type: 'application',
+      description: 'New application received for Buddy',
+      timestamp: '2025-01-29T10:30:00Z',
+      petName: 'Buddy',
+      applicantName: 'Sarah Johnson',
+    },
+    {
+      id: '2',
+      type: 'adoption',
+      description: 'Luna was adopted!',
+      timestamp: '2025-01-29T09:15:00Z',
+      petName: 'Luna',
+    },
+    {
+      id: '3',
+      type: 'pet_added',
+      description: 'New pet Max added to the system',
+      timestamp: '2025-01-28T16:45:00Z',
+      petName: 'Max',
+    },
+  ],
+};
 
 // Styled Components
 const DashboardContainer = styled(Container)`
@@ -113,7 +156,7 @@ export const DashboardPage: React.FC = () => {
     isLoading,
     error,
     refetch,
-  } = useQuery<DashboardStats>('dashboardStats', getDashboardStats, {
+  } = useQuery<DashboardStats>('dashboardStats', () => Promise.resolve(mockDashboardData), {
     staleTime: 2 * 60 * 1000, // 2 minutes
     cacheTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
@@ -222,14 +265,14 @@ export const DashboardPage: React.FC = () => {
       <StatsGrid>
         <StatCard>
           <CardContent style={{ padding: '1.5rem' }}>
-            <StatValue color='#3B82F6'>{dashboardData.totalAnimals}</StatValue>
-            <StatLabel>Total Animals</StatLabel>
+            <StatValue color='#3B82F6'>{dashboardData.totalPets}</StatValue>
+            <StatLabel>Total Pets</StatLabel>
           </CardContent>
         </StatCard>
 
         <StatCard>
           <CardContent style={{ padding: '1.5rem' }}>
-            <StatValue color='#10B981'>{dashboardData.availableForAdoption}</StatValue>
+            <StatValue color='#10B981'>{dashboardData.totalPets - dashboardData.adoptedThisMonth}</StatValue>
             <StatLabel>Available for Adoption</StatLabel>
           </CardContent>
         </StatCard>
@@ -243,8 +286,8 @@ export const DashboardPage: React.FC = () => {
 
         <StatCard>
           <CardContent style={{ padding: '1.5rem' }}>
-            <StatValue color='#8B5CF6'>{dashboardData.recentAdoptions}</StatValue>
-            <StatLabel>Recent Adoptions</StatLabel>
+            <StatValue color='#8B5CF6'>{dashboardData.adoptedThisMonth}</StatValue>
+            <StatLabel>Adopted This Month</StatLabel>
           </CardContent>
         </StatCard>
       </StatsGrid>
@@ -259,7 +302,7 @@ export const DashboardPage: React.FC = () => {
           level='h1'
           style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}
         >
-          Welcome back, {user.first_name}!
+          Welcome back, {user.firstName}!
         </Heading>
         <Text style={{ fontSize: '1.125rem', color: '#6B7280' }}>Your Rescue Dashboard</Text>
       </WelcomeSection>
@@ -327,10 +370,11 @@ export const DashboardPage: React.FC = () => {
                     style={{ padding: '1rem', borderBottom: '1px solid #E5E7EB' }}
                   >
                     <Heading level='h4' style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>
-                      {activity.title}
+                      {activity.description}
                     </Heading>
                     <Text style={{ color: '#6B7280', fontSize: '0.875rem' }}>
-                      {activity.description}
+                      {activity.petName && `Pet: ${activity.petName}`}
+                      {activity.applicantName && ` • Applicant: ${activity.applicantName}`}
                     </Text>
                     <Text style={{ color: '#9CA3AF', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                       {new Date(activity.timestamp).toLocaleDateString()}

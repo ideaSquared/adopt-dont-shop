@@ -6,7 +6,7 @@ import React, {
   useState,
   ReactNode,
 } from 'react';
-import { authService } from '@/services/api/authService';
+import { authService } from '@/services';
 import type { User, Rescue, LoginCredentials, Permission, Role } from '@/types';
 import { rolePermissions } from '@/types/auth';
 
@@ -61,10 +61,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       if (authService.isAuthenticated()) {
         const userData = await authService.getCurrentUser();
-        setUser(userData);
-        // If user has a rescue, we could fetch rescue details here
-        if (userData.rescue_id) {
-          // TODO: Fetch rescue details when rescue service is implemented
+        if (userData) {
+          setUser(userData);
+          // If user has a rescue, we could fetch rescue details here
+          if (userData.rescueId) {
+            // TODO: Fetch rescue details when rescue service is implemented
+          }
         }
       }
     } catch (error) {
@@ -85,9 +87,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authService.login(credentials);
       setUser(response.user);
-      if (response.rescue) {
-        setRescue(response.rescue);
-      }
+      // Note: rescue data may need to be fetched separately in the library architecture
+      // if (response.rescue) {
+      //   setRescue(response.rescue);
+      // }
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -101,7 +104,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       const userData = await authService.getCurrentUser();
-      setUser(userData);
+      if (userData) {
+        setUser(userData);
+      }
     } catch (error) {
       console.error('Failed to refresh user:', error);
       // If refresh fails, logout user

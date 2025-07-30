@@ -4,67 +4,73 @@
  * Part of Phase 2 - Core Infrastructure Migration
  */
 
-// Import library services
+// Import library services (removed unused ApiService import)
 import { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
 import { ApplicationsService } from '@adopt-dont-shop/lib-applications';
 import { DiscoveryService } from '@adopt-dont-shop/lib-discovery';
 import { PetsService } from '@adopt-dont-shop/lib-pets';
-import { ApiService } from '@adopt-dont-shop/lib-api';
 import { RescueService } from '@adopt-dont-shop/lib-rescue';
-import { AuthService } from '@adopt-dont-shop/lib-auth';
 import { ChatService } from '@adopt-dont-shop/lib-chat';
 import { SearchService } from '@adopt-dont-shop/lib-search';
 import { NotificationsService } from '@adopt-dont-shop/lib-notifications';
 import { FeatureFlagsService } from '@adopt-dont-shop/lib-feature-flags';
 import { PermissionsService } from '@adopt-dont-shop/lib-permissions';
 
-// Create shared API service instance
-const apiService = new ApiService();
+// 🔧 DEBUG: Log environment variables
+console.log('🔧 DEBUG: VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
+console.log('🔧 DEBUG: MODE =', import.meta.env.MODE);
+console.log('🔧 DEBUG: DEV =', import.meta.env.DEV);
 
-// Create configured service instances
-export const analyticsService = new AnalyticsService({
-  apiUrl: '/api/v1/analytics',
-  debug: process.env.NODE_ENV === 'development',
+// ✅ INDUSTRY STANDARD: Configure the global apiService FIRST
+// This is critical because domain services (like AuthService) use the global apiService
+import { apiService as globalApiService } from '@adopt-dont-shop/lib-api';
+
+// Configure with the proper base URL (no '/api' path - that's added by services)
+const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+globalApiService.updateConfig({
+  apiUrl: baseUrl,
+  debug: import.meta.env.DEV,
 });
 
-export const applicationService = new ApplicationsService(apiService, {
-  apiUrl: process.env.VITE_API_URL || 'http://localhost:5000',
-  debug: process.env.NODE_ENV === 'development',
-});
+console.log('🔧 DEBUG: Global ApiService configured with baseUrl:', baseUrl);
+console.log('🔧 DEBUG: Global ApiService config:', globalApiService.getConfig());
 
-export const discoveryService = new DiscoveryService({
-  apiUrl: '/api/v1/discovery',
-});
+// Now import domain services AFTER configuring the global apiService
+import { AuthService } from '@adopt-dont-shop/lib-auth';
 
-export const petService = new PetsService(apiService);
+// ✅ CENTRALIZED: Use consistent base URL for all services
+const serviceConfig = {
+  apiUrl: baseUrl,
+  debug: import.meta.env.DEV,
+};
 
-export const rescueService = new RescueService(apiService, {
-  apiUrl: process.env.VITE_API_URL || 'http://localhost:5000',
-});
+// Create configured service instances with centralized configuration
+export const analyticsService = new AnalyticsService(serviceConfig);
 
+export const applicationService = new ApplicationsService(globalApiService, serviceConfig);
+
+export const discoveryService = new DiscoveryService(serviceConfig);
+
+export const petService = new PetsService(globalApiService);
+
+export const rescueService = new RescueService(globalApiService, serviceConfig);
+
+// ✅ AuthService uses the pre-configured global apiService
 export const authService = new AuthService();
 
-export const chatService = new ChatService({
-  apiUrl: process.env.VITE_API_URL || 'http://localhost:5000',
-});
+export const chatService = new ChatService(serviceConfig);
 
 export const searchService = new SearchService({
-  apiUrl: process.env.VITE_API_URL || 'http://localhost:5000',
-  debug: process.env.NODE_ENV === 'development',
+  ...serviceConfig,
+  debug: import.meta.env.MODE === 'development',
 });
 
-export const notificationsService = new NotificationsService({
-  apiUrl: process.env.VITE_API_URL || 'http://localhost:5000',
-  debug: process.env.NODE_ENV === 'development',
-});
+export const notificationsService = new NotificationsService(serviceConfig);
 
-export const featureFlagsService = new FeatureFlagsService({
-  apiUrl: process.env.VITE_API_URL || 'http://localhost:5000',
-  debug: process.env.NODE_ENV === 'development',
-});
+export const featureFlagsService = new FeatureFlagsService(serviceConfig);
 
 export const permissionsService = new PermissionsService({
-  debug: process.env.NODE_ENV === 'development',
+  debug: import.meta.env.DEV,
 });
 
 // Re-export types for convenience

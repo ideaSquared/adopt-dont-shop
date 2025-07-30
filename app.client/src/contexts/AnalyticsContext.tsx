@@ -24,7 +24,7 @@ interface AnalyticsProviderProps {
 export const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
   const analyticsService = useMemo(() => {
     return new AnalyticsService({
-      apiUrl: import.meta.env.VITE_API_URL,
+      apiUrl: import.meta.env.VITE_API_BASE_URL,
       provider: 'internal',
       autoTrackPageViews: true,
       debug: import.meta.env.NODE_ENV === 'development'

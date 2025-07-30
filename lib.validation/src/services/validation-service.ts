@@ -1,4 +1,9 @@
-import { ValidationServiceConfig, ValidationServiceOptions, BaseResponse, ErrorResponse } from '../types';
+import {
+  ValidationServiceConfig,
+  ValidationServiceOptions,
+  BaseResponse,
+  ErrorResponse,
+} from '../types';
 
 /**
  * ValidationService - Handles validation operations
@@ -9,8 +14,8 @@ export class ValidationService {
 
   constructor(config: ValidationServiceConfig = {}) {
     this.config = {
-      apiUrl: process.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000',
-      debug: process.env.NODE_ENV === 'development',
+      apiUrl: '/api',
+      debug: false,
       headers: {},
       ...config,
     };
@@ -25,7 +30,7 @@ export class ValidationService {
    */
   updateConfig(config: Partial<ValidationServiceConfig>): void {
     this.config = { ...this.config, ...config };
-    
+
     if (this.config.debug) {
       console.log(`${ValidationService.name} config updated:`, this.config);
     }
@@ -43,7 +48,7 @@ export class ValidationService {
    */
   clearCache(): void {
     this.cache.clear();
-    
+
     if (this.config.debug) {
       console.log(`${ValidationService.name} cache cleared`);
     }
@@ -57,7 +62,7 @@ export class ValidationService {
     options: ValidationServiceOptions = {}
   ): Promise<BaseResponse> {
     const startTime = Date.now();
-    
+
     try {
       // Check cache first if enabled
       const cacheKey = `example_${JSON.stringify(data)}`;
@@ -69,8 +74,8 @@ export class ValidationService {
       }
 
       // Simulate API call - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       const response: BaseResponse = {
         data: { processed: data, timestamp: new Date().toISOString() },
         success: true,
@@ -122,3 +127,4 @@ export class ValidationService {
 
 // Export singleton instance
 export const validationService = new ValidationService();
+

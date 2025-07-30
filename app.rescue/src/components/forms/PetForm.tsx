@@ -10,7 +10,30 @@ import {
   SelectInput,
   CheckboxInput,
 } from '@adopt-dont-shop/components';
-import { Pet, CreatePetRequest, UpdatePetRequest } from '../../services/api/petService';
+import type { Pet } from '@adopt-dont-shop/lib-pets';
+
+// TODO: Define CreatePetRequest and UpdatePetRequest in lib.pets
+interface CreatePetRequest {
+  name: string;
+  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'other';
+  breed?: string;
+  age_years?: number;
+  age_months?: number;
+  size?: 'small' | 'medium' | 'large' | 'extra_large';
+  gender?: 'male' | 'female';
+  spay_neuter_status?: 'unknown' | 'intact' | 'spayed' | 'neutered';
+  long_description?: string;
+  medical_notes?: string;
+  behavioral_notes?: string;
+  adoption_fee?: string;
+  microchip_id?: string;
+  intake_date?: string;
+  [key: string]: any;
+}
+
+interface UpdatePetRequest extends Partial<CreatePetRequest> {
+  petId: string;
+}
 
 const FormContainer = styled.div`
   max-width: 800px;
@@ -76,18 +99,17 @@ export const PetForm: React.FC<PetFormProps> = ({ pet, onSubmit, onCancel, isLoa
   // Form state
   const [formData, setFormData] = useState<CreatePetRequest>({
     name: pet?.name || '',
-    species: pet?.species || 'DOG',
+    type: pet?.type || 'dog',
     breed: pet?.breed || '',
     age_years: pet?.age_years || 0,
     age_months: pet?.age_months || 0,
-    size: pet?.size || 'MEDIUM',
-    gender: pet?.gender || 'UNKNOWN',
-    neutered_spayed: pet?.neutered_spayed || false,
-    description: pet?.description || '',
+    size: pet?.size || 'medium',
+    gender: pet?.gender || 'male',
+    spay_neuter_status: pet?.spay_neuter_status || 'unknown',
+    long_description: pet?.long_description || '',
     medical_notes: pet?.medical_notes || '',
     behavioral_notes: pet?.behavioral_notes || '',
-    adoption_fee: pet?.adoption_fee || 0,
-    location: pet?.location || '',
+    adoption_fee: pet?.adoption_fee || '',
     microchip_id: pet?.microchip_id || '',
     intake_date: pet?.intake_date || new Date().toISOString().split('T')[0],
   });
@@ -118,7 +140,7 @@ export const PetForm: React.FC<PetFormProps> = ({ pet, onSubmit, onCancel, isLoa
       newErrors.intake_date = 'Intake date is required';
     }
 
-    if (formData.adoption_fee && formData.adoption_fee < 0) {
+    if (formData.adoption_fee && parseFloat(formData.adoption_fee) < 0) {
       newErrors.adoption_fee = 'Adoption fee cannot be negative';
     }
 

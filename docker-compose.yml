@@ -66,7 +66,7 @@ services:
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       API_URL: ${API_URL:-http://api.localhost}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:3001,http://localhost:3002}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5000}
     depends_on:
       database:
         condition: service_healthy
@@ -95,8 +95,8 @@ services:
       - /app/app.admin/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
-      VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:5000}
+      VITE_API_BASE_URL: http://localhost:5000
+      VITE_WS_BASE_URL: ws://localhost:5000
       CHOKIDAR_USEPOLLING: true
     depends_on:
       - service-backend
@@ -119,8 +119,8 @@ services:
       - /app/app.client/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
-      VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:5000}
+      VITE_API_BASE_URL: http://localhost:5000
+      VITE_WS_BASE_URL: ws://localhost:5000
       CHOKIDAR_USEPOLLING: true
     depends_on:
       - service-backend
@@ -143,8 +143,8 @@ services:
       - /app/app.rescue/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
-      VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:5000}
+      VITE_API_BASE_URL: http://localhost:5000
+      VITE_WS_BASE_URL: ws://localhost:5000
       CHOKIDAR_USEPOLLING: true
     depends_on:
       - service-backend

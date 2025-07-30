@@ -94,18 +94,7 @@ export class PetsService {
     }
 
     try {
-      const response = await this.apiService.get<
-        ApiResponse<{
-          data: Pet[];
-          meta: {
-            page: number;
-            total: number;
-            totalPages: number;
-            hasNext: boolean;
-            hasPrev: boolean;
-          };
-        }>
-      >('/api/v1/pets', apiFilters);
+      const response = await this.apiService.get<PaginatedResponse<Pet>>('/v1/pets', apiFilters);
 
       // Transform according to the actual API response structure
       if (response.success && response.data && response.data.meta) {
@@ -149,7 +138,7 @@ export class PetsService {
    */
   async getPetById(id: string): Promise<Pet> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet>>(`/api/v1/pets/${id}`);
+      const response = await this.apiService.get<ApiResponse<Pet>>(`/v1/pets/${id}`);
 
       if (response.success && response.data) {
         return response.data;
@@ -169,7 +158,7 @@ export class PetsService {
    */
   async getFeaturedPets(limit: number = 12): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet[]>>('/api/v1/pets/featured', {
+      const response = await this.apiService.get<ApiResponse<Pet[]>>('/v1/pets/featured', {
         limit,
       });
       return response.data || [];
@@ -186,7 +175,7 @@ export class PetsService {
    */
   async getRecentPets(limit: number = 12): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet[]>>('/api/v1/pets/recent', {
+      const response = await this.apiService.get<ApiResponse<Pet[]>>('/v1/pets/recent', {
         limit,
       });
       return response.data || [];
@@ -214,7 +203,7 @@ export class PetsService {
             hasPrev: boolean;
           };
         }>
-      >(`/api/v1/pets/rescue/${rescueId}`, {
+      >(`/v1/pets/rescue/${rescueId}`, {
         page,
         limit: 20,
       });
@@ -243,7 +232,7 @@ export class PetsService {
    */
   async getPetBreeds(type?: string): Promise<string[]> {
     try {
-      const endpoint = type ? `/api/v1/pets/breeds/${type}` : '/api/v1/pets/breeds';
+      const endpoint = type ? `/v1/pets/breeds/${type}` : '/v1/pets/breeds';
       const response = await this.apiService.get<ApiResponse<string[]>>(endpoint);
       return response.data || [];
     } catch (error) {
@@ -259,7 +248,7 @@ export class PetsService {
    */
   async getPetTypes(): Promise<string[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<string[]>>('/api/v1/pets/types');
+      const response = await this.apiService.get<ApiResponse<string[]>>('/v1/pets/types');
       return response.data || [];
     } catch (error) {
       if (this.config.debug) {
@@ -273,14 +262,14 @@ export class PetsService {
    * Add pet to favorites (requires authentication)
    */
   async addToFavorites(petId: string): Promise<void> {
-    await this.apiService.post(`/api/v1/pets/${petId}/favorite`);
+    await this.apiService.post(`/v1/pets/${petId}/favorite`);
   }
 
   /**
    * Remove pet from favorites (requires authentication)
    */
   async removeFromFavorites(petId: string): Promise<void> {
-    await this.apiService.delete(`/api/v1/pets/${petId}/favorite`);
+    await this.apiService.delete(`/v1/pets/${petId}/favorite`);
   }
 
   /**
@@ -304,7 +293,7 @@ export class PetsService {
           page: number;
           totalPages: number;
         }>
-      >('/api/v1/pets/favorites/user');
+      >('/v1/pets/favorites/user');
 
       // Transform the response to match the Pet interface
       const pets = (response.data?.pets || []).map(
@@ -335,7 +324,7 @@ export class PetsService {
   async isFavorite(petId: string): Promise<boolean> {
     try {
       const result = await this.apiService.get<ApiResponse<{ isFavorite: boolean }>>(
-        `/api/v1/pets/${petId}/favorite/status`
+        `/v1/pets/${petId}/favorite/status`
       );
       return result.data?.isFavorite || false;
     } catch (error) {
@@ -349,10 +338,9 @@ export class PetsService {
    */
   async getSimilarPets(petId: string, limit: number = 6): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet[]>>(
-        `/api/v1/pets/${petId}/similar`,
-        { limit }
-      );
+      const response = await this.apiService.get<ApiResponse<Pet[]>>(`/v1/pets/${petId}/similar`, {
+        limit,
+      });
       return response.data || [];
     } catch (error) {
       if (this.config.debug) {
@@ -373,7 +361,7 @@ export class PetsService {
     try {
       const response = await this.apiService.post<
         ApiResponse<{ reportId: string; message: string }>
-      >(`/api/v1/pets/${petId}/report`, {
+      >(`/v1/pets/${petId}/report`, {
         reason,
         description,
       });
@@ -391,7 +379,7 @@ export class PetsService {
    */
   async getPetStats(): Promise<PetStats> {
     try {
-      const response = await this.apiService.get<ApiResponse<PetStats>>('/api/v1/pets/statistics');
+      const response = await this.apiService.get<ApiResponse<PetStats>>('/v1/pets/statistics');
       return response.data!;
     } catch (error) {
       if (this.config.debug) {
@@ -404,4 +392,3 @@ export class PetsService {
 
 // Create and export singleton instance
 export const petsService = new PetsService();
-

@@ -1,22 +1,55 @@
-// Export all services for the rescue app
-export { api, apiService } from './api';
-export { authService } from './authService';
-export { chatService } from './chatService';
-export { applicationService } from './applicationService';
-export { petService } from './enhancedPetService';
+// Export configured service instances from library-services
+export {
+  authService,
+  petsService,
+  applicationsService,
+  rescueService,
+  analyticsService,
+  notificationsService,
+  apiService,
+} from './library-services';
 
-// Re-export existing API services
-export * from './api/authService';
-export * from './api/baseService';
-export * from './api/dashboardService';
-export * from './api/petService';
+// Export service classes for custom instantiation if needed
+export {
+  PetsService,
+  ApplicationsService,
+  RescueService,
+  AnalyticsService,
+  NotificationsService,
+  ApiService,
+} from './library-services';
 
-// Export types from enhanced services
+// Re-export types for convenience from library-services
 export type {
   Pet,
-  PetPhoto,
-  CreatePetRequest,
-  UpdatePetRequest,
-  PetListResponse,
-  PetFilters,
-} from './enhancedPetService';
+  PetImage,
+  PetVideo,
+  PetSearchFilters,
+  PetStats,
+  Application,
+  ApplicationData,
+  ApplicationStatus,
+  ApplicationWithPetInfo,
+  Rescue,
+  RescueAPIResponse,
+  RescueSearchFilters,
+  RescueStatus,
+  RescueLocation,
+  AnalyticsServiceConfig,
+  UserEngagementEvent,
+  Notification,
+} from './library-services';
+
+// Re-export auth types directly (these are commonly used)
+export type {
+  User,
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  ChangePasswordRequest,
+  RefreshTokenRequest,
+  RefreshTokenResponse,
+} from '@adopt-dont-shop/lib-auth';
+
+// Re-export API types directly (these are commonly used)
+export type { ApiResponse, PaginatedResponse } from '@adopt-dont-shop/lib-api';

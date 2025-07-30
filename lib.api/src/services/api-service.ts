@@ -95,7 +95,7 @@ export class ApiService {
 
     this.config = {
       apiUrl: this.baseURL,
-      debug: config.debug ?? process.env.NODE_ENV === 'development',
+      debug: config.debug ?? false,
       timeout: config.timeout ?? this.defaultTimeout,
       headers: config.headers ?? {},
       getAuthToken: config.getAuthToken ?? (() => null),
@@ -153,11 +153,23 @@ export class ApiService {
   }
 
   private getBaseUrl(): string {
-    // Support both Vite and Create React App environment variables
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    // ✅ IMPROVED: Better fallback logic for different environments
+
+    // For browser environments, try to get from environment first
+    if (typeof window !== 'undefined') {
+      // Development fallback - use localhost:5000 instead of relative '/api'
+      return 'http://localhost:5000';
     }
 
+    // For Node.js environments
+    if (typeof process !== 'undefined' && process.env.NODE_ENV) {
+      if (process.env.NODE_ENV === 'production') {
+        return 'https://api.adoptdontshop.com';
+      }
+      return 'http://localhost:5000';
+    }
+
+    // Last resort fallback
     return 'http://localhost:5000';
   }
 
@@ -167,8 +179,15 @@ export class ApiService {
   updateConfig(config: Partial<ApiServiceConfig>): void {
     this.config = { ...this.config, ...config };
 
+    // ✅ FIX: Also update baseURL when apiUrl changes
+    if (config.apiUrl) {
+      this.baseURL = config.apiUrl;
+      this.config.apiUrl = config.apiUrl;
+    }
+
     if (this.config.debug) {
       console.log(`${ApiService.name} config updated:`, this.config);
+      console.log(`${ApiService.name} baseURL updated to:`, this.baseURL);
     }
   }
 
@@ -467,6 +486,50 @@ export class ApiService {
   }
 }
 
-// Export singleton instance
-export const apiService = new ApiService();
+// Get environment variables with proper type checking and improved fallback
+const getApiUrl = (): string | undefined => {
+  // In Vite environment (browser)
+  if (typeof window !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) {
+    const viteEnv = import.meta.env as Record<string, string>;
+    const apiUrl = viteEnv.VITE_API_BASE_URL || viteEnv.VITE_API_URL; // VITE_API_URL for legacy support
+    if (apiUrl) {
+      console.log('🔧 DEBUG: Found API URL in import.meta.env:', apiUrl);
+      return apiUrl;
+    }
+  }
+  // In Node.js environment
+  if (typeof process !== 'undefined' && process.env) {
+    const apiUrl = process.env.VITE_API_BASE_URL || process.env.VITE_API_URL; // VITE_API_URL for legacy support
+    if (apiUrl) {
+      console.log('🔧 DEBUG: Found API URL in process.env:', apiUrl);
+      return apiUrl;
+    }
+  }
+  console.log('🔧 DEBUG: No API URL found in environment, will use getBaseUrl() fallback');
+  return undefined;
+};
+
+const isDevelopment = (): boolean => {
+  // In Vite environment
+  if (typeof window !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) {
+    const viteEnv = import.meta.env as Record<string, string>;
+    return viteEnv.MODE === 'development';
+  }
+  // In Node.js environment
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV) {
+    return process.env.NODE_ENV === 'development';
+  }
+  return false;
+};
+
+// Debug log the environment detection
+const apiUrl = getApiUrl();
+const debug = isDevelopment();
+console.log('🔧 DEBUG: Creating global apiService with:', { apiUrl, debug });
+
+// Export singleton instance with environment-aware configuration
+export const apiService = new ApiService({
+  apiUrl,
+  debug,
+});
 export const api = apiService;

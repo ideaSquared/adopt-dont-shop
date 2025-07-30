@@ -32,7 +32,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   
   const notificationsService = useMemo(() => {
     return new NotificationsService({
-      apiUrl: import.meta.env.VITE_API_URL,
+      apiUrl: import.meta.env.VITE_API_BASE_URL,
       debug: import.meta.env.NODE_ENV === 'development'
     });
   }, []);

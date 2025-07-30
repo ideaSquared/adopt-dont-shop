@@ -9,6 +9,20 @@ import {
   STORAGE_KEYS,
 } from '../types';
 
+// ✅ INDUSTRY STANDARD: Centralized API path constants
+const AUTH_ENDPOINTS = {
+  LOGIN: '/api/v1/auth/login',
+  REGISTER: '/api/v1/auth/register',
+  LOGOUT: '/api/v1/auth/logout',
+  REFRESH: '/api/v1/auth/refresh-token',
+  ME: '/api/v1/auth/me',
+  CHANGE_PASSWORD: '/api/v1/auth/change-password',
+  FORGOT_PASSWORD: '/api/v1/auth/forgot-password',
+  RESET_PASSWORD: '/api/v1/auth/reset-password',
+  VERIFY_EMAIL: (token: string) => `/api/v1/auth/verify-email/${token}`,
+  RESEND_VERIFICATION: '/api/v1/auth/resend-verification',
+} as const;
+
 /**
  * AuthService - Authentication and user management service
  *
@@ -27,7 +41,7 @@ export class AuthService {
    * Login user with credentials
    */
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await apiService.post<AuthResponse>('/api/v1/auth/login', credentials);
+    const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
 
     // Store tokens and user data (backend returns 'token', frontend expects 'accessToken')
     this.setTokens(response.token, response.refreshToken);
@@ -43,7 +57,7 @@ export class AuthService {
    * Register new user
    */
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    const response = await apiService.post<AuthResponse>('/api/v1/auth/register', userData);
+    const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.REGISTER, userData);
 
     // Store tokens and user data (backend returns 'token', frontend expects 'accessToken')
     this.setTokens(response.token, response.refreshToken);
@@ -60,12 +74,13 @@ export class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      await apiService.post('/api/v1/auth/logout');
+      await apiService.post(AUTH_ENDPOINTS.LOGOUT);
     } catch (error) {
-      // Continue with logout even if API call fails
-      console.error('Logout API call failed:', error);
+      // Continue with logout even if server request fails
+      console.warn('Logout request failed, clearing local data anyway:', error);
     } finally {
-      this.clearStorage();
+      this.clearTokens();
+      localStorage.removeItem(STORAGE_KEYS.USER);
     }
   }
 
@@ -100,7 +115,7 @@ export class AuthService {
       throw new Error('No refresh token available');
     }
 
-    const response = await apiService.post<RefreshTokenResponse>('/api/v1/auth/refresh-token', {
+    const response = await apiService.post<RefreshTokenResponse>(AUTH_ENDPOINTS.REFRESH, {
       refreshToken,
     });
 
@@ -114,14 +129,14 @@ export class AuthService {
    * Get user profile from API
    */
   async getProfile(): Promise<User> {
-    return await apiService.get<User>('/api/v1/auth/me');
+    return await apiService.get<User>(AUTH_ENDPOINTS.ME);
   }
 
   /**
    * Update user profile
    */
   async updateProfile(profileData: Partial<User>): Promise<User> {
-    const updatedUser = await apiService.put<User>('/api/v1/auth/me', profileData);
+    const updatedUser = await apiService.put<User>(AUTH_ENDPOINTS.ME, profileData);
 
     // Update localStorage
     this.setUser(updatedUser);
@@ -133,28 +148,28 @@ export class AuthService {
    * Send password reset email
    */
   async forgotPassword(email: string): Promise<void> {
-    await apiService.post('/api/v1/auth/forgot-password', { email });
+    await apiService.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, { email });
   }
 
   /**
    * Reset password with token
    */
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    await apiService.post('/api/v1/auth/reset-password', { token, newPassword });
+    await apiService.post(AUTH_ENDPOINTS.RESET_PASSWORD, { token, newPassword });
   }
 
   /**
    * Change password (when logged in)
    */
   async changePassword(data: ChangePasswordRequest): Promise<void> {
-    await apiService.post('/api/v1/auth/change-password', data);
+    await apiService.post(AUTH_ENDPOINTS.CHANGE_PASSWORD, data);
   }
 
   /**
    * Verify email with token
    */
   async verifyEmail(token: string): Promise<void> {
-    await apiService.get(`/api/v1/auth/verify-email/${token}`);
+    await apiService.get(AUTH_ENDPOINTS.VERIFY_EMAIL(token));
   }
 
   /**
@@ -165,7 +180,7 @@ export class AuthService {
     if (!user?.email) {
       throw new Error('No user email found');
     }
-    await apiService.post('/api/v1/auth/resend-verification', { email: user.email });
+    await apiService.post(AUTH_ENDPOINTS.RESEND_VERIFICATION, { email: user.email });
   }
 
   /**

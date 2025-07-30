@@ -1,7 +1,19 @@
 import React from 'react';
 import { Modal } from '@adopt-dont-shop/components';
 import { PetForm } from '../forms/PetForm';
-import { CreatePetRequest, UpdatePetRequest, Pet } from '../../services/api/petService';
+import type { Pet } from '@adopt-dont-shop/lib-pets';
+
+// TODO: Define these in lib.pets
+interface CreatePetRequest {
+  name: string;
+  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'other';
+  breed?: string;
+  [key: string]: any;
+}
+
+interface UpdatePetRequest extends Partial<CreatePetRequest> {
+  petId: string;
+}
 
 interface AddPetModalProps {
   isOpen: boolean;

@@ -107,13 +107,53 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             >
               Pets
             </NavButton>
+            <NavButton
+              variant={isActive('/applications') ? 'primary' : 'secondary'}
+              size='sm'
+              onClick={() => navigate('/applications')}
+              $isActive={isActive('/applications')}
+            >
+              Applications
+            </NavButton>
+            <NavButton
+              variant={isActive('/communication') ? 'primary' : 'secondary'}
+              size='sm'
+              onClick={() => navigate('/communication')}
+              $isActive={isActive('/communication')}
+            >
+              Messages
+            </NavButton>
+            <NavButton
+              variant={isActive('/staff') ? 'primary' : 'secondary'}
+              size='sm'
+              onClick={() => navigate('/staff')}
+              $isActive={isActive('/staff')}
+            >
+              Staff
+            </NavButton>
+            <NavButton
+              variant={isActive('/analytics') ? 'primary' : 'secondary'}
+              size='sm'
+              onClick={() => navigate('/analytics')}
+              $isActive={isActive('/analytics')}
+            >
+              Analytics
+            </NavButton>
+            <NavButton
+              variant={isActive('/settings') ? 'primary' : 'secondary'}
+              size='sm'
+              onClick={() => navigate('/settings')}
+              $isActive={isActive('/settings')}
+            >
+              Settings
+            </NavButton>
           </Navigation>
 
           <UserSection>
             {user && (
               <>
                 <Text style={{ color: '#6B7280', fontSize: '0.875rem' }}>
-                  {user.first_name} {user.last_name}
+                  {user.firstName} {user.lastName}
                 </Text>
                 <Button variant='secondary' size='sm' onClick={handleLogout}>
                   Logout

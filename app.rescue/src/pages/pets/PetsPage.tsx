@@ -4,13 +4,8 @@ import { Card, Heading, Text, Button, Container, Badge } from '@adopt-dont-shop/
 import { useAuth, usePermissions } from '@/contexts/AuthContext';
 import { Permission } from '@/types';
 import { useQuery } from 'react-query';
-import {
-  getPets,
-  Pet,
-  PetListParams,
-  CreatePetRequest,
-  UpdatePetRequest,
-} from '../../services/api/petService';
+import { petsService } from '@/services';
+import type { Pet, PetSearchFilters } from '@adopt-dont-shop/lib-pets';
 import { AddPetModal } from '../../components/modals/AddPetModal';
 
 // Styled Components
@@ -91,15 +86,15 @@ const PetInfo = styled.div`
 const StatusBadge = styled(Badge)<{ $status: Pet['status'] }>`
   ${props => {
     switch (props.$status) {
-      case 'AVAILABLE':
+      case 'available':
         return 'background-color: #10B981; color: white;';
-      case 'PENDING':
+      case 'pending':
         return 'background-color: #F59E0B; color: white;';
-      case 'ADOPTED':
+      case 'adopted':
         return 'background-color: #8B5CF6; color: white;';
-      case 'UNAVAILABLE':
+      case 'on_hold':
         return 'background-color: #6B7280; color: white;';
-      case 'MEDICAL_HOLD':
+      case 'medical_care':
         return 'background-color: #EF4444; color: white;';
       default:
         return 'background-color: #6B7280; color: white;';
@@ -136,11 +131,9 @@ const ErrorState = styled.div`
 export const PetsPage: React.FC = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
-  const [filters, setFilters] = useState<PetListParams>({
+  const [filters, setFilters] = useState<PetSearchFilters>({
     page: 1,
     limit: 12,
-    sort: 'updated_at',
-    order: 'desc',
   });
 
   // Modal state
@@ -154,7 +147,7 @@ export const PetsPage: React.FC = () => {
     isLoading,
     error,
     refetch,
-  } = useQuery(['pets', filters], () => getPets(filters), {
+  } = useQuery(['pets', filters], () => petsService.searchPets(filters), {
     staleTime: 2 * 60 * 1000, // 2 minutes
     cacheTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
@@ -179,7 +172,7 @@ export const PetsPage: React.FC = () => {
     setEditingPet(undefined);
   };
 
-  const handleSubmitPet = async (data: CreatePetRequest | UpdatePetRequest) => {
+  const handleSubmitPet = async (data: any) => {
     setIsSubmitting(true);
     try {
       // For now, just log the data - API integration will be added later
@@ -233,7 +226,7 @@ export const PetsPage: React.FC = () => {
     }
 
     // Safely access pets data - handle different response structures
-    const pets = Array.isArray(petsData) ? petsData : petsData?.pets || [];
+    const pets = petsData?.data || [];
 
     if (!pets.length) {
       return (
@@ -242,7 +235,7 @@ export const PetsPage: React.FC = () => {
             No pets found
           </Heading>
           <Text style={{ marginBottom: '2rem' }}>
-            {filters.status || filters.species || filters.search
+            {filters.status || filters.type || filters.search
               ? 'No pets match your current filters.'
               : "You haven't added any pets yet."}
           </Text>
@@ -259,14 +252,14 @@ export const PetsPage: React.FC = () => {
       <PetsGrid>
         {pets.map(pet => (
           <PetCard key={pet.pet_id} onClick={() => handlePetClick(pet)}>
-            <PetImage $imageUrl={pet.photos?.[0]?.url}>
-              {!pet.photos?.length && `${pet.name.charAt(0)}`}
+            <PetImage $imageUrl={pet.images?.[0]?.url}>
+              {!pet.images?.length && `${pet.name.charAt(0)}`}
             </PetImage>
             <PetDetails>
               <PetName level='h3'>{pet.name}</PetName>
               <Text style={{ color: '#6B7280', marginBottom: '1rem' }}>
                 {pet.breed ? `${pet.breed} • ` : ''}
-                {pet.species.toLowerCase()} • {formatAge(pet.age_years, pet.age_months)}
+                {pet.type.toLowerCase()} • {formatAge(pet.age_years, pet.age_months)}
               </Text>
 
               <PetInfo>
@@ -275,7 +268,7 @@ export const PetsPage: React.FC = () => {
                 <Badge variant='secondary'>{pet.gender}</Badge>
               </PetInfo>
 
-              {pet.description && (
+              {pet.short_description && (
                 <Text
                   style={{
                     fontSize: '0.875rem',
@@ -286,7 +279,7 @@ export const PetsPage: React.FC = () => {
                     overflow: 'hidden',
                   }}
                 >
-                  {pet.description}
+                  {pet.short_description}
                 </Text>
               )}
             </PetDetails>
@@ -309,7 +302,7 @@ export const PetsPage: React.FC = () => {
           </Heading>
           <Text style={{ fontSize: '1.125rem', color: '#6B7280' }}>
             {(() => {
-              const pets = Array.isArray(petsData) ? petsData : petsData?.pets || [];
+              const pets = Array.isArray(petsData) ? petsData : petsData?.data || [];
               return pets.length > 0 ? `${pets.length} pets total` : "Manage your rescue's pets";
             })()}
           </Text>
@@ -331,23 +324,23 @@ export const PetsPage: React.FC = () => {
           All Status
         </Button>
         <Button
-          variant={filters.status === 'AVAILABLE' ? 'primary' : 'secondary'}
+          variant={filters.status === 'available' ? 'primary' : 'secondary'}
           size='sm'
-          onClick={() => handleStatusFilter('AVAILABLE')}
+          onClick={() => handleStatusFilter('available')}
         >
           Available
         </Button>
         <Button
-          variant={filters.status === 'PENDING' ? 'primary' : 'secondary'}
+          variant={filters.status === 'pending' ? 'primary' : 'secondary'}
           size='sm'
-          onClick={() => handleStatusFilter('PENDING')}
+          onClick={() => handleStatusFilter('pending')}
         >
           Pending
         </Button>
         <Button
-          variant={filters.status === 'ADOPTED' ? 'primary' : 'secondary'}
+          variant={filters.status === 'adopted' ? 'primary' : 'secondary'}
           size='sm'
-          onClick={() => handleStatusFilter('ADOPTED')}
+          onClick={() => handleStatusFilter('adopted')}
         >
           Adopted
         </Button>

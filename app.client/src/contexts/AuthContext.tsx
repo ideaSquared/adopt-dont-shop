@@ -100,11 +100,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (credentials: LoginRequest) => {
     setIsLoading(true);
     try {
+      // 🔧 DEBUG: Log auth service details and environment
+      console.log('🔧 DEBUG: authService =', authService);
+      console.log('🔧 DEBUG: authService.constructor.name =', authService.constructor.name);
+      console.log('🔧 DEBUG: import.meta.env.VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
+      console.log('🔧 DEBUG: authService baseURL =', (authService as any).baseURL);
+      console.log('🔧 DEBUG: authService config =', (authService as any).config);
+
       // Log login attempt
       logEvent('auth_login_attempted', 1, {
         email: credentials.email,
       });
 
+      console.log('🔧 DEBUG: About to call authService.login with:', credentials);
       const response = await authService.login(credentials);
 
       // Check if user type is allowed in the client app

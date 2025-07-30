@@ -105,7 +105,7 @@ export class ErrorBoundary extends Component<Props, State> {
             We&apos;re sorry, but something unexpected happened. Please try again or contact support
             if the problem persists.
           </ErrorMessage>
-          {process.env.NODE_ENV === 'development' && this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <details style={{ marginBottom: '1rem', textAlign: 'left' }}>
               <summary style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>
                 Error Details (Development Only)

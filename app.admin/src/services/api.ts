@@ -167,7 +167,7 @@ class ApiService {
   private defaultTimeout: number = 10000;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   }
 
   private getAuthToken(): string | null {

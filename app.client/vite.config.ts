@@ -3,9 +3,6 @@ import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig(({ mode }) => {
-  // Check if we're running in Docker (service-backend hostname is available)
-  const isDocker = process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'production';
-
   return {
     plugins: [react()],
     resolve: {
@@ -23,25 +20,13 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '0.0.0.0',
       port: 3000,
-      // Use proxy for local development outside Docker
-      proxy: !isDocker
-        ? {
-            '/api': {
-              target: 'http://localhost:5000',
-              changeOrigin: true,
-              secure: false,
-            },
-            '/health': {
-              target: 'http://localhost:5000',
-              changeOrigin: true,
-              secure: false,
-            },
-          }
-        : undefined,
     },
     build: {
       outDir: 'dist',
       sourcemap: true,
+    },
+    define: {
+      'process.env': '{}',
     },
   };
 });

@@ -20,11 +20,21 @@ COPY package*.json ./
 COPY turbo.json ./
 
 # Copy all libraries for workspace resolution
+COPY lib.analytics/ ./lib.analytics/
 COPY lib.api/ ./lib.api/
+COPY lib.applications/ ./lib.applications/
 COPY lib.auth/ ./lib.auth/
 COPY lib.chat/ ./lib.chat/
-COPY lib.validation/ ./lib.validation/
 COPY lib.components/ ./lib.components/
+COPY lib.discovery/ ./lib.discovery/
+COPY lib.feature-flags/ ./lib.feature-flags/
+COPY lib.notifications/ ./lib.notifications/
+COPY lib.permissions/ ./lib.permissions/
+COPY lib.pets/ ./lib.pets/
+COPY lib.rescue/ ./lib.rescue/
+COPY lib.search/ ./lib.search/
+COPY lib.utils/ ./lib.utils/
+COPY lib.validation/ ./lib.validation/
 
 # Copy specific app
 COPY ${APP_NAME}/ ./${APP_NAME}/

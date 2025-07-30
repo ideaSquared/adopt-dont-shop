@@ -3,6 +3,9 @@
 // Services
 export { ApiService, apiService, api } from './services/api-service';
 
+// Path constants for URL construction
+export { API_PATHS, buildApiPath } from './constants/api-paths';
+
 // Infrastructure
 export * from './interceptors';
 export * from './errors';

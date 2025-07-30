@@ -1,31 +1,8 @@
-// Export all type definitions
+// Export all types from libraries and app-specific types
 export * from './auth';
-export type {
-  LoginRequest,
-  LoginResponse,
-  RefreshTokenRequest,
-  RefreshTokenResponse,
-  UpdateUserRequest,
-  ChangePasswordRequest,
-  UpdateRescueRequest,
-  UpdateRescueSettingsRequest,
-  InviteStaffRequest,
-  UpdateStaffRoleRequest,
-  StaffListResponse,
-  PendingInvite,
-  ApiSuccessResponse,
-  ApiErrorResponse,
-  PaginationParams,
-  PaginationMeta,
-  PaginatedApiResponse,
-  DateRange,
-  BaseFilters,
-  FileUploadResponse,
-  MultipleFileUploadResponse,
-  WebSocketEvent,
-  WebSocketAuthMessage,
-  DashboardStatsResponse,
-  AnalyticsDateRange,
-  AnalyticsRequest,
-  AnalyticsResponse,
-} from './api';
+export * from './api';
+
+// Re-export key types for convenience
+export type { User, LoginRequest, RegisterRequest, AuthResponse } from '@adopt-dont-shop/lib-auth';
+export type { ApiResponse, PaginatedResponse } from '@adopt-dont-shop/lib-api';
+export type { Application, ApplicationStatus } from '@adopt-dont-shop/lib-applications';

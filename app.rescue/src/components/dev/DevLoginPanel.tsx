@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Role } from '@/types/auth';
+import { Role } from '@/types/auth';
+import type { User } from '@adopt-dont-shop/lib-auth';
 import React, { useState } from 'react';
 import styled from 'styled-components';
 
@@ -11,39 +12,45 @@ interface DevUser extends User {
 // Seeded rescue staff users for the rescue app (from service.backend/src/seeders/04-users.ts)
 const seededDevUsers: DevUser[] = [
   {
-    user_id: 'user_rescue_admin_001',
-    first_name: 'Rescue',
-    last_name: 'Manager',
+    userId: 'user_rescue_admin_001',
+    firstName: 'Rescue',
+    lastName: 'Manager',
     email: 'rescue.manager@pawsrescue.dev',
     role: Role.RESCUE_ADMIN,
-    rescue_id: 'rescue_001',
-    is_active: true,
-    created_at: new Date(),
-    updated_at: new Date(),
+    rescueId: 'rescue_001',
+    emailVerified: true,
+    userType: 'rescue_staff',
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     description: 'Rescue Administrator - Paws Rescue',
   },
   {
-    user_id: 'user_rescue_staff_001',
-    first_name: 'Sarah',
-    last_name: 'Johnson',
+    userId: 'user_rescue_staff_001',
+    firstName: 'Sarah',
+    lastName: 'Johnson',
     email: 'sarah.johnson@pawsrescue.dev',
     role: Role.RESCUE_STAFF,
-    rescue_id: 'rescue_001',
-    is_active: true,
-    created_at: new Date(),
-    updated_at: new Date(),
+    rescueId: 'rescue_001',
+    emailVerified: true,
+    userType: 'rescue_staff',
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     description: 'Veterinary Technician - Paws Rescue',
   },
   {
-    user_id: 'user_rescue_admin_002',
-    first_name: 'Maria',
-    last_name: 'Garcia',
+    userId: 'user_rescue_admin_002',
+    firstName: 'Maria',
+    lastName: 'Garcia',
     email: 'maria@happytailsrescue.dev',
     role: Role.RESCUE_ADMIN,
-    rescue_id: 'rescue_002',
-    is_active: true,
-    created_at: new Date(),
-    updated_at: new Date(),
+    rescueId: 'rescue_002',
+    emailVerified: true,
+    userType: 'rescue_staff',
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     description: 'Director - Happy Tails Rescue',
   },
 ];
@@ -167,7 +174,7 @@ const UserRole = styled.span<{ $role: Role }>`
           background: #fef3c7;
           color: #92400e;
         `;
-      case Role.RESCUE_MANAGER:
+      case Role.RESCUE_STAFF:
         return `
           background: #dbeafe;
           color: #1e40af;
@@ -177,7 +184,7 @@ const UserRole = styled.span<{ $role: Role }>`
           background: #dcfce7;
           color: #166534;
         `;
-      case Role.VOLUNTEER:
+      case Role.RESCUE_VOLUNTEER:
         return `
           background: #e0e7ff;
           color: #3730a3;
@@ -278,10 +285,10 @@ export const DevLoginPanel: React.FC = () => {
             <CurrentUserPanel>
               <h4>Currently Logged In:</h4>
               <UserName>
-                {user.first_name} {user.last_name}
+                {user.firstName} {user.lastName}
               </UserName>
               <UserEmail>{user.email}</UserEmail>
-              <UserRole $role={user.role}>{user.role.replace('_', ' ')}</UserRole>
+              {user.role && <UserRole $role={user.role}>{user.role.replace('_', ' ')}</UserRole>}
               <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
             </CurrentUserPanel>
           )}
@@ -292,16 +299,16 @@ export const DevLoginPanel: React.FC = () => {
 
           {seededDevUsers.map(devUser => (
             <UserCard
-              key={devUser.user_id}
+              key={devUser.userId}
               onClick={() => handleUserLogin(devUser)}
               disabled={isAuthenticated && user?.email === devUser.email}
             >
               <UserName>
-                {devUser.first_name} {devUser.last_name}
+                {devUser.firstName} {devUser.lastName}
               </UserName>
               <UserEmail>{devUser.email}</UserEmail>
               <UserMeta>
-                <UserRole $role={devUser.role}>{devUser.role.replace('_', ' ')}</UserRole>
+                {devUser.role && <UserRole $role={devUser.role}>{devUser.role.replace('_', ' ')}</UserRole>}
                 <UserDescription>{devUser.description}</UserDescription>
               </UserMeta>
             </UserCard>
