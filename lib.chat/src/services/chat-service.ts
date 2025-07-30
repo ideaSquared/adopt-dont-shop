@@ -56,15 +56,55 @@ export class ChatService {
   }
 
   /**
+   * Get resolved headers (handles dynamic headers like auth tokens)
+   */
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Resolve dynamic headers (like auth tokens)
+    if (this.config.headers) {
+      Object.entries(this.config.headers).forEach(([key, value]) => {
+        if (typeof value === 'function') {
+          try {
+            const resolvedValue = (value as () => string)();
+            if (resolvedValue) {
+              headers[key] = resolvedValue;
+            }
+          } catch (error) {
+            if (this.config.debug) {
+              console.warn(`Failed to resolve header ${key}:`, error);
+            }
+          }
+        } else if (typeof value === 'object' && value !== null) {
+          // Handle getter properties for Authorization
+          try {
+            const authValue = (value as any).Authorization;
+            if (typeof authValue === 'string' && authValue) {
+              headers.Authorization = authValue;
+            }
+          } catch (error) {
+            if (this.config.debug) {
+              console.warn(`Failed to resolve Authorization header:`, error);
+            }
+          }
+        } else if (typeof value === 'string') {
+          headers[key] = value;
+        }
+      });
+    }
+
+    return headers;
+  }
+
+  /**
    * Get all conversations for the current user
    */
   async getConversations(): Promise<Conversation[]> {
     try {
       const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers,
-        },
+        headers: this.getHeaders(),
       });
 
       if (!response.ok) {
@@ -97,10 +137,7 @@ export class ChatService {
       const response = await fetch(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages?${params}`,
         {
-          headers: {
-            'Content-Type': 'application/json',
-            ...this.config.headers,
-          },
+          headers: this.getHeaders(),
         }
       );
 
@@ -110,18 +147,19 @@ export class ChatService {
 
       const data = await response.json();
       return {
-        data: data.data || [],
+        data: data.data?.messages || data.messages || [],
         success: true,
         message: data.message,
         timestamp: new Date().toISOString(),
-        pagination: data.pagination || {
-          page: options.page || 1,
-          limit: options.limit || 50,
-          total: 0,
-          totalPages: 1,
-          hasNext: false,
-          hasPrev: false,
-        },
+        pagination: data.data?.pagination ||
+          data.pagination || {
+            page: options.page || 1,
+            limit: options.limit || 50,
+            total: 0,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
       };
     } catch (error) {
       if (this.config.debug) {
@@ -149,15 +187,16 @@ export class ChatService {
         });
       }
 
+      const headers = this.getHeaders();
+      // Don't set Content-Type for FormData, let browser set it
+      delete headers['Content-Type'];
+
       const response = await fetch(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages`,
         {
           method: 'POST',
           body: formData,
-          headers: {
-            ...this.config.headers,
-            // Don't set Content-Type for FormData, let browser set it
-          },
+          headers,
         }
       );
 
@@ -182,10 +221,7 @@ export class ChatService {
     try {
       const response = await fetch(`${this.config.apiUrl}/api/v1/chats/${conversationId}/read`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers,
-        },
+        headers: this.getHeaders(),
       });
 
       if (!response.ok) {
@@ -210,10 +246,7 @@ export class ChatService {
     try {
       const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers,
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify(data),
       });
 
@@ -239,14 +272,16 @@ export class ChatService {
       const formData = new FormData();
       formData.append('file', file);
 
+      const headers = this.getHeaders();
+      // Don't set Content-Type for FormData, let browser set it
+      delete headers['Content-Type'];
+
       const response = await fetch(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/attachments`,
         {
           method: 'POST',
           body: formData,
-          headers: {
-            ...this.config.headers,
-          },
+          headers,
         }
       );
 

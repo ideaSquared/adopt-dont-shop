@@ -58,7 +58,16 @@ export const rescueService = new RescueService(globalApiService, serviceConfig);
 // ✅ AuthService uses the pre-configured global apiService
 export const authService = new AuthService();
 
-export const chatService = new ChatService(serviceConfig);
+// ✅ Configure chatService with authentication headers
+export const chatService = new ChatService({
+  ...serviceConfig,
+  headers: {
+    Authorization: () => {
+      const token = authService.getToken();
+      return token ? `Bearer ${token}` : '';
+    },
+  },
+});
 
 export const searchService = new SearchService({
   ...serviceConfig,

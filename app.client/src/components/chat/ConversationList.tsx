@@ -1,7 +1,7 @@
 import { useChat } from '@/contexts/ChatContext';
 import { Conversation } from '@/services';
 import { Button, Spinner } from '@adopt-dont-shop/components';
-import { formatDistanceToNow } from 'date-fns';
+import { safeFormatDistanceToNow } from '@/utils/dateHelpers';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -213,9 +213,7 @@ export function ConversationList() {
                     {unreadCount > 0 && <UnreadBadge>{unreadCount}</UnreadBadge>}
                   </RescueName>
                   <Timestamp>
-                    {conversation.updatedAt
-                      ? formatDistanceToNow(new Date(conversation.updatedAt), { addSuffix: true })
-                      : 'Recently'}
+                    {safeFormatDistanceToNow(conversation.updatedAt, 'Recently')}
                   </Timestamp>
                 </ConversationHeader>
 

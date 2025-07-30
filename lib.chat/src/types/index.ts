@@ -14,8 +14,9 @@ export interface ChatServiceConfig {
 
   /**
    * Custom headers to include with requests
+   * Can be static strings or dynamic functions/objects for auth tokens
    */
-  headers?: Record<string, string>;
+  headers?: Record<string, string | (() => string) | { Authorization?: string }>;
 }
 
 /**
@@ -54,11 +55,11 @@ export interface Participant {
  */
 export interface MessageAttachment {
   id: string;
-  fileName: string;
-  fileUrl: string;
-  fileSize: number;
+  filename: string;
+  url: string;
+  size: number;
   mimeType: string;
-  uploadedAt: string;
+  uploadedAt?: string;
 }
 
 /**

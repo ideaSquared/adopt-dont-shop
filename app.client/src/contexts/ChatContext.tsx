@@ -219,10 +219,14 @@ export function ChatProvider({ children }: ChatProviderProps) {
       }
 
       if (!messageData.data) {
-        throw new Error('No data array in response');
+        console.warn('No data array in response, using empty array');
+        setMessages([]);
+        return;
       }
 
-      setMessages(messageData.data);
+      // Ensure messageData.data is an array
+      const messagesArray = Array.isArray(messageData.data) ? messageData.data : [];
+      setMessages(messagesArray);
 
       // Check if there are more messages to load
       if (messageData.data.length < 50) {
@@ -250,17 +254,22 @@ export function ChatProvider({ children }: ChatProviderProps) {
       });
 
       if (!messageData || !messageData.data) {
-        throw new Error('No message data received from API');
+        console.warn('No message data received, stopping pagination');
+        setHasMoreMessages(false);
+        return;
       }
 
-      if (messageData.data.length === 0) {
+      // Ensure messageData.data is an array
+      const messagesArray = Array.isArray(messageData.data) ? messageData.data : [];
+      
+      if (messagesArray.length === 0) {
         setHasMoreMessages(false);
       } else {
         // Prepend older messages to the beginning of the array
-        setMessages(prev => [...messageData.data, ...prev]);
+        setMessages(prev => [...messagesArray, ...(prev || [])]);
         setCurrentPage(nextPage);
 
-        if (messageData.data.length < 50) {
+        if (messagesArray.length < 50) {
           setHasMoreMessages(false);
         }
       }

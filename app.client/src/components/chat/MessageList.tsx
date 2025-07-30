@@ -63,7 +63,11 @@ import { MessageItemComponent } from './MessageItemComponent';
 
 export function MessageList({ messages }: MessageListProps) {
   const { user } = useAuth();
-  if (messages.length === 0) {
+  
+  // Defensive check to ensure messages is an array
+  const safeMessages = Array.isArray(messages) ? messages : [];
+  
+  if (safeMessages.length === 0) {
     return (
       <EmptyMessages>
         <h4>No messages yet</h4>
@@ -74,7 +78,7 @@ export function MessageList({ messages }: MessageListProps) {
 
   return (
     <MessageListWrapper>
-      {messages.map(message => {
+      {safeMessages.map(message => {
         const isOwn = message.senderId === user?.userId;
         return <MessageItemComponent key={message.id} message={message} isOwn={isOwn} />;
       })}
