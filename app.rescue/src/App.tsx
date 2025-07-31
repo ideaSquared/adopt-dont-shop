@@ -15,6 +15,7 @@ import { StaffPage } from '@/pages/staff/StaffPage';
 import { AnalyticsPage } from '@/pages/analytics/AnalyticsPage';
 import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { CommunicationPage } from '@/pages/communication/CommunicationPage';
+import { EventsPage } from '@/pages/events/EventsPage';
 import { 
   PETS_VIEW, 
   APPLICATIONS_VIEW, 
@@ -137,6 +138,18 @@ function AppRoutes() {
           <ProtectedRoute requiredPermission={CHAT_VIEW}>
             <AppLayout>
               <CommunicationPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Events - Requires admin.dashboard permission */}
+      <Route
+        path='/events'
+        element={
+          <ProtectedRoute requiredPermission={ANALYTICS_VIEW}>
+            <AppLayout>
+              <EventsPage />
             </AppLayout>
           </ProtectedRoute>
         }

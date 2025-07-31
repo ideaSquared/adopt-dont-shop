@@ -124,6 +124,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               Messages
             </NavButton>
             <NavButton
+              variant={isActive('/events') ? 'primary' : 'secondary'}
+              size='sm'
+              onClick={() => navigate('/events')}
+              $isActive={isActive('/events')}
+            >
+              Events
+            </NavButton>
+            <NavButton
               variant={isActive('/staff') ? 'primary' : 'secondary'}
               size='sm'
               onClick={() => navigate('/staff')}

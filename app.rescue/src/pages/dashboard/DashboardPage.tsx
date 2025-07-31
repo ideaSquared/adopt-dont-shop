@@ -179,8 +179,7 @@ export const DashboardPage: React.FC = () => {
       title: 'Add New Animal',
       description: 'Register a new animal profile',
       action: () => {
-        // Navigate to add animal - will be implemented in Phase 2
-        // console.log('Navigate to add animal');
+        navigate('/pets');
       },
       permission: 'pets.create' as const,
     },
@@ -188,26 +187,47 @@ export const DashboardPage: React.FC = () => {
       title: 'Manage Applications',
       description: 'Review adoption applications',
       action: () => {
-        // Navigate to applications - will be implemented in Phase 2
-        // console.log('Navigate to applications');
+        navigate('/applications');
       },
       permission: 'applications.read' as const,
     },
     {
-      title: 'User Management',
+      title: 'Staff Management',
       description: 'Manage rescue staff and volunteers',
       action: () => {
-        // Navigate to user management - will be implemented in Phase 2
-        // console.log('Navigate to user management');
+        navigate('/staff');
       },
       permission: 'users.read' as const,
+    },
+    {
+      title: 'View Analytics',
+      description: 'See rescue performance metrics',
+      action: () => {
+        navigate('/analytics');
+      },
+      permission: 'admin.reports' as const,
+    },
+    {
+      title: 'Communication',
+      description: 'Chat with adopters and staff',
+      action: () => {
+        navigate('/communication');
+      },
+      permission: 'chats.read' as const,
+    },
+    {
+      title: 'Manage Events',
+      description: 'Plan adoption events and activities',
+      action: () => {
+        navigate('/events');
+      },
+      permission: 'admin.reports' as const,
     },
     {
       title: 'Rescue Settings',
       description: 'Configure rescue information',
       action: () => {
-        // Navigate to settings - will be implemented in Phase 2
-        // console.log('Navigate to settings');
+        navigate('/settings');
       },
       permission: 'rescues.update' as const,
     },
