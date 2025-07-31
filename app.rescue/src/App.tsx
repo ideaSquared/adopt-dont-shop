@@ -1,7 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
-import { ThemeProvider } from '@adopt-dont-shop/components';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
+import { FeatureFlagsProvider } from '@/contexts/FeatureFlagsContext';
+import { NotificationsProvider } from '@/contexts/NotificationsContext';
+import { PermissionsProvider } from '@/contexts/PermissionsContext';
+import { ChatProvider } from '@/contexts/ChatContext';
 import { ProtectedRoute } from '@/components/navigation/ProtectedRoute';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
@@ -12,16 +15,14 @@ import { StaffPage } from '@/pages/staff/StaffPage';
 import { AnalyticsPage } from '@/pages/analytics/AnalyticsPage';
 import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { CommunicationPage } from '@/pages/communication/CommunicationPage';
-
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+import { 
+  PETS_VIEW, 
+  APPLICATIONS_VIEW, 
+  STAFF_VIEW, 
+  ANALYTICS_VIEW, 
+  RESCUE_SETTINGS_VIEW,
+  CHAT_VIEW 
+} from '@adopt-dont-shop/lib-permissions';
 
 /**
  * Main App component for the Rescue App
@@ -29,104 +30,136 @@ const queryClient = new QueryClient({
  */
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <Router>
-            <div className='App'>
-              <Routes>
-                {/* Public Routes */}
-                <Route path='/login' element={<LoginPage />} />
+    <div className='app'>
+      <AuthProvider>
+        <AppContextProviders>
+          <AppRoutes />
+        </AppContextProviders>
+      </AuthProvider>
+    </div>
+  );
+}
 
-                {/* Protected Routes */}
-                <Route
-                  path='/dashboard'
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <DashboardPage />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
+/**
+ * Context providers wrapper that depends on authentication
+ */
+function AppContextProviders({ children }: { children: React.ReactNode }) {
+  return (
+    <PermissionsProvider>
+      <FeatureFlagsProvider>
+        <AnalyticsProvider>
+          <NotificationsProvider>
+            <ChatProvider>
+              {children}
+            </ChatProvider>
+          </NotificationsProvider>
+        </AnalyticsProvider>
+      </FeatureFlagsProvider>
+    </PermissionsProvider>
+  );
+}
 
-                <Route
-                  path='/pets'
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <PetsPage />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
+/**
+ * Application routes configuration with permission-based access control
+ */
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path='/login' element={<LoginPage />} />
 
-                <Route
-                  path='/applications'
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <ApplicationsPage />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
+      {/* Protected Routes with specific permissions */}
+      
+      {/* Dashboard - Accessible to all authenticated users */}
+      <Route
+        path='/dashboard'
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <DashboardPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
 
-                <Route
-                  path='/staff'
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <StaffPage />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
+      {/* Pet Management - Requires pets.read permission */}
+      <Route
+        path='/pets'
+        element={
+          <ProtectedRoute requiredPermission={PETS_VIEW}>
+            <AppLayout>
+              <PetsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
 
-                <Route
-                  path='/analytics'
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <AnalyticsPage />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
+      {/* Application Management - Requires applications.read permission */}
+      <Route
+        path='/applications'
+        element={
+          <ProtectedRoute requiredPermission={APPLICATIONS_VIEW}>
+            <AppLayout>
+              <ApplicationsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
 
-                <Route
-                  path='/communication'
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <CommunicationPage />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
+      {/* Staff Management - Requires users.read permission */}
+      <Route
+        path='/staff'
+        element={
+          <ProtectedRoute requiredPermission={STAFF_VIEW}>
+            <AppLayout>
+              <StaffPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
 
-                <Route
-                  path='/settings'
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <SettingsPage />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
+      {/* Analytics - Requires admin.reports permission */}
+      <Route
+        path='/analytics'
+        element={
+          <ProtectedRoute requiredPermission={ANALYTICS_VIEW}>
+            <AppLayout>
+              <AnalyticsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
 
-                {/* Default redirect */}
-                <Route path='/' element={<Navigate to='/dashboard' replace />} />
+      {/* Communication - Requires chats.read permission */}
+      <Route
+        path='/communication'
+        element={
+          <ProtectedRoute requiredPermission={CHAT_VIEW}>
+            <AppLayout>
+              <CommunicationPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
 
-                {/* Catch all - redirect to dashboard */}
-                <Route path='*' element={<Navigate to='/dashboard' replace />} />
-              </Routes>
-            </div>
-          </Router>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+      {/* Settings - Requires rescues.read permission */}
+      <Route
+        path='/settings'
+        element={
+          <ProtectedRoute requiredPermission={RESCUE_SETTINGS_VIEW}>
+            <AppLayout>
+              <SettingsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Default redirect */}
+      <Route path='/' element={<Navigate to='/dashboard' replace />} />
+
+      {/* Catch all - redirect to dashboard */}
+      <Route path='*' element={<Navigate to='/dashboard' replace />} />
+    </Routes>
   );
 }
 

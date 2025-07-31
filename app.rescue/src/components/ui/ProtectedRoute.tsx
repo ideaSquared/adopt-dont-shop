@@ -4,6 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PermissionGate } from './PermissionGate';
 import { Spinner } from '@adopt-dont-shop/components';
 import { Permission, Role } from '@/types/auth';
+import { 
+  RESCUE_SETTINGS_VIEW, 
+  STAFF_VIEW, 
+  ANALYTICS_VIEW, 
+  PETS_VIEW, 
+  APPLICATIONS_VIEW 
+} from '@adopt-dont-shop/lib-permissions';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -86,9 +93,9 @@ export const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }
 export const ManagerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <ProtectedRoute
     requiredPermissions={[
-      Permission.RESCUE_SETTINGS_VIEW,
-      Permission.STAFF_VIEW,
-      Permission.ANALYTICS_VIEW,
+      RESCUE_SETTINGS_VIEW,
+      STAFF_VIEW,
+      ANALYTICS_VIEW,
     ]}
     requireAll={false}
   >
@@ -98,7 +105,7 @@ export const ManagerRoute: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const StaffRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <ProtectedRoute
-    requiredPermissions={[Permission.PETS_VIEW, Permission.APPLICATIONS_VIEW]}
+    requiredPermissions={[PETS_VIEW, APPLICATIONS_VIEW]}
     requireAll={false}
   >
     {children}

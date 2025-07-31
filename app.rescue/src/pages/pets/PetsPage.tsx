@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Card, Heading, Text, Button, Container, Badge } from '@adopt-dont-shop/components';
-import { useAuth, usePermissions } from '@/contexts/AuthContext';
-import { Permission } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/contexts/PermissionsContext';
 import { useQuery } from 'react-query';
 import { petsService } from '@/services';
 import type { Pet, PetSearchFilters } from '@adopt-dont-shop/lib-pets';
@@ -239,7 +239,7 @@ export const PetsPage: React.FC = () => {
               ? 'No pets match your current filters.'
               : "You haven't added any pets yet."}
           </Text>
-          {hasPermission(Permission.PETS_CREATE) && (
+          {hasPermission('pets.create' as const) && (
             <Button variant='primary' onClick={handleAddPet}>
               Add Your First Pet
             </Button>
@@ -307,7 +307,7 @@ export const PetsPage: React.FC = () => {
             })()}
           </Text>
         </div>
-        {hasPermission(Permission.PETS_CREATE) && (
+        {hasPermission('pets.create' as const) && (
           <Button variant='primary' onClick={handleAddPet}>
             Add New Pet
           </Button>

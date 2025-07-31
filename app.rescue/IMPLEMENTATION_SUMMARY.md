@@ -142,6 +142,45 @@ Dashboard → Overview of rescue operations
 - Sensitive features are protected by permission checks
 - Clear access denied messages for unauthorized users
 
+## 🔐 Permissions System
+
+The app implements a comprehensive role-based access control (RBAC) system using the shared `@adopt-dont-shop/lib-permissions` library:
+
+### Permission Constants
+Rescue-specific permissions are defined in `lib.permissions/src/types/rescue-permissions.ts`:
+
+#### Pet Management
+- `pets.read` - View pets
+- `pets.create` - Add new pets  
+- `pets.update` - Edit pet information
+- `pets.delete` - Remove pets
+
+#### Application Management
+- `applications.read` - View applications
+- `applications.approve` - Approve adoption applications
+- `applications.reject` - Reject applications
+- `applications.create` - Create new applications
+
+#### Staff Management  
+- `staff.read` - View staff members
+- `staff.write` - Manage staff and volunteers
+
+#### Analytics & Reports
+- `analytics.view` - Access analytics dashboard
+- `reports.generate` - Create reports
+
+### Permission Groups
+Pre-defined role groups with bundled permissions:
+- **RESCUE_ADMIN** - Full access to all rescue operations
+- **RESCUE_STAFF** - Standard staff permissions for daily operations  
+- **RESCUE_VOLUNTEER** - Limited access for volunteer tasks
+
+### Implementation
+- **Hook**: `useRescuePermissions()` provides convenient permission checking methods
+- **Components**: `ProtectedRoute` guards routes based on required permissions
+- **Context**: `PermissionsContext` manages user permissions state
+- **Service Integration**: Integrates with backend permission validation
+
 ## 🎯 Key Benefits
 
 ### For Rescue Administrators

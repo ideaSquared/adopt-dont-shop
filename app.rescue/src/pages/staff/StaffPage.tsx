@@ -12,8 +12,8 @@ import {
   Input,
   Avatar,
 } from '@adopt-dont-shop/components';
-import { useAuth, usePermissions } from '@/contexts/AuthContext';
-import { Permission } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/contexts/PermissionsContext';
 import { 
   FiSearch, 
   FiPlus, 
@@ -339,7 +339,7 @@ export const StaffPage: React.FC = () => {
           <Heading level="h1">Staff & Volunteers</Heading>
           <Text color="muted">Manage your rescue team members and volunteers</Text>
         </div>
-        {hasPermission(Permission.STAFF_MANAGE) && (
+        {hasPermission('users.update' as const) && (
           <Button onClick={() => setShowAddModal(true)}>
             <FiPlus /> Add Staff Member
           </Button>
@@ -524,7 +524,7 @@ export const StaffPage: React.FC = () => {
                 </div>
               </div>
 
-              {hasPermission(Permission.STAFF_MANAGE) && (
+              {hasPermission('users.update' as const) && (
                 <ActionButtons>
                   <Button
                     variant="outline"

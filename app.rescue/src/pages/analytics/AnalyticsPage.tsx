@@ -10,8 +10,7 @@ import {
   Container,
   Badge,
 } from '@adopt-dont-shop/components';
-import { usePermissions } from '@/contexts/AuthContext';
-import { Permission } from '@/types';
+import { usePermissions } from '@/contexts/PermissionsContext';
 import { 
   FiTrendingUp, 
   FiUsers, 
@@ -221,7 +220,7 @@ export const AnalyticsPage: React.FC = () => {
   const [dateRange, setDateRange] = useState('30d');
   const [analyticsData] = useState<AnalyticsData>(mockAnalyticsData);
 
-  const canViewAnalytics = hasPermission(Permission.ANALYTICS_VIEW);
+  const canViewAnalytics = hasPermission('admin.reports' as const);
 
   if (!canViewAnalytics) {
     return (

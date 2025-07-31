@@ -10,8 +10,8 @@ import {
   Button,
   Container,
 } from '@adopt-dont-shop/components';
-import { useAuth, usePermissions } from '@/contexts/AuthContext';
-import { Permission } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/contexts/PermissionsContext';
 import { useQuery } from 'react-query';
 
 // Dashboard types
@@ -173,7 +173,7 @@ export const DashboardPage: React.FC = () => {
       action: () => {
         navigate('/pets');
       },
-      permission: Permission.PETS_VIEW,
+      permission: 'pets.read' as const,
     },
     {
       title: 'Add New Animal',
@@ -182,7 +182,7 @@ export const DashboardPage: React.FC = () => {
         // Navigate to add animal - will be implemented in Phase 2
         // console.log('Navigate to add animal');
       },
-      permission: Permission.PETS_CREATE,
+      permission: 'pets.create' as const,
     },
     {
       title: 'Manage Applications',
@@ -191,7 +191,7 @@ export const DashboardPage: React.FC = () => {
         // Navigate to applications - will be implemented in Phase 2
         // console.log('Navigate to applications');
       },
-      permission: Permission.APPLICATIONS_VIEW,
+      permission: 'applications.read' as const,
     },
     {
       title: 'User Management',
@@ -200,7 +200,7 @@ export const DashboardPage: React.FC = () => {
         // Navigate to user management - will be implemented in Phase 2
         // console.log('Navigate to user management');
       },
-      permission: Permission.STAFF_VIEW,
+      permission: 'users.read' as const,
     },
     {
       title: 'Rescue Settings',
@@ -209,7 +209,7 @@ export const DashboardPage: React.FC = () => {
         // Navigate to settings - will be implemented in Phase 2
         // console.log('Navigate to settings');
       },
-      permission: Permission.RESCUE_SETTINGS_VIEW,
+      permission: 'rescues.update' as const,
     },
   ];
 

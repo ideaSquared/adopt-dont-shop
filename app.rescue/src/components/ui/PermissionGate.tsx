@@ -1,6 +1,13 @@
 import React from 'react';
-import { usePermissions } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/useAuthPermissions';
 import { Permission, Role } from '@/types/auth';
+import { 
+  RESCUE_SETTINGS_VIEW, 
+  STAFF_VIEW, 
+  ANALYTICS_VIEW, 
+  PETS_VIEW, 
+  APPLICATIONS_VIEW 
+} from '@adopt-dont-shop/lib-permissions';
 
 interface PermissionGateProps {
   children: React.ReactNode;
@@ -65,9 +72,9 @@ export const ManagerAndAbove: React.FC<Omit<PermissionGateProps, 'permissions'>>
 }) => (
   <PermissionGate
     permissions={[
-      Permission.RESCUE_SETTINGS_VIEW,
-      Permission.STAFF_VIEW,
-      Permission.ANALYTICS_VIEW,
+      RESCUE_SETTINGS_VIEW,
+      STAFF_VIEW,
+      ANALYTICS_VIEW,
     ]}
     requireAll={false}
     {...props}
@@ -81,7 +88,7 @@ export const StaffAndAbove: React.FC<Omit<PermissionGateProps, 'permissions'>> =
   ...props
 }) => (
   <PermissionGate
-    permissions={[Permission.PETS_VIEW, Permission.APPLICATIONS_VIEW]}
+    permissions={[PETS_VIEW, APPLICATIONS_VIEW]}
     requireAll={false}
     {...props}
   >

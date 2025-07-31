@@ -1166,6 +1166,120 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/users/{userId}/permissions:
+ *   get:
+ *     tags: [User Management]
+ *     summary: Get user permissions
+ *     description: Get all permissions for a specific user based on their roles
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User permissions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 permissions:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["pets:read", "applications:read", "pets:create"]
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get(
+  '/:userId/permissions',
+  requirePermissionOrOwnership(PERMISSIONS.USER_READ, 'userId'),
+  UserController.getUserPermissions
+);
+
+/**
+ * @swagger
+ * /api/v1/users/{userId}/with-permissions:
+ *   get:
+ *     tags: [User Management]
+ *     summary: Get user with permissions
+ *     description: Get user details along with their permissions and roles
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User with permissions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                 userType:
+ *                   type: string
+ *                   enum: [ADOPTER, RESCUE_STAFF, ADMIN]
+ *                 permissions:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 roles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       roleId:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get(
+  '/:userId/with-permissions',
+  requirePermissionOrOwnership(PERMISSIONS.USER_READ, 'userId'),
+  UserController.getUserWithPermissions
+);
+
+/**
+ * @swagger
  * /api/v1/users/{userId}/role:
  *   put:
  *     tags: [User Management]

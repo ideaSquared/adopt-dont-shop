@@ -11,8 +11,8 @@ import {
   Input,
   Avatar,
 } from '@adopt-dont-shop/components';
-import { useAuth, usePermissions } from '@/contexts/AuthContext';
-import { Permission } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/contexts/PermissionsContext';
 import { 
   FiSearch, 
   FiPlus, 
@@ -317,7 +317,7 @@ export const CommunicationPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
   const [newMessage, setNewMessage] = useState('');
 
-  const canViewCommunications = hasPermission(Permission.APPLICATIONS_VIEW) || hasPermission(Permission.STAFF_VIEW);
+  const canViewCommunications = hasPermission('applications.read' as const) || hasPermission('users.read' as const);
 
   if (!canViewCommunications) {
     return (

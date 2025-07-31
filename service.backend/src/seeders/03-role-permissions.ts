@@ -134,8 +134,14 @@ const rolePermissionMappings = {
   ],
 
   rescue_admin: [
+    // User Management for staff
+    'users.create',
     'users.read',
+    'users.update',
+    'users.delete',
+    'users.list',
     'users.profile.update',
+    // Pet Management - full control
     'pets.create',
     'pets.read',
     'pets.update',
@@ -144,25 +150,36 @@ const rolePermissionMappings = {
     'pets.archive',
     'pets.feature',
     'pets.publish',
+    // Application Management - full control
     'applications.read',
     'applications.update',
     'applications.list',
     'applications.approve',
     'applications.reject',
     'applications.review',
+    // Rescue Management
     'rescues.read',
     'rescues.update',
+    // Communication
     'chats.create',
     'chats.read',
     'chats.update',
     'messages.create',
     'messages.read',
     'messages.update',
+    // Ratings
     'ratings.create',
     'ratings.read',
+    // Admin functions needed for rescue management
+    'admin.dashboard',
+    'admin.reports',
+    'admin.system_settings',
+    // Email capabilities
     'emails.send',
+    // Notifications
     'notifications.create',
     'notifications.read',
+    'notifications.update',
   ],
 
   rescue_staff: [

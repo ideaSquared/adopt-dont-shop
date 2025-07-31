@@ -6,6 +6,12 @@ export {
   rescueService,
   analyticsService,
   notificationsService,
+  chatService,
+  discoveryService,
+  searchService,
+  featureFlagsService,
+  validationService,
+  permissionsService,
   apiService,
 } from './library-services';
 
@@ -17,6 +23,13 @@ export {
   AnalyticsService,
   NotificationsService,
   ApiService,
+  AuthService,
+  ChatService,
+  DiscoveryService,
+  SearchService,
+  FeatureFlagsService,
+  ValidationService,
+  PermissionsService,
 } from './library-services';
 
 // Re-export types for convenience from library-services

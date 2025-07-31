@@ -505,6 +505,82 @@ export class UserController {
       });
     }
   }
+
+  /**
+   * Get user permissions
+   * GET /api/v1/users/:userId/permissions
+   */
+  async getUserPermissions(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    const startTime = Date.now();
+    const { userId } = req.params;
+
+    try {
+      const userPermissions = await UserService.getUserPermissions(userId);
+
+      logger.info('User permissions retrieved', {
+        userId,
+        permissionCount: userPermissions.length,
+        duration: Date.now() - startTime,
+      });
+
+      return res.json({
+        success: true,
+        permissions: userPermissions,
+      });
+    } catch (error) {
+      logger.error('Error getting user permissions:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        duration: Date.now() - startTime,
+      });
+
+      if (error instanceof Error && error.message === 'User not found') {
+        return res.status(404).json({
+          error: 'User not found',
+        });
+      }
+
+      return res.status(500).json({
+        error: 'Failed to get user permissions',
+      });
+    }
+  }
+
+  /**
+   * Get user with permissions
+   * GET /api/v1/users/:userId/with-permissions
+   */
+  async getUserWithPermissions(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    const startTime = Date.now();
+    const { userId } = req.params;
+
+    try {
+      const userWithPermissions = await UserService.getUserWithPermissions(userId);
+
+      if (!userWithPermissions) {
+        return res.status(404).json({
+          error: 'User not found',
+        });
+      }
+
+      logger.info('User with permissions retrieved', {
+        userId,
+        duration: Date.now() - startTime,
+      });
+
+      return res.json(userWithPermissions);
+    } catch (error) {
+      logger.error('Error getting user with permissions:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        duration: Date.now() - startTime,
+      });
+
+      return res.status(500).json({
+        error: 'Failed to get user with permissions',
+      });
+    }
+  }
 }
 
 export default new UserController();

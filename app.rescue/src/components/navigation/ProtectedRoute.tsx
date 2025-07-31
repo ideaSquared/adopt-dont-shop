@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Spinner } from '@adopt-dont-shop/components';
-import { useAuth, usePermissions } from '@/contexts/AuthContext';
+import { useAuthWithPermissions } from '@/hooks/useAuthPermissions';
 import type { Permission, Role } from '@/types';
 
 interface ProtectedRouteProps {
@@ -54,8 +54,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   fallback,
   customCheck,
 }) => {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const { hasPermission, hasAnyPermission, hasAllPermissions, hasRole } = usePermissions();
+  const { 
+    user, 
+    isLoading, 
+    isAuthenticated, 
+    hasPermission, 
+    hasAnyPermission, 
+    hasAllPermissions, 
+    hasRole 
+  } = useAuthWithPermissions();
 
   // Show loading spinner while checking authentication
   if (isLoading) {

@@ -11,8 +11,7 @@ import {
   Input,
   TextArea,
 } from '@adopt-dont-shop/components';
-import { usePermissions } from '@/contexts/AuthContext';
-import { Permission } from '@/types';
+import { usePermissions } from '@/contexts/PermissionsContext';
 import { 
   FiSave, 
   FiSettings, 
@@ -203,7 +202,7 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const canManageSettings = hasPermission(Permission.RESCUE_SETTINGS_UPDATE);
+  const canManageSettings = hasPermission('rescues.update' as const);
 
   if (!canManageSettings) {
     return (

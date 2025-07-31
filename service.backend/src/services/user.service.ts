@@ -1278,6 +1278,128 @@ export class UserService {
       throw error;
     }
   }
+
+  /**
+   * Get user permissions from their roles
+   */
+  static async getUserPermissions(userId: string): Promise<string[]> {
+    try {
+      const user = await User.findByPk(userId, {
+        include: [
+          {
+            association: 'Roles',
+            include: [
+              {
+                association: 'Permissions',
+                attributes: ['permission_name'],
+              },
+            ],
+          },
+        ],
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Extract unique permissions from all roles
+      const permissions = new Set<string>();
+      if (user.Roles) {
+        for (const role of user.Roles) {
+          if (role.Permissions) {
+            for (const permission of role.Permissions) {
+              permissions.add((permission as any).permission_name);
+            }
+          }
+        }
+      }
+
+      return Array.from(permissions);
+    } catch (error) {
+      logger.error('Error getting user permissions:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get user with their permissions
+   */
+  static async getUserWithPermissions(userId: string): Promise<any> {
+    try {
+      const user = await User.findByPk(userId, {
+        attributes: [
+          'userId',
+          'firstName',
+          'lastName',
+          'email',
+          'userType',
+          'status',
+          'emailVerified',
+          'phoneNumber',
+          'profileImageUrl',
+          'bio',
+          'location',
+          'createdAt',
+          'updatedAt',
+        ],
+        include: [
+          {
+            association: 'Roles',
+            attributes: ['roleId', 'name', 'description'],
+            include: [
+              {
+                association: 'Permissions',
+                attributes: ['permission_name'],
+              },
+            ],
+          },
+        ],
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      // Extract unique permissions from all roles
+      const permissions = new Set<string>();
+      if (user.Roles) {
+        for (const role of user.Roles) {
+          if (role.Permissions) {
+            for (const permission of role.Permissions) {
+              permissions.add((permission as any).permission_name);
+            }
+          }
+        }
+      }
+
+      return {
+        userId: user.userId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        status: user.status,
+        emailVerified: user.emailVerified,
+        phoneNumber: user.phoneNumber,
+        profileImageUrl: user.profileImageUrl,
+        bio: user.bio,
+        location: user.location,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        roles: user.Roles,
+        permissions: Array.from(permissions),
+      };
+    } catch (error) {
+      logger.error('Error getting user with permissions:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+      });
+      throw error;
+    }
+  }
 }
 
 export default UserService;
