@@ -1,53 +1,74 @@
-# Multi-stage Dockerfile for app.rescue
+# Multi-stage build for app.rescue
+FROM node:18-alpine AS base
+
+WORKDIR /app
+
+# Install git for potential git dependencies
+RUN apk add --no-cache git
 
 # Development stage
-FROM node:20-alpine AS development
+FROM base AS development
+# Copy package files and source code for both app.rescue and lib.components
+COPY app.rescue/package*.json ./app.rescue/
+COPY lib.components/package*.json ./lib.components/
+COPY lib.components/src/ ./lib.components/src/
+COPY lib.components/vite.config.ts ./lib.components/
+COPY lib.components/tsconfig.json ./lib.components/
 
-WORKDIR /app
+# Install dependencies for both
+WORKDIR /app/lib.components
+RUN npm install
+# Clean any existing build artifacts and build fresh
+RUN npm run clean && npm run build
 
-# Copy package files
-COPY package*.json ./
+WORKDIR /app/app.rescue
+# Create a temporary package.json without workspace dependencies for Docker
+RUN sed 's/"@adopt-dont-shop\/components": "workspace:\*",//g' package.json > package-docker.json && mv package-docker.json package.json
+RUN npm install
+# Install the local lib.components package
+RUN npm install /app/lib.components
 
-# Install dependencies
-RUN npm ci
+# Copy source code (will be overridden by volumes in development)
+COPY app.rescue/ ./app.rescue/
+COPY lib.components/ ./lib.components/
 
-# Copy source code
-COPY . .
-
-# Expose port
-EXPOSE 3000
-
-# Start development server
+WORKDIR /app/app.rescue
+EXPOSE 3003
 CMD ["npm", "run", "dev"]
 
-# Build stage
-FROM node:20-alpine AS build
+# Build stage  
+FROM base AS build
+# Copy package files and source code for both app.rescue and lib.components
+COPY app.rescue/package*.json ./app.rescue/
+COPY lib.components/package*.json ./lib.components/
+COPY lib.components/src/ ./lib.components/src/
+COPY lib.components/vite.config.ts ./lib.components/
+COPY lib.components/tsconfig.json ./lib.components/
 
-WORKDIR /app
+# Install dependencies for both
+WORKDIR /app/lib.components
+RUN npm install
+# Clean any existing build artifacts and build fresh
+RUN npm run clean && npm run build
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
+WORKDIR /app/app.rescue
+# Create a temporary package.json without workspace dependencies for Docker
+RUN sed 's/"@adopt-dont-shop\/components": "workspace:\*",//g' package.json > package-docker.json && mv package-docker.json package.json
+RUN npm install
+# Install the local lib.components package
+RUN npm install /app/lib.components
 
 # Copy source code
-COPY . .
+COPY app.rescue/ ./app.rescue/
+COPY lib.components/ ./lib.components/
 
-# Build the app
+WORKDIR /app/app.rescue
 RUN npm run build
 
 # Production stage
 FROM nginx:alpine AS production
+COPY --from=build /app/app.rescue/dist /usr/share/nginx/html
+COPY app.rescue/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy built app from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
-
-# Expose port
 EXPOSE 80
-
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
