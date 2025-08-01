@@ -43,6 +43,69 @@ export interface ApplicationReference {
   notes?: string;
 }
 
+// Frontend-compatible Application format
+export interface FrontendApplication {
+  id: string;
+  petId: string;
+  userId: string;
+  rescueId: string;
+  status: ApplicationStatus;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewNotes?: string;
+  data: {
+    personalInfo?: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+    };
+    householdInfo?: {
+      householdSize?: number;
+      hasChildren?: boolean;
+      childrenAges?: number[];
+      householdMembers?: string[];
+    };
+    petExperience?: {
+      previousPets?: boolean;
+      currentPets?: boolean;
+      petTypes?: string[];
+      experience?: string;
+    };
+    livingConditions?: {
+      homeType?: string;
+      hasYard?: boolean;
+      yardSize?: string;
+      rentOrOwn?: string;
+      landlordContact?: string;
+    };
+    answers?: Record<string, unknown>;
+    references?: {
+      personal?: ApplicationReference[];
+    };
+    documents?: ApplicationDocument[];
+  };
+  documents?: Array<{
+    id: string;
+    type: string;
+    filename: string;
+    url: string;
+    uploadedAt: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+  petName?: string;
+  petType?: string;
+  petBreed?: string;
+  userName?: string;
+  userEmail?: string;
+}
+
 export interface ApplicationDocument {
   document_id: string;
   document_type: string;

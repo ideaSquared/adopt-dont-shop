@@ -2,40 +2,51 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
 
 interface RoleAttributes {
-  role_id: number;
-  role_name: string;
-  created_at?: Date;
-  updated_at?: Date;
+  roleId: number;
+  name: string;
+  description?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-interface RoleCreationAttributes extends Optional<RoleAttributes, 'role_id'> {}
+interface RoleCreationAttributes extends Optional<RoleAttributes, 'roleId'> {}
 
 class Role extends Model<RoleAttributes, RoleCreationAttributes> implements RoleAttributes {
-  public role_id!: number;
-  public role_name!: string;
-  public created_at!: Date;
-  public updated_at!: Date;
+  public roleId!: number;
+  public name!: string;
+  public description!: string;
+  public createdAt!: Date;
+  public updatedAt!: Date;
 }
 
 Role.init(
   {
-    role_id: {
+    roleId: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+      field: 'role_id', // Map to database column
     },
-    role_name: {
+    name: {
       type: DataTypes.STRING(255),
       unique: true,
       allowNull: false,
+      field: 'role_name', // Map to database column
     },
-    created_at: {
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'description',
+    },
+    createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
-    updated_at: {
+    updatedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {
@@ -44,6 +55,7 @@ Role.init(
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    underscored: false, // Use camelCase in the model
   }
 );
 

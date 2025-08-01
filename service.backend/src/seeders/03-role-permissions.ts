@@ -261,14 +261,14 @@ export async function seedRolePermissions() {
   let assignmentCount = 0;
 
   for (const [roleName, permissionNames] of Object.entries(rolePermissionMappings)) {
-    const role = await Role.findOne({ where: { role_name: roleName } });
+    const role = await Role.findOne({ where: { name: roleName } });
     if (!role) {
       console.warn(`⚠️  Role ${roleName} not found, skipping permission assignments`);
       continue;
     }
 
     for (const permissionName of permissionNames) {
-      const permission = await Permission.findOne({ where: { permission_name: permissionName } });
+      const permission = await Permission.findOne({ where: { permissionName: permissionName } });
       if (!permission) {
         console.warn(`⚠️  Permission ${permissionName} not found, skipping`);
         continue;
@@ -276,12 +276,12 @@ export async function seedRolePermissions() {
 
       await RolePermission.findOrCreate({
         where: {
-          role_id: role.role_id,
-          permission_id: permission.permission_id,
+          roleId: role.roleId,
+          permissionId: permission.permissionId,
         },
         defaults: {
-          role_id: role.role_id,
-          permission_id: permission.permission_id,
+          roleId: role.roleId,
+          permissionId: permission.permissionId,
         },
       });
       assignmentCount++;

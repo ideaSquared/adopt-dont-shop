@@ -161,7 +161,19 @@ export class ApplicationService {
         {
           model: User,
           as: 'User',
-          attributes: ['user_id', 'first_name', 'last_name', 'email', 'phone_number'],
+          attributes: [
+            'user_id',
+            'first_name',
+            'last_name',
+            'email',
+            'phone_number',
+            'date_of_birth',
+            'address_line_1',
+            'address_line_2',
+            'city',
+            'country',
+            'postal_code',
+          ],
         },
         {
           model: Pet,

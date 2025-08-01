@@ -2,43 +2,47 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
 
 interface PermissionAttributes {
-  permission_id: number;
-  permission_name: string;
-  created_at?: Date;
-  updated_at?: Date;
+  permissionId: number;
+  permissionName: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-interface PermissionCreationAttributes extends Optional<PermissionAttributes, 'permission_id'> {}
+interface PermissionCreationAttributes extends Optional<PermissionAttributes, 'permissionId'> {}
 
 class Permission
   extends Model<PermissionAttributes, PermissionCreationAttributes>
   implements PermissionAttributes
 {
-  public permission_id!: number;
-  public permission_name!: string;
-  public created_at!: Date;
-  public updated_at!: Date;
+  public permissionId!: number;
+  public permissionName!: string;
+  public createdAt!: Date;
+  public updatedAt!: Date;
 }
 
 Permission.init(
   {
-    permission_id: {
+    permissionId: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+      field: 'permission_id',
     },
-    permission_name: {
+    permissionName: {
       type: DataTypes.STRING(255),
       unique: true,
       allowNull: false,
+      field: 'permission_name',
     },
-    created_at: {
+    createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
-    updated_at: {
+    updatedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {
@@ -47,6 +51,7 @@ Permission.init(
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    underscored: false,
   }
 );
 

@@ -5,14 +5,18 @@ import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
 import { AuthenticatedRequest } from '../types';
 import {
+  ApplicationDocument,
+  ApplicationReference,
   ApplicationSearchFilters,
   ApplicationSearchOptions,
   ApplicationStatusUpdateRequest,
   CreateApplicationRequest,
+  FrontendApplication,
 } from '../types/application';
 import { logger } from '../utils/logger';
+import { BaseController } from './base.controller';
 
-export class ApplicationController {
+export class ApplicationController extends BaseController {
   // Validation rules
   static validateCreateApplication = [
     body('pet_id').isUUID().withMessage('Valid pet ID is required'),
@@ -215,16 +219,151 @@ export class ApplicationController {
       .withMessage('Notes must not exceed 2000 characters'),
   ];
 
+  /**
+   * Transform database Application model to frontend-compatible format
+   */
+  protected transformApplicationModel(
+    applicationModel: Record<string, unknown>
+  ): FrontendApplication {
+    const User = applicationModel.User as Record<string, unknown> | undefined;
+    const Pet = applicationModel.Pet as Record<string, unknown> | undefined;
+
+    // Extract personal info from answers (common pattern in adoption forms)
+    const answers = (applicationModel.answers as Record<string, unknown>) || {};
+
+    // DEBUG: Log the actual data structure
+    console.log('🔍 DEBUG: Transform ApplicationModel');
+    console.log('📊 Raw answers from database:', JSON.stringify(answers, null, 2));
+    console.log('👤 User data:', JSON.stringify(User, null, 2));
+    console.log('🐕 Pet data:', JSON.stringify(Pet, null, 2));
+
+    const personalInfo = {
+      firstName:
+        (User?.first_name as string) ||
+        (answers.firstName as string) ||
+        (answers.first_name as string),
+      lastName:
+        (User?.last_name as string) ||
+        (answers.lastName as string) ||
+        (answers.last_name as string),
+      email: (User?.email as string) || (answers.email as string),
+      phone:
+        (User?.phone_number as string) ||
+        (answers.phone as string) ||
+        (answers.phoneNumber as string) ||
+        (answers.phone_number as string),
+      address:
+        (User?.address_line_1 as string) ||
+        (answers.address as string) ||
+        (answers.street_address as string),
+      city: (User?.city as string) || (answers.city as string),
+      state: answers.state as string, // State typically comes from form answers
+      zipCode:
+        (User?.postal_code as string) ||
+        (answers.zipCode as string) ||
+        (answers.zip_code as string),
+      dateOfBirth: User?.date_of_birth
+        ? new Date(User.date_of_birth as string).toISOString().split('T')[0]
+        : (answers.dateOfBirth as string),
+      occupation: answers.occupation as string, // Occupation typically comes from form answers
+    };
+
+    // DEBUG: Log what we extracted
+    console.log('✅ Extracted personalInfo:', JSON.stringify(personalInfo, null, 2));
+
+    // Extract living situation from answers
+    const livingsituation = {
+      housingType: answers.housing_type as string,
+      isOwned: answers.home_ownership === 'owned',
+      hasYard: answers.yard_fenced as boolean,
+      householdSize: answers.household_members
+        ? (answers.household_members as Record<string, unknown>[]).length
+        : 1,
+      hasAllergies: false, // Not in current data, could be added to form
+    };
+
+    // Extract pet experience from answers
+    const petExperience = {
+      hasPetsCurrently: (answers.current_pets as Record<string, unknown>[])?.length > 0,
+      experienceLevel: answers.experience_level as string,
+      willingToTrain: answers.training_experience !== 'No experience',
+      hoursAloneDaily: answers.hours_alone as string,
+      exercisePlans: answers.exercise_plan as string,
+    };
+
+    // Extract references from answers
+    const references = {
+      personal: answers.emergency_contact
+        ? [
+            {
+              name: (answers.emergency_contact as Record<string, string>).name,
+              phone: (answers.emergency_contact as Record<string, string>).phone,
+              relationship: (answers.emergency_contact as Record<string, string>).relationship,
+              yearsKnown: 'Unknown', // Not in current data
+            },
+          ]
+        : [],
+      veterinarian: answers.veterinarian
+        ? {
+            name: (answers.veterinarian as Record<string, string>).name,
+            phone: (answers.veterinarian as Record<string, string>).phone,
+            clinicName: (answers.veterinarian as Record<string, string>).clinic,
+          }
+        : undefined,
+    };
+
+    const transformed: FrontendApplication = {
+      id: applicationModel.application_id as string,
+      petId: applicationModel.pet_id as string,
+      userId: applicationModel.user_id as string,
+      rescueId: applicationModel.rescue_id as string,
+      status: applicationModel.status as ApplicationStatus,
+      submittedAt: applicationModel.submitted_at as string,
+      reviewedAt: applicationModel.reviewed_at as string,
+      reviewedBy: applicationModel.actioned_by as string,
+      reviewNotes: applicationModel.notes as string,
+      data: {
+        personalInfo,
+        livingsituation,
+        petExperience,
+        references,
+        answers: answers,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      documents:
+        (applicationModel.documents as ApplicationDocument[])?.map(doc => ({
+          id: doc.document_id,
+          type: doc.document_type,
+          filename: doc.file_name,
+          url: doc.file_url,
+          uploadedAt: doc.uploaded_at?.toString() || new Date().toISOString(),
+        })) || [],
+      createdAt: applicationModel.created_at as string,
+      updatedAt: applicationModel.updated_at as string,
+    };
+
+    // Add pet information if available
+    if (Pet) {
+      transformed.petName = Pet.name as string;
+      transformed.petType = Pet.type as string;
+      transformed.petBreed = Pet.breed as string;
+    }
+
+    // Add user information if available
+    if (User) {
+      transformed.userName = `${User.first_name as string} ${User.last_name as string}`.trim();
+      transformed.userEmail = User.email as string;
+    }
+
+    return transformed;
+  }
+
   // Get applications with filtering and pagination
   getApplications = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
+        return this.sendValidationError(res, errors.array());
       }
 
       const filters: ApplicationSearchFilters = {
@@ -265,25 +404,25 @@ export class ApplicationController {
         req.user!.userType as UserType
       );
 
-      res.status(200).json({
-        success: true,
-        data: result.applications,
-        pagination: result.pagination,
-        filters_applied: result.filters_applied,
-        total_filtered: result.total_filtered,
+      // Transform the applications to frontend format
+      const transformedApplications = result.applications.map(app =>
+        this.transformApplicationModel(app as unknown as Record<string, unknown>)
+      );
+
+      return this.sendPaginatedSuccess(res, transformedApplications, {
+        total: result.total_filtered || 0,
+        page: result.pagination.page,
+        limit: result.pagination.limit,
+        totalPages: result.pagination.totalPages,
       });
     } catch (error) {
       logger.error('Error getting applications:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve applications',
-        error:
-          process.env.NODE_ENV === 'development'
-            ? error instanceof Error
-              ? error.message
-              : 'Unknown error'
-            : undefined,
-      });
+      return this.sendError(
+        res,
+        'Failed to retrieve applications',
+        500,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     }
   };
 
@@ -380,9 +519,14 @@ export class ApplicationController {
         });
       }
 
+      // Transform the raw application data to frontend format
+      const transformedApplication = this.transformApplicationModel(
+        application as unknown as Record<string, unknown>
+      );
+
       res.status(200).json({
         success: true,
-        data: application,
+        data: transformedApplication,
       });
     } catch (error) {
       logger.error('Error getting application by ID:', error);

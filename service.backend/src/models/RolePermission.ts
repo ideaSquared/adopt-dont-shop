@@ -4,44 +4,48 @@ import Permission from './Permission';
 import Role from './Role';
 
 interface RolePermissionAttributes {
-  role_id: number;
-  permission_id: number;
-  created_at?: Date;
-  updated_at?: Date;
+  roleId: number;
+  permissionId: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 class RolePermission extends Model<RolePermissionAttributes> implements RolePermissionAttributes {
-  public role_id!: number;
-  public permission_id!: number;
-  public created_at!: Date;
-  public updated_at!: Date;
+  public roleId!: number;
+  public permissionId!: number;
+  public createdAt!: Date;
+  public updatedAt!: Date;
 }
 
 RolePermission.init(
   {
-    role_id: {
+    roleId: {
       type: DataTypes.INTEGER,
       references: {
         model: Role,
         key: 'role_id',
       },
-      primaryKey: true, // Set primaryKey here within the attribute definition
+      primaryKey: true,
+      field: 'role_id',
     },
-    permission_id: {
+    permissionId: {
       type: DataTypes.INTEGER,
       references: {
         model: Permission,
         key: 'permission_id',
       },
-      primaryKey: true, // Set primaryKey here within the attribute definition
+      primaryKey: true,
+      field: 'permission_id',
     },
-    created_at: {
+    createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
-    updated_at: {
+    updatedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {
@@ -50,6 +54,7 @@ RolePermission.init(
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    underscored: false,
   }
 );
 

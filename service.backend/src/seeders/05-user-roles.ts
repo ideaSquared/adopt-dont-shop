@@ -26,7 +26,7 @@ export async function seedUserRoles() {
     }
 
     for (const roleName of assignment.roles) {
-      const role = await Role.findOne({ where: { role_name: roleName } });
+      const role = await Role.findOne({ where: { name: roleName } });
       if (!role) {
         console.warn(`⚠️  Role ${roleName} not found, skipping`);
         continue;
@@ -34,12 +34,12 @@ export async function seedUserRoles() {
 
       await UserRole.findOrCreate({
         where: {
-          user_id: user.userId,
-          role_id: role.role_id,
+          userId: user.userId,
+          roleId: role.roleId,
         },
         defaults: {
-          user_id: user.userId,
-          role_id: role.role_id,
+          userId: user.userId,
+          roleId: role.roleId,
         },
       });
       assignmentCount++;

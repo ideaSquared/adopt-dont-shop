@@ -103,35 +103,83 @@ export class ApplicationsService {
         applicationData = response as Record<string, unknown>;
       }
 
+      // Debug: Log what we receive from backend
+      if (this.config.debug) {
+        console.log('🔍 LIB.APPLICATIONS DEBUG: Raw response from backend:', response);
+        console.log('🔍 LIB.APPLICATIONS DEBUG: Processed applicationData:', applicationData);
+        console.log(
+          '🔍 LIB.APPLICATIONS DEBUG: PersonalInfo from backend:',
+          applicationData.personalInfo
+        );
+        console.log(
+          '🔍 LIB.APPLICATIONS DEBUG: LivingSituation from backend:',
+          applicationData.livingsituation
+        );
+        console.log(
+          '🔍 LIB.APPLICATIONS DEBUG: PetExperience from backend:',
+          applicationData.petExperience
+        );
+        console.log('🔍 LIB.APPLICATIONS DEBUG: Data object from backend:', applicationData.data);
+      }
+
       // Transform the response to match the frontend Application interface
+      // The backend returns personalInfo, livingsituation, and petExperience at the root level
+      // but the frontend expects them nested under a 'data' property
       const application: ApplicationWithPetInfo = {
-        id: applicationData.application_id as string,
-        petId: applicationData.pet_id as string,
-        userId: applicationData.user_id as string,
-        rescueId: applicationData.rescue_id as string,
+        id: applicationData.id as string,
+        petId: applicationData.petId as string,
+        userId: applicationData.userId as string,
+        rescueId: applicationData.rescueId as string,
         status: applicationData.status as ApplicationStatus,
-        submittedAt: applicationData.submitted_at as string,
-        reviewedAt: applicationData.reviewed_at as string,
-        reviewedBy: applicationData.actioned_by as string,
-        reviewNotes: applicationData.notes as string,
-        createdAt: applicationData.created_at as string,
-        updatedAt: applicationData.updated_at as string,
+        submittedAt: applicationData.submittedAt as string,
+        reviewedAt: applicationData.reviewedAt as string,
+        reviewedBy: applicationData.reviewedBy as string,
+        reviewNotes: applicationData.reviewNotes as string,
+        createdAt: applicationData.createdAt as string,
+        updatedAt: applicationData.updatedAt as string,
         data: {
-          answers: (applicationData.answers as Record<string, unknown>) || {},
-          references: {
-            personal: (applicationData.references as unknown[]) || [],
-          },
-          documents: (applicationData.documents as unknown[]) || [],
-        } as unknown as ApplicationData,
-        documents: [],
+          petId: applicationData.petId as string,
+          userId: applicationData.userId as string,
+          rescueId: applicationData.rescueId as string,
+          personalInfo: (applicationData.personalInfo as any) || {},
+          livingsituation: (applicationData.livingsituation as any) || {},
+          petExperience: (applicationData.petExperience as any) || {},
+          references: (applicationData.references as any) || { personal: [] },
+          additionalInfo: (applicationData.additionalInfo as any) || {},
+        },
+        documents:
+          (applicationData.documents as Array<{
+            id: string;
+            type: string;
+            filename: string;
+            url: string;
+            uploadedAt: string;
+          }>) || [],
       };
 
-      // Add pet information if available
-      const petData = applicationData.Pet as Record<string, unknown> | undefined;
-      if (petData) {
-        application.petName = petData.name as string;
-        application.petType = petData.type as string;
-        application.petBreed = petData.breed as string;
+      // Add pet information if available (backend already provides these)
+      if (applicationData.petName) {
+        application.petName = applicationData.petName as string;
+        application.petType = applicationData.petType as string;
+        application.petBreed = applicationData.petBreed as string;
+      }
+
+      // Debug: Log the final transformed application
+      if (this.config.debug) {
+        console.log('🔍 LIB.APPLICATIONS DEBUG: Final transformed application:', application);
+        console.log('🔍 LIB.APPLICATIONS DEBUG: Final application.data:', application.data);
+        console.log(
+          '🔍 LIB.APPLICATIONS DEBUG: Final application.data.personalInfo:',
+          application.data.personalInfo
+        );
+        console.log(
+          '🔍 LIB.APPLICATIONS DEBUG: Final application.data.livingsituation:',
+          application.data.livingsituation
+        );
+        console.log(
+          '🔍 LIB.APPLICATIONS DEBUG: Final application.data.petExperience:',
+          application.data.petExperience
+        );
       }
 
       return application;
@@ -210,7 +258,7 @@ export class ApplicationsService {
     notes?: string
   ): Promise<Application> {
     try {
-      const response = (await this.apiService.put(`${this.baseUrl}/${id}/status`, {
+      const response = (await this.apiService.patch(`${this.baseUrl}/${id}/status`, {
         status,
         notes,
       })) as { data: Application };
@@ -288,6 +336,91 @@ export class ApplicationsService {
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to get documents:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get all applications for a rescue organization
+   * For use in rescue management dashboard
+   */
+  async getRescueApplications(
+    rescueId?: string,
+    options?: {
+      status?: ApplicationStatus;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<Application[]> {
+    try {
+      const params = new URLSearchParams();
+
+      if (rescueId) params.append('rescueId', rescueId);
+      if (options?.status) params.append('status', options.status);
+      if (options?.search) params.append('search', options.search);
+      if (options?.limit) params.append('limit', options.limit.toString());
+      if (options?.offset) params.append('offset', options.offset.toString());
+
+      const queryString = params.toString();
+      const url = `${this.baseUrl}${queryString ? `?${queryString}` : ''}`;
+
+      const response = await this.apiService.get<{
+        success: boolean;
+        data: Application[];
+        meta: {
+          total: number;
+          page: number;
+          totalPages: number;
+          hasNext: boolean;
+          hasPrev: boolean;
+        };
+      }>(url);
+
+      if (this.config.debug) {
+        console.log('Rescue applications retrieved:', response.data?.length || 0);
+        console.log('Response meta:', response.meta);
+      }
+
+      // Return the applications array from the standardized response
+      return response.data || [];
+    } catch (error) {
+      if (this.config.debug) {
+        console.error('Failed to get rescue applications:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get application statistics for rescue dashboard
+   */
+  async getApplicationStats(rescueId?: string): Promise<{
+    total: number;
+    submitted: number;
+    underReview: number;
+    approved: number;
+    rejected: number;
+    pendingReferences: number;
+  }> {
+    try {
+      const params = rescueId ? `?rescueId=${rescueId}` : '';
+      const response = await this.apiService.get<any>(`${this.baseUrl}/stats${params}`);
+
+      return (
+        response.data || {
+          total: 0,
+          submitted: 0,
+          underReview: 0,
+          approved: 0,
+          rejected: 0,
+          pendingReferences: 0,
+        }
+      );
+    } catch (error) {
+      if (this.config.debug) {
+        console.error('Failed to get application stats:', error);
       }
       throw error;
     }

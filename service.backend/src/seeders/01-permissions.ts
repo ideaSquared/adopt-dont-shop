@@ -88,11 +88,11 @@ const permissions = [
 export async function seedPermissions() {
   for (const permissionName of permissions) {
     await Permission.findOrCreate({
-      where: { permission_name: permissionName },
+      where: { permissionName: permissionName },
       defaults: {
-        permission_name: permissionName,
-        created_at: new Date(),
-        updated_at: new Date(),
+        permissionName: permissionName,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
   }

@@ -1291,7 +1291,7 @@ export class UserService {
             include: [
               {
                 association: 'Permissions',
-                attributes: ['permission_name'],
+                attributes: ['permissionName'],
               },
             ],
           },
@@ -1308,7 +1308,7 @@ export class UserService {
         for (const role of user.Roles) {
           if (role.Permissions) {
             for (const permission of role.Permissions) {
-              permissions.add((permission as any).permission_name);
+              permissions.add((permission as any).permissionName);
             }
           }
         }
@@ -1352,7 +1352,7 @@ export class UserService {
             include: [
               {
                 association: 'Permissions',
-                attributes: ['permission_name'],
+                attributes: ['permissionName'],
               },
             ],
           },
@@ -1369,7 +1369,7 @@ export class UserService {
         for (const role of user.Roles) {
           if (role.Permissions) {
             for (const permission of role.Permissions) {
-              permissions.add((permission as any).permission_name);
+              permissions.add((permission as any).permissionName);
             }
           }
         }
