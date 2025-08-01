@@ -9,6 +9,11 @@
     "app.client",
     "app.rescue",
     "app.test-dashboard",
+    "app.test-enterprise",
+    "app.test-generator",
+    "app.test-generator-fixed",
+    "app.test-minimal",
+    "app.test-standard",
     "lib.analytics",
     "lib.api",
     "lib.applications",
@@ -154,4 +159,3 @@
     "npm": ">=9.0.0"
   }
 }
-
