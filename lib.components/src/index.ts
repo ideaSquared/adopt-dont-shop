@@ -1,4 +1,5 @@
 // Modern component library exports for Adopt Don't Shop
+// Testing hot reload functionality - if you see this change, hot reload is working!
 
 // Theme exports
 export { GlobalStyles } from './styles/GlobalStyles';

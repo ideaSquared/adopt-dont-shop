@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 
 // Contexts - AuthProvider is now in main.tsx
+// Hot reload test - timestamp: ${new Date().toISOString()}
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';

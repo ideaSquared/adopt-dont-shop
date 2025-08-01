@@ -97,10 +97,16 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       VITE_API_BASE_URL: http://localhost:5000
       VITE_WS_BASE_URL: ws://localhost:5000
-      CHOKIDAR_USEPOLLING: true
+      # Memory and file watching optimizations
+      CHOKIDAR_USEPOLLING: false
+      CHOKIDAR_INTERVAL: 1000
+      CHOKIDAR_AWAITWRITEFINISH: 2000
+      NODE_OPTIONS: "--max-old-space-size=3072 --max-semi-space-size=128"
     depends_on:
       - service-backend
     restart: unless-stopped
+    mem_limit: 2g
+    memswap_limit: 2g
 
   # Client application - Public-facing adoption portal
   app-client:
@@ -121,10 +127,16 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       VITE_API_BASE_URL: http://localhost:5000
       VITE_WS_BASE_URL: ws://localhost:5000
-      CHOKIDAR_USEPOLLING: true
+      # Memory and file watching optimizations
+      CHOKIDAR_USEPOLLING: false
+      CHOKIDAR_INTERVAL: 1000
+      CHOKIDAR_AWAITWRITEFINISH: 2000
+      NODE_OPTIONS: "--max-old-space-size=3072 --max-semi-space-size=128"
     depends_on:
       - service-backend
     restart: unless-stopped
+    mem_limit: 2g
+    memswap_limit: 2g
 
   # Rescue application - Rescue organization portal
   app-rescue:
@@ -146,10 +158,18 @@ services:
       DOCKER_ENV: true
       VITE_API_BASE_URL: http://localhost:5000
       VITE_WS_BASE_URL: ws://localhost:5000
-      CHOKIDAR_USEPOLLING: true
+      # Memory and file watching optimizations
+      CHOKIDAR_USEPOLLING: false
+      CHOKIDAR_INTERVAL: 1000
+      CHOKIDAR_AWAITWRITEFINISH: 2000
+      WATCHPACK_POLLING: false
+      FAST_REFRESH: true
+      NODE_OPTIONS: "--max-old-space-size=3072 --max-semi-space-size=128"
     depends_on:
       - service-backend
     restart: unless-stopped
+    mem_limit: 2g
+    memswap_limit: 2g
 
   # ============================================================================
   # REVERSE PROXY
