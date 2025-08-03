@@ -14,6 +14,7 @@ export const PETS_ENDPOINTS = {
 
   // Pets by rescue
   PETS_BY_RESCUE: (rescueId: string) => `/api/v1/pets/rescue/${rescueId}`,
+  MY_RESCUE_PETS: '/api/v1/pets/rescue/my',
 
   // Breed and type information
   PET_BREEDS: '/api/v1/pets/breeds',
@@ -43,6 +44,7 @@ export const {
   FEATURED_PETS,
   RECENT_PETS,
   PETS_BY_RESCUE,
+  MY_RESCUE_PETS,
   PET_BREEDS,
   PET_BREEDS_BY_TYPE,
   PET_TYPES,

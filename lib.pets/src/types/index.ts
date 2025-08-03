@@ -155,6 +155,120 @@ export interface PetStats {
 }
 
 /**
+ * Pet status enum
+ */
+export type PetStatus =
+  | 'available'
+  | 'pending'
+  | 'adopted'
+  | 'on_hold'
+  | 'medical_care'
+  | 'foster'
+  | 'not_available';
+
+/**
+ * Pet creation data interface for rescue staff
+ */
+export interface PetCreateData {
+  name: string;
+  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'other';
+  breed: string;
+  secondaryBreed?: string;
+  ageYears?: number;
+  ageMonths?: number;
+  ageGroup?: 'young' | 'adult' | 'senior';
+  gender: 'male' | 'female';
+  size: 'small' | 'medium' | 'large' | 'extra_large';
+  color: string;
+  markings?: string;
+  weightKg?: string;
+  microchipId?: string;
+  shortDescription?: string;
+  longDescription?: string;
+  adoptionFee?: string;
+  energyLevel?: 'low' | 'medium' | 'high' | 'very_high';
+  exerciseNeeds?: string;
+  groomingNeeds?: string;
+  temperament?: string[];
+  trainingNotes?: string;
+  medicalNotes?: string;
+  behavioralNotes?: string;
+  surrenderReason?: string;
+  specialNeeds?: boolean;
+  specialNeedsDescription?: string;
+  houseTrained?: boolean;
+  goodWithChildren?: boolean;
+  goodWithDogs?: boolean;
+  goodWithCats?: boolean;
+  goodWithSmallAnimals?: boolean;
+  vaccinationStatus?: 'unknown' | 'partial' | 'up_to_date';
+  vaccinationDate?: string;
+  spayNeuterStatus?: 'unknown' | 'intact' | 'spayed' | 'neutered';
+  spayNeuterDate?: string;
+  lastVetCheckup?: string;
+  intakeDate?: string;
+  availableSince?: string;
+  fosterStartDate?: string;
+  fosterEndDate?: string;
+  featured?: boolean;
+  priorityListing?: boolean;
+  tags?: string[];
+  images?: string[];
+  videos?: string[];
+  rescueId: string;
+}
+
+/**
+ * Pet update data interface for rescue staff
+ */
+export interface PetUpdateData {
+  name?: string;
+  type?: 'dog' | 'cat' | 'rabbit' | 'bird' | 'other';
+  breed?: string;
+  secondaryBreed?: string;
+  ageYears?: number;
+  ageMonths?: number;
+  ageGroup?: 'young' | 'adult' | 'senior';
+  gender?: 'male' | 'female';
+  size?: 'small' | 'medium' | 'large' | 'extra_large';
+  color?: string;
+  markings?: string;
+  weightKg?: string;
+  microchipId?: string;
+  shortDescription?: string;
+  longDescription?: string;
+  adoptionFee?: string;
+  energyLevel?: 'low' | 'medium' | 'high' | 'very_high';
+  exerciseNeeds?: string;
+  groomingNeeds?: string;
+  temperament?: string[];
+  trainingNotes?: string;
+  medicalNotes?: string;
+  behavioralNotes?: string;
+  surrenderReason?: string;
+  specialNeeds?: boolean;
+  specialNeedsDescription?: string;
+  houseTrained?: boolean;
+  goodWithChildren?: boolean;
+  goodWithDogs?: boolean;
+  goodWithCats?: boolean;
+  goodWithSmallAnimals?: boolean;
+  vaccinationStatus?: 'unknown' | 'partial' | 'up_to_date';
+  vaccinationDate?: string;
+  spayNeuterStatus?: 'unknown' | 'intact' | 'spayed' | 'neutered';
+  spayNeuterDate?: string;
+  lastVetCheckup?: string;
+  intakeDate?: string;
+  availableSince?: string;
+  fosterStartDate?: string;
+  fosterEndDate?: string;
+  featured?: boolean;
+  priorityListing?: boolean;
+  tags?: string[];
+  status?: PetStatus;
+}
+
+/**
  * Configuration options for PetsService
  */
 export interface PetsServiceConfig {

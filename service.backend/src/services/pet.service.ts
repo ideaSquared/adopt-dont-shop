@@ -87,6 +87,9 @@ export class PetService {
       if (size) {
         whereConditions.size = size;
       }
+      if (breed) {
+        whereConditions.breed = { [Op.iLike]: `%${breed}%` };
+      }
       if (ageGroup) {
         whereConditions.age_group = ageGroup;
       }
@@ -130,7 +133,8 @@ export class PetService {
       if (!includeArchived) {
         whereConditions.archived = false;
       }
-      if (!includeAdopted) {
+      if (!includeAdopted && !status) {
+        // Only apply the "not adopted" filter if no specific status is requested
         whereConditions.status = { [Op.ne]: PetStatus.ADOPTED };
       }
 

@@ -23,7 +23,18 @@ interface StatsigWrapperProps {
 
 export const StatsigWrapper = ({ children }: StatsigWrapperProps) => {
   // For rescue app, we'll use a simplified A/B testing setup
-  const sdkKey = import.meta.env.VITE_STATSIG_CLIENT_KEY || 'client-rescue-dev-key';
+  const sdkKey = import.meta.env.VITE_STATSIG_CLIENT_KEY;
+  
+  // If no valid SDK key is provided, just render children without Statsig
+  if (!sdkKey || sdkKey === 'client-rescue-dev-key') {
+    console.warn('Statsig SDK key not configured, running without feature flags');
+    return (
+      <StatsigInnerWrapper>
+        {children}
+      </StatsigInnerWrapper>
+    );
+  }
+
   const user = {
     userID: 'rescue-staff',
     email: 'rescue@adopt-dont-shop.com',
