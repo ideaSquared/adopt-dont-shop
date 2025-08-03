@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
-      port: 3000, // Changed from 3003 to match Docker mapping
+      port: 3000, // Container internal port (mapped to 3002 externally via Docker)
     },
     build: {
       outDir: 'dist',

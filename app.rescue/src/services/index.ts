@@ -27,6 +27,7 @@ export {
 
 // Export API service
 export { apiService } from './api';
+export { dashboardService } from './dashboardService';
 
 // Re-export types from libraries
 export type { LoginRequest, RegisterRequest, User, AuthResponse } from '@adopt-dont-shop/lib-auth';

@@ -8,66 +8,66 @@ interface DevUser extends User {
   description: string;
 }
 
-// Seeded rescue staff users for rescue app (only rescue staff types allowed)
+// Seeded rescue staff users for rescue app (matching backend seeders)
 const seededDevUsers: DevUser[] = [
   {
     userId: 'user_rescue_staff_001',
     firstName: 'Sarah',
     lastName: 'Johnson',
-    email: 'sarah.johnson@happytails.org',
+    email: 'sarah.johnson@pawsrescue.dev',
     userType: 'rescue_staff',
     status: 'active',
     emailVerified: true,
     country: 'US',
-    city: 'Denver',
+    city: 'Austin',
     addressLine1: '123 Rescue Street',
-    postalCode: '80202',
-    timezone: 'America/Denver',
+    postalCode: '78701',
+    timezone: 'America/Chicago',
     language: 'en',
-    bio: 'Dedicated rescue staff member with 5+ years of experience.',
+    bio: 'Veterinary technician helping rescued animals get healthy and ready for adoption.',
     dateOfBirth: '1988-04-12',
-    phoneNumber: '(555) 123-4567',
+    phoneNumber: '+1234567894',
     termsAcceptedAt: new Date().toISOString(),
     privacyPolicyAcceptedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    description: 'Senior Staff Member',
-  },
-  {
-    userId: 'user_rescue_manager_001',
-    firstName: 'David',
-    lastName: 'Chen',
-    email: 'david.chen@happytails.org',
-    userType: 'rescue_staff',
-    status: 'active',
-    emailVerified: true,
-    country: 'US',
-    city: 'Portland',
-    addressLine1: '456 Management Ave',
-    postalCode: '97201',
-    timezone: 'America/Los_Angeles',
-    language: 'en',
-    bio: 'Rescue operations manager overseeing daily activities.',
-    dateOfBirth: '1985-09-22',
-    phoneNumber: '(555) 987-6543',
-    termsAcceptedAt: new Date().toISOString(),
-    privacyPolicyAcceptedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    description: 'Operations Manager',
+    description: 'Veterinary Technician',
   },
   {
     userId: 'user_rescue_admin_001',
-    firstName: 'Maria',
-    lastName: 'Rodriguez',
-    email: 'maria.rodriguez@happytails.org',
+    firstName: 'Rescue',
+    lastName: 'Manager',
+    email: 'rescue.manager@pawsrescue.dev',
     userType: 'rescue_staff',
     status: 'active',
     emailVerified: true,
     country: 'US',
-    city: 'Seattle',
+    city: 'Austin',
+    addressLine1: '456 Management Ave',
+    postalCode: '78701',
+    timezone: 'America/Chicago',
+    language: 'en',
+    bio: 'Passionate about animal rescue and finding homes for pets in need.',
+    dateOfBirth: '1985-09-22',
+    phoneNumber: '+1234567893',
+    termsAcceptedAt: new Date().toISOString(),
+    privacyPolicyAcceptedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    description: 'Rescue Manager',
+  },
+  {
+    userId: 'user_rescue_admin_002',
+    firstName: 'Maria',
+    lastName: 'Garcia',
+    email: 'maria@happytailsrescue.dev',
+    userType: 'rescue_staff',
+    status: 'active',
+    emailVerified: true,
+    country: 'US',
+    city: 'Miami',
     addressLine1: '789 Executive Blvd',
-    postalCode: '98101',
+    postalCode: '33101',
     timezone: 'America/Los_Angeles',
     language: 'en',
     bio: 'Rescue administrator with full system access.',
@@ -277,7 +277,7 @@ const WarningBanner = styled.div`
 
 export const DevLoginPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, login, logout, isAuthenticated, setDevUser } = useAuth();
+  const { user, login, logout, isAuthenticated } = useAuth();
 
   // Only show in development mode
   if (!import.meta.env.DEV) {
@@ -286,16 +286,9 @@ export const DevLoginPanel: React.FC = () => {
 
   const handleUserLogin = async (devUser: DevUser) => {
     try {
-      // In development, we can either use real auth or dev user mode
-      // For now, let's use dev user mode for faster development
-      if (setDevUser) {
-        setDevUser(devUser);
-        setIsOpen(false);
-      } else {
-        // Fallback to real authentication
-        await login({ email: devUser.email, password: SEEDED_PASSWORD });
-        setIsOpen(false);
-      }
+      // Use real authentication with backend seeded users
+      await login({ email: devUser.email, password: SEEDED_PASSWORD });
+      setIsOpen(false);
     } catch (error) {
       console.error('DevLoginPanel: Login error:', error);
       alert(`Login error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -318,7 +311,7 @@ export const DevLoginPanel: React.FC = () => {
         <DevHeader>Rescue Dev Login Panel</DevHeader>
 
         <DevContent>
-          <WarningBanner>⚠️ Development only - uses real authentication</WarningBanner>
+          <WarningBanner>⚠️ Development only - uses backend seeded users with real authentication</WarningBanner>
 
           {isAuthenticated && user && (
             <CurrentUserPanel>

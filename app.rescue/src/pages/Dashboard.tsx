@@ -2,6 +2,8 @@ import React from 'react';
 import styled from 'styled-components';
 import { Card, Container, Heading, Text } from '@adopt-dont-shop/components';
 import { useAuth } from '../contexts/AuthContext';
+import { useDashboardData } from '../hooks';
+import { formatDistanceToNow } from 'date-fns';
 
 const DashboardContainer = styled(Container)`
   max-width: none;
@@ -68,33 +70,102 @@ const AnalyticsGrid = styled.div`
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { dashboardData, recentActivities, notifications, loading, error } = useDashboardData();
 
-  // Mock data - will be replaced with real data from lib.rescue and lib.analytics
-  // In the future, this will fetch data specific to the user's rescue organization
-  const metrics = {
-    totalPets: 45,
-    successfulAdoptions: 23,
-    pendingApplications: 12,
-    averageRating: 4.8,
-    adoptionRate: 85,
-    averageResponseTime: 18, // hours
-  };
+  if (loading) {
+    return (
+      <DashboardContainer>
+        <DashboardHeader>
+          <Heading level="h1">Rescue Dashboard</Heading>
+          <Text>Loading dashboard data...</Text>
+        </DashboardHeader>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '200px' 
+        }}>
+          <Text>📊 Loading...</Text>
+        </div>
+      </DashboardContainer>
+    );
+  }
 
-  const monthlyAdoptions = [
-    { month: 'Jan', adoptions: 8 },
-    { month: 'Feb', adoptions: 12 },
-    { month: 'Mar', adoptions: 15 },
-    { month: 'Apr', adoptions: 18 },
-    { month: 'May', adoptions: 23 },
-    { month: 'Jun', adoptions: 20 },
-  ];
+  if (error) {
+    return (
+      <DashboardContainer>
+        <DashboardHeader>
+          <Heading level="h1">Rescue Dashboard</Heading>
+          <Text>Welcome back! Here's what's happening with your rescue today.</Text>
+        </DashboardHeader>
+        <Card>
+          <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+            <Text style={{ color: '#ef4444', marginBottom: '1rem' }}>
+              ⚠️ Unable to load dashboard data: {error}
+            </Text>
+            <Text style={{ color: '#6b7280', marginBottom: '1rem' }}>
+              This usually indicates an authentication issue. Please try logging in again.
+            </Text>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem' }}>
+              <button 
+                onClick={() => window.location.reload()}
+                style={{ 
+                  backgroundColor: '#3b82f6', 
+                  color: 'white', 
+                  padding: '0.5rem 1rem', 
+                  border: 'none', 
+                  borderRadius: '6px', 
+                  cursor: 'pointer', 
+                  fontSize: '0.875rem', 
+                  fontWeight: 500 
+                }}
+              >
+                Refresh Page
+              </button>
+              <button 
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.reload();
+                }}
+                style={{ 
+                  backgroundColor: '#ef4444', 
+                  color: 'white', 
+                  padding: '0.5rem 1rem', 
+                  border: 'none', 
+                  borderRadius: '6px', 
+                  cursor: 'pointer', 
+                  fontSize: '0.875rem', 
+                  fontWeight: 500 
+                }}
+              >
+                Clear Auth & Restart
+              </button>
+            </div>
+          </div>
+        </Card>
+      </DashboardContainer>
+    );
+  }
 
-  const petStatusDistribution = [
-    { name: 'Available', value: 25, color: '#10B981' },
-    { name: 'Pending', value: 12, color: '#F59E0B' },
-    { name: 'Medical Care', value: 5, color: '#EF4444' },
-    { name: 'Foster', value: 3, color: '#8B5CF6' },
-  ];
+  if (!dashboardData) {
+    return (
+      <DashboardContainer>
+        <DashboardHeader>
+          <Heading level="h1">Rescue Dashboard</Heading>
+          <Text>No dashboard data available.</Text>
+        </DashboardHeader>
+      </DashboardContainer>
+    );
+  }
+
+  const {
+    totalPets,
+    successfulAdoptions,
+    pendingApplications,
+    adoptionRate,
+    monthlyAdoptions,
+    petStatusDistribution
+  } = dashboardData;
 
   return (
     <DashboardContainer>
@@ -120,7 +191,7 @@ const Dashboard: React.FC = () => {
               </Text>
             </div>
             <Text style={{ fontSize: '2.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              {metrics.totalPets}
+              {totalPets}
             </Text>
             <Text style={{ fontSize: '0.875rem', color: '#10b981' }}>
               ↑ 5% from last month
@@ -137,7 +208,7 @@ const Dashboard: React.FC = () => {
               </Text>
             </div>
             <Text style={{ fontSize: '2.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              {metrics.successfulAdoptions}
+              {successfulAdoptions}
             </Text>
             <Text style={{ fontSize: '0.875rem', color: '#10b981' }}>
               ↑ 12% from last month
@@ -154,7 +225,7 @@ const Dashboard: React.FC = () => {
               </Text>
             </div>
             <Text style={{ fontSize: '2.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              {metrics.pendingApplications}
+              {pendingApplications}
             </Text>
             <Text style={{ fontSize: '0.875rem', color: '#ef4444' }}>
               ↓ 2% from last month
@@ -171,7 +242,7 @@ const Dashboard: React.FC = () => {
               </Text>
             </div>
             <Text style={{ fontSize: '2.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              {metrics.adoptionRate}%
+              {adoptionRate}%
             </Text>
             <Text style={{ fontSize: '0.875rem', color: '#10b981' }}>
               ↑ 3% from last month
@@ -267,22 +338,34 @@ const Dashboard: React.FC = () => {
           </div>
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
-                <Text style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>2 hours ago</Text>
-                <Text style={{ fontSize: '0.875rem', lineHeight: 1.4 }}>New application for Buddy received</Text>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
-                <Text style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>4 hours ago</Text>
-                <Text style={{ fontSize: '0.875rem', lineHeight: 1.4 }}>Max was adopted by the Johnson family</Text>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
-                <Text style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>6 hours ago</Text>
-                <Text style={{ fontSize: '0.875rem', lineHeight: 1.4 }}>Luna's medical checkup completed</Text>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <Text style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>1 day ago</Text>
-                <Text style={{ fontSize: '0.875rem', lineHeight: 1.4 }}>New volunteer Sarah joined the team</Text>
-              </div>
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity, index) => {
+                  const isLast = index === recentActivities.length - 1;
+                  return (
+                    <div 
+                      key={activity.id} 
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '0.25rem', 
+                        paddingBottom: isLast ? '0' : '1rem', 
+                        borderBottom: isLast ? 'none' : '1px solid #e5e7eb' 
+                      }}
+                    >
+                      <Text style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>
+                        {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                      </Text>
+                      <Text style={{ fontSize: '0.875rem', lineHeight: 1.4 }}>
+                        {activity.message}
+                      </Text>
+                    </div>
+                  );
+                })
+              ) : (
+                <Text style={{ fontSize: '0.875rem', color: '#6b7280', textAlign: 'center' }}>
+                  No recent activities
+                </Text>
+              )}
             </div>
           </div>
         </Card>
@@ -293,39 +376,81 @@ const Dashboard: React.FC = () => {
         <div style={{ padding: '1.5rem 1.5rem 1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
           <Heading level="h3" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             Recent Notifications
-            <span style={{ 
-              backgroundColor: '#ef4444', 
-              color: 'white', 
-              fontSize: '0.75rem', 
-              fontWeight: 600, 
-              padding: '0.25rem 0.5rem', 
-              borderRadius: '10px', 
-              minWidth: '1.25rem', 
-              textAlign: 'center' 
-            }}>
-              2
-            </span>
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span style={{ 
+                backgroundColor: '#ef4444', 
+                color: 'white', 
+                fontSize: '0.75rem', 
+                fontWeight: 600, 
+                padding: '0.25rem 0.5rem', 
+                borderRadius: '10px', 
+                minWidth: '1.25rem', 
+                textAlign: 'center' 
+              }}>
+                {notifications.filter(n => !n.read).length}
+              </span>
+            )}
           </Heading>
         </div>
         <div style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem', borderRadius: '8px', marginBottom: '0.5rem', backgroundColor: '#eff6ff' }}>
-            <div style={{ fontSize: '1.25rem', marginTop: '0.125rem' }}>ℹ️</div>
-            <div style={{ flex: 1 }}>
-              <Text style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.25rem' }}>New Application</Text>
-              <Text style={{ color: '#4b5563', fontSize: '0.875rem', lineHeight: 1.4, marginBottom: '0.25rem' }}>New adoption application received for Buddy</Text>
-              <Text style={{ color: '#6b7280', fontSize: '0.75rem' }}>2 hours ago</Text>
-            </div>
-            <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', width: '8px', height: '8px', backgroundColor: '#3b82f6', borderRadius: '50%' }} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem', borderRadius: '8px', marginBottom: '0.5rem', backgroundColor: '#eff6ff' }}>
-            <div style={{ fontSize: '1.25rem', marginTop: '0.125rem' }}>✅</div>
-            <div style={{ flex: 1 }}>
-              <Text style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.25rem' }}>Successful Adoption</Text>
-              <Text style={{ color: '#4b5563', fontSize: '0.875rem', lineHeight: 1.4, marginBottom: '0.25rem' }}>Max has been successfully adopted!</Text>
-              <Text style={{ color: '#6b7280', fontSize: '0.75rem' }}>4 hours ago</Text>
-            </div>
-            <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', width: '8px', height: '8px', backgroundColor: '#3b82f6', borderRadius: '50%' }} />
-          </div>
+          {notifications.length > 0 ? (
+            notifications.map((notification) => {
+              const getNotificationIcon = (type: string) => {
+                switch (type) {
+                  case 'success': return '✅';
+                  case 'warning': return '⚠️';
+                  case 'error': return '❌';
+                  default: return 'ℹ️';
+                }
+              };
+
+              return (
+                <div 
+                  key={notification.id}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'flex-start', 
+                    gap: '0.75rem', 
+                    padding: '0.75rem', 
+                    borderRadius: '8px', 
+                    marginBottom: '0.5rem', 
+                    backgroundColor: notification.read ? '#f9fafb' : '#eff6ff',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ fontSize: '1.25rem', marginTop: '0.125rem' }}>
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                      {notification.title}
+                    </Text>
+                    <Text style={{ color: '#4b5563', fontSize: '0.875rem', lineHeight: 1.4, marginBottom: '0.25rem' }}>
+                      {notification.message}
+                    </Text>
+                    <Text style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                      {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
+                    </Text>
+                  </div>
+                  {!notification.read && (
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: '0.75rem', 
+                      right: '0.75rem', 
+                      width: '8px', 
+                      height: '8px', 
+                      backgroundColor: '#3b82f6', 
+                      borderRadius: '50%' 
+                    }} />
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <Text style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>
+              No notifications
+            </Text>
+          )}
         </div>
         <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb', textAlign: 'center' }}>
           <button style={{ 

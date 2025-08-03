@@ -20,9 +20,6 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.3",
     "@adopt-dont-shop/components": "*",
     "@adopt-dont-shop/lib-analytics": "*",
     "@adopt-dont-shop/lib-api": "*",
@@ -48,10 +45,13 @@
     "@use-gesture/react": "^10.3.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-hook-form": "^7.51.3",
     "react-icons": "^5.5.0",
     "react-intersection-observer": "^9.16.0",
     "react-query": "^3.39.3",
+    "react-router-dom": "^6.22.3",
     "react-spring": "^10.0.1",
     "socket.io-client": "^4.7.5",
     "styled-components": "^6.1.12",

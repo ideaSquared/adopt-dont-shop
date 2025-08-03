@@ -620,11 +620,24 @@ export class RescueService {
       // Get application statistics
       const [totalApplications, pendingApplications] = await Promise.all([
         Application.count({
-          include: [{ model: Pet, where: { rescue_id: rescueId } }],
+          include: [{ model: Pet, as: 'Pet', where: { rescue_id: rescueId } }],
         }),
         Application.count({
-          where: { status: 'pending' },
-          include: [{ model: Pet, where: { rescue_id: rescueId } }],
+          where: {
+            status: {
+              [Op.in]: [
+                'submitted',
+                'under_review',
+                'pending_references',
+                'reference_check',
+                'interview_scheduled',
+                'interview_completed',
+                'home_visit_scheduled',
+                'home_visit_completed',
+              ],
+            },
+          },
+          include: [{ model: Pet, as: 'Pet', where: { rescue_id: rescueId } }],
         }),
       ]);
 

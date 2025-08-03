@@ -11,8 +11,6 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (profileData: Partial<User>) => Promise<void>;
   refreshUser: () => Promise<void>;
-  // Development only method
-  setDevUser?: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,27 +35,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // In development mode, check for dev user first
-        if (import.meta.env.DEV) {
-          const devUser = localStorage.getItem('dev_user');
-
-          if (devUser) {
-            const parsedUser = JSON.parse(devUser);
-
-            // Ensure dev user has a mock token
-            const existingToken = localStorage.getItem('accessToken');
-            if (!existingToken || !existingToken.startsWith('dev-token-')) {
-              const mockToken = `dev-token-${parsedUser.userId}-${Date.now()}`;
-              localStorage.setItem('accessToken', mockToken);
-              localStorage.setItem('authToken', mockToken);
-            }
-
-            setUser(parsedUser);
-            setIsLoading(false);
-            return;
-          }
-        }
-
         const currentUser = authService.getCurrentUser();
         if (currentUser && authService.isAuthenticated()) {
           // Verify token is still valid by fetching fresh user data
@@ -82,10 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
-        // Clear invalid auth data only if we're not in dev mode with a dev user
-        if (!import.meta.env.DEV || !localStorage.getItem('dev_user')) {
-          await authService.logout();
-        }
+        await authService.logout();
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -225,29 +199,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Development only method for dev login panel
-  const setDevUser = (devUser: User) => {
-    if (import.meta.env.DEV) {
-      setUser(devUser);
-      localStorage.setItem('dev_user', JSON.stringify(devUser));
-      
-      // Create mock token for dev user
-      const mockToken = `dev-token-${devUser.userId}-${Date.now()}`;
-      localStorage.setItem('accessToken', mockToken);
-      localStorage.setItem('authToken', mockToken);
-    }
-  };
-
   const value = {
     user,
-    isAuthenticated: !!user && (import.meta.env.DEV ? true : authService.isAuthenticated()),
+    isAuthenticated: !!user && authService.isAuthenticated(),
     isLoading,
     login,
     register,
     logout,
     updateProfile,
     refreshUser,
-    ...(import.meta.env.DEV && { setDevUser }),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
