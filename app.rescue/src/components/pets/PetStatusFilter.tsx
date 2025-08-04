@@ -23,15 +23,29 @@ const StatusButton = styled(Button)<{ active: boolean }>`
     background: ${props => props.active ? props.theme.colors.primary[600] : props.theme.colors.primary[50]};
     color: ${props => props.active ? 'white' : props.theme.colors.primary[700]};
   }
+
+  &:focus {
+    outline: 2px solid ${props => props.theme.colors.primary[400]};
+    outline-offset: 2px;
+  }
+
+  &:focus:not(:focus-visible) {
+    outline: none;
+  }
 `;
 
-const StatusCount = styled.span`
+const StatusCount = styled.span<{ active: boolean }>`
   margin-left: 0.5rem;
   padding: 0.125rem 0.375rem;
-  background: ${props => props.theme.colors.neutral[200]};
+  background: ${props => props.active 
+    ? 'rgba(255, 255, 255, 0.2)' 
+    : props.theme.colors.neutral[200]
+  };
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 500;
+  color: ${props => props.active ? 'white' : props.theme.text.secondary};
+  border: ${props => props.active ? '1px solid rgba(255, 255, 255, 0.3)' : 'none'};
 `;
 
 interface PetStatusFilterProps {
@@ -61,7 +75,7 @@ const PetStatusFilter: React.FC<PetStatusFilterProps> = ({
   };
 
   return (
-    <StatusFilterContainer>
+    <StatusFilterContainer role="group" aria-label="Filter pets by status">
       {statusOptions.map((option) => {
         const count = option.value === '' ? getTotalCount() : statusCounts[option.value] || 0;
         const isActive = activeStatus === option.value;
@@ -72,9 +86,11 @@ const PetStatusFilter: React.FC<PetStatusFilterProps> = ({
             active={isActive}
             onClick={() => onStatusChange(option.value)}
             variant="outline"
+            aria-pressed={isActive}
+            aria-label={`${option.label} (${count} pets)`}
           >
             {option.label}
-            <StatusCount>{count}</StatusCount>
+            <StatusCount active={isActive} aria-hidden="true">{count}</StatusCount>
           </StatusButton>
         );
       })}
