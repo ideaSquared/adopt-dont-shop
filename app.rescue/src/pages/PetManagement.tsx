@@ -346,13 +346,27 @@ const PetManagement: React.FC = () => {
   };
 
   const handleDeletePet = async (petId: string, reason?: string) => {
+    setLoading(true);
+    
     try {
+      // Optimistically remove the pet from the UI immediately
+      setPets(prevPets => prevPets.filter(pet => pet.pet_id !== petId));
+      
       await petManagementService.deletePet(petId, reason);
-      fetchPets();
-      fetchStats();
+      
+      // Refresh data to ensure consistency
+      await fetchPets();
+      await fetchStats();
+      
+      // Clear any previous errors
+      setError(null);
     } catch (err) {
       console.error('Failed to delete pet:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete pet');
+      // If deletion failed, refresh the data to restore the pet in the UI
+      await fetchPets();
+    } finally {
+      setLoading(false);
     }
   };
 

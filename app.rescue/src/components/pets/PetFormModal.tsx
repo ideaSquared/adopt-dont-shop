@@ -459,7 +459,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <label htmlFor="goodWithChildren">Good with Children</label>
               <select
                 id="goodWithChildren"
-                value={formData.goodWithChildren === undefined ? '' : formData.goodWithChildren.toString()}
+                value={formData.goodWithChildren == null ? '' : formData.goodWithChildren.toString()}
                 onChange={(e) => handleInputChange('goodWithChildren', e.target.value === '' ? undefined : e.target.value === 'true')}
               >
                 <option value="">Unknown</option>
@@ -472,7 +472,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <label htmlFor="goodWithDogs">Good with Dogs</label>
               <select
                 id="goodWithDogs"
-                value={formData.goodWithDogs === undefined ? '' : formData.goodWithDogs.toString()}
+                value={formData.goodWithDogs == null ? '' : formData.goodWithDogs.toString()}
                 onChange={(e) => handleInputChange('goodWithDogs', e.target.value === '' ? undefined : e.target.value === 'true')}
               >
                 <option value="">Unknown</option>
@@ -485,7 +485,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <label htmlFor="goodWithCats">Good with Cats</label>
               <select
                 id="goodWithCats"
-                value={formData.goodWithCats === undefined ? '' : formData.goodWithCats.toString()}
+                value={formData.goodWithCats == null ? '' : formData.goodWithCats.toString()}
                 onChange={(e) => handleInputChange('goodWithCats', e.target.value === '' ? undefined : e.target.value === 'true')}
               >
                 <option value="">Unknown</option>

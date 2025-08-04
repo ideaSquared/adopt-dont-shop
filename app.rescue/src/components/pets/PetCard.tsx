@@ -247,7 +247,7 @@ interface PetCardProps {
   pet: Pet;
   onStatusChange: (petId: string, status: PetStatus, notes?: string) => void;
   onEdit: (pet: Pet) => void;
-  onDelete: (petId: string, reason?: string) => void;
+  onDelete: (petId: string, reason?: string) => Promise<void>;
 }
 
 const PetCard: React.FC<PetCardProps> = ({
@@ -257,8 +257,11 @@ const PetCard: React.FC<PetCardProps> = ({
   onDelete,
 }) => {
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newStatus, setNewStatus] = useState<PetStatus>(pet.status as PetStatus);
   const [statusNotes, setStatusNotes] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleStatusUpdate = () => {
     onStatusChange(pet.pet_id, newStatus, statusNotes || undefined);
@@ -271,10 +274,25 @@ const PetCard: React.FC<PetCardProps> = ({
   };
 
   const handleDelete = () => {
-    const reason = window.prompt('Please provide a reason for deleting this pet (optional):');
-    if (reason !== null) { // User didn't cancel
-      onDelete(pet.pet_id, reason || undefined);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await onDelete(pet.pet_id, deleteReason || undefined);
+      setShowDeleteModal(false);
+      setDeleteReason('');
+    } catch (error) {
+      console.error('Delete failed:', error);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setDeleteReason('');
   };
 
   const primaryImage = pet.images?.find(img => img.is_primary) || pet.images?.[0];
@@ -345,9 +363,10 @@ const PetCard: React.FC<PetCardProps> = ({
               variant="outline" 
               size="sm" 
               onClick={handleDelete}
+              disabled={isDeleting}
               style={{ color: '#ef4444' }}
             >
-              Delete
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
           </PetActions>
         </PetContent>
@@ -398,6 +417,48 @@ const PetCard: React.FC<PetCardProps> = ({
                 onClick={handleStatusUpdate}
               >
                 Update
+              </Button>
+            </div>
+          </ModalContent>
+        </StatusUpdateModal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <StatusUpdateModal onClick={cancelDelete}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <h3>Delete Pet: {pet.name}</h3>
+            
+            <p style={{ marginBottom: '1rem', color: '#666' }}>
+              Are you sure you want to delete this pet? This action cannot be undone.
+            </p>
+            
+            <div className="form-group">
+              <label htmlFor="delete-reason">Reason for deletion (optional):</label>
+              <textarea
+                id="delete-reason"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="e.g., Pet was adopted, medical issues, etc."
+                rows={3}
+              />
+            </div>
+
+            <div className="form-actions">
+              <Button
+                variant="outline"
+                onClick={cancelDelete}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                style={{ backgroundColor: '#ef4444', borderColor: '#ef4444' }}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Pet'}
               </Button>
             </div>
           </ModalContent>

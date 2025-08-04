@@ -315,8 +315,8 @@ export class ApiService {
     });
   }
 
-  async delete<T>(url: string): Promise<T> {
-    return this.fetchWithAuth<T>(url, { method: 'DELETE' });
+  async delete<T>(url: string, data?: unknown): Promise<T> {
+    return this.fetchWithAuth<T>(url, { method: 'DELETE', body: data });
   }
 
   // File upload method

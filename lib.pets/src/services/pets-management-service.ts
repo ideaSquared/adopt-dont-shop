@@ -103,12 +103,9 @@ export class PetManagementService {
    */
   async deletePet(petId: string, reason?: string): Promise<{ success: boolean; message: string }> {
     try {
-      const url = reason
-        ? `${PETS_ENDPOINTS.PET_BY_ID(petId)}?reason=${encodeURIComponent(reason)}`
-        : PETS_ENDPOINTS.PET_BY_ID(petId);
-
-      const response =
-        await this.apiService.delete<ApiResponse<{ success: boolean; message: string }>>(url);
+      const response = await this.apiService.delete<
+        ApiResponse<{ success: boolean; message: string }>
+      >(PETS_ENDPOINTS.PET_BY_ID(petId), { reason });
 
       if (response.success && response.data) {
         return response.data;
