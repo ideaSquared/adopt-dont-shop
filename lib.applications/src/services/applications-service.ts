@@ -103,25 +103,6 @@ export class ApplicationsService {
         applicationData = response as Record<string, unknown>;
       }
 
-      // Debug: Log what we receive from backend
-      if (this.config.debug) {
-        console.log('🔍 LIB.APPLICATIONS DEBUG: Raw response from backend:', response);
-        console.log('🔍 LIB.APPLICATIONS DEBUG: Processed applicationData:', applicationData);
-        console.log(
-          '🔍 LIB.APPLICATIONS DEBUG: PersonalInfo from backend:',
-          applicationData.personalInfo
-        );
-        console.log(
-          '🔍 LIB.APPLICATIONS DEBUG: LivingSituation from backend:',
-          applicationData.livingsituation
-        );
-        console.log(
-          '🔍 LIB.APPLICATIONS DEBUG: PetExperience from backend:',
-          applicationData.petExperience
-        );
-        console.log('🔍 LIB.APPLICATIONS DEBUG: Data object from backend:', applicationData.data);
-      }
-
       // Transform the response to match the frontend Application interface
       // The backend returns personalInfo, livingsituation, and petExperience at the root level
       // but the frontend expects them nested under a 'data' property
@@ -162,24 +143,6 @@ export class ApplicationsService {
         application.petName = applicationData.petName as string;
         application.petType = applicationData.petType as string;
         application.petBreed = applicationData.petBreed as string;
-      }
-
-      // Debug: Log the final transformed application
-      if (this.config.debug) {
-        console.log('🔍 LIB.APPLICATIONS DEBUG: Final transformed application:', application);
-        console.log('🔍 LIB.APPLICATIONS DEBUG: Final application.data:', application.data);
-        console.log(
-          '🔍 LIB.APPLICATIONS DEBUG: Final application.data.personalInfo:',
-          application.data.personalInfo
-        );
-        console.log(
-          '🔍 LIB.APPLICATIONS DEBUG: Final application.data.livingsituation:',
-          application.data.livingsituation
-        );
-        console.log(
-          '🔍 LIB.APPLICATIONS DEBUG: Final application.data.petExperience:',
-          application.data.petExperience
-        );
       }
 
       return application;

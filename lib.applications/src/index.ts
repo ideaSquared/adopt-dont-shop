@@ -4,6 +4,7 @@ export type {
   Application,
   ApplicationData,
   ApplicationStatus,
+  ApplicationPriority,
   ApplicationWithPetInfo,
   Document,
   DocumentUpload,

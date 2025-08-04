@@ -349,6 +349,13 @@ export class ApplicationService {
           { rejection_reason: { [Op.iLike]: `%${filters.search}%` } },
           { interview_notes: { [Op.iLike]: `%${filters.search}%` } },
           { home_visit_notes: { [Op.iLike]: `%${filters.search}%` } },
+          // Search in user fields
+          { '$User.first_name$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$User.last_name$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$User.email$': { [Op.iLike]: `%${filters.search}%` } },
+          // Search in pet fields
+          { '$Pet.name$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$Pet.breed$': { [Op.iLike]: `%${filters.search}%` } },
         ];
         (whereConditions as Record<string | symbol, unknown>)[Op.or] = searchConditions;
       }

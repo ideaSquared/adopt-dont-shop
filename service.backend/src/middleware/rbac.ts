@@ -49,18 +49,6 @@ export const requirePermission = (requiredPermission: string) => {
       return;
     }
 
-    // Debug: Log the user's roles and permissions structure
-    console.log(
-      'User roles:',
-      req.user.Roles?.map(role => ({
-        name: role.name,
-        permissions: role.Permissions?.map(p => ({
-          id: (p as any).permissionId,
-          name: (p as any).permissionName,
-        })),
-      }))
-    );
-
     // Check if user has the required permission through roles
     const hasPermission = req.user.Roles?.some(role =>
       role.Permissions?.some(

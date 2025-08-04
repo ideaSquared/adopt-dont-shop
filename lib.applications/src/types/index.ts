@@ -88,12 +88,15 @@ export type ApplicationStatus =
   | 'withdrawn'
   | 'expired';
 
+export type ApplicationPriority = 'low' | 'normal' | 'high' | 'urgent';
+
 export interface Application {
   id: string;
   petId: string;
   userId: string;
   rescueId: string;
   status: ApplicationStatus;
+  priority?: ApplicationPriority;
   submittedAt?: string;
   reviewedAt?: string;
   reviewedBy?: string;

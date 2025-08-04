@@ -231,12 +231,6 @@ export class ApplicationController extends BaseController {
     // Extract personal info from answers (common pattern in adoption forms)
     const answers = (applicationModel.answers as Record<string, unknown>) || {};
 
-    // DEBUG: Log the actual data structure
-    console.log('🔍 DEBUG: Transform ApplicationModel');
-    console.log('📊 Raw answers from database:', JSON.stringify(answers, null, 2));
-    console.log('👤 User data:', JSON.stringify(User, null, 2));
-    console.log('🐕 Pet data:', JSON.stringify(Pet, null, 2));
-
     const personalInfo = {
       firstName:
         (User?.first_name as string) ||
@@ -267,9 +261,6 @@ export class ApplicationController extends BaseController {
         : (answers.dateOfBirth as string),
       occupation: answers.occupation as string, // Occupation typically comes from form answers
     };
-
-    // DEBUG: Log what we extracted
-    console.log('✅ Extracted personalInfo:', JSON.stringify(personalInfo, null, 2));
 
     // Extract living situation from answers
     const livingsituation = {
