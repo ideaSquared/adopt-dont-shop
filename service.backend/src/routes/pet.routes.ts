@@ -1324,7 +1324,7 @@ router.get('/:petId/similar', PetController.validatePetId, petController.getSimi
 router.post(
   '/',
   authenticateToken,
-  requirePermission('pets:create'),
+  requirePermission('pets.create'),
   PetController.validateCreatePet,
   petController.createPet
 );
@@ -1332,7 +1332,7 @@ router.post(
 router.put(
   '/:petId',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validateUpdatePet,
   petController.updatePet
 );
@@ -1340,7 +1340,7 @@ router.put(
 router.patch(
   '/:petId',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validateUpdatePet,
   petController.updatePet
 );
@@ -1348,7 +1348,7 @@ router.patch(
 router.delete(
   '/:petId',
   authenticateToken,
-  requirePermission('pets:delete'),
+  requirePermission('pets.delete'),
   PetController.validatePetId,
   petController.deletePet
 );
@@ -1356,7 +1356,7 @@ router.delete(
 router.post(
   '/:petId/images',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validatePetId,
   petController.updatePetImages
 );
@@ -1364,7 +1364,7 @@ router.post(
 router.delete(
   '/:petId/images',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validatePetId,
   petController.removePetImage
 );
@@ -1372,7 +1372,7 @@ router.delete(
 router.patch(
   '/:petId/status',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validatePetId,
   petController.updatePetStatus
 );

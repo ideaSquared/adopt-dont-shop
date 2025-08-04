@@ -53,8 +53,18 @@ export class PetController {
       .withMessage('Long description must be between 10 and 5000 characters'),
     body('adoptionFee')
       .optional()
-      .isFloat({ min: 0 })
-      .withMessage('Adoption fee must be a positive number'),
+      .custom(value => {
+        // Allow empty string, null, undefined (will be converted to null)
+        if (value === '' || value === null || value === undefined) {
+          return true;
+        }
+        // If value is provided, it must be a valid positive number
+        if (isNaN(value) || parseFloat(value) < 0) {
+          throw new Error('Adoption fee must be a positive number');
+        }
+        return true;
+      })
+      .withMessage('Adoption fee must be a positive number or empty'),
     body('energyLevel')
       .optional()
       .isIn(['low', 'medium', 'high', 'very_high'])
@@ -109,8 +119,18 @@ export class PetController {
       .withMessage('Size must be extra_small, small, medium, large, or extra_large'),
     body('adoptionFee')
       .optional()
-      .isFloat({ min: 0 })
-      .withMessage('Adoption fee must be a positive number'),
+      .custom(value => {
+        // Allow empty string, null, undefined (will be converted to null)
+        if (value === '' || value === null || value === undefined) {
+          return true;
+        }
+        // If value is provided, it must be a valid positive number
+        if (isNaN(value) || parseFloat(value) < 0) {
+          throw new Error('Adoption fee must be a positive number');
+        }
+        return true;
+      })
+      .withMessage('Adoption fee must be a positive number or empty'),
     body('energyLevel')
       .optional()
       .isIn(['low', 'medium', 'high', 'very_high'])
@@ -282,8 +302,17 @@ export class PetController {
   // Create a new pet
   createPet = async (req: AuthenticatedRequest, res: Response) => {
     try {
+      logger.info('Pet creation request received', {
+        userId: req.user?.userId,
+        bodyKeys: Object.keys(req.body),
+      });
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        logger.warn('Pet creation validation failed', {
+          errors: errors.array(),
+          userId: req.user?.userId,
+        });
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
@@ -291,7 +320,57 @@ export class PetController {
         });
       }
 
-      const pet = await this.petService.createPet(req.body, req.body.rescueId, req.user!.userId);
+      const user = req.user;
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+        });
+      }
+
+      // Import StaffMember model to get rescue ID
+      const StaffMember = (await import('../models/StaffMember')).default;
+
+      // Find the user's rescue association
+      const staffMember = await StaffMember.findOne({
+        where: {
+          userId: user.userId,
+          isDeleted: false,
+          isVerified: true,
+        },
+      });
+
+      if (!staffMember) {
+        return res.status(403).json({
+          success: false,
+          message: 'User is not associated with a rescue organization',
+        });
+      }
+
+      logger.info('Creating pet for rescue', { rescueId: staffMember.rescueId });
+
+      // Sanitize request body - convert empty strings to null for numeric fields
+      const sanitizedBody = { ...req.body };
+
+      // Handle numeric fields that might be empty strings
+      const numericFields = ['adoption_fee', 'adoptionFee', 'weight_kg', 'weightKg'];
+      numericFields.forEach(field => {
+        if (
+          sanitizedBody[field] === '' ||
+          sanitizedBody[field] === null ||
+          sanitizedBody[field] === undefined
+        ) {
+          sanitizedBody[field] = null;
+        }
+      });
+
+      // Use the rescue ID from the staff member association
+      const pet = await this.petService.createPet(
+        sanitizedBody,
+        staffMember.rescueId,
+        req.user!.userId
+      );
 
       res.status(201).json({
         success: true,
@@ -299,6 +378,7 @@ export class PetController {
         data: pet,
       });
     } catch (error) {
+      console.error('Create pet failed:', error);
       logger.error('Create pet failed:', error);
       res.status(500).json({
         success: false,
@@ -356,7 +436,26 @@ export class PetController {
         });
       }
 
-      const pet = await this.petService.updatePet(req.params.petId, req.body, req.user!.userId);
+      // Sanitize request body - convert empty strings to null for numeric fields
+      const sanitizedBody = { ...req.body };
+
+      // Handle numeric fields that might be empty strings
+      const numericFields = ['adoption_fee', 'adoptionFee', 'weight_kg', 'weightKg'];
+      numericFields.forEach(field => {
+        if (
+          sanitizedBody[field] === '' ||
+          sanitizedBody[field] === null ||
+          sanitizedBody[field] === undefined
+        ) {
+          sanitizedBody[field] = null;
+        }
+      });
+
+      const pet = await this.petService.updatePet(
+        req.params.petId,
+        sanitizedBody,
+        req.user!.userId
+      );
 
       res.status(200).json({
         success: true,

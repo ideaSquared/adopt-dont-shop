@@ -1,6 +1,8 @@
 import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
+import Role from '../models/Role';
+import Permission from '../models/Permission';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger, loggerHelpers } from '../utils/logger';
 
@@ -39,7 +41,18 @@ export const authenticateToken = async (
 
     // Fetch user from database to ensure they still exist and are active
     const user = await User.findByPk(decoded.userId, {
-      include: ['Roles'],
+      include: [
+        {
+          model: Role,
+          as: 'Roles',
+          include: [
+            {
+              model: Permission,
+              as: 'Permissions',
+            },
+          ],
+        },
+      ],
     });
 
     if (!user) {
@@ -55,6 +68,13 @@ export const authenticateToken = async (
       res.status(401).json({ error: 'User not found' });
       return;
     }
+
+    // Debug: Log loaded user data structure
+    logger.info('🔍 Auth Middleware - User loaded with roles and permissions', {
+      userId: decoded.userId,
+      email: user.email,
+      rolesCount: user.Roles?.length || 0,
+    });
 
     if (user.status !== 'active') {
       loggerHelpers.logSecurity(
@@ -129,7 +149,18 @@ export const optionalAuth = async (
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     const user = await User.findByPk(decoded.userId, {
-      include: ['Roles'],
+      include: [
+        {
+          model: Role,
+          as: 'Roles',
+          include: [
+            {
+              model: Permission,
+              as: 'Permissions',
+            },
+          ],
+        },
+      ],
     });
 
     if (user && user.status === 'active') {
@@ -236,7 +267,18 @@ export const authenticateOptionalToken = async (
 
     // Fetch user from database to ensure they still exist and are active
     const user = await User.findByPk(decoded.userId, {
-      include: ['Roles'],
+      include: [
+        {
+          model: Role,
+          as: 'Roles',
+          include: [
+            {
+              model: Permission,
+              as: 'Permissions',
+            },
+          ],
+        },
+      ],
     });
 
     if (!user) {
@@ -246,11 +288,7 @@ export const authenticateOptionalToken = async (
     }
 
     // Attach user to request if found
-    req.user = {
-      userId: user.userId,
-      email: user.email,
-      userType: user.userType,
-    };
+    req.user = user;
 
     logger.info('Optional authentication successful', {
       userId: user.userId,

@@ -188,6 +188,7 @@ const rolePermissionMappings = {
     'pets.create',
     'pets.read',
     'pets.update',
+    'pets.delete',
     'pets.list',
     'applications.read',
     'applications.update',

@@ -55,9 +55,11 @@ export class PetManagementService {
    */
   async createPet(petData: PetCreateData): Promise<Pet> {
     try {
+      const transformedData = this.transformPetDataForAPI(petData);
+
       const response = await this.apiService.post<ApiResponse<Pet>>(
         PETS_ENDPOINTS.PETS,
-        this.transformPetDataForAPI(petData)
+        transformedData
       );
 
       if (response.success && response.data) {
@@ -413,7 +415,6 @@ export class PetManagementService {
       specialNeeds: 'special_needs',
       spayNeuterStatus: 'spay_neuter_status',
       vaccinationStatus: 'vaccination_status',
-      rescueId: 'rescue_id',
       ageYears: 'age_years',
       ageMonths: 'age_months',
     };
@@ -424,6 +425,9 @@ export class PetManagementService {
         delete transformed[frontendKey];
       }
     });
+
+    // Remove rescueId as it's automatically determined by the backend from the authenticated user
+    delete transformed.rescueId;
 
     return transformed;
   }
