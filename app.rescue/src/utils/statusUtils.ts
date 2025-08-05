@@ -2,7 +2,7 @@
  * Utility functions for formatting and handling application statuses
  */
 
-export type ApplicationStatus = 
+export type ApplicationStatus =
   | 'draft'
   | 'submitted'
   | 'under_review'
@@ -26,28 +26,31 @@ export type ApplicationStatus =
  */
 export const formatStatusName = (status: string): string => {
   const statusMap: Record<string, string> = {
-    'draft': 'Draft',
-    'submitted': 'Submitted',
-    'under_review': 'Under Review',
-    'pending_references': 'Pending References',
-    'reference_check': 'Reference Check',
-    'interview_scheduled': 'Interview Scheduled',
-    'interview_completed': 'Interview Completed',
-    'home_visit_scheduled': 'Home Visit Scheduled',
-    'home_visit_completed': 'Home Visit Completed',
-    'conditionally_approved': 'Conditionally Approved',
-    'approved': 'Approved',
-    'rejected': 'Rejected',
-    'withdrawn': 'Withdrawn',
-    'expired': 'Expired',
-    'on_hold': 'On Hold'
+    draft: 'Draft',
+    submitted: 'Submitted',
+    under_review: 'Under Review',
+    pending_references: 'Pending References',
+    reference_check: 'Reference Check',
+    interview_scheduled: 'Interview Scheduled',
+    interview_completed: 'Interview Completed',
+    home_visit_scheduled: 'Home Visit Scheduled',
+    home_visit_completed: 'Home Visit Completed',
+    conditionally_approved: 'Conditionally Approved',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    withdrawn: 'Withdrawn',
+    expired: 'Expired',
+    on_hold: 'On Hold',
   };
 
   // Return mapped value or fallback to title case conversion
-  return statusMap[status] || status
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  return (
+    statusMap[status] ||
+    status
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  );
 };
 
 /**
@@ -55,7 +58,9 @@ export const formatStatusName = (status: string): string => {
  * @param status - The status string
  * @returns Color variant string
  */
-export const getStatusColor = (status: string): 'primary' | 'success' | 'warning' | 'danger' | 'secondary' => {
+export const getStatusColor = (
+  status: string
+): 'primary' | 'success' | 'warning' | 'danger' | 'secondary' => {
   switch (status) {
     case 'approved':
       return 'success';
@@ -88,21 +93,21 @@ export const getStatusColor = (status: string): 'primary' | 'success' | 'warning
  */
 export const getStatusDescription = (status: string): string => {
   const descriptions: Record<string, string> = {
-    'draft': 'Application is being prepared',
-    'submitted': 'Application has been submitted for review',
-    'under_review': 'Application is being reviewed by staff',
-    'pending_references': 'Waiting for reference checks to be completed',
-    'reference_check': 'Reference checks are in progress',
-    'interview_scheduled': 'Interview has been scheduled with applicant',
-    'interview_completed': 'Interview has been completed',
-    'home_visit_scheduled': 'Home visit has been scheduled',
-    'home_visit_completed': 'Home visit has been completed',
-    'conditionally_approved': 'Approved with conditions that must be met',
-    'approved': 'Application has been approved',
-    'rejected': 'Application has been rejected',
-    'withdrawn': 'Application was withdrawn by applicant',
-    'expired': 'Application has expired due to inactivity',
-    'on_hold': 'Application is temporarily on hold'
+    draft: 'Application is being prepared',
+    submitted: 'Application has been submitted for review',
+    under_review: 'Application is being reviewed by staff',
+    pending_references: 'Waiting for reference checks to be completed',
+    reference_check: 'Reference checks are in progress',
+    interview_scheduled: 'Interview has been scheduled with applicant',
+    interview_completed: 'Interview has been completed',
+    home_visit_scheduled: 'Home visit has been scheduled',
+    home_visit_completed: 'Home visit has been completed',
+    conditionally_approved: 'Approved with conditions that must be met',
+    approved: 'Application has been approved',
+    rejected: 'Application has been rejected',
+    withdrawn: 'Application was withdrawn by applicant',
+    expired: 'Application has expired due to inactivity',
+    on_hold: 'Application is temporarily on hold',
   };
 
   return descriptions[status] || 'Status information not available';
@@ -125,18 +130,18 @@ export const isFinalStatus = (status: string): boolean => {
  */
 export const getStatusPriority = (status: string): number => {
   const priorities: Record<string, number> = {
-    'submitted': 1,
-    'under_review': 2,
-    'pending_references': 3,
-    'interview_scheduled': 4,
-    'home_visit_scheduled': 5,
-    'conditionally_approved': 6,
-    'approved': 7,
-    'rejected': 8,
-    'withdrawn': 9,
-    'expired': 10,
-    'draft': 11,
-    'on_hold': 12
+    submitted: 1,
+    under_review: 2,
+    pending_references: 3,
+    interview_scheduled: 4,
+    home_visit_scheduled: 5,
+    conditionally_approved: 6,
+    approved: 7,
+    rejected: 8,
+    withdrawn: 9,
+    expired: 10,
+    draft: 11,
+    on_hold: 12,
   };
 
   return priorities[status] || 999;
