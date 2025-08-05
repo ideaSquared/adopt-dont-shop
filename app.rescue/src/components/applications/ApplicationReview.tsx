@@ -726,6 +726,247 @@ const ButtonGroup = styled.div`
   justify-content: flex-end;
 `;
 
+// Home Visit Styled Components
+const ScheduleVisitForm = styled.div`
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`;
+
+const ScheduleVisitTitle = styled.h4`
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &::before {
+    content: '🏠';
+    font-size: 1.2em;
+  }
+`;
+
+const FormInput = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.2s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const EmptyVisits = styled.div`
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #6b7280;
+  background: #fafbfc;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.75rem;
+  
+  p {
+    margin: 0 0 0.5rem 0;
+    
+    &:first-child {
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: #4b5563;
+      margin-bottom: 1rem;
+    }
+    
+    &:last-child {
+      font-size: 0.9375rem;
+      line-height: 1.5;
+    }
+  }
+`;
+
+const VisitCard = styled.div`
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`;
+
+const VisitHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+`;
+
+const VisitInfo = styled.div``;
+
+const VisitDate = styled.h4`
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+`;
+
+const VisitTime = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.25rem 0;
+`;
+
+const VisitStaff = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+`;
+
+const VisitStatus = styled.span<{ $status: string }>`
+  display: inline-flex;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  
+  ${props => {
+    switch (props.$status) {
+      case 'scheduled':
+        return 'background: #dbeafe; color: #1e40af;';
+      case 'in_progress':
+        return 'background: #fef3c7; color: #92400e;';
+      case 'completed':
+        return 'background: #dcfce7; color: #166534;';
+      case 'cancelled':
+        return 'background: #fecaca; color: #dc2626;';
+      default:
+        return 'background: #f3f4f6; color: #374151;';
+    }
+  }}
+`;
+
+const VisitNotes = styled.div`
+  font-size: 0.875rem;
+  color: #374151;
+  background: #f9fafb;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin: 1rem 0;
+  
+  strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+  }
+`;
+
+const VisitCompletedInfo = styled.div`
+  margin: 1rem 0;
+`;
+
+const VisitOutcome = styled.span<{ $outcome: string }>`
+  display: inline-flex;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  
+  ${props => {
+    switch (props.$outcome) {
+      case 'approved':
+        return 'background: #dcfce7; color: #166534;';
+      case 'conditional':
+        return 'background: #fef3c7; color: #92400e;';
+      case 'rejected':
+        return 'background: #fecaca; color: #dc2626;';
+      default:
+        return 'background: #f3f4f6; color: #374151;';
+    }
+  }}
+`;
+
+const VisitActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+`;
+
+const RescheduleForm = styled.div`
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+`;
+
+const RescheduleTitle = styled.h5`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #92400e;
+  margin: 0 0 1rem 0;
+`;
+
+const CompleteVisitForm = styled.div`
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+`;
+
+const CompleteVisitTitle = styled.h5`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #047857;
+  margin: 0 0 1rem 0;
+`;
+
+const VisitDetailsModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const VisitDetailsContent = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+`;
+
+const VisitDetailsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  
+  h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+  }
+`;
+
 interface ApplicationReviewProps {
   application: any;
   references: ReferenceCheck[];
@@ -776,6 +1017,29 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   // Local state for optimistic application status updates
   const [localApplicationStatus, setLocalApplicationStatus] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Home Visits state
+  const [showScheduleVisit, setShowScheduleVisit] = useState(false);
+  const [visitForm, setVisitForm] = useState({
+    scheduledDate: '',
+    scheduledTime: '',
+    assignedStaff: '',
+    notes: ''
+  });
+  const [isSchedulingVisit, setIsSchedulingVisit] = useState(false);
+  const [editingVisit, setEditingVisit] = useState<string | null>(null);
+  const [rescheduleForm, setRescheduleForm] = useState({
+    scheduledDate: '',
+    scheduledTime: '',
+    reason: ''
+  });
+  const [completingVisit, setCompletingVisit] = useState<string | null>(null);
+  const [completeForm, setCompleteForm] = useState({
+    outcome: '' as 'approved' | 'rejected' | 'conditional' | '',
+    notes: '',
+    conditions: ''
+  });
+  const [viewingVisit, setViewingVisit] = useState<string | null>(null);
 
   // Helper functions for timeline
   const formatTimelineTimestamp = (timestamp: string) => {
@@ -869,6 +1133,28 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   useEffect(() => {
     setReferenceUpdates({});
     setLocalApplicationStatus(null); // Clear local status when application changes
+    
+    // Clear home visit forms
+    setShowScheduleVisit(false);
+    setEditingVisit(null);
+    setCompletingVisit(null);
+    setViewingVisit(null);
+    setVisitForm({
+      scheduledDate: '',
+      scheduledTime: '',
+      assignedStaff: '',
+      notes: ''
+    });
+    setRescheduleForm({
+      scheduledDate: '',
+      scheduledTime: '',
+      reason: ''
+    });
+    setCompleteForm({
+      outcome: '',
+      notes: '',
+      conditions: ''
+    });
   }, [application?.id]);
   
   // Clear local status when application status actually changes from backend
@@ -1009,6 +1295,134 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         [field]: value
       }
     }));
+  };
+
+  // Home Visit Handlers
+  const handleScheduleVisit = async () => {
+    try {
+      setIsSchedulingVisit(true);
+      await onScheduleVisit({
+        scheduledDate: visitForm.scheduledDate,
+        scheduledTime: visitForm.scheduledTime,
+        assignedStaff: visitForm.assignedStaff,
+        notes: visitForm.notes
+      });
+      
+      // Reset form and close modal
+      setVisitForm({
+        scheduledDate: '',
+        scheduledTime: '',
+        assignedStaff: '',
+        notes: ''
+      });
+      setShowScheduleVisit(false);
+      
+      // Refresh data if callback provided
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to schedule visit:', error);
+      alert(`Failed to schedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSchedulingVisit(false);
+    }
+  };
+
+  const handleMarkVisitInProgress = async (visitId: string) => {
+    try {
+      await onUpdateVisit(visitId, { 
+        status: 'in_progress',
+        startedAt: new Date().toISOString()
+      });
+      
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to mark visit as in progress:', error);
+      alert(`Failed to update visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleRescheduleVisit = async (visitId: string) => {
+    try {
+      // Just update the date/time, stay in 'scheduled' status
+      await onUpdateVisit(visitId, {
+        scheduledDate: rescheduleForm.scheduledDate,
+        scheduledTime: rescheduleForm.scheduledTime,
+        notes: rescheduleForm.reason ? `Rescheduled: ${rescheduleForm.reason}` : undefined
+      });
+      
+      // Reset form and close modal
+      setRescheduleForm({
+        scheduledDate: '',
+        scheduledTime: '',
+        reason: ''
+      });
+      setEditingVisit(null);
+      
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to reschedule visit:', error);
+      alert(`Failed to reschedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleCompleteVisit = async (visitId: string) => {
+    try {
+      const updateData: any = {
+        status: 'completed',
+        outcome: completeForm.outcome,
+        notes: completeForm.notes,
+        completedAt: new Date().toISOString()
+      };
+
+      if (completeForm.outcome === 'conditional' && completeForm.conditions) {
+        updateData.conditions = completeForm.conditions;
+      }
+
+      await onUpdateVisit(visitId, updateData);
+      
+      // Reset form and close modal
+      setCompleteForm({
+        outcome: '',
+        notes: '',
+        conditions: ''
+      });
+      setCompletingVisit(null);
+      
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to complete visit:', error);
+      alert(`Failed to complete visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleCancelVisit = async (visitId: string) => {
+    const reason = prompt('Please enter a reason for cancelling this visit:');
+    if (!reason) {
+      return; // User cancelled or didn't provide reason
+    }
+
+    try {
+      await onUpdateVisit(visitId, {
+        status: 'cancelled',
+        cancelReason: reason,
+        cancelledAt: new Date().toISOString()
+      });
+      
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to cancel visit:', error);
+      alert(`Failed to cancel visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   if (loading) {
@@ -1480,8 +1894,366 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           {/* Home Visits Tab */}
           <TabPanel $active={activeTab === 'visits'}>
             <Section>
-              <SectionTitle>Home Visits</SectionTitle>
-              <p>Home visit functionality would be implemented here.</p>
+              <SectionHeader>
+                <SectionTitle>Home Visits</SectionTitle>
+                <Button
+                  variant="primary"
+                  onClick={() => setShowScheduleVisit(true)}
+                  disabled={homeVisits.some(v => v.status === 'scheduled' || v.status === 'in_progress')}
+                >
+                  {homeVisits.some(v => v.status === 'scheduled' || v.status === 'in_progress') 
+                    ? 'Visit Already Scheduled' 
+                    : 'Schedule Visit'
+                  }
+                </Button>
+              </SectionHeader>
+
+              {showScheduleVisit && (
+                <ScheduleVisitForm>
+                  <ScheduleVisitTitle>Schedule Home Visit</ScheduleVisitTitle>
+                  <FormRow>
+                    <FormGroup>
+                      <FormLabel>Date</FormLabel>
+                      <FormInput
+                        type="date"
+                        value={visitForm.scheduledDate}
+                        onChange={(e) => setVisitForm(prev => ({ ...prev, scheduledDate: e.target.value }))}
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                    </FormGroup>
+                    <FormGroup>
+                      <FormLabel>Time</FormLabel>
+                      <FormInput
+                        type="time"
+                        value={visitForm.scheduledTime}
+                        onChange={(e) => setVisitForm(prev => ({ ...prev, scheduledTime: e.target.value }))}
+                      />
+                    </FormGroup>
+                  </FormRow>
+                  <FormRow>
+                    <FormGroup>
+                      <FormLabel>Assigned Staff</FormLabel>
+                      <FormSelect
+                        value={visitForm.assignedStaff}
+                        onChange={(e) => setVisitForm(prev => ({ ...prev, assignedStaff: e.target.value }))}
+                      >
+                        <option value="">Select staff member...</option>
+                        <option value="John Smith">John Smith</option>
+                        <option value="Sarah Johnson">Sarah Johnson</option>
+                        <option value="Mike Davis">Mike Davis</option>
+                        <option value="Lisa Wilson">Lisa Wilson</option>
+                      </FormSelect>
+                    </FormGroup>
+                  </FormRow>
+                  <FormRow>
+                    <FormGroup>
+                      <FormLabel>Visit Notes (optional)</FormLabel>
+                      <FormTextarea
+                        value={visitForm.notes}
+                        onChange={(e) => setVisitForm(prev => ({ ...prev, notes: e.target.value }))}
+                        placeholder="Any special instructions or notes for the visit..."
+                        rows={3}
+                      />
+                    </FormGroup>
+                  </FormRow>
+                  <FormActions>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setShowScheduleVisit(false);
+                        setVisitForm({
+                          scheduledDate: '',
+                          scheduledTime: '',
+                          assignedStaff: '',
+                          notes: ''
+                        });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={handleScheduleVisit}
+                      disabled={!visitForm.scheduledDate || !visitForm.scheduledTime || !visitForm.assignedStaff || isSchedulingVisit}
+                    >
+                      {isSchedulingVisit ? 'Scheduling...' : 'Schedule Visit'}
+                    </Button>
+                  </FormActions>
+                </ScheduleVisitForm>
+              )}
+
+              {homeVisits.length === 0 ? (
+                <EmptyVisits>
+                  <p>No home visits scheduled yet.</p>
+                  <p>Schedule a home visit to assess the applicant's living situation and suitability for pet adoption.</p>
+                </EmptyVisits>
+              ) : (
+                homeVisits.map((visit) => (
+                  <VisitCard key={visit.id}>
+                    <VisitHeader>
+                      <VisitInfo>
+                        <VisitDate>
+                          {new Date(visit.scheduledDate).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </VisitDate>
+                        <VisitTime>at {visit.scheduledTime}</VisitTime>
+                        <VisitStaff>Assigned to: {visit.assignedStaff}</VisitStaff>
+                      </VisitInfo>
+                      <VisitStatus $status={visit.status}>
+                        {visit.status.replace('_', ' ').toUpperCase()}
+                      </VisitStatus>
+                    </VisitHeader>
+
+                    {visit.notes && (
+                      <VisitNotes>
+                        <strong>Visit Notes:</strong>
+                        <div>{visit.notes}</div>
+                      </VisitNotes>
+                    )}
+
+                    {visit.completedAt && (
+                      <VisitCompletedInfo>
+                        <Field>
+                          <FieldLabel>Completed On</FieldLabel>
+                          <FieldValue>
+                            {new Date(visit.completedAt).toLocaleDateString()} at{' '}
+                            {new Date(visit.completedAt).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </FieldValue>
+                        </Field>
+                        {visit.outcome && (
+                          <Field>
+                            <FieldLabel>Outcome</FieldLabel>
+                            <FieldValue>
+                              <VisitOutcome $outcome={visit.outcome}>
+                                {visit.outcome.charAt(0).toUpperCase() + visit.outcome.slice(1)}
+                              </VisitOutcome>
+                            </FieldValue>
+                          </Field>
+                        )}
+                      </VisitCompletedInfo>
+                    )}
+
+                    <VisitActions>
+                      {visit.status === 'scheduled' && (
+                        <>
+                          <Button
+                            variant="primary"
+                            onClick={() => handleMarkVisitInProgress(visit.id)}
+                          >
+                            🏁 Start Visit
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              setEditingVisit(visit.id);
+                              setRescheduleForm({
+                                scheduledDate: visit.scheduledDate,
+                                scheduledTime: visit.scheduledTime,
+                                reason: ''
+                              });
+                            }}
+                          >
+                            📅 Reschedule
+                          </Button>
+                          <Button
+                            variant="danger"
+                            onClick={() => handleCancelVisit(visit.id)}
+                          >
+                            ❌ Cancel Visit
+                          </Button>
+                        </>
+                      )}
+                      
+                      {visit.status === 'in_progress' && (
+                        <>
+                          <Button
+                            variant="primary"
+                            onClick={() => setCompletingVisit(visit.id)}
+                          >
+                            ✅ Complete Visit
+                          </Button>
+                          <Button
+                            variant="danger"
+                            onClick={() => handleCancelVisit(visit.id)}
+                          >
+                            ❌ Cancel Visit
+                          </Button>
+                        </>
+                      )}
+
+                      {visit.status === 'completed' && (
+                        <>
+                          <Button
+                            variant="secondary"
+                            onClick={() => setViewingVisit(visit.id)}
+                          >
+                            👁️ View Details
+                          </Button>
+                          <Button
+                            variant="primary"
+                            onClick={() => setShowScheduleVisit(true)}
+                          >
+                            🏠 Schedule Follow-up
+                          </Button>
+                        </>
+                      )}
+
+                      {visit.status === 'cancelled' && (
+                        <>
+                          <Button
+                            variant="secondary"
+                            onClick={() => setViewingVisit(visit.id)}
+                          >
+                            👁️ View Details
+                          </Button>
+                          <Button
+                            variant="primary"
+                            onClick={() => setShowScheduleVisit(true)}
+                          >
+                            🏠 Schedule New Visit
+                          </Button>
+                        </>
+                      )}
+                    </VisitActions>
+
+                    {/* Reschedule Form */}
+                    {editingVisit === visit.id && (
+                      <RescheduleForm>
+                        <RescheduleTitle>Reschedule Home Visit</RescheduleTitle>
+                        <FormRow>
+                          <FormGroup>
+                            <FormLabel>New Date</FormLabel>
+                            <FormInput
+                              type="date"
+                              value={rescheduleForm.scheduledDate}
+                              onChange={(e) => setRescheduleForm(prev => ({ ...prev, scheduledDate: e.target.value }))}
+                              min={new Date().toISOString().split('T')[0]}
+                            />
+                          </FormGroup>
+                          <FormGroup>
+                            <FormLabel>New Time</FormLabel>
+                            <FormInput
+                              type="time"
+                              value={rescheduleForm.scheduledTime}
+                              onChange={(e) => setRescheduleForm(prev => ({ ...prev, scheduledTime: e.target.value }))}
+                            />
+                          </FormGroup>
+                        </FormRow>
+                        <FormRow>
+                          <FormGroup>
+                            <FormLabel>Reason for Rescheduling</FormLabel>
+                            <FormTextarea
+                              value={rescheduleForm.reason}
+                              onChange={(e) => setRescheduleForm(prev => ({ ...prev, reason: e.target.value }))}
+                              placeholder="Why is this visit being rescheduled?"
+                              rows={2}
+                            />
+                          </FormGroup>
+                        </FormRow>
+                        <FormActions>
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              setEditingVisit(null);
+                              setRescheduleForm({
+                                scheduledDate: visit.scheduledDate,
+                                scheduledTime: visit.scheduledTime,
+                                reason: ''
+                              });
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="primary"
+                            onClick={() => handleRescheduleVisit(visit.id)}
+                            disabled={!rescheduleForm.scheduledDate || !rescheduleForm.scheduledTime || !rescheduleForm.reason}
+                          >
+                            Reschedule Visit
+                          </Button>
+                        </FormActions>
+                      </RescheduleForm>
+                    )}
+
+                    {/* Complete Visit Form */}
+                    {completingVisit === visit.id && (
+                      <CompleteVisitForm>
+                        <CompleteVisitTitle>Complete Home Visit</CompleteVisitTitle>
+                        <FormRow>
+                          <FormGroup>
+                            <FormLabel>Visit Outcome</FormLabel>
+                            <FormSelect
+                              value={completeForm.outcome}
+                              onChange={(e) => setCompleteForm(prev => ({ 
+                                ...prev, 
+                                outcome: e.target.value as 'approved' | 'rejected' | 'conditional' 
+                              }))}
+                            >
+                              <option value="">Select outcome...</option>
+                              <option value="approved">Approved - Home is suitable</option>
+                              <option value="conditional">Conditional - Some concerns need addressing</option>
+                              <option value="rejected">Rejected - Home is not suitable</option>
+                            </FormSelect>
+                          </FormGroup>
+                        </FormRow>
+                        <FormRow>
+                          <FormGroup>
+                            <FormLabel>Visit Summary</FormLabel>
+                            <FormTextarea
+                              value={completeForm.notes}
+                              onChange={(e) => setCompleteForm(prev => ({ ...prev, notes: e.target.value }))}
+                              placeholder="Provide a detailed summary of the home visit findings..."
+                              rows={4}
+                            />
+                          </FormGroup>
+                        </FormRow>
+                        {completeForm.outcome === 'conditional' && (
+                          <FormRow>
+                            <FormGroup>
+                              <FormLabel>Conditions to Address</FormLabel>
+                              <FormTextarea
+                                value={completeForm.conditions}
+                                onChange={(e) => setCompleteForm(prev => ({ ...prev, conditions: e.target.value }))}
+                                placeholder="List specific conditions that need to be met..."
+                                rows={3}
+                              />
+                            </FormGroup>
+                          </FormRow>
+                        )}
+                        <FormActions>
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              setCompletingVisit(null);
+                              setCompleteForm({
+                                outcome: '',
+                                notes: '',
+                                conditions: ''
+                              });
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="primary"
+                            onClick={() => handleCompleteVisit(visit.id)}
+                            disabled={!completeForm.outcome || !completeForm.notes}
+                          >
+                            Complete Visit
+                          </Button>
+                        </FormActions>
+                      </CompleteVisitForm>
+                    )}
+                  </VisitCard>
+                ))
+              )}
             </Section>
           </TabPanel>
 
@@ -1608,6 +2380,91 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           </TabPanel>
         </Content>
       </Modal>
+
+      {/* Visit Details Modal */}
+      {viewingVisit && homeVisits.find(v => v.id === viewingVisit) && (
+        <VisitDetailsModal onClick={() => setViewingVisit(null)}>
+          <VisitDetailsContent onClick={(e) => e.stopPropagation()}>
+            <VisitDetailsHeader>
+              <h4>Visit Details</h4>
+              <Button onClick={() => setViewingVisit(null)}>×</Button>
+            </VisitDetailsHeader>
+            <div style={{ padding: '1rem' }}>
+              {(() => {
+                const visit = homeVisits.find(v => v.id === viewingVisit);
+                if (!visit) return null;
+                
+                return (
+                  <>
+                    <Field>
+                      <FieldLabel>Original Date</FieldLabel>
+                      <FieldValue>
+                        {new Date(visit.scheduledDate).toLocaleDateString()} at {visit.scheduledTime}
+                      </FieldValue>
+                    </Field>
+                    <Field>
+                      <FieldLabel>Staff Member</FieldLabel>
+                      <FieldValue>{visit.assignedStaff}</FieldValue>
+                    </Field>
+                    <Field>
+                      <FieldLabel>Status</FieldLabel>
+                      <FieldValue>
+                        <VisitStatus $status={visit.status}>
+                          {visit.status.replace('_', ' ').toUpperCase()}
+                        </VisitStatus>
+                      </FieldValue>
+                    </Field>
+                    {visit.outcome && (
+                      <Field>
+                        <FieldLabel>Outcome</FieldLabel>
+                        <FieldValue>
+                          <VisitOutcome $outcome={visit.outcome}>
+                            {visit.outcome.charAt(0).toUpperCase() + visit.outcome.slice(1)}
+                          </VisitOutcome>
+                        </FieldValue>
+                      </Field>
+                    )}
+                    {visit.cancelReason && (
+                      <FieldVertical>
+                        <FieldLabel>Cancellation Reason</FieldLabel>
+                        <FieldValueFullWidth>{visit.cancelReason}</FieldValueFullWidth>
+                      </FieldVertical>
+                    )}
+                    {visit.completedAt && (
+                      <Field>
+                        <FieldLabel>Completed At</FieldLabel>
+                        <FieldValue>
+                          {new Date(visit.completedAt).toLocaleDateString()} at {new Date(visit.completedAt).toLocaleTimeString()}
+                        </FieldValue>
+                      </Field>
+                    )}
+                    {visit.cancelledAt && (
+                      <Field>
+                        <FieldLabel>Cancelled At</FieldLabel>
+                        <FieldValue>
+                          {new Date(visit.cancelledAt).toLocaleDateString()} at {new Date(visit.cancelledAt).toLocaleTimeString()}
+                        </FieldValue>
+                      </Field>
+                    )}
+                    {visit.notes && (
+                      <FieldVertical>
+                        <FieldLabel>Visit Summary</FieldLabel>
+                        <FieldValueFullWidth>{visit.notes}</FieldValueFullWidth>
+                      </FieldVertical>
+                    )}
+                    {visit.outcomeNotes && (
+                      <FieldVertical>
+                        <FieldLabel>Outcome Notes</FieldLabel>
+                        <FieldValueFullWidth>{visit.outcomeNotes}</FieldValueFullWidth>
+                      </FieldVertical>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </VisitDetailsContent>
+        </VisitDetailsModal>
+      )}
     </Overlay>
   );
 };

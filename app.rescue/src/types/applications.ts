@@ -47,9 +47,12 @@ export interface HomeVisit {
   scheduledDate: string;
   scheduledTime: string;
   assignedStaff: string;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'rescheduled' | 'cancelled';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   notes?: string;
   outcome?: 'approved' | 'rejected' | 'conditional';
+  outcomeNotes?: string;
+  cancelReason?: string;
+  cancelledAt?: string;
   completedAt?: string;
 }
 

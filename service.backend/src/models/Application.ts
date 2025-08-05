@@ -28,6 +28,24 @@ export enum ApplicationPriority {
   URGENT = 'urgent',
 }
 
+// New simplified stage enum
+export enum ApplicationStage {
+  PENDING = 'pending',
+  REVIEWING = 'reviewing',
+  VISITING = 'visiting',
+  DECIDING = 'deciding',
+  RESOLVED = 'resolved',
+  WITHDRAWN = 'withdrawn',
+}
+
+// Final outcome enum for resolved applications
+export enum ApplicationOutcome {
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  CONDITIONAL = 'conditional',
+  WITHDRAWN = 'withdrawn',
+}
+
 interface ApplicationAttributes {
   application_id: string;
   user_id: string;
@@ -35,6 +53,18 @@ interface ApplicationAttributes {
   rescue_id: string;
   status: ApplicationStatus;
   priority: ApplicationPriority;
+
+  // New stage-based fields
+  stage: ApplicationStage;
+  final_outcome?: ApplicationOutcome | null;
+  review_started_at?: Date | null;
+  visit_scheduled_at?: Date | null;
+  visit_completed_at?: Date | null;
+  resolved_at?: Date | null;
+  withdrawal_reason?: string | null;
+  stage_rejection_reason?: string | null;
+
+  // Legacy fields (keep for migration)
   actioned_by?: string | null;
   actioned_at?: Date | null;
   rejection_reason?: string | null;
@@ -77,7 +107,7 @@ interface ApplicationAttributes {
 interface ApplicationCreationAttributes
   extends Optional<
     ApplicationAttributes,
-    'application_id' | 'status' | 'priority' | 'created_at' | 'updated_at' | 'deleted_at'
+    'application_id' | 'status' | 'priority' | 'stage' | 'created_at' | 'updated_at' | 'deleted_at'
   > {}
 
 class Application
@@ -90,6 +120,18 @@ class Application
   public rescue_id!: string;
   public status!: ApplicationStatus;
   public priority!: ApplicationPriority;
+
+  // New stage-based fields
+  public stage!: ApplicationStage;
+  public final_outcome!: ApplicationOutcome | null;
+  public review_started_at!: Date | null;
+  public visit_scheduled_at!: Date | null;
+  public visit_completed_at!: Date | null;
+  public resolved_at!: Date | null;
+  public withdrawal_reason!: string | null;
+  public stage_rejection_reason!: string | null;
+
+  // Legacy fields (keep for migration)
   public actioned_by!: string | null;
   public actioned_at!: Date | null;
   public rejection_reason!: string | null;
@@ -290,6 +332,46 @@ Application.init(
       allowNull: false,
       defaultValue: ApplicationPriority.NORMAL,
     },
+
+    // New stage-based fields
+    stage: {
+      type: DataTypes.ENUM(...Object.values(ApplicationStage)),
+      allowNull: false,
+      defaultValue: ApplicationStage.PENDING,
+    },
+    final_outcome: {
+      type: DataTypes.ENUM(...Object.values(ApplicationOutcome)),
+      allowNull: true,
+    },
+    review_started_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    visit_scheduled_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    visit_completed_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    resolved_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    withdrawal_reason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    stage_rejection_reason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      validate: {
+        len: [10, 2000],
+      },
+    },
+
+    // Legacy fields (keep for migration)
     actioned_by: {
       type: DataTypes.STRING,
       allowNull: true,

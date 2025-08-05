@@ -28,9 +28,19 @@ export interface ApplicationData {
   decision_at?: Date | null;
   expires_at?: Date | null;
   follow_up_date?: Date | null;
-  created_at: Date;
-  updated_at: Date;
+  created_at?: Date;
+  updated_at?: Date;
   deleted_at?: Date | null;
+
+  // New stage-based fields
+  stage?: string;
+  final_outcome?: string | null;
+  review_started_at?: Date | null;
+  visit_scheduled_at?: Date | null;
+  visit_completed_at?: Date | null;
+  resolved_at?: Date | null;
+  withdrawal_reason?: string | null;
+  stage_rejection_reason?: string | null;
 }
 
 export interface ApplicationReference {

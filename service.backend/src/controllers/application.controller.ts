@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
+import { HomeVisitStatus } from '../models/HomeVisit';
 import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
 import { AuthenticatedRequest } from '../types';
 import {
   ApplicationDocument,
-  ApplicationReference,
   ApplicationSearchFilters,
   ApplicationSearchOptions,
   ApplicationStatusUpdateRequest,
@@ -1072,6 +1072,235 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to schedule visit',
+      });
+    }
+  };
+
+  // Home Visits CRUD operations
+  getHomeVisits = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { applicationId } = req.params;
+      const HomeVisit = (await import('../models/HomeVisit')).default;
+
+      const visits = await HomeVisit.findAll({
+        where: { application_id: applicationId },
+        order: [['created_at', 'DESC']],
+      });
+
+      // If no dedicated visits exist, check for legacy home_visit_notes
+      if (visits.length === 0) {
+        const Application = (await import('../models/Application')).default;
+        const application = await Application.findByPk(applicationId);
+
+        if (application?.home_visit_notes) {
+          // Convert legacy notes to HomeVisit format for backward compatibility
+          const legacyVisit = {
+            id: `legacy-visit-${applicationId}`,
+            applicationId: applicationId,
+            scheduledDate: new Date().toISOString().split('T')[0],
+            scheduledTime: '10:00',
+            assignedStaff: 'Rescue Staff',
+            status: application.status === 'home_visit_completed' ? 'completed' : 'scheduled',
+            notes: application.home_visit_notes,
+            outcome:
+              application.status === 'approved'
+                ? 'approved'
+                : application.status === 'conditionally_approved'
+                  ? 'conditional'
+                  : undefined,
+            completedAt:
+              application.status === 'home_visit_completed' ? new Date().toISOString() : undefined,
+          };
+
+          return res.json({
+            success: true,
+            visits: [legacyVisit],
+          });
+        }
+      }
+
+      // Convert to frontend format
+      const formattedVisits = visits.map(visit => ({
+        id: visit.visit_id,
+        applicationId: visit.application_id,
+        scheduledDate: visit.scheduled_date,
+        scheduledTime: visit.scheduled_time,
+        assignedStaff: visit.assigned_staff,
+        status: visit.status,
+        notes: visit.notes,
+        outcome: visit.outcome,
+        outcomeNotes: visit.outcome_notes,
+        rescheduleReason: visit.reschedule_reason,
+        cancelledReason: visit.cancelled_reason,
+        completedAt: visit.completed_at?.toISOString(),
+      }));
+
+      res.json({
+        success: true,
+        visits: formattedVisits,
+      });
+    } catch (error) {
+      logger.error('Error getting home visits:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve home visits',
+      });
+    }
+  };
+
+  scheduleHomeVisit = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { applicationId } = req.params;
+      const { scheduled_date, scheduled_time, assigned_staff, notes } = req.body;
+
+      if (!scheduled_date || !scheduled_time || !assigned_staff) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing required fields: scheduled_date, scheduled_time, assigned_staff',
+        });
+      }
+
+      const HomeVisit = (await import('../models/HomeVisit')).default;
+
+      // Generate a unique visit_id
+      const visitId = `visit_${applicationId}_${Date.now()}`;
+
+      const visit = await HomeVisit.create({
+        visit_id: visitId,
+        application_id: applicationId,
+        scheduled_date,
+        scheduled_time,
+        assigned_staff,
+        notes,
+        status: HomeVisitStatus.SCHEDULED,
+      });
+
+      // Update application status to HOME_VISIT_SCHEDULED
+      const Application = (await import('../models/Application')).default;
+      await Application.update(
+        { status: ApplicationStatus.HOME_VISIT_SCHEDULED },
+        { where: { application_id: applicationId } }
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Home visit scheduled successfully',
+        visit: {
+          id: visit.visit_id,
+          applicationId: visit.application_id,
+          scheduledDate: visit.scheduled_date,
+          scheduledTime: visit.scheduled_time,
+          assignedStaff: visit.assigned_staff,
+          status: visit.status,
+          notes: visit.notes,
+        },
+      });
+    } catch (error) {
+      logger.error('Error scheduling home visit:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to schedule home visit',
+      });
+    }
+  };
+
+  updateHomeVisit = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { applicationId, visitId } = req.params;
+      const updateData = req.body;
+
+      const HomeVisit = (await import('../models/HomeVisit')).default;
+
+      const visit = await HomeVisit.findOne({
+        where: { visit_id: visitId, application_id: applicationId },
+      });
+
+      if (!visit) {
+        return res.status(404).json({
+          success: false,
+          message: 'Home visit not found',
+        });
+      }
+
+      // Convert frontend camelCase to backend snake_case
+      const dbUpdateData: Record<string, string | Date | null> = {};
+      if (updateData.scheduledDate) {
+        dbUpdateData.scheduled_date = updateData.scheduledDate;
+      }
+      if (updateData.scheduledTime) {
+        dbUpdateData.scheduled_time = updateData.scheduledTime;
+      }
+      if (updateData.assignedStaff) {
+        dbUpdateData.assigned_staff = updateData.assignedStaff;
+      }
+      if (updateData.status) {
+        dbUpdateData.status = updateData.status;
+      }
+      if (updateData.notes !== undefined) {
+        dbUpdateData.notes = updateData.notes;
+      }
+      if (updateData.outcome) {
+        dbUpdateData.outcome = updateData.outcome;
+      }
+      if (updateData.outcomeNotes !== undefined) {
+        dbUpdateData.outcome_notes = updateData.outcomeNotes;
+      }
+      if (updateData.rescheduleReason !== undefined) {
+        dbUpdateData.reschedule_reason = updateData.rescheduleReason;
+      }
+      if (updateData.cancelledReason !== undefined) {
+        dbUpdateData.cancelled_reason = updateData.cancelledReason;
+      }
+
+      // Set completed_at when status changes to completed
+      if (updateData.status === 'completed' && visit.status !== 'completed') {
+        dbUpdateData.completed_at = new Date();
+      }
+
+      await visit.update(dbUpdateData);
+
+      // Update application status based on visit outcome
+      if (updateData.status === 'completed' && updateData.outcome) {
+        const Application = (await import('../models/Application')).default;
+        let applicationStatus: ApplicationStatus = ApplicationStatus.HOME_VISIT_COMPLETED;
+
+        if (updateData.outcome === 'approved') {
+          applicationStatus = ApplicationStatus.APPROVED;
+        } else if (updateData.outcome === 'conditional') {
+          applicationStatus = ApplicationStatus.CONDITIONALLY_APPROVED;
+        } else if (updateData.outcome === 'rejected') {
+          applicationStatus = ApplicationStatus.REJECTED;
+        }
+
+        await Application.update(
+          { status: applicationStatus },
+          { where: { application_id: applicationId } }
+        );
+      }
+
+      res.json({
+        success: true,
+        message: 'Home visit updated successfully',
+        visit: {
+          id: visit.visit_id,
+          applicationId: visit.application_id,
+          scheduledDate: visit.scheduled_date,
+          scheduledTime: visit.scheduled_time,
+          assignedStaff: visit.assigned_staff,
+          status: visit.status,
+          notes: visit.notes,
+          outcome: visit.outcome,
+          outcomeNotes: visit.outcome_notes,
+          rescheduleReason: visit.reschedule_reason,
+          cancelledReason: visit.cancelled_reason,
+          completedAt: visit.completed_at?.toISOString(),
+        },
+      });
+    } catch (error) {
+      logger.error('Error updating home visit:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update home visit',
       });
     }
   };

@@ -213,13 +213,60 @@ export class RescueApplicationService {
    */
   async getHomeVisits(applicationId: string): Promise<HomeVisit[]> {
     try {
-      // For now, visits might be part of the application data or not implemented
-      // Return empty array until visit endpoints are fully implemented
-      console.warn(`Home visits not fully implemented in backend for application ${applicationId}`);
+      // First try the dedicated home-visits endpoint
+      const response = await this.apiService.get<{ success: boolean; visits: HomeVisit[] }>(
+        `/api/v1/applications/${applicationId}/home-visits`
+      );
+
+      // Handle backend response format { success: true, visits: [...] }
+      if (response.success && Array.isArray(response.visits)) {
+        return response.visits;
+      }
+
+      // Fallback for direct array response (backward compatibility)
+      if (Array.isArray(response)) {
+        return response;
+      }
+
       return [];
     } catch (error) {
-      console.error(`Failed to fetch home visits for application ${applicationId}:`, error);
-      throw new Error('Failed to fetch home visits from server');
+      console.error('Home visits endpoint not available, checking application data:', error);
+
+      // Fallback: Check if there are home_visit_notes in the application data
+      try {
+        const application = await this.apiService.get<any>(`/api/v1/applications/${applicationId}`);
+
+        if (application?.home_visit_notes && application.home_visit_notes.trim()) {
+          // Convert existing home_visit_notes to a HomeVisit object
+          const homeVisit: HomeVisit = {
+            id: `legacy-visit-${applicationId}`,
+            applicationId: applicationId,
+            scheduledDate: application.submitted_at
+              ? new Date(application.submitted_at).toISOString().split('T')[0]
+              : new Date().toISOString().split('T')[0],
+            scheduledTime: '14:00', // Default time since we don't have it
+            assignedStaff: application.actioned_by || 'Staff Member',
+            status: 'completed' as const,
+            notes: application.home_visit_notes,
+            outcome:
+              application.status === 'approved'
+                ? ('approved' as const)
+                : application.status === 'rejected'
+                  ? ('rejected' as const)
+                  : ('conditional' as const),
+            completedAt:
+              application.decision_at || application.reviewed_at || new Date().toISOString(),
+          };
+
+          console.log(`Found legacy home visit notes for application ${applicationId}:`, homeVisit);
+          return [homeVisit];
+        }
+
+        return [];
+      } catch (fallbackError) {
+        console.error('Error fetching application data for home visit fallback:', fallbackError);
+        return [];
+      }
     }
   }
 
@@ -234,41 +281,84 @@ export class RescueApplicationService {
       assignedStaff: string;
       notes?: string;
     }
-  ) {
+  ): Promise<HomeVisit> {
     try {
-      const response = await this.apiService.post<any>(
-        `/api/v1/applications/${applicationId}/schedule-visit`,
-        {
-          date: visitData.scheduledDate,
-          time: visitData.scheduledTime,
-          notes: visitData.notes,
-          visitType: 'HOME_VISIT',
-        }
-      );
-      return response;
+      const response = await this.apiService.post<{
+        success: boolean;
+        message: string;
+        visit: HomeVisit;
+      }>(`/api/v1/applications/${applicationId}/home-visits`, {
+        scheduled_date: visitData.scheduledDate,
+        scheduled_time: visitData.scheduledTime,
+        assigned_staff: visitData.assignedStaff,
+        notes: visitData.notes,
+        status: 'scheduled',
+      });
+
+      // Handle backend response format { success: true, visit: {...} }
+      if (response.success && response.visit) {
+        return response.visit;
+      }
+
+      // Fallback for direct HomeVisit response (backward compatibility)
+      if ((response as any).id || (response as any).scheduledDate) {
+        return response as unknown as HomeVisit;
+      }
+
+      throw new Error('Invalid response format from server');
     } catch (error) {
-      console.error(`Failed to schedule home visit for application ${applicationId}:`, error);
-      throw new Error('Failed to schedule home visit on server');
+      console.error('Error scheduling home visit:', error);
+      throw new Error('Failed to schedule home visit. Please try again.');
     }
   }
 
   /**
    * Update home visit status
    */
-  async updateHomeVisit(applicationId: string, visitId: string, updateData: Partial<HomeVisit>) {
+  async updateHomeVisit(
+    applicationId: string,
+    visitId: string,
+    updateData: Partial<HomeVisit>
+  ): Promise<HomeVisit> {
     try {
-      // Visit updates might not be implemented yet
-      console.warn(
-        `Home visit updates not fully implemented in backend for application ${applicationId}, visit ${visitId}`,
-        updateData
-      );
-      throw new Error('Home visit updates not yet implemented in backend');
+      // Convert camelCase to snake_case for API
+      const apiData: Record<string, any> = {};
+
+      if (updateData.status) apiData.status = updateData.status;
+      if (updateData.scheduledDate) apiData.scheduled_date = updateData.scheduledDate;
+      if (updateData.scheduledTime) apiData.scheduled_time = updateData.scheduledTime;
+      if (updateData.assignedStaff) apiData.assigned_staff = updateData.assignedStaff;
+      if (updateData.notes) apiData.notes = updateData.notes;
+      if (updateData.outcome) apiData.outcome = updateData.outcome;
+      if (updateData.completedAt) apiData.completed_at = updateData.completedAt;
+
+      // Add any custom fields for different update types
+      if ('startedAt' in updateData) apiData.started_at = updateData.startedAt;
+      if ('rescheduledAt' in updateData) apiData.rescheduled_at = updateData.rescheduledAt;
+      if ('rescheduleReason' in updateData) apiData.reschedule_reason = updateData.rescheduleReason;
+      if ('cancelledAt' in updateData) apiData.cancelled_at = updateData.cancelledAt;
+      if ('conditions' in updateData) apiData.conditions = updateData.conditions;
+
+      const response = await this.apiService.put<{
+        success: boolean;
+        message: string;
+        visit: HomeVisit;
+      }>(`/api/v1/applications/${applicationId}/home-visits/${visitId}`, apiData);
+
+      // Handle backend response format { success: true, visit: {...} }
+      if (response.success && response.visit) {
+        return response.visit;
+      }
+
+      // Fallback for direct HomeVisit response (backward compatibility)
+      if ((response as any).id || (response as any).scheduledDate) {
+        return response as unknown as HomeVisit;
+      }
+
+      throw new Error('Invalid response format from server');
     } catch (error) {
-      console.error(
-        `Failed to update home visit ${visitId} for application ${applicationId}:`,
-        error
-      );
-      throw new Error('Failed to update home visit on server');
+      console.error('Error updating home visit:', error);
+      throw new Error('Failed to update home visit. Please try again.');
     }
   }
 

@@ -24,14 +24,42 @@ The Rescue App is a comprehensive management platform for rescue organizations t
 
 ### 2. Application Management
 
-- **Application Review**: Comprehensive review and evaluation of incoming adoption applications
-- **Application Workflow**: Customizable multi-stage approval process with status tracking
+#### Stage-Based Workflow System
+The application management system uses a simplified 5-stage workflow that mirrors real-world adoption processes:
+
+**Stage 1: PENDING** 📋
+- Applications submitted and awaiting initial review
+- Actions: Start Review, Mark as Withdrawn, Add Notes, Edit Tags
+- Auto-transitions: None (manual staff assignment required)
+
+**Stage 2: REVIEWING** 🔍  
+- Active review process including reference checks and screening
+- Actions: Schedule Home Visit, Contact References, Add Interview Notes, Score Application, Make Decision, Reject
+- Auto-transitions: Progress to VISITING when home visit scheduled
+
+**Stage 3: VISITING** 🏠
+- Home visit scheduled, in progress, or completed with positive outcome
+- Actions: Complete Visit (Positive/Negative), Reschedule Visit, Cancel Visit, Add Visit Notes
+- Auto-transitions: Progress to DECIDING on positive visit, RESOLVED on negative visit
+
+**Stage 4: DECIDING** ⚖️
+- Final decision phase after successful home visit
+- Actions: Approve, Approve with Conditions, Reject, Return to Review, Add Decision Notes
+- Auto-transitions: None (requires manual decision)
+
+**Stage 5: RESOLVED** ✅
+- Application completed with final outcome (Approved, Conditional, Rejected, Withdrawn)
+- Actions: Generate Letters, View Reports, Reopen Application, Add Final Notes, Archive
+- Final outcomes: APPROVED, CONDITIONAL, REJECTED, WITHDRAWN
+
+#### Core Application Features
+- **Application Review**: Comprehensive review and evaluation with stage-based workflow
 - **Reference Checking**: Integrated tools for contacting and managing applicant references
-- **Home Visit Scheduling**: Schedule and track home visit appointments and requirements
-- **Decision Tracking**: Document approval/denial decisions with detailed reasoning
+- **Home Visit Scheduling**: Schedule and track home visit appointments with automated stage progression
+- **Decision Tracking**: Document approval/denial decisions with detailed reasoning and stage history
 - **Communication History**: Complete communication log with each applicant
 - **Bulk Operations**: Process multiple applications efficiently with batch actions
-- **Application Analytics**: Track conversion rates, response times, and success metrics
+- **Application Analytics**: Track conversion rates, response times, and stage-based success metrics
 - **Custom Question Management**: Configure rescue-specific application questions and requirements
 
 ### 3. Rescue Configuration
@@ -190,11 +218,25 @@ interface ApplicationAttributes {
 	user_id: string;
 	pet_id: string;
 	rescue_id: string;
-	status: 'pending' | 'rejected' | 'approved';
+	status: 'pending' | 'rejected' | 'approved'; // Legacy field
 	actioned_by?: string;
 	answers: Record<string, any>;
 	created_at?: Date;
 	updated_at?: Date;
+	
+	// New Stage-Based System Fields
+	stage: 'PENDING' | 'REVIEWING' | 'VISITING' | 'DECIDING' | 'RESOLVED';
+	final_outcome?: 'APPROVED' | 'CONDITIONAL' | 'REJECTED' | 'WITHDRAWN';
+	
+	// Stage Progress Tracking
+	review_started_at?: Date;
+	visit_scheduled_at?: Date;
+	visit_completed_at?: Date;
+	resolved_at?: Date;
+	
+	// Outcome Documentation
+	withdrawal_reason?: string;
+	stage_rejection_reason?: string;
 }
 
 interface ApplicationCoreQuestionAttributes {
@@ -319,11 +361,46 @@ type PetStatus = {
 
 ### Application Processing
 
-- **Application Timeline**: Visual timeline of application progress
+#### Stage-Based Interface Design
+- **Kanban Board Layout**: Applications organized in stage columns (Pending, Reviewing, Visiting, Deciding, Resolved)
+- **Application Cards**: Color-coded cards with stage indicators, progress bars, and context-sensitive actions
+- **Stage Progress Visualization**: Progress bar showing completion (0/4 to 4/4 stages)
+- **Action Button System**: 
+  - Primary Actions (blue): Main next steps
+  - Secondary Actions (gray): Alternative options
+  - Destructive Actions (red): Reject/withdraw
+  - Administrative (outline): Notes, documents
+
+#### Application Card Design
+```
+┌─────────────────────────────────────┐
+│ 🔍 REVIEWING                    #🔥 │
+│ Buddy - John Smith                  │
+│ ████████░░░░ 50% Complete          │
+│                                     │
+│ Started: Feb 16, 2024               │
+│ Next: Schedule Home Visit           │
+│                                     │
+│ [🏠 Schedule Visit] [📞 Contact]    │
+│ [❌ Reject] [📝 Notes]              │
+└─────────────────────────────────────┘
+```
+
+#### Stage-Specific Views
+- **PENDING**: Blue badges, "Start Review" primary action
+- **REVIEWING**: Yellow badges, reference tracking, interview notes
+- **VISITING**: Orange badges, visit scheduling, completion actions
+- **DECIDING**: Purple badges, approval/rejection decisions
+- **RESOLVED**: Color-coded by outcome (Green/Red/Yellow/Gray)
+
+#### Advanced Features
+- **Application Timeline**: Visual timeline of application progress with stage transitions
 - **Split Screen**: View application and pet details simultaneously
-- **Decision Workflow**: Clear approval/denial process with required fields
-- **Reference Tracking**: Organized reference check progress
-- **Communication Panel**: Integrated messaging with applicants
+- **Decision Workflow**: Clear approval/denial process with required fields and reasoning
+- **Reference Tracking**: Organized reference check progress with contact status
+- **Communication Panel**: Integrated messaging with applicants within application view
+- **Bulk Stage Operations**: Select multiple applications for stage transitions
+- **Stage Analytics Dashboard**: Performance metrics, bottleneck identification, conversion rates
 
 ## Workflow & User Journey
 
@@ -338,14 +415,47 @@ type PetStatus = {
 
 ### Application Processing Workflow
 
-1. **Application Receipt**: Notification of new application
-2. **Initial Review**: Quick assessment of basic requirements
-3. **Detailed Review**: Thorough evaluation of application responses
-4. **Reference Checks**: Contact and verify applicant references
-5. **Home Visit**: Schedule and conduct home visit (if required)
-6. **Decision Making**: Team decision on approval/denial
-7. **Communication**: Notify applicant of decision
-8. **Adoption Process**: Coordinate adoption meeting and finalization
+#### Stage-Based Processing Flow
+1. **PENDING Stage**: New application notification and initial triage
+   - Application received and validated
+   - Staff assignment for review
+   - Priority and tag assignment
+
+2. **REVIEWING Stage**: Comprehensive application evaluation
+   - Initial review of application responses
+   - Reference contact and verification
+   - Interview scheduling and completion (optional)
+   - Application scoring and assessment
+   - Decision to proceed or reject
+
+3. **VISITING Stage**: Home visit coordination and execution
+   - Home visit scheduling with staff assignment
+   - Visit preparation and applicant communication
+   - Home visit conduct and documentation
+   - Visit outcome assessment (positive/negative)
+
+4. **DECIDING Stage**: Final approval decision
+   - Team review of complete application file
+   - Final approval/conditional approval/rejection decision
+   - Decision documentation and reasoning
+   - Outcome communication preparation
+
+5. **RESOLVED Stage**: Application completion and follow-up
+   - Final outcome letter generation
+   - Adoption coordination (if approved)
+   - Application archival and reporting
+   - Post-decision follow-up and support
+
+#### Automated Stage Transitions
+- **REVIEWING → VISITING**: Automatic when home visit scheduled
+- **VISITING → DECIDING**: Automatic when visit completed with positive outcome  
+- **VISITING → RESOLVED**: Automatic when visit completed with negative outcome
+- **Any Stage → RESOLVED**: When application withdrawn or expires
+
+#### Exception Handling
+- **Skip Home Visit**: Direct transition from REVIEWING to DECIDING for exceptional cases
+- **Return to Previous Stage**: Ability to move backwards for additional information
+- **Reopen Resolved Applications**: Exceptional reopening with full audit trail
 
 ### Pet Intake Workflow
 
@@ -361,11 +471,26 @@ type PetStatus = {
 
 ### Rescue Performance Metrics
 
+#### Stage-Based Analytics
+- **Stage Distribution**: Real-time count of applications in each stage
+- **Stage Conversion Rates**: Percentage of applications progressing between stages
+- **Average Time per Stage**: Processing time analysis and bottleneck identification
+- **Stage Completion Rates**: Success rates from each stage to final approval
+- **Staff Performance by Stage**: Individual staff productivity metrics per stage
+
+#### Traditional Metrics
 - **Adoption Rate**: Percentage of pets successfully adopted
-- **Average Time to Adoption**: Time from intake to adoption
+- **Average Time to Adoption**: Time from intake to adoption  
 - **Application Conversion**: Percentage of applications that result in adoptions
 - **Response Time**: Average response time to adopter inquiries
 - **Volunteer Engagement**: Volunteer participation and retention rates
+
+#### Workflow Analytics
+- **Bottleneck Identification**: Stages with longest average processing times
+- **Exception Reports**: Applications exceeding target timeframes per stage
+- **Trend Analysis**: Stage progression patterns over time
+- **Performance Benchmarks**: Target vs actual processing times by stage
+- **Outcome Prediction**: Likelihood of approval based on stage progression patterns
 
 ### Operational Analytics
 
@@ -387,10 +512,18 @@ type PetStatus = {
 
 ### Operational Efficiency
 
-- **Application Processing Time**: Reduce average processing time by 40%
-- **Response Time**: Average response to inquiries under 24 hours
+#### Stage System Benefits
+- **Processing Time Reduction**: 50% reduction in average application processing time through clear stage workflows
+- **Staff Clarity**: Eliminate decision paralysis with clear next actions per stage
+- **Workflow Consistency**: Standardized process across all rescue staff and applications
+- **Error Reduction**: Minimize missed steps through automated stage progressions
+
+#### Performance Targets
+- **Application Processing Time**: Reduce average processing time by 40% with stage-based workflow
+- **Response Time**: Average response to inquiries under 24 hours across all stages
 - **Pet Profile Completion**: 95%+ of pets have complete profiles
-- **Staff Productivity**: Increase staff efficiency by 30%
+- **Staff Productivity**: Increase staff efficiency by 30% through stage-based task clarity
+- **Stage Transition Time**: Average time per stage within established benchmarks
 
 ### Adoption Success
 

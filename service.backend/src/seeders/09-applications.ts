@@ -1,4 +1,9 @@
-import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
+import Application, {
+  ApplicationPriority,
+  ApplicationStatus,
+  ApplicationStage,
+  ApplicationOutcome,
+} from '../models/Application';
 
 const applicationData = [
   {
@@ -7,6 +12,7 @@ const applicationData = [
     pet_id: 'pet_buddy_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.UNDER_REVIEW,
+    stage: ApplicationStage.VISITING, // Has multiple home visits scheduled
     priority: ApplicationPriority.NORMAL,
     actioned_by: null,
     actioned_at: null,
@@ -71,6 +77,14 @@ const applicationData = [
     decision_at: null,
     expires_at: new Date('2024-03-15T10:30:00Z'),
     follow_up_date: new Date('2024-03-01T09:00:00Z'),
+    // New stage-based fields
+    final_outcome: null,
+    review_started_at: new Date('2024-02-16T09:00:00Z'), // Started review next day
+    visit_scheduled_at: new Date('2024-02-18T11:00:00Z'), // First visit scheduled
+    visit_completed_at: null, // Still in visiting stage
+    resolved_at: null,
+    withdrawal_reason: null,
+    stage_rejection_reason: null,
   },
   {
     application_id: 'app_whiskers_emily_001',
@@ -78,6 +92,7 @@ const applicationData = [
     pet_id: 'pet_whiskers_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440003',
     status: ApplicationStatus.APPROVED,
+    stage: ApplicationStage.RESOLVED, // Application completed successfully
     priority: ApplicationPriority.HIGH,
     actioned_by: 'user_rescue_admin_001',
     actioned_at: new Date('2024-02-20T14:45:00Z'),
@@ -138,6 +153,14 @@ const applicationData = [
     decision_at: new Date('2024-02-20T14:45:00Z'),
     expires_at: null,
     follow_up_date: null,
+    // New stage-based fields - completed application
+    final_outcome: ApplicationOutcome.APPROVED,
+    review_started_at: new Date('2024-02-13T09:00:00Z'),
+    visit_scheduled_at: new Date('2024-02-15T10:00:00Z'),
+    visit_completed_at: new Date('2024-02-17T14:00:00Z'),
+    resolved_at: new Date('2024-02-20T14:45:00Z'),
+    withdrawal_reason: null,
+    stage_rejection_reason: null,
   },
   {
     application_id: 'app_rocky_michael_001',
@@ -145,6 +168,7 @@ const applicationData = [
     pet_id: 'pet_rocky_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440002',
     status: ApplicationStatus.INTERVIEW_SCHEDULED,
+    stage: ApplicationStage.REVIEWING, // Interview scheduled means in review stage
     priority: ApplicationPriority.HIGH,
     actioned_by: 'user_rescue_admin_002',
     actioned_at: new Date('2024-02-18T09:15:00Z'),
@@ -212,6 +236,14 @@ const applicationData = [
     decision_at: null,
     expires_at: new Date('2024-03-14T13:45:00Z'),
     follow_up_date: new Date('2024-02-25T10:00:00Z'),
+    // New stage-based fields - in review with interview scheduled
+    final_outcome: null,
+    review_started_at: new Date('2024-02-17T15:00:00Z'),
+    visit_scheduled_at: null, // No visit scheduled yet
+    visit_completed_at: null,
+    resolved_at: null,
+    withdrawal_reason: null,
+    stage_rejection_reason: null,
   },
   {
     application_id: 'app_luna_jessica_001',
@@ -219,6 +251,7 @@ const applicationData = [
     pet_id: 'pet_luna_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.REJECTED,
+    stage: ApplicationStage.RESOLVED, // Application was rejected and resolved
     priority: ApplicationPriority.LOW,
     actioned_by: 'user_rescue_staff_001',
     actioned_at: new Date('2024-02-19T11:30:00Z'),
@@ -261,6 +294,14 @@ const applicationData = [
     decision_at: new Date('2024-02-19T11:30:00Z'),
     expires_at: null,
     follow_up_date: null,
+    // New stage-based fields - rejected application
+    final_outcome: ApplicationOutcome.REJECTED,
+    review_started_at: new Date('2024-02-19T09:00:00Z'),
+    visit_scheduled_at: null, // No visit was scheduled
+    visit_completed_at: null,
+    resolved_at: new Date('2024-02-19T11:30:00Z'),
+    withdrawal_reason: null,
+    stage_rejection_reason: 'Insufficient experience for high-energy cat',
   },
 ];
 
@@ -272,6 +313,7 @@ export async function seedApplications() {
         ...appData,
         created_at: new Date(),
         updated_at: new Date(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
     });
   }
