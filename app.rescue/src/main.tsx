@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { StatsigWrapper } from '@/contexts/StatsigContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,16 +19,18 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <StatsigWrapper>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <ThemeProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </ThemeProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </StatsigWrapper>
+    <ErrorBoundary>
+      <StatsigWrapper>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ThemeProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </StatsigWrapper>
+    </ErrorBoundary>
   </React.StrictMode>
 );
