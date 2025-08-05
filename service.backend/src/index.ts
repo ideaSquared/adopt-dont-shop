@@ -30,6 +30,7 @@ import notificationRoutes from './routes/notification.routes';
 import petRoutes from './routes/pet.routes';
 import rescueRoutes from './routes/rescue.routes';
 import searchRoutes from './routes/search.routes';
+import staffRoutes from './routes/staff.routes';
 import userRoutes from './routes/user.routes';
 
 // Import additional routes for PRD compliance
@@ -171,6 +172,7 @@ app.use('/api/v1/pets', petRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/rescues', rescueRoutes);
 app.use('/api/v1/search', searchRoutes);
+app.use('/api/v1/staff', staffRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/features', featureRoutes);
 app.use('/api/v1/config', configRoutes);

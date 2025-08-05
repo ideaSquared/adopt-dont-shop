@@ -258,6 +258,31 @@ export class ApplicationService {
         whereConditions.user_id = userId;
       }
 
+      // Auto-filter by rescue for rescue staff (unless rescue_id explicitly provided)
+      if (userId && userType === UserType.RESCUE_STAFF && !filters.rescue_id) {
+        try {
+          const StaffMember = (await import('../models/StaffMember')).default;
+          const staffMember = await StaffMember.findOne({
+            where: {
+              userId: userId,
+              isDeleted: false,
+              isVerified: true,
+            },
+          });
+
+          if (staffMember) {
+            whereConditions.rescue_id = staffMember.rescueId;
+            logger.info('Auto-filtering applications by user rescue:', {
+              userId: userId,
+              rescueId: staffMember.rescueId,
+            });
+          }
+        } catch (error) {
+          // If there's an error getting staff member, just continue without filtering
+          logger.warn('Could not determine user rescue for auto-filtering applications:', error);
+        }
+      }
+
       // Status filtering
       if (filters.status) {
         if (Array.isArray(filters.status)) {

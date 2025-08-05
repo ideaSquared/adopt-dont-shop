@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { formatStatusName } from '../../utils/statusUtils';
 import type { ReferenceCheck, HomeVisit, ApplicationTimeline } from '../../types/applications';
 import { TimelineEventType } from '../../types/applications';
+import { useStaff } from '../../hooks/useStaff';
 
 // Styled Components
 const Overlay = styled.div`
@@ -1019,6 +1020,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   const [localApplicationStatus, setLocalApplicationStatus] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
+  // Staff data
+  const { staff, loading: staffLoading } = useStaff();
+
   // Home Visits state
   const [showScheduleVisit, setShowScheduleVisit] = useState(false);
   const [visitForm, setVisitForm] = useState({
@@ -1244,18 +1248,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       });
     }
     
-    console.log(`Application ${application?.id}: Found ${allRefs.length} references`, {
-      directReferencesCount: directReferences.length,
-      clientReferences: getData('references'),
-      extractedReferences: allRefs
-    });
+    // References found and processed
     
     return allRefs;
   }, [application]);
 
   const handleReferenceUpdate = async (referenceId: string, status: string, notes: string) => {
     try {
-      console.log(`Attempting to update reference ${referenceId} with status ${status}`);
       await onReferenceUpdate(referenceId, status, notes);
       
       // Hide the form after successful update
@@ -1269,7 +1268,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         }
       }));
       
-      console.log(`Successfully updated reference ${referenceId} to status ${status}`);
     } catch (error) {
       console.error('Failed to update reference:', error);
       // Show user-friendly error message
@@ -1937,12 +1935,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <FormSelect
                         value={visitForm.assignedStaff}
                         onChange={(e) => setVisitForm(prev => ({ ...prev, assignedStaff: e.target.value }))}
+                        disabled={staffLoading}
                       >
-                        <option value="">Select staff member...</option>
-                        <option value="John Smith">John Smith</option>
-                        <option value="Sarah Johnson">Sarah Johnson</option>
-                        <option value="Mike Davis">Mike Davis</option>
-                        <option value="Lisa Wilson">Lisa Wilson</option>
+                        <option value="">
+                          {staffLoading ? 'Loading staff...' : 'Select staff member...'}
+                        </option>
+                        {staff.map((staffMember) => (
+                          <option key={staffMember.id} value={`${staffMember.firstName} ${staffMember.lastName}`}>
+                            {staffMember.firstName} {staffMember.lastName} - {staffMember.title}
+                          </option>
+                        ))}
                       </FormSelect>
                     </FormGroup>
                   </FormRow>
