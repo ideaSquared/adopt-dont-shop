@@ -129,14 +129,28 @@ const StatusBadge = styled.span<{ $status: string }>`
   
   ${props => {
     switch (props.$status) {
+      case 'draft':
+        return 'background: #f3f4f6; color: #374151;';
       case 'submitted':
         return 'background: #dbeafe; color: #1e40af;';
       case 'under_review':
         return 'background: #fef3c7; color: #92400e;';
       case 'pending_references':
         return 'background: #fed7aa; color: #ea580c;';
+      case 'reference_check':
+        return 'background: #fef3c7; color: #92400e;';
+      case 'interview_scheduled':
+        return 'background: #ddd6fe; color: #5b21b6;';
+      case 'interview_completed':
+        return 'background: #ddd6fe; color: #5b21b6;';
+      case 'home_visit_scheduled':
+        return 'background: #e0e7ff; color: #3730a3;';
+      case 'home_visit_completed':
+        return 'background: #e0e7ff; color: #3730a3;';
       case 'approved':
         return 'background: #dcfce7; color: #166534;';
+      case 'conditionally_approved':
+        return 'background: #fef3c7; color: #92400e;';
       case 'rejected':
         return 'background: #fecaca; color: #dc2626;';
       case 'withdrawn':
@@ -470,11 +484,11 @@ interface ApplicationReviewProps {
   }) => void;
   onUpdateVisit: (visitId: string, updateData: any) => void;
   onAddTimelineEvent: (event: string, description: string, data?: any) => void;
+  onRefresh?: () => void; // Optional refresh function to update application data
 }
 
 const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   application,
-  references,
   homeVisits,
   timeline,
   loading,
@@ -482,20 +496,79 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   onClose,
   onStatusUpdate,
   onReferenceUpdate,
-  onScheduleVisit,
-  onUpdateVisit,
-  onAddTimelineEvent
+  onRefresh,
 }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'references' | 'visits' | 'timeline'>('details');
   const [statusNotes, setStatusNotes] = useState('');
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
-  const [newStatus, setNewStatus] = useState(application?.status || '');
+  const [newStatus, setNewStatus] = useState('');
   const [referenceUpdates, setReferenceUpdates] = useState<Record<string, { status: string; notes: string; showForm: boolean }>>({});
+  
+  // Local state for optimistic application status updates
+  const [localApplicationStatus, setLocalApplicationStatus] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  // Clear local reference updates when application changes
+  // Helper function to get valid status transitions based on current status
+  const getValidStatusOptions = (currentStatus: string) => {
+    const validTransitions: Record<string, string[]> = {
+      'draft': ['submitted', 'withdrawn'],
+      'submitted': ['under_review', 'rejected', 'withdrawn'],
+      'under_review': ['pending_references', 'interview_scheduled', 'approved', 'rejected', 'withdrawn'],
+      'pending_references': ['reference_check', 'rejected', 'withdrawn'],
+      'reference_check': ['interview_scheduled', 'approved', 'rejected', 'withdrawn'],
+      'interview_scheduled': ['interview_completed', 'rejected', 'withdrawn'],
+      'interview_completed': ['home_visit_scheduled', 'approved', 'conditionally_approved', 'rejected', 'withdrawn'],
+      'home_visit_scheduled': ['home_visit_completed', 'rejected', 'withdrawn'],
+      'home_visit_completed': ['approved', 'conditionally_approved', 'rejected', 'withdrawn'],
+      'conditionally_approved': ['approved', 'rejected', 'withdrawn'],
+      'approved': [],
+      'rejected': [],
+      'withdrawn': [],
+      'expired': [],
+    };
+
+    return validTransitions[currentStatus] || [];
+  };
+
+  // Helper function to format status display names
+  const formatStatusName = (status: string) => {
+    const statusNames: Record<string, string> = {
+      'draft': 'Draft',
+      'submitted': 'Submitted',
+      'under_review': 'Under Review',
+      'pending_references': 'Pending References',
+      'reference_check': 'Reference Check',
+      'interview_scheduled': 'Interview Scheduled',
+      'interview_completed': 'Interview Completed',
+      'home_visit_scheduled': 'Home Visit Scheduled',
+      'home_visit_completed': 'Home Visit Completed',
+      'approved': 'Approved',
+      'conditionally_approved': 'Conditionally Approved',
+      'rejected': 'Rejected',
+      'withdrawn': 'Withdrawn',
+      'expired': 'Expired',
+    };
+
+    return statusNames[status] || status.replace('_', ' ');
+  };
+
+  // Clear local state when application changes
   useEffect(() => {
     setReferenceUpdates({});
+    setLocalApplicationStatus(null); // Clear local status when application changes
   }, [application?.id]);
+  
+  // Clear local status when application status actually changes from backend
+  useEffect(() => {
+    if (application?.status && localApplicationStatus && application.status !== localApplicationStatus) {
+      setLocalApplicationStatus(null); // Backend data has caught up, clear local override
+    }
+  }, [application?.status, localApplicationStatus]);
+
+  // Get current status (prefer local state for immediate updates)
+  const getCurrentStatus = () => {
+    return localApplicationStatus || application?.status || 'unknown';
+  };
 
   // Helper function to safely extract data from both legacy nested and current flat structures
   const getData = (path: string) => {
@@ -652,10 +725,37 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     return null;
   }
 
-  const handleStatusUpdate = () => {
-    onStatusUpdate(newStatus, statusNotes);
-    setShowStatusUpdate(false);
-    setStatusNotes('');
+  const handleStatusUpdate = async () => {
+    try {
+      setIsUpdatingStatus(true);
+      await onStatusUpdate(newStatus, statusNotes);
+      
+      // Update local status immediately after successful backend update
+      setLocalApplicationStatus(newStatus);
+      
+      // Refresh the application data in the background
+      if (onRefresh) {
+        onRefresh();
+      }
+      
+      setShowStatusUpdate(false);
+      setStatusNotes('');
+      setNewStatus(''); // Reset status selection
+    } catch (error) {
+      console.error('Failed to update application status:', error);
+      // Show user-friendly error message
+      alert(`Failed to update application status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const toggleStatusUpdate = () => {
+    setShowStatusUpdate(!showStatusUpdate);
+    if (!showStatusUpdate) {
+      setNewStatus(''); // Reset status selection when opening
+      setStatusNotes('');
+    }
   };
 
   return (
@@ -682,12 +782,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               </HeaderSubtitle>
             </HeaderLeft>
             <HeaderRight>
-              <StatusBadge $status={application.status || 'unknown'}>
-                {application.status ? application.status.replace('_', ' ') : 'Unknown Status'}
+              <StatusBadge $status={getCurrentStatus()}>
+                {getCurrentStatus() !== 'unknown' ? formatStatusName(getCurrentStatus()) : 'Unknown Status'}
               </StatusBadge>
               <Button
                 variant="primary"
-                onClick={() => setShowStatusUpdate(!showStatusUpdate)}
+                onClick={toggleStatusUpdate}
               >
                 Update Status
               </Button>
@@ -705,13 +805,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
               >
-                <option value="submitted">Submitted</option>
-                <option value="under_review">Under Review</option>
-                <option value="pending_references">Pending References</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="withdrawn">Withdrawn</option>
+                <option value="">Select new status...</option>
+                {getValidStatusOptions(getCurrentStatus()).map((status) => (
+                  <option key={status} value={status}>
+                    {formatStatusName(status)}
+                  </option>
+                ))}
               </Select>
+              {getValidStatusOptions(getCurrentStatus()).length === 0 && (
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                  No status changes available for {formatStatusName(getCurrentStatus())}.
+                </p>
+              )}
             </FormField>
             <FormField>
               <Label>Notes (optional)</Label>
@@ -723,8 +828,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
             </FormField>
             <ButtonGroup>
               <Button onClick={() => setShowStatusUpdate(false)}>Cancel</Button>
-              <Button variant="primary" onClick={handleStatusUpdate}>
-                Update Status
+              <Button 
+                variant="primary" 
+                onClick={handleStatusUpdate}
+                disabled={!newStatus || getValidStatusOptions(getCurrentStatus()).length === 0 || isUpdatingStatus}
+              >
+                {isUpdatingStatus ? 'Updating...' : 'Update Status'}
               </Button>
             </ButtonGroup>
           </StatusUpdateContainer>

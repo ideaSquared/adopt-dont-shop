@@ -113,7 +113,7 @@ export class RescueApplicationService {
   async getApplicationById(id: string) {
     try {
       const response = await this.apiService.get<any>(`/api/v1/applications/${id}`);
-      return response;
+      return response.data || response; // Extract data field from API response wrapper
     } catch (error) {
       console.error(`Failed to fetch application ${id}:`, error);
       throw new Error(`Failed to fetch application details from server`);
@@ -130,7 +130,7 @@ export class RescueApplicationService {
         notes,
         timestamp: new Date().toISOString(),
       });
-      return response;
+      return response.data || response; // Extract data field from API response wrapper
     } catch (error) {
       console.error(`Failed to update application status for ${id}:`, error);
       throw new Error('Failed to update application status on server');
@@ -157,7 +157,7 @@ export class RescueApplicationService {
     try {
       // References are part of the main application data
       const response = await this.apiService.get<any>(`/api/v1/applications/${applicationId}`);
-      const application = response;
+      const application = response.data || response; // Extract data field from API response wrapper
 
       // Extract references from application data and transform them
       const references = application?.references || [];

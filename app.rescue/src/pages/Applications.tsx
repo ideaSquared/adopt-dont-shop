@@ -33,7 +33,8 @@ const Applications: React.FC = () => {
     updateReferenceCheck,
     scheduleHomeVisit,
     updateHomeVisit,
-    addTimelineEvent
+    addTimelineEvent,
+    refetch: refetchApplicationDetails
   } = useApplicationDetails(selectedApplication?.id || null);
 
   const handleApplicationSelect = (application: ApplicationListItem) => {
@@ -55,8 +56,9 @@ const Applications: React.FC = () => {
   const handleDetailStatusUpdate = async (status: string, notes?: string) => {
     if (selectedApplication) {
       await updateApplicationStatus(selectedApplication.id, status, notes);
-      // Refresh the main list
+      // Refresh both the main list and the application details
       refetch();
+      refetchApplicationDetails();
     }
   };
 
@@ -98,6 +100,7 @@ const Applications: React.FC = () => {
           onScheduleVisit={scheduleHomeVisit}
           onUpdateVisit={updateHomeVisit}
           onAddTimelineEvent={addTimelineEvent}
+          onRefresh={refetchApplicationDetails}
         />
       )}
     </div>
