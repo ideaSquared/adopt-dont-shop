@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import { formatStatusName } from '../../utils/statusUtils';
 import type { ReferenceCheck, HomeVisit, ApplicationTimeline } from '../../types/applications';
+import { TimelineEventType } from '../../types/applications';
 
 // Styled Components
 const Overlay = styled.div`
@@ -1010,7 +1011,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   
   // Timeline state
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [newEventType, setNewEventType] = useState('note');
+  const [newEventType, setNewEventType] = useState(TimelineEventType.NOTE_ADDED);
   const [newEventDescription, setNewEventDescription] = useState('');
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   
@@ -1097,7 +1098,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       setIsAddingEvent(true);
       await onAddTimelineEvent(newEventType, newEventDescription.trim());
       setNewEventDescription('');
-      setNewEventType('note');
+      setNewEventType(TimelineEventType.NOTE_ADDED);
       setShowAddEvent(false);
     } catch (error) {
       console.error('Failed to add timeline event:', error);
@@ -2279,12 +2280,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <FormLabel>Event Type</FormLabel>
                       <FormSelect
                         value={newEventType}
-                        onChange={(e) => setNewEventType(e.target.value)}
+                        onChange={(e) => setNewEventType(e.target.value as TimelineEventType)}
                       >
-                        <option value="note">Note</option>
-                        <option value="reference_check">Reference Check</option>
-                        <option value="home_visit">Home Visit</option>
-                        <option value="system">System Event</option>
+                        <option value={TimelineEventType.NOTE_ADDED}>Note</option>
+                        <option value={TimelineEventType.REFERENCE_CONTACTED}>Reference Check</option>
+                        <option value={TimelineEventType.HOME_VISIT_SCHEDULED}>Home Visit</option>
+                        <option value={TimelineEventType.MANUAL_OVERRIDE}>Manual Override</option>
                       </FormSelect>
                     </FormGroup>
                   </FormRow>
@@ -2306,7 +2307,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       onClick={() => {
                         setShowAddEvent(false);
                         setNewEventDescription('');
-                        setNewEventType('note');
+                        setNewEventType(TimelineEventType.NOTE_ADDED);
                       }}
                     >
                       Cancel

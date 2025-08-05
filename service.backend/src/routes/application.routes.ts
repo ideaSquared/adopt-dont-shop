@@ -3,6 +3,7 @@ import { ApplicationController } from '../controllers/application.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
 import { UserType } from '../models/User';
+import applicationTimelineRoutes from './applicationTimeline.routes';
 
 const router = express.Router();
 const applicationController = new ApplicationController();
@@ -1446,5 +1447,8 @@ router.put(
   ApplicationController.validateApplicationId,
   applicationController.updateHomeVisit
 );
+
+// Timeline routes
+router.use('/', applicationTimelineRoutes);
 
 export default router;

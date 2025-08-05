@@ -368,24 +368,57 @@ export class RescueApplicationService {
   async getApplicationTimeline(applicationId: string): Promise<ApplicationTimeline[]> {
     try {
       const response = await this.apiService.get<any>(
-        `/api/v1/applications/${applicationId}/history`
+        `/api/v1/applications/${applicationId}/timeline`
       );
 
-      // Transform history data to timeline format
-      const history = response.history || [];
-      return history.map((item: any, index: number) => ({
-        id: `timeline-${index}`,
-        applicationId,
-        event: item.event || item.action || 'Status Update',
-        description: item.description || item.message || `Status changed to ${item.status}`,
-        timestamp: item.timestamp || item.createdAt,
-        userId: item.userId,
-        userName: item.userName || item.staffName || 'System',
-        data: item.data || {},
+      console.log('Timeline API response:', response); // Debug log
+
+      // Handle different possible response formats
+      let timelineArray = [];
+
+      if (Array.isArray(response)) {
+        timelineArray = response;
+      } else if (response && Array.isArray(response.timeline)) {
+        timelineArray = response.timeline;
+      } else if (response && Array.isArray(response.data)) {
+        timelineArray = response.data;
+      } else if (response && response.success && Array.isArray(response.timeline)) {
+        timelineArray = response.timeline;
+      } else {
+        console.warn('Unexpected timeline response format:', response);
+        timelineArray = [];
+      }
+
+      // Transform timeline data to expected format
+      return timelineArray.map((item: any) => ({
+        id: item.timeline_id || item.id,
+        applicationId: item.application_id || applicationId,
+        event: item.event_type || item.event || 'Timeline Event',
+        title: item.title || item.event || 'Timeline Event',
+        description: item.description || `Timeline event: ${item.event_type}`,
+        timestamp: item.created_at || item.timestamp,
+        userId: item.created_by || item.userId,
+        userName: item.created_by_system
+          ? 'System'
+          : item.CreatedBy
+            ? `${item.CreatedBy.firstName || ''} ${item.CreatedBy.lastName || ''}`.trim() ||
+              item.CreatedBy.email ||
+              'Unknown User'
+            : item.created_by_name || item.userName || 'Unknown',
+        data: item.metadata || item.data || {},
+        eventType: item.event_type,
+        isSystemGenerated: item.created_by_system || false,
+        previousStage: item.previous_stage,
+        newStage: item.new_stage,
+        previousStatus: item.previous_status,
+        newStatus: item.new_status,
       }));
     } catch (error) {
       console.error(`Failed to fetch timeline for application ${applicationId}:`, error);
-      throw new Error('Failed to fetch application timeline from server');
+
+      // Return empty array instead of throwing to prevent UI crashes
+      console.warn('Returning empty timeline array due to API error');
+      return [];
     }
   }
 
@@ -399,18 +432,60 @@ export class RescueApplicationService {
     data?: Record<string, any>
   ) {
     try {
-      // Timeline events are typically created automatically when status changes
-      // For now, we'll update the application status which should create a history entry
-      console.warn(`Timeline event addition not directly supported - use status updates instead`, {
-        applicationId,
-        event,
-        description,
-        data,
-      });
-      throw new Error('Direct timeline event addition not supported - use status updates');
+      const response = await this.apiService.post<any>(
+        `/api/v1/applications/${applicationId}/timeline/events`,
+        {
+          event_type: event,
+          title: event.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          description,
+          metadata: data || {},
+        }
+      );
+
+      return response;
     } catch (error) {
       console.error(`Failed to add timeline event for application ${applicationId}:`, error);
       throw new Error('Failed to add timeline event on server');
+    }
+  }
+
+  /**
+   * Get timeline statistics for an application
+   */
+  async getApplicationTimelineStats(applicationId: string): Promise<any> {
+    try {
+      const response = await this.apiService.get<any>(
+        `/api/v1/applications/${applicationId}/timeline/stats`
+      );
+
+      return response;
+    } catch (error) {
+      console.error(`Failed to fetch timeline stats for application ${applicationId}:`, error);
+      throw new Error('Failed to fetch application timeline statistics');
+    }
+  }
+
+  /**
+   * Add a note to the application timeline
+   */
+  async addTimelineNote(applicationId: string, title: string, content: string, noteType?: string) {
+    try {
+      const response = await this.apiService.post<any>(
+        `/api/v1/applications/${applicationId}/timeline/notes`,
+        {
+          title,
+          description: content,
+          metadata: {
+            note_type: noteType || 'general',
+            full_content: content,
+          },
+        }
+      );
+
+      return response;
+    } catch (error) {
+      console.error(`Failed to add timeline note for application ${applicationId}:`, error);
+      throw new Error('Failed to add timeline note');
     }
   }
 

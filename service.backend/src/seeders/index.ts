@@ -23,6 +23,7 @@ import { seedEmilyConversation3 } from './20-emily-conversation-3';
 import { seedFileUploads } from './20250111-file-uploads-seeder';
 import { seedEmilyConversation4 } from './21-emily-conversation-4';
 import { seedHomeVisits } from './22-home-visits';
+import { seedApplicationTimeline } from './23-application-timeline';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -36,6 +37,7 @@ const seeders = [
   { name: 'Pets', seeder: seedPets },
   { name: 'Applications', seeder: seedApplications },
   { name: 'Home Visits', seeder: seedHomeVisits },
+  { name: 'Application Timeline', seeder: seedApplicationTimeline },
   { name: 'Chats', seeder: seedChats },
   { name: 'Messages', seeder: seedMessages },
   { name: 'File Uploads', seeder: seedFileUploads },

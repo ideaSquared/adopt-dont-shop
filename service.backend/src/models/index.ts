@@ -1,5 +1,6 @@
 import Application from './Application';
 import ApplicationQuestion from './ApplicationQuestion';
+import ApplicationTimeline from './ApplicationTimeline';
 import Pet from './Pet';
 import Rescue from './Rescue';
 import User from './User';
@@ -49,6 +50,7 @@ const models = {
   Pet,
   Application,
   ApplicationQuestion,
+  ApplicationTimeline,
   Chat,
   ChatParticipant,
   Message,
@@ -81,6 +83,13 @@ Application.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
 Pet.hasMany(Application, { foreignKey: 'pet_id', as: 'Applications' });
 Application.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
+
+// Application Timeline associations
+Application.hasMany(ApplicationTimeline, { foreignKey: 'application_id', as: 'Timeline' });
+ApplicationTimeline.belongsTo(Application, { foreignKey: 'application_id', as: 'Application' });
+
+User.hasMany(ApplicationTimeline, { foreignKey: 'created_by', as: 'CreatedTimelineEvents' });
+ApplicationTimeline.belongsTo(User, { foreignKey: 'created_by', as: 'CreatedBy' });
 
 Rescue.hasMany(Application, { foreignKey: 'rescue_id', as: 'Applications' });
 Application.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
@@ -232,6 +241,7 @@ FileUpload.belongsTo(User, { foreignKey: 'uploaded_by', as: 'Uploader' });
 export {
   Application,
   ApplicationQuestion,
+  ApplicationTimeline,
   AuditLog,
   Chat,
   ChatParticipant,
