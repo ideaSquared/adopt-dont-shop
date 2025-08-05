@@ -268,6 +268,19 @@ const FieldValue = styled.span`
   max-width: 60%;
 `;
 
+const FieldValueFullWidth = styled.div`
+  font-size: 0.875rem;
+  color: #111827;
+  margin-top: 0.5rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+`;
+
+const FieldVertical = styled.div`
+  margin-bottom: 1rem;
+`;
+
 const StatusUpdateContainer = styled.div`
   background: #f9fafb;
   border: 1px solid #e5e7eb;
@@ -422,7 +435,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
             </HeaderLeft>
             <HeaderRight>
               <StatusBadge $status={application.status || 'unknown'}>
-                {application.status ? application.status.replace('_', ' ') : 'Unknown Status'}
+                {application.data.status ? application.data.status.replace('_', ' ') : 'Unknown Status'}
               </StatusBadge>
               <Button
                 variant="primary"
@@ -623,18 +636,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               <Grid>
                 <Card>
                   <CardTitle>Adoption Motivation</CardTitle>
-                  <Field>
+                  <FieldVertical>
                     <FieldLabel>Why Adopt</FieldLabel>
-                    <FieldValue style={{ maxWidth: '100%', textAlign: 'left' }}>
+                    <FieldValueFullWidth>
                       {application.data?.data?.answers?.why_adopt || 'N/A'}
-                    </FieldValue>
-                  </Field>
-                  <Field>
+                    </FieldValueFullWidth>
+                  </FieldVertical>
+                  <FieldVertical>
                     <FieldLabel>Exercise Plan</FieldLabel>
-                    <FieldValue style={{ maxWidth: '100%', textAlign: 'left' }}>
+                    <FieldValueFullWidth>
                       {application.data?.data?.answers?.exercise_plan || 'N/A'}
-                    </FieldValue>
-                  </Field>
+                    </FieldValueFullWidth>
+                  </FieldVertical>
                 </Card>
 
                 <Card>
@@ -678,12 +691,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                         <FieldLabel>Years Owned</FieldLabel>
                         <FieldValue>{pet.years_owned || 'N/A'}</FieldValue>
                       </Field>
-                      <Field>
+                      <FieldVertical>
                         <FieldLabel>What Happened</FieldLabel>
-                        <FieldValue style={{ maxWidth: '100%', textAlign: 'left' }}>
+                        <FieldValueFullWidth>
                           {pet.what_happened || 'N/A'}
-                        </FieldValue>
-                      </Field>
+                        </FieldValueFullWidth>
+                      </FieldVertical>
                     </Card>
                   ))}
                 </Grid>
