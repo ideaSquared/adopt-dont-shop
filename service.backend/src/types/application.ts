@@ -34,6 +34,7 @@ export interface ApplicationData {
 }
 
 export interface ApplicationReference {
+  id: string;
   name: string;
   relationship: string;
   phone: string;
@@ -41,6 +42,7 @@ export interface ApplicationReference {
   contacted_at?: Date;
   status: 'pending' | 'contacted' | 'verified' | 'failed';
   notes?: string;
+  contacted_by?: string;
 }
 
 // Frontend-compatible Application format
@@ -328,7 +330,8 @@ export interface ReferenceContactRequest {
 }
 
 export interface ReferenceUpdateRequest {
-  reference_index: number;
+  reference_index?: number; // Legacy support - will be deprecated
+  referenceId?: string; // New ID-based approach (ref-0, ref-1, etc.)
   status: 'pending' | 'contacted' | 'verified' | 'failed';
   notes?: string;
   contacted_at?: Date;

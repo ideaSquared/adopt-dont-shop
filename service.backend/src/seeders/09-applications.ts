@@ -44,6 +44,7 @@ const applicationData = [
     },
     references: [
       {
+        id: 'ref-0',
         name: 'Dr. Johnson',
         relationship: 'Veterinarian',
         phone: '(512) 555-1234',
@@ -51,6 +52,7 @@ const applicationData = [
         status: 'pending',
       },
       {
+        id: 'ref-1',
         name: 'Mike Wilson',
         relationship: 'Friend/Neighbor',
         phone: '(512) 555-9876',
@@ -113,6 +115,7 @@ const applicationData = [
     },
     references: [
       {
+        id: 'ref-0',
         name: 'Dr. Martinez',
         relationship: 'Veterinarian',
         phone: '(503) 555-2468',
@@ -179,6 +182,7 @@ const applicationData = [
     },
     references: [
       {
+        id: 'ref-0',
         name: 'Dr. Thompson',
         relationship: 'Veterinarian',
         phone: '(206) 555-1357',
@@ -188,6 +192,7 @@ const applicationData = [
         notes: 'Excellent owner of previous pit bull, very responsible',
       },
       {
+        id: 'ref-1',
         name: 'Tom Anderson',
         relationship: 'Dog trainer/Friend',
         phone: '(206) 555-8642',

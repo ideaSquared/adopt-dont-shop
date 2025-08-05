@@ -41,6 +41,7 @@ interface ApplicationAttributes {
   conditional_requirements?: string[] | null;
   answers: JsonObject;
   references: Array<{
+    id: string;
     name: string;
     relationship: string;
     phone: string;
@@ -48,6 +49,7 @@ interface ApplicationAttributes {
     contacted_at?: Date;
     status: 'pending' | 'contacted' | 'verified' | 'failed';
     notes?: string;
+    contacted_by?: string;
   }>;
   documents: Array<{
     document_id: string;
@@ -94,6 +96,7 @@ class Application
   public conditional_requirements!: string[] | null;
   public answers!: JsonObject;
   public references!: Array<{
+    id: string;
     name: string;
     relationship: string;
     phone: string;
@@ -101,6 +104,7 @@ class Application
     contacted_at?: Date;
     status: 'pending' | 'contacted' | 'verified' | 'failed';
     notes?: string;
+    contacted_by?: string;
   }>;
   public documents!: Array<{
     document_id: string;
@@ -323,13 +327,25 @@ Application.init(
       allowNull: false,
       defaultValue: [],
       validate: {
-        isValidReferences(value: any[]) {
+        isValidReferences(
+          value: Array<{
+            id: string;
+            name: string;
+            relationship: string;
+            phone: string;
+            email?: string;
+            contacted_at?: Date;
+            status: 'pending' | 'contacted' | 'verified' | 'failed';
+            notes?: string;
+            contacted_by?: string;
+          }>
+        ) {
           if (!Array.isArray(value)) {
             throw new Error('References must be an array');
           }
           value.forEach(ref => {
-            if (!ref.name || !ref.relationship || !ref.phone) {
-              throw new Error('Each reference must have name, relationship, and phone');
+            if (!ref.id || !ref.name || !ref.relationship || !ref.phone) {
+              throw new Error('Each reference must have id, name, relationship, and phone');
             }
           });
         },
@@ -340,7 +356,16 @@ Application.init(
       allowNull: false,
       defaultValue: [],
       validate: {
-        isValidDocuments(value: any[]) {
+        isValidDocuments(
+          value: Array<{
+            document_id: string;
+            document_type: string;
+            file_name: string;
+            file_url: string;
+            uploaded_at: Date;
+            verified: boolean;
+          }>
+        ) {
           if (!Array.isArray(value)) {
             throw new Error('Documents must be an array');
           }

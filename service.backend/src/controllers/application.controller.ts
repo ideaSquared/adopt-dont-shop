@@ -179,9 +179,21 @@ export class ApplicationController extends BaseController {
       .isString()
       .isLength({ min: 1, max: 255 })
       .withMessage('Valid application ID is required'),
+    // Support both legacy reference_index and new referenceId approaches
+    body().custom(value => {
+      if (!value.reference_index && !value.referenceId) {
+        throw new Error('Either reference_index or referenceId is required');
+      }
+      return true;
+    }),
     body('reference_index')
+      .optional()
       .isInt({ min: 0, max: 4 })
       .withMessage('Reference index must be between 0 and 4'),
+    body('referenceId')
+      .optional()
+      .matches(/^ref-\d+$/)
+      .withMessage('Reference ID must be in format ref-X (e.g., ref-0, ref-1)'),
     body('status')
       .isIn(['pending', 'contacted', 'verified', 'failed'])
       .withMessage('Invalid reference status'),

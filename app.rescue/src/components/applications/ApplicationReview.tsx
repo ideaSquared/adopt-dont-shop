@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import type { ReferenceCheck, HomeVisit, ApplicationTimeline } from '../../types/applications';
 
@@ -332,6 +332,120 @@ const TextArea = styled.textarea`
   }
 `;
 
+const ReferenceCard = styled.div`
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+`;
+
+const ReferenceHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+`;
+
+const ReferenceInfo = styled.div``;
+
+const ReferenceName = styled.h4`
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+`;
+
+const ReferenceContact = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.25rem 0;
+`;
+
+const ReferenceRelation = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+`;
+
+const ReferenceStatus = styled.span<{ $status: string }>`
+  display: inline-flex;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  
+  ${props => {
+    switch (props.$status) {
+      case 'verified':
+        return 'background: #dcfce7; color: #166534;';
+      case 'contacted':
+        return 'background: #fef3c7; color: #92400e;';
+      case 'pending':
+        return 'background: #f3f4f6; color: #374151;';
+      case 'failed':
+        return 'background: #fecaca; color: #dc2626;';
+      default:
+        return 'background: #f3f4f6; color: #374151;';
+    }
+  }}
+`;
+
+const ReferenceNotes = styled.div`
+  font-size: 0.875rem;
+  color: #374151;
+  background: #f9fafb;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin-top: 1rem;
+`;
+
+const ReferenceActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const StatusSelect = styled.select`
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  margin-bottom: 0.5rem;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const NotesInput = styled.textarea`
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  resize: vertical;
+  min-height: 80px;
+  margin: 0.5rem 0;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const ReferenceForm = styled.div`
+  background: #f9fafb;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid #e5e7eb;
+`;
+
 const ButtonGroup = styled.div`
   display: flex;
   gap: 0.5rem;
@@ -376,6 +490,140 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   const [statusNotes, setStatusNotes] = useState('');
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
   const [newStatus, setNewStatus] = useState(application?.status || '');
+  const [referenceUpdates, setReferenceUpdates] = useState<Record<string, { status: string; notes: string; showForm: boolean }>>({});
+
+  // Clear local reference updates when application changes
+  useEffect(() => {
+    setReferenceUpdates({});
+  }, [application?.id]);
+
+  // Helper function to safely extract data from both legacy nested and current flat structures
+  const getData = (path: string) => {
+    // Try current flat structure first: application.data.personalInfo
+    const flatPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data);
+    if (flatPath !== undefined) return flatPath;
+    
+    // Fallback to legacy nested structure: application.data.data.personalInfo  
+    const nestedPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data?.data);
+    return nestedPath;
+  };
+
+  // Extract references from application data
+  const extractedReferences: ReferenceCheck[] = useMemo(() => {
+    const allRefs: ReferenceCheck[] = [];
+    
+    // First, try to get references from the main references array (backend format)
+    const directReferences = application?.references || [];
+    if (Array.isArray(directReferences) && directReferences.length > 0) {
+      directReferences.forEach((ref: any, index: number) => {
+        allRefs.push({
+          id: ref.id || `ref-${index}`, // Use the reference ID if available, fallback to index-based ID
+          applicationId: application.id,
+          type: ref.relationship?.toLowerCase().includes('vet') ? 'veterinarian' : 'personal',
+          contactName: ref.name,
+          contactInfo: `${ref.phone} - ${ref.relationship}`,
+          status: ref.status || 'pending',
+          notes: ref.notes || '',
+          completedAt: ref.contacted_at,
+          completedBy: ref.contacted_by,
+        });
+      });
+    } else {
+      // Fallback: try to get references from nested client data structure
+      const clientRefs = getData('references') || {};
+      const personalRefs = clientRefs.personal || [];
+      const vetRef = clientRefs.veterinarian;
+      
+      let referenceIndex = 0;
+      
+      // Add veterinarian reference if exists
+      if (vetRef && vetRef.name && vetRef.name !== 'To be determined') {
+        allRefs.push({
+          id: `ref-${referenceIndex}`,
+          applicationId: application.id,
+          type: 'veterinarian',
+          contactName: vetRef.name,
+          contactInfo: `${vetRef.phone || 'No phone'} - ${vetRef.clinicName || 'Veterinarian'}`,
+          status: vetRef.status || 'pending',
+          notes: vetRef.notes || '',
+          completedAt: vetRef.contacted_at,
+          completedBy: vetRef.contacted_by,
+        });
+        referenceIndex++;
+      }
+      
+      // Add personal references
+      personalRefs.forEach((ref: any) => {
+        if (ref.name) {
+          allRefs.push({
+            id: `ref-${referenceIndex}`,
+            applicationId: application.id,
+            type: 'personal',
+            contactName: ref.name,
+            contactInfo: `${ref.phone || 'No phone'} - ${ref.relationship || 'Personal Reference'}`,
+            status: ref.status || 'pending',
+            notes: ref.notes || '',
+            completedAt: ref.contacted_at,
+            completedBy: ref.contacted_by,
+          });
+          referenceIndex++;
+        }
+      });
+    }
+    
+    console.log(`Application ${application?.id}: Found ${allRefs.length} references`, {
+      directReferencesCount: directReferences.length,
+      clientReferences: getData('references'),
+      extractedReferences: allRefs
+    });
+    
+    return allRefs;
+  }, [application]);
+
+  const handleReferenceUpdate = async (referenceId: string, status: string, notes: string) => {
+    try {
+      console.log(`Attempting to update reference ${referenceId} with status ${status}`);
+      await onReferenceUpdate(referenceId, status, notes);
+      
+      // Hide the form after successful update
+      setReferenceUpdates(prev => ({
+        ...prev,
+        [referenceId]: { 
+          ...prev[referenceId], 
+          showForm: false,
+          status, // Update the local status immediately
+          notes   // Update the local notes immediately
+        }
+      }));
+      
+      console.log(`Successfully updated reference ${referenceId} to status ${status}`);
+    } catch (error) {
+      console.error('Failed to update reference:', error);
+      // Show user-friendly error message
+      alert(`Failed to update reference: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const toggleReferenceForm = (referenceId: string) => {
+    setReferenceUpdates(prev => ({
+      ...prev,
+      [referenceId]: {
+        status: prev[referenceId]?.status || 'pending',
+        notes: prev[referenceId]?.notes || '',
+        showForm: !prev[referenceId]?.showForm
+      }
+    }));
+  };
+
+  const updateReferenceField = (referenceId: string, field: 'status' | 'notes', value: string) => {
+    setReferenceUpdates(prev => ({
+      ...prev,
+      [referenceId]: {
+        ...prev[referenceId],
+        [field]: value
+      }
+    }));
+  };
 
   if (loading) {
     return (
@@ -423,7 +671,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               <HeaderSubtitle>
                 Submitted by {application.applicantName || 
                   application.userName ||
-                  `${application.data?.data?.personalInfo?.firstName || 'Unknown'} ${application.data?.data?.personalInfo?.lastName || ''}`.trim() ||
+                  `${application.data?.personalInfo?.firstName || application.data?.data?.personalInfo?.firstName || 'Unknown'} ${application.data?.personalInfo?.lastName || application.data?.data?.personalInfo?.lastName || ''}`.trim() ||
                   'Unknown Applicant'} • {
                   application.submittedDaysAgo !== undefined 
                     ? (application.submittedDaysAgo === 0 ? 'Today' : `${application.submittedDaysAgo} days ago`)
@@ -435,7 +683,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
             </HeaderLeft>
             <HeaderRight>
               <StatusBadge $status={application.status || 'unknown'}>
-                {application.data.status ? application.data.status.replace('_', ' ') : 'Unknown Status'}
+                {application.status ? application.status.replace('_', ' ') : 'Unknown Status'}
               </StatusBadge>
               <Button
                 variant="primary"
@@ -495,7 +743,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               $active={activeTab === 'references'}
               onClick={() => setActiveTab('references')}
             >
-              References ({references.length})
+              References ({extractedReferences.length})
             </Tab>
             <Tab
               $active={activeTab === 'visits'}
@@ -524,29 +772,29 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Name</FieldLabel>
                     <FieldValue>
-                      {application.data?.data?.personalInfo?.firstName || 'N/A'} {application.data?.data?.personalInfo?.lastName || ''}
+                      {getData('personalInfo.firstName') || 'N/A'} {getData('personalInfo.lastName') || ''}
                     </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Email</FieldLabel>
-                    <FieldValue>{application.data?.data?.personalInfo?.email || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('personalInfo.email') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Phone</FieldLabel>
-                    <FieldValue>{application.data?.data?.personalInfo?.phone || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('personalInfo.phone') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Address</FieldLabel>
                     <FieldValue>
-                      {application.data?.data?.personalInfo?.address || 'N/A'}<br />
-                      {application.data?.data?.personalInfo?.city || 'N/A'}, {application.data?.data?.personalInfo?.state || 'N/A'} {application.data?.data?.personalInfo?.zipCode || 'N/A'}
+                      {getData('personalInfo.address') || 'N/A'}<br />
+                      {getData('personalInfo.city') || 'N/A'}, {getData('personalInfo.state') || 'N/A'} {getData('personalInfo.zipCode') || 'N/A'}
                     </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Date of Birth</FieldLabel>
                     <FieldValue>
-                      {application.data?.data?.personalInfo?.dateOfBirth 
-                        ? new Date(application.data.data.personalInfo.dateOfBirth).toLocaleDateString()
+                      {getData('personalInfo.dateOfBirth')
+                        ? new Date(getData('personalInfo.dateOfBirth')).toLocaleDateString()
                         : 'N/A'}
                     </FieldValue>
                   </Field>
@@ -556,27 +804,27 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <CardTitle>Household</CardTitle>
                   <Field>
                     <FieldLabel>Household Size</FieldLabel>
-                    <FieldValue>{application.data?.data?.livingsituation?.householdSize || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('livingsituation.householdSize') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Housing Type</FieldLabel>
-                    <FieldValue>{application.data?.data?.livingsituation?.housingType || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('livingsituation.housingType') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Own/Rent</FieldLabel>
-                    <FieldValue>{application.data?.data?.livingsituation?.isOwned ? 'Own' : 'Rent'}</FieldValue>
+                    <FieldValue>{getData('livingsituation.isOwned') ? 'Own' : 'Rent'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Has Yard</FieldLabel>
-                    <FieldValue>{application.data?.data?.livingsituation?.hasYard ? 'Yes' : 'No'}</FieldValue>
+                    <FieldValue>{getData('livingsituation.hasYard') ? 'Yes' : 'No'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Has Allergies</FieldLabel>
-                    <FieldValue>{application.data?.data?.livingsituation?.hasAllergies ? 'Yes' : 'No'}</FieldValue>
+                    <FieldValue>{getData('livingsituation.hasAllergies') ? 'Yes' : 'No'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Household Members</FieldLabel>
-                    <FieldValue>{application.data?.data?.answers?.household_members?.length || 0} members</FieldValue>
+                    <FieldValue>{getData('answers.household_members')?.length || 0} members</FieldValue>
                   </Field>
                 </Card>
               </Grid>
@@ -589,23 +837,23 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <CardTitle>Experience & Preferences</CardTitle>
                   <Field>
                     <FieldLabel>Experience Level</FieldLabel>
-                    <FieldValue>{application.data?.data?.petExperience?.experienceLevel || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('petExperience.experienceLevel') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Willing to Train</FieldLabel>
-                    <FieldValue>{application.data?.data?.petExperience?.willingToTrain ? 'Yes' : 'No'}</FieldValue>
+                    <FieldValue>{getData('petExperience.willingToTrain') ? 'Yes' : 'No'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Hours Alone Daily</FieldLabel>
-                    <FieldValue>{application.data?.data?.petExperience?.hoursAloneDaily || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('petExperience.hoursAloneDaily') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Exercise Plans</FieldLabel>
-                    <FieldValue>{application.data?.data?.petExperience?.exercisePlans || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('petExperience.exercisePlans') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Currently Has Pets</FieldLabel>
-                    <FieldValue>{application.data?.data?.petExperience?.hasPetsCurrently ? 'Yes' : 'No'}</FieldValue>
+                    <FieldValue>{getData('petExperience.hasPetsCurrently') ? 'Yes' : 'No'}</FieldValue>
                   </Field>
                 </Card>
                 
@@ -614,18 +862,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Veterinarian</FieldLabel>
                     <FieldValue>
-                      {application.data?.data?.references?.veterinarian?.name || 'N/A'}
-                      {application.data?.data?.references?.veterinarian?.clinicName && 
-                        ` - ${application.data.data.references.veterinarian.clinicName}`}
+                      {getData('references.veterinarian.name') || 'N/A'}
+                      {getData('references.veterinarian.clinicName') && 
+                        ` - ${getData('references.veterinarian.clinicName')}`}
                     </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Vet Phone</FieldLabel>
-                    <FieldValue>{application.data?.data?.references?.veterinarian?.phone || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('references.veterinarian.phone') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Personal References</FieldLabel>
-                    <FieldValue>{application.data?.data?.references?.personal?.length || 0} provided</FieldValue>
+                    <FieldValue>{getData('references.personal')?.length || 0} provided</FieldValue>
                   </Field>
                 </Card>
               </Grid>
@@ -639,13 +887,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <FieldVertical>
                     <FieldLabel>Why Adopt</FieldLabel>
                     <FieldValueFullWidth>
-                      {application.data?.data?.answers?.why_adopt || 'N/A'}
+                      {getData('answers.why_adopt') || 'N/A'}
                     </FieldValueFullWidth>
                   </FieldVertical>
                   <FieldVertical>
                     <FieldLabel>Exercise Plan</FieldLabel>
                     <FieldValueFullWidth>
-                      {application.data?.data?.answers?.exercise_plan || 'N/A'}
+                      {getData('answers.exercise_plan') || 'N/A'}
                     </FieldValueFullWidth>
                   </FieldVertical>
                 </Card>
@@ -654,29 +902,29 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <CardTitle>Home Details</CardTitle>
                   <Field>
                     <FieldLabel>Yard Size</FieldLabel>
-                    <FieldValue>{application.data?.data?.answers?.yard_size || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('answers.yard_size') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Yard Fenced</FieldLabel>
-                    <FieldValue>{application.data?.data?.answers?.yard_fenced ? 'Yes' : 'No'}</FieldValue>
+                    <FieldValue>{getData('answers.yard_fenced') ? 'Yes' : 'No'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Hours Pet Alone</FieldLabel>
-                    <FieldValue>{application.data?.data?.answers?.hours_alone || 'N/A'}</FieldValue>
+                    <FieldValue>{getData('answers.hours_alone') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Current Pets</FieldLabel>
-                    <FieldValue>{application.data?.data?.answers?.current_pets?.length || 0} pets</FieldValue>
+                    <FieldValue>{getData('answers.current_pets')?.length || 0} pets</FieldValue>
                   </Field>
                 </Card>
               </Grid>
             </Section>
 
-            {application.data?.data?.answers?.previous_pets?.length > 0 && (
+            {getData('answers.previous_pets')?.length > 0 && (
               <Section>
                 <SectionTitle>Previous Pet Experience</SectionTitle>
                 <Grid>
-                  {application.data.data.answers.previous_pets.map((pet: any, index: number) => (
+                  {getData('answers.previous_pets').map((pet: any, index: number) => (
                     <Card key={index}>
                       <CardTitle>Previous Pet #{index + 1}</CardTitle>
                       <Field>
@@ -708,7 +956,102 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           <TabPanel $active={activeTab === 'references'}>
             <Section>
               <SectionTitle>Reference Checks</SectionTitle>
-              <p>Reference check functionality would be implemented here.</p>
+              {extractedReferences.length === 0 ? (
+                <Card>
+                  <p>No references found for this application.</p>
+                </Card>
+              ) : (
+                extractedReferences.map((reference) => {
+                  // Use local state if available, otherwise use the reference data
+                  const currentStatus = referenceUpdates[reference.id]?.status || reference.status;
+                  const currentNotes = referenceUpdates[reference.id]?.notes || reference.notes;
+                  
+                  return (
+                  <ReferenceCard key={reference.id}>
+                    <ReferenceHeader>
+                      <ReferenceInfo>
+                        <ReferenceName>{reference.contactName}</ReferenceName>
+                        <ReferenceContact>{reference.contactInfo}</ReferenceContact>
+                        <ReferenceRelation>Type: {reference.type}</ReferenceRelation>
+                      </ReferenceInfo>
+                      <ReferenceStatus $status={currentStatus}>
+                        {currentStatus}
+                      </ReferenceStatus>
+                    </ReferenceHeader>
+                    
+                    {reference.completedAt && (
+                      <Field>
+                        <FieldLabel>Last Contacted</FieldLabel>
+                        <FieldValue>{new Date(reference.completedAt).toLocaleDateString()}</FieldValue>
+                      </Field>
+                    )}
+                    
+                    {reference.completedBy && (
+                      <Field>
+                        <FieldLabel>Contacted By</FieldLabel>
+                        <FieldValue>{reference.completedBy}</FieldValue>
+                      </Field>
+                    )}
+
+                    {currentNotes && (
+                      <ReferenceNotes>{currentNotes}</ReferenceNotes>
+                    )}
+
+                    <ReferenceActions>
+                      <Button
+                        onClick={() => toggleReferenceForm(reference.id)}
+                        variant="secondary"
+                      >
+                        {referenceUpdates[reference.id]?.showForm ? 'Cancel' : 'Update Status'}
+                      </Button>
+                    </ReferenceActions>
+
+                    {referenceUpdates[reference.id]?.showForm && (
+                      <ReferenceForm>
+                        <FormField>
+                          <Label>Status</Label>
+                          <StatusSelect
+                            value={referenceUpdates[reference.id]?.status || currentStatus}
+                            onChange={(e) => updateReferenceField(reference.id, 'status', e.target.value)}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="verified">Verified</option>
+                            <option value="failed">Failed</option>
+                          </StatusSelect>
+                        </FormField>
+                        <FormField>
+                          <Label>Notes</Label>
+                          <NotesInput
+                            value={referenceUpdates[reference.id]?.notes || currentNotes}
+                            onChange={(e) => updateReferenceField(reference.id, 'notes', e.target.value)}
+                            placeholder="Add notes about this reference check..."
+                          />
+                        </FormField>
+                        <ButtonGroup>
+                          <Button 
+                            onClick={() => toggleReferenceForm(reference.id)}
+                            variant="secondary"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="primary"
+                            onClick={() => handleReferenceUpdate(
+                              reference.id,
+                              referenceUpdates[reference.id]?.status || currentStatus,
+                              referenceUpdates[reference.id]?.notes || currentNotes || ''
+                            )}
+                          >
+                            Update Reference
+                          </Button>
+                        </ButtonGroup>
+                      </ReferenceForm>
+                    )}
+                  </ReferenceCard>
+                  );
+                })
+              )}
             </Section>
           </TabPanel>
 

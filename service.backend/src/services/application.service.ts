@@ -9,6 +9,7 @@ import Pet from '../models/Pet';
 import User, { UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { JsonObject } from '../types/common';
 
 import {
   ApplicationData,
@@ -767,13 +768,140 @@ export class ApplicationService {
         throw new Error('Application not found');
       }
 
-      if (referenceUpdate.reference_index >= application.references.length) {
-        throw new Error('Reference index out of bounds');
+      // Determine the reference index to update
+      let referenceIndex: number;
+
+      if (referenceUpdate.referenceId) {
+        // New ID-based approach
+        if (!referenceUpdate.referenceId.startsWith('ref-')) {
+          throw new Error(
+            `Invalid reference ID format: ${referenceUpdate.referenceId}. Expected format: ref-X`
+          );
+        }
+
+        const indexFromId = parseInt(referenceUpdate.referenceId.split('-')[1], 10);
+        if (isNaN(indexFromId)) {
+          throw new Error(
+            `Could not extract reference index from ID: ${referenceUpdate.referenceId}`
+          );
+        }
+        referenceIndex = indexFromId;
+      } else if (referenceUpdate.reference_index !== undefined) {
+        // Legacy index-based approach
+        referenceIndex = referenceUpdate.reference_index;
+      } else {
+        throw new Error('Either referenceId or reference_index must be provided');
+      }
+
+      logger.info(
+        `Updating reference for application ${applicationId}, index ${referenceIndex}, current references count: ${application.references.length}`
+      );
+
+      // If references array is empty but we have reference data in the application answers,
+      // initialize the references array from the client data
+      if (application.references.length === 0 && application.answers) {
+        logger.info('Initializing references array from client data');
+        const answers = application.answers as JsonObject;
+        const initializedReferences: Array<{
+          id: string;
+          name: string;
+          relationship: string;
+          phone: string;
+          email?: string;
+          status: 'pending' | 'contacted' | 'verified' | 'failed';
+        }> = [];
+
+        // Check for references in answers.references
+        if (answers.references) {
+          const clientRefs = answers.references as {
+            veterinarian?: { name: string; phone?: string; email?: string; clinicName?: string };
+            personal?: Array<{
+              name: string;
+              relationship: string;
+              phone?: string;
+              email?: string;
+            }>;
+          };
+
+          // Add veterinarian reference if exists
+          if (clientRefs.veterinarian && clientRefs.veterinarian.name) {
+            initializedReferences.push({
+              id: `ref-${initializedReferences.length}`,
+              name: clientRefs.veterinarian.name,
+              relationship: 'Veterinarian',
+              phone: clientRefs.veterinarian.phone || 'TBD',
+              email: clientRefs.veterinarian.email || '',
+              status: 'pending' as const,
+            });
+          }
+
+          // Add personal references
+          if (Array.isArray(clientRefs.personal)) {
+            clientRefs.personal.forEach(ref => {
+              initializedReferences.push({
+                id: `ref-${initializedReferences.length}`,
+                name: ref.name,
+                relationship: ref.relationship,
+                phone: ref.phone || 'TBD',
+                email: ref.email || '',
+                status: 'pending' as const,
+              });
+            });
+          }
+        }
+
+        // Also check for emergency_contact in answers
+        if (answers.emergency_contact && typeof answers.emergency_contact === 'object') {
+          const emergency = answers.emergency_contact as {
+            name?: string;
+            phone?: string;
+            email?: string;
+            relationship?: string;
+          };
+          if (emergency.name) {
+            initializedReferences.push({
+              id: `ref-${initializedReferences.length}`,
+              name: emergency.name,
+              relationship: emergency.relationship || 'Emergency Contact',
+              phone: emergency.phone || 'TBD',
+              email: emergency.email || '',
+              status: 'pending' as const,
+            });
+          }
+        }
+
+        // Update the application with initialized references
+        if (initializedReferences.length > 0) {
+          await application.update({ references: initializedReferences });
+          await application.reload(); // Reload to get updated data
+          logger.info(`Initialized ${initializedReferences.length} references from client data`);
+        }
+      }
+
+      // If still out of bounds after initialization, extend the array with placeholders
+      if (referenceIndex >= application.references.length) {
+        const currentRefs = [...application.references];
+
+        // Extend array to accommodate the requested index
+        while (currentRefs.length <= referenceIndex) {
+          currentRefs.push({
+            id: `ref-${currentRefs.length}`,
+            name: `Reference ${currentRefs.length + 1}`,
+            relationship: 'Unknown',
+            phone: 'TBD', // Provide a non-empty placeholder phone
+            email: '',
+            status: 'pending' as const,
+          });
+        }
+
+        await application.update({ references: currentRefs });
+        await application.reload();
+        logger.info(`Extended references array to ${currentRefs.length} items`);
       }
 
       const updatedReferences = [...application.references];
-      updatedReferences[referenceUpdate.reference_index] = {
-        ...updatedReferences[referenceUpdate.reference_index],
+      updatedReferences[referenceIndex] = {
+        ...updatedReferences[referenceIndex],
         status: referenceUpdate.status,
         notes: referenceUpdate.notes,
         contacted_at: referenceUpdate.contacted_at,
@@ -787,7 +915,8 @@ export class ApplicationService {
         entity: 'Application',
         entityId: applicationId,
         details: {
-          reference_index: referenceUpdate.reference_index,
+          reference_index: referenceIndex,
+          referenceId: referenceUpdate.referenceId || null,
           status: referenceUpdate.status,
         },
         userId,
@@ -795,7 +924,8 @@ export class ApplicationService {
 
       logger.info('Reference updated', {
         applicationId,
-        referenceIndex: referenceUpdate.reference_index,
+        referenceIndex,
+        referenceId: referenceUpdate.referenceId || null,
         userId,
       });
 

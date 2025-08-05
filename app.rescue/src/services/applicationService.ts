@@ -188,13 +188,11 @@ export class RescueApplicationService {
     notes?: string
   ) {
     try {
-      // Extract the reference index from the referenceId (e.g., "ref-0" -> 0)
-      const referenceIndex = parseInt(referenceId.split('-')[1], 10);
-
+      // Use the new referenceId parameter instead of extracting reference_index
       const response = await this.apiService.patch<any>(
         `/api/v1/applications/${applicationId}/references`,
         {
-          reference_index: referenceIndex,
+          referenceId, // Send the reference ID directly
           status,
           notes,
           contacted_at: new Date().toISOString(),
