@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Button } from '@adopt-dont-shop/components';
+import { formatStatusName } from '../../utils/statusUtils';
 
 const FiltersContainer = styled.div`
   padding: 0.75rem;
@@ -120,12 +121,14 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
             onChange={(e) => onFilterChange('status', e.target.value)}
           >
             <option value="">All Statuses</option>
-            <option value="submitted">Submitted</option>
-            <option value="under_review">Under Review</option>
-            <option value="pending_references">Pending References</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="withdrawn">Withdrawn</option>
+            <option value="submitted">{formatStatusName('submitted')}</option>
+            <option value="under_review">{formatStatusName('under_review')}</option>
+            <option value="pending_references">{formatStatusName('pending_references')}</option>
+            <option value="conditionally_approved">{formatStatusName('conditionally_approved')}</option>
+            <option value="approved">{formatStatusName('approved')}</option>
+            <option value="rejected">{formatStatusName('rejected')}</option>
+            <option value="withdrawn">{formatStatusName('withdrawn')}</option>
+            <option value="expired">{formatStatusName('expired')}</option>
           </select>
         </FilterGroup>
 

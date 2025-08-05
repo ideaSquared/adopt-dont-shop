@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
+import { formatStatusName } from '../../utils/statusUtils';
 import type { ReferenceCheck, HomeVisit, ApplicationTimeline } from '../../types/applications';
 
 // Styled Components
@@ -226,6 +227,258 @@ const Content = styled.div`
   max-height: calc(90vh - 120px);
 `;
 
+const TimelineContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+`;
+
+const TimelineItem = styled.div`
+  display: flex;
+  gap: 1rem;
+  position: relative;
+  padding: 1rem;
+  background: #fafbfc;
+  border: 1px solid #e1e5e9;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #f6f8fa;
+    border-color: #d0d7de;
+  }
+  
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 2rem;
+    bottom: -0.75rem;
+    width: 2px;
+    height: 0.5rem;
+    background: #d1d5db;
+  }
+`;
+
+const TimelineIcon = styled.div<{ $type: string }>`
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  font-size: 1rem;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  ${props => {
+    switch (props.$type) {
+      case 'status_change':
+        return 'background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white;';
+      case 'reference_check':
+        return 'background: linear-gradient(135deg, #10b981, #059669); color: white;';
+      case 'home_visit':
+        return 'background: linear-gradient(135deg, #f59e0b, #d97706); color: white;';
+      case 'note':
+        return 'background: linear-gradient(135deg, #6b7280, #4b5563); color: white;';
+      case 'system':
+        return 'background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;';
+      default:
+        return 'background: linear-gradient(135deg, #d1d5db, #9ca3af); color: #6b7280;';
+    }
+  }}
+`;
+
+const TimelineContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const TimelineHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+`;
+
+const TimelineTitle = styled.h4`
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  flex: 1;
+`;
+
+const TimelineTimestamp = styled.span`
+  font-size: 0.8125rem;
+  color: #6b7280;
+  white-space: nowrap;
+  background: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+`;
+
+const TimelineDescription = styled.p`
+  font-size: 0.9375rem;
+  color: #4b5563;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+`;
+
+const TimelineUser = styled.span`
+  font-size: 0.8125rem;
+  color: #6b7280;
+  font-style: italic;
+  padding: 0.25rem 0.5rem;
+  background: #f9fafb;
+  border-radius: 0.25rem;
+  display: inline-block;
+`;
+
+const TimelineData = styled.div`
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.8125rem;
+  
+  strong {
+    color: #374151;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  
+  pre {
+    margin: 0;
+    color: #6b7280;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    overflow-x: auto;
+  }
+`;
+
+const AddEventForm = styled.div`
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`;
+
+const AddEventTitle = styled.h4`
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &::before {
+    content: '✏️';
+    font-size: 1.2em;
+  }
+`;
+
+const FormRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  
+  @media (max-width: 640px) {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+`;
+
+const FormGroup = styled.div`
+  flex: 1;
+`;
+
+const FormLabel = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+`;
+
+const FormSelect = styled.select`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.2s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const FormTextarea = styled.textarea`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  min-height: 5rem;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const FormActions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+`;
+
+const EmptyTimeline = styled.div`
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #6b7280;
+  background: #fafbfc;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.75rem;
+  
+  p {
+    margin: 0 0 0.5rem 0;
+    
+    &:first-child {
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: #4b5563;
+      margin-bottom: 1rem;
+    }
+    
+    &:last-child {
+      font-size: 0.9375rem;
+      line-height: 1.5;
+    }
+  }
+`;
+
 const TabPanel = styled.div<{ $active: boolean }>`
   display: ${props => props.$active ? 'block' : 'none'};
   padding: 1.5rem;
@@ -233,6 +486,13 @@ const TabPanel = styled.div<{ $active: boolean }>`
 
 const Section = styled.div`
   margin-bottom: 2rem;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 `;
 
 const SectionTitle = styled.h3`
@@ -496,6 +756,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   onClose,
   onStatusUpdate,
   onReferenceUpdate,
+  onScheduleVisit,
+  onUpdateVisit,
+  onAddTimelineEvent,
   onRefresh,
 }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'references' | 'visits' | 'timeline'>('details');
@@ -504,9 +767,81 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   const [newStatus, setNewStatus] = useState('');
   const [referenceUpdates, setReferenceUpdates] = useState<Record<string, { status: string; notes: string; showForm: boolean }>>({});
   
+  // Timeline state
+  const [showAddEvent, setShowAddEvent] = useState(false);
+  const [newEventType, setNewEventType] = useState('note');
+  const [newEventDescription, setNewEventDescription] = useState('');
+  const [isAddingEvent, setIsAddingEvent] = useState(false);
+  
   // Local state for optimistic application status updates
   const [localApplicationStatus, setLocalApplicationStatus] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Helper functions for timeline
+  const formatTimelineTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (diffDays === 1) {
+      return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return date.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric', 
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+      });
+    }
+  };
+
+  const getTimelineIcon = (eventType: string) => {
+    switch (eventType) {
+      case 'status_change': return '📋';
+      case 'reference_check': return '📞';
+      case 'home_visit': return '🏠';
+      case 'note': return '📝';
+      case 'system': return '⚙️';
+      default: return '•';
+    }
+  };
+
+  const getEventTitle = (event: string) => {
+    switch (event) {
+      case 'status_change': return 'Status Updated';
+      case 'reference_check': return 'Reference Check';
+      case 'home_visit': return 'Home Visit';
+      case 'note': return 'Note Added';
+      case 'system': return 'System Event';
+      default: 
+        // Convert snake_case to Title Case with proper spacing
+        return event
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+    }
+  };
+
+  const handleAddEvent = async () => {
+    if (!newEventDescription.trim()) return;
+    
+    try {
+      setIsAddingEvent(true);
+      await onAddTimelineEvent(newEventType, newEventDescription.trim());
+      setNewEventDescription('');
+      setNewEventType('note');
+      setShowAddEvent(false);
+    } catch (error) {
+      console.error('Failed to add timeline event:', error);
+      alert('Failed to add timeline event. Please try again.');
+    } finally {
+      setIsAddingEvent(false);
+    }
+  };
 
   // Helper function to get valid status transitions based on current status
   const getValidStatusOptions = (currentStatus: string) => {
@@ -528,28 +863,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     };
 
     return validTransitions[currentStatus] || [];
-  };
-
-  // Helper function to format status display names
-  const formatStatusName = (status: string) => {
-    const statusNames: Record<string, string> = {
-      'draft': 'Draft',
-      'submitted': 'Submitted',
-      'under_review': 'Under Review',
-      'pending_references': 'Pending References',
-      'reference_check': 'Reference Check',
-      'interview_scheduled': 'Interview Scheduled',
-      'interview_completed': 'Interview Completed',
-      'home_visit_scheduled': 'Home Visit Scheduled',
-      'home_visit_completed': 'Home Visit Completed',
-      'approved': 'Approved',
-      'conditionally_approved': 'Conditionally Approved',
-      'rejected': 'Rejected',
-      'withdrawn': 'Withdrawn',
-      'expired': 'Expired',
-    };
-
-    return statusNames[status] || status.replace('_', ' ');
   };
 
   // Clear local state when application changes
@@ -1175,8 +1488,122 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           {/* Timeline Tab */}
           <TabPanel $active={activeTab === 'timeline'}>
             <Section>
-              <SectionTitle>Application Timeline</SectionTitle>
-              <p>Timeline functionality would be implemented here.</p>
+              <SectionHeader>
+                <SectionTitle>Application Timeline</SectionTitle>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => setShowAddEvent(!showAddEvent)}
+                >
+                  {showAddEvent ? 'Cancel' : 'Add Event'}
+                </Button>
+              </SectionHeader>
+
+              {showAddEvent && (
+                <AddEventForm>
+                  <AddEventTitle>Add Timeline Event</AddEventTitle>
+                  <FormRow>
+                    <FormGroup>
+                      <FormLabel>Event Type</FormLabel>
+                      <FormSelect
+                        value={newEventType}
+                        onChange={(e) => setNewEventType(e.target.value)}
+                      >
+                        <option value="note">Note</option>
+                        <option value="reference_check">Reference Check</option>
+                        <option value="home_visit">Home Visit</option>
+                        <option value="system">System Event</option>
+                      </FormSelect>
+                    </FormGroup>
+                  </FormRow>
+                  <FormRow>
+                    <FormGroup>
+                      <FormLabel>Description</FormLabel>
+                      <FormTextarea
+                        value={newEventDescription}
+                        onChange={(e) => setNewEventDescription(e.target.value)}
+                        placeholder="Enter event description..."
+                        rows={3}
+                      />
+                    </FormGroup>
+                  </FormRow>
+                  <FormActions>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        setShowAddEvent(false);
+                        setNewEventDescription('');
+                        setNewEventType('note');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleAddEvent}
+                      disabled={!newEventDescription.trim() || isAddingEvent}
+                    >
+                      {isAddingEvent ? 'Adding...' : 'Add Event'}
+                    </Button>
+                  </FormActions>
+                </AddEventForm>
+              )}
+
+              <TimelineContainer>
+                {timeline.length === 0 ? (
+                  <EmptyTimeline>
+                    <p>No timeline events yet.</p>
+                    <p>Timeline events will appear here as actions are taken on this application.</p>
+                  </EmptyTimeline>
+                ) : (
+                  timeline
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                    .map((event) => (
+                      <TimelineItem key={event.id}>
+                        <TimelineIcon $type={event.event}>
+                          {getTimelineIcon(event.event)}
+                        </TimelineIcon>
+                        <TimelineContent>
+                          <TimelineHeader>
+                            <TimelineTitle>{getEventTitle(event.event)}</TimelineTitle>
+                            <TimelineTimestamp>
+                              {formatTimelineTimestamp(event.timestamp)}
+                            </TimelineTimestamp>
+                          </TimelineHeader>
+                          <TimelineDescription>
+                            {event.event === 'status_change' && event.data?.newStatus
+                              ? `Status changed to: ${formatStatusName(event.data.newStatus)}`
+                              : event.description
+                            }
+                          </TimelineDescription>
+                          {event.data && Object.keys(event.data).length > 0 && (
+                            <TimelineData>
+                              <strong>Additional Details:</strong>
+                              {event.data.oldStatus && event.data.newStatus ? (
+                                <div style={{ marginTop: '0.5rem' }}>
+                                  <span style={{ color: '#ef4444' }}>From: {formatStatusName(event.data.oldStatus)}</span>
+                                  <br />
+                                  <span style={{ color: '#10b981' }}>To: {formatStatusName(event.data.newStatus)}</span>
+                                  {event.data.notes && (
+                                    <>
+                                      <br />
+                                      <span style={{ color: '#6b7280' }}>Notes: {event.data.notes}</span>
+                                    </>
+                                  )}
+                                </div>
+                              ) : (
+                                <pre>{JSON.stringify(event.data, null, 2)}</pre>
+                              )}
+                            </TimelineData>
+                          )}
+                          <TimelineUser>by {event.userName}</TimelineUser>
+                        </TimelineContent>
+                      </TimelineItem>
+                    ))
+                )}
+              </TimelineContainer>
             </Section>
           </TabPanel>
         </Content>

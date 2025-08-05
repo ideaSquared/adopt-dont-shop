@@ -1,5 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
+import { formatStatusName } from '../../utils/statusUtils';
+import StatusBadge from '../common/StatusBadge';
 import type { ApplicationListItem, ApplicationFilter, ApplicationSort } from '../../types/applications';
 import ApplicationStats from './ApplicationStats';
 import ApplicationFilters from './ApplicationFilters';
@@ -192,31 +194,6 @@ const PetDetails = styled.div`
   color: #6b7280;
 `;
 
-const StatusBadge = styled.span<{ $status: string }>`
-  display: inline-flex;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 9999px;
-  
-  ${props => {
-    switch (props.$status) {
-      case 'submitted':
-        return 'background: #dbeafe; color: #1e40af;';
-      case 'under_review':
-        return 'background: #fef3c7; color: #92400e;';
-      case 'pending_references':
-        return 'background: #fed7aa; color: #ea580c;';
-      case 'approved':
-        return 'background: #dcfce7; color: #166534;';
-      case 'rejected':
-        return 'background: #fecaca; color: #dc2626;';
-      default:
-        return 'background: #f3f4f6; color: #374151;';
-    }
-  }}
-`;
-
 const PriorityBadge = styled.span<{ $priority: string }>`
   display: inline-flex;
   padding: 0.25rem 0.5rem;
@@ -251,32 +228,111 @@ const PriorityBadge = styled.span<{ $priority: string }>`
 
 const ProgressIndicators = styled.div`
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 200px;
 `;
 
-const ProgressDot = styled.span<{ $status: string }>`
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
+const ProgressBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex: 1;
+`;
+
+const ProgressStep = styled.div<{ $status: 'completed' | 'current' | 'pending'; $isLast?: boolean }>`
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  position: relative;
   
   ${props => {
     switch (props.$status) {
       case 'completed':
         return 'background: #10b981;';
-      case 'in_progress':
-      case 'scheduled':
-        return 'background: #f59e0b;';
+      case 'current':
+        return 'background: #3b82f6;';
       default:
-        return 'background: #d1d5db;';
+        return 'background: #e5e7eb;';
     }
   }}
+  
+  &::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    ${props => {
+      if (props.$isLast) return 'display: none;';
+      switch (props.$status) {
+        case 'completed':
+          return 'background: #10b981; border: 2px solid white; box-shadow: 0 0 0 2px #10b981;';
+        case 'current':
+          return 'background: #3b82f6; border: 2px solid white; box-shadow: 0 0 0 2px #3b82f6;';
+        default:
+          return 'background: #9ca3af; border: 2px solid white;';
+      }
+    }}
+  }
 `;
 
-const StatusSelect = styled.select`
-  font-size: 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
+const ProgressLabel = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+`;
+
+const ActionsContainer = styled.div`
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+`;
+
+const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
   padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  
+  ${props => {
+    switch (props.$variant) {
+      case 'primary':
+        return `
+          background: #3b82f6;
+          color: white;
+          border-color: #3b82f6;
+          &:hover { background: #2563eb; border-color: #2563eb; }
+        `;
+      case 'danger':
+        return `
+          background: #ef4444;
+          color: white;
+          border-color: #ef4444;
+          &:hover { background: #dc2626; border-color: #dc2626; }
+        `;
+      default:
+        return `
+          background: white;
+          color: #374151;
+          border-color: #d1d5db;
+          &:hover { background: #f9fafb; border-color: #9ca3af; }
+        `;
+    }
+  }}
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const ErrorContainer = styled.div`
@@ -306,6 +362,65 @@ const ErrorMessage = styled.p`
   color: #b91c1c;
   margin: 0;
 `;
+
+// Helper functions for progress calculation
+const getApplicationProgress = (status: string) => {
+  const statusOrder = [
+    'draft',
+    'submitted', 
+    'under_review',
+    'pending_references',
+    'approved'
+  ];
+  
+  const currentIndex = statusOrder.indexOf(status);
+  const progress = currentIndex >= 0 ? currentIndex : 0;
+  const total = statusOrder.length - 1; // Don't count final approved as a step
+  
+  return { current: progress, total, status };
+};
+
+const getStepStatus = (stepIndex: number, currentProgress: number, appStatus: string): 'completed' | 'current' | 'pending' => {
+  if (appStatus === 'rejected' || appStatus === 'withdrawn' || appStatus === 'expired') {
+    return stepIndex <= currentProgress ? 'current' : 'pending';
+  }
+  
+  if (stepIndex < currentProgress) return 'completed';
+  if (stepIndex === currentProgress) return 'current';
+  return 'pending';
+};
+
+const getActionButtons = (application: ApplicationListItem, onStatusUpdate: (id: string, status: string) => void) => {
+  const actions = [];
+  
+  switch (application.status) {
+    case 'submitted':
+      actions.push(
+        { label: 'Start Review', action: () => onStatusUpdate(application.id, 'under_review'), variant: 'primary' as const },
+        { label: 'Reject', action: () => onStatusUpdate(application.id, 'rejected'), variant: 'danger' as const }
+      );
+      break;
+    case 'under_review':
+      actions.push(
+        { label: 'Request References', action: () => onStatusUpdate(application.id, 'pending_references'), variant: 'primary' as const },
+        { label: 'Approve', action: () => onStatusUpdate(application.id, 'approved'), variant: 'primary' as const },
+        { label: 'Reject', action: () => onStatusUpdate(application.id, 'rejected'), variant: 'danger' as const }
+      );
+      break;
+    case 'pending_references':
+      actions.push(
+        { label: 'Approve', action: () => onStatusUpdate(application.id, 'approved'), variant: 'primary' as const },
+        { label: 'Back to Review', action: () => onStatusUpdate(application.id, 'under_review'), variant: 'secondary' as const }
+      );
+      break;
+    default:
+      actions.push(
+        { label: 'View', action: () => {}, variant: 'secondary' as const }
+      );
+  }
+  
+  return actions.slice(0, 2); // Limit to 2 actions to prevent overflow
+};
 
 interface ApplicationListProps {
   applications: ApplicationListItem[];
@@ -559,9 +674,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                       </PetInfo>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge $status={application.status}>
-                        {application.status ? application.status.replace('_', ' ') : 'Unknown'}
-                      </StatusBadge>
+                      <StatusBadge status={application.status || 'unknown'} />
                     </TableCell>
                     <TableCell>
                       <PriorityBadge $priority={application.priority}>
@@ -573,27 +686,39 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                     </TableCell>
                     <TableCell>
                       <ProgressIndicators>
-                        <ProgressDot 
-                          $status={application.referencesStatus} 
-                          title="References" 
-                        />
-                        <ProgressDot 
-                          $status={application.homeVisitStatus} 
-                          title="Home Visit" 
-                        />
+                        <ProgressBar>
+                          {[0, 1, 2, 3].map((stepIndex) => {
+                            const progress = getApplicationProgress(application.status);
+                            const stepStatus = getStepStatus(stepIndex, progress.current, application.status);
+                            return (
+                              <ProgressStep 
+                                key={stepIndex}
+                                $status={stepStatus}
+                                $isLast={stepIndex === 3}
+                              />
+                            );
+                          })}
+                        </ProgressBar>
+                        <ProgressLabel>
+                          {formatStatusName(application.status)}
+                        </ProgressLabel>
                       </ProgressIndicators>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <StatusSelect
-                        value={application.status}
-                        onChange={(e) => onStatusUpdate(application.id, e.target.value)}
-                      >
-                        <option value="submitted">Submitted</option>
-                        <option value="under_review">Under Review</option>
-                        <option value="pending_references">Pending References</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                      </StatusSelect>
+                      <ActionsContainer>
+                        {getActionButtons(application, onStatusUpdate).map((action, index) => (
+                          <ActionButton
+                            key={index}
+                            $variant={action.variant}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              action.action();
+                            }}
+                          >
+                            {action.label}
+                          </ActionButton>
+                        ))}
+                      </ActionsContainer>
                     </TableCell>
                   </TableRow>
                 ))}
