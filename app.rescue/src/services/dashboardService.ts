@@ -3,6 +3,7 @@
  */
 
 import { apiService } from './api';
+import { isDevelopment, getApiBaseUrl } from '../utils/env';
 import { RescueDashboardData, RecentActivity, DashboardNotification } from '../types/dashboard';
 
 export class DashboardService {
@@ -13,13 +14,13 @@ export class DashboardService {
     try {
       // Debug: Log authentication status
       const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-      if (import.meta.env.DEV) {
+      if (isDevelopment()) {
         console.log('🔐 Dashboard API Call - Token exists:', !!token);
         console.log(
           '🔐 Dashboard API Call - Token preview:',
           token ? `${token.substring(0, 20)}...` : 'none'
         );
-        console.log('🐋 Docker Environment - API Base URL:', import.meta.env.VITE_API_BASE_URL);
+        console.log('🐋 Docker Environment - API Base URL:', getApiBaseUrl());
       }
 
       const response = await apiService.get<{
@@ -30,7 +31,7 @@ export class DashboardService {
 
       const backendData = response.data;
 
-      if (import.meta.env.DEV) {
+      if (isDevelopment()) {
         console.log('📊 Dashboard Backend Data:', backendData);
         console.log('📊 Data fields received:', Object.keys(backendData));
         console.log('📊 Is this real data?', {

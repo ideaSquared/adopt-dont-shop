@@ -110,7 +110,7 @@ interface PetGridProps {
   loading?: boolean;
   onStatusChange: (petId: string, status: PetStatus, notes?: string) => void;
   onEditPet: (pet: Pet) => void;
-  onDeletePet: (petId: string, reason?: string) => void;
+  onDeletePet: (petId: string, reason?: string) => Promise<void>;
   pagination?: {
     currentPage: number;
     totalPages: number;

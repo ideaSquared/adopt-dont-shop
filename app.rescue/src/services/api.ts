@@ -1,3 +1,5 @@
+import { getApiBaseUrl, isDevelopment } from '../utils/env';
+
 interface FetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   headers?: Record<string, string>;
@@ -10,7 +12,7 @@ class ApiService {
   private defaultTimeout: number = 10000;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || '';
+    this.baseURL = getApiBaseUrl();
   }
 
   private getAuthToken(): string | null {
@@ -37,7 +39,7 @@ class ApiService {
 
     // eslint-disable-next-line no-console
     console.log(`🌐 API: ${method} ${fullUrl}`);
-    if (body && import.meta.env.DEV) {
+    if (body && isDevelopment()) {
       // eslint-disable-next-line no-console
       console.log('📤 API: Request body:', body);
     }
@@ -84,7 +86,7 @@ class ApiService {
 
       const data = await response.json();
 
-      if (import.meta.env.DEV) {
+      if (isDevelopment()) {
         // eslint-disable-next-line no-console
         console.log('📥 API: Response:', data);
       }

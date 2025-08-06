@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@/services';
+import { isDevelopment } from '@/utils/env';
 import React, { useState } from 'react';
 import styled from 'styled-components';
 
@@ -280,7 +281,7 @@ export const DevLoginPanel: React.FC = () => {
   const { user, login, logout, isAuthenticated } = useAuth();
 
   // Only show in development mode
-  if (!import.meta.env.DEV) {
+  if (!isDevelopment()) {
     return null;
   }
 

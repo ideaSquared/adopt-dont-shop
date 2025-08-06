@@ -17,10 +17,12 @@ import { ValidationService } from '@adopt-dont-shop/lib-validation';
 import { apiService as globalApiService } from '@adopt-dont-shop/lib-api';
 
 // Configure with the proper base URL
-const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { getApiBaseUrl, isDevelopment } from '../utils/env';
+
+const baseUrl = getApiBaseUrl();
 globalApiService.updateConfig({
   apiUrl: baseUrl,
-  debug: import.meta.env.DEV,
+  debug: isDevelopment(),
 });
 
 // Now import AuthService AFTER configuring the global apiService
@@ -29,7 +31,7 @@ import { AuthService } from '@adopt-dont-shop/lib-auth';
 // Centralized service configuration
 const serviceConfig = {
   apiUrl: baseUrl,
-  debug: import.meta.env.DEV,
+  debug: isDevelopment(),
 };
 
 // Create configured service instances

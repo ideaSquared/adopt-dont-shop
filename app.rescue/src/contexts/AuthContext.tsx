@@ -1,6 +1,7 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { authService } from '../services';
 import { LoginRequest, RegisterRequest, User } from '../types/auth';
+import { isDevelopment } from '../utils/env';
 
 interface AuthContextType {
   user: User | null;
@@ -135,7 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
 
       // Clear dev user data in development mode
-      if (import.meta.env.DEV) {
+      if (isDevelopment()) {
         localStorage.removeItem('dev_user');
         // Clear mock tokens for dev users
         const token = localStorage.getItem('accessToken');
@@ -148,7 +149,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Logout error:', error);
       // Even if logout fails, clear local state
       setUser(null);
-      if (import.meta.env.DEV) {
+      if (isDevelopment()) {
         localStorage.removeItem('dev_user');
         // Clear mock tokens for dev users
         const token = localStorage.getItem('accessToken');
@@ -166,7 +167,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) throw new Error('No user logged in');
 
     // In development mode, handle dev users differently
-    if (import.meta.env.DEV) {
+    if (isDevelopment()) {
       const token = localStorage.getItem('accessToken');
       if (token?.startsWith('dev-token-')) {
         const updatedUser = { ...user, ...profileData };

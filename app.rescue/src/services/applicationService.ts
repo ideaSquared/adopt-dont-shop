@@ -580,6 +580,12 @@ export class RescueApplicationService {
       priority: this.getPriority(app),
       referencesStatus: this.calculateReferencesStatus(app),
       homeVisitStatus: this.calculateHomeVisitStatus(app),
+      // New stage-based fields
+      stage: app.stage || 'PENDING',
+      stageProgressPercentage: this.calculateStageProgress(app),
+      assignedStaff: app.assignedStaff,
+      tags: app.tags || [],
+      finalOutcome: app.finalOutcome,
     };
   };
 
@@ -632,6 +638,31 @@ export class RescueApplicationService {
     if (app.status === 'approved') return 'completed';
     if (app.status === 'under_review') return 'scheduled';
     return 'not_scheduled';
+  }
+
+  /**
+   * Calculate stage progress percentage based on current stage and completed steps
+   */
+  private calculateStageProgress(app: any): number {
+    const stage = app.stage || 'PENDING';
+    
+    // Base progress by stage
+    const stageProgress: Record<string, number> = {
+      'PENDING': 10,
+      'REVIEWING': 30,
+      'VISITING': 60,
+      'DECIDING': 80,
+      'RESOLVED': 100
+    };
+
+    let progress = stageProgress[stage] || 0;
+
+    // Add bonus progress based on completed tasks
+    if (app.referencesCompleted) progress += 10;
+    if (app.homeVisitCompleted) progress += 10;
+    if (app.interviewCompleted) progress += 5;
+
+    return Math.min(progress, 100);
   }
 }
 
