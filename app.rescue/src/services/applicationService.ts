@@ -9,6 +9,7 @@ import type {
   ApplicationStats,
   BulkAction,
 } from '../types/applications';
+import type { ApplicationStage } from '../types/applicationStages';
 
 /**
  * Application Service for Rescue App
@@ -121,19 +122,186 @@ export class RescueApplicationService {
   }
 
   /**
+   * Normalize status values to the format expected by the backend
+   */
+  private normalizeStatusForBackend(status: string): string {
+    if (!status) return status;
+    const key = status.trim().toUpperCase();
+    const map: Record<string, string> = {
+      // Primary terminal statuses
+      REJECT: 'rejected',
+      REJECTED: 'rejected',
+      APPROVE: 'approved',
+      APPROVED: 'approved',
+      WITHDRAW: 'withdrawn',
+      WITHDRAWN: 'withdrawn',
+
+      // Workflow states (backend uses lowercase snake_case)
+      START_REVIEW: 'under_review',
+      UNDER_REVIEW: 'under_review',
+      PENDING_REFERENCES: 'pending_references',
+      IN_REVIEW: 'under_review',
+      REFERENCE_CHECK: 'reference_check',
+
+      // Interview and visit statuses
+      INTERVIEW_SCHEDULED: 'interview_scheduled',
+      INTERVIEW_COMPLETED: 'interview_completed',
+      HOME_VISIT_SCHEDULED: 'home_visit_scheduled',
+      HOME_VISIT_COMPLETED: 'home_visit_completed',
+
+      // Additional backend-supported statuses
+      DRAFT: 'draft',
+      SUBMITTED: 'submitted',
+      OPEN: 'submitted',
+      PENDING: 'submitted',
+      CONDITIONALLY_APPROVED: 'conditionally_approved',
+      CONDITIONAL: 'conditionally_approved',
+      EXPIRED: 'expired',
+      ON_HOLD: 'submitted', // Map to nearest valid status
+      WAITLISTED: 'submitted', // Map to nearest valid status
+      CANCELLED: 'withdrawn', // Map to nearest valid status
+      ARCHIVED: 'expired', // Map to nearest valid status
+      RESOLVED: 'approved', // Map to nearest valid status
+    };
+    return map[key] || status.toLowerCase();
+  }
+
+  /**
+   * Map application status to appropriate stage for display
+   */
+  private mapStatusToStage(status: string): ApplicationStage {
+    if (!status) return 'PENDING';
+
+    const normalizedStatus = status.toLowerCase();
+
+    // Terminal statuses map to RESOLVED stage
+    const terminalStatuses = [
+      'approved',
+      'rejected',
+      'withdrawn',
+      'expired',
+      'conditionally_approved',
+    ];
+    if (terminalStatuses.includes(normalizedStatus)) {
+      return 'RESOLVED';
+    }
+
+    // Map other statuses to appropriate stages
+    const stageMapping: Record<string, ApplicationStage> = {
+      draft: 'PENDING',
+      submitted: 'PENDING',
+      under_review: 'REVIEWING',
+      pending_references: 'REVIEWING',
+      reference_check: 'REVIEWING',
+      interview_scheduled: 'REVIEWING',
+      interview_completed: 'REVIEWING',
+      home_visit_scheduled: 'VISITING',
+      home_visit_completed: 'DECIDING',
+    };
+
+    return stageMapping[normalizedStatus] || 'PENDING';
+  }
+
+  /**
+   * Check if a status transition is valid based on backend business rules
+   */
+  private isValidStatusTransition(fromStatus: string, toStatus: string): boolean {
+    const from = fromStatus?.toLowerCase();
+    const to = toStatus?.toLowerCase();
+
+    // No-op transitions (same status to same status) are invalid
+    if (from === to) {
+      return false;
+    }
+
+    // Terminal statuses cannot transition to anything
+    const terminalStatuses = ['approved', 'rejected', 'withdrawn', 'expired'];
+    if (terminalStatuses.includes(from)) {
+      return false;
+    }
+
+    // Valid transitions based on backend ApplicationStatus model
+    const validTransitions: Record<string, string[]> = {
+      draft: ['submitted', 'withdrawn'],
+      submitted: ['under_review', 'rejected', 'withdrawn'],
+      under_review: [
+        'pending_references',
+        'interview_scheduled',
+        'approved',
+        'rejected',
+        'withdrawn',
+      ],
+      pending_references: ['reference_check', 'rejected', 'withdrawn'],
+      reference_check: ['interview_scheduled', 'approved', 'rejected', 'withdrawn'],
+      interview_scheduled: ['interview_completed', 'rejected', 'withdrawn'],
+      interview_completed: [
+        'home_visit_scheduled',
+        'approved',
+        'conditionally_approved',
+        'rejected',
+        'withdrawn',
+      ],
+      home_visit_scheduled: ['home_visit_completed', 'rejected', 'withdrawn'],
+      home_visit_completed: ['approved', 'conditionally_approved', 'rejected', 'withdrawn'],
+      conditionally_approved: ['approved', 'rejected', 'withdrawn'],
+    };
+
+    return validTransitions[from]?.includes(to) || false;
+  }
+
+  /**
    * Update application status
    */
   async updateApplicationStatus(id: string, status: string, notes?: string) {
     try {
+      const normalizedStatus = this.normalizeStatusForBackend(status);
+
+      // Get current application to check transition validity
+      let currentApp;
+      try {
+        currentApp = await this.getApplicationById(id);
+      } catch (error) {
+        console.warn(`Could not fetch current application ${id} for transition check:`, error);
+        // Continue anyway - let backend validate
+      }
+
+      // Check if transition is valid
+      if (currentApp?.status) {
+        const currentStatus = currentApp.status.toLowerCase();
+        const targetStatus = normalizedStatus.toLowerCase();
+
+        // Check for redundant transition
+        if (currentStatus === targetStatus) {
+          console.log(
+            `Application ${id} is already in status ${currentApp.status}, skipping redundant update`
+          );
+          return { success: true, message: `Application is already ${currentApp.status}` };
+        }
+
+        const isValid = this.isValidStatusTransition(currentApp.status, normalizedStatus);
+        if (!isValid) {
+          const terminalStatuses = ['approved', 'rejected', 'withdrawn', 'expired'];
+          if (terminalStatuses.includes(currentStatus)) {
+            throw new Error(
+              `Cannot transition from ${currentApp.status} to ${normalizedStatus}. This application is closed and may need to be reopened first.`
+            );
+          } else {
+            throw new Error(
+              `Cannot transition from ${currentApp.status} to ${normalizedStatus}. Invalid status transition.`
+            );
+          }
+        }
+      }
+
       const response = await this.apiService.patch<any>(`/api/v1/applications/${id}/status`, {
-        status,
+        status: normalizedStatus,
         notes,
         timestamp: new Date().toISOString(),
       });
       return response.data || response; // Extract data field from API response wrapper
     } catch (error) {
       console.error(`Failed to update application status for ${id}:`, error);
-      throw new Error('Failed to update application status on server');
+      throw error; // Re-throw to preserve the specific error message
     }
   }
 
@@ -499,9 +667,9 @@ export class RescueApplicationService {
         applicationIds: action.applicationIds,
         updates: {
           // Map action type to status updates
-          ...(action.type === 'approve' && { status: 'APPROVED' }),
-          ...(action.type === 'reject' && { status: 'REJECTED' }),
-          ...(action.type === 'request_references' && { status: 'PENDING_REFERENCES' }),
+          ...(action.type === 'approve' && { status: 'approved' }),
+          ...(action.type === 'reject' && { status: 'rejected' }),
+          ...(action.type === 'request_references' && { status: 'pending_references' }),
           ...action.data,
         },
       };
@@ -580,8 +748,8 @@ export class RescueApplicationService {
       priority: this.getPriority(app),
       referencesStatus: this.calculateReferencesStatus(app),
       homeVisitStatus: this.calculateHomeVisitStatus(app),
-      // New stage-based fields
-      stage: app.stage || 'PENDING',
+      // New stage-based fields - map status to appropriate stage if no stage provided
+      stage: app.stage || this.mapStatusToStage(app.status),
       stageProgressPercentage: this.calculateStageProgress(app),
       assignedStaff: app.assignedStaff,
       tags: app.tags || [],
@@ -645,14 +813,14 @@ export class RescueApplicationService {
    */
   private calculateStageProgress(app: any): number {
     const stage = app.stage || 'PENDING';
-    
+
     // Base progress by stage
     const stageProgress: Record<string, number> = {
-      'PENDING': 10,
-      'REVIEWING': 30,
-      'VISITING': 60,
-      'DECIDING': 80,
-      'RESOLVED': 100
+      PENDING: 10,
+      REVIEWING: 30,
+      VISITING: 60,
+      DECIDING: 80,
+      RESOLVED: 100,
     };
 
     let progress = stageProgress[stage] || 0;

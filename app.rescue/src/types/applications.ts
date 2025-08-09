@@ -34,7 +34,7 @@ export interface ApplicationListItem extends ApplicationWithPetInfo {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   referencesStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
   homeVisitStatus: 'not_scheduled' | 'scheduled' | 'completed' | 'failed';
-  
+
   // New stage-based fields
   stage: ApplicationStage;
   finalOutcome?: FinalOutcome;

@@ -232,6 +232,17 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
     }
   };
 
+  // Check if application is in terminal status
+  const isTerminalStatus = () => {
+    const terminalStatuses = ['approved', 'rejected', 'withdrawn', 'expired'];
+    return terminalStatuses.includes(application.status?.toLowerCase());
+  };
+
+  // Don't show actions for terminal statuses
+  const shouldShowActions = () => {
+    return availableActions.length > 0 && !isTerminalStatus();
+  };
+
   return (
     <CardContainer onClick={handleCardClick}>
       <CardHeader>
@@ -285,9 +296,15 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
             {OUTCOME_CONFIG[application.finalOutcome]?.emoji} {OUTCOME_CONFIG[application.finalOutcome]?.label}
           </OutcomeBadge>
         )}
+
+        {isTerminalStatus() && (
+          <OutcomeBadge outcome="APPROVED">
+            🔒 Application Closed
+          </OutcomeBadge>
+        )}
       </CardBody>
 
-      {availableActions.length > 0 && (
+      {shouldShowActions() && (
         <CardActions>
           {availableActions.slice(0, 2).map(action => (
             <ActionButton
