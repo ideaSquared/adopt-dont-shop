@@ -14,7 +14,6 @@ export interface ApplicationData {
   actioned_by?: string | null;
   actioned_at?: Date | null;
   rejection_reason?: string | null;
-  conditional_requirements?: string[] | null;
   answers: JsonObject;
   references: ApplicationReference[];
   documents: ApplicationDocument[];
@@ -152,7 +151,6 @@ export interface ApplicationStatusUpdateRequest {
   status: ApplicationStatus;
   actioned_by: string;
   rejection_reason?: string;
-  conditional_requirements?: string[];
   notes?: string;
   follow_up_date?: Date;
 }
@@ -339,8 +337,8 @@ export interface ReferenceContactRequest {
 }
 
 export interface ReferenceUpdateRequest {
-  reference_index?: number; // Legacy support - will be deprecated
-  referenceId?: string; // New ID-based approach (ref-0, ref-1, etc.)
+  reference_index?: number; // Support for index-based reference updates
+  referenceId?: string; // Support for ID-based approach (ref-0, ref-1, etc.)
   status: 'pending' | 'contacted' | 'verified' | 'failed';
   notes?: string;
   contacted_at?: Date;

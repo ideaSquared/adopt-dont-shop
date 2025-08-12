@@ -185,7 +185,7 @@ export class BaseController {
 
   /**
    * @deprecated Use sendPaginatedSuccess instead
-   * Send a paginated response (legacy method for backward compatibility)
+   * Send a paginated response (alternative method for compatibility)
    */
   protected sendPaginatedResponse(
     res: Response,

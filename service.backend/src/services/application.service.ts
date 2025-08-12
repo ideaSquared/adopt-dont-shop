@@ -1,6 +1,3 @@
-// Placeholder Application Service
-// TODO: Implement full application service functionality
-
 import { Includeable, Op, Order, WhereOptions } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
@@ -9,6 +6,8 @@ import Pet from '../models/Pet';
 import User, { UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import ApplicationTimelineService from './applicationTimeline.service';
+import { TimelineEventType } from '../models/ApplicationTimeline';
 import { JsonObject } from '../types/common';
 
 import {
@@ -104,6 +103,23 @@ export class ApplicationService {
         documents: [],
         notes: applicationData.notes,
         tags: applicationData.tags || [],
+      });
+
+      // Create initial timeline event
+      await ApplicationTimelineService.createEvent({
+        application_id: application.application_id,
+        event_type: TimelineEventType.STATUS_UPDATE,
+        title: 'Application Submitted',
+        description: 'Application was submitted for review',
+        created_by: userId,
+        created_by_system: false,
+        new_status: ApplicationStatus.SUBMITTED,
+        metadata: {
+          pet_id: applicationData.pet_id,
+          rescue_id: pet.rescue_id,
+          priority: application.priority,
+          submission_date: new Date(),
+        },
       });
 
       // Log creation
@@ -500,6 +516,20 @@ export class ApplicationService {
       // Update application
       await application.update(updateData);
 
+      // Create timeline event for application update
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: TimelineEventType.NOTE_ADDED,
+        title: 'Application Updated',
+        description: `Application was updated by the applicant`,
+        created_by: userId,
+        created_by_system: false,
+        metadata: {
+          updated_fields: Object.keys(updateData),
+          update_date: new Date(),
+        },
+      });
+
       // Log the update
       await AuditLogService.log({
         userId: userId,
@@ -624,10 +654,6 @@ export class ApplicationService {
         updateFields.rejection_reason = statusUpdate.rejection_reason;
       }
 
-      if (statusUpdate.conditional_requirements) {
-        updateFields.conditional_requirements = statusUpdate.conditional_requirements;
-      }
-
       if (statusUpdate.notes) {
         updateFields.notes = statusUpdate.notes;
       }
@@ -645,6 +671,26 @@ export class ApplicationService {
       }
 
       await application.update(updateFields);
+
+      // Create timeline event for status change
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: ApplicationService.getTimelineEventTypeForStatus(statusUpdate.status),
+        title: `Application ${ApplicationService.formatStatusName(statusUpdate.status)}`,
+        description:
+          statusUpdate.rejection_reason ||
+          statusUpdate.notes ||
+          `Application status changed from ${ApplicationService.formatStatusName(previousStatus)} to ${ApplicationService.formatStatusName(statusUpdate.status)}`,
+        created_by: actionedBy,
+        created_by_system: false,
+        previous_status: previousStatus,
+        new_status: statusUpdate.status,
+        metadata: {
+          rejection_reason: statusUpdate.rejection_reason,
+          follow_up_date: statusUpdate.follow_up_date,
+          notes: statusUpdate.notes,
+        },
+      });
 
       // Log status change
       await AuditLogService.log({
@@ -702,6 +748,22 @@ export class ApplicationService {
         actioned_at: new Date(),
       });
 
+      // Create timeline event for withdrawal
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: TimelineEventType.APPLICATION_WITHDRAWN,
+        title: 'Application Withdrawn',
+        description: 'Application was withdrawn by the applicant',
+        created_by: userId,
+        created_by_system: false,
+        previous_status: application.status,
+        new_status: ApplicationStatus.WITHDRAWN,
+        metadata: {
+          withdrawn_by: userId,
+          withdrawn_at: new Date(),
+        },
+      });
+
       // Log withdrawal
       await AuditLogService.log({
         action: 'WITHDRAW',
@@ -750,6 +812,22 @@ export class ApplicationService {
 
       await application.update({ documents: updatedDocuments });
 
+      // Create timeline event for document upload
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: TimelineEventType.DOCUMENT_UPLOADED,
+        title: 'Document Uploaded',
+        description: `${documentData.document_type} document "${documentData.file_name}" was uploaded`,
+        created_by: userId,
+        created_by_system: false,
+        metadata: {
+          document_id: newDocument.document_id,
+          document_type: documentData.document_type,
+          file_name: documentData.file_name,
+          upload_date: new Date(),
+        },
+      });
+
       // Log document upload
       await AuditLogService.log({
         action: 'DOCUMENT_UPLOAD',
@@ -790,7 +868,7 @@ export class ApplicationService {
       let referenceIndex: number;
 
       if (referenceUpdate.referenceId) {
-        // New ID-based approach
+        // ID-based approach
         if (!referenceUpdate.referenceId.startsWith('ref-')) {
           throw new Error(
             `Invalid reference ID format: ${referenceUpdate.referenceId}. Expected format: ref-X`
@@ -805,7 +883,7 @@ export class ApplicationService {
         }
         referenceIndex = indexFromId;
       } else if (referenceUpdate.reference_index !== undefined) {
-        // Legacy index-based approach
+        // Fallback index-based approach
         referenceIndex = referenceUpdate.reference_index;
       } else {
         throw new Error('Either referenceId or reference_index must be provided');
@@ -927,6 +1005,32 @@ export class ApplicationService {
 
       await application.update({ references: updatedReferences });
 
+      // Create timeline event for reference update
+      const eventType =
+        referenceUpdate.status === 'contacted'
+          ? TimelineEventType.REFERENCE_CONTACTED
+          : referenceUpdate.status === 'verified'
+            ? TimelineEventType.REFERENCE_VERIFIED
+            : TimelineEventType.NOTE_ADDED;
+
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: eventType,
+        title: `Reference ${ApplicationService.formatStatusName(referenceUpdate.status)}`,
+        description:
+          referenceUpdate.notes ||
+          `Reference at index ${referenceIndex} status updated to ${referenceUpdate.status}`,
+        created_by: userId,
+        created_by_system: false,
+        metadata: {
+          reference_index: referenceIndex,
+          reference_id: referenceUpdate.referenceId,
+          reference_status: referenceUpdate.status,
+          contacted_at: referenceUpdate.contacted_at,
+          notes: referenceUpdate.notes,
+        },
+      });
+
       // Log reference update
       await AuditLogService.log({
         action: 'REFERENCE_UPDATE',
@@ -970,7 +1074,12 @@ export class ApplicationService {
       const totalApplications = await Application.count({ where: whereConditions });
 
       // Get applications by status
-      const applicationsByStatus: Record<ApplicationStatus, number> = {} as any;
+      const applicationsByStatus: Record<ApplicationStatus, number> = {
+        [ApplicationStatus.SUBMITTED]: 0,
+        [ApplicationStatus.APPROVED]: 0,
+        [ApplicationStatus.REJECTED]: 0,
+        [ApplicationStatus.WITHDRAWN]: 0,
+      };
       for (const status of Object.values(ApplicationStatus)) {
         applicationsByStatus[status] = await Application.count({
           where: { ...whereConditions, status },
@@ -978,7 +1087,12 @@ export class ApplicationService {
       }
 
       // Get applications by priority
-      const applicationsByPriority: Record<ApplicationPriority, number> = {} as any;
+      const applicationsByPriority: Record<ApplicationPriority, number> = {
+        [ApplicationPriority.LOW]: 0,
+        [ApplicationPriority.NORMAL]: 0,
+        [ApplicationPriority.HIGH]: 0,
+        [ApplicationPriority.URGENT]: 0,
+      };
       for (const priority of Object.values(ApplicationPriority)) {
         applicationsByPriority[priority] = await Application.count({
           where: { ...whereConditions, priority },
@@ -1270,6 +1384,20 @@ export class ApplicationService {
 
       await application.destroy();
 
+      // Create timeline event for application deletion
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: TimelineEventType.NOTE_ADDED,
+        title: 'Application Deleted',
+        description: 'Application was deleted by the applicant',
+        created_by: userId,
+        created_by_system: false,
+        metadata: {
+          deleted_by: userId,
+          deletion_date: new Date(),
+        },
+      });
+
       // Log deletion
       await AuditLogService.log({
         action: 'DELETE',
@@ -1315,119 +1443,43 @@ export class ApplicationService {
     };
     return descriptions[category];
   }
-}
 
-// Legacy compatibility - keeping the old interface but delegating to the new service
-export interface ApplicationFilters {
-  status?: string;
-  petId?: string;
-  userId?: string;
-  rescueId?: string;
-  startDate?: Date;
-  endDate?: Date;
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
-  page?: number;
-  limit?: number;
-}
+  /**
+   * Get the appropriate timeline event type for a status change
+   */
+  private static getTimelineEventTypeForStatus(status: ApplicationStatus): TimelineEventType {
+    switch (status) {
+      case ApplicationStatus.APPROVED:
+        return TimelineEventType.APPLICATION_APPROVED;
+      case ApplicationStatus.REJECTED:
+        return TimelineEventType.APPLICATION_REJECTED;
+      case ApplicationStatus.WITHDRAWN:
+        return TimelineEventType.APPLICATION_WITHDRAWN;
+      case ApplicationStatus.SUBMITTED:
+      default:
+        return TimelineEventType.STATUS_UPDATE;
+    }
+  }
 
-class LegacyApplicationService {
-  static async getApplications(filters: ApplicationFilters, userId?: string, userType?: string) {
-    // Convert legacy filters to new format
-    const newFilters: ApplicationSearchFilters = {};
-    const newOptions: ApplicationSearchOptions = {};
+  /**
+   * Format a status string for display
+   */
+  private static formatStatusName(status: string): string {
+    const statusMap: Record<string, string> = {
+      submitted: 'Submitted',
+      approved: 'Approved',
+      rejected: 'Rejected',
+      withdrawn: 'Withdrawn',
+    };
 
-    if (filters.status) {
-      newFilters.status = filters.status as ApplicationStatus;
-    }
-    if (filters.petId) {
-      newFilters.pet_id = filters.petId;
-    }
-    if (filters.userId) {
-      newFilters.user_id = filters.userId;
-    }
-    if (filters.rescueId) {
-      newFilters.rescue_id = filters.rescueId;
-    }
-    if (filters.startDate) {
-      newFilters.created_from = filters.startDate;
-    }
-    if (filters.endDate) {
-      newFilters.created_to = filters.endDate;
-    }
-
-    if (filters.page) {
-      newOptions.page = filters.page;
-    }
-    if (filters.limit) {
-      newOptions.limit = filters.limit;
-    }
-    if (filters.sortBy) {
-      newOptions.sortBy = filters.sortBy;
-    }
-    if (filters.sortOrder) {
-      newOptions.sortOrder = filters.sortOrder;
-    }
-
-    const result = await ApplicationService.searchApplications(
-      newFilters,
-      newOptions,
-      userId,
-      userType as UserType
+    return (
+      statusMap[status] ||
+      status
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
     );
-
-    return {
-      applications: result.applications,
-      pagination: result.pagination,
-    };
-  }
-
-  static async getApplicationById(applicationId: string) {
-    return ApplicationService.getApplicationById(applicationId);
-  }
-
-  static async createApplication(applicationData: CreateApplicationRequest, userId?: string) {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    return ApplicationService.createApplication(applicationData, userId);
-  }
-
-  static async updateApplicationStatus(applicationId: string, status: string, userId?: string) {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    const statusUpdate: ApplicationStatusUpdateRequest = {
-      status: status as ApplicationStatus,
-      actioned_by: userId,
-    };
-    return ApplicationService.updateApplicationStatus(applicationId, statusUpdate, userId);
-  }
-
-  static async withdrawApplication(applicationId: string, userId?: string) {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    await ApplicationService.withdrawApplication(applicationId, userId);
-    return { message: 'Application withdrawn successfully' };
-  }
-
-  static async getApplicationHistory(_applicationId: string) {
-    // This would need to be implemented with a proper audit/history system
-    return [];
-  }
-
-  static async getApplicationStatistics(rescueId?: string) {
-    return ApplicationService.getApplicationStatistics(rescueId);
-  }
-
-  static async scheduleVisit(
-    _applicationId: string,
-    _visitData: Record<string, unknown>,
-    _userId?: string
-  ) {
-    throw new Error('Visit scheduling not implemented in this version');
   }
 }
 
-export default LegacyApplicationService;
+export default ApplicationService;

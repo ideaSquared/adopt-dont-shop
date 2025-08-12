@@ -95,10 +95,6 @@ export class ApplicationController extends BaseController {
       .trim()
       .isLength({ max: 1000 })
       .withMessage('Rejection reason must not exceed 1000 characters'),
-    body('conditional_requirements')
-      .optional()
-      .isArray()
-      .withMessage('Conditional requirements must be an array'),
     body('notes')
       .optional()
       .trim()
@@ -179,7 +175,7 @@ export class ApplicationController extends BaseController {
       .isString()
       .isLength({ min: 1, max: 255 })
       .withMessage('Valid application ID is required'),
-    // Support both legacy reference_index and new referenceId approaches
+    // Support both reference_index and referenceId approaches for flexible reference handling
     body().custom(value => {
       if (!value.reference_index && !value.referenceId) {
         throw new Error('Either reference_index or referenceId is required');
@@ -680,7 +676,6 @@ export class ApplicationController extends BaseController {
         status: req.body.status,
         actioned_by: req.user!.userId,
         rejection_reason: req.body.rejection_reason,
-        conditional_requirements: req.body.conditional_requirements,
         notes: req.body.notes,
         follow_up_date: req.body.follow_up_date,
       };
@@ -1041,15 +1036,14 @@ export class ApplicationController extends BaseController {
     }
   };
 
-  // Legacy methods for backwards compatibility
+  // Application history now provided by timeline events
   getApplicationHistory = async (req: Request, res: Response) => {
     try {
-      // This would need to be implemented with a proper audit/history system
-      // For now, return empty array
+      // Application history is now handled by the timeline system
       res.status(200).json({
         success: true,
         data: [],
-        message: 'Application history feature not yet implemented',
+        message: 'Application history is now available through timeline events',
       });
     } catch (error) {
       logger.error('Error getting application history:', error);
@@ -1087,36 +1081,12 @@ export class ApplicationController extends BaseController {
         order: [['created_at', 'DESC']],
       });
 
-      // If no dedicated visits exist, check for legacy home_visit_notes
+      // If no visits exist, return empty array
       if (visits.length === 0) {
-        const Application = (await import('../models/Application')).default;
-        const application = await Application.findByPk(applicationId);
-
-        if (application?.home_visit_notes) {
-          // Convert legacy notes to HomeVisit format for backward compatibility
-          const legacyVisit = {
-            id: `legacy-visit-${applicationId}`,
-            applicationId: applicationId,
-            scheduledDate: new Date().toISOString().split('T')[0],
-            scheduledTime: '10:00',
-            assignedStaff: 'Rescue Staff',
-            status: application.status === 'home_visit_completed' ? 'completed' : 'scheduled',
-            notes: application.home_visit_notes,
-            outcome:
-              application.status === 'approved'
-                ? 'approved'
-                : application.status === 'conditionally_approved'
-                  ? 'conditional'
-                  : undefined,
-            completedAt:
-              application.status === 'home_visit_completed' ? new Date().toISOString() : undefined,
-          };
-
-          return res.json({
-            success: true,
-            visits: [legacyVisit],
-          });
-        }
+        return res.json({
+          success: true,
+          visits: [],
+        });
       }
 
       // Convert to frontend format
@@ -1175,10 +1145,10 @@ export class ApplicationController extends BaseController {
         status: HomeVisitStatus.SCHEDULED,
       });
 
-      // Update application status to HOME_VISIT_SCHEDULED
+      // Update application status to indicate scheduling progress
       const Application = (await import('../models/Application')).default;
       await Application.update(
-        { status: ApplicationStatus.HOME_VISIT_SCHEDULED },
+        { status: ApplicationStatus.SUBMITTED },
         { where: { application_id: applicationId } }
       );
 
@@ -1262,12 +1232,12 @@ export class ApplicationController extends BaseController {
       // Update application status based on visit outcome
       if (updateData.status === 'completed' && updateData.outcome) {
         const Application = (await import('../models/Application')).default;
-        let applicationStatus: ApplicationStatus = ApplicationStatus.HOME_VISIT_COMPLETED;
+        let applicationStatus: ApplicationStatus = ApplicationStatus.SUBMITTED;
 
         if (updateData.outcome === 'approved') {
           applicationStatus = ApplicationStatus.APPROVED;
         } else if (updateData.outcome === 'conditional') {
-          applicationStatus = ApplicationStatus.CONDITIONALLY_APPROVED;
+          applicationStatus = ApplicationStatus.APPROVED; // Treat conditional as approved
         } else if (updateData.outcome === 'rejected') {
           applicationStatus = ApplicationStatus.REJECTED;
         }

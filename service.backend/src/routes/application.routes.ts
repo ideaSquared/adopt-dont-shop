@@ -1158,7 +1158,7 @@ router.patch(
   applicationController.bulkUpdateApplications
 );
 
-// Legacy routes for backwards compatibility
+// Application history routes
 
 /**
  * @swagger
@@ -1166,7 +1166,7 @@ router.patch(
  *   get:
  *     tags: [Application Management]
  *     summary: Get application history
- *     description: Get the history of changes and status updates for an application. Legacy endpoint for backwards compatibility.
+ *     description: Get the history of changes and status updates for an application. Use timeline events for comprehensive history.
  *     security:
  *       - bearerAuth: []
  *       - cookieAuth: []

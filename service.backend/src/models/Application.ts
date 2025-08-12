@@ -2,7 +2,7 @@ import { DataTypes, Model, Op, Optional } from 'sequelize';
 import sequelize from '../sequelize';
 import { JsonObject } from '../types/common';
 
-// Simple application status enum aligned with PRD - for small charities
+// Simple application status enum for small charities
 export enum ApplicationStatus {
   SUBMITTED = 'submitted',
   APPROVED = 'approved',
@@ -18,7 +18,7 @@ export enum ApplicationPriority {
   URGENT = 'urgent',
 }
 
-// New simplified stage enum
+// Simplified stage enum for workflow tracking
 export enum ApplicationStage {
   PENDING = 'pending',
   REVIEWING = 'reviewing',
@@ -28,7 +28,7 @@ export enum ApplicationStage {
   WITHDRAWN = 'withdrawn',
 }
 
-// Simplified final outcome enum for resolved applications
+// Final outcome enum for resolved applications
 export enum ApplicationOutcome {
   APPROVED = 'approved',
   REJECTED = 'rejected',
@@ -43,7 +43,7 @@ interface ApplicationAttributes {
   status: ApplicationStatus;
   priority: ApplicationPriority;
 
-  // New stage-based fields
+  // Stage-based workflow fields
   stage: ApplicationStage;
   final_outcome?: ApplicationOutcome | null;
   review_started_at?: Date | null;
@@ -51,13 +51,11 @@ interface ApplicationAttributes {
   visit_completed_at?: Date | null;
   resolved_at?: Date | null;
   withdrawal_reason?: string | null;
-  stage_rejection_reason?: string | null;
+  rejection_reason?: string | null;
 
-  // Legacy fields (keep for migration)
+  // Action tracking
   actioned_by?: string | null;
   actioned_at?: Date | null;
-  rejection_reason?: string | null;
-  conditional_requirements?: string[] | null;
   answers: JsonObject;
   references: Array<{
     id: string;
@@ -110,7 +108,7 @@ class Application
   public status!: ApplicationStatus;
   public priority!: ApplicationPriority;
 
-  // New stage-based fields
+  // Stage-based workflow fields
   public stage!: ApplicationStage;
   public final_outcome!: ApplicationOutcome | null;
   public review_started_at!: Date | null;
@@ -118,13 +116,11 @@ class Application
   public visit_completed_at!: Date | null;
   public resolved_at!: Date | null;
   public withdrawal_reason!: string | null;
-  public stage_rejection_reason!: string | null;
+  public rejection_reason!: string | null;
 
-  // Legacy fields (keep for migration)
+  // Action tracking
   public actioned_by!: string | null;
   public actioned_at!: Date | null;
-  public rejection_reason!: string | null;
-  public conditional_requirements!: string[] | null;
   public answers!: JsonObject;
   public references!: Array<{
     id: string;
@@ -159,9 +155,9 @@ class Application
   public updated_at!: Date;
   public deleted_at!: Date | null;
 
-  // Instance methods for workflow management - simplified for small charities
+  // Workflow management methods for small charities
   public canTransitionTo(newStatus: ApplicationStatus): boolean {
-    // Super simple: applications start SUBMITTED and can go to any final state
+    // Simple workflow: applications start SUBMITTED and can go to any final state
     const validTransitions: Record<ApplicationStatus, ApplicationStatus[]> = {
       [ApplicationStatus.SUBMITTED]: [
         ApplicationStatus.APPROVED,
@@ -189,7 +185,7 @@ class Application
   }
 
   public requiresAction(): boolean {
-    // Only submitted applications need action from rescue staff
+    // Submitted applications need action from rescue staff
     return [ApplicationStatus.SUBMITTED].includes(this.status);
   }
 
@@ -256,7 +252,7 @@ Application.init(
       defaultValue: ApplicationPriority.NORMAL,
     },
 
-    // New stage-based fields
+    // Stage-based workflow tracking
     stage: {
       type: DataTypes.ENUM(...Object.values(ApplicationStage)),
       allowNull: false,
@@ -286,7 +282,7 @@ Application.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    stage_rejection_reason: {
+    rejection_reason: {
       type: DataTypes.TEXT,
       allowNull: true,
       validate: {
@@ -294,7 +290,7 @@ Application.init(
       },
     },
 
-    // Legacy fields (keep for migration)
+    // Action tracking
     actioned_by: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -306,18 +302,6 @@ Application.init(
     actioned_at: {
       type: DataTypes.DATE,
       allowNull: true,
-    },
-    rejection_reason: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      validate: {
-        len: [10, 2000],
-      },
-    },
-    conditional_requirements: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-      allowNull: true,
-      defaultValue: [],
     },
     answers: {
       type: DataTypes.JSONB,
