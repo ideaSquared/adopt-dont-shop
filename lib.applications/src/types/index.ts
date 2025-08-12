@@ -78,15 +78,7 @@ export interface ApplicationData {
   };
 }
 
-export type ApplicationStatus =
-  | 'draft'
-  | 'submitted'
-  | 'under_review'
-  | 'pending_references'
-  | 'approved'
-  | 'rejected'
-  | 'withdrawn'
-  | 'expired';
+export type ApplicationStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn';
 
 export type ApplicationPriority = 'low' | 'normal' | 'high' | 'urgent';
 

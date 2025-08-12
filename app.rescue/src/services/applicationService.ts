@@ -128,40 +128,15 @@ export class RescueApplicationService {
     if (!status) return status;
     const key = status.trim().toUpperCase();
     const map: Record<string, string> = {
-      // Primary terminal statuses
-      REJECT: 'rejected',
-      REJECTED: 'rejected',
+      // Simple status mappings for small charities (aligned with simplified backend)
+      SUBMIT: 'submitted',
+      SUBMITTED: 'submitted',
       APPROVE: 'approved',
       APPROVED: 'approved',
+      REJECT: 'rejected',
+      REJECTED: 'rejected',
       WITHDRAW: 'withdrawn',
       WITHDRAWN: 'withdrawn',
-
-      // Workflow states (backend uses lowercase snake_case)
-      START_REVIEW: 'under_review',
-      UNDER_REVIEW: 'under_review',
-      PENDING_REFERENCES: 'pending_references',
-      IN_REVIEW: 'under_review',
-      REFERENCE_CHECK: 'reference_check',
-
-      // Interview and visit statuses
-      INTERVIEW_SCHEDULED: 'interview_scheduled',
-      INTERVIEW_COMPLETED: 'interview_completed',
-      HOME_VISIT_SCHEDULED: 'home_visit_scheduled',
-      HOME_VISIT_COMPLETED: 'home_visit_completed',
-
-      // Additional backend-supported statuses
-      DRAFT: 'draft',
-      SUBMITTED: 'submitted',
-      OPEN: 'submitted',
-      PENDING: 'submitted',
-      CONDITIONALLY_APPROVED: 'conditionally_approved',
-      CONDITIONAL: 'conditionally_approved',
-      EXPIRED: 'expired',
-      ON_HOLD: 'submitted', // Map to nearest valid status
-      WAITLISTED: 'submitted', // Map to nearest valid status
-      CANCELLED: 'withdrawn', // Map to nearest valid status
-      ARCHIVED: 'expired', // Map to nearest valid status
-      RESOLVED: 'approved', // Map to nearest valid status
     };
     return map[key] || status.toLowerCase();
   }
@@ -175,31 +150,13 @@ export class RescueApplicationService {
     const normalizedStatus = status.toLowerCase();
 
     // Terminal statuses map to RESOLVED stage
-    const terminalStatuses = [
-      'approved',
-      'rejected',
-      'withdrawn',
-      'expired',
-      'conditionally_approved',
-    ];
+    const terminalStatuses = ['approved', 'rejected', 'withdrawn'];
     if (terminalStatuses.includes(normalizedStatus)) {
       return 'RESOLVED';
     }
 
-    // Map other statuses to appropriate stages
-    const stageMapping: Record<string, ApplicationStage> = {
-      draft: 'PENDING',
-      submitted: 'PENDING',
-      under_review: 'REVIEWING',
-      pending_references: 'REVIEWING',
-      reference_check: 'REVIEWING',
-      interview_scheduled: 'REVIEWING',
-      interview_completed: 'REVIEWING',
-      home_visit_scheduled: 'VISITING',
-      home_visit_completed: 'DECIDING',
-    };
-
-    return stageMapping[normalizedStatus] || 'PENDING';
+    // All non-terminal statuses are PENDING - rescue staff use stages to track progress
+    return 'PENDING';
   }
 
   /**
@@ -215,35 +172,17 @@ export class RescueApplicationService {
     }
 
     // Terminal statuses cannot transition to anything
-    const terminalStatuses = ['approved', 'rejected', 'withdrawn', 'expired'];
+    const terminalStatuses = ['approved', 'rejected', 'withdrawn'];
     if (terminalStatuses.includes(from)) {
       return false;
     }
 
-    // Valid transitions based on backend ApplicationStatus model
+    // Simple validation for small charities - only submitted can transition
     const validTransitions: Record<string, string[]> = {
-      draft: ['submitted', 'withdrawn'],
-      submitted: ['under_review', 'rejected', 'withdrawn'],
-      under_review: [
-        'pending_references',
-        'interview_scheduled',
-        'approved',
-        'rejected',
-        'withdrawn',
-      ],
-      pending_references: ['reference_check', 'rejected', 'withdrawn'],
-      reference_check: ['interview_scheduled', 'approved', 'rejected', 'withdrawn'],
-      interview_scheduled: ['interview_completed', 'rejected', 'withdrawn'],
-      interview_completed: [
-        'home_visit_scheduled',
-        'approved',
-        'conditionally_approved',
-        'rejected',
-        'withdrawn',
-      ],
-      home_visit_scheduled: ['home_visit_completed', 'rejected', 'withdrawn'],
-      home_visit_completed: ['approved', 'conditionally_approved', 'rejected', 'withdrawn'],
-      conditionally_approved: ['approved', 'rejected', 'withdrawn'],
+      submitted: ['approved', 'rejected', 'withdrawn'],
+      approved: [], // Terminal state
+      rejected: [], // Terminal state
+      withdrawn: [], // Terminal state
     };
 
     return validTransitions[from]?.includes(to) || false;
@@ -280,7 +219,7 @@ export class RescueApplicationService {
 
         const isValid = this.isValidStatusTransition(currentApp.status, normalizedStatus);
         if (!isValid) {
-          const terminalStatuses = ['approved', 'rejected', 'withdrawn', 'expired'];
+          const terminalStatuses = ['approved', 'rejected', 'withdrawn'];
           if (terminalStatuses.includes(currentStatus)) {
             throw new Error(
               `Cannot transition from ${currentApp.status} to ${normalizedStatus}. This application is closed and may need to be reopened first.`
@@ -666,10 +605,10 @@ export class RescueApplicationService {
       const bulkUpdate = {
         applicationIds: action.applicationIds,
         updates: {
-          // Map action type to status updates
+          // Map action type to simple status updates
           ...(action.type === 'approve' && { status: 'approved' }),
           ...(action.type === 'reject' && { status: 'rejected' }),
-          ...(action.type === 'request_references' && { status: 'pending_references' }),
+          ...(action.type === 'withdraw' && { status: 'withdrawn' }),
           ...action.data,
         },
       };
@@ -787,11 +726,10 @@ export class RescueApplicationService {
    * Calculate references status based on application data
    */
   private calculateReferencesStatus(app: any): 'pending' | 'in_progress' | 'completed' | 'failed' {
-    // This would be calculated based on actual reference checks data
-    // For now, return based on application status
-    if (app.status === 'pending_references') return 'pending';
-    if (app.status === 'under_review') return 'in_progress';
+    // Simple logic based on simplified statuses
+    if (app.status === 'submitted') return 'pending';
     if (app.status === 'approved') return 'completed';
+    if (app.status === 'rejected') return 'failed';
     return 'pending';
   }
 
@@ -801,10 +739,10 @@ export class RescueApplicationService {
   private calculateHomeVisitStatus(
     app: any
   ): 'not_scheduled' | 'scheduled' | 'completed' | 'failed' {
-    // This would be calculated based on actual home visit data
-    // For now, return based on application status
+    // Simple logic based on simplified statuses
+    if (app.status === 'submitted') return 'not_scheduled';
     if (app.status === 'approved') return 'completed';
-    if (app.status === 'under_review') return 'scheduled';
+    if (app.status === 'rejected') return 'failed';
     return 'not_scheduled';
   }
 

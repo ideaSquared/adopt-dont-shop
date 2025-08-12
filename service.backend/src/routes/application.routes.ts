@@ -26,7 +26,7 @@ router.use(authenticateToken);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *           enum: [SUBMITTED, APPROVED, REJECTED, WITHDRAWN]
  *         description: Filter by application status
  *       - in: query
  *         name: petId
@@ -82,7 +82,7 @@ router.use(authenticateToken);
  *                         format: uuid
  *                       status:
  *                         type: string
- *                         enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *                         enum: [SUBMITTED, APPROVED, REJECTED, WITHDRAWN]
  *                       pet:
  *                         type: object
  *                         properties:
@@ -240,7 +240,7 @@ router.post(
  *                       format: uuid
  *                     status:
  *                       type: string
- *                       enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *                       enum: [SUBMITTED, APPROVED, REJECTED, WITHDRAWN]
  *                     pet:
  *                       type: object
  *                       properties:
@@ -460,7 +460,7 @@ router.post(
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [UNDER_REVIEW, APPROVED, REJECTED]
+ *                 enum: [APPROVED, REJECTED]
  *                 description: New application status
  *               reviewNotes:
  *                 type: string
@@ -1040,8 +1040,6 @@ router.post('/validate/:rescueId', applicationController.validateApplicationAnsw
  *                           type: integer
  *                         SUBMITTED:
  *                           type: integer
- *                         UNDER_REVIEW:
- *                           type: integer
  *                         APPROVED:
  *                           type: integer
  *                         REJECTED:
@@ -1108,7 +1106,7 @@ router.get(
  *                 properties:
  *                   status:
  *                     type: string
- *                     enum: [UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *                     enum: [APPROVED, REJECTED, WITHDRAWN]
  *                     description: New status for all selected applications
  *                   reviewNotes:
  *                     type: string

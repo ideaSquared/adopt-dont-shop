@@ -122,13 +122,9 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
           >
             <option value="">All Statuses</option>
             <option value="submitted">{formatStatusName('submitted')}</option>
-            <option value="under_review">{formatStatusName('under_review')}</option>
-            <option value="pending_references">{formatStatusName('pending_references')}</option>
-            <option value="conditionally_approved">{formatStatusName('conditionally_approved')}</option>
             <option value="approved">{formatStatusName('approved')}</option>
             <option value="rejected">{formatStatusName('rejected')}</option>
             <option value="withdrawn">{formatStatusName('withdrawn')}</option>
-            <option value="expired">{formatStatusName('expired')}</option>
           </select>
         </FilterGroup>
 

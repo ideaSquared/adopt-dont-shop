@@ -2,22 +2,12 @@ import { DataTypes, Model, Op, Optional } from 'sequelize';
 import sequelize from '../sequelize';
 import { JsonObject } from '../types/common';
 
-// Application status enum for workflow management
+// Simple application status enum aligned with PRD - for small charities
 export enum ApplicationStatus {
-  DRAFT = 'draft',
   SUBMITTED = 'submitted',
-  UNDER_REVIEW = 'under_review',
-  PENDING_REFERENCES = 'pending_references',
-  REFERENCE_CHECK = 'reference_check',
-  INTERVIEW_SCHEDULED = 'interview_scheduled',
-  INTERVIEW_COMPLETED = 'interview_completed',
-  HOME_VISIT_SCHEDULED = 'home_visit_scheduled',
-  HOME_VISIT_COMPLETED = 'home_visit_completed',
   APPROVED = 'approved',
-  CONDITIONALLY_APPROVED = 'conditionally_approved',
   REJECTED = 'rejected',
   WITHDRAWN = 'withdrawn',
-  EXPIRED = 'expired',
 }
 
 // Application priority enum
@@ -38,11 +28,10 @@ export enum ApplicationStage {
   WITHDRAWN = 'withdrawn',
 }
 
-// Final outcome enum for resolved applications
+// Simplified final outcome enum for resolved applications
 export enum ApplicationOutcome {
   APPROVED = 'approved',
   REJECTED = 'rejected',
-  CONDITIONAL = 'conditional',
   WITHDRAWN = 'withdrawn',
 }
 
@@ -170,57 +159,11 @@ class Application
   public updated_at!: Date;
   public deleted_at!: Date | null;
 
-  // Instance methods for workflow management
+  // Instance methods for workflow management - simplified for small charities
   public canTransitionTo(newStatus: ApplicationStatus): boolean {
+    // Super simple: applications start SUBMITTED and can go to any final state
     const validTransitions: Record<ApplicationStatus, ApplicationStatus[]> = {
-      [ApplicationStatus.DRAFT]: [ApplicationStatus.SUBMITTED, ApplicationStatus.WITHDRAWN],
       [ApplicationStatus.SUBMITTED]: [
-        ApplicationStatus.UNDER_REVIEW,
-        ApplicationStatus.REJECTED,
-        ApplicationStatus.WITHDRAWN,
-      ],
-      [ApplicationStatus.UNDER_REVIEW]: [
-        ApplicationStatus.PENDING_REFERENCES,
-        ApplicationStatus.INTERVIEW_SCHEDULED,
-        ApplicationStatus.APPROVED,
-        ApplicationStatus.REJECTED,
-        ApplicationStatus.WITHDRAWN,
-      ],
-      [ApplicationStatus.PENDING_REFERENCES]: [
-        ApplicationStatus.REFERENCE_CHECK,
-        ApplicationStatus.REJECTED,
-        ApplicationStatus.WITHDRAWN,
-      ],
-      [ApplicationStatus.REFERENCE_CHECK]: [
-        ApplicationStatus.INTERVIEW_SCHEDULED,
-        ApplicationStatus.APPROVED,
-        ApplicationStatus.REJECTED,
-        ApplicationStatus.WITHDRAWN,
-      ],
-      [ApplicationStatus.INTERVIEW_SCHEDULED]: [
-        ApplicationStatus.INTERVIEW_COMPLETED,
-        ApplicationStatus.REJECTED,
-        ApplicationStatus.WITHDRAWN,
-      ],
-      [ApplicationStatus.INTERVIEW_COMPLETED]: [
-        ApplicationStatus.HOME_VISIT_SCHEDULED,
-        ApplicationStatus.APPROVED,
-        ApplicationStatus.CONDITIONALLY_APPROVED,
-        ApplicationStatus.REJECTED,
-        ApplicationStatus.WITHDRAWN,
-      ],
-      [ApplicationStatus.HOME_VISIT_SCHEDULED]: [
-        ApplicationStatus.HOME_VISIT_COMPLETED,
-        ApplicationStatus.REJECTED,
-        ApplicationStatus.WITHDRAWN,
-      ],
-      [ApplicationStatus.HOME_VISIT_COMPLETED]: [
-        ApplicationStatus.APPROVED,
-        ApplicationStatus.CONDITIONALLY_APPROVED,
-        ApplicationStatus.REJECTED,
-        ApplicationStatus.WITHDRAWN,
-      ],
-      [ApplicationStatus.CONDITIONALLY_APPROVED]: [
         ApplicationStatus.APPROVED,
         ApplicationStatus.REJECTED,
         ApplicationStatus.WITHDRAWN,
@@ -228,7 +171,6 @@ class Application
       [ApplicationStatus.APPROVED]: [],
       [ApplicationStatus.REJECTED]: [],
       [ApplicationStatus.WITHDRAWN]: [],
-      [ApplicationStatus.EXPIRED]: [],
     };
 
     return validTransitions[this.status]?.includes(newStatus) || false;
@@ -239,43 +181,24 @@ class Application
       ApplicationStatus.APPROVED,
       ApplicationStatus.REJECTED,
       ApplicationStatus.WITHDRAWN,
-      ApplicationStatus.EXPIRED,
     ].includes(this.status);
   }
 
   public isPending(): boolean {
-    return [
-      ApplicationStatus.SUBMITTED,
-      ApplicationStatus.UNDER_REVIEW,
-      ApplicationStatus.PENDING_REFERENCES,
-      ApplicationStatus.REFERENCE_CHECK,
-    ].includes(this.status);
+    return [ApplicationStatus.SUBMITTED].includes(this.status);
   }
 
   public requiresAction(): boolean {
-    return [
-      ApplicationStatus.INTERVIEW_SCHEDULED,
-      ApplicationStatus.HOME_VISIT_SCHEDULED,
-      ApplicationStatus.CONDITIONALLY_APPROVED,
-    ].includes(this.status);
+    // Only submitted applications need action from rescue staff
+    return [ApplicationStatus.SUBMITTED].includes(this.status);
   }
 
   public getCompletionPercentage(): number {
     const statusWeights: Record<ApplicationStatus, number> = {
-      [ApplicationStatus.DRAFT]: 10,
-      [ApplicationStatus.SUBMITTED]: 20,
-      [ApplicationStatus.UNDER_REVIEW]: 30,
-      [ApplicationStatus.PENDING_REFERENCES]: 40,
-      [ApplicationStatus.REFERENCE_CHECK]: 50,
-      [ApplicationStatus.INTERVIEW_SCHEDULED]: 60,
-      [ApplicationStatus.INTERVIEW_COMPLETED]: 70,
-      [ApplicationStatus.HOME_VISIT_SCHEDULED]: 80,
-      [ApplicationStatus.HOME_VISIT_COMPLETED]: 90,
-      [ApplicationStatus.CONDITIONALLY_APPROVED]: 95,
+      [ApplicationStatus.SUBMITTED]: 25,
       [ApplicationStatus.APPROVED]: 100,
       [ApplicationStatus.REJECTED]: 100,
       [ApplicationStatus.WITHDRAWN]: 100,
-      [ApplicationStatus.EXPIRED]: 100,
     };
 
     return statusWeights[this.status] || 0;
@@ -325,7 +248,7 @@ Application.init(
     status: {
       type: DataTypes.ENUM(...Object.values(ApplicationStatus)),
       allowNull: false,
-      defaultValue: ApplicationStatus.DRAFT,
+      defaultValue: ApplicationStatus.SUBMITTED,
     },
     priority: {
       type: DataTypes.ENUM(...Object.values(ApplicationPriority)),
@@ -572,11 +495,7 @@ Application.init(
         where: {
           deleted_at: null,
           status: {
-            [Op.not]: [
-              ApplicationStatus.REJECTED,
-              ApplicationStatus.WITHDRAWN,
-              ApplicationStatus.EXPIRED,
-            ],
+            [Op.not]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
           },
         },
       },
@@ -613,31 +532,18 @@ Application.init(
       active: {
         where: {
           status: {
-            [Op.not]: [
-              ApplicationStatus.REJECTED,
-              ApplicationStatus.WITHDRAWN,
-              ApplicationStatus.EXPIRED,
-            ],
+            [Op.not]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
           },
         },
       },
       pending: {
         where: {
-          status: [
-            ApplicationStatus.SUBMITTED,
-            ApplicationStatus.UNDER_REVIEW,
-            ApplicationStatus.PENDING_REFERENCES,
-            ApplicationStatus.REFERENCE_CHECK,
-          ],
+          status: [ApplicationStatus.SUBMITTED],
         },
       },
       requiresAction: {
         where: {
-          status: [
-            ApplicationStatus.INTERVIEW_SCHEDULED,
-            ApplicationStatus.HOME_VISIT_SCHEDULED,
-            ApplicationStatus.CONDITIONALLY_APPROVED,
-          ],
+          status: [ApplicationStatus.SUBMITTED],
         },
       },
       expiringSoon: {
@@ -650,7 +556,6 @@ Application.init(
               ApplicationStatus.APPROVED,
               ApplicationStatus.REJECTED,
               ApplicationStatus.WITHDRAWN,
-              ApplicationStatus.EXPIRED,
             ],
           },
         },

@@ -225,7 +225,6 @@ export interface ApplicationWorkflowStatistics {
   completion_rates: {
     submitted_to_approved: number;
     submitted_to_rejected: number;
-    under_review_completion: number;
   };
 }
 

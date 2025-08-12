@@ -278,8 +278,8 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
       color: 'blue' as const
     },
     {
-      name: 'Pending Review',
-      value: stats.byStatus.under_review || 0,
+      name: 'Submitted',
+      value: stats.byStatus.submitted || 0,
       change: 0,
       trend: 'neutral' as const,
       icon: '⏳',

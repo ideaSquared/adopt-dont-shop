@@ -63,11 +63,7 @@ export class ApplicationService {
           user_id: userId,
           pet_id: applicationData.pet_id,
           status: {
-            [Op.notIn]: [
-              ApplicationStatus.REJECTED,
-              ApplicationStatus.WITHDRAWN,
-              ApplicationStatus.EXPIRED,
-            ],
+            [Op.notIn]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
           },
         },
       });
@@ -101,7 +97,7 @@ export class ApplicationService {
         user_id: userId,
         pet_id: applicationData.pet_id,
         rescue_id: pet.rescue_id,
-        status: ApplicationStatus.DRAFT,
+        status: ApplicationStatus.SUBMITTED,
         priority: applicationData.priority || ApplicationPriority.NORMAL,
         answers: applicationData.answers,
         references: processedReferences,
@@ -482,14 +478,14 @@ export class ApplicationService {
         throw new Error('Application not found');
       }
 
-      // Check permissions - only owner can update draft applications
-      if (application.user_id !== userId && application.status === ApplicationStatus.DRAFT) {
+      // Check permissions - only owner can update their own applications
+      if (application.user_id !== userId) {
         throw new Error('Access denied');
       }
 
-      // Validate that application can be updated
-      if (![ApplicationStatus.DRAFT, ApplicationStatus.SUBMITTED].includes(application.status)) {
-        throw new Error('Application cannot be updated in current status');
+      // Validate that application can be updated (only submitted applications can be updated)
+      if (application.status !== ApplicationStatus.SUBMITTED) {
+        throw new Error('Application cannot be updated once processed');
       }
 
       // Store original data for audit
@@ -554,9 +550,10 @@ export class ApplicationService {
         throw new Error('Access denied');
       }
 
-      // Validate application can be submitted
-      if (application.status !== ApplicationStatus.DRAFT) {
-        throw new Error('Only draft applications can be submitted');
+      // In simplified workflow, applications are submitted upon creation
+      // This method is kept for API compatibility but does nothing
+      if (application.status !== ApplicationStatus.SUBMITTED) {
+        throw new Error('Application is not in a valid state');
       }
 
       // Validate application completeness
@@ -641,12 +638,8 @@ export class ApplicationService {
 
       // Set specific timestamps based on status
       switch (statusUpdate.status) {
-        case ApplicationStatus.UNDER_REVIEW:
-          updateFields.reviewed_at = new Date();
-          break;
         case ApplicationStatus.APPROVED:
         case ApplicationStatus.REJECTED:
-        case ApplicationStatus.CONDITIONALLY_APPROVED:
           updateFields.decision_at = new Date();
           break;
       }
@@ -1049,16 +1042,7 @@ export class ApplicationService {
         where: {
           ...whereConditions,
           status: {
-            [Op.in]: [
-              ApplicationStatus.SUBMITTED,
-              ApplicationStatus.UNDER_REVIEW,
-              ApplicationStatus.PENDING_REFERENCES,
-              ApplicationStatus.REFERENCE_CHECK,
-              ApplicationStatus.INTERVIEW_SCHEDULED,
-              ApplicationStatus.INTERVIEW_COMPLETED,
-              ApplicationStatus.HOME_VISIT_SCHEDULED,
-              ApplicationStatus.HOME_VISIT_COMPLETED,
-            ],
+            [Op.in]: [ApplicationStatus.SUBMITTED],
           },
         },
       });
@@ -1428,7 +1412,7 @@ class LegacyApplicationService {
     return { message: 'Application withdrawn successfully' };
   }
 
-  static async getApplicationHistory(applicationId: string) {
+  static async getApplicationHistory(_applicationId: string) {
     // This would need to be implemented with a proper audit/history system
     return [];
   }
@@ -1438,9 +1422,9 @@ class LegacyApplicationService {
   }
 
   static async scheduleVisit(
-    applicationId: string,
-    visitData: Record<string, unknown>,
-    userId?: string
+    _applicationId: string,
+    _visitData: Record<string, unknown>,
+    _userId?: string
   ) {
     throw new Error('Visit scheduling not implemented in this version');
   }

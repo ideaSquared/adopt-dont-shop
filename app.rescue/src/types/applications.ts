@@ -118,7 +118,7 @@ export interface ApplicationStats {
 }
 
 export interface BulkAction {
-  type: 'approve' | 'reject' | 'schedule_visit' | 'request_references' | 'send_message';
+  type: 'approve' | 'reject' | 'withdraw' | 'schedule_visit' | 'send_message';
   applicationIds: string[];
   data?: Record<string, any>;
 }

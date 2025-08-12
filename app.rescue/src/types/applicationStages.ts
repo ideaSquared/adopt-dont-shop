@@ -9,7 +9,6 @@ export type ApplicationStage =
 
 export type FinalOutcome =
   | 'APPROVED' // Application approved for adoption
-  | 'CONDITIONAL' // Application approved with conditions
   | 'REJECTED' // Application rejected
   | 'WITHDRAWN'; // Application withdrawn by applicant
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'styled-components';
-import { formatStatusName } from '../../utils/statusUtils';
 import StatusBadge from '../common/StatusBadge';
 import type { ApplicationListItem, ApplicationFilter, ApplicationSort } from '../../types/applications';
 import ApplicationStats from './ApplicationStats';
@@ -365,29 +364,57 @@ const ErrorMessage = styled.p`
 
 // Helper functions for progress calculation
 const getApplicationProgress = (status: string) => {
-  const statusOrder = [
-    'draft',
-    'submitted', 
-    'under_review',
-    'pending_references',
-    'approved'
-  ];
-  
-  const currentIndex = statusOrder.indexOf(status);
-  const progress = currentIndex >= 0 ? currentIndex : 0;
-  const total = statusOrder.length - 1; // Don't count final approved as a step
-  
-  return { current: progress, total, status };
+  // Simple 4-step process aligned with simplified statuses
+  // Map status to progress step
+  switch (status) {
+    case 'submitted':
+      return { current: 0, total: 3, status };
+    case 'approved':
+    case 'rejected':
+    case 'withdrawn':
+      return { current: 3, total: 3, status };
+    default:
+      return { current: 0, total: 3, status };
+  }
 };
 
 const getStepStatus = (stepIndex: number, currentProgress: number, appStatus: string): 'completed' | 'current' | 'pending' => {
-  if (appStatus === 'rejected' || appStatus === 'withdrawn' || appStatus === 'expired') {
-    return stepIndex <= currentProgress ? 'current' : 'pending';
+  // For rejected/withdrawn applications, show as current at their final step
+  if (appStatus === 'rejected' || appStatus === 'withdrawn') {
+    if (stepIndex <= currentProgress) return 'current';
+    return 'pending';
   }
   
+  // For approved applications, show all steps as completed
+  if (appStatus === 'approved') {
+    return 'completed';
+  }
+  
+  // For submitted applications (step 0)
   if (stepIndex < currentProgress) return 'completed';
   if (stepIndex === currentProgress) return 'current';
   return 'pending';
+};
+
+const getStepLabel = (stepIndex: number, appStatus: string): string => {
+  const labels = [
+    'Submitted',    // Step 0
+    'Reviewing',    // Step 1 
+    'Deciding',     // Step 2
+    'Resolved'      // Step 3
+  ];
+  
+  // For final states, show the outcome instead of generic "Resolved"
+  if (stepIndex === 3) {
+    switch (appStatus) {
+      case 'approved': return 'Approved';
+      case 'rejected': return 'Rejected';
+      case 'withdrawn': return 'Withdrawn';
+      default: return 'Resolved';
+    }
+  }
+  
+  return labels[stepIndex] || '';
 };
 
 const getActionButtons = (application: ApplicationListItem, onStatusUpdate: (id: string, status: string) => void) => {
@@ -396,21 +423,15 @@ const getActionButtons = (application: ApplicationListItem, onStatusUpdate: (id:
   switch (application.status) {
     case 'submitted':
       actions.push(
-        { label: 'Start Review', action: () => onStatusUpdate(application.id, 'under_review'), variant: 'primary' as const },
-        { label: 'Reject', action: () => onStatusUpdate(application.id, 'rejected'), variant: 'danger' as const }
-      );
-      break;
-    case 'under_review':
-      actions.push(
-        { label: 'Request References', action: () => onStatusUpdate(application.id, 'pending_references'), variant: 'primary' as const },
         { label: 'Approve', action: () => onStatusUpdate(application.id, 'approved'), variant: 'primary' as const },
         { label: 'Reject', action: () => onStatusUpdate(application.id, 'rejected'), variant: 'danger' as const }
       );
       break;
-    case 'pending_references':
+    case 'approved':
+    case 'rejected':
+    case 'withdrawn':
       actions.push(
-        { label: 'Approve', action: () => onStatusUpdate(application.id, 'approved'), variant: 'primary' as const },
-        { label: 'Back to Review', action: () => onStatusUpdate(application.id, 'under_review'), variant: 'secondary' as const }
+        { label: 'View Details', action: () => {}, variant: 'secondary' as const }
       );
       break;
     default:
@@ -700,7 +721,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                           })}
                         </ProgressBar>
                         <ProgressLabel>
-                          {formatStatusName(application.status)}
+                          {getStepLabel(getApplicationProgress(application.status).current, application.status)}
                         </ProgressLabel>
                       </ProgressIndicators>
                     </TableCell>

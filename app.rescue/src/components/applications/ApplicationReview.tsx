@@ -132,32 +132,13 @@ const StatusBadge = styled.span<{ $status: string }>`
   
   ${props => {
     switch (props.$status) {
-      case 'draft':
-        return 'background: #f3f4f6; color: #374151;';
       case 'submitted':
         return 'background: #dbeafe; color: #1e40af;';
-      case 'under_review':
-        return 'background: #fef3c7; color: #92400e;';
-      case 'pending_references':
-        return 'background: #fed7aa; color: #ea580c;';
-      case 'reference_check':
-        return 'background: #fef3c7; color: #92400e;';
-      case 'interview_scheduled':
-        return 'background: #ddd6fe; color: #5b21b6;';
-      case 'interview_completed':
-        return 'background: #ddd6fe; color: #5b21b6;';
-      case 'home_visit_scheduled':
-        return 'background: #e0e7ff; color: #3730a3;';
-      case 'home_visit_completed':
-        return 'background: #e0e7ff; color: #3730a3;';
       case 'approved':
         return 'background: #dcfce7; color: #166534;';
-      case 'conditionally_approved':
-        return 'background: #fef3c7; color: #92400e;';
       case 'rejected':
         return 'background: #fecaca; color: #dc2626;';
       case 'withdrawn':
-      case 'expired':
         return 'background: #f3f4f6; color: #374151;';
       default:
         return 'background: #f3f4f6; color: #374151;';
@@ -1115,16 +1096,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   // Helper function to get valid status transitions based on current status
   const getValidStatusOptions = (currentStatus: string) => {
     const validTransitions: Record<string, string[]> = {
-      'draft': ['submitted', 'withdrawn'],
-      'submitted': ['under_review', 'rejected', 'withdrawn'],
-      'under_review': ['pending_references', 'interview_scheduled', 'approved', 'rejected', 'withdrawn'],
-      'pending_references': ['reference_check', 'rejected', 'withdrawn'],
-      'reference_check': ['interview_scheduled', 'approved', 'rejected', 'withdrawn'],
-      'interview_scheduled': ['interview_completed', 'rejected', 'withdrawn'],
-      'interview_completed': ['home_visit_scheduled', 'approved', 'conditionally_approved', 'rejected', 'withdrawn'],
-      'home_visit_scheduled': ['home_visit_completed', 'rejected', 'withdrawn'],
-      'home_visit_completed': ['approved', 'conditionally_approved', 'rejected', 'withdrawn'],
-      'conditionally_approved': ['approved', 'rejected', 'withdrawn'],
+      'submitted': ['approved', 'rejected', 'withdrawn'],
       'approved': [],
       'rejected': [],
       'withdrawn': [],

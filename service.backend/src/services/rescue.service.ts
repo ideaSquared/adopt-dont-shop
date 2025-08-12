@@ -625,16 +625,7 @@ export class RescueService {
         Application.count({
           where: {
             status: {
-              [Op.in]: [
-                'submitted',
-                'under_review',
-                'pending_references',
-                'reference_check',
-                'interview_scheduled',
-                'interview_completed',
-                'home_visit_scheduled',
-                'home_visit_completed',
-              ],
+              [Op.in]: ['submitted'],
             },
           },
           include: [{ model: Pet, as: 'Pet', where: { rescue_id: rescueId } }],
