@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { Card, Container, Button, Text, Heading } from '@adopt-dont-shop/components';
 import { Pet, PetStatus, petManagementService } from '@adopt-dont-shop/lib-pets';
 import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '@adopt-dont-shop/lib-api';
 import PetGrid from '../components/pets/PetGrid';
 import PetFilters from '../components/pets/PetFilters.tsx';
 import PetFormModal from '../components/pets/PetFormModal.tsx';
@@ -161,42 +162,18 @@ const PetManagement: React.FC = () => {
         contactPhone: '555-0123'
       };
 
-      // Call the API directly
-      const response = await fetch('http://localhost:5000/api/v1/rescues', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify(demoRescueData)
+      // Call the API using lib.api
+      const result = await apiService.post<any>('http://localhost:5000/api/v1/rescues', demoRescueData);
+
+      // Now update the user with the rescue ID
+      await apiService.patch<any>(`http://localhost:5000/api/v1/users/${user?.userId}`, {
+        rescueId: result.data.rescueId
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        
-        // Now update the user with the rescue ID
-        const updateResponse = await fetch(`http://localhost:5000/api/v1/users/${user?.userId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('accessToken')}`
-          },
-          body: JSON.stringify({
-            rescueId: result.data.rescueId
-          })
-        });
-
-        if (updateResponse.ok) {
-          // Refresh the user data
-          await refreshUser();
-          setShowRescueSetup(false);
-          alert('Demo rescue created successfully! You can now manage pets.');
-        } else {
-          throw new Error('Failed to update user with rescue ID');
-        }
-      } else {
-        throw new Error('Failed to create rescue');
-      }
+      // Refresh the user data
+      await refreshUser();
+      setShowRescueSetup(false);
+      alert('Demo rescue created successfully! You can now manage pets.');
     } catch (error) {
       console.error('Error creating demo rescue:', error);
       alert('Failed to create demo rescue. Please check the console for details.');
@@ -293,23 +270,16 @@ const PetManagement: React.FC = () => {
   const fetchStats = async () => {
     try {
       // Try to get stats using the dashboard endpoint which works
-      const response = await fetch('http://localhost:5000/api/v1/dashboard/rescue', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('accessToken')}`
-        }
-      });
+      const dashboardData = await apiService.get<any>('http://localhost:5000/api/v1/dashboard/rescue');
       
-      if (response.ok) {
-        const dashboardData = await response.json();
-        // Map dashboard data to our stats format
-        setStats({
-          total: dashboardData.data.totalAnimals || 0,
-          available: dashboardData.data.availableForAdoption || 0,
-          pending: dashboardData.data.pendingApplications || 0,
-          adopted: dashboardData.data.adoptedPets || 0,
-          onHold: 0 // Not available in dashboard data
-        });
-      }
+      // Map dashboard data to our stats format
+      setStats({
+        total: dashboardData.data.totalAnimals || 0,
+        available: dashboardData.data.availableForAdoption || 0,
+        pending: dashboardData.data.pendingApplications || 0,
+        adopted: dashboardData.data.adoptedPets || 0,
+        onHold: 0 // Not available in dashboard data
+      });
     } catch (err) {
       console.error('Failed to fetch pet statistics:', err);
     }

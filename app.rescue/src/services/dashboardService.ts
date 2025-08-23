@@ -2,7 +2,7 @@
  * Dashboard Service for fetching rescue organization dashboard data
  */
 
-import { apiService } from './api';
+import { apiService } from './libraryServices';
 import { isDevelopment, getApiBaseUrl } from '../utils/env';
 import { RescueDashboardData, RecentActivity, DashboardNotification } from '../types/dashboard';
 

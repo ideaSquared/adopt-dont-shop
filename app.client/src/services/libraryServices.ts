@@ -58,6 +58,10 @@ export const rescueService = new RescueService(globalApiService, serviceConfig);
 // ✅ AuthService uses the pre-configured global apiService
 export const authService = new AuthService();
 
+// Export the configured API service for direct use
+export const apiService = globalApiService;
+export const api = globalApiService;
+
 // ✅ Configure chatService with authentication headers
 export const chatService = new ChatService({
   ...serviceConfig,

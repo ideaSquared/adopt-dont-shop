@@ -1,7 +1,20 @@
 import { AuthResponse, LoginRequest, RegisterRequest, User } from '@/types';
-import { apiService } from './api';
+import { apiService } from './libraryServices';
 
 class AuthService {
+  // Token management helpers
+  private setToken(token: string): void {
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('accessToken', token); // Keep both for compatibility
+  }
+
+  private clearToken(): void {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+  }
+
   // Login admin user
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     // eslint-disable-next-line no-console
@@ -18,7 +31,7 @@ class AuthService {
     localStorage.setItem('user', JSON.stringify(response.user));
 
     // Set token in API service
-    apiService.setToken(response.token);
+    this.setToken(response.token);
 
     return response;
   }
@@ -36,7 +49,7 @@ class AuthService {
     localStorage.setItem('user', JSON.stringify(response.user));
 
     // Set token in API service
-    apiService.setToken(response.token);
+    this.setToken(response.token);
 
     return response;
   }
@@ -56,7 +69,7 @@ class AuthService {
       localStorage.removeItem('user');
 
       // Clear token from API service
-      apiService.clearToken();
+      this.clearToken();
     }
   }
 
@@ -75,7 +88,7 @@ class AuthService {
 
   // Check if admin is authenticated
   isAuthenticated(): boolean {
-    return apiService.isAuthenticated() && !!this.getCurrentUser();
+    return !!(localStorage.getItem('authToken') || localStorage.getItem('accessToken')) && !!this.getCurrentUser();
   }
 
   // Check if current user has specific admin role
@@ -109,7 +122,7 @@ class AuthService {
     localStorage.setItem('refreshToken', response.refreshToken);
 
     // Set token in API service
-    apiService.setToken(response.token);
+    this.setToken(response.token);
 
     return response.token;
   }
@@ -181,7 +194,7 @@ class AuthService {
     localStorage.setItem('user', JSON.stringify(mockUser));
 
     // Set token in API service
-    apiService.setToken(devToken);
+    this.setToken(devToken);
 
     // eslint-disable-next-line no-console
     console.log(`🛠️ Admin logged in with dev token as ${userType}`);
@@ -214,7 +227,7 @@ class AuthService {
     localStorage.setItem('user', JSON.stringify(response.user));
 
     // Set token in API service
-    apiService.setToken(response.token);
+    this.setToken(response.token);
 
     return { originalToken };
   }
@@ -236,7 +249,7 @@ class AuthService {
     localStorage.setItem('user', JSON.stringify(response));
 
     // Set token in API service
-    apiService.setToken(originalToken);
+    this.setToken(originalToken);
   }
 
   // Check if currently impersonating

@@ -6,7 +6,7 @@
 
 import { trackApiCall } from '@/utils/performanceMonitor';
 import { searchCache, SearchResult } from '@/utils/searchCache';
-import { api } from './api';
+import { api } from './libraryServices';
 
 export interface SearchOptions {
   query: string;

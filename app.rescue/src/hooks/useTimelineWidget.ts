@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TimelineEvent } from '../components/ApplicationTimeline';
+import { apiService } from '@adopt-dont-shop/lib-api';
 
 interface UseTimelineWidgetProps {
   applicationId: string;
@@ -30,15 +31,10 @@ export function useTimelineWidget({
   const fetchEvents = async () => {
     try {
       setError(null);
-      const response = await fetch(
+      const data = await apiService.get<any>(
         `/api/applications/${applicationId}/timeline?limit=${maxEvents * 2}`
       );
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch timeline: ${response.statusText}`);
-      }
-
-      const data = await response.json();
       setEvents(data.events || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load timeline');
@@ -111,13 +107,7 @@ export function useTimelineSummary({
   const fetchSummary = async () => {
     try {
       setError(null);
-      const response = await fetch(`/api/applications/${applicationId}/timeline/stats`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch timeline summary: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await apiService.get<any>(`/api/applications/${applicationId}/timeline/stats`);
 
       // Transform the stats into our summary format
       const now = new Date();
@@ -193,22 +183,10 @@ export function useBulkTimelineSummaries({
 
     try {
       setError(null);
-      const response = await fetch('/api/applications/timeline/bulk-stats', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          applicationIds,
-          recentThresholdHours,
-        }),
+      const data = await apiService.post<any>('/api/applications/timeline/bulk-stats', {
+        applicationIds,
+        recentThresholdHours,
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch bulk timeline summaries: ${response.statusText}`);
-      }
-
-      const data = await response.json();
 
       // Transform the bulk stats into our summary format
       const now = new Date();

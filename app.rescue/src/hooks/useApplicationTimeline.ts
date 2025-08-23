@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TimelineEvent, TimelineEventType } from '../components/ApplicationTimeline';
+import { apiService } from '@adopt-dont-shop/lib-api';
 
 interface TimelineStats {
   total_events: number;
@@ -31,13 +32,7 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
       setLoading(true);
 
       // Fetch timeline events
-      const timelineResponse = await fetch(`/api/applications/${applicationId}/timeline`);
-
-      if (!timelineResponse.ok) {
-        throw new Error('Failed to fetch timeline');
-      }
-
-      const timelineData = await timelineResponse.json();
+      const timelineData = await apiService.get<any>(`/api/applications/${applicationId}/timeline`);
 
       if (timelineData.success) {
         setEvents(timelineData.data || []);
@@ -46,13 +41,14 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
       }
 
       // Fetch timeline stats
-      const statsResponse = await fetch(`/api/applications/${applicationId}/timeline/stats`);
-
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
+      try {
+        const statsData = await apiService.get<any>(`/api/applications/${applicationId}/timeline/stats`);
         if (statsData.success) {
           setStats(statsData.data);
         }
+      } catch (statsError) {
+        // Stats are optional, don't fail if they can't be fetched
+        console.warn('Could not fetch timeline stats:', statsError);
       }
 
       setError(null);
@@ -69,22 +65,10 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
       if (!applicationId || !note.trim()) return;
 
       try {
-        const response = await fetch(`/api/applications/${applicationId}/timeline/notes`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            note_type: noteType,
-            content: note.trim(),
-          }),
+        const result = await apiService.post<any>(`/api/applications/${applicationId}/timeline/notes`, {
+          note_type: noteType,
+          content: note.trim(),
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to add note');
-        }
-
-        const result = await response.json();
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to add note');

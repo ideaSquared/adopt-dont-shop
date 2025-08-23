@@ -15,6 +15,7 @@ import { ValidationService } from '@adopt-dont-shop/lib-validation';
 
 // Configure the global apiService FIRST
 import { apiService as globalApiService } from '@adopt-dont-shop/lib-api';
+import { AuthenticationError } from '@adopt-dont-shop/lib-api';
 
 // Configure with the proper base URL
 import { getApiBaseUrl, isDevelopment } from '../utils/env';
@@ -23,6 +24,23 @@ const baseUrl = getApiBaseUrl();
 globalApiService.updateConfig({
   apiUrl: baseUrl,
   debug: isDevelopment(),
+});
+
+// Add 401 error interceptor for automatic logout and redirect
+globalApiService.interceptors.addErrorInterceptor(async (error) => {
+  // Handle 401 authentication errors
+  if (error instanceof AuthenticationError || 
+      (error instanceof Error && error.message.includes('401'))) {
+    // Clear authentication tokens
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    
+    // Redirect to homepage
+    window.location.href = '/';
+  }
+  return error;
 });
 
 // Now import AuthService AFTER configuring the global apiService
@@ -46,3 +64,6 @@ export const validationService = new ValidationService(serviceConfig);
 
 // AuthService uses the pre-configured global apiService
 export const authService = new AuthService();
+
+// Export the configured API service for direct use
+export const apiService = globalApiService;

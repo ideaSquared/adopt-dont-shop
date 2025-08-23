@@ -11,10 +11,9 @@ export {
   notificationsService,
   featureFlagsService,
   permissionsService,
+  api,
+  apiService,
 } from './libraryServices';
-
-// Legacy API utilities (kept for compatibility)
-export { api } from './api';
 
 // Re-export types
 export type {

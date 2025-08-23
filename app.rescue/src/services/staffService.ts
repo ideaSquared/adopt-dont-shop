@@ -1,4 +1,4 @@
-import { apiService } from './api';
+import { apiService } from './libraryServices';
 
 export interface StaffMember {
   id: string;

@@ -26,10 +26,10 @@ export {
   permissionsService,
   validationService,
   authService,
+  apiService,
 } from './libraryServices';
 
-// Export API service
-export { apiService } from './api';
+// Export dashboard service
 export { dashboardService } from './dashboardService';
 
 // Re-export types from libraries

@@ -1,4 +1,4 @@
-import { apiService } from './api';
+import { apiService } from './libraryServices';
 import { User, PaginatedResponse } from '@/types';
 
 // User management types
