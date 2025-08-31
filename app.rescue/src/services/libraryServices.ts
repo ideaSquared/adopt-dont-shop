@@ -24,6 +24,9 @@ const baseUrl = getApiBaseUrl();
 globalApiService.updateConfig({
   apiUrl: baseUrl,
   debug: isDevelopment(),
+  getAuthToken: () => {
+    return localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+  }
 });
 
 // Add 401 error interceptor for automatic logout and redirect
@@ -59,7 +62,7 @@ export const petService = new PetsService(globalApiService);
 export const rescueService = new RescueService(globalApiService, serviceConfig);
 export const chatService = new ChatService(serviceConfig);
 export const notificationsService = new NotificationsService(serviceConfig);
-export const permissionsService = new PermissionsService(serviceConfig);
+export const permissionsService = new PermissionsService(serviceConfig, globalApiService);
 export const validationService = new ValidationService(serviceConfig);
 
 // AuthService uses the pre-configured global apiService

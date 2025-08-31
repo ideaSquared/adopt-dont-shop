@@ -9,6 +9,14 @@ const permissions = [
   'users.list',
   'users.profile.update',
 
+  // Staff Management (rescue-specific)
+  'staff.create',
+  'staff.read',
+  'staff.update',
+  'staff.delete',
+  'staff.list',
+  'staff.suspend',
+
   // Pet Management
   'pets.create',
   'pets.read',

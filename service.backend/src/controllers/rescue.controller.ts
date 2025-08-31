@@ -367,8 +367,17 @@ export class RescueController {
       }
 
       const { rescueId, userId } = req.params;
+      const currentUserId = req.user!.userId;
 
-      const result = await RescueService.removeStaffMember(rescueId, userId, req.user!.userId);
+      // Prevent self-removal
+      if (userId === currentUserId) {
+        return res.status(400).json({
+          success: false,
+          message: 'You cannot remove yourself from the rescue. Please ask another admin to remove you.',
+        });
+      }
+
+      const result = await RescueService.removeStaffMember(rescueId, userId, currentUserId);
 
       res.status(200).json({
         success: true,
@@ -388,6 +397,65 @@ export class RescueController {
       res.status(500).json({
         success: false,
         message: 'Failed to remove staff member',
+        error: errorMessage,
+      });
+    }
+  };
+
+  /**
+   * Update staff member in rescue
+   */
+  updateStaffMember = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { rescueId, userId } = req.params;
+      const { title } = req.body;
+      const currentUserId = req.user!.userId;
+
+      // Prevent self-editing
+      if (userId === currentUserId) {
+        return res.status(400).json({
+          success: false,
+          message: 'You cannot edit your own profile. Please ask another admin to make changes to your account.',
+        });
+      }
+
+      const result = await RescueService.updateStaffMember(rescueId, userId, { title }, currentUserId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Staff member updated successfully',
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Update staff member failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage === 'Staff member not found') {
+        return res.status(404).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
+      if (errorMessage === 'Rescue not found') {
+        return res.status(404).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update staff member',
         error: errorMessage,
       });
     }

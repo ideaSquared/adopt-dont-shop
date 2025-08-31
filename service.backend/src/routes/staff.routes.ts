@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth';
-import { requireRole } from '../middleware/rbac';
+import { requirePermission } from '../middleware/rbac';
 import StaffMember from '../models/StaffMember';
 import User, { UserType } from '../models/User';
 import { AuthenticatedRequest } from '../types/auth';
@@ -62,7 +62,7 @@ const router = express.Router();
 router.get(
   '/colleagues',
   authenticateToken,
-  requireRole(UserType.RESCUE_STAFF, UserType.ADMIN),
+  requirePermission('staff.read'),
   async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.userId;

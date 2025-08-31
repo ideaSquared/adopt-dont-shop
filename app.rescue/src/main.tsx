@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { PermissionsProvider } from '@/contexts/PermissionsContext';
 import { StatsigWrapper } from '@/contexts/StatsigContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -23,11 +24,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <StatsigWrapper>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <ThemeProvider>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
-            </ThemeProvider>
+            <PermissionsProvider>
+              <ThemeProvider>
+                <BrowserRouter>
+                  <App />
+                </BrowserRouter>
+              </ThemeProvider>
+            </PermissionsProvider>
           </AuthProvider>
         </QueryClientProvider>
       </StatsigWrapper>

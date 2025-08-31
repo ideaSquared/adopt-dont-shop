@@ -1,4 +1,5 @@
 import { apiService } from './libraryServices';
+import { NewStaffMember } from '../types/staff';
 
 export interface StaffMember {
   id: string;
@@ -65,6 +66,70 @@ export class RescueStaffService {
       addedAt: staff.addedAt || staff.added_at || staff.createdAt || staff.created_at,
     };
   };
+
+  /**
+   * Add a new staff member to the rescue
+   */
+  async addStaffMember(staffData: NewStaffMember, rescueId: string): Promise<StaffMember> {
+    try {
+      const response = await this.apiService.post<{
+        success: boolean;
+        data: any;
+      }>(`/api/v1/rescues/${rescueId}/staff`, staffData);
+
+      if (response.success && response.data) {
+        return this.transformStaffMember(response.data);
+      }
+
+      // Fallback for different response formats
+      if (response.data) {
+        return this.transformStaffMember(response.data);
+      }
+
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.error('Failed to add staff member:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove a staff member from the rescue
+   */
+  async removeStaffMember(userId: string, rescueId: string): Promise<void> {
+    try {
+      await this.apiService.delete(`/api/v1/rescues/${rescueId}/staff/${userId}`);
+    } catch (error) {
+      console.error('Failed to remove staff member:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a staff member's information
+   */
+  async updateStaffMember(userId: string, staffData: { title?: string }, rescueId: string): Promise<StaffMember> {
+    try {
+      const response = await this.apiService.put<{
+        success: boolean;
+        data: any;
+      }>(`/api/v1/rescues/${rescueId}/staff/${userId}`, staffData);
+
+      if (response.success && response.data) {
+        return this.transformStaffMember(response.data);
+      }
+
+      // Fallback for different response formats
+      if (response.data) {
+        return this.transformStaffMember(response.data);
+      }
+
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.error('Failed to update staff member:', error);
+      throw error;
+    }
+  }
 }
 
 // Export a default instance for easy use

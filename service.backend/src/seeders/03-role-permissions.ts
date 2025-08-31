@@ -134,12 +134,13 @@ const rolePermissionMappings = {
   ],
 
   rescue_admin: [
-    // User Management for staff
-    'users.create',
-    'users.read',
-    'users.update',
-    'users.delete',
-    'users.list',
+    // Staff Management for rescue team
+    'staff.create',
+    'staff.read',
+    'staff.update',
+    'staff.delete',
+    'staff.list',
+    'staff.suspend',
     'users.profile.update',
     // Pet Management - full control
     'pets.create',
@@ -183,7 +184,8 @@ const rolePermissionMappings = {
   ],
 
   rescue_staff: [
-    'users.read',
+    'staff.read',
+    'staff.list',
     'users.profile.update',
     'pets.create',
     'pets.read',

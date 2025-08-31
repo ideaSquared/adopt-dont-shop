@@ -9,7 +9,7 @@ const rescueController = new RescueController();
 
 // Validation middleware
 const validateRescueId = param('rescueId').isUUID().withMessage('Invalid rescue ID format');
-const validateUserId = param('userId').isUUID().withMessage('Invalid user ID format');
+const validateUserId = param('userId').notEmpty().withMessage('User ID is required');
 
 const validateCreateRescue = [
   body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters'),
@@ -140,7 +140,7 @@ const validateSearchQuery = [
 ];
 
 const validateStaffMember = [
-  body('userId').isUUID().withMessage('Valid user ID is required'),
+  body('userId').notEmpty().withMessage('User ID is required'),
   body('title')
     .optional()
     .trim()
@@ -870,7 +870,7 @@ router.put(
   '/:rescueId',
   validateRescueId,
   validateUpdateRescue,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('rescues.update'),
   rescueController.updateRescue
 );
 
@@ -878,7 +878,7 @@ router.patch(
   '/:rescueId',
   validateRescueId,
   validateUpdateRescue,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('rescues.update'),
   rescueController.updateRescue
 );
 
@@ -886,7 +886,7 @@ router.patch(
 router.get(
   '/:rescueId/staff',
   validateRescueId,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('staff.read'),
   rescueController.getRescueStaff
 );
 
@@ -894,15 +894,30 @@ router.post(
   '/:rescueId/staff',
   validateRescueId,
   validateStaffMember,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('staff.create'),
   rescueController.addStaffMember
+);
+
+router.put(
+  '/:rescueId/staff/:userId',
+  validateRescueId,
+  validateUserId,
+  [
+    body('title')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Title must be max 100 characters'),
+  ],
+  requirePermission('staff.update'),
+  rescueController.updateStaffMember
 );
 
 router.delete(
   '/:rescueId/staff/:userId',
   validateRescueId,
   validateUserId,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('staff.delete'),
   rescueController.removeStaffMember
 );
 
@@ -910,7 +925,7 @@ router.delete(
 router.get(
   '/:rescueId/analytics',
   validateRescueId,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('admin.reports'),
   rescueController.getRescueAnalytics
 );
 
@@ -919,7 +934,7 @@ router.post(
   '/:rescueId/verify',
   validateRescueId,
   validateVerification,
-  requirePermission('ADMIN_RESCUE_MANAGEMENT'),
+  requirePermission('rescues.verify'),
   rescueController.verifyRescue
 );
 
@@ -927,7 +942,7 @@ router.delete(
   '/:rescueId',
   validateRescueId,
   validateDeletion,
-  requirePermission('ADMIN_RESCUE_MANAGEMENT'),
+  requirePermission('rescues.delete'),
   rescueController.deleteRescue
 );
 

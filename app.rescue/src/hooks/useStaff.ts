@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { staffService, StaffMember } from '../services/staffService';
+import { NewStaffMember } from '../types/staff';
 import { useAuth } from '../contexts/AuthContext';
 
 export const useStaff = () => {
@@ -50,6 +51,34 @@ export const useStaff = () => {
         } finally {
           setLoading(false);
         }
+      }
+    },
+    addStaffMember: async (staffData: NewStaffMember, rescueId: string) => {
+      try {
+        const newStaff = await staffService.addStaffMember(staffData, rescueId);
+        setStaff(prev => [...prev, newStaff]);
+        return newStaff;
+      } catch (error) {
+        throw error;
+      }
+    },
+    removeStaffMember: async (userId: string, rescueId: string) => {
+      try {
+        await staffService.removeStaffMember(userId, rescueId);
+        setStaff(prev => prev.filter(member => member.userId !== userId));
+      } catch (error) {
+        throw error;
+      }
+    },
+    updateStaffMember: async (userId: string, staffData: { title?: string }, rescueId: string) => {
+      try {
+        const updatedStaff = await staffService.updateStaffMember(userId, staffData, rescueId);
+        setStaff(prev => prev.map(member => 
+          member.userId === userId ? updatedStaff : member
+        ));
+        return updatedStaff;
+      } catch (error) {
+        throw error;
       }
     },
   };

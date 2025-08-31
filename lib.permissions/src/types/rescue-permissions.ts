@@ -28,12 +28,12 @@ export const APPLICATIONS_LIST = 'applications.list' as Permission;
 /**
  * Staff Management Permissions
  */
-export const STAFF_VIEW = 'users.read' as Permission;
-export const STAFF_CREATE = 'users.create' as Permission;
-export const STAFF_UPDATE = 'users.update' as Permission;
-export const STAFF_DELETE = 'users.delete' as Permission;
-export const STAFF_LIST = 'users.list' as Permission;
-export const STAFF_SUSPEND = 'users.suspend' as Permission;
+export const STAFF_VIEW = 'staff.read' as Permission;
+export const STAFF_CREATE = 'staff.create' as Permission;
+export const STAFF_UPDATE = 'staff.update' as Permission;
+export const STAFF_DELETE = 'staff.delete' as Permission;
+export const STAFF_LIST = 'staff.list' as Permission;
+export const STAFF_SUSPEND = 'staff.suspend' as Permission;
 
 /**
  * Rescue Management Permissions
