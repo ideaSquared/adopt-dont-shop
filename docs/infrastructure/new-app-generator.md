@@ -1,6 +1,8 @@
-# New App Generator Documentation
+# New App Generator
 
-The `npm run new-app` command is a powerful scaffolding tool that creates new applications in the Pet Adoption Platform workspace with all the enhanced API services and methodologies we've established.
+## Overview
+
+The `npm run new-app` command scaffolds new applications in the workspace with all established patterns and shared libraries pre-configured.
 
 ## Usage
 
@@ -10,38 +12,41 @@ npm run new-app <app-name> <app-type>
 
 ### Parameters
 
-- **app-name**: The name of the new application (e.g., `app.mobile`, `app.veterinary`)
-- **app-type**: The type of application to create
+- **app-name**: Application name (e.g., `app.mobile`, `app.veterinary`)
+- **app-type**: Type of application (`client`, `rescue`, `admin`, `service`)
 
 ### App Types
 
-| Type | Description | Services Included |
-|------|-------------|-------------------|
-| `client` | Client-facing adoption app | api, authService, petService, discoveryService, chatService, analyticsService |
-| `rescue` | Rescue management app | api, authService, enhancedPetService, applicationService, chatService |
-| `admin` | Admin dashboard app | api, authService, userManagementService, rescueManagementService |
-| `service` | Backend service | Express.js backend with routes, middleware, services |
+| Type | Description | Use Case |
+|------|-------------|----------|
+| `client` | Client-facing React app | Public adoption portals |
+| `rescue` | Rescue management React app | Rescue staff tools |
+| `admin` | Admin dashboard React app | Platform administration |
+| `service` | Backend Node.js service | API services |
 
 ## Examples
 
-### Creating a Mobile Client App
+### Frontend Apps
+
 ```bash
+# Mobile adoption app
 npm run new-app app.mobile client
-```
 
-### Creating a Veterinary Rescue App
-```bash
+# Veterinary rescue portal
 npm run new-app app.veterinary rescue
-```
 
-### Creating a Super Admin App
-```bash
+# Super admin dashboard
 npm run new-app app.superadmin admin
 ```
 
-### Creating a Notification Service
+### Backend Services
+
 ```bash
+# Notification service
 npm run new-app service.notifications service
+
+# Payment processing service
+npm run new-app service.payments service
 ```
 
 ## What Gets Created
@@ -49,223 +54,245 @@ npm run new-app service.notifications service
 ### Frontend Apps (client, rescue, admin)
 
 ```
-<app-name>/
-├── package.json              # Tailored dependencies and scripts
-├── vite.config.ts            # Vite configuration with path aliases
-├── tsconfig.json             # TypeScript configuration
-├── index.html                # Entry HTML file
-├── .env.example              # Environment variables template
-├── README.md                 # Comprehensive documentation
+app.{name}/
 ├── src/
-│   ├── components/           # React components directory
-│   ├── pages/               # Page components
-│   ├── hooks/               # Custom React hooks
-│   ├── contexts/            # React contexts
-│   ├── services/            # 🚀 Enhanced API services
-│   │   ├── api.ts           # Core API service (copied from template)
-│   │   ├── authService.ts   # Authentication service
-│   │   ├── index.ts         # Service exports
-│   │   └── ... (type-specific services)
-│   ├── types/               # TypeScript type definitions
-│   ├── utils/               # Utility functions
-│   ├── styles/              # Global styles
-│   └── __tests__/           # Test files
-└── public/                  # Static assets
+│   ├── components/      # React components
+│   ├── pages/          # Route pages
+│   ├── hooks/          # Custom React hooks
+│   ├── contexts/       # React Context providers
+│   ├── services/       # Pre-configured API services
+│   ├── utils/          # Utility functions
+│   ├── styles/         # Global styles
+│   ├── types/          # TypeScript definitions
+│   ├── App.tsx         # Main app component
+│   └── main.tsx        # Entry point
+├── public/             # Static assets
+├── .env.example        # Environment template
+├── Dockerfile          # Container configuration
+├── package.json        # Dependencies (libraries pre-installed)
+├── tsconfig.json       # TypeScript config
+├── vite.config.ts      # Vite build config
+└── README.md           # App documentation
 ```
 
-### Service Apps (service)
+**Pre-installed Libraries:**
+- Client: api, auth, pets, discovery, chat, analytics, validation
+- Rescue: api, auth, pets (enhanced), applications, chat, rescues
+- Admin: api, auth, users, rescues, analytics, permissions
+
+### Backend Services
 
 ```
-<app-name>/
-├── package.json              # Express.js dependencies
-├── tsconfig.json             # TypeScript configuration
-├── .env.example              # Environment variables
-├── README.md                 # Documentation
-└── src/
-    ├── routes/              # Express routes
-    ├── middleware/          # Express middleware
-    ├── services/            # Business logic services
-    ├── types/               # Type definitions
-    ├── utils/               # Utilities
-    ├── __tests__/           # Tests
-    └── index.ts             # Express app entry point
+service.{name}/
+├── src/
+│   ├── routes/         # Express routes
+│   ├── controllers/    # Request handlers
+│   ├── services/       # Business logic
+│   ├── models/         # Database models
+│   ├── middleware/     # Custom middleware
+│   ├── utils/          # Utility functions
+│   ├── types/          # TypeScript definitions
+│   └── index.ts        # Server entry point
+├── .env.example        # Environment template
+├── Dockerfile          # Container configuration
+├── package.json        # Dependencies
+├── tsconfig.json       # TypeScript config
+└── README.md           # Service documentation
 ```
 
-## Enhanced API Services
+## Configuration
 
-All frontend apps are created with our enhanced API service architecture:
+### Generated package.json
 
-### Core Features
-
-- **🔄 Intelligent Caching**: Reduces unnecessary API calls with smart cache invalidation
-- **🛡️ Robust Error Handling**: Comprehensive error management with user-friendly messages
-- **🔄 Data Transformation**: Automatic snake_case ↔ camelCase conversion
-- **🔐 Token Management**: Secure authentication with automatic token refresh
-- **🛠️ Development Helpers**: Dev tokens and debugging tools for faster development
-- **📍 PostGIS Support**: Geographic data handling for location features
-
-### Service-Specific Features
-
-#### Client Apps
-- **Pet Discovery**: Swipe-based pet matching and filtering
-- **Messaging**: Real-time chat between adopters and rescues
-- **Analytics**: User behavior tracking and insights
-
-#### Rescue Apps  
-- **Enhanced Pet Management**: Advanced pet CRUD with bulk operations
-- **Application Processing**: Complete adoption workflow management
-- **Rescue Dashboard**: Analytics and performance metrics
-
-#### Admin Apps
-- **User Management**: Complete user lifecycle administration
-- **Rescue Oversight**: Multi-rescue management and monitoring
-- **Platform Analytics**: System-wide metrics and reporting
-
-## Service Copying Strategy
-
-The script intelligently copies services from existing template applications:
-
-1. **Primary Strategy**: Copy actual service files from existing apps
-   - Copies from `app.client`, `app.rescue`, or `app.admin` based on type
-   - Preserves all enhancements, caching, error handling
-
-2. **Fallback Strategy**: Generate basic templates if source doesn't exist
-   - Creates functional service stubs
-   - Includes proper TypeScript interfaces
-   - Ready for enhancement
-
-## Environment Configuration
-
-Each app type includes tailored environment variables:
-
-### Client Apps
-```env
-VITE_DISCOVERY_ENABLED=true
-VITE_CHAT_ENABLED=true
-VITE_ANALYTICS_ENABLED=true
+Frontend apps include:
+```json
+{
+  "name": "@adopt-dont-shop/app.{name}",
+  "dependencies": {
+    "@adopt-dont-shop/lib-api": "workspace:*",
+    "@adopt-dont-shop/lib-auth": "workspace:*",
+    "@adopt-dont-shop/lib-validation": "workspace:*",
+    "react": "^18.2.0",
+    "react-router-dom": "^6.x",
+    "@tanstack/react-query": "^4.x"
+  }
+}
 ```
 
-### Rescue Apps
-```env
-VITE_RESCUE_MANAGEMENT=true
-VITE_APPLICATION_PROCESSING=true
-VITE_CHAT_ENABLED=true
+Backend services include:
+```json
+{
+  "name": "@adopt-dont-shop/service.{name}",
+  "dependencies": {
+    "express": "^4.x",
+    "typescript": "^5.x",
+    "sequelize": "^6.x"
+  }
+}
 ```
 
-### Admin Apps
-```env
-VITE_USER_MANAGEMENT=true
-VITE_RESCUE_OVERSIGHT=true
-VITE_ANALYTICS_DASHBOARD=true
+### Generated Dockerfile
+
+Multi-stage build optimized for workspace:
+```dockerfile
+FROM node:20-alpine AS base
+WORKDIR /app
+
+# Copy workspace and install
+COPY package*.json ./
+RUN npm ci
+
+# Build libraries
+COPY lib.* ./
+RUN npm run build:libs
+
+# Build app
+FROM base AS build
+COPY app.{name} ./app.{name}
+RUN cd app.{name} && npm run build
+
+# Production
+FROM nginx:alpine
+COPY --from=build /app/app.{name}/dist /usr/share/nginx/html
 ```
 
-## Development Workflow
+## Post-Generation Steps
 
-After creating a new app:
+### 1. Configure Environment
 
 ```bash
-# Navigate to the new app
-cd <app-name>
-
-# Install dependencies
-npm install
-
-# Set up environment
+cd app.{name}
 cp .env.example .env
-# Edit .env with your API endpoints
+# Edit .env with your configuration
+```
 
-# Start development
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Update docker-compose.yml
+
+Add service to root `docker-compose.yml`:
+```yaml
+app.{name}:
+  build:
+    context: .
+    dockerfile: app.{name}/Dockerfile
+  ports:
+    - "300X:3000"  # Choose available port
+  environment:
+    - VITE_API_BASE_URL=http://api.localhost:5000
+```
+
+### 4. Update nginx Configuration
+
+Add subdomain routing to `nginx/nginx.conf`:
+```nginx
+server {
+  listen 80;
+  server_name {name}.localhost;
+
+  location / {
+    proxy_pass http://app.{name}:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+  }
+}
+```
+
+### 5. Start Development
+
+```bash
+# With Docker
+docker-compose up app.{name}
+
+# Or locally
+cd app.{name}
 npm run dev
 ```
 
-## Integration with Workspace
+## Customization
 
-New apps are **not** automatically added to the workspace `package.json`. To integrate:
+### Adding More Libraries
 
-1. Add to workspace array in root `package.json`:
-   ```json
-   "workspaces": [
-     "service.backend",
-     "app.client", 
-     "app.admin",
-     "app.rescue",
-     "lib.components",
-     "<app-name>"
-   ]
-   ```
+Edit `package.json` to add libraries:
+```json
+{
+  "dependencies": {
+    "@adopt-dont-shop/lib-storage": "workspace:*",
+    "@adopt-dont-shop/lib-email": "workspace:*"
+  }
+}
+```
 
-2. Add turbo scripts if desired:
-   ```json
-   "dev:<app-name>": "turbo run dev --filter=@adopt-dont-shop/<app-name>"
-   ```
+### Modifying Templates
+
+Generator templates located in:
+```
+scripts/templates/
+├── client/     # Client app template
+├── rescue/     # Rescue app template
+├── admin/      # Admin app template
+└── service/    # Backend service template
+```
 
 ## Best Practices
 
 ### Naming Conventions
-- **Apps**: `app.<purpose>` (e.g., `app.mobile`, `app.veterinary`)
-- **Services**: `service.<purpose>` (e.g., `service.notifications`, `service.payments`)
+- Frontend apps: `app.{purpose}` (e.g., `app.mobile`, `app.foster`)
+- Backend services: `service.{domain}` (e.g., `service.payments`, `service.analytics`)
+- Use lowercase with dots as separators
 
-### Development Tips
-1. **Start with existing type**: Choose the closest app type and customize
-2. **Copy and modify**: Use existing apps as reference for patterns
-3. **Test incrementally**: Start with basic functionality and add features
-4. **Document changes**: Update README.md with specific features
+### Library Selection
+- Only include libraries your app actually needs
+- Avoid over-installing to keep bundle sizes small
+- Use tree-shaking to eliminate unused code
+
+### Configuration
+- Use environment variables for all configuration
+- Never commit `.env` files
+- Provide comprehensive `.env.example`
+- Document all environment variables
 
 ## Troubleshooting
 
-### Common Issues
+### Port Already in Use
 
-**TypeScript Errors**: New apps may have import path issues
-- Solution: Check `tsconfig.json` paths configuration
-- Ensure `@/*` alias points to `./src/*`
-
-**Service Import Errors**: Missing service dependencies
-- Solution: Check `src/services/index.ts` exports
-- Verify service files exist and export properly
-
-**Environment Variables**: API calls failing
-- Solution: Check `.env` file configuration
-- Ensure `VITE_API_URL` points to correct backend
-
-**Missing Dependencies**: Build/dev errors
-- Solution: Run `npm install` in new app directory
-- Check `package.json` for required dependencies
-
-## Extending the Script
-
-The script is designed to be extensible. To add new app types:
-
-1. Add to `templates` object in `scripts/create-new-app.js`
-2. Define services array and description
-3. Add service creation logic if needed
-4. Update this documentation
-
-## Examples of Generated Apps
-
-### Mobile Client App
 ```bash
-npm run new-app app.mobile client
-```
-Perfect for React Native or PWA development with discovery features.
+# Find process using port
+netstat -ano | findstr :3000
 
-### Veterinary Management
-```bash 
-npm run new-app app.veterinary rescue
+# Kill process
+taskkill /PID <pid> /F
 ```
-Specialized for veterinary clinics managing pet health records.
 
-### Multi-Rescue Admin
+### Library Not Found
+
 ```bash
-npm run new-app app.superadmin admin
-```
-Advanced admin interface for managing multiple rescue organizations.
+# Rebuild libraries
+npm run build:libs
 
-### Notification Service
+# Reinstall dependencies
+rm -rf node_modules && npm install
+```
+
+### Docker Build Fails
+
 ```bash
-npm run new-app service.notifications service
+# Clear Docker cache
+docker-compose down -v
+docker system prune -a
+
+# Rebuild without cache
+docker-compose build --no-cache app.{name}
 ```
-Microservice for handling email, SMS, and push notifications.
 
----
+## Additional Resources
 
-This generator embodies all the API service patterns and methodologies we've developed, ensuring new applications start with enterprise-grade service architecture from day one.
+- **Infrastructure Guide**: [INFRASTRUCTURE.md](./INFRASTRUCTURE.md)
+- **Docker Setup**: [docker-setup.md](./docker-setup.md)
+- **Microservices Standards**: [MICROSERVICES-STANDARDS.md](./MICROSERVICES-STANDARDS.md)
+- **Libraries Documentation**: [../libraries/README.md](../libraries/README.md)

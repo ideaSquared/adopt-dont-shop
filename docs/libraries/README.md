@@ -1,859 +1,337 @@
-# 📚 Shared Libraries Documentation
+# Shared Libraries Documentation
 
-This document provides comprehensive documentation for all shared libraries in the Adopt Don't Shop platform.
+## Overview
 
-## � Ecosystem Status
+Comprehensive collection of 16 shared libraries for the Adopt Don't Shop platform. All libraries follow consistent ESM-only architecture with full TypeScript support and comprehensive testing.
 
-View the complete [Library Ecosystem Status](ecosystem-status.md) for:
-- ✅ All 16 libraries fully validated and tested
-- 🔧 TypeScript compilation: 100% passing
-- 🧪 Jest test suites: 8/8 tests per library passing
-- 📋 PRD compliance: Full backend service alignment
-- 🏗️ Architecture standardization: ESM-only with consistent patterns
+## Ecosystem Status
 
-## �🏗️ Library Architecture
+**All 16 libraries fully validated:**
+- TypeScript compilation: 100% passing
+- Jest test suites: 8/8 tests per library passing
+- PRD compliance: Full backend service alignment
+- Architecture: ESM-only with consistent patterns
 
-All libraries follow a consistent ESM-only architecture with the following standards:
+View detailed status: [ecosystem-status.md](ecosystem-status.md)
 
-### Standards Compliance ✅
+## Library Architecture
+
+### Standards
 - **Module System**: ES Modules only (no CommonJS)
 - **Build Tool**: TypeScript Compiler (tsc)
-- **Testing**: Jest with TypeScript (8/8 tests passing per library)
+- **Testing**: Jest with TypeScript
 - **Code Quality**: ESLint + Prettier
-- **Documentation**: Comprehensive README.md with examples
-- **Docker**: Multi-stage builds for development/production
-- **CI/CD**: Integrated with Turbo build system
+- **Docker**: Multi-stage builds
+- **CI/CD**: Integrated with Turbo
 
-### File Structure Template
+### Structure Template
 ```
 lib.{name}/
 ├── src/
-│   ├── services/
-│   │   ├── {name}-service.ts           # Main service class
-│   │   └── __tests__/
-│   │       └── {name}-service.test.ts  # 8 comprehensive tests
-│   ├── types/
-│   │   └── index.ts                    # TypeScript definitions
-│   └── index.ts                        # Main exports
-├── dist/                               # Built output (auto-generated)
-├── Dockerfile                          # Multi-stage Docker build
-├── docker-compose.lib.yml             # Development environment
-├── jest.config.cjs                    # Jest configuration (CJS for compatibility)
-├── package.json                       # ESM-only package configuration
-├── tsconfig.json                       # TypeScript settings
-├── .eslintrc.json                     # ESLint configuration
-├── .prettierrc.json                   # Prettier configuration
-└── README.md                          # Comprehensive usage documentation
+│   ├── services/{name}-service.ts
+│   ├── services/__tests__/{name}-service.test.ts
+│   ├── types/index.ts
+│   └── index.ts
+├── dist/ (auto-generated)
+├── Dockerfile
+├── package.json (ESM-only)
+├── tsconfig.json
+└── README.md
 ```
 
-## 📦 Available Libraries
+## Available Libraries
 
-### 🔌 lib.api
-**Core API client functionality for backend communication**
+### Core Services
 
-- **Package**: `@adopt-dont-shop/lib-api`
-- **Service**: `ApiService`
-- **Status**: ✅ Complete with 8/8 tests passing
-
-**Key Features**:
-- HTTP client wrapper with authentication
+**lib.api** - API client functionality
+- HTTP client with authentication
 - Request/response interceptors
 - Error handling and retry logic
-- Caching mechanism
-- TypeScript type definitions
+- Package: `@adopt-dont-shop/lib-api`
 
-**Usage**:
-```typescript
-import { apiService, ApiService } from '@adopt-dont-shop/lib-api';
-
-// Using singleton instance
-const pets = await apiService.exampleMethod({ endpoint: '/pets' });
-
-// Custom instance
-const customApi = new ApiService({
-  apiUrl: 'https://api.example.com',
-  debug: true
-});
-```
-
-**Installation**:
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*"
-  }
-}
-```
-
-### 🔐 lib.auth
-**Authentication and authorization functionality**
-
-- **Package**: `@adopt-dont-shop/lib-auth`
-- **Service**: `AuthService`
-- **Status**: ✅ Complete with 8/8 tests passing
-
-**Key Features**:
+**lib.auth** - Authentication and authorization
 - JWT token management
 - User session handling
 - Role-based permissions
-- Secure storage abstraction
-- Authentication state management
+- Package: `@adopt-dont-shop/lib-auth`
 
-**Usage**:
-```typescript
-import { authService, AuthService } from '@adopt-dont-shop/lib-auth';
+**lib.validation** - Form and data validation
+- Schema validation (Zod)
+- Custom validators
+- Error formatting
+- Package: `@adopt-dont-shop/lib-validation`
 
-// Using singleton instance
-const result = await authService.exampleMethod({ 
-  action: 'authenticate',
-  credentials: { email, password }
-});
+### Feature Libraries
 
-// Custom instance
-const customAuth = new AuthService({
-  apiUrl: 'https://auth.example.com',
-  debug: true
-});
-```
+**lib.applications** - Application management
+- Application lifecycle
+- Status transitions
+- Timeline tracking
+- Package: `@adopt-dont-shop/lib-applications`
 
-**Installation**:
+**lib.chat** - Real-time messaging
+- WebSocket communication
+- Message history
+- Conversation management
+- Package: `@adopt-dont-shop/lib-chat`
+
+**lib.discovery** - Pet discovery
+- Swipe actions
+- Smart recommendations
+- Session analytics
+- Package: `@adopt-dont-shop/lib-discovery`
+
+**lib.email** - Email management
+- Template system
+- Queue management
+- Delivery tracking
+- Package: `@adopt-dont-shop/lib-email`
+
+**lib.invitations** - Staff invitation system
+- Invitation creation
+- Token management
+- Status tracking
+- Package: `@adopt-dont-shop/lib-invitations`
+
+**lib.notifications** - Notification system
+- Multi-channel delivery
+- Preference management
+- Real-time alerts
+- Package: `@adopt-dont-shop/lib-notifications`
+
+**lib.pets** - Pet management
+- Pet profiles
+- Status tracking
+- Search functionality
+- Package: `@adopt-dont-shop/lib-pets`
+
+**lib.rescues** - Rescue organization management
+- Organization profiles
+- Staff management
+- Settings configuration
+- Package: `@adopt-dont-shop/lib-rescues`
+
+**lib.search** - Advanced search
+- Filter management
+- Query building
+- Result ranking
+- Package: `@adopt-dont-shop/lib-search`
+
+**lib.storage** - File storage
+- Upload handling
+- Cloud storage integration
+- CDN management
+- Package: `@adopt-dont-shop/lib-storage`
+
+**lib.users** - User management
+- Profile management
+- Preference handling
+- Account operations
+- Package: `@adopt-dont-shop/lib-users`
+
+### Utility Libraries
+
+**lib.analytics** - Analytics and tracking
+- Event tracking
+- User behavior analytics
+- Report generation
+- Package: `@adopt-dont-shop/lib-analytics`
+
+**lib.common** - Common utilities
+- Shared helpers
+- Date/time utilities
+- String formatters
+- Package: `@adopt-dont-shop/lib-common`
+
+## Quick Start
+
+### Installation
+
+Add to your package.json:
 ```json
 {
   "dependencies": {
+    "@adopt-dont-shop/lib-api": "workspace:*",
     "@adopt-dont-shop/lib-auth": "workspace:*"
   }
 }
 ```
 
-### 💬 lib.chat
-**Real-time chat and messaging functionality**
+Then run:
+```bash
+npm install
+```
 
-- **Package**: `@adopt-dont-shop/lib-chat`
-- **Service**: `ChatService`
-- **Status**: ✅ Complete with 8/8 tests passing
+### Basic Usage
 
-**Key Features**:
-- WebSocket connection management
-- Message queuing and delivery
-- Room/channel management
-- Real-time communication
-- Message persistence and history
-
-**Usage**:
 ```typescript
-import { chatService, ChatService } from '@adopt-dont-shop/lib-chat';
+// Import from libraries
+import { apiService } from '@adopt-dont-shop/lib-api';
+import { authService } from '@adopt-dont-shop/lib-auth';
+import { PetService } from '@adopt-dont-shop/lib-pets';
 
-// Using singleton instance
-await chatService.exampleMethod({ 
-  action: 'sendMessage',
-  message: 'Hello! Is Max still available?',
-  roomId: 'pet-adoption-123'
-});
-
-// Custom instance
-const customChat = new ChatService({
-  apiUrl: 'wss://chat.example.com',
-  debug: true
-});
+// Use services
+const pets = await apiService.exampleMethod({ endpoint: '/pets' });
+const user = authService.getCurrentUser();
+const petService = new PetService();
 ```
 
-**Installation**:
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-chat": "workspace:*"
-  }
-}
-```
+## Development
 
-### ✅ lib.validation
-**Data validation and sanitization functionality**
+### Building Libraries
 
-- **Package**: `@adopt-dont-shop/lib-validation`
-- **Service**: `ValidationService`
-- **Status**: ✅ Complete with 8/8 tests passing
-
-**Key Features**:
-- Form validation schemas
-- Data sanitization and normalization
-- Custom validation rules
-- Error message formatting
-- Frontend/backend validation sync
-
-**Usage**:
-```typescript
-import { validationService, ValidationService } from '@adopt-dont-shop/lib-validation';
-
-// Using singleton instance
-const result = await validationService.exampleMethod({ 
-  data: formData,
-  schema: 'petAdoptionForm'
-});
-
-// Custom instance
-const customValidator = new ValidationService({
-  apiUrl: 'https://validation.example.com',
-  debug: true
-});
-```
-
-**Installation**:
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-validation": "workspace:*"
-  }
-}
-```
-
-### ✅ lib.utils
-**Comprehensive utility functions for common operations**
-
-- **Package**: `@adopt-dont-shop/lib-utils`
-- **Service**: `UtilsService`
-- **Status**: ✅ Complete with 55/55 tests passing
-
-**Key Features**:
-- **25+ Utility Functions** across 5 categories
-- **Date & Time Operations**: formatting, relative time, parsing, business hours validation  
-- **String Processing**: slugification, truncation, sanitization, ID generation
-- **Data Transformation**: deep cloning, object merging, flattening/unflattening
-- **Validation**: email, phone, URL, file type validation with detailed feedback
-- **Formatting**: currency, file size, phone numbers, addresses with locale support
-- **Full TypeScript Support** with comprehensive interfaces
-- **Configurable Service** with runtime config updates and health checks
-
-**Usage**:
-```typescript
-import { UtilsService } from '@adopt-dont-shop/lib-utils';
-
-const utils = new UtilsService({
-  debug: false,
-  timezone: 'UTC',
-  currency: 'USD'
-});
-
-// Date operations
-const formatted = utils.formatDate(new Date(), { format: 'ISO' });
-const relative = utils.formatRelativeTime(new Date(Date.now() - 3600000)); // "1 hour ago"
-
-// String utilities  
-const slug = utils.slugify('Hello World!'); // "hello-world"
-const safe = utils.sanitizeInput('<script>alert("xss")</script>');
-
-// Validation
-const emailResult = utils.isValidEmail('test@example.com');
-if (emailResult.isValid) {
-  console.log('Valid email:', emailResult.normalizedValue);
-}
-
-// Data transformation
-const cloned = utils.deepClone({ nested: { data: [1, 2, 3] } });
-const flattened = utils.flattenObject({ a: { b: { c: 1 } } }); // { 'a.b.c': 1 }
-
-// Formatting
-const price = utils.formatCurrency(1234.56); // "$1,234.56"
-const size = utils.formatFileSize(1048576); // "1 MB"
-```
-
-**Installation**:
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-utils": "workspace:*"
-  }
-}
-```
-
-### 🎨 lib.components
-**Shared React component library**
-
-- **Package**: `@adopt-dont-shop/components`
-- **Build**: Vite + TypeScript + Styled Components
-- **Status**: ✅ Complete with optimized build system
-
-**Key Features**:
-- Reusable UI components (Button, Card, Modal, etc.)
-- Styled-components theming system
-- Accessibility compliant (WCAG 2.1)
-- TypeScript definitions included
-- Both ESM and UMD builds for compatibility
-
-**Usage**:
-```typescript
-import { Button, Card, Modal, Header } from '@adopt-dont-shop/components';
-
-function AdoptionCard({ pet }) {
-  return (
-    <Card>
-      <h3>{pet.name}</h3>
-      <p>{pet.description}</p>
-      <Button variant="primary" onClick={() => handleAdopt(pet.id)}>
-        Adopt {pet.name}
-      </Button>
-    </Card>
-  );
-}
-```
-
-**Installation**:
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/components": "workspace:*"
-  },
-  "peerDependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0"
-  }
-}
-```
-
-## 🛠️ Development Commands
-
-### Workspace-Level Commands
 ```bash
 # Build all libraries
-npm run build:libs
+npm run build
 
-# Test all libraries  
-npm run test:libs
+# Build specific library
+cd lib.api && npm run build
 
-# Individual library commands
-npm run build:lib-api
-npm run build:lib-auth
-npm run build:lib-chat
-npm run build:lib-validation
-npm run build:components
-
-npm run test:lib-api
-npm run test:lib-auth
-npm run test:lib-chat
-npm run test:lib-validation
-npm run test:components
-```
-
-### Library Development
-```bash
-# Create new library
-npm run new-lib my-feature "Description of functionality"
-
-# Development mode (watch)
-cd lib.{name}
+# Watch mode
 npm run dev
-
-# Testing
-npm test
-npm run test:watch
-npm run test:coverage
-
-# Code quality
-npm run lint
-npm run lint:fix
-npm run type-check
 ```
 
-### Docker Development
+### Testing
+
 ```bash
-# Individual library development
-docker-compose -f docker-compose.lib.yml up lib-auth
-docker-compose -f docker-compose.lib.yml run lib-auth-test
+# Test all libraries
+npm test
 
-# All libraries in development mode
-docker-compose up  # Includes all lib-* services
+# Test specific library
+cd lib.api && npm test
+
+# Watch mode
+npm run test:watch
 ```
 
-## 🏗️ Integration Patterns
+### Development Environment
 
-### Frontend Applications Integration
+```bash
+# Start with Docker
+cd lib.api
+docker-compose -f docker-compose.lib.yml up
 
-**React Apps (app.client, app.admin, app.rescue)**:
-
-1. **Add dependencies to package.json**:
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*",
-    "@adopt-dont-shop/lib-auth": "workspace:*",
-    "@adopt-dont-shop/lib-chat": "workspace:*",
-    "@adopt-dont-shop/lib-validation": "workspace:*",
-    "@adopt-dont-shop/components": "workspace:*"
-  }
-}
+# Development mode
+npm run dev
 ```
 
-2. **Create service aggregation file** (`src/services/index.ts`):
-```typescript
-// Service exports
-export { apiService } from '@adopt-dont-shop/lib-api';
-export { authService } from '@adopt-dont-shop/lib-auth';
-export { chatService } from '@adopt-dont-shop/lib-chat';
-export { validationService } from '@adopt-dont-shop/lib-validation';
-
-// Component exports
-export * from '@adopt-dont-shop/components';
-
-// Type exports
-export type {
-  ApiServiceConfig,
-  AuthServiceConfig,
-  ChatServiceConfig,
-  ValidationServiceConfig
-} from '@adopt-dont-shop/lib-api';
-```
-
-3. **Use in React components**:
-```typescript
-import { useEffect, useState } from 'react';
-import { apiService, authService, Button, Card } from '@/services';
-
-function PetListPage() {
-  const [pets, setPets] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchPets = async () => {
-      try {
-        const result = await apiService.exampleMethod({ 
-          endpoint: '/pets',
-          filters: { available: true }
-        });
-        setPets(result.data);
-      } catch (error) {
-        console.error('Failed to fetch pets:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPets();
-  }, []);
-
-  if (loading) return <div>Loading pets...</div>;
-
-  return (
-    <div className="pet-grid">
-      {pets.map(pet => (
-        <Card key={pet.id}>
-          <h3>{pet.name}</h3>
-          <p>{pet.breed} • {pet.age} years old</p>
-          <Button 
-            variant="primary" 
-            onClick={() => handleAdoptClick(pet.id)}
-          >
-            Adopt {pet.name}
-          </Button>
-        </Card>
-      ))}
-    </div>
-  );
-}
-```
+## Integration Patterns
 
 ### Backend Integration
 
-**Node.js Backend (service.backend)**:
+```typescript
+// service.backend/src/services/pet.service.ts
+import { PetService } from '@adopt-dont-shop/lib-pets';
+import { apiService } from '@adopt-dont-shop/lib-api';
 
-1. **Add dependencies**:
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*",
-    "@adopt-dont-shop/lib-auth": "workspace:*",
-    "@adopt-dont-shop/lib-validation": "workspace:*"
+export class BackendPetService extends PetService {
+  async getAllPets() {
+    return await apiService.exampleMethod({ endpoint: '/pets' });
   }
 }
 ```
 
-2. **Create service instances** (`src/services/`):
-```typescript
-// src/services/api.service.ts
-import { ApiService } from '@adopt-dont-shop/lib-api';
-
-export const apiService = new ApiService({
-  apiUrl: process.env.INTERNAL_API_URL || 'http://localhost:5000',
-  debug: process.env.NODE_ENV === 'development',
-  headers: {
-    'X-Service': 'backend-internal'
-  }
-});
-
-// src/services/auth.service.ts
-import { AuthService } from '@adopt-dont-shop/lib-auth';
-
-export const authService = new AuthService({
-  apiUrl: process.env.AUTH_API_URL || 'http://localhost:5000',
-  debug: process.env.NODE_ENV === 'development'
-});
-```
-
-3. **Use in routes/controllers**:
-```typescript
-import { Router } from 'express';
-import { authService, validationService } from '../services';
-
-const router = Router();
-
-router.post('/api/pets', async (req, res) => {
-  try {
-    // Validate request data
-    const validationResult = await validationService.exampleMethod({
-      data: req.body,
-      schema: 'createPet'
-    });
-
-    if (!validationResult.success) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: validationResult.errors
-      });
-    }
-
-    // Process authenticated request
-    const authResult = await authService.exampleMethod({
-      token: req.headers.authorization,
-      action: 'verify'
-    });
-
-    if (!authResult.success) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Create pet logic here...
-    res.json({ success: true, petId: newPet.id });
-  } catch (error) {
-    console.error('Pet creation failed:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-export default router;
-```
-
-## 🐳 Docker Integration
-
-### Multi-stage Library Builds
-
-Each library includes optimized Docker configurations:
-
-```dockerfile
-# Example: lib.auth/Dockerfile
-FROM node:20-alpine AS development
-WORKDIR /app
-COPY package*.json ./
-COPY tsconfig.json ./
-RUN npm ci
-COPY src/ ./src/
-RUN npm run build
-CMD ["npm", "run", "dev"]
-
-FROM node:20-alpine AS production
-WORKDIR /app
-COPY --from=development /app/dist ./dist
-COPY --from=development /app/package*.json ./
-RUN npm ci --omit=dev
-CMD ["node", "dist/index.js"]
-```
-
-### Docker Compose Integration
-
-Libraries are integrated into the main docker-compose.yml:
-
-```yaml
-services:
-  # Library services for development
-  lib-api:
-    build:
-      context: ./lib.api
-      dockerfile: Dockerfile
-      target: development
-    volumes:
-      - ./lib.api:/app
-      - /app/node_modules
-      - lib_api_dist:/app/dist
-    environment:
-      NODE_ENV: ${NODE_ENV:-development}
-    command: npm run dev
-
-  # Frontend apps use libraries
-  app-client:
-    build:
-      context: .
-      dockerfile: app.client/Dockerfile
-    volumes:
-      - ./app.client:/app/app.client
-      - ./lib.api:/app/lib.api
-      - ./lib.auth:/app/lib.auth
-      # ... other libraries
-    depends_on:
-      - lib-api
-      - lib-auth
-      - lib-chat
-      - lib-validation
-
-volumes:
-  lib_api_dist:
-  lib_auth_dist:
-  lib_chat_dist:
-  lib_validation_dist:
-```
-
-## 🔄 CI/CD Integration
-
-### Turbo Build System
-
-All libraries are integrated with Turbo for optimized builds:
-
-```json
-{
-  "pipeline": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
-    },
-    "test": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
-    },
-    "lint": {
-      "outputs": []
-    }
-  }
-}
-```
-
-### GitHub Actions Integration
-
-Libraries are tested in CI pipeline:
-
-```yaml
-# .github/workflows/ci.yml
-jobs:
-  test-libraries:
-    name: Library Tests
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        library: [api, auth, chat, validation]
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          
-      - name: Install dependencies
-        run: npm install
-        
-      - name: Build library
-        run: npm run build:lib-${{ matrix.library }}
-        
-      - name: Test library
-        run: npm run test:lib-${{ matrix.library }}
-        
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./lib.${{ matrix.library }}/coverage/lcov.info
-```
-
-## 📊 Testing Standards
-
-### Test Coverage Requirements
-
-All libraries maintain comprehensive test coverage:
-
-- **Unit Tests**: 8 tests per library covering all major functionality
-- **Coverage**: 100% line coverage on core service methods
-- **Integration**: End-to-end testing in applications
-- **Type Safety**: TypeScript strict mode enabled
-
-### Test Structure Example
+### Frontend Integration
 
 ```typescript
-// lib.api/src/services/__tests__/api-service.test.ts
-import { ApiService } from '../api-service';
+// app.client/src/hooks/usePets.ts
+import { PetService } from '@adopt-dont-shop/lib-pets';
+import { useQuery } from '@tanstack/react-query';
 
-describe('ApiService', () => {
-  let service: ApiService;
+export const usePets = () => {
+  const petService = new PetService();
 
-  beforeEach(() => {
-    service = new ApiService({ debug: false });
+  return useQuery({
+    queryKey: ['pets'],
+    queryFn: () => petService.getAllPets()
   });
-
-  afterEach(() => {
-    service.clearCache();
-  });
-
-  describe('initialization', () => {
-    it('should initialize with default config', () => {
-      const config = service.getConfig();
-      expect(config).toBeDefined();
-      expect(config.debug).toBe(false);
-    });
-
-    it('should initialize with custom config', () => {
-      const customService = new ApiService({
-        debug: true,
-        apiUrl: 'https://test.example.com',
-      });
-      
-      const config = customService.getConfig();
-      expect(config.debug).toBe(true);
-      expect(config.apiUrl).toBe('https://test.example.com');
-    });
-  });
-
-  describe('configuration management', () => {
-    it('should update configuration', () => {
-      service.updateConfig({ debug: true });
-      const config = service.getConfig();
-      expect(config.debug).toBe(true);
-    });
-
-    it('should return current configuration', () => {
-      const config = service.getConfig();
-      expect(typeof config).toBe('object');
-      expect(config).toHaveProperty('apiUrl');
-      expect(config).toHaveProperty('debug');
-    });
-  });
-
-  describe('cache management', () => {
-    it('should clear cache without errors', () => {
-      expect(() => service.clearCache()).not.toThrow();
-    });
-  });
-
-  describe('exampleMethod', () => {
-    it('should return success response', async () => {
-      const testData = { test: 'data' };
-      const result = await service.exampleMethod(testData);
-      
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect(result.timestamp).toBeDefined();
-    });
-
-    it('should use cache when enabled', async () => {
-      const testData = { test: 'cached' };
-      
-      const result1 = await service.exampleMethod(testData, { useCache: true });
-      const result2 = await service.exampleMethod(testData, { useCache: true });
-      
-      expect(result1).toEqual(result2);
-    });
-  });
-
-  describe('healthCheck', () => {
-    it('should return health status', async () => {
-      const isHealthy = await service.healthCheck();
-      expect(typeof isHealthy).toBe('boolean');
-    });
-  });
-});
+};
 ```
 
-## 🚀 Performance Optimization
+## Testing Standards
 
-### Build Performance
+Each library includes 8 comprehensive tests:
+1. Service initialization
+2. Configuration validation
+3. Method functionality
+4. Error handling
+5. Edge cases
+6. Async operations
+7. State management
+8. Integration scenarios
 
-- **Turbo Caching**: Build artifacts cached between runs
-- **Incremental Builds**: Only changed libraries rebuild
-- **Parallel Execution**: Multiple libraries build simultaneously
-- **Tree Shaking**: Unused code eliminated in production builds
+## Best Practices
 
-### Runtime Performance
+### Library Usage
+- Import only what you need
+- Use singleton instances where appropriate
+- Handle errors gracefully
+- Follow TypeScript type definitions
 
-- **Singleton Pattern**: Shared service instances across applications
-- **Caching**: Built-in caching mechanisms in all services
-- **Lazy Loading**: Dynamic imports for optional functionality
-- **Bundle Optimization**: ESM-only builds for modern bundlers
+### Development
+- Run tests before committing
+- Update documentation for API changes
+- Maintain backward compatibility
+- Use semantic versioning
 
-## 🔧 Troubleshooting
+### Performance
+- Tree-shake unused code
+- Lazy load heavy libraries
+- Cache service instances
+- Monitor bundle sizes
+
+## Troubleshooting
 
 ### Common Issues
 
-**Library Build Failures**:
+**Import Errors**
 ```bash
-# Clean and rebuild
-npm run clean
-npm run build:libs
+# Ensure workspace dependencies installed
+npm install
 
-# Check TypeScript errors
-npm run type-check
-
-# Individual library debugging
-cd lib.{name}
+# Rebuild libraries
 npm run build
 ```
 
-**Test Failures**:
+**Type Errors**
 ```bash
-# Run specific library tests
-npm run test:lib-{name}
+# Regenerate TypeScript declarations
+npm run build
 
-# Debug mode
-cd lib.{name}
-npm run test:watch
+# Check tsconfig.json paths
 ```
 
-**Import/Export Issues**:
+**Test Failures**
 ```bash
-# Verify package.json exports
-cat lib.{name}/package.json | grep -A 10 "exports"
+# Clear Jest cache
+npm run test -- --clearCache
 
-# Check build output
-ls -la lib.{name}/dist/
+# Run tests in sequence
+npm run test -- --runInBand
 ```
 
-### Debug Mode
+## Additional Resources
 
-Enable debug logging in all libraries:
+**Detailed Guides:**
+- [Library Architecture](../infrastructure/MICROSERVICES-STANDARDS.md)
+- [Testing Guide](../backend/testing.md)
+- [API Documentation](../backend/api-endpoints.md)
+- [Ecosystem Status](./ecosystem-status.md)
 
-```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-
-// Enable debug mode
-apiService.updateConfig({ debug: true });
-
-// Or via environment variable
-process.env.NODE_ENV = 'development';
-```
-
----
-
-## 📝 Summary
-
-The Adopt Don't Shop platform uses **5 shared libraries** with consistent architecture:
-
-1. **lib.api** - Core API client functionality ✅
-2. **lib.auth** - Authentication and authorization ✅  
-3. **lib.chat** - Real-time chat and messaging ✅
-4. **lib.validation** - Data validation and sanitization ✅
-5. **lib.components** - Shared React UI components ✅
-
-**All libraries are:**
-- ✅ **ESM-only** for modern compatibility
-- ✅ **Fully tested** with 8/8 tests passing
-- ✅ **TypeScript strict mode** enabled
-- ✅ **Docker integrated** for development
-- ✅ **CI/CD ready** with Turbo build system
-- ✅ **Documented** with comprehensive READMEs
-
-**Development Commands:**
-```bash
-npm run build:libs     # Build all libraries
-npm run test:libs      # Test all libraries
-npm run new-lib {name} # Create new library
-```
-
-For specific library usage and API documentation, see individual library README files in their respective directories.
-
-**Last Updated**: July 25, 2025  
-**Libraries Version**: 1.0.0  
-**Build System**: Turbo + TypeScript + Jest
+**Individual Library Docs:**
+- [lib.api](./api.md)
+- [lib.auth](./auth.md)
+- [lib.applications](./applications.md)
+- [lib.chat](./chat.md)
+- [lib.discovery](./discovery.md)
+- [lib.email](./email.md)
+- [lib.invitations](./invitations.md)
+- [lib.notifications](./notifications.md)
+- [lib.pets](./pets.md)
+- [lib.rescues](./rescues.md)
+- [lib.search](./search.md)
+- [lib.storage](./storage.md)
+- [lib.users](./users.md)
+- [lib.analytics](./analytics.md)
+- [lib.common](./common.md)
+- [lib.validation](./validation.md)

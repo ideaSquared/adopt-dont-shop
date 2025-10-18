@@ -2,35 +2,50 @@
 
 ## Overview
 
-The Adopt Don't Shop Backend Service implements comprehensive testing strategies including unit tests, integration tests, and end-to-end tests. The testing framework uses Jest with additional tools for database testing and API validation.
+Comprehensive testing strategy for the backend service using Jest. Follows the testing pyramid: 70% unit tests, 20% integration tests, 10% E2E tests.
 
-## Testing Architecture
+## Test Structure
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Testing Pyramid                         │
-├─────────────────────────────────────────────────────────────┤
-│  E2E Tests (10%)                                           │
-│  ├── API Integration Tests                                 │
-│  ├── User Journey Tests                                    │
-│  └── Performance Tests                                     │
-├─────────────────────────────────────────────────────────────┤
-│  Integration Tests (20%)                                   │
-│  ├── Database Integration                                  │
-│  ├── Service Integration                                   │
-│  └── External API Tests                                    │
-├─────────────────────────────────────────────────────────────┤
-│  Unit Tests (70%)                                          │
-│  ├── Service Layer Tests                                   │
-│  ├── Controller Tests                                      │
-│  ├── Utility Function Tests                               │
-│  └── Model Validation Tests                               │
-└─────────────────────────────────────────────────────────────┘
+Testing Pyramid
+├── E2E Tests (10%) - Full API integration and user journeys
+├── Integration Tests (20%) - Database, services, external APIs
+└── Unit Tests (70%) - Services, controllers, utilities, models
 ```
 
-## Test Configuration
+## Quick Start
 
-### Jest Configuration
+### Running Tests
+
+```bash
+# All tests
+npm test
+
+# Watch mode
+npm run test:watch
+
+# Coverage report
+npm run test:coverage
+
+# Specific test file
+npm test user.service.test.ts
+
+# Integration tests only
+npm run test:integration
+
+# E2E tests only
+npm run test:e2e
+```
+
+### Coverage Requirements
+- Overall: 80%+ coverage
+- Services: 90%+ coverage
+- Controllers: 85%+ coverage
+- Critical paths: 100% coverage
+
+## Configuration
+
+### Jest Setup
 
 ```javascript
 // jest.config.js
@@ -38,946 +53,371 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: [
-    '**/__tests__/**/*.test.ts',
-    '**/?(*.)+(spec|test).ts'
-  ],
-  transform: {
-    '^.+\\.ts$': 'ts-jest'
+  testMatch: ['**/__tests__/**/*.test.ts'],
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
   },
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/index.ts',
-    '!src/sequelize.ts'
-  ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: ['<rootDir>/src/setup-tests.ts'],
   testTimeout: 10000,
-  maxWorkers: 1 // For database tests
+  maxWorkers: 1
 };
 ```
 
-### Test Database Setup
+### Test Database
 
 ```typescript
-// src/setup-tests.ts
-import { sequelize } from './sequelize';
-import { User, Pet, Rescue, Application } from './models';
-
+// Test database automatically created per test suite
 beforeAll(async () => {
-  // Connect to test database
   await sequelize.authenticate();
-  
-  // Sync database schema
   await sequelize.sync({ force: true });
 });
 
 beforeEach(async () => {
-  // Clean up database before each test
-  await User.destroy({ where: {}, force: true });
-  await Pet.destroy({ where: {}, force: true });
-  await Rescue.destroy({ where: {}, force: true });
-  await Application.destroy({ where: {}, force: true });
+  // Clean database before each test
+  await clearDatabase();
 });
 
 afterAll(async () => {
-  // Close database connection
   await sequelize.close();
 });
 ```
 
 ## Unit Tests
 
-### Service Layer Tests
+### Service Layer
 
+**Example: User Service**
 ```typescript
-// src/__tests__/services/user.service.test.ts
-import { UserService } from '../../services/user.service';
-import { User } from '../../models/User';
-import { hashPassword } from '../../utils/password';
-
-jest.mock('../../models/User');
-jest.mock('../../utils/password');
-
 describe('UserService', () => {
-  let userService: UserService;
-  const mockUser = User as jest.Mocked<typeof User>;
-  const mockHashPassword = hashPassword as jest.MockedFunction<typeof hashPassword>;
-
-  beforeEach(() => {
-    userService = new UserService();
-    jest.clearAllMocks();
-  });
-
   describe('createUser', () => {
     it('should create a new user with hashed password', async () => {
-      // Arrange
       const userData = {
         email: 'test@example.com',
         password: 'password123',
-        firstName: 'John',
-        lastName: 'Doe',
-        userType: 'ADOPTER' as const
-      };
-
-      const hashedPassword = 'hashed_password';
-      const createdUser = {
-        userId: 'user-uuid',
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        userType: userData.userType,
-        passwordHash: hashedPassword
-      };
-
-      mockHashPassword.mockResolvedValue(hashedPassword);
-      mockUser.create.mockResolvedValue(createdUser as any);
-
-      // Act
-      const result = await userService.createUser(userData);
-
-      // Assert
-      expect(mockHashPassword).toHaveBeenCalledWith(userData.password);
-      expect(mockUser.create).toHaveBeenCalledWith({
-        email: userData.email,
-        passwordHash: hashedPassword,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        userType: userData.userType
-      });
-      expect(result).toEqual(createdUser);
-    });
-
-    it('should throw error for duplicate email', async () => {
-      // Arrange
-      const userData = {
-        email: 'existing@example.com',
-        password: 'password123',
-        firstName: 'John',
-        lastName: 'Doe',
-        userType: 'ADOPTER' as const
-      };
-
-      const duplicateError = new Error('Validation error');
-      duplicateError.name = 'SequelizeUniqueConstraintError';
-      mockUser.create.mockRejectedValue(duplicateError);
-
-      // Act & Assert
-      await expect(userService.createUser(userData))
-        .rejects.toThrow('Email already exists');
-    });
-  });
-
-  describe('getUserById', () => {
-    it('should return user when found', async () => {
-      // Arrange
-      const userId = 'user-uuid';
-      const user = {
-        userId,
-        email: 'test@example.com',
         firstName: 'John',
         lastName: 'Doe'
       };
 
-      mockUser.findByPk.mockResolvedValue(user as any);
+      const user = await UserService.createUser(userData);
 
-      // Act
-      const result = await userService.getUserById(userId);
-
-      // Assert
-      expect(mockUser.findByPk).toHaveBeenCalledWith(userId, {
-        attributes: { exclude: ['passwordHash'] }
-      });
-      expect(result).toEqual(user);
+      expect(user.email).toBe(userData.email);
+      expect(user.passwordHash).not.toBe(userData.password);
+      expect(user.emailVerified).toBe(false);
     });
 
-    it('should return null when user not found', async () => {
-      // Arrange
-      const userId = 'non-existent-uuid';
-      mockUser.findByPk.mockResolvedValue(null);
+    it('should throw error for duplicate email', async () => {
+      await UserService.createUser({ email: 'test@example.com', ... });
 
-      // Act
-      const result = await userService.getUserById(userId);
-
-      // Assert
-      expect(result).toBeNull();
+      await expect(
+        UserService.createUser({ email: 'test@example.com', ... })
+      ).rejects.toThrow('Email already exists');
     });
   });
 });
 ```
 
-### Controller Tests
+### Controller Layer
+
+**Example: Pet Controller**
+```typescript
+describe('PetController', () => {
+  describe('POST /api/v1/pets', () => {
+    it('should create pet with valid data', async () => {
+      const response = await request(app)
+        .post('/api/v1/pets')
+        .set('Authorization', `Bearer ${rescueStaffToken}`)
+        .send(validPetData);
+
+      expect(response.status).toBe(201);
+      expect(response.body.pet).toHaveProperty('petId');
+    });
+
+    it('should reject unauthorized users', async () => {
+      const response = await request(app)
+        .post('/api/v1/pets')
+        .send(validPetData);
+
+      expect(response.status).toBe(401);
+    });
+  });
+});
+```
+
+### Utility Functions
 
 ```typescript
-// src/__tests__/controllers/auth.controller.test.ts
-import request from 'supertest';
-import { app } from '../../app';
-import { AuthService } from '../../services/auth.service';
-import { EmailService } from '../../services/email.service';
-
-jest.mock('../../services/auth.service');
-jest.mock('../../services/email.service');
-
-describe('AuthController', () => {
-  const mockAuthService = AuthService as jest.Mocked<typeof AuthService>;
-  const mockEmailService = EmailService as jest.Mocked<typeof EmailService>;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
+describe('validateEmail', () => {
+  it('should accept valid emails', () => {
+    expect(validateEmail('user@example.com')).toBe(true);
   });
 
-  describe('POST /api/v1/auth/register', () => {
-    it('should register a new user successfully', async () => {
-      // Arrange
-      const registerData = {
-        email: 'test@example.com',
-        password: 'Password123!',
-        firstName: 'John',
-        lastName: 'Doe',
-        userType: 'ADOPTER'
-      };
-
-      const mockUser = {
-        userId: 'user-uuid',
-        email: registerData.email,
-        firstName: registerData.firstName,
-        lastName: registerData.lastName,
-        userType: registerData.userType
-      };
-
-      const mockTokens = {
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-        expiresIn: 900
-      };
-
-      mockAuthService.prototype.register.mockResolvedValue({
-        user: mockUser,
-        ...mockTokens
-      });
-
-      // Act
-      const response = await request(app)
-        .post('/api/v1/auth/register')
-        .send(registerData);
-
-      // Assert
-      expect(response.status).toBe(201);
-      expect(response.body).toEqual({
-        success: true,
-        user: mockUser,
-        accessToken: mockTokens.accessToken,
-        refreshToken: mockTokens.refreshToken,
-        expiresIn: mockTokens.expiresIn
-      });
-    });
-
-    it('should return validation error for invalid email', async () => {
-      // Arrange
-      const invalidData = {
-        email: 'invalid-email',
-        password: 'Password123!',
-        firstName: 'John',
-        lastName: 'Doe',
-        userType: 'ADOPTER'
-      };
-
-      // Act
-      const response = await request(app)
-        .post('/api/v1/auth/register')
-        .send(invalidData);
-
-      // Assert
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation Error');
-    });
-  });
-
-  describe('POST /api/v1/auth/login', () => {
-    it('should login user with valid credentials', async () => {
-      // Arrange
-      const loginData = {
-        email: 'test@example.com',
-        password: 'password123'
-      };
-
-      const mockResponse = {
-        user: {
-          userId: 'user-uuid',
-          email: loginData.email,
-          firstName: 'John',
-          lastName: 'Doe'
-        },
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-        expiresIn: 900
-      };
-
-      mockAuthService.prototype.login.mockResolvedValue(mockResponse);
-
-      // Act
-      const response = await request(app)
-        .post('/api/v1/auth/login')
-        .send(loginData);
-
-      // Assert
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({
-        success: true,
-        ...mockResponse
-      });
-    });
-
-    it('should return error for invalid credentials', async () => {
-      // Arrange
-      const loginData = {
-        email: 'test@example.com',
-        password: 'wrongpassword'
-      };
-
-      mockAuthService.prototype.login.mockRejectedValue(
-        new Error('Invalid credentials')
-      );
-
-      // Act
-      const response = await request(app)
-        .post('/api/v1/auth/login')
-        .send(loginData);
-
-      // Assert
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Invalid credentials');
-    });
+  it('should reject invalid emails', () => {
+    expect(validateEmail('invalid')).toBe(false);
+    expect(validateEmail('user@')).toBe(false);
   });
 });
 ```
 
 ## Integration Tests
 
-### Database Integration Tests
+### Database Integration
 
 ```typescript
-// src/__tests__/integration/database.test.ts
-import { sequelize } from '../../sequelize';
-import { User, Pet, Rescue, Application } from '../../models';
+describe('User Database Integration', () => {
+  it('should handle user creation with relationships', async () => {
+    const user = await User.create({ email: 'test@example.com', ... });
+    const rescue = await Rescue.create({ rescueName: 'Test Rescue', ... });
 
-describe('Database Integration', () => {
-  beforeAll(async () => {
-    await sequelize.sync({ force: true });
-  });
-
-  afterAll(async () => {
-    await sequelize.close();
-  });
-
-  describe('User Model', () => {
-    it('should create and retrieve a user', async () => {
-      // Arrange
-      const userData = {
-        email: 'test@example.com',
-        passwordHash: 'hashed_password',
-        firstName: 'John',
-        lastName: 'Doe',
-        userType: 'ADOPTER'
-      };
-
-      // Act
-      const createdUser = await User.create(userData);
-      const retrievedUser = await User.findByPk(createdUser.userId);
-
-      // Assert
-      expect(retrievedUser).toBeTruthy();
-      expect(retrievedUser?.email).toBe(userData.email);
-      expect(retrievedUser?.firstName).toBe(userData.firstName);
+    await StaffMember.create({
+      userId: user.userId,
+      rescueId: rescue.rescueId,
+      role: 'STAFF'
     });
 
-    it('should enforce unique email constraint', async () => {
-      // Arrange
-      const userData = {
-        email: 'duplicate@example.com',
-        passwordHash: 'hashed_password',
-        firstName: 'John',
-        lastName: 'Doe',
-        userType: 'ADOPTER'
-      };
-
-      await User.create(userData);
-
-      // Act & Assert
-      await expect(User.create(userData))
-        .rejects.toThrow();
+    const staffMember = await StaffMember.findOne({
+      where: { userId: user.userId },
+      include: [User, Rescue]
     });
-  });
 
-  describe('Pet Model Relationships', () => {
-    it('should create pet with rescue relationship', async () => {
-      // Arrange
-      const rescue = await Rescue.create({
-        name: 'Test Rescue',
-        email: 'rescue@example.com',
-        address: '123 Main St',
-        city: 'Test City',
-        state: 'TS',
-        zipCode: '12345',
-        contactPerson: 'Jane Doe'
-      });
-
-      const petData = {
-        rescueId: rescue.rescueId,
-        name: 'Buddy',
-        type: 'DOG',
-        ageGroup: 'ADULT',
-        gender: 'MALE',
-        size: 'LARGE',
-        energyLevel: 'HIGH',
-        vaccinationStatus: 'UP_TO_DATE',
-        spayNeuterStatus: 'NEUTERED'
-      };
-
-      // Act
-      const pet = await Pet.create(petData);
-      const petWithRescue = await Pet.findByPk(pet.petId, {
-        include: [Rescue]
-      });
-
-      // Assert
-      expect(petWithRescue).toBeTruthy();
-      expect(petWithRescue?.Rescue?.name).toBe('Test Rescue');
-    });
+    expect(staffMember.user.email).toBe('test@example.com');
+    expect(staffMember.rescue.rescueName).toBe('Test Rescue');
   });
 });
 ```
 
-### API Integration Tests
+### API Integration
 
 ```typescript
-// src/__tests__/integration/api.test.ts
-import request from 'supertest';
-import { app } from '../../app';
-import { sequelize } from '../../sequelize';
-import { User, Pet, Rescue } from '../../models';
-import { generateToken } from '../../utils/jwt';
+describe('Application Workflow Integration', () => {
+  it('should complete full application workflow', async () => {
+    // Create user, rescue, and pet
+    const { user, rescue, pet } = await setupTestData();
 
-describe('API Integration Tests', () => {
-  let authToken: string;
-  let testUser: User;
-  let testRescue: Rescue;
-
-  beforeAll(async () => {
-    await sequelize.sync({ force: true });
-
-    // Create test user
-    testUser = await User.create({
-      email: 'test@example.com',
-      passwordHash: 'hashed_password',
-      firstName: 'John',
-      lastName: 'Doe',
-      userType: 'ADOPTER',
-      emailVerified: true
-    });
-
-    // Create test rescue
-    testRescue = await Rescue.create({
-      name: 'Test Rescue',
-      email: 'rescue@example.com',
-      address: '123 Main St',
-      city: 'Test City',
-      state: 'TS',
-      zipCode: '12345',
-      contactPerson: 'Jane Doe',
-      status: 'verified'
-    });
-
-    // Generate auth token
-    authToken = generateToken({
-      userId: testUser.userId,
-      email: testUser.email,
-      userType: testUser.userType
-    });
-  });
-
-  afterAll(async () => {
-    await sequelize.close();
-  });
-
-  describe('Pet Search API', () => {
-    beforeEach(async () => {
-      // Create test pets
-      await Pet.bulkCreate([
-        {
-          rescueId: testRescue.rescueId,
-          name: 'Buddy',
-          type: 'DOG',
-          breed: 'Golden Retriever',
-          ageGroup: 'ADULT',
-          gender: 'MALE',
-          size: 'LARGE',
-          energyLevel: 'HIGH',
-          vaccinationStatus: 'UP_TO_DATE',
-          spayNeuterStatus: 'NEUTERED',
-          status: 'AVAILABLE'
-        },
-        {
-          rescueId: testRescue.rescueId,
-          name: 'Luna',
-          type: 'CAT',
-          breed: 'Siamese',
-          ageGroup: 'YOUNG',
-          gender: 'FEMALE',
-          size: 'MEDIUM',
-          energyLevel: 'MEDIUM',
-          vaccinationStatus: 'UP_TO_DATE',
-          spayNeuterStatus: 'SPAYED',
-          status: 'AVAILABLE'
-        }
-      ]);
-    });
-
-    it('should return all available pets', async () => {
-      const response = await request(app)
-        .get('/api/v1/pets')
-        .expect(200);
-
-      expect(response.body.pets).toHaveLength(2);
-      expect(response.body.total).toBe(2);
-    });
-
-    it('should filter pets by type', async () => {
-      const response = await request(app)
-        .get('/api/v1/pets?type=DOG')
-        .expect(200);
-
-      expect(response.body.pets).toHaveLength(1);
-      expect(response.body.pets[0].name).toBe('Buddy');
-    });
-
-    it('should search pets by name', async () => {
-      const response = await request(app)
-        .get('/api/v1/pets?search=Luna')
-        .expect(200);
-
-      expect(response.body.pets).toHaveLength(1);
-      expect(response.body.pets[0].name).toBe('Luna');
-    });
-  });
-
-  describe('Application Workflow', () => {
-    let testPet: Pet;
-
-    beforeEach(async () => {
-      testPet = await Pet.create({
-        rescueId: testRescue.rescueId,
-        name: 'Test Pet',
-        type: 'DOG',
-        ageGroup: 'ADULT',
-        gender: 'MALE',
-        size: 'MEDIUM',
-        energyLevel: 'MEDIUM',
-        vaccinationStatus: 'UP_TO_DATE',
-        spayNeuterStatus: 'NEUTERED',
-        status: 'AVAILABLE'
-      });
-    });
-
-    it('should complete full application workflow', async () => {
-      // Submit application
-      const applicationData = {
-        petId: testPet.petId,
-        answers: {
-          housing_type: 'House',
-          has_yard: true,
-          previous_pets: 'Yes'
-        }
-      };
-
-      const submitResponse = await request(app)
-        .post('/api/v1/applications')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send(applicationData)
-        .expect(201);
-
-      const applicationId = submitResponse.body.applicationId;
-
-      // Get application
-      const getResponse = await request(app)
-        .get(`/api/v1/applications/${applicationId}`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(getResponse.body.status).toBe('SUBMITTED');
-      expect(getResponse.body.answers).toEqual(applicationData.answers);
-
-      // List user's applications
-      const listResponse = await request(app)
-        .get('/api/v1/applications')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(listResponse.body.applications).toHaveLength(1);
-      expect(listResponse.body.applications[0].applicationId).toBe(applicationId);
-    });
-  });
-});
-```
-
-## End-to-End Tests
-
-### User Journey Tests
-
-```typescript
-// src/__tests__/e2e/adoption-journey.test.ts
-import request from 'supertest';
-import { app } from '../../app';
-import { sequelize } from '../../sequelize';
-
-describe('Adoption Journey E2E', () => {
-  beforeAll(async () => {
-    await sequelize.sync({ force: true });
-  });
-
-  afterAll(async () => {
-    await sequelize.close();
-  });
-
-  it('should complete full adoption journey', async () => {
-    // 1. User Registration
-    const registerResponse = await request(app)
-      .post('/api/v1/auth/register')
-      .send({
-        email: 'adopter@example.com',
-        password: 'Password123!',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        userType: 'ADOPTER'
-      })
+    // Submit application
+    const app = await request(server)
+      .post('/api/v1/applications')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ petId: pet.petId })
       .expect(201);
 
-    const { accessToken } = registerResponse.body;
-
-    // 2. Browse Pets
-    const petsResponse = await request(app)
-      .get('/api/v1/pets')
+    // Progress through stages
+    await request(server)
+      .patch(`/api/v1/applications/${app.body.applicationId}/stage`)
+      .set('Authorization', `Bearer ${rescueToken}`)
+      .send({ stage: 'REVIEWING' })
       .expect(200);
 
-    expect(petsResponse.body.pets).toBeDefined();
-
-    // 3. View Pet Details
-    if (petsResponse.body.pets.length > 0) {
-      const petId = petsResponse.body.pets[0].petId;
-      
-      const petResponse = await request(app)
-        .get(`/api/v1/pets/${petId}`)
-        .expect(200);
-
-      expect(petResponse.body.name).toBeDefined();
-
-      // 4. Add to Favorites
-      await request(app)
-        .post(`/api/v1/pets/${petId}/favorite`)
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(201);
-
-      // 5. Submit Application
-      const applicationResponse = await request(app)
-        .post('/api/v1/applications')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send({
-          petId,
-          answers: {
-            housing_type: 'House',
-            has_yard: true,
-            experience_level: 'Beginner'
-          }
-        })
-        .expect(201);
-
-      // 6. Check Application Status
-      const applicationId = applicationResponse.body.applicationId;
-      
-      await request(app)
-        .get(`/api/v1/applications/${applicationId}`)
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
-    }
+    // Verify stage transition
+    const updated = await Application.findByPk(app.body.applicationId);
+    expect(updated.stage).toBe('REVIEWING');
+    expect(updated.reviewStartedAt).toBeTruthy();
   });
 });
 ```
 
-## Performance Tests
+## E2E Tests
 
-### Load Testing
+### User Journey
 
 ```typescript
-// src/__tests__/performance/load.test.ts
-import request from 'supertest';
-import { app } from '../../app';
+describe('Adopter User Journey', () => {
+  it('should complete full adoption process', async () => {
+    // 1. Register
+    const registerRes = await request(server)
+      .post('/api/v1/auth/register')
+      .send({ email: 'adopter@example.com', ... })
+      .expect(201);
 
-describe('Performance Tests', () => {
-  const CONCURRENT_REQUESTS = 50;
-  const TIMEOUT = 30000;
-
-  it('should handle concurrent pet searches', async () => {
-    const startTime = Date.now();
-    
-    const requests = Array(CONCURRENT_REQUESTS)
-      .fill(null)
-      .map(() => 
-        request(app)
-          .get('/api/v1/pets?limit=20')
-          .expect(200)
-      );
-
-    const responses = await Promise.all(requests);
-    const endTime = Date.now();
-    const duration = endTime - startTime;
-
-    expect(responses).toHaveLength(CONCURRENT_REQUESTS);
-    expect(duration).toBeLessThan(TIMEOUT);
-    
-    console.log(`Handled ${CONCURRENT_REQUESTS} requests in ${duration}ms`);
-  }, TIMEOUT);
-
-  it('should respond to health checks quickly', async () => {
-    const startTime = Date.now();
-    
-    await request(app)
-      .get('/health')
+    // 2. Login
+    const loginRes = await request(server)
+      .post('/api/v1/auth/login')
+      .send({ email: 'adopter@example.com', password: 'password' })
       .expect(200);
-    
-    const duration = Date.now() - startTime;
-    expect(duration).toBeLessThan(100); // Should respond in under 100ms
+
+    const token = loginRes.body.accessToken;
+
+    // 3. Search pets
+    const petsRes = await request(server)
+      .get('/api/v1/pets?type=DOG')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    // 4. Submit application
+    const appRes = await request(server)
+      .post('/api/v1/applications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ petId: petsRes.body.pets[0].petId, answers: {} })
+      .expect(201);
+
+    // 5. Check application status
+    const statusRes = await request(server)
+      .get(`/api/v1/applications/${appRes.body.applicationId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(statusRes.body.stage).toBe('PENDING');
   });
 });
 ```
 
-## Test Data Management
+## Test Utilities
 
-### Test Factories
-
-```typescript
-// src/__tests__/factories/user.factory.ts
-import { User } from '../../models/User';
-import { faker } from '@faker-js/faker';
-
-export class UserFactory {
-  static async create(overrides: Partial<any> = {}) {
-    const userData = {
-      email: faker.internet.email(),
-      passwordHash: 'hashed_password',
-      firstName: faker.person.firstName(),
-      lastName: faker.person.lastName(),
-      userType: 'ADOPTER',
-      emailVerified: true,
-      ...overrides
-    };
-
-    return await User.create(userData);
-  }
-
-  static async createMany(count: number, overrides: Partial<any> = {}) {
-    const users = [];
-    for (let i = 0; i < count; i++) {
-      users.push(await this.create(overrides));
-    }
-    return users;
-  }
-}
-
-// Usage in tests
-const testUser = await UserFactory.create({
-  email: 'specific@example.com',
-  userType: 'RESCUE_STAFF'
-});
-```
-
-### Test Fixtures
+### Test Data Factory
 
 ```typescript
-// src/__tests__/fixtures/pets.ts
-export const petFixtures = {
-  goldenRetriever: {
-    name: 'Buddy',
+// test-helpers/factories.ts
+export const createTestUser = async (overrides = {}) => {
+  return await User.create({
+    email: `test-${Date.now()}@example.com`,
+    passwordHash: await hashPassword('password123'),
+    firstName: 'Test',
+    lastName: 'User',
+    userType: 'ADOPTER',
+    emailVerified: true,
+    ...overrides
+  });
+};
+
+export const createTestPet = async (rescueId: string, overrides = {}) => {
+  return await Pet.create({
+    rescueId,
+    name: 'Test Pet',
     type: 'DOG',
-    breed: 'Golden Retriever',
-    ageGroup: 'ADULT',
-    gender: 'MALE',
-    size: 'LARGE',
-    energyLevel: 'HIGH',
-    vaccinationStatus: 'UP_TO_DATE',
-    spayNeuterStatus: 'NEUTERED',
-    status: 'AVAILABLE'
-  },
-  
-  siameseCat: {
-    name: 'Luna',
-    type: 'CAT',
-    breed: 'Siamese',
-    ageGroup: 'YOUNG',
-    gender: 'FEMALE',
-    size: 'MEDIUM',
-    energyLevel: 'MEDIUM',
-    vaccinationStatus: 'UP_TO_DATE',
-    spayNeuterStatus: 'SPAYED',
-    status: 'AVAILABLE'
-  }
+    breed: 'Mixed',
+    age: 24,
+    status: 'AVAILABLE',
+    ...overrides
+  });
 };
 ```
 
-## Running Tests
+### Mock Services
 
-### Test Scripts
+```typescript
+// test-helpers/mocks.ts
+export const mockEmailService = {
+  sendEmail: jest.fn().mockResolvedValue({ success: true }),
+  sendTemplate: jest.fn().mockResolvedValue({ success: true })
+};
 
-```json
-{
-  "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:unit": "jest --testPathPattern=__tests__/services",
-    "test:integration": "jest --testPathPattern=__tests__/integration",
-    "test:e2e": "jest --testPathPattern=__tests__/e2e",
-    "test:performance": "jest --testPathPattern=__tests__/performance"
-  }
-}
+export const mockStorageService = {
+  uploadFile: jest.fn().mockResolvedValue({ url: 'https://cdn.example.com/file.jpg' }),
+  deleteFile: jest.fn().mockResolvedValue({ success: true })
+};
 ```
 
-### Running Different Test Types
+## Best Practices
+
+### Test Organization
+- One test file per service/controller
+- Group related tests with `describe` blocks
+- Use clear, descriptive test names
+- Follow AAA pattern: Arrange, Act, Assert
+
+### Test Independence
+- Each test should be independent
+- Use `beforeEach` to set up clean state
+- Don't rely on test execution order
+- Clean up resources in `afterEach`
+
+### Test Coverage
+- Test happy paths and edge cases
+- Test error conditions and validation
+- Test boundary conditions
+- Mock external dependencies
+
+### Performance
+- Keep tests fast (< 100ms per unit test)
+- Use database transactions when possible
+- Mock external services
+- Run tests in parallel where safe
+
+## Debugging Tests
+
+### Running Specific Tests
 
 ```bash
-# Run all tests
-npm test
+# Single test file
+npm test user.service.test.ts
 
-# Run with coverage
-npm run test:coverage
+# Single test case
+npm test -t "should create user"
 
-# Run specific test types
-npm run test:unit
-npm run test:integration
-npm run test:e2e
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run specific test file
-npm test -- user.service.test.ts
-
-# Run tests matching pattern
-npm test -- --testNamePattern="should create user"
+# With debugger
+node --inspect-brk node_modules/.bin/jest --runInBand
 ```
 
-## Continuous Integration
+### Common Issues
+
+**Database Connection Issues**
+```bash
+# Check test database exists
+npm run db:create:test
+
+# Reset test database
+npm run db:reset:test
+```
+
+**Timeout Errors**
+```typescript
+// Increase timeout for specific test
+it('slow operation', async () => {
+  // test code
+}, 30000); // 30 second timeout
+```
+
+**Flaky Tests**
+- Ensure proper cleanup in `afterEach`
+- Check for race conditions
+- Avoid timing-dependent assertions
+- Use proper async/await
+
+## CI/CD Integration
 
 ### GitHub Actions
 
 ```yaml
-# .github/workflows/test.yml
-name: Tests
+- name: Run Tests
+  run: |
+    npm run test:coverage
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: adopt_dont_shop_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run linting
-      run: npm run lint
-    
-    - name: Run type checking
-      run: npm run type-check
-    
-    - name: Run unit tests
-      run: npm run test:unit
-      env:
-        NODE_ENV: test
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_NAME: adopt_dont_shop_test
-        DB_USER: postgres
-        DB_PASS: postgres
-    
-    - name: Run integration tests
-      run: npm run test:integration
-      env:
-        NODE_ENV: test
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_NAME: adopt_dont_shop_test
-        DB_USER: postgres
-        DB_PASS: postgres
-    
-    - name: Generate coverage report
-      run: npm run test:coverage
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage/lcov.info
+- name: Upload Coverage
+  uses: codecov/codecov-action@v3
+  with:
+    files: ./coverage/lcov.info
 ```
 
-## Test Best Practices
+### Pre-commit Hook
 
-### Writing Good Tests
+```bash
+# Run tests before commit
+npm test
 
-1. **Follow AAA Pattern**: Arrange, Act, Assert
-2. **Use Descriptive Names**: Test names should describe what they test
-3. **Test One Thing**: Each test should verify one specific behavior
-4. **Use Proper Mocking**: Mock external dependencies appropriately
-5. **Clean Up**: Ensure tests don't affect each other
-
-### Test Organization
-
-```
-src/
-├── __tests__/
-│   ├── unit/
-│   │   ├── services/
-│   │   ├── controllers/
-│   │   └── utils/
-│   ├── integration/
-│   │   ├── database/
-│   │   └── api/
-│   ├── e2e/
-│   │   └── user-journeys/
-│   ├── performance/
-│   └── fixtures/
-├── __mocks__/
-└── setup-tests.ts
+# Run only changed files
+npm test --findRelatedTests $(git diff --cached --name-only)
 ```
 
----
+## Coverage Reports
 
-This comprehensive testing guide ensures the Adopt Don't Shop Backend Service maintains high quality and reliability through thorough testing practices. 
+```bash
+# Generate HTML coverage report
+npm run test:coverage
+
+# View report
+open coverage/index.html
+
+# Check coverage threshold
+npm run test:coverage -- --coverageThreshold='{"global":{"lines":80}}'
+```
+
+## Additional Resources
+
+- **API Documentation**: [api-endpoints.md](./api-endpoints.md)
+- **Implementation Guide**: [implementation-guide.md](./implementation-guide.md)
+- **Database Schema**: [database-schema.md](./database-schema.md)
+- **Service PRD**: [service-backend-prd.md](./service-backend-prd.md)

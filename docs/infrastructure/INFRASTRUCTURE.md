@@ -1,20 +1,10 @@
-# 🏗️ Infrastructure Documentation
+# Infrastructure Documentation
 
-This document provides a comprehensive overview of the Adopt Don't Shop platform infrastructure, including microservices architecture, shared libraries, Docker setup, CI/CD, and database design.
+## Overview
 
-## � Table of Contents
-- [Architecture Overview](#architecture-overview)
-- [Shared Libraries](#shared-libraries)
-- [Microservices](#microservices)
-- [Database Design](#database-design)
-- [Docker & DevOps](#docker--devops)
-- [CI/CD Pipeline](#cicd-pipeline)
-- [Development Workflow](#development-workflow)
-- [Production Deployment](#production-deployment)
+The Adopt Don't Shop platform uses a modern microservices architecture with shared libraries, Docker containerization, and subdomain-based routing. This document provides a comprehensive overview of the infrastructure setup.
 
-## �️ Architecture Overview
-
-The platform follows a modern microservices architecture with shared libraries to promote code reuse and maintainability.
+## Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -49,372 +39,316 @@ The platform follows a modern microservices architecture with shared libraries t
 │ Port:5432   │ │ Port:6379   │ │             │
 └─────────────┘ └─────────────┘ └─────────────┘
 ```
-│   ├── app.admin/      # Admin dashboard
-│   ├── app.rescue/     # Rescue organization portal
-│   └── service.backend/ # Main API service
-├── 📚 Shared Libraries
-│   ├── lib.api/        # API service utilities
-│   ├── lib.auth/       # Authentication service
-│   ├── lib.chat/       # Real-time chat functionality
-│   └── lib.components/ # Shared UI components
-├── 🐳 Infrastructure
-│   ├── docker-compose.yml      # Main services
-│   ├── docker-compose.libs.yml # Library development
-│   └── nginx/                  # Reverse proxy
-└── 🛠️ Scripts
-    ├── create-new-app.js       # App generator
-    └── create-new-lib.js       # Library generator
-```
 
-## 🚀 Quick Start Commands
+## Services
+
+### Frontend Applications
+
+**app.client** - Public adoption portal
+- Technology: React + TypeScript + Vite
+- Port: 3000
+- Domain: localhost / www.adoptdontshop.com
+- Features: Pet discovery, swipe interface, applications
+
+**app.admin** - Admin dashboard
+- Technology: React + TypeScript + Vite
+- Port: 3001
+- Domain: admin.localhost / admin.adoptdontshop.com
+- Features: User management, system configuration
+
+**app.rescue** - Rescue management portal
+- Technology: React + TypeScript + Vite
+- Port: 3002
+- Domain: rescue.localhost / rescue.adoptdontshop.com
+- Features: Pet management, application processing, staff coordination
+
+### Backend Services
+
+**service.backend** - Main API
+- Technology: Node.js + Express + TypeScript
+- Port: 5000
+- Domain: api.localhost / api.adoptdontshop.com
+- Features: REST API, WebSocket messaging, authentication
+
+### Databases & Storage
+
+**PostgreSQL** - Primary database
+- Version: 15+ with PostGIS extension
+- Port: 5432
+- Features: User data, pets, applications, messaging
+
+**Redis** - Cache & sessions
+- Port: 6379
+- Features: Session storage, API caching, rate limiting
+
+**File Storage** - Media files
+- Development: Local uploads directory
+- Production: AWS S3 with CloudFront CDN
+
+## Shared Libraries (16 libraries)
+
+All libraries follow ESM-only architecture with TypeScript:
+
+**Core Services:**
+- `@adopt-dont-shop/lib-api` - API client
+- `@adopt-dont-shop/lib-auth` - Authentication
+- `@adopt-dont-shop/lib-validation` - Validation schemas
+
+**Feature Libraries:**
+- `@adopt-dont-shop/lib-applications` - Application management
+- `@adopt-dont-shop/lib-chat` - Real-time messaging
+- `@adopt-dont-shop/lib-discovery` - Pet discovery
+- `@adopt-dont-shop/lib-email` - Email system
+- `@adopt-dont-shop/lib-invitations` - Staff invitations
+- `@adopt-dont-shop/lib-notifications` - Notifications
+- `@adopt-dont-shop/lib-pets` - Pet management
+- `@adopt-dont-shop/lib-rescues` - Rescue organizations
+- `@adopt-dont-shop/lib-search` - Search functionality
+- `@adopt-dont-shop/lib-storage` - File storage
+- `@adopt-dont-shop/lib-users` - User management
+
+**Utilities:**
+- `@adopt-dont-shop/lib-analytics` - Analytics
+- `@adopt-dont-shop/lib-common` - Common utilities
+
+See [Libraries Documentation](../libraries/README.md) for details.
+
+## Docker Setup
 
 ### Development
 
 ```bash
-# Start all services (apps + backend + libraries)
-npm run dev:full
-
-# Start only applications
-npm run dev:apps
-
-# Start only shared libraries
-npm run dev:libs
-
-# Start specific services
-npm run dev:client    # Client app only
-npm run dev:backend   # Backend API only
-npm run dev:lib-chat  # Chat library only
-```
-
-### Docker Development
-
-```bash
-# Start main platform with Docker
+# Start all services
 docker-compose up
 
-# Start only shared libraries
-docker-compose -f docker-compose.libs.yml up
+# Start specific service
+docker-compose up service.backend
 
-# Build and test specific library
-docker-compose -f docker-compose.libs.yml run lib-chat-test
-```
+# View logs
+docker-compose logs -f
 
-### Building
-
-```bash
-# Build everything
-npm run build
-
-# Build only libraries (needed before apps)
-npm run build:libs
-
-# Build only applications
-npm run build:apps
-```
-
-## 🔄 Dependency Flow
-
-```mermaid
-graph TD
-    A[lib.api] --> B[lib.auth]
-    A --> C[lib.chat]
-    B --> C
-    A --> D[lib.components]
-    B --> D
-    C --> D
-    
-    D --> E[app.client]
-    A --> E
-    B --> E
-    C --> E
-    
-    D --> F[app.admin]
-    A --> F
-    B --> F
-    C --> F
-    
-    D --> G[app.rescue]
-    A --> G
-    B --> G
-    C --> G
-    
-    A --> H[service.backend]
-    B --> H
-```
-
-## 🐳 Docker Infrastructure
-
-### Main Services (docker-compose.yml)
-
-| Service | Port | Purpose | Dependencies |
-|---------|------|---------|--------------|
-| `database` | 5432 | PostgreSQL with PostGIS | - |
-| `redis` | 6379 | Caching and sessions | - |
-| `service-backend` | 5000 | Main API service | database, redis |
-| `app-client` | 3000 | Public React app | service-backend, all libs |
-| `app-admin` | 3001 | Admin dashboard | service-backend, all libs |
-| `app-rescue` | 3002 | Rescue portal | service-backend, all libs |
-| `nginx` | 80/443 | Reverse proxy | all apps |
-
-### Library Development (docker-compose.libs.yml)
-
-| Service | Purpose | Volumes |
-|---------|---------|---------|
-| `lib-api` | API utilities development | `./lib.api:/app` |
-| `lib-auth` | Auth service development | `./lib.auth:/app` |
-| `lib-chat` | Chat service development | `./lib.chat:/app` |
-| `lib-components` | UI components development | `./lib.components:/app` |
-
-## 📦 Package Management
-
-### Workspace Configuration
-
-The project uses npm workspaces for monorepo management:
-
-```json
-{
-  "workspaces": [
-    "app.admin",
-    "app.client", 
-    "app.rescue",
-    "lib.api",
-    "lib.auth",
-    "lib.chat",
-    "lib.components",
-    "service.backend"
-  ]
-}
-```
-
-### Library Dependencies
-
-Libraries use workspace dependencies to reference each other:
-
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*",
-    "@adopt-dont-shop/lib-auth": "workspace:*"
-  }
-}
-```
-
-## 🔧 Development Workflow
-
-### 1. Creating New Libraries
-
-```bash
-# Generate new shared library
-npm run new-lib <library-name> ["description"]
-
-# Example
-npm run new-lib analytics "User analytics and tracking"
-```
-
-This creates:
-- Complete TypeScript setup
-- Jest testing configuration  
-- Docker integration
-- Comprehensive documentation
-- Turbo build integration
-
-### 2. Creating New Applications
-
-```bash
-# Generate new application
-npm run new-app <app-name> <app-type> ["description"]
-
-# Example  
-npm run new-app marketplace client "Pet marketplace app"
-```
-
-### 3. Adding Library to App
-
-```bash
-# 1. Add to app's package.json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-analytics": "workspace:*"
-  }
-}
-
-# 2. Install dependencies
-npm install
-
-# 3. Use in code
-import { analyticsService } from '@adopt-dont-shop/lib-analytics';
-```
-
-### 4. Docker Development
-
-```bash
-# Start library development environment
-npm run docker:libs
-
-# Test all libraries
-npm run docker:libs-test
-
-# Start full platform
-docker-compose up
-```
-
-## 🏭 Build Pipeline
-
-### Turbo Configuration
-
-The build system uses Turbo for optimized builds with proper dependency management:
-
-```json
-{
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", "build/**"]
-    },
-    "dev": {
-      "dependsOn": ["^build"],
-      "cache": false,
-      "persistent": true
-    }
-  }
-}
-```
-
-### Build Order
-
-1. **Libraries First**: All `lib.*` packages build first
-2. **Applications**: Apps build after their library dependencies
-3. **Testing**: Tests run after builds complete
-
-## 🔒 Security & Best Practices
-
-### Environment Variables
-
-```bash
-# Core services
-POSTGRES_USER=user
-POSTGRES_PASSWORD=password
-POSTGRES_DB=adopt_dont_shop
-JWT_SECRET=your-super-secret-jwt-key
-REDIS_HOST=redis
-
-# App-specific
-VITE_API_URL=http://api.localhost
-VITE_WS_URL=ws://api.localhost
-CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
-```
-
-### Container Security
-
-- Non-root user execution
-- Minimal Alpine images
-- Multi-stage builds for production
-- Security scanning integration
-
-## 🚀 Deployment
-
-### Production Docker Build
-
-```bash
-# Build production images
-docker-compose -f docker-compose.prod.yml build
-
-# Deploy with production configuration  
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Library Publishing
-
-```bash
-# Build library for publishing
-cd lib.analytics
-npm run build
-
-# Publish to npm (if external)
-npm publish
-```
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**1. Library not found in app**
-```bash
-# Solution: Rebuild libraries first
-npm run build:libs
-npm run dev:apps
-```
-
-**2. Docker volume issues**
-```bash
-# Solution: Clean volumes and rebuild
-docker-compose down -v
-docker system prune -f
+# Rebuild
 docker-compose up --build
 ```
 
-**3. TypeScript errors in apps**
+### Production
+
 ```bash
-# Solution: Ensure libraries are built
+# Build optimized images
+docker-compose -f docker-compose.prod.yml build
+
+# Deploy
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Subdomain Routing
+
+**Development:**
+- `localhost` → app.client (port 3000)
+- `admin.localhost` → app.admin (port 3001)
+- `rescue.localhost` → app.rescue (port 3002)
+- `api.localhost` → service.backend (port 5000)
+
+**Production:**
+- `www.adoptdontshop.com` → app.client
+- `admin.adoptdontshop.com` → app.admin
+- `rescue.adoptdontshop.com` → app.rescue
+- `api.adoptdontshop.com` → service.backend
+
+## Development Workflow
+
+### Initial Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Setup environment
+cp .env.example .env
+
+# Start with Docker
+docker-compose up
+
+# Or start individual services
+npm run dev:client
+npm run dev:admin
+npm run dev:rescue
+npm run dev:backend
+```
+
+### Working with Libraries
+
+```bash
+# Build all libraries
 npm run build:libs
-npm run type-check
+
+# Build specific library
+cd lib.api && npm run build
+
+# Run library tests
+cd lib.api && npm test
+
+# Watch mode
+cd lib.api && npm run dev
 ```
 
-### Debug Commands
+### Database Migrations
 
 ```bash
-# Check workspace dependencies
-npm ls --depth=0
+# Run migrations
+cd service.backend && npm run db:migrate
 
-# Verify Turbo cache
-npx turbo run build --dry
+# Create migration
+npm run migration:create -- --name add-new-field
 
-# Test library imports
-cd app.client
-npm run type-check
+# Rollback
+npm run db:migrate:undo
 ```
 
-## 📊 Monitoring
+## CI/CD Pipeline
 
-### Development Metrics
+### Build Process
 
-- **Build Times**: Tracked via Turbo
-- **Library Usage**: Dependency analysis
-- **Hot Reload**: File watching status
-- **Container Health**: Docker health checks
+1. **Install Dependencies** - npm install across workspace
+2. **Lint & Type Check** - ESLint + TypeScript compilation
+3. **Test** - Unit and integration tests
+4. **Build Libraries** - Compile all shared libraries
+5. **Build Apps** - Build frontend and backend services
+6. **Docker Build** - Create optimized container images
+7. **Deploy** - Push to registry and deploy
 
-### Production Metrics
+### Environments
 
-- **Service Health**: HTTP endpoints
-- **Database Connections**: PostgreSQL stats  
-- **Cache Performance**: Redis metrics
-- **Application Performance**: APM integration
+**Development:**
+- Branch: develop
+- Deployment: Automatic on commit
+- URL: dev.adoptdontshop.com
 
-## 🔄 Migration Guide
+**Staging:**
+- Branch: staging
+- Deployment: Manual approval
+- URL: staging.adoptdontshop.com
 
-### From Monolith to Microservices
+**Production:**
+- Branch: main
+- Deployment: Manual approval with rollback
+- URL: adoptdontshop.com
 
-1. **Extract Shared Code**: Move common utilities to libraries
-2. **Update Imports**: Replace relative imports with library imports
-3. **Docker Integration**: Add library services to compose files
-4. **Build Pipeline**: Update Turbo configuration
-5. **Testing**: Verify cross-service functionality
+## Monitoring & Logging
 
-### Adding New Services
+### Application Monitoring
+- Error tracking (Sentry or similar)
+- Performance monitoring (Web Vitals)
+- API response times
+- Database query performance
 
-1. **Generate Service**: Use `npm run new-app`
-2. **Configure Dependencies**: Add required libraries
-3. **Docker Setup**: Add to docker-compose.yml
-4. **Proxy Configuration**: Update nginx routing
-5. **Environment Variables**: Add service-specific config
+### Infrastructure Monitoring
+- Docker container health
+- Resource usage (CPU, memory, disk)
+- Network traffic
+- Database connections
 
----
+### Logging
+- Centralized logging (Winston + ELK stack)
+- Structured JSON logs
+- Log levels: error, warn, info, debug
+- Log rotation and retention
 
-## 📚 Additional Resources
+## Security
 
-- [Turbo Documentation](https://turbo.build/repo/docs)
-- [npm Workspaces Guide](https://docs.npmjs.com/cli/v7/using-npm/workspaces)
-- [Docker Compose Reference](https://docs.docker.com/compose/)
-- [TypeScript Monorepo Setup](https://www.typescriptlang.org/docs/handbook/project-references.html)
+### Authentication & Authorization
+- JWT tokens with refresh rotation
+- Role-based access control (RBAC)
+- Permission-based endpoints
+- Session management with Redis
 
-For questions or support, see the individual README files in each package directory.
+### Data Protection
+- HTTPS/TLS encryption
+- Database encryption at rest
+- Environment variable secrets
+- API rate limiting
+
+### Best Practices
+- Regular security audits
+- Dependency vulnerability scanning
+- Container security scanning
+- Automated backups
+
+## Performance Optimization
+
+### Frontend
+- Code splitting and lazy loading
+- Image optimization and CDN
+- Bundle size optimization
+- Caching strategies
+
+### Backend
+- Database query optimization
+- Redis caching
+- Connection pooling
+- Load balancing (production)
+
+### Database
+- Indexed queries
+- Query optimization
+- Connection pooling
+- Read replicas (production)
+
+## Scaling Strategy
+
+### Horizontal Scaling
+- Multiple backend instances behind load balancer
+- Session sharing via Redis
+- Stateless application design
+
+### Vertical Scaling
+- Database resource allocation
+- Container resource limits
+- Cache size optimization
+
+### Database Scaling
+- Read replicas for read-heavy operations
+- Connection pooling
+- Query optimization
+- Partitioning strategies (if needed)
+
+## Troubleshooting
+
+### Common Issues
+
+**Port Conflicts:**
+```bash
+# Check port usage
+netstat -ano | findstr :5000
+
+# Kill process
+taskkill /PID <pid> /F
+```
+
+**Database Connection:**
+```bash
+# Check PostgreSQL is running
+docker-compose ps database
+
+# View logs
+docker-compose logs database
+```
+
+**Build Errors:**
+```bash
+# Clear node_modules and rebuild
+rm -rf node_modules && npm install
+
+# Clear Docker cache
+docker-compose down -v
+docker-compose build --no-cache
+```
+
+## Additional Resources
+
+- **Docker Setup**: [docker-setup.md](./docker-setup.md)
+- **Microservices Standards**: [MICROSERVICES-STANDARDS.md](./MICROSERVICES-STANDARDS.md)
+- **New App Generator**: [new-app-generator.md](./new-app-generator.md)
+- **Backend Documentation**: [../backend/](../backend/)
+- **Frontend Documentation**: [../frontend/](../frontend/)
+- **Libraries Documentation**: [../libraries/](../libraries/)

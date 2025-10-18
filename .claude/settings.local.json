@@ -13,7 +13,8 @@
       "Bash(npm run dev)",
       "Bash(cat \"G:/ideasquared/projects/adopt-dont-shop/service.backend/src/models/Invitation.ts\")",
       "Bash(cat Invitation.ts)",
-      "Bash(cat User.ts)"
+      "Bash(cat User.ts)",
+      "Bash(find ./docs -name \"*.md\" -exec wc -l {})"
     ],
     "deny": [],
     "ask": []
