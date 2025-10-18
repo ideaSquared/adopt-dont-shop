@@ -20,7 +20,8 @@ router.get('/rescue', async (req: AuthenticatedRequest, res) => {
       where: {
         userId: user?.userId,
         isDeleted: false,
-        isVerified: true,
+        // Remove the isVerified requirement for now - let unverified staff see dashboard
+        // isVerified: true,
       },
     });
 
@@ -119,7 +120,8 @@ router.get('/activity', async (req: AuthenticatedRequest, res) => {
       where: {
         userId: user?.userId,
         isDeleted: false,
-        isVerified: true,
+        // Remove the isVerified requirement for now - let unverified staff see dashboard
+        // isVerified: true,
       },
     });
 

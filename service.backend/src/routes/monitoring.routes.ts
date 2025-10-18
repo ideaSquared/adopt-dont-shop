@@ -5,6 +5,30 @@ import { HealthCheckService } from '../services/health-check.service';
 
 const router = Router();
 
+// Helper function to generate descriptions for dev users
+const getDevUserDescription = (userType: string, email: string): string => {
+  if (email.includes('superadmin')) return 'Super Administrator - Full system access';
+  if (email.includes('admin@adoptdontshop')) return 'System Administrator';
+  if (email.includes('moderator')) return 'Content Moderator';
+  if (email.includes('rescue.manager')) return 'Rescue Manager';
+  if (email.includes('sarah.johnson')) return 'Veterinary Technician';
+  if (email.includes('maria@happytailsrescue')) return 'Happy Tails Director';
+  if (email.includes('alex.thompson')) return 'Active Volunteer';
+  if (email.includes('john.smith')) return 'Family dog seeker';
+  if (email.includes('emily.davis')) return 'Cat lover';
+  if (email.includes('michael.brown')) return 'Active dog owner';
+  if (email.includes('jessica.wilson')) return 'First-time adopter';
+  
+  // Fallback based on user type
+  switch (userType) {
+    case 'admin': return 'Administrator';
+    case 'moderator': return 'Moderator';
+    case 'rescue_staff': return 'Rescue Staff';
+    case 'adopter': return 'Adopter';
+    default: return 'Dev User';
+  }
+};
+
 // Only enable in development
 if (process.env.NODE_ENV === 'development') {
   /**
@@ -1111,6 +1135,60 @@ if (process.env.NODE_ENV === 'development') {
       });
     } catch (error) {
       res.status(500).json({ error: 'Failed to get email provider info' });
+    }
+  });
+
+  // Dev seeded users endpoint (development only)
+  router.get('/api/dev/seeded-users', async (req, res) => {
+    try {
+      // Import User model to fetch seeded users
+      const User = (await import('../models/User')).default;
+      
+      // Get all seeded dev users (identifiable by specific email patterns)
+      const seededUsers = await User.findAll({
+        where: {
+          email: {
+            [require('sequelize').Op.or]: [
+              { [require('sequelize').Op.like]: '%@adoptdontshop.dev' },
+              { [require('sequelize').Op.like]: '%@pawsrescue.dev' },
+              { [require('sequelize').Op.like]: '%@happytailsrescue.dev' },
+              { [require('sequelize').Op.like]: '%@happytails.org' },
+              { [require('sequelize').Op.in]: [
+                'john.smith@gmail.com',
+                'emily.davis@yahoo.com', 
+                'michael.brown@outlook.com',
+                'jessica.wilson@gmail.com'
+              ]}
+            ]
+          }
+        },
+        attributes: [
+          'userId', 'firstName', 'lastName', 'email', 'userType', 'status',
+          'emailVerified', 'country', 'city', 'addressLine1', 'postalCode',
+          'timezone', 'language', 'bio', 'dateOfBirth', 'phoneNumber',
+          'termsAcceptedAt', 'privacyPolicyAcceptedAt', 'createdAt', 'updatedAt'
+        ],
+        order: [['userType', 'ASC'], ['email', 'ASC']]
+      });
+
+      // Transform to DevUser format with descriptions
+      const transformedUsers = seededUsers.map(user => ({
+        ...user.toJSON(),
+        description: getDevUserDescription(user.userType, user.email)
+      }));
+
+      res.json({
+        users: transformedUsers,
+        password: 'DevPassword123!',
+        source: 'database',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error('Failed to fetch seeded users:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch seeded users',
+        fallback: 'Use local data'
+      });
     }
   });
 

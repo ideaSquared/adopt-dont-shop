@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat \"G:/ideasquared/projects/adopt-dont-shop/app.rescue/src/types/staff.ts\")",
+      "Bash(cat service.backend/src/services/invitation.service.ts)",
+      "Bash(npm run build)",
+      "Bash(cat \"G:/ideasquared/projects/adopt-dont-shop/lib.invitations/src/services/__tests__/invitations-service.test.ts\")",
+      "Bash(cat \"G:/ideasquared/projects/adopt-dont-shop/lib.invitations/package.json\")",
+      "Bash(npm install @adopt-dont-shop/lib-api@workspace:*)",
+      "Bash(cat package.json)",
+      "Bash(npm install)",
+      "Bash(cat \"G:/ideasquared/projects/adopt-dont-shop/lib.invitations/dist/index.js\")",
+      "Bash(npm run dev)",
+      "Bash(cat \"G:/ideasquared/projects/adopt-dont-shop/service.backend/src/models/Invitation.ts\")",
+      "Bash(cat Invitation.ts)",
+      "Bash(cat User.ts)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

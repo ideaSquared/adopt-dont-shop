@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
           '@adopt-dont-shop/lib-search': resolve(__dirname, '../lib.search/src'),
           '@adopt-dont-shop/lib-utils': resolve(__dirname, '../lib.utils/src'),
           '@adopt-dont-shop/lib-validation': resolve(__dirname, '../lib.validation/src'),
+          '@adopt-dont-shop/lib-invitations': resolve(__dirname, '../lib.invitations/src'),
         }
       : {};
 

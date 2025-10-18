@@ -6,15 +6,16 @@ interface InvitationAttributes {
   invitation_id: number;
   email: string;
   token: string;
-  rescue_id: string; // Foreign key to associate with the rescue
+  rescue_id: string;
   user_id?: string | null;
+  title?: string | null;
+  invited_by?: string | null;
   expiration: Date;
   created_at?: Date;
   updated_at?: Date;
   used?: boolean;
 }
 
-// Optional fields for creation
 type InvitationCreationAttributes = Optional<
   InvitationAttributes,
   'invitation_id' | 'expiration' | 'used'
@@ -29,13 +30,14 @@ class Invitation
   public token!: string;
   public rescue_id!: string;
   public user_id?: string | null;
+  public title?: string | null;
+  public invited_by?: string | null;
   public expiration!: Date;
   public created_at!: Date;
   public updated_at!: Date;
   public used!: boolean;
 }
 
-// Initialize the model
 Invitation.init(
   {
     invitation_id: {
@@ -70,10 +72,18 @@ Invitation.init(
         key: 'user_id',
       },
     },
+    title: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    invited_by: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     expiration: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: () => new Date(Date.now() + 48 * 60 * 60 * 1000), // Default to 48 hours from creation
+      defaultValue: () => new Date(Date.now() + 48 * 60 * 60 * 1000),
     },
     used: {
       type: DataTypes.BOOLEAN,

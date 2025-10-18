@@ -24,6 +24,7 @@ import { seedFileUploads } from './20250111-file-uploads-seeder';
 import { seedEmilyConversation4 } from './21-emily-conversation-4';
 import { seedHomeVisits } from './22-home-visits';
 import { seedApplicationTimeline } from './23-application-timeline';
+import { seedInvitations } from './24-invitations';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -33,6 +34,7 @@ const seeders = [
   { name: 'User Roles', seeder: seedUserRoles },
   { name: 'Rescues', seeder: seedRescues },
   { name: 'Staff Members', seeder: seedStaffMembers },
+  { name: 'Invitations', seeder: seedInvitations },
   { name: 'Feature Flags', seeder: seedFeatureFlags },
   { name: 'Pets', seeder: seedPets },
   { name: 'Applications', seeder: seedApplications },
@@ -101,6 +103,8 @@ export async function clearAllData() {
       'notifications',
       'ratings',
       'home_visits',
+      'invitations',
+      'staff_members',
       'applications',
       'pets',
       'user_roles',

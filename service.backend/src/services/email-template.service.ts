@@ -553,6 +553,173 @@ The {{system.appName}} Team
   public getDefaultTemplateDefinitions(): DefaultTemplate[] {
     return this.defaultTemplates;
   }
+
+  
+  // Helper method to send staff invitation emails
+  public async sendStaffInvitation(params: {
+    recipientEmail: string;
+    rescueName: string;
+    inviterName?: string;
+    invitationUrl: string;
+    title?: string;
+    expirationDays: number;
+  }): Promise<string> {
+    const EmailService = (await import('./email.service')).default;
+
+    return await EmailService.sendEmail({
+      toEmail: params.recipientEmail,
+      type: 'transactional',
+      priority: 'high',
+      templateId: undefined, // Will look up template by category
+      templateData: {
+        invitation: {
+          email: params.recipientEmail,
+          title: params.title || '',
+          url: params.invitationUrl,
+          expirationDays: params.expirationDays,
+        },
+        rescue: {
+          name: params.rescueName,
+        },
+        inviter: {
+          name: params.inviterName || '',
+        },
+      },
+      subject: `You've been invited to join ${params.rescueName}!`,
+      htmlContent: await this.renderStaffInvitationHTML(params),
+      textContent: await this.renderStaffInvitationText(params),
+    });
+  }
+
+  private async renderStaffInvitationHTML(params: {
+    recipientEmail: string;
+    rescueName: string;
+    inviterName?: string;
+    invitationUrl: string;
+    title?: string;
+    expirationDays: number;
+  }): Promise<string> {
+    const appName = "Adopt Don't Shop";
+    const currentYear = new Date().getFullYear();
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@adoptdontshop.com';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Staff Invitation</title>
+        <style>
+          .container { max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; }
+          .content { padding: 30px 20px; }
+          .invitation-box { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+          .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
+          .footer { background-color: #f5f5f5; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+          .info-list { background-color: #e3f2fd; padding: 15px; border-radius: 6px; margin: 20px 0; }
+          .info-list li { margin-bottom: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 You're Invited!</h1>
+          </div>
+          <div class="content">
+            <h2>Hi there!</h2>
+            <p>Great news! You've been invited to join <strong>${params.rescueName}</strong> as a team member on ${appName}.</p>
+
+            <div class="invitation-box">
+              <p><strong>Invitation Details:</strong></p>
+              <p>📧 <strong>Email:</strong> ${params.recipientEmail}</p>
+              ${params.title ? `<p>👤 <strong>Role:</strong> ${params.title}</p>` : ''}
+              <p>🏢 <strong>Organization:</strong> ${params.rescueName}</p>
+              <p>⏰ <strong>Expires in:</strong> ${params.expirationDays} days</p>
+            </div>
+
+            <p>Click the button below to accept your invitation and create your account:</p>
+
+            <p style="text-align: center;">
+              <a href="${params.invitationUrl}" class="button">Accept Invitation & Create Account</a>
+            </p>
+
+            <div class="info-list">
+              <h3 style="margin-top: 0; color: #1976d2;">What you'll be able to do:</h3>
+              <ul style="line-height: 1.8;">
+                <li>Manage pets available for adoption</li>
+                <li>Review and process adoption applications</li>
+                <li>Communicate with potential adopters</li>
+                <li>Collaborate with your rescue team</li>
+                <li>Track adoption success stories</li>
+              </ul>
+            </div>
+
+            <p><strong>Important:</strong> This invitation link will expire in <strong>${params.expirationDays} days</strong>. Make sure to accept it soon!</p>
+
+            <p>If you're having trouble clicking the button, copy and paste this URL into your browser:</p>
+            <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+              ${params.invitationUrl}
+            </p>
+
+            <p>If you didn't expect this invitation or have any questions, please contact ${params.rescueName} directly or reach out to our support team at ${supportEmail}.</p>
+
+            <p>We're excited to have you join the team!</p>
+            <p>The ${appName} Team</p>
+          </div>
+          <div class="footer">
+            <p>&copy; ${currentYear} ${appName}. All rights reserved.</p>
+            <p>This is an automated invitation email. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private async renderStaffInvitationText(params: {
+    recipientEmail: string;
+    rescueName: string;
+    inviterName?: string;
+    invitationUrl: string;
+    title?: string;
+    expirationDays: number;
+  }): Promise<string> {
+    const appName = "Adopt Don't Shop";
+    const currentYear = new Date().getFullYear();
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@adoptdontshop.com';
+
+    return `You've been invited to join ${params.rescueName} on ${appName}!
+
+Hi there!
+
+Great news! You've been invited to join ${params.rescueName} as a team member on ${appName}.
+
+INVITATION DETAILS:
+Email: ${params.recipientEmail}
+${params.title ? `Role: ${params.title}` : ''}
+Organization: ${params.rescueName}
+Expires in: ${params.expirationDays} days
+
+Accept your invitation and create your account:
+${params.invitationUrl}
+
+What you'll be able to do:
+- Manage pets available for adoption
+- Review and process adoption applications
+- Communicate with potential adopters
+- Collaborate with your rescue team
+- Track adoption success stories
+
+Important: This invitation link will expire in ${params.expirationDays} days. Make sure to accept it soon!
+
+If you didn't expect this invitation or have any questions, please contact ${params.rescueName} directly or reach out to our support team at ${supportEmail}.
+
+We're excited to have you join the team!
+The ${appName} Team
+
+© ${currentYear} ${appName}. All rights reserved.
+This is an automated invitation email. Please do not reply to this email.`;
+  }
 }
 
 export default new EmailTemplateService();

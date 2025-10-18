@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { StaffList, StaffForm, StaffOverview } from '../components/staff';
+import { StaffList, StaffForm, StaffOverview, InviteStaffModal, PendingInvitations } from '../components/staff';
 import { StaffMember, NewStaffMember } from '../types/staff';
 import { useStaff } from '../hooks/useStaff';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { STAFF_CREATE, STAFF_DELETE, STAFF_UPDATE } from '@adopt-dont-shop/lib-permissions';
+import { InvitationPayload, PendingInvitation } from '@adopt-dont-shop/lib-invitations';
+import { invitationService } from '../services/libraryServices';
 
 const PageContainer = styled.div`
   padding: 2rem;
@@ -47,8 +49,8 @@ const HeaderActions = styled.div`
   align-items: center;
 `;
 
-const AddButton = styled.button`
-  background: #1976d2;
+const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
+  background: ${props => props.variant === 'secondary' ? '#6c757d' : '#1976d2'};
   color: white;
   border: none;
   border-radius: 8px;
@@ -59,7 +61,7 @@ const AddButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: #1565c0;
+    background: ${props => props.variant === 'secondary' ? '#5a6268' : '#1565c0'};
   }
 
   &:disabled {
@@ -68,10 +70,10 @@ const AddButton = styled.button`
   }
 `;
 
-const Alert = styled.div`
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+const Alert = styled.div<{ type?: 'error' | 'success' }>`
+  background: ${props => props.type === 'success' ? '#d4edda' : '#f8d7da'};
+  color: ${props => props.type === 'success' ? '#155724' : '#721c24'};
+  border: 1px solid ${props => props.type === 'success' ? '#c3e6cb' : '#f5c6cb'};
   border-radius: 8px;
   padding: 1rem 1.5rem;
   margin-bottom: 2rem;
@@ -83,7 +85,7 @@ const Alert = styled.div`
 const AlertClose = styled.button`
   background: none;
   border: none;
-  color: #721c24;
+  color: inherit;
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0.25rem;
@@ -91,7 +93,7 @@ const AlertClose = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: rgba(114, 28, 36, 0.1);
+    background-color: rgba(0, 0, 0, 0.1);
   }
 `;
 
@@ -154,72 +156,147 @@ const StaffManagement: React.FC = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
   const { staff, loading, error, refetch, addStaffMember, removeStaffMember, updateStaffMember } = useStaff();
+
+  // State for modals
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+
+  // State for invitations
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
+
+  // State for actions
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // Check permissions using the permissions service
   const canDeleteStaff = hasPermission(STAFF_DELETE);
   const canEditStaff = hasPermission(STAFF_UPDATE);
   const canAddStaff = hasPermission(STAFF_CREATE);
-  
+
   // Get rescue ID from the current user's staff record
   const getRescueId = (): string => {
-    // If we have staff data loaded, we can get the rescue ID from any staff member 
-    // since they all belong to the same rescue
     if (staff.length > 0) {
       return staff[0].rescueId;
     }
-    
-    // Fallback: try to find the current user in the staff list
+
     const currentUserStaff = staff.find(s => s.userId === user?.userId);
     if (currentUserStaff) {
       return currentUserStaff.rescueId;
     }
-    
-    // Last resort fallback - this should not happen in normal operation
+
     throw new Error('Unable to determine rescue ID. Please refresh the page.');
+  };
+
+  // Load pending invitations
+  useEffect(() => {
+    const loadPendingInvitations = async () => {
+      if (staff.length === 0) return;
+
+      try {
+        setInvitationsLoading(true);
+        const rescueId = getRescueId();
+        const invites = await invitationService.getPendingInvitations(rescueId);
+        setPendingInvitations(invites);
+      } catch (err) {
+        console.error('Failed to load pending invitations:', err);
+      } finally {
+        setInvitationsLoading(false);
+      }
+    };
+
+    loadPendingInvitations();
+  }, [staff]);
+
+  const handleSendInvitation = async (invitation: InvitationPayload) => {
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      const rescueId = getRescueId();
+      const result = await invitationService.sendInvitation(rescueId, invitation);
+
+      setActionSuccess(`Invitation sent to ${invitation.email}!`);
+      setShowInviteModal(false);
+
+      // Reload pending invitations
+      const invites = await invitationService.getPendingInvitations(rescueId);
+      setPendingInvitations(invites);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to send invitation');
+      throw error;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: number) => {
+    if (!confirm('Are you sure you want to cancel this invitation?')) {
+      return;
+    }
+
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      const rescueId = getRescueId();
+      await invitationService.cancelInvitation(rescueId, invitationId);
+
+      setActionSuccess('Invitation cancelled successfully');
+
+      // Reload pending invitations
+      const invites = await invitationService.getPendingInvitations(rescueId);
+      setPendingInvitations(invites);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to cancel invitation');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleAddStaff = async (staffData: NewStaffMember) => {
     setActionLoading(true);
     setActionError(null);
-    
+    setActionSuccess(null);
+
     try {
       const rescueId = getRescueId();
       await addStaffMember(staffData, rescueId);
       setShowAddForm(false);
-      // Show success message or toast
+      setActionSuccess('Staff member added successfully!');
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Failed to add staff member');
-      throw error; // Re-throw to prevent form from closing
+      throw error;
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleEditStaff = (staffMember: StaffMember) => {
-    // Prevent self-editing
     if (staffMember.userId === user?.userId) {
       setActionError('You cannot edit your own profile. Please ask another admin to make changes to your account.');
       return;
     }
-    
+
     setEditingStaff(staffMember);
   };
 
   const handleUpdateStaff = async (staffData: NewStaffMember) => {
     if (!editingStaff) return;
-    
+
     setActionLoading(true);
     setActionError(null);
-    
+    setActionSuccess(null);
+
     try {
       const rescueId = getRescueId();
       await updateStaffMember(editingStaff.userId, { title: staffData.title }, rescueId);
       setEditingStaff(null);
-      // Show success message or toast
+      setActionSuccess('Staff member updated successfully!');
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Failed to update staff member');
       throw error;
@@ -229,7 +306,6 @@ const StaffManagement: React.FC = () => {
   };
 
   const handleRemoveStaff = async (staffMember: StaffMember) => {
-    // Prevent self-removal
     if (staffMember.userId === user?.userId) {
       setActionError('You cannot remove yourself from the rescue. Please ask another admin to remove you.');
       return;
@@ -238,14 +314,15 @@ const StaffManagement: React.FC = () => {
     if (!confirm(`Are you sure you want to remove ${staffMember.firstName} ${staffMember.lastName} from your staff?`)) {
       return;
     }
-    
+
     setActionLoading(true);
     setActionError(null);
-    
+    setActionSuccess(null);
+
     try {
       const rescueId = getRescueId();
       await removeStaffMember(staffMember.userId, rescueId);
-      // Show success message or toast
+      setActionSuccess('Staff member removed successfully!');
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Failed to remove staff member');
     } finally {
@@ -255,6 +332,7 @@ const StaffManagement: React.FC = () => {
 
   const handleCloseForm = () => {
     setShowAddForm(false);
+    setShowInviteModal(false);
     setEditingStaff(null);
     setActionError(null);
   };
@@ -267,7 +345,7 @@ const StaffManagement: React.FC = () => {
             <h1>Staff & Volunteer Management</h1>
           </HeaderContent>
         </PageHeader>
-        
+
         <ErrorState>
           <ErrorIcon>⚠️</ErrorIcon>
           <ErrorTitle>Unable to Load Staff</ErrorTitle>
@@ -285,25 +363,42 @@ const StaffManagement: React.FC = () => {
       <PageHeader>
         <HeaderContent>
           <h1>Staff & Volunteer Management</h1>
-          <p>Manage your rescue team, assign roles, and coordinate activities.</p>
+          <p>Manage your rescue team, send invitations, and coordinate activities.</p>
         </HeaderContent>
-        
+
         {canAddStaff && (
           <HeaderActions>
-            <AddButton 
+            <ActionButton
+              variant="primary"
+              onClick={() => setShowInviteModal(true)}
+              disabled={actionLoading}
+            >
+              Invite Staff Member
+            </ActionButton>
+            <ActionButton
+              variant="secondary"
               onClick={() => setShowAddForm(true)}
               disabled={actionLoading}
             >
-              Add Staff Member
-            </AddButton>
+              Add Existing User
+            </ActionButton>
           </HeaderActions>
         )}
       </PageHeader>
 
       {actionError && (
-        <Alert>
+        <Alert type="error">
           <span><strong>Error:</strong> {actionError}</span>
           <AlertClose onClick={() => setActionError(null)}>
+            ✕
+          </AlertClose>
+        </Alert>
+      )}
+
+      {actionSuccess && (
+        <Alert type="success">
+          <span><strong>Success:</strong> {actionSuccess}</span>
+          <AlertClose onClick={() => setActionSuccess(null)}>
             ✕
           </AlertClose>
         </Alert>
@@ -314,6 +409,18 @@ const StaffManagement: React.FC = () => {
           <h2>Team Overview</h2>
           <StaffOverview staff={staff} loading={loading} />
         </Section>
+
+        {pendingInvitations.length > 0 && (
+          <Section>
+            <h2>Pending Invitations</h2>
+            <PendingInvitations
+              invitations={pendingInvitations}
+              loading={invitationsLoading}
+              onCancel={canDeleteStaff ? handleCancelInvitation : undefined}
+              canCancel={canDeleteStaff}
+            />
+          </Section>
+        )}
 
         <Section>
           <h2>Staff Directory</h2>
@@ -329,6 +436,14 @@ const StaffManagement: React.FC = () => {
           />
         </Section>
       </PageContent>
+
+      {showInviteModal && (
+        <InviteStaffModal
+          onSubmit={handleSendInvitation}
+          onCancel={handleCloseForm}
+          loading={actionLoading}
+        />
+      )}
 
       {showAddForm && (
         <StaffForm

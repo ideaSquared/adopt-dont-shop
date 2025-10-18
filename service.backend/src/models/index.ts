@@ -172,6 +172,13 @@ StaffMember.belongsTo(Rescue, { foreignKey: 'rescueId', as: 'rescue' });
 User.hasMany(StaffMember, { foreignKey: 'userId', as: 'staffMemberships' });
 StaffMember.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// Invitation associations
+Rescue.hasMany(Invitation, { foreignKey: 'rescue_id', as: 'invitations' });
+Invitation.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' });
+
+User.hasMany(Invitation, { foreignKey: 'user_id', as: 'acceptedInvitations' });
+Invitation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 // Content Moderation associations
 User.hasMany(Report, { foreignKey: 'reporterId', as: 'SubmittedReports' });
 Report.belongsTo(User, { foreignKey: 'reporterId', as: 'Reporter' });

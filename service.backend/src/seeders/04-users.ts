@@ -184,14 +184,15 @@ const testUsers = [
 ];
 
 export async function seedUsers() {
-  const hashedPassword = await bcrypt.hash('DevPassword123!', 12);
+  // No need to pre-hash - the User model hooks will handle it
+  const plainPassword = 'DevPassword123!';
 
   for (const userData of testUsers) {
     await User.findOrCreate({
       where: { email: userData.email },
       defaults: {
         ...userData,
-        password: hashedPassword,
+        password: plainPassword,
         loginAttempts: 0,
         privacySettings: {
           showProfile: true,

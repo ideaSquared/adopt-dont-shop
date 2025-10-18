@@ -26,6 +26,7 @@ export function getLibraryAliases(appDir: string, mode: string) {
     '@adopt-dont-shop/lib-search': resolve(appDir, '../lib.search/src'),
     '@adopt-dont-shop/lib-utils': resolve(appDir, '../lib.utils/src'),
     '@adopt-dont-shop/lib-validation': resolve(appDir, '../lib.validation/src'),
+    '@adopt-dont-shop/lib-invitations': resolve(appDir, '../lib.invitations/src'),
   };
 
   return libraryAliases;

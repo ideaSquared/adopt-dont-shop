@@ -31,16 +31,6 @@ export interface StaffActivity {
   metadata?: Record<string, any>;
 }
 
-export interface StaffInvitation {
-  id: string;
-  email: string;
-  title: string;
-  invitedBy: string;
-  invitedAt: string;
-  expiresAt: string;
-  status: 'pending' | 'accepted' | 'expired' | 'cancelled';
-}
-
 // Permission constants
 export const STAFF_PERMISSIONS = {
   // Pet Management
@@ -48,28 +38,28 @@ export const STAFF_PERMISSIONS = {
   CREATE_PETS: 'create_pets',
   UPDATE_PETS: 'update_pets',
   DELETE_PETS: 'delete_pets',
-  
+
   // Application Management
   VIEW_APPLICATIONS: 'view_applications',
   REVIEW_APPLICATIONS: 'review_applications',
   APPROVE_APPLICATIONS: 'approve_applications',
   REJECT_APPLICATIONS: 'reject_applications',
-  
+
   // Staff Management
   VIEW_STAFF: 'view_staff',
   INVITE_STAFF: 'invite_staff',
   REMOVE_STAFF: 'remove_staff',
   MANAGE_ROLES: 'manage_roles',
-  
+
   // Communication
   VIEW_MESSAGES: 'view_messages',
   SEND_MESSAGES: 'send_messages',
   MANAGE_TEMPLATES: 'manage_templates',
-  
+
   // Analytics & Reports
   VIEW_ANALYTICS: 'view_analytics',
   EXPORT_DATA: 'export_data',
-  
+
   // Rescue Settings
   MANAGE_RESCUE_SETTINGS: 'manage_rescue_settings',
   MANAGE_ADOPTION_POLICIES: 'manage_adoption_policies',

@@ -51,7 +51,9 @@ function writeFile(filePath, content) {
 /**
  * Generate package.json for the new library
  */
-function generatePackageJson(libName, libDescription, useLibApi = false) {
+function generatePackageJson(libName, libDescription, useLibApi = false, libType = 'service') {
+  const isUtility = libType === 'utility';
+  
   const packageConfig = {
     name: `@adopt-dont-shop/lib-${libName}`,
     version: '1.0.0',
@@ -73,22 +75,30 @@ function generatePackageJson(libName, libDescription, useLibApi = false) {
       test: 'jest',
       'test:watch': 'jest --watch',
       'test:coverage': 'jest --coverage',
-      lint: 'eslint src --ext ts',
-      'lint:fix': 'eslint src --ext ts --fix',
+      lint: isUtility ? 'eslint src --ext ts,tsx' : 'eslint src --ext ts',
+      'lint:fix': isUtility ? 'eslint src --ext ts,tsx --fix' : 'eslint src --ext ts --fix',
       'type-check': 'tsc --noEmit',
       prepublishOnly: 'npm run clean && npm run build',
     },
-    keywords: ['pet-adoption', 'library', 'typescript', 'react'],
+    keywords: ['pet-adoption', 'library', 'typescript', ...(isUtility ? ['react', 'components'] : [])],
     author: "Adopt Don't Shop Team",
     license: 'MIT',
     dependencies: {
       '@types/node': '^20.0.0',
       ...(useLibApi ? { '@adopt-dont-shop/lib-api': 'file:../lib.api' } : {}),
+      ...(isUtility ? { 
+        'react': '^18.2.0',
+        'styled-components': '^6.1.8'
+      } : {}),
     },
     devDependencies: {
       '@typescript-eslint/eslint-plugin': '^7.0.0',
       '@typescript-eslint/parser': '^7.0.0',
       '@types/jest': '^29.4.0',
+      ...(isUtility ? {
+        '@types/react': '^18.2.0',
+        '@types/styled-components': '^5.1.26',
+      } : {}),
       eslint: '^8.57.0',
       'eslint-config-prettier': '^9.1.0',
       'eslint-plugin-prettier': '^5.1.3',
@@ -100,6 +110,10 @@ function generatePackageJson(libName, libDescription, useLibApi = false) {
     },
     peerDependencies: {
       typescript: '^5.0.0',
+      ...(isUtility ? {
+        'react': '>=18.0.0',
+        'styled-components': '>=5.0.0',
+      } : {}),
     },
     repository: {
       type: 'git',
@@ -118,13 +132,17 @@ function generatePackageJson(libName, libDescription, useLibApi = false) {
 /**
  * Generate TypeScript configuration
  */
-function generateTsConfig() {
+function generateTsConfig(libType = 'service') {
+  const isUtility = libType === 'utility';
+  
   return JSON.stringify(
     {
       compilerOptions: {
         target: 'ES2020',
+        ...(isUtility ? { lib: ['DOM', 'DOM.Iterable', 'ES6'] } : {}),
+        ...(isUtility ? { allowJs: false } : {}),
         module: 'ESNext',
-        moduleResolution: 'node',
+        moduleResolution: isUtility ? 'bundler' : 'node',
         declaration: true,
         declarationMap: true,
         sourceMap: true,
@@ -141,11 +159,12 @@ function generateTsConfig() {
         resolveJsonModule: true,
         isolatedModules: true,
         noEmit: false,
+        ...(isUtility ? { jsx: 'react-jsx' } : {}),
         incremental: true,
         tsBuildInfoFile: './dist/.tsbuildinfo',
       },
       include: ['src/**/*'],
-      exclude: ['node_modules', 'dist', '**/*.test.ts', '**/*.spec.ts'],
+      exclude: ['node_modules', 'dist', '**/*.test.ts', ...(isUtility ? ['**/*.test.tsx'] : []), '**/*.spec.ts'],
     },
     null,
     2
@@ -155,14 +174,21 @@ function generateTsConfig() {
 /**
  * Generate Jest configuration
  */
-function generateJestConfig(useLibApi = false) {
+function generateJestConfig(useLibApi = false, libType = 'service') {
+  const isUtility = libType === 'utility';
+  
   const jestConfig = {
     preset: 'ts-jest',
     testEnvironment: 'jsdom',
     roots: ['<rootDir>/src'],
-    testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
+    testMatch: [
+      '**/__tests__/**/*.test.ts', 
+      '**/?(*.)+(spec|test).ts',
+      ...(isUtility ? ['**/__tests__/**/*.test.tsx', '**/?(*.)+(spec|test).tsx'] : [])
+    ],
     transform: {
       '^.+\\.ts$': 'ts-jest',
+      ...(isUtility ? { '^.+\\.tsx$': 'ts-jest' } : {}),
     },
     setupFilesAfterEnv: ['<rootDir>/src/test-utils/setup-tests.ts'],
     collectCoverageFrom: [
@@ -243,8 +269,22 @@ function generatePrettierConfig() {
 /**
  * Generate main index.ts file
  */
-function generateIndexFile(libName) {
-  // Convert hyphenated name to PascalCase for class names
+function generateIndexFile(libName, libType = 'service') {
+  if (libType === 'utility') {
+    return `// Main exports for @adopt-dont-shop/lib-${libName}
+
+// Re-export all components
+export * from './components';
+
+// Re-export all hooks  
+export * from './hooks';
+
+// Re-export all utilities
+export * from './utils';
+`;
+  }
+  
+  // Service library (original behavior)
   const camelCaseName = libName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
   const className = camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1);
   const serviceName = `${className}Service`;
@@ -814,109 +854,6 @@ export { mockFetch, mockLocalStorage };
 }
 
 /**
- * Generate Dockerfile for development
- */
-function generateDockerfile(libName) {
-  return `# Multi-stage Dockerfile for lib.${libName}
-
-# Development stage
-FROM node:20-alpine AS development
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
-COPY src/ ./src/
-
-# Build the library
-RUN npm run build
-
-# Create a volume for the built library
-VOLUME ["/app/dist"]
-
-# Default command for development
-CMD ["npm", "run", "dev"]
-
-# Production build stage
-FROM node:20-alpine AS build
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
-
-# Install dependencies (including dev dependencies for build)
-RUN npm ci
-
-# Copy source code
-COPY src/ ./src/
-
-# Build the library
-RUN npm run build && npm prune --production
-
-# Production stage
-FROM node:20-alpine AS production
-
-WORKDIR /app
-
-# Copy built library and production dependencies
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package*.json ./
-
-# Expose any necessary ports (if applicable)
-# EXPOSE 3000
-
-# Default command
-CMD ["node", "dist/index.js"]
-`;
-}
-
-/**
- * Generate docker-compose.lib.yml for library development
- */
-function generateLibDockerCompose(libName) {
-  return `# Docker Compose for lib.${libName} development
-services:
-  lib-${libName}:
-    build:
-      context: ./lib.${libName}
-      dockerfile: Dockerfile
-      target: development
-    volumes:
-      - ./lib.${libName}:/app
-      - /app/node_modules
-      - lib_${libName.replace('-', '_')}_dist:/app/dist
-    environment:
-      NODE_ENV: development
-    command: npm run dev
-
-  # Example service that uses the library
-  lib-${libName}-test:
-    image: node:20-alpine
-    working_dir: /app
-    volumes:
-      - ./lib.${libName}:/app
-      - /app/node_modules
-    environment:
-      NODE_ENV: test
-    command: npm test
-    depends_on:
-      - lib-${libName}
-
-volumes:
-  lib_${libName.replace('-', '_')}_dist:
-`;
-}
-
-/**
  * Generate comprehensive README.md
  */
 function generateReadme(libName, libDescription, useLibApi = false) {
@@ -1128,64 +1065,23 @@ app.get('/api/${libName}/example', async (req, res) => {
 });
 \`\`\`
 
-## 🐳 Docker Integration
+## 🐳 Standalone Development
 
-### Development with Docker Compose
+### Docker Compose for Library Testing
 
-1. **Build the library:**
+For isolated library development and testing:
+
 \`\`\`bash
-# From workspace root
+# Build and run the library in isolation
 docker-compose -f docker-compose.lib.yml up lib-${libName}
-\`\`\`
 
-2. **Run tests:**
-\`\`\`bash
+# Run tests in Docker
 docker-compose -f docker-compose.lib.yml run lib-${libName}-test
 \`\`\`
 
-### Using in App Containers
+### Integration with Apps
 
-Add to your app's Dockerfile:
-
-\`\`\`dockerfile
-# Copy shared libraries
-COPY lib.${libName} /workspace/lib.${libName}
-
-# Install dependencies
-RUN npm install @adopt-dont-shop/lib-${libName}@workspace:*
-\`\`\`
-
-### Multi-stage Build for Production
-
-\`\`\`dockerfile
-# In your app's Dockerfile
-FROM node:20-alpine AS deps
-
-WORKDIR /app
-
-# Copy shared library
-COPY lib.${libName} ./lib.${libName}
-
-# Copy app package files
-COPY app.client/package*.json ./app.client/
-
-# Install dependencies
-RUN cd lib.${libName} && npm ci && npm run build
-RUN cd app.client && npm ci
-
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-COPY --from=deps /app ./
-
-# Copy app source
-COPY app.client ./app.client
-
-# Build app
-RUN cd app.client && npm run build
-\`\`\`
+Libraries are automatically available to apps through the optimized workspace pattern in \`Dockerfile.app.optimized\`. No additional configuration needed - just add the dependency to your app's package.json.
 
 ## 🧪 Testing
 
@@ -1255,8 +1151,8 @@ lib.${libName}/
 │   │   └── index.ts                  # TypeScript type definitions
 │   └── index.ts                      # Main entry point
 ├── dist/                             # Built output (generated)
-├── docker-compose.lib.yml           # Docker compose for development
-├── Dockerfile                       # Multi-stage Docker build
+├── docker-compose.lib.yml           # Standalone development
+├── Dockerfile                       # Standalone container build
 ├── jest.config.js                   # Jest test configuration
 ├── package.json                     # Package configuration
 ├── tsconfig.json                    # TypeScript configuration
@@ -1394,17 +1290,11 @@ async function updateRootPackageJson(libName) {
 }
 
 /**
- * Update docker-compose.yml to include library service
+ * Generate docker-compose.lib.yml for standalone library development
  */
-async function updateDockerCompose(libName) {
-  const dockerComposePath = path.join(ROOT_DIR, 'docker-compose.yml');
-
-  if (fs.existsSync(dockerComposePath)) {
-    let dockerComposeContent = fs.readFileSync(dockerComposePath, 'utf8');
-
-    // Add library service at the end, before volumes section
-    const libService = `
-  # Library: lib.${libName}
+function generateLibDockerCompose(libName) {
+  return `# Docker Compose for lib.${libName} standalone development
+services:
   lib-${libName}:
     build:
       context: ./lib.${libName}
@@ -1415,34 +1305,176 @@ async function updateDockerCompose(libName) {
       - /app/node_modules
       - lib_${libName.replace('-', '_')}_dist:/app/dist
     environment:
-      NODE_ENV: \${NODE_ENV:-development}
+      NODE_ENV: development
     command: npm run dev
 
+  # Test service for the library
+  lib-${libName}-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.${libName}:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-${libName}
+
+volumes:
+  lib_${libName.replace('-', '_')}_dist:
 `;
+}
 
-    // Find the volumes section and insert before it
-    const volumesIndex = dockerComposeContent.indexOf('\nvolumes:');
-    if (volumesIndex !== -1) {
-      dockerComposeContent =
-        dockerComposeContent.slice(0, volumesIndex) +
-        libService +
-        dockerComposeContent.slice(volumesIndex);
+/**
+ * Generate Dockerfile for standalone library development
+ */
+function generateDockerfile(libName) {
+  return `# Multi-stage Dockerfile for lib.${libName}
+
+# Development stage
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY src/ ./src/
+
+# Build the library
+RUN npm run build
+
+# Create a volume for the built library
+VOLUME ["/app/dist"]
+
+# Default command for development
+CMD ["npm", "run", "dev"]
+
+# Production build stage
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies (including dev dependencies for build)
+RUN npm ci
+
+# Copy source code
+COPY src/ ./src/
+
+# Build the library
+RUN npm run build && npm prune --production
+
+# Production stage
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Copy built library and production dependencies
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package*.json ./
+
+# Default command
+CMD ["node", "dist/index.js"]
+`;
+}
+
+/**
+ * Update Dockerfile.app.optimized to include new library
+ */
+async function updateAppOptimizedDockerfile(libName) {
+  const dockerfilePath = path.join(ROOT_DIR, 'Dockerfile.app.optimized');
+
+  if (fs.existsSync(dockerfilePath)) {
+    let dockerfileContent = fs.readFileSync(dockerfilePath, 'utf8');
+
+    // Find the section where libraries are copied
+    const newLibCopy = `COPY lib.${libName}/ ./lib.${libName}/`;
+    
+    // Find the last COPY lib. line and add after it
+    const libCopyRegex = /COPY lib\.[^/]+\/ \.\/lib\.[^/]+\/$/gm;
+    const matches = [...dockerfileContent.matchAll(libCopyRegex)];
+    
+    if (matches.length > 0) {
+      const lastMatch = matches[matches.length - 1];
+      const insertIndex = lastMatch.index + lastMatch[0].length;
+      
+      dockerfileContent = 
+        dockerfileContent.slice(0, insertIndex) + 
+        '\n' + newLibCopy + 
+        dockerfileContent.slice(insertIndex);
+      
+      fs.writeFileSync(dockerfilePath, dockerfileContent);
+      log(`🐳 Updated Dockerfile.app.optimized with lib.${libName}`, 'green');
     } else {
-      // If no volumes section, add at the end
-      dockerComposeContent += libService;
+      log(`⚠️  Could not find library copy section in Dockerfile.app.optimized`, 'yellow');
+      log(`💡 Manually add: ${newLibCopy}`, 'cyan');
     }
-
-    // Add volume definition
-    const volumeDefinition = `  lib_${libName.replace('-', '_')}_dist:\n`;
-    if (dockerComposeContent.includes('volumes:')) {
-      dockerComposeContent += volumeDefinition;
-    } else {
-      dockerComposeContent += `\nvolumes:\n${volumeDefinition}`;
-    }
-
-    fs.writeFileSync(dockerComposePath, dockerComposeContent);
-    log(`🐳 Updated docker-compose.yml with lib.${libName} service`, 'green');
   }
+}
+
+/**
+ * Generate utility components index file
+ */
+function generateUtilityComponentsIndex(libName) {
+  return `// Components for @adopt-dont-shop/lib-${libName}
+
+// Export individual components here as you create them
+// Example:
+// export { MyComponent } from './MyComponent';
+
+// Placeholder component - replace with actual components
+export const ${libName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()).replace(/^./, str => str.toUpperCase())}Component = () => {
+  return null; // Replace with actual component implementation
+};
+`;
+}
+
+/**
+ * Generate utility hooks index file
+ */
+function generateUtilityHooksIndex(libName) {
+  return `// Hooks for @adopt-dont-shop/lib-${libName}
+
+// Export individual hooks here as you create them
+// Example:
+// export { useMyHook } from './useMyHook';
+
+// Placeholder hook - replace with actual hooks
+export const use${libName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()).replace(/^./, str => str.toUpperCase())} = () => {
+  // Replace with actual hook implementation
+  return {};
+};
+`;
+}
+
+/**
+ * Generate utility utils index file
+ */
+function generateUtilityUtilsIndex(libName) {
+  return `// Utilities for @adopt-dont-shop/lib-${libName}
+
+// Export individual utility functions here as you create them
+// Example:
+// export { myUtilFunction } from './myUtilFunction';
+
+/**
+ * Placeholder utility function - replace with actual utilities
+ */
+export const ${libName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())}Utils = {
+  // Add utility functions here
+};
+`;
 }
 
 /**
@@ -1467,14 +1499,24 @@ async function createNewLibrary() {
 
   if (args.length === 0) {
     log('❌ Please provide a library name', 'red');
-    log('Usage: npm run new-lib <library-name> [description] [--with-api]', 'yellow');
-    log('Example: npm run new-lib chat "Real-time chat functionality"', 'cyan');
-    log('Example: npm run new-lib auth "Authentication service" --with-api', 'cyan');
+    log('Usage: npm run new-lib <library-name> [description] [--type=service|utility] [--with-api]', 'yellow');
+    log('Example: npm run new-lib chat "Real-time chat functionality" --type=service', 'cyan');
+    log('Example: npm run new-lib dev-tools "Development utilities" --type=utility', 'cyan');
+    log('Example: npm run new-lib auth "Authentication service" --type=service --with-api', 'cyan');
     process.exit(1);
   }
 
   // Parse arguments
   const useLibApi = args.includes('--with-api');
+  const typeArg = args.find(arg => arg.startsWith('--type='));
+  const libType = typeArg ? typeArg.split('=')[1] : 'service'; // default to service for backward compatibility
+  
+  // Validate library type
+  if (!['service', 'utility'].includes(libType)) {
+    log('❌ Invalid library type. Use --type=service or --type=utility', 'red');
+    process.exit(1);
+  }
+  
   const filteredArgs = args.filter(arg => !arg.startsWith('--'));
 
   const libName = filteredArgs[0].toLowerCase().replace(/[^a-z0-9-]/g, '-');
@@ -1496,6 +1538,7 @@ async function createNewLibrary() {
 
   log(`🚀 Creating new library: lib.${libName}`, 'bright');
   log(`📝 Description: ${libDescription}`, 'cyan');
+  log(`📦 Type: ${libType}`, 'magenta');
   if (useLibApi) {
     log(`🔗 With lib.api integration: enabled`, 'magenta');
   }
@@ -1504,29 +1547,57 @@ async function createNewLibrary() {
   try {
     // Create directory structure
     ensureDirectoryExists(libDir);
-    ensureDirectoryExists(path.join(libDir, 'src', 'services', '__tests__'));
-    ensureDirectoryExists(path.join(libDir, 'src', 'types'));
+    
+    // Create different directory structures based on library type
+    if (libType === 'service') {
+      ensureDirectoryExists(path.join(libDir, 'src', 'services', '__tests__'));
+      ensureDirectoryExists(path.join(libDir, 'src', 'types'));
+    } else if (libType === 'utility') {
+      ensureDirectoryExists(path.join(libDir, 'src', 'components'));
+      ensureDirectoryExists(path.join(libDir, 'src', 'hooks'));
+      ensureDirectoryExists(path.join(libDir, 'src', 'utils'));
+    }
+    
     ensureDirectoryExists(path.join(libDir, 'src', 'test-utils'));
 
     // Generate all files
     writeFile(
       path.join(libDir, 'package.json'),
-      generatePackageJson(libName, libDescription, useLibApi)
+      generatePackageJson(libName, libDescription, useLibApi, libType)
     );
-    writeFile(path.join(libDir, 'tsconfig.json'), generateTsConfig());
-    writeFile(path.join(libDir, 'jest.config.cjs'), generateJestConfig(useLibApi));
+    writeFile(path.join(libDir, 'tsconfig.json'), generateTsConfig(libType));
+    writeFile(path.join(libDir, 'jest.config.cjs'), generateJestConfig(useLibApi, libType));
     writeFile(path.join(libDir, '.eslintrc.json'), generateEslintConfig());
     writeFile(path.join(libDir, '.prettierrc.json'), generatePrettierConfig());
-    writeFile(path.join(libDir, 'src', 'index.ts'), generateIndexFile(libName));
-    writeFile(path.join(libDir, 'src', 'types', 'index.ts'), generateTypesFile(libName));
-    writeFile(
-      path.join(libDir, 'src', 'services', `${libName}-service.ts`),
-      generateServiceFile(libName, useLibApi)
-    );
-    writeFile(
-      path.join(libDir, 'src', 'services', '__tests__', `${libName}-service.test.ts`),
-      generateTestFile(libName, useLibApi)
-    );
+    writeFile(path.join(libDir, 'src', 'index.ts'), generateIndexFile(libName, libType));
+    
+    // Generate files based on library type
+    if (libType === 'service') {
+      writeFile(path.join(libDir, 'src', 'types', 'index.ts'), generateTypesFile(libName));
+      writeFile(
+        path.join(libDir, 'src', 'services', `${libName}-service.ts`),
+        generateServiceFile(libName, useLibApi)
+      );
+      writeFile(
+        path.join(libDir, 'src', 'services', '__tests__', `${libName}-service.test.ts`),
+        generateTestFile(libName, useLibApi)
+      );
+    } else if (libType === 'utility') {
+      // For utility libraries, we create basic component and hook stubs
+      writeFile(
+        path.join(libDir, 'src', 'components', 'index.ts'),
+        generateUtilityComponentsIndex(libName)
+      );
+      writeFile(
+        path.join(libDir, 'src', 'hooks', 'index.ts'),
+        generateUtilityHooksIndex(libName)
+      );
+      writeFile(
+        path.join(libDir, 'src', 'utils', 'index.ts'),
+        generateUtilityUtilsIndex(libName)
+      );
+    }
+    
     writeFile(path.join(libDir, 'src', 'test-utils', 'setup-tests.ts'), generateTestSetup());
     writeFile(path.join(libDir, 'Dockerfile'), generateDockerfile(libName));
     writeFile(path.join(libDir, 'docker-compose.lib.yml'), generateLibDockerCompose(libName));
@@ -1534,7 +1605,7 @@ async function createNewLibrary() {
 
     // Update workspace configuration
     await updateRootPackageJson(libName);
-    await updateDockerCompose(libName);
+    await updateAppOptimizedDockerfile(libName);
 
     // Install dependencies
     await installDependencies(libDir);
@@ -1546,11 +1617,18 @@ async function createNewLibrary() {
     log(`   1. cd lib.${libName}`, 'cyan');
     log('   2. npm run dev     # Start development build', 'cyan');
     log('   3. npm test        # Run tests', 'cyan');
-    log('   4. Edit src/services/${libName}-service.ts to implement your logic', 'cyan');
+    
+    if (libType === 'service') {
+      log(`   4. Edit src/services/${libName}-service.ts to implement your logic`, 'cyan');
+    } else if (libType === 'utility') {
+      log('   4. Add components to src/components/', 'cyan');
+      log('   5. Add hooks to src/hooks/', 'cyan');
+      log('   6. Add utilities to src/utils/', 'cyan');
+    }
+    
     log('', 'reset');
-    log('🐳 Docker commands:', 'bright');
-    log(`   docker-compose -f docker-compose.lib.yml up lib-${libName}`, 'cyan');
-    log(`   docker-compose run lib-${libName}-test`, 'cyan');
+    log('🐳 Standalone development:', 'bright');
+    log(`   docker-compose -f lib.${libName}/docker-compose.lib.yml up`, 'cyan');
     log('', 'reset');
     log('📦 Use in apps:', 'bright');
     log('   Add to package.json dependencies:', 'cyan');

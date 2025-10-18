@@ -921,6 +921,37 @@ router.delete(
   rescueController.removeStaffMember
 );
 
+// Staff invitation management (rescue admin)
+router.post(
+  '/:rescueId/invitations',
+  validateRescueId,
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('title')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Title must be max 100 characters'),
+  ],
+  requirePermission('staff.create'),
+  rescueController.inviteStaffMember
+);
+
+router.get(
+  '/:rescueId/invitations',
+  validateRescueId,
+  requirePermission('staff.read'),
+  rescueController.getPendingInvitations
+);
+
+router.delete(
+  '/:rescueId/invitations/:invitationId',
+  validateRescueId,
+  param('invitationId').isInt().withMessage('Invalid invitation ID'),
+  requirePermission('staff.delete'),
+  rescueController.cancelInvitation
+);
+
 // Analytics (rescue admin/staff)
 router.get(
   '/:rescueId/analytics',

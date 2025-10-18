@@ -1,0 +1,30 @@
+# Docker Compose for lib.invitations standalone development
+services:
+  lib-invitations:
+    build:
+      context: ./lib.invitations
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.invitations:/app
+      - /app/node_modules
+      - lib_invitations_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Test service for the library
+  lib-invitations-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.invitations:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-invitations
+
+volumes:
+  lib_invitations_dist:

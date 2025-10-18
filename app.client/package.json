@@ -24,6 +24,7 @@
     "@adopt-dont-shop/lib-applications": "*",
     "@adopt-dont-shop/lib-auth": "*",
     "@adopt-dont-shop/lib-chat": "*",
+    "@adopt-dont-shop/lib-dev-tools": "*",
     "@adopt-dont-shop/lib-discovery": "*",
     "@adopt-dont-shop/lib-feature-flags": "*",
     "@adopt-dont-shop/lib-notifications": "*",

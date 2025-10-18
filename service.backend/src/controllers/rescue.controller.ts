@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import { RescueService } from '../services/rescue.service';
+import { InvitationService } from '../services/invitation.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 
@@ -572,6 +573,110 @@ export class RescueController {
       res.status(500).json({
         success: false,
         message: 'Failed to delete rescue',
+        error: errorMessage,
+      });
+    }
+  };
+
+  /**
+   * Invite a new staff member to join the rescue
+   */
+  inviteStaffMember = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { rescueId } = req.params;
+      const { email, title } = req.body;
+      const invitedBy = req.user!.userId;
+
+      const result = await InvitationService.inviteStaffMember(
+        rescueId,
+        email,
+        title,
+        invitedBy
+      );
+
+      res.status(201).json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error inviting staff member:', { error: errorMessage, rescueId: req.params.rescueId });
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to invite staff member',
+        error: errorMessage,
+      });
+    }
+  };
+
+  /**
+   * Get pending invitations for a rescue
+   */
+  getPendingInvitations = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { rescueId } = req.params;
+
+      const result = await InvitationService.getPendingInvitations(rescueId);
+
+      res.json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error getting pending invitations:', { error: errorMessage, rescueId: req.params.rescueId });
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get pending invitations',
+        error: errorMessage,
+      });
+    }
+  };
+
+  /**
+   * Cancel a pending invitation
+   */
+  cancelInvitation = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { rescueId, invitationId } = req.params;
+      const cancelledBy = req.user!.userId;
+
+      const result = await InvitationService.cancelInvitation(
+        parseInt(invitationId),
+        cancelledBy
+      );
+
+      res.json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error cancelling invitation:', { error: errorMessage, invitationId: req.params.invitationId });
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to cancel invitation',
         error: errorMessage,
       });
     }
