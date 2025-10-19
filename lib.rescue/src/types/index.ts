@@ -24,6 +24,25 @@ export interface RescueLocation {
 }
 
 /**
+ * Adoption policy configuration for a rescue
+ */
+export interface AdoptionPolicy {
+  requireHomeVisit: boolean;
+  requireReferences: boolean;
+  minimumReferenceCount: number;
+  requireVeterinarianReference: boolean;
+  adoptionFeeRange: {
+    min: number;
+    max: number;
+  };
+  requirements: string[];
+  policies: string[];
+  returnPolicy?: string;
+  spayNeuterPolicy?: string;
+  followUpPolicy?: string;
+}
+
+/**
  * Main rescue organization interface
  */
 export interface Rescue {
@@ -49,6 +68,7 @@ export interface Rescue {
   verifiedAt?: string;
   verifiedBy?: string;
   settings?: Record<string, unknown>;
+  adoptionPolicies?: AdoptionPolicy;
   isDeleted: boolean;
   deletedAt?: string;
   deletedBy?: string;

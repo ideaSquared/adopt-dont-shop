@@ -705,6 +705,9 @@ router.get('/:rescueId', validateRescueId, rescueController.getRescueById);
  */
 router.get('/:rescueId/pets', validateRescueId, rescueController.getRescuePets);
 
+// Get adoption policies (public route)
+router.get('/:rescueId/adoption-policies', validateRescueId, rescueController.getAdoptionPolicies);
+
 // Routes requiring authentication
 router.use(authenticateToken);
 
@@ -956,6 +959,27 @@ router.get(
   validateRescueId,
   requirePermission('admin.reports'),
   rescueController.getRescueAnalytics
+);
+
+// Adoption policies (rescue admin/staff can update, public can read)
+router.put(
+  '/:rescueId/adoption-policies',
+  validateRescueId,
+  [
+    body('requireHomeVisit').isBoolean().withMessage('requireHomeVisit must be a boolean'),
+    body('requireReferences').isBoolean().withMessage('requireReferences must be a boolean'),
+    body('minimumReferenceCount').isInt({ min: 0, max: 10 }).withMessage('minimumReferenceCount must be 0-10'),
+    body('requireVeterinarianReference').isBoolean().withMessage('requireVeterinarianReference must be a boolean'),
+    body('adoptionFeeRange.min').isFloat({ min: 0 }).withMessage('Minimum fee must be 0 or greater'),
+    body('adoptionFeeRange.max').isFloat({ min: 0 }).withMessage('Maximum fee must be 0 or greater'),
+    body('requirements').isArray().withMessage('requirements must be an array'),
+    body('policies').isArray().withMessage('policies must be an array'),
+    body('returnPolicy').optional().isString().isLength({ max: 1000 }).withMessage('returnPolicy must be max 1000 characters'),
+    body('spayNeuterPolicy').optional().isString().isLength({ max: 1000 }).withMessage('spayNeuterPolicy must be max 1000 characters'),
+    body('followUpPolicy').optional().isString().isLength({ max: 1000 }).withMessage('followUpPolicy must be max 1000 characters'),
+  ],
+  requirePermission('rescues.update'),
+  rescueController.updateAdoptionPolicies
 );
 
 // Admin-only routes

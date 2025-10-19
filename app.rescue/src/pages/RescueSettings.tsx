@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../contexts/PermissionsContext';
-import { apiService } from '../services/libraryServices';
+import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib-permissions';
 import RescueProfileForm from '../components/rescue/RescueProfileForm';
 import AdoptionPolicyForm from '../components/rescue/AdoptionPolicyForm';
@@ -142,7 +142,22 @@ const RescueSettings: React.FC = () => {
         `http://localhost:5000/api/v1/rescues/${rescueId}`
       );
 
-      setRescue(rescueData.data);
+      // Extract adoption policies from settings if they exist
+      const rescueProfile = { ...rescueData.data };
+
+      // Debug: Log the raw data
+      console.log('Raw rescue data:', rescueProfile);
+      console.log('Settings:', rescueProfile.settings);
+
+      if (rescueProfile.settings?.adoptionPolicies) {
+        rescueProfile.adoptionPolicies = rescueProfile.settings.adoptionPolicies;
+        console.log('Extracted adoption policies:', rescueProfile.adoptionPolicies);
+      } else {
+        console.log('No adoption policies found in settings');
+        rescueProfile.adoptionPolicies = null;
+      }
+
+      setRescue(rescueProfile);
     } catch (err) {
       console.error('Error loading rescue data:', err);
       setError(
@@ -169,12 +184,7 @@ const RescueSettings: React.FC = () => {
   const handleSavePolicies = async (policies: AdoptionPolicy) => {
     if (!rescue) return;
 
-    await apiService.put(
-      `http://localhost:5000/api/v1/rescues/${rescue.rescueId}`,
-      {
-        adoptionPolicies: policies,
-      }
-    );
+    await rescueService.updateAdoptionPolicies(rescue.rescueId, policies);
 
     await loadRescueData();
   };

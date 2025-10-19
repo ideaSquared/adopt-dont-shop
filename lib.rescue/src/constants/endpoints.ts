@@ -26,6 +26,10 @@ export const RESCUE_ENDPOINTS = {
   RESCUE_STATS: (id: string) => `/api/v1/rescues/${id}/stats`,
   ADOPTION_METRICS: (id: string) => `/api/v1/rescues/${id}/metrics`,
 
+  // Adoption policies
+  ADOPTION_POLICIES: (id: string) => `/api/v1/rescues/${id}/adoption-policies`,
+  UPDATE_ADOPTION_POLICIES: (id: string) => `/api/v1/rescues/${id}/adoption-policies`,
+
   // Reviews and ratings
   RESCUE_REVIEWS: (id: string) => `/api/v1/rescues/${id}/reviews`,
   ADD_REVIEW: (id: string) => `/api/v1/rescues/${id}/reviews`,
@@ -50,6 +54,8 @@ export const {
   UPLOAD_IMAGES,
   RESCUE_STATS,
   ADOPTION_METRICS,
+  ADOPTION_POLICIES,
+  UPDATE_ADOPTION_POLICIES,
   RESCUE_REVIEWS,
   ADD_REVIEW,
   FOLLOW_RESCUE,

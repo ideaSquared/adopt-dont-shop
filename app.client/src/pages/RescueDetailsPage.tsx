@@ -13,6 +13,7 @@ import {
 } from 'react-icons/md';
 import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { AdoptionPoliciesDisplay } from '@/components/rescue/AdoptionPoliciesDisplay';
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -527,6 +528,11 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           )}
         </ContactCard>
       </RescueInfo>
+
+      <AdoptionPoliciesDisplay
+        adoptionPolicies={rescue.adoptionPolicies}
+        rescueName={rescue.name}
+      />
 
       <PetsSection>
         <div className='pets-header'>

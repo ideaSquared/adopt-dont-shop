@@ -4,6 +4,7 @@ import { RescueService } from '../services/rescue.service';
 import { InvitationService } from '../services/invitation.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
+import { AdoptionPolicy } from '../types/rescue';
 
 export class RescueController {
   /**
@@ -677,6 +678,95 @@ export class RescueController {
       res.status(500).json({
         success: false,
         message: 'Failed to cancel invitation',
+        error: errorMessage,
+      });
+    }
+  };
+
+  /**
+   * Update adoption policies for a rescue
+   */
+  updateAdoptionPolicies = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { rescueId } = req.params;
+      const adoptionPolicies: AdoptionPolicy = req.body;
+      const updatedBy = req.user!.userId;
+
+      const result = await RescueService.updateAdoptionPolicies(
+        rescueId,
+        adoptionPolicies,
+        updatedBy
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Adoption policies updated successfully',
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Update adoption policies failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage === 'Rescue not found') {
+        return res.status(404).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update adoption policies',
+        error: errorMessage,
+      });
+    }
+  };
+
+  /**
+   * Get adoption policies for a rescue
+   */
+  getAdoptionPolicies = async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { rescueId } = req.params;
+
+      const adoptionPolicies = await RescueService.getAdoptionPolicies(rescueId);
+
+      res.status(200).json({
+        success: true,
+        data: adoptionPolicies,
+      });
+    } catch (error) {
+      logger.error('Get adoption policies failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage === 'Rescue not found') {
+        return res.status(404).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve adoption policies',
         error: errorMessage,
       });
     }

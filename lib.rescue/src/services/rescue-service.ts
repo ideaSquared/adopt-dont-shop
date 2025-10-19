@@ -7,6 +7,7 @@ import {
   Pet,
   RescueServiceConfig,
   RescueLocation,
+  AdoptionPolicy,
 } from '../types';
 
 /**
@@ -39,6 +40,7 @@ const transformRescueFromAPI = (rescue: RescueAPIResponse): Rescue => {
     verifiedAt: rescue.verified_at || rescue.verifiedAt,
     verifiedBy: rescue.verified_by || rescue.verifiedBy,
     settings: rescue.settings,
+    adoptionPolicies: rescue.settings?.adoptionPolicies as AdoptionPolicy | undefined,
     isDeleted: rescue.is_deleted || rescue.isDeleted || false,
     deletedAt: rescue.deleted_at || rescue.deletedAt,
     deletedBy: rescue.deleted_by || rescue.deletedBy,
@@ -269,6 +271,59 @@ export class RescueService {
       }
       // Return empty array on error for featured rescues (non-critical feature)
       return [];
+    }
+  }
+
+  /**
+   * Update adoption policies for a rescue
+   */
+  async updateAdoptionPolicies(rescueId: string, adoptionPolicies: AdoptionPolicy): Promise<AdoptionPolicy> {
+    try {
+      const response = (await this.apiService.put(
+        `${this.baseUrl}/${rescueId}/adoption-policies`,
+        adoptionPolicies
+      )) as {
+        success: boolean;
+        data: AdoptionPolicy;
+        message?: string;
+      };
+
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to update adoption policies');
+      }
+    } catch (error) {
+      if (this.config.debug) {
+        console.error('Failed to update adoption policies:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get adoption policies for a rescue
+   */
+  async getAdoptionPolicies(rescueId: string): Promise<AdoptionPolicy | null> {
+    try {
+      const response = (await this.apiService.get(
+        `${this.baseUrl}/${rescueId}/adoption-policies`
+      )) as {
+        success: boolean;
+        data: AdoptionPolicy | null;
+        message?: string;
+      };
+
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to fetch adoption policies');
+      }
+    } catch (error) {
+      if (this.config.debug) {
+        console.error('Failed to fetch adoption policies:', error);
+      }
+      throw error;
     }
   }
 

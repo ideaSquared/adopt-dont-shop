@@ -145,8 +145,13 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
+    console.log('AdoptionPolicyForm received policy:', policy);
     if (policy) {
+      console.log('Setting form data to:', policy);
       setFormData(policy);
+    } else {
+      console.log('No policy provided, using default');
+      setFormData(DEFAULT_POLICY);
     }
   }, [policy]);
 

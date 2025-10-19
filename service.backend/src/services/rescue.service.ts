@@ -3,6 +3,7 @@ import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import sequelize from '../sequelize';
+import { AdoptionPolicy } from '../types/rescue';
 
 export interface RescueSearchOptions {
   page?: number;
@@ -949,7 +950,7 @@ export class RescueService {
       const { page = 1, limit = 20, search, role } = options;
       const offset = (page - 1) * limit;
 
-      const whereConditions: any = { 
+      const whereConditions: any = {
         rescueId,
         isDeleted: false // Only get active staff members
       };
@@ -1004,6 +1005,114 @@ export class RescueService {
     } catch (error) {
       logger.error('Error getting rescue staff:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Update adoption policies for a rescue
+   */
+  static async updateAdoptionPolicies(
+    rescueId: string,
+    adoptionPolicies: AdoptionPolicy,
+    updatedBy: string
+  ): Promise<AdoptionPolicy> {
+    const startTime = Date.now();
+    const transaction = await Rescue.sequelize!.transaction();
+
+    try {
+      const rescue = await Rescue.findByPk(rescueId, { transaction });
+
+      if (!rescue) {
+        throw new Error('Rescue not found');
+      }
+
+      // Get current settings or initialize empty object
+      const currentSettings = (rescue.settings as any) || {};
+
+      // Update settings with new adoption policies
+      const updatedSettings = {
+        ...currentSettings,
+        adoptionPolicies,
+      };
+
+      await rescue.update({ settings: updatedSettings }, { transaction });
+
+      // Log the action
+      await AuditLogService.log({
+        userId: updatedBy,
+        action: 'update',
+        entity: 'rescue',
+        entityId: rescueId,
+        details: {
+          rescueId,
+          field: 'adoptionPolicies',
+          action: 'updated',
+        },
+      });
+
+      loggerHelpers.logBusiness(
+        'Adoption Policies Updated',
+        {
+          rescueId,
+          updatedBy,
+          duration: Date.now() - startTime,
+        },
+        updatedBy
+      );
+
+      await transaction.commit();
+
+      logger.info(`Updated adoption policies for rescue: ${rescueId}`);
+      return adoptionPolicies;
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error updating adoption policies:', {
+        error: error instanceof Error ? error.message : String(error),
+        rescueId,
+        updatedBy,
+        duration: Date.now() - startTime,
+      });
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to update adoption policies');
+    }
+  }
+
+  /**
+   * Get adoption policies for a rescue
+   */
+  static async getAdoptionPolicies(rescueId: string): Promise<AdoptionPolicy | null> {
+    const startTime = Date.now();
+
+    try {
+      const rescue = await Rescue.findByPk(rescueId);
+
+      if (!rescue) {
+        throw new Error('Rescue not found');
+      }
+
+      const settings = (rescue.settings as any) || {};
+      const adoptionPolicies = settings.adoptionPolicies || null;
+
+      loggerHelpers.logDatabase('READ', {
+        rescueId,
+        field: 'adoptionPolicies',
+        duration: Date.now() - startTime,
+        found: !!adoptionPolicies,
+      });
+
+      return adoptionPolicies;
+    } catch (error) {
+      logger.error('Error getting adoption policies:', {
+        error: error instanceof Error ? error.message : String(error),
+        rescueId,
+        duration: Date.now() - startTime,
+      });
+      if (error instanceof Error && error.message === 'Rescue not found') {
+        throw error;
+      }
+      throw new Error('Failed to retrieve adoption policies');
     }
   }
 }
