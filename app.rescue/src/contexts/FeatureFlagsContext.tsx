@@ -36,7 +36,10 @@ export const FeatureFlagsProvider = ({ children }: FeatureFlagsProviderProps) =>
   useEffect(() => {
     const initializeFeatureFlags = async () => {
       try {
-        // Simplified initialization for now
+        // Initialize feature flags service
+        if (featureFlagsService.initialize) {
+          await featureFlagsService.initialize();
+        }
         console.log('Feature flags service initialized');
       } catch (error) {
         console.error('Failed to initialize feature flags:', error);
@@ -50,11 +53,10 @@ export const FeatureFlagsProvider = ({ children }: FeatureFlagsProviderProps) =>
 
   const isFeatureEnabled = async (flag: string): Promise<boolean> => {
     try {
-      // Simplified implementation for now - return false for safety
-      console.log(`Feature flag ${flag} checked - defaulting to false`);
-      return false;
+      return await featureFlagsService.checkFeature(flag);
     } catch (error) {
       console.error(`Failed to check feature flag ${flag}:`, error);
+      // Return false for safety on error
       return false;
     }
   };
