@@ -1,4 +1,4 @@
-import { ChatService, Conversation } from '@adopt-dont-shop/lib-chat';
+import { ChatService, Conversation, Message } from '@adopt-dont-shop/lib-chat';
 import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
@@ -6,9 +6,14 @@ interface ChatContextType {
   chatService: ChatService;
   conversations: Conversation[];
   activeConversation: Conversation | null;
+  messages: Message[];
   setActiveConversation: (conversation: Conversation | null) => void;
   sendMessage: (content: string, conversationId: string) => Promise<void>;
   isLoading: boolean;
+  error: string | null;
+  typingUsers: string[];
+  startTyping?: (conversationId: string) => void;
+  stopTyping?: (conversationId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -28,9 +33,12 @@ interface ChatProviderProps {
 export const ChatProvider = ({ children }: ChatProviderProps) => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [activeConversation, setActiveConversationState] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [error, setError] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+
   const chatService = useMemo(() => {
     return new ChatService({
       apiUrl: import.meta.env.VITE_API_BASE_URL,
@@ -66,11 +74,45 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     loadConversations();
   }, [chatService, user?.email]);
 
+  // Load messages when active conversation changes
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!activeConversation) {
+        setMessages([]);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const conversationMessages = await chatService.getMessages(activeConversation.id);
+        setMessages(conversationMessages);
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load messages');
+        setMessages([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMessages();
+  }, [activeConversation, chatService]);
+
+  const setActiveConversation = (conversation: Conversation | null) => {
+    setActiveConversationState(conversation);
+    setTypingUsers([]);
+  };
+
   const sendMessage = async (content: string, conversationId: string) => {
     if (!user?.email) return;
 
     try {
       const newMessage = await chatService.sendMessage(conversationId, content);
+
+      // Add message to local state
+      setMessages(prev => [...prev, newMessage]);
 
       // Update conversations with new message
       setConversations(prev =>
@@ -86,14 +128,29 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     }
   };
 
+  const startTyping = (conversationId: string) => {
+    // In a real implementation, this would send a WebSocket event
+    console.log('Start typing in conversation:', conversationId);
+  };
+
+  const stopTyping = (conversationId: string) => {
+    // In a real implementation, this would send a WebSocket event
+    console.log('Stop typing in conversation:', conversationId);
+  };
+
   const value = useMemo(() => ({
     chatService,
     conversations,
     activeConversation,
+    messages,
     setActiveConversation,
     sendMessage,
     isLoading,
-  }), [chatService, conversations, activeConversation, isLoading, sendMessage]);
+    error,
+    typingUsers,
+    startTyping,
+    stopTyping,
+  }), [chatService, conversations, activeConversation, messages, isLoading, error, typingUsers]);
 
   return (
     <ChatContext.Provider value={value}>
