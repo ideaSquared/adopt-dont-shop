@@ -33,7 +33,7 @@ COPY app.rescue/ ./app.rescue/
 COPY lib.components/ ./lib.components/
 
 WORKDIR /app/app.rescue
-EXPOSE 3003
+EXPOSE 3002
 CMD ["npm", "run", "dev"]
 
 # Build stage  

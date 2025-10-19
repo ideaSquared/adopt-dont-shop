@@ -362,74 +362,97 @@ const ErrorMessage = styled.p`
   margin: 0;
 `;
 
-// Helper functions for progress calculation
-const getApplicationProgress = (status: string) => {
-  // Simple 4-step process aligned with simplified statuses
-  // Map status to progress step
-  switch (status) {
-    case 'submitted':
-      return { current: 0, total: 3, status };
-    case 'approved':
-    case 'rejected':
-    case 'withdrawn':
-      return { current: 3, total: 3, status };
-    default:
-      return { current: 0, total: 3, status };
-  }
+// Helper functions for progress calculation - Updated for 5-stage workflow
+const getApplicationProgress = (application: ApplicationListItem) => {
+  // Map the application's stage to progress steps (0-4)
+  const stage = application.stage || 'PENDING';
+
+  const stageToStep: Record<string, number> = {
+    'PENDING': 0,
+    'REVIEWING': 1,
+    'VISITING': 2,
+    'DECIDING': 3,
+    'RESOLVED': 4,
+  };
+
+  return {
+    current: stageToStep[stage] || 0,
+    total: 4,
+    stage,
+    finalOutcome: application.finalOutcome
+  };
 };
 
-const getStepStatus = (stepIndex: number, currentProgress: number, appStatus: string): 'completed' | 'current' | 'pending' => {
-  // For rejected/withdrawn applications, show as current at their final step
-  if (appStatus === 'rejected' || appStatus === 'withdrawn') {
-    if (stepIndex <= currentProgress) return 'current';
+const getStepStatus = (
+  stepIndex: number,
+  currentProgress: number,
+  stage: string,
+  finalOutcome?: string
+): 'completed' | 'current' | 'pending' => {
+  // For resolved applications, check the outcome
+  if (stage === 'RESOLVED') {
+    if (stepIndex < currentProgress) return 'completed';
+    if (stepIndex === currentProgress) {
+      // Show completed for approved, current for others
+      return finalOutcome === 'APPROVED' ? 'completed' : 'current';
+    }
     return 'pending';
   }
-  
-  // For approved applications, show all steps as completed
-  if (appStatus === 'approved') {
-    return 'completed';
-  }
-  
-  // For submitted applications (step 0)
+
+  // For in-progress applications
   if (stepIndex < currentProgress) return 'completed';
   if (stepIndex === currentProgress) return 'current';
   return 'pending';
 };
 
-const getStepLabel = (stepIndex: number, appStatus: string): string => {
+const getStepLabel = (stepIndex: number, stage: string, finalOutcome?: string): string => {
   const labels = [
-    'Submitted',    // Step 0
-    'Reviewing',    // Step 1 
-    'Deciding',     // Step 2
-    'Resolved'      // Step 3
+    'Pending',      // Step 0 - PENDING
+    'Reviewing',    // Step 1 - REVIEWING
+    'Visiting',     // Step 2 - VISITING
+    'Deciding',     // Step 3 - DECIDING
+    'Resolved'      // Step 4 - RESOLVED
   ];
-  
-  // For final states, show the outcome instead of generic "Resolved"
-  if (stepIndex === 3) {
-    switch (appStatus) {
-      case 'approved': return 'Approved';
-      case 'rejected': return 'Rejected';
-      case 'withdrawn': return 'Withdrawn';
+
+  // For resolved stage, show the final outcome
+  if (stepIndex === 4 && stage === 'RESOLVED') {
+    switch (finalOutcome) {
+      case 'APPROVED': return 'Approved';
+      case 'REJECTED': return 'Rejected';
+      case 'WITHDRAWN': return 'Withdrawn';
       default: return 'Resolved';
     }
   }
-  
+
   return labels[stepIndex] || '';
 };
 
-const getActionButtons = (application: ApplicationListItem, onStatusUpdate: (id: string, status: string) => void) => {
+const getActionButtons = (
+  application: ApplicationListItem,
+  onStatusUpdate: (id: string, status: string) => void
+) => {
   const actions = [];
-  
-  switch (application.status) {
-    case 'submitted':
+  const stage = application.stage || 'PENDING';
+
+  // Stage-based actions
+  switch (stage) {
+    case 'PENDING':
       actions.push(
-        { label: 'Approve', action: () => onStatusUpdate(application.id, 'approved'), variant: 'primary' as const },
-        { label: 'Reject', action: () => onStatusUpdate(application.id, 'rejected'), variant: 'danger' as const }
+        { label: 'Start Review', action: () => {}, variant: 'primary' as const }
       );
       break;
-    case 'approved':
-    case 'rejected':
-    case 'withdrawn':
+    case 'REVIEWING':
+      actions.push(
+        { label: 'Schedule Visit', action: () => {}, variant: 'primary' as const }
+      );
+      break;
+    case 'VISITING':
+    case 'DECIDING':
+      actions.push(
+        { label: 'View Details', action: () => {}, variant: 'secondary' as const }
+      );
+      break;
+    case 'RESOLVED':
       actions.push(
         { label: 'View Details', action: () => {}, variant: 'secondary' as const }
       );
@@ -439,8 +462,8 @@ const getActionButtons = (application: ApplicationListItem, onStatusUpdate: (id:
         { label: 'View', action: () => {}, variant: 'secondary' as const }
       );
   }
-  
-  return actions.slice(0, 2); // Limit to 2 actions to prevent overflow
+
+  return actions.slice(0, 2);
 };
 
 interface ApplicationListProps {
@@ -708,20 +731,29 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                     <TableCell>
                       <ProgressIndicators>
                         <ProgressBar>
-                          {[0, 1, 2, 3].map((stepIndex) => {
-                            const progress = getApplicationProgress(application.status);
-                            const stepStatus = getStepStatus(stepIndex, progress.current, application.status);
+                          {[0, 1, 2, 3, 4].map((stepIndex) => {
+                            const progress = getApplicationProgress(application);
+                            const stepStatus = getStepStatus(
+                              stepIndex,
+                              progress.current,
+                              progress.stage,
+                              progress.finalOutcome
+                            );
                             return (
-                              <ProgressStep 
+                              <ProgressStep
                                 key={stepIndex}
                                 $status={stepStatus}
-                                $isLast={stepIndex === 3}
+                                $isLast={stepIndex === 4}
                               />
                             );
                           })}
                         </ProgressBar>
                         <ProgressLabel>
-                          {getStepLabel(getApplicationProgress(application.status).current, application.status)}
+                          {getStepLabel(
+                            getApplicationProgress(application).current,
+                            application.stage,
+                            application.finalOutcome
+                          )}
                         </ProgressLabel>
                       </ProgressIndicators>
                     </TableCell>
