@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
+import { formatDateTime } from '@adopt-dont-shop/lib-utils';
 
 // Timeline Event Types (matching backend)
 export enum TimelineEventType {
@@ -339,7 +339,7 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
             <EventHeader>
               <EventTitle>{event.title}</EventTitle>
               <EventTimestamp>
-                {format(new Date(event.created_at), 'MMM d, h:mm a')}
+                {formatDateTime(new Date(event.created_at))}
               </EventTimestamp>
             </EventHeader>
             

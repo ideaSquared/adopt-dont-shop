@@ -21,8 +21,8 @@ export interface RescueProfile {
 export interface RescueAddress {
   street: string;
   city: string;
-  state: string;
-  zipCode: string;
+  county?: string; // UK: County (optional), was: state
+  postcode: string; // UK: Postcode, was: zipCode
   country: string;
 }
 

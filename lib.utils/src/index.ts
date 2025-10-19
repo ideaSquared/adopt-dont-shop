@@ -6,3 +6,7 @@ export * from './types';
 // Environment configuration utilities
 export * from './env';
 
+
+
+// UK Locale utilities (dates, currency, phone, address formatting)
+export * from './locale';

@@ -9,6 +9,7 @@ import {
   CheckboxInput,
 } from '@adopt-dont-shop/components';
 import type { AdoptionPolicy } from '../../types/rescue';
+import { formatCurrency } from '@adopt-dont-shop/lib-utils';
 
 const FormContainer = styled(Card)`
   padding: 2rem;
@@ -295,7 +296,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
           <FormRow>
             <FormGroup>
               <TextInput
-                label="Minimum Fee ($)"
+                label="Minimum Fee (£)"
                 type="number"
                 min={0}
                 step={0.01}
@@ -307,7 +308,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
 
             <FormGroup>
               <TextInput
-                label="Maximum Fee ($)"
+                label="Maximum Fee (£)"
                 type="number"
                 min={0}
                 step={0.01}

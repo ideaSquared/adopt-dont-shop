@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { Card, Container, Heading, Text } from '@adopt-dont-shop/components';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboardData } from '../hooks';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeDate } from '@adopt-dont-shop/lib-utils';
 
 const DashboardContainer = styled(Container)`
   max-width: none;
@@ -353,7 +353,7 @@ const Dashboard: React.FC = () => {
                       }}
                     >
                       <Text style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>
-                        {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                        {formatRelativeDate(activity.timestamp)}
                       </Text>
                       <Text style={{ fontSize: '0.875rem', lineHeight: 1.4 }}>
                         {activity.message}
@@ -429,7 +429,7 @@ const Dashboard: React.FC = () => {
                       {notification.message}
                     </Text>
                     <Text style={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                      {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
+                      {formatRelativeDate(notification.timestamp)}
                     </Text>
                   </div>
                   {!notification.read && (

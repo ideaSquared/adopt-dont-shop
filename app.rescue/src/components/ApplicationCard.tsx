@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { TimelineWidget } from './TimelineWidget';
 import { useTimelineWidget, useTimelineSummary } from '../hooks/useTimelineWidget';
-import { format } from 'date-fns';
+import { formatDate, formatDateTime } from '@adopt-dont-shop/lib-utils';
 
 interface ApplicationCardProps {
   application: {
@@ -256,7 +256,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
     if (totalEvents === 0) return 'No activity yet';
     
     const lastActivityText = lastActivity 
-      ? format(lastActivity, 'MMM d, h:mm a')
+      ? formatDateTime(lastActivity)
       : 'Unknown';
     
     return hasRecentActivity 
@@ -278,7 +278,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
       </CardHeader>
 
       <MetaInfo>
-        <div>Submitted: {format(new Date(application.submitted_date), 'MMM d, yyyy')}</div>
+        <div>Submitted: {formatDate(new Date(application.submitted_date))}</div>
         <div>•</div>
         <div>Stage: {application.stage}</div>
       </MetaInfo>

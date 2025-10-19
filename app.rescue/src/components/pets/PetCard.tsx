@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Card, Button } from '@adopt-dont-shop/components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib-pets';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeDate } from '@adopt-dont-shop/lib-utils';
 
 const StyledCard = styled(Card)`
   padding: 0;
@@ -337,7 +337,7 @@ const PetCard: React.FC<PetCardProps> = ({
             <div className="detail-item">
               <span className="label">Added:</span>
               <span className="value">
-                {formatDistanceToNow(new Date(pet.created_at))} ago
+                {formatRelativeDate(new Date(pet.created_at)).replace(' ago', '')} ago
               </span>
             </div>
           </PetDetails>

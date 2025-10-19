@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { ApplicationListItem } from '../../types/applications';
 import { ApplicationStage, StageAction, OUTCOME_CONFIG } from '../../types/applicationStages';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeDate } from '@adopt-dont-shop/lib-utils';
 
 interface ApplicationStageCardProps {
   application: ApplicationListItem;
@@ -263,7 +263,7 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
         <MetaInfo>
           <span>
             Submitted {application.submittedAt 
-              ? formatDistanceToNow(new Date(application.submittedAt), { addSuffix: true })
+              ? formatRelativeDate(new Date(application.submittedAt))
               : 'recently'
             }
           </span>

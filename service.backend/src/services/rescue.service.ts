@@ -20,8 +20,8 @@ export interface CreateRescueRequest {
   phone?: string;
   address: string;
   city: string;
-  state: string;
-  zipCode: string;
+  county: string;
+  postcode: string;
   country: string;
   website?: string;
   description?: string;
@@ -119,7 +119,7 @@ export class RescueService {
           ...whereClause,
           [Op.or]: [
             { city: { [Op.iLike]: `%${location}%` } },
-            { state: { [Op.iLike]: `%${location}%` } },
+            { county: { [Op.iLike]: `%${location}%` } },
             { country: { [Op.iLike]: `%${location}%` } },
           ],
         };
@@ -131,7 +131,7 @@ export class RescueService {
             {
               [Op.or]: [
                 { city: { [Op.iLike]: `%${location}%` } },
-                { state: { [Op.iLike]: `%${location}%` } },
+                { county: { [Op.iLike]: `%${location}%` } },
                 { country: { [Op.iLike]: `%${location}%` } },
               ],
             },

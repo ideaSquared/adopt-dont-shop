@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import { RescueController } from '../controllers/rescue.controller';
 import { authenticateToken } from '../middleware/auth';
+import { isUKPostcode, isUKPhoneNumber } from '../utils/uk-validators-middleware';
 import { requirePermission } from '../middleware/rbac';
 
 const router = Router();
@@ -14,17 +15,14 @@ const validateUserId = param('userId').notEmpty().withMessage('User ID is requir
 const validateCreateRescue = [
   body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
+  body('phone').optional().custom(isUKPhoneNumber).withMessage('Valid phone number required'),
   body('address')
     .trim()
     .isLength({ min: 5, max: 255 })
     .withMessage('Address must be 5-255 characters'),
   body('city').trim().isLength({ min: 2, max: 100 }).withMessage('City must be 2-100 characters'),
-  body('state').trim().isLength({ min: 2, max: 100 }).withMessage('State must be 2-100 characters'),
-  body('zipCode')
-    .trim()
-    .isLength({ min: 3, max: 20 })
-    .withMessage('ZIP code must be 3-20 characters'),
+  body('county').optional().trim().isLength({ min: 2, max: 100 }).withMessage('County must be 2-100 characters'),
+  body('postcode').trim().custom(isUKPostcode).withMessage('Please enter a valid UK postcode'),
   body('country')
     .trim()
     .isLength({ min: 2, max: 100 })
@@ -52,7 +50,7 @@ const validateCreateRescue = [
     .isLength({ max: 100 })
     .withMessage('Contact title must be max 100 characters'),
   body('contactEmail').optional().isEmail().withMessage('Valid contact email required'),
-  body('contactPhone').optional().isMobilePhone('any').withMessage('Valid contact phone required'),
+  body('contactPhone').optional().custom(isUKPhoneNumber).withMessage('Valid contact phone required'),
 ];
 
 const validateUpdateRescue = [
@@ -62,7 +60,7 @@ const validateUpdateRescue = [
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be 2-100 characters'),
   body('email').optional().isEmail().withMessage('Valid email is required'),
-  body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
+  body('phone').optional().custom(isUKPhoneNumber).withMessage('Valid phone number required'),
   body('address')
     .optional()
     .trim()
@@ -73,16 +71,16 @@ const validateUpdateRescue = [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('City must be 2-100 characters'),
-  body('state')
+  body('county')
     .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('State must be 2-100 characters'),
-  body('zipCode')
+    .withMessage('County must be 2-100 characters'),
+  body('postcode')
     .optional()
     .trim()
-    .isLength({ min: 3, max: 20 })
-    .withMessage('ZIP code must be 3-20 characters'),
+    .custom(isUKPostcode)
+    .withMessage('Please enter a valid UK postcode'),
   body('country')
     .optional()
     .trim()
@@ -112,7 +110,7 @@ const validateUpdateRescue = [
     .isLength({ max: 100 })
     .withMessage('Contact title must be max 100 characters'),
   body('contactEmail').optional().isEmail().withMessage('Valid contact email required'),
-  body('contactPhone').optional().isMobilePhone('any').withMessage('Valid contact phone required'),
+  body('contactPhone').optional().custom(isUKPhoneNumber).withMessage('Valid contact phone required'),
 ];
 
 const validateSearchQuery = [

@@ -10,6 +10,7 @@ import {
   type SelectOption
 } from '@adopt-dont-shop/components';
 import type { RescueProfile, RescueAddress } from '../../types/rescue';
+import { getPhonePlaceholder, getPostcodePlaceholder } from '@adopt-dont-shop/lib-utils';
 
 const FormContainer = styled(Card)`
   padding: 2rem;
@@ -64,7 +65,7 @@ interface RescueProfileFormProps {
 // SelectOption arrays for dropdowns
 const rescueTypeOptions: SelectOption[] = [
   { value: 'animal_shelter', label: 'Animal Shelter' },
-  { value: 'rescue_organization', label: 'Rescue Organization' },
+  { value: 'rescue_organization', label: 'Rescue Organisation' },
   { value: 'foster_network', label: 'Foster Network' },
   { value: 'breed_specific', label: 'Breed-Specific Rescue' },
   { value: 'sanctuary', label: 'Animal Sanctuary' },
@@ -72,9 +73,10 @@ const rescueTypeOptions: SelectOption[] = [
 ];
 
 const countryOptions: SelectOption[] = [
+  { value: 'United Kingdom', label: 'United Kingdom' },
+  { value: 'Ireland', label: 'Ireland' },
   { value: 'United States', label: 'United States' },
   { value: 'Canada', label: 'Canada' },
-  { value: 'United Kingdom', label: 'United Kingdom' },
   { value: 'Australia', label: 'Australia' },
   { value: 'Other', label: 'Other' },
 ];
@@ -94,9 +96,9 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
     address: {
       street: '',
       city: '',
-      state: '',
-      zipCode: '',
-      country: 'United States',
+      county: '',
+      postcode: '',
+      country: 'United Kingdom',
     },
   });
 
@@ -117,9 +119,9 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
         address: rescue.address || {
           street: '',
           city: '',
-          state: '',
-          zipCode: '',
-          country: 'United States',
+          county: '',
+          postcode: '',
+          country: 'United Kingdom',
         },
       });
     }
@@ -133,7 +135,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    if (field.startsWith('address.')) {
+    if (field.startsWith('')) {
       const addressField = field.split('.')[1] as keyof RescueAddress;
       setFormData(prev => ({
         ...prev,
@@ -184,9 +186,9 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
         address: rescue.address || {
           street: '',
           city: '',
-          state: '',
-          zipCode: '',
-          country: 'United States',
+          county: '',
+          postcode: '',
+          country: 'United Kingdom',
         },
       });
       setHasChanges(false);
@@ -210,7 +212,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 value={formData.name || ''}
                 onChange={(e) => handleChange('name', e.target.value)}
                 required
-                placeholder="Enter rescue organization name"
+                placeholder="Enter rescue organisation name"
                 fullWidth
               />
             </FormGroup>
@@ -235,7 +237,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 value={formData.email || ''}
                 onChange={(e) => handleChange('email', e.target.value)}
                 required
-                placeholder="contact@rescue.org"
+                placeholder="contact@rescue.org.uk"
                 helperText="Primary contact email for your rescue"
                 fullWidth
               />
@@ -249,7 +251,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 onChange={(e) => handleChange('phone', e.target.value)}
                 required
                 placeholder="(555) 123-4567"
-                helperText="Main phone number for inquiries"
+                helperText="Main phone number for enquiries"
                 fullWidth
               />
             </FormGroup>
@@ -262,7 +264,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 type="url"
                 value={formData.website || ''}
                 onChange={(e) => handleChange('website', e.target.value)}
-                placeholder="https://www.rescue.org"
+                placeholder="https://www.rescue.org.uk"
                 fullWidth
               />
             </FormGroup>
@@ -274,7 +276,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 label="Description"
                 value={formData.description || ''}
                 onChange={(e) => handleChange('description', e.target.value)}
-                placeholder="Tell adopters about your rescue organization..."
+                placeholder="Tell adopters about your rescue organisation..."
                 rows={4}
                 helperText="This description will be visible to potential adopters"
                 fullWidth
@@ -290,9 +292,9 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <TextInput
                 label="Street Address *"
                 value={formData.address?.street || ''}
-                onChange={(e) => handleChange('address.street', e.target.value)}
+                onChange={(e) => handleChange('street', e.target.value)}
                 required
-                placeholder="123 Main Street"
+                placeholder="123 High Street"
                 fullWidth
               />
             </FormGroup>
@@ -301,22 +303,21 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
           <FormRow>
             <FormGroup>
               <TextInput
-                label="City *"
+                label="Town/City *"
                 value={formData.address?.city || ''}
-                onChange={(e) => handleChange('address.city', e.target.value)}
+                onChange={(e) => handleChange('city', e.target.value)}
                 required
-                placeholder="City"
+                placeholder="London"
                 fullWidth
               />
             </FormGroup>
 
             <FormGroup>
               <TextInput
-                label="State *"
-                value={formData.address?.state || ''}
-                onChange={(e) => handleChange('address.state', e.target.value)}
-                required
-                placeholder="State"
+                label="County"
+                value={formData.address?.county || ''}
+                onChange={(e) => handleChange('address.county', e.target.value)}
+                placeholder="Greater London"
                 fullWidth
               />
             </FormGroup>
@@ -325,11 +326,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
           <FormRow>
             <FormGroup>
               <TextInput
-                label="ZIP Code *"
-                value={formData.address?.zipCode || ''}
-                onChange={(e) => handleChange('address.zipCode', e.target.value)}
+                label="Postcode *"
+                value={formData.address?.postcode || ''}
+                onChange={(e) => handleChange('address.postcode', e.target.value.toUpperCase())}
                 required
-                placeholder="12345"
+                placeholder="SW1A 1AA"
                 fullWidth
               />
             </FormGroup>
@@ -337,8 +338,8 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
             <FormGroup>
               <SelectInput
                 label="Country *"
-                value={formData.address?.country || 'United States'}
-                onChange={(value) => handleChange('address.country', value)}
+                value={formData.address?.country || 'United Kingdom'}
+                onChange={(value) => handleChange('country', value)}
                 options={countryOptions}
                 required
                 fullWidth

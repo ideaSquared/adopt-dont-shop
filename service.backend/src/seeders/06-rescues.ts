@@ -8,8 +8,8 @@ const rescueOrganizations = [
     phone: '(512) 555-0123',
     address: '1234 Animal Way',
     city: 'Austin',
-    state: 'TX',
-    zipCode: '78701',
+    county: 'TX',
+    postcode: '78701',
     country: 'US',
     website: 'https://www.pawsrescue.dev',
     description:
@@ -39,8 +39,8 @@ const rescueOrganizations = [
     phone: '(305) 555-0456',
     address: '5678 Sunset Boulevard',
     city: 'Miami',
-    state: 'FL',
-    zipCode: '33101',
+    county: 'FL',
+    postcode: '33101',
     country: 'US',
     website: 'https://www.happytailsrescue.dev',
     description:
@@ -71,8 +71,8 @@ const rescueOrganizations = [
     phone: '(503) 555-0789',
     address: '9012 Forest Grove Road',
     city: 'Portland',
-    state: 'OR',
-    zipCode: '97201',
+    county: 'OR',
+    postcode: '97201',
     country: 'US',
     website: 'https://www.furryfriendspdx.dev',
     description:

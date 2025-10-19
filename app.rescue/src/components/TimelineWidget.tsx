@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { TimelineEvent, TimelineEventType } from './ApplicationTimeline';
-import { format } from 'date-fns';
+import { formatDateTime } from '@adopt-dont-shop/lib-utils';
 
 interface TimelineWidgetProps {
   events: TimelineEvent[];
@@ -209,7 +209,7 @@ export const TimelineWidget: React.FC<TimelineWidgetProps> = ({
             <EventInfo>
               <EventTitle>{event.title}</EventTitle>
               <EventTime>
-                {format(new Date(event.created_at), 'MMM d, h:mm a')}
+                {formatDateTime(new Date(event.created_at))}
               </EventTime>
             </EventInfo>
             

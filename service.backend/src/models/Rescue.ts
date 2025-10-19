@@ -8,8 +8,8 @@ interface RescueAttributes {
   phone?: string;
   address: string;
   city: string;
-  state: string;
-  zipCode: string;
+  county?: string; // UK: County (optional), was: state
+  postcode: string; // UK: Postcode, was: zipCode
   country: string;
   website?: string;
   description?: string;
@@ -44,8 +44,8 @@ class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implement
   public phone?: string;
   public address!: string;
   public city!: string;
-  public state!: string;
-  public zipCode!: string;
+  public county?: string; // UK: County (optional)
+  public postcode!: string; // UK: Postcode
   public country!: string;
   public website?: string;
   public description?: string;
@@ -104,19 +104,20 @@ Rescue.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    state: {
+    county: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true, // Optional for UK addresses
+      field: 'state', // Maps to existing 'state' column in database
     },
-    zipCode: {
+    postcode: {
       type: DataTypes.STRING,
       allowNull: false,
-      field: 'zip_code',
+      field: 'zip_code', // Maps to existing 'zip_code' column in database
     },
     country: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: 'US',
+      defaultValue: 'United Kingdom', // Changed from 'US' to UK
     },
     website: {
       type: DataTypes.STRING,
