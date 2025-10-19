@@ -2,7 +2,7 @@
  * Dashboard Service for fetching rescue organization dashboard data
  */
 
-import { apiService } from './libraryServices';
+import { apiService, notificationsService } from './libraryServices';
 import { isDevelopment, getApiBaseUrl } from '../utils/env';
 import { RescueDashboardData, RecentActivity, DashboardNotification } from '../types/dashboard';
 
@@ -57,7 +57,7 @@ export class DashboardService {
         totalPets: totalAnimals,
         successfulAdoptions: recentAdoptions,
         pendingApplications: backendData.pendingApplications || 0,
-        averageRating: 4.8, // TODO: Calculate from reviews when implemented
+        averageRating: backendData.averageRating || 4.8,
         adoptionRate: adoptionRate,
         averageResponseTime: backendData.averageTimeToAdoption || 18, // Use real data when available
         totalApplications: totalApplications,
