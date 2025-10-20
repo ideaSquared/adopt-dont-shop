@@ -9,6 +9,7 @@ import type {
   HomeVisit,
   ApplicationTimeline,
 } from '../types/applications';
+import type { StageAction } from '../types/applicationStages';
 
 export const useApplications = () => {
   const [applicationService] = useState(() => new RescueApplicationService());
@@ -198,6 +199,21 @@ export const useApplicationDetails = (applicationId: string | null) => {
     [applicationService, applicationId, fetchApplicationDetails]
   );
 
+  const transitionStage = useCallback(
+    async (action: StageAction, notes?: string) => {
+      if (!applicationId) return;
+
+      try {
+        await applicationService.transitionStage(applicationId, action.type, notes);
+        await fetchApplicationDetails(); // Refresh data
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to transition application stage');
+        throw err; // Re-throw to allow the modal to handle the error
+      }
+    },
+    [applicationService, applicationId, fetchApplicationDetails]
+  );
+
   useEffect(() => {
     fetchApplicationDetails();
   }, [fetchApplicationDetails]);
@@ -213,6 +229,7 @@ export const useApplicationDetails = (applicationId: string | null) => {
     scheduleHomeVisit,
     updateHomeVisit,
     addTimelineEvent,
+    transitionStage,
     refetch: fetchApplicationDetails,
   };
 };

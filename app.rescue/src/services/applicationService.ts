@@ -245,6 +245,29 @@ export class RescueApplicationService {
   }
 
   /**
+   * Transition application to a new stage using the 5-stage workflow system
+   * @param id Application ID
+   * @param stageAction The stage action to perform (from STAGE_ACTIONS)
+   * @param notes Optional notes about the transition
+   */
+  async transitionStage(id: string, stageAction: string, notes?: string) {
+    try {
+      const response = await this.apiService.post<any>(
+        `/api/v1/applications/${id}/stage-transition`,
+        {
+          action: stageAction,
+          notes,
+          timestamp: new Date().toISOString(),
+        }
+      );
+      return response.data || response; // Extract data field from API response wrapper
+    } catch (error) {
+      console.error(`Failed to transition stage for application ${id}:`, error);
+      throw error; // Re-throw to preserve the specific error message
+    }
+  }
+
+  /**
    * Get application statistics for dashboard
    */
   async getApplicationStats(): Promise<ApplicationStats> {

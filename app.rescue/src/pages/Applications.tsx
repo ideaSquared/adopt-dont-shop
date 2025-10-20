@@ -34,6 +34,7 @@ const Applications: React.FC = () => {
     scheduleHomeVisit,
     updateHomeVisit,
     addTimelineEvent,
+    transitionStage,
     refetch: refetchApplicationDetails
   } = useApplicationDetails(selectedApplication?.id || null);
 
@@ -56,6 +57,15 @@ const Applications: React.FC = () => {
   const handleDetailStatusUpdate = async (status: string, notes?: string) => {
     if (selectedApplication) {
       await updateApplicationStatus(selectedApplication.id, status, notes);
+      // Refresh both the main list and the application details
+      refetch();
+      refetchApplicationDetails();
+    }
+  };
+
+  const handleStageTransition = async (action: any, notes?: string) => {
+    if (selectedApplication) {
+      await transitionStage(action, notes);
       // Refresh both the main list and the application details
       refetch();
       refetchApplicationDetails();
@@ -96,6 +106,7 @@ const Applications: React.FC = () => {
           error={detailsError}
           onClose={handleCloseReview}
           onStatusUpdate={handleDetailStatusUpdate}
+          onStageTransition={handleStageTransition}
           onReferenceUpdate={updateReferenceCheck}
           onScheduleVisit={scheduleHomeVisit}
           onUpdateVisit={updateHomeVisit}

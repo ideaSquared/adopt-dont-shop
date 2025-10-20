@@ -4,6 +4,8 @@ import { formatStatusName } from '../../utils/statusUtils';
 import type { ReferenceCheck, HomeVisit, ApplicationTimeline } from '../../types/applications';
 import { TimelineEventType } from '../../types/applications';
 import { useStaff } from '../../hooks/useStaff';
+import StageTransitionModal from './StageTransitionModal';
+import { ApplicationStage, STAGE_CONFIG, StageAction } from '../../types/applicationStages';
 
 // Styled Components
 const Overlay = styled.div`
@@ -129,7 +131,7 @@ const StatusBadge = styled.span<{ $status: string }>`
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 9999px;
-  
+
   ${props => {
     switch (props.$status) {
       case 'submitted':
@@ -144,6 +146,19 @@ const StatusBadge = styled.span<{ $status: string }>`
         return 'background: #f3f4f6; color: #374151;';
     }
   }}
+`;
+
+const StageBadge = styled.span<{ $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  background: ${props => props.$color};
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
 const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' }>`
@@ -959,6 +974,7 @@ interface ApplicationReviewProps {
   error: string | null;
   onClose: () => void;
   onStatusUpdate: (status: string, notes?: string) => void;
+  onStageTransition: (action: StageAction, notes?: string) => Promise<void>;
   onReferenceUpdate: (referenceId: string, status: string, notes?: string) => void;
   onScheduleVisit: (visitData: {
     scheduledDate: string;
@@ -979,6 +995,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   error,
   onClose,
   onStatusUpdate,
+  onStageTransition,
   onReferenceUpdate,
   onScheduleVisit,
   onUpdateVisit,
@@ -990,16 +1007,19 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [referenceUpdates, setReferenceUpdates] = useState<Record<string, { status: string; notes: string; showForm: boolean }>>({});
-  
+
   // Timeline state
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [newEventType, setNewEventType] = useState(TimelineEventType.NOTE_ADDED);
   const [newEventDescription, setNewEventDescription] = useState('');
   const [isAddingEvent, setIsAddingEvent] = useState(false);
-  
+
   // Local state for optimistic application status updates
   const [localApplicationStatus, setLocalApplicationStatus] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Stage transition state
+  const [showStageTransition, setShowStageTransition] = useState(false);
 
   // Staff data
   const { staff, loading: staffLoading } = useStaff();
@@ -1456,6 +1476,27 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     }
   };
 
+  // Get current stage from application
+  const getCurrentStage = (): ApplicationStage => {
+    return application?.stage || 'PENDING';
+  };
+
+  // Handle stage transition
+  const handleStageTransition = async (action: StageAction, notes?: string) => {
+    try {
+      await onStageTransition(action, notes);
+      setShowStageTransition(false);
+
+      // Refresh the application data
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to transition stage:', error);
+      throw error; // Re-throw to let the modal handle the error display
+    }
+  };
+
   return (
     <Overlay onClick={onClose}>
       <Modal onClick={(e) => e.stopPropagation()}>
@@ -1467,24 +1508,37 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 Application for {application.petName || 'Unknown Pet'}
               </HeaderTitle>
               <HeaderSubtitle>
-                Submitted by {application.applicantName || 
+                Submitted by {application.applicantName ||
                   application.userName ||
                   `${application.data?.personalInfo?.firstName || application.data?.data?.personalInfo?.firstName || 'Unknown'} ${application.data?.personalInfo?.lastName || application.data?.data?.personalInfo?.lastName || ''}`.trim() ||
                   'Unknown Applicant'} • {
-                  application.submittedDaysAgo !== undefined 
+                  application.submittedDaysAgo !== undefined
                     ? (application.submittedDaysAgo === 0 ? 'Today' : `${application.submittedDaysAgo} days ago`)
-                    : application.submittedAt 
+                    : application.submittedAt
                       ? `${Math.floor((new Date().getTime() - new Date(application.submittedAt).getTime()) / (1000 * 60 * 60 * 24))} days ago`
                       : 'Recently'
                 }
               </HeaderSubtitle>
             </HeaderLeft>
             <HeaderRight>
+              {/* Stage Badge - Prominent display */}
+              <StageBadge $color={STAGE_CONFIG[getCurrentStage()]?.color || '#9ca3af'}>
+                {STAGE_CONFIG[getCurrentStage()]?.emoji} {STAGE_CONFIG[getCurrentStage()]?.label || getCurrentStage()}
+              </StageBadge>
+
+              {/* Status Badge - Secondary */}
               <StatusBadge $status={getCurrentStatus()}>
                 {getCurrentStatus() !== 'unknown' ? formatStatusName(getCurrentStatus()) : 'Unknown Status'}
               </StatusBadge>
+
               <Button
                 variant="primary"
+                onClick={() => setShowStageTransition(true)}
+              >
+                Transition Stage
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={toggleStatusUpdate}
               >
                 Update Status
@@ -2368,7 +2422,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               {(() => {
                 const visit = homeVisits.find(v => v.id === viewingVisit);
                 if (!visit) return null;
-                
+
                 return (
                   <>
                     <Field>
@@ -2439,6 +2493,15 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
             </div>
           </VisitDetailsContent>
         </VisitDetailsModal>
+      )}
+
+      {/* Stage Transition Modal */}
+      {showStageTransition && (
+        <StageTransitionModal
+          currentStage={getCurrentStage()}
+          onClose={() => setShowStageTransition(false)}
+          onTransition={handleStageTransition}
+        />
       )}
     </Overlay>
   );
