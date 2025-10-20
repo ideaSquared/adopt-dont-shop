@@ -38,7 +38,7 @@ const EventTitle = styled.h3`
   color: ${props => props.theme.text?.primary || '#111827'};
 `;
 
-const EventType = styled.span<{ $type: EventType }>`
+const EventTypeBadge = styled.span<{ $type: EventType }>`
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.75rem;
@@ -174,9 +174,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
       <EventHeader>
         <div style={{ flex: 1 }}>
           <EventTitle>{event.name}</EventTitle>
-          <EventType $type={event.type}>
+          <EventTypeBadge $type={event.type}>
             {getEventTypeIcon(event.type)} {getEventTypeLabel(event.type)}
-          </EventType>
+          </EventTypeBadge>
         </div>
         <StatusBadge status={event.status} />
       </EventHeader>

@@ -71,7 +71,7 @@ const MobileView = styled.div<{ $showChat: boolean }>`
   }
 `;
 
-export function Communication() {
+function Communication() {
   const { activeConversation } = useChat();
   const [isMobile, setIsMobile] = useState(false);
 
@@ -113,3 +113,5 @@ export function Communication() {
     </PageContainer>
   );
 }
+
+export default Communication;
