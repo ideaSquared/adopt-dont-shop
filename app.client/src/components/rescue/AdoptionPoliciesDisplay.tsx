@@ -62,7 +62,7 @@ const RequirementItem = styled.div`
   .icon {
     width: 20px;
     height: 20px;
-    color: ${props => props.theme.colors.success};
+    color: ${props => props.theme.colors.semantic.success[600]};
     flex-shrink: 0;
     margin-top: 2px;
   }

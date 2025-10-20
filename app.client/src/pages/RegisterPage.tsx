@@ -177,7 +177,7 @@ const registerSchema = z
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^a-zA-Z0-9]/, 'Password must contain at least one special character'),
+      .regex(/[@$!%*?&]/, 'Password must contain at least one special character (@$!%*?&)'),
     confirmPassword: z.string(),
     acceptTerms: z
       .boolean()
@@ -213,7 +213,7 @@ export const RegisterPage: React.FC = () => {
       { text: 'One lowercase letter', valid: /[a-z]/.test(watchPassword) },
       { text: 'One uppercase letter', valid: /[A-Z]/.test(watchPassword) },
       { text: 'One number', valid: /[0-9]/.test(watchPassword) },
-      { text: 'One special character', valid: /[^a-zA-Z0-9]/.test(watchPassword) },
+      { text: 'One special character (@$!%*?&)', valid: /[@$!%*?&]/.test(watchPassword) },
     ];
   };
 

@@ -1,11 +1,13 @@
 export { ApplicationDetailsPage } from './ApplicationDetailsPage';
 export { ApplicationPage } from './ApplicationPage';
 export { FavoritesPage } from './FavoritesPage';
+export { ForgotPasswordPage } from './ForgotPasswordPage';
 export { HomePage } from './HomePage';
 export { LoginPage } from './LoginPage';
 export { NotificationsPage } from './NotificationsPage';
 export { PetDetailsPage } from './PetDetailsPage';
 export { ProfilePage } from './ProfilePage';
 export { RegisterPage } from './RegisterPage';
+export { ResetPasswordPage } from './ResetPasswordPage';
 export { RescueDetailsPage } from './RescueDetailsPage';
 export { SearchPage } from './SearchPage';

@@ -11,12 +11,14 @@ import {
   ApplicationDetailsPage,
   ApplicationPage,
   FavoritesPage,
+  ForgotPasswordPage,
   HomePage,
   LoginPage,
   NotificationsPage,
   PetDetailsPage,
   ProfilePage,
   RegisterPage,
+  ResetPasswordPage,
   RescueDetailsPage,
   SearchPage,
 } from '@/pages';
@@ -57,6 +59,8 @@ function App() {
                         <Route path='/chat/:conversationId' element={<ChatPage />} />
                         <Route path='/login' element={<LoginPage />} />
                         <Route path='/register' element={<RegisterPage />} />
+                        <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+                        <Route path='/reset-password' element={<ResetPasswordPage />} />
                       </Routes>
                     </main>
                     <SwipeFloatingButton />
