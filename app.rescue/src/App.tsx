@@ -14,6 +14,7 @@ import RescueSettings from './pages/RescueSettings';
 import Communication from './pages/Communication';
 import Events from './pages/Events';
 import AcceptInvitation from './pages/AcceptInvitation';
+import Analytics from './pages/Analytics';
 import './App.css';
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
                   <Route path="/settings" element={<RescueSettings />} />
                   <Route path="/communication" element={<Communication />} />
                   <Route path="/events" element={<Events />} />
+                  <Route path="/analytics" element={<Analytics />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>
