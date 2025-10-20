@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';

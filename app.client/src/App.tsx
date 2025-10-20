@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { AuthProvider } from '@/contexts/AuthContext';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
 import { FeatureFlagsProvider } from '@/contexts/FeatureFlagsContext';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
@@ -29,15 +28,16 @@ import { DiscoveryPage } from './components/discovery/DiscoveryPage';
 import { AppNavbar } from './components/navigation/AppNavbar';
 import { SwipeOnboarding } from './components/onboarding/SwipeOnboarding';
 import { SwipeFloatingButton } from './components/ui/SwipeFloatingButton';
+import { AppWithAuth } from './components/AppWithAuth';
 
 function App() {
   const [showOnboarding, setShowOnboarding] = useState(true);
 
   return (
-    <AuthProvider>
-      <PermissionsProvider>
-        <FeatureFlagsProvider>
-          <AnalyticsProvider>
+    <PermissionsProvider>
+      <FeatureFlagsProvider>
+        <AnalyticsProvider>
+          <AppWithAuth>
             <NotificationsProvider>
               <ChatProvider>
                 <FavoritesProvider>
@@ -71,10 +71,10 @@ function App() {
                 </FavoritesProvider>
               </ChatProvider>
             </NotificationsProvider>
-          </AnalyticsProvider>
-        </FeatureFlagsProvider>
-      </PermissionsProvider>
-    </AuthProvider>
+          </AppWithAuth>
+        </AnalyticsProvider>
+      </FeatureFlagsProvider>
+    </PermissionsProvider>
   );
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import AuthPage from './AuthPage';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
+import LoginPage from '../pages/LoginPage';
 import { Text, Card } from '@adopt-dont-shop/components';
 import styled from 'styled-components';
 
@@ -56,7 +56,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Show auth page if not authenticated
   if (!isAuthenticated || !user) {
-    return <AuthPage />;
+    return <LoginPage />;
   }
 
   // Render protected content

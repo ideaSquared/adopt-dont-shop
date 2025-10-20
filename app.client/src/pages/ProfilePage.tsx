@@ -1,5 +1,5 @@
 import { ProfileEditForm, SettingsForm } from '@/components/profile';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { applicationService, authService } from '@/services';
 import { Application, User } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';

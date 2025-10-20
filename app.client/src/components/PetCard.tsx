@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { Pet } from '@/services';

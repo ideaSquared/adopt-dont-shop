@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Card, Container, Heading, Text } from '@adopt-dont-shop/components';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useDashboardData } from '../hooks';
 import { formatRelativeDate } from '@adopt-dont-shop/lib-utils';
 

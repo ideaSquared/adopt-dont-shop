@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { staffService, StaffMember } from '../services/staffService';
 import { NewStaffMember } from '../types/staff';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 
 export const useStaff = () => {
   const [staff, setStaff] = useState<StaffMember[]>([]);

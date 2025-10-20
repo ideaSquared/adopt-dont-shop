@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AppWithAuth } from './components/AppWithAuth';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
 import { StatsigWrapper } from '@/contexts/StatsigContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -23,7 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <StatsigWrapper>
         <QueryClientProvider client={queryClient}>
-          <AuthProvider>
+          <AppWithAuth>
             <PermissionsProvider>
               <ThemeProvider>
                 <BrowserRouter>
@@ -31,7 +31,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 </BrowserRouter>
               </ThemeProvider>
             </PermissionsProvider>
-          </AuthProvider>
+          </AppWithAuth>
         </QueryClientProvider>
       </StatsigWrapper>
     </ErrorBoundary>

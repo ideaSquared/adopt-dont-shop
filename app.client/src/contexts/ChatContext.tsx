@@ -22,7 +22,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 
 interface ChatContextType {
   conversations: Conversation[];

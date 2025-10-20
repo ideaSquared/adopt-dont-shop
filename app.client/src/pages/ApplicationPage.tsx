@@ -1,5 +1,5 @@
 import { ApplicationForm, ApplicationProgress, PetSummary } from '@/components/application';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useStatsig } from '@/hooks/useStatsig';
 import { applicationService, petService } from '@/services';
 import { Application, ApplicationData, Pet } from '@/services';

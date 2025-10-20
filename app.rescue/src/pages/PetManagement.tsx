@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Card, Container, Button, Text, Heading } from '@adopt-dont-shop/components';
 import { Pet, PetStatus, petManagementService } from '@adopt-dont-shop/lib-pets';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { apiService } from '@adopt-dont-shop/lib-api';
 import PetGrid from '../components/pets/PetGrid';
 import PetFilters from '../components/pets/PetFilters.tsx';

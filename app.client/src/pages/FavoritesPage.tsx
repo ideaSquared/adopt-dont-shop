@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { petService } from '@/services';
 import { Pet } from '@/services';
 import { Alert, Container, Spinner } from '@adopt-dont-shop/components';

@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { Message } from '@adopt-dont-shop/lib-chat';
 import styled from 'styled-components';
 import { MessageItemComponent } from './MessageItemComponent';

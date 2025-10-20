@@ -36,8 +36,12 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
+    "@adopt-dont-shop/components": "file:../lib.components",
     "@adopt-dont-shop/lib-api": "file:../lib.api",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "react": "^18.3.1",
+    "styled-components": "^6.1.19",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",
@@ -65,4 +69,3 @@
   },
   "homepage": "https://github.com/ParagonJenko/pet-adoption-react/tree/main/lib.auth#readme"
 }
-

@@ -1,6 +1,6 @@
 import { PetCard } from '@/components/PetCard';
 import { SwipeHero } from '@/components/hero/SwipeHero';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useFeatureFlags } from '@/contexts/FeatureFlagsContext';
 import { useStatsig } from '@/hooks/useStatsig';

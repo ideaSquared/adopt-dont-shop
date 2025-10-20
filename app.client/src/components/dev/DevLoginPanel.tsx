@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { DevPanelComponent } from '@adopt-dont-shop/lib-dev-tools';
 import React from 'react';
 
