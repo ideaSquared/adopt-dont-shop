@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
           '@adopt-dont-shop/lib-applications': resolve(__dirname, '../lib.applications/src'),
           '@adopt-dont-shop/lib-auth': resolve(__dirname, '../lib.auth/src'),
           '@adopt-dont-shop/lib-chat': resolve(__dirname, '../lib.chat/src'),
+          '@adopt-dont-shop/lib-dev-tools': resolve(__dirname, '../lib.dev-tools/src'),
           '@adopt-dont-shop/lib-discovery': resolve(__dirname, '../lib.discovery/src'),
           '@adopt-dont-shop/lib-feature-flags': resolve(__dirname, '../lib.feature-flags/src'),
           '@adopt-dont-shop/lib-notifications': resolve(__dirname, '../lib.notifications/src'),
@@ -33,6 +34,11 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),
+        '@/components': resolve(__dirname, './src/components'),
+        '@/hooks': resolve(__dirname, './src/hooks'),
+        '@/utils': resolve(__dirname, './src/utils'),
+        '@/types': resolve(__dirname, './src/types'),
+        '@/pages': resolve(__dirname, './src/pages'),
         ...libraryAliases,
       },
       dedupe: ['styled-components', 'react', 'react-dom'],
@@ -42,7 +48,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
-      port: 3000, // Changed from 3002 to match Docker mapping
+      port: 3000,
+      watch: {
+        usePolling: true,
+        interval: 100,
+      },
+      hmr: {
+        overlay: true,
+      },
       // Use proxy for local development outside Docker
       proxy: !isDocker
         ? {
@@ -62,6 +75,9 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       sourcemap: true,
+    },
+    define: {
+      'process.env': '{}',
     },
   };
 });
