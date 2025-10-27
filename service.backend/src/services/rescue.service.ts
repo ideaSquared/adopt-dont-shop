@@ -478,6 +478,80 @@ export class RescueService {
   }
 
   /**
+   * Reject a rescue organization
+   */
+  static async rejectRescue(rescueId: string, rejectedBy: string, reason?: string, notes?: string): Promise<Rescue> {
+    const startTime = Date.now();
+
+    const transaction = await Rescue.sequelize!.transaction();
+
+    try {
+      const rescue = await Rescue.findByPk(rescueId, { transaction });
+
+      if (!rescue) {
+        throw new Error('Rescue not found');
+      }
+
+      if (rescue.status === 'verified') {
+        throw new Error('Cannot reject an already verified rescue');
+      }
+
+      if (rescue.status === 'inactive') {
+        throw new Error('Rescue is already rejected');
+      }
+
+      await rescue.update(
+        {
+          status: 'inactive',
+        },
+        { transaction }
+      );
+
+      // Log the action
+      await AuditLogService.log({
+        userId: rejectedBy,
+        action: 'reject',
+        entity: 'rescue',
+        entityId: rescueId,
+        details: {
+          rescueId,
+          name: rescue.name,
+          rejectionReason: reason || null,
+          rejectionNotes: notes || null,
+        },
+      });
+
+      loggerHelpers.logBusiness(
+        'Rescue Rejected',
+        {
+          rescueId,
+          rejectedBy,
+          reason: reason || 'No reason provided',
+          duration: Date.now() - startTime,
+        },
+        rejectedBy
+      );
+
+      await transaction.commit();
+
+      logger.info(`Rejected rescue: ${rescueId}`);
+      return rescue.toJSON() as any;
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error rejecting rescue:', {
+        error: error instanceof Error ? error.message : String(error),
+        rescueId,
+        rejectedBy,
+        duration: Date.now() - startTime,
+      });
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to reject rescue');
+    }
+  }
+
+  /**
    * Add staff member to rescue
    */
   static async addStaffMember(

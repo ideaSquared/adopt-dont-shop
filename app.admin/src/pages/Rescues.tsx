@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
-import { FiSearch, FiCheckCircle, FiXCircle, FiEye, FiMail, FiMapPin } from 'react-icons/fi';
+import { FiSearch, FiCheckCircle, FiXCircle, FiEye, FiMail, FiMapPin, FiAlertCircle } from 'react-icons/fi';
 import { DataTable } from '../components/data';
 import type { Column } from '../components/data';
-import type { AdminRescue } from '../types/admin';
+import type { AdminRescue } from '@/types/rescue';
+import { rescueService } from '@/services/rescueService';
+import {
+  RescueDetailModal,
+  RescueVerificationModal,
+  SendEmailModal,
+} from '@/components/modals';
 
 const PageContainer = styled.div`
   display: flex;
@@ -205,97 +211,39 @@ const StatValue = styled.div`
   color: #111827;
 `;
 
-// Mock data
-const mockRescues: AdminRescue[] = [
-  {
-    rescueId: '1',
-    name: 'Happy Tails Rescue',
-    email: 'info@happytails.org',
-    phoneNumber: '+44 20 1234 5678',
-    address: '123 Main Street',
-    city: 'London',
-    state: 'Greater London',
-    zipCode: 'SW1A 1AA',
-    verificationStatus: 'verified',
-    ein: '12-3456789',
-    website: 'https://happytails.org',
-    description: 'Dedicated to rescuing and rehoming dogs in need',
-    activeListings: 24,
-    staffCount: 8,
-    createdAt: '2024-01-15T10:00:00Z',
-    verifiedAt: '2024-01-20T10:00:00Z'
-  },
-  {
-    rescueId: '2',
-    name: 'Paws & Claws Sanctuary',
-    email: 'contact@pawsclaws.org',
-    phoneNumber: '+44 161 234 5678',
-    address: '456 Oak Avenue',
-    city: 'Manchester',
-    state: 'Greater Manchester',
-    zipCode: 'M1 1AD',
-    verificationStatus: 'pending',
-    website: 'https://pawsclaws.org',
-    description: 'Multi-species rescue focusing on cats and dogs',
-    activeListings: 18,
-    staffCount: 5,
-    createdAt: '2024-10-15T10:00:00Z'
-  },
-  {
-    rescueId: '3',
-    name: 'Rural Rescue Network',
-    email: 'info@ruralrescue.org',
-    phoneNumber: '+44 117 234 5678',
-    address: '789 Country Lane',
-    city: 'Bristol',
-    state: 'Bristol',
-    zipCode: 'BS1 1AA',
-    verificationStatus: 'verified',
-    ein: '98-7654321',
-    website: 'https://ruralrescue.org',
-    description: 'Serving rural communities across the Southwest',
-    activeListings: 42,
-    staffCount: 12,
-    createdAt: '2023-08-10T10:00:00Z',
-    verifiedAt: '2023-08-15T10:00:00Z'
-  },
-  {
-    rescueId: '4',
-    name: 'Citywide Animal Welfare',
-    email: 'admin@citywideanimal.org',
-    phoneNumber: '+44 131 234 5678',
-    address: '321 High Street',
-    city: 'Edinburgh',
-    state: 'Scotland',
-    zipCode: 'EH1 1AA',
-    verificationStatus: 'rejected',
-    website: 'https://citywideanimal.org',
-    description: 'Urban rescue specializing in small breeds',
-    activeListings: 0,
-    staffCount: 3,
-    createdAt: '2024-09-20T10:00:00Z',
-    rejectedAt: '2024-09-25T10:00:00Z',
-    rejectionReason: 'Unable to verify 501(c)(3) status'
+const ErrorMessage = styled.div`
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #991b1b;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  svg {
+    flex-shrink: 0;
   }
-];
+`;
 
 const Rescues: React.FC = () => {
-  const [rescues] = useState<AdminRescue[]>(mockRescues);
-  const [loading] = useState(false);
+  const [rescues, setRescues] = useState<AdminRescue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage] = useState(20);
 
-  // Filter rescues
-  const filteredRescues = rescues.filter(rescue => {
-    const matchesSearch = searchQuery === '' ||
-      rescue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rescue.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rescue.email.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus = statusFilter === 'all' || rescue.verificationStatus === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
+  // Modal states
+  const [selectedRescue, setSelectedRescue] = useState<AdminRescue | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationAction, setVerificationAction] = useState<'approve' | 'reject'>('approve');
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -317,6 +265,69 @@ const Rescues: React.FC = () => {
       month: 'short',
       year: 'numeric'
     });
+  };
+
+  const fetchRescues = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await rescueService.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchQuery || undefined,
+        status: statusFilter !== 'all' ? (statusFilter as 'pending' | 'verified' | 'suspended' | 'inactive') : undefined,
+      });
+
+      setRescues(result.data);
+      setTotalPages(result.pagination.pages);
+      setTotalItems(result.pagination.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch rescues');
+      setRescues([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRescues();
+  }, [currentPage, itemsPerPage, searchQuery, statusFilter]);
+
+  const handleViewDetails = (rescueId: string): void => {
+    const rescue = rescues.find(r => r.rescueId === rescueId);
+    if (rescue) {
+      setSelectedRescue(rescue);
+      setShowDetailModal(true);
+    }
+  };
+
+  const handleApprove = (rescue: AdminRescue): void => {
+    setSelectedRescue(rescue);
+    setVerificationAction('approve');
+    setShowVerificationModal(true);
+  };
+
+  const handleReject = (rescue: AdminRescue): void => {
+    setSelectedRescue(rescue);
+    setVerificationAction('reject');
+    setShowVerificationModal(true);
+  };
+
+  const handleSendEmail = (rescue: AdminRescue): void => {
+    setSelectedRescue(rescue);
+    setShowEmailModal(true);
+  };
+
+  const handleModalClose = (): void => {
+    setShowDetailModal(false);
+    setShowVerificationModal(false);
+    setShowEmailModal(false);
+    setSelectedRescue(null);
+  };
+
+  const handleVerificationSuccess = (): void => {
+    fetchRescues();
   };
 
   const columns: Column<AdminRescue>[] = [
@@ -341,7 +352,7 @@ const Rescues: React.FC = () => {
     {
       id: 'status',
       header: 'Status',
-      accessor: (row) => getStatusBadge(row.verificationStatus),
+      accessor: (row) => getStatusBadge(row.status),
       width: '140px',
       sortable: true
     },
@@ -381,20 +392,34 @@ const Rescues: React.FC = () => {
       header: 'Actions',
       accessor: (row) => (
         <ActionButtons onClick={(e) => e.stopPropagation()}>
-          <IconButton title="View details">
+          <IconButton
+            title="View details"
+            onClick={() => handleViewDetails(row.rescueId)}
+          >
             <FiEye />
           </IconButton>
-          {row.verificationStatus === 'pending' && (
+          {row.status === 'pending' && (
             <>
-              <IconButton title="Approve" style={{ color: '#10b981', borderColor: '#10b981' }}>
+              <IconButton
+                title="Approve"
+                style={{ color: '#10b981', borderColor: '#10b981' }}
+                onClick={() => handleApprove(row)}
+              >
                 <FiCheckCircle />
               </IconButton>
-              <IconButton title="Reject" style={{ color: '#ef4444', borderColor: '#ef4444' }}>
+              <IconButton
+                title="Reject"
+                style={{ color: '#ef4444', borderColor: '#ef4444' }}
+                onClick={() => handleReject(row)}
+              >
                 <FiXCircle />
               </IconButton>
             </>
           )}
-          <IconButton title="Send email">
+          <IconButton
+            title="Send email"
+            onClick={() => handleSendEmail(row)}
+          >
             <FiMail />
           </IconButton>
         </ActionButtons>
@@ -417,6 +442,13 @@ const Rescues: React.FC = () => {
           </Button>
         </HeaderActions>
       </PageHeader>
+
+      {error && (
+        <ErrorMessage>
+          <FiAlertCircle />
+          {error}
+        </ErrorMessage>
+      )}
 
       <FilterBar>
         <SearchInputWrapper>
@@ -442,12 +474,37 @@ const Rescues: React.FC = () => {
 
       <DataTable
         columns={columns}
-        data={filteredRescues}
+        data={rescues}
         loading={loading}
         emptyMessage="No rescue organizations found matching your criteria"
-        onRowClick={(rescue) => console.log('View rescue:', rescue)}
+        onRowClick={(rescue) => handleViewDetails(rescue.rescueId)}
         getRowId={(rescue) => rescue.rescueId}
       />
+
+      {showDetailModal && selectedRescue && (
+        <RescueDetailModal
+          rescueId={selectedRescue.rescueId}
+          onClose={handleModalClose}
+          onUpdate={fetchRescues}
+        />
+      )}
+
+      {showVerificationModal && selectedRescue && (
+        <RescueVerificationModal
+          rescue={selectedRescue}
+          action={verificationAction}
+          onClose={handleModalClose}
+          onSuccess={handleVerificationSuccess}
+        />
+      )}
+
+      {showEmailModal && selectedRescue && (
+        <SendEmailModal
+          rescue={selectedRescue}
+          onClose={handleModalClose}
+          onSuccess={() => {}}
+        />
+      )}
     </PageContainer>
   );
 };
