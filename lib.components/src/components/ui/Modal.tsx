@@ -265,22 +265,29 @@ export const Modal: React.FC<ModalProps> = ({
     [closeOnEscape, onClose]
   );
 
+  // Track if this is the first time the modal is opening
+  const isInitialOpen = useRef(false);
+
   useEffect(() => {
     if (isOpen) {
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
 
-      // Focus the first focusable element in the modal
-      setTimeout(() => {
-        if (modalRef.current) {
-          const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          );
-          if (focusable.length > 0) {
-            focusable[0].focus();
+      // Only focus the first focusable element when initially opening the modal
+      // Not on subsequent re-renders
+      if (!isInitialOpen.current) {
+        isInitialOpen.current = true;
+        setTimeout(() => {
+          if (modalRef.current) {
+            const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusable.length > 0) {
+              focusable[0].focus();
+            }
           }
-        }
-      }, 0);
+        }, 0);
+      }
 
       if (closeOnEscape) {
         document.addEventListener('keydown', handleEscape);
@@ -292,6 +299,9 @@ export const Modal: React.FC<ModalProps> = ({
           document.removeEventListener('keydown', handleEscape);
         }
       };
+    } else {
+      // Reset the flag when modal closes
+      isInitialOpen.current = false;
     }
   }, [isOpen, closeOnEscape, handleEscape]);
 

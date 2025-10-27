@@ -249,9 +249,10 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
         {success && <SuccessMessage>Support ticket created successfully!</SuccessMessage>}
 
         <FormGroup>
-          <Label htmlFor="subject">Subject</Label>
+          <Label htmlFor="ticket-subject">Subject</Label>
           <Input
-            id="subject"
+            key="subject-input"
+            id="ticket-subject"
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -262,9 +263,10 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
         </FormGroup>
 
         <FormGroup>
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="ticket-description">Description</Label>
           <TextArea
-            id="description"
+            key="description-textarea"
+            id="ticket-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the issue or request..."
