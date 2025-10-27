@@ -365,7 +365,7 @@ const Analytics: React.FC = () => {
               </Select>
             </FilterGroup>
           </FilterBar>
-          <Button variant="outline" size="medium">
+          <Button variant="outline" size="md">
             <FiDownload style={{ marginRight: '0.5rem' }} />
             Export Report
           </Button>

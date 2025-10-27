@@ -449,7 +449,7 @@ const Reports: React.FC = () => {
                 <div style={{ marginTop: '1rem' }}>
                   <GenerateButton
                     variant="primary"
-                    size="small"
+                    size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('Generate report:', report.id);
@@ -468,7 +468,7 @@ const Reports: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Scheduled Reports</CardTitle>
-          <Button variant="outline" size="small">
+          <Button variant="outline" size="sm">
             <FiCalendar style={{ marginRight: '0.5rem' }} />
             Add Schedule
           </Button>
@@ -495,7 +495,7 @@ const Reports: React.FC = () => {
                   </Badge>
                   <Button
                     variant="outline"
-                    size="small"
+                    size="sm"
                     onClick={() => console.log('Edit schedule:', report.id)}
                   >
                     Edit

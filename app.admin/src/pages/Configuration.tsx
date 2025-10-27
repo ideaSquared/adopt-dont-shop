@@ -376,11 +376,11 @@ const Configuration: React.FC = () => {
           <Text>Manage feature flags and platform settings</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant="outline" size="medium">
+          <Button variant="outline" size="md">
             <FiRefreshCw style={{ marginRight: '0.5rem' }} />
             Reload Config
           </Button>
-          <Button variant="primary" size="medium">
+          <Button variant="primary" size="md">
             <FiSave style={{ marginRight: '0.5rem' }} />
             Save All
           </Button>

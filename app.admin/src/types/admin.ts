@@ -145,6 +145,27 @@ export interface TicketMessage {
   attachments?: string[];
 }
 
+// Message Thread Types (for Messages page)
+export interface MessageThread {
+  threadId: string;
+  subject: string;
+  participants: {
+    userId: string;
+    name: string;
+    userType: string;
+  }[];
+  lastMessage: string;
+  lastMessageAt?: string; // Optional since lastActivity is often used instead
+  lastActivity: string;
+  messageCount: number;
+  unreadCount: number;
+  status: 'active' | 'flagged' | 'archived';
+  flagged: boolean;
+  flagReason?: string;
+  flagSeverity?: 'low' | 'medium' | 'high';
+  createdAt: string;
+}
+
 export interface TicketUpdatePayload {
   status?: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed';
   priority?: 'low' | 'medium' | 'high' | 'urgent';

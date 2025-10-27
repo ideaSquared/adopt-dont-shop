@@ -32,6 +32,9 @@ import rescueRoutes from './routes/rescue.routes';
 import invitationRoutes from './routes/invitation.routes';
 import searchRoutes from './routes/search.routes';
 import staffRoutes from './routes/staff.routes';
+import supportTicketRoutes from './routes/supportTicket.routes';
+import userSupportRoutes from './routes/userSupport.routes';
+import moderationRoutes from './routes/moderation.routes';
 import userRoutes from './routes/user.routes';
 
 // Import additional routes for PRD compliance
@@ -175,6 +178,9 @@ app.use('/api/v1/rescues', rescueRoutes);
 app.use('/api/v1/invitations', invitationRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/staff', staffRoutes);
+app.use('/api/v1/support', userSupportRoutes); // User-facing support tickets
+app.use('/api/v1/admin/support', supportTicketRoutes); // Admin support ticket management
+app.use('/api/v1/admin/moderation', moderationRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/features', featureRoutes);
 app.use('/api/v1/config', configRoutes);

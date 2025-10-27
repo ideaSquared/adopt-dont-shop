@@ -25,6 +25,10 @@ import { seedEmilyConversation4 } from './21-emily-conversation-4';
 import { seedHomeVisits } from './22-home-visits';
 import { seedApplicationTimeline } from './23-application-timeline';
 import { seedInvitations } from './24-invitations';
+import { seedSupportTickets } from './25-support-tickets';
+import { seedReports } from './26-reports';
+import { seedModeratorActions } from './27-moderator-actions';
+import { seedUserSanctions } from './28-user-sanctions';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -35,6 +39,10 @@ const seeders = [
   { name: 'Rescues', seeder: seedRescues },
   { name: 'Staff Members', seeder: seedStaffMembers },
   { name: 'Invitations', seeder: seedInvitations },
+  { name: 'Support Tickets', seeder: seedSupportTickets },
+  { name: 'Reports', seeder: seedReports },
+  { name: 'Moderator Actions', seeder: seedModeratorActions },
+  { name: 'User Sanctions', seeder: seedUserSanctions },
   { name: 'Feature Flags', seeder: seedFeatureFlags },
   { name: 'Pets', seeder: seedPets },
   { name: 'Applications', seeder: seedApplications },
@@ -103,6 +111,10 @@ export async function clearAllData() {
       'notifications',
       'ratings',
       'home_visits',
+      'user_sanctions',
+      'moderator_actions',
+      'reports',
+      'support_tickets',
       'invitations',
       'staff_members',
       'applications',

@@ -938,7 +938,7 @@ class AdminService {
       const activeUsers = await User.count({ where: { status: 'active' } });
       const verifiedRescues = await Rescue.count({ where: { status: 'verified' } });
       const availablePets = await Pet.count({ where: { status: 'available' } });
-      const pendingApplications = await Application.count({ where: { status: 'pending' } });
+      const pendingApplications = await Application.count({ where: { stage: 'pending' } });
       const recentActivity = await AuditLog.findAll({
         order: [['createdAt', 'DESC']],
         limit: 10,

@@ -4,7 +4,15 @@ import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
 import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail, FiShield } from 'react-icons/fi';
 import { DataTable } from '../components/data';
 import type { Column } from '../components/data';
-import type { AdminUser } from '../types/admin';
+import { useUsers, useSuspendUser, useUnsuspendUser, useVerifyUser, useDeleteUser } from '../hooks';
+import type { AdminUser } from '../services/libraryServices';
+import { apiService } from '../services/libraryServices';
+import {
+  UserDetailModal,
+  EditUserModal,
+  CreateSupportTicketModal,
+  UserActionsMenu,
+} from '../components/modals';
 
 const PageContainer = styled.div`
   display: flex;
@@ -196,75 +204,145 @@ const IconButton = styled.button`
   }
 `;
 
-// Mock data - will be replaced with API calls
-const mockUsers: AdminUser[] = [
-  {
-    userId: '1',
-    email: 'john.admin@example.com',
-    firstName: 'John',
-    lastName: 'Administrator',
-    userType: 'admin',
-    status: 'active',
-    emailVerified: true,
-    createdAt: '2024-01-15T10:00:00Z',
-    lastLogin: '2024-10-20T14:30:00Z'
-  },
-  {
-    userId: '2',
-    email: 'sarah.mod@example.com',
-    firstName: 'Sarah',
-    lastName: 'Moderator',
-    userType: 'moderator',
-    status: 'active',
-    emailVerified: true,
-    createdAt: '2024-02-20T10:00:00Z',
-    lastLogin: '2024-10-19T09:15:00Z'
-  },
-  {
-    userId: '3',
-    email: 'rescue.staff@happytails.com',
-    firstName: 'Mike',
-    lastName: 'Thompson',
-    userType: 'rescue_staff',
-    status: 'active',
-    emailVerified: true,
-    rescueId: 'rescue-1',
-    rescueName: 'Happy Tails Rescue',
-    createdAt: '2024-03-10T10:00:00Z'
-  },
-  {
-    userId: '4',
-    email: 'adopter@example.com',
-    firstName: 'Emma',
-    lastName: 'Wilson',
-    userType: 'adopter',
-    status: 'active',
-    emailVerified: true,
-    phoneNumber: '+44 7700 900123',
-    createdAt: '2024-04-05T10:00:00Z',
-    lastLogin: '2024-10-21T08:00:00Z'
-  },
-  {
-    userId: '5',
-    email: 'pending@example.com',
-    firstName: 'David',
-    lastName: 'Pending',
-    userType: 'adopter',
-    status: 'pending',
-    emailVerified: false,
-    createdAt: '2024-10-20T16:00:00Z'
-  }
-];
-
 const Users: React.FC = () => {
-  const [users] = useState<AdminUser[]>(mockUsers);
-  const [loading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Modal state
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+
+  const { data, isLoading, error, refetch } = useUsers({
+    search: searchQuery,
+    userType: userTypeFilter !== 'all' ? userTypeFilter as any : undefined,
+    status: statusFilter !== 'all' ? statusFilter as any : undefined,
+    page: 1,
+    limit: 20,
+  });
+
+  const suspendUser = useSuspendUser();
+  const unsuspendUser = useUnsuspendUser();
+  const verifyUser = useVerifyUser();
+  const deleteUser = useDeleteUser();
+
+  // Handler functions
+  const handleRowClick = (user: AdminUser) => {
+    setSelectedUser(user);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleEditUser = (user: AdminUser) => {
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveUser = async (userId: string, updates: Partial<AdminUser>) => {
+    try {
+      await apiService.patch(`/api/v1/admin/users/${userId}`, updates);
+      await refetch();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to update user');
+    }
+  };
+
+  const handleMessageUser = (user: AdminUser) => {
+    setSelectedUser(user);
+    setIsMessageModalOpen(true);
+  };
+
+  const handleCreateSupportTicket = async (ticketData: {
+    customerId: string;
+    customerEmail: string;
+    customerName: string;
+    subject: string;
+    description: string;
+    category: string;
+    priority: string;
+  }) => {
+    try {
+      // Transform field names from frontend to backend
+      const backendTicketData = {
+        userId: ticketData.customerId,
+        userEmail: ticketData.customerEmail,
+        userName: ticketData.customerName,
+        subject: ticketData.subject,
+        description: ticketData.description,
+        category: ticketData.category,
+        priority: ticketData.priority,
+      };
+
+      await apiService.post('/api/v1/admin/support/tickets', backendTicketData);
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to create support ticket');
+    }
+  };
+
+  const handleSuspendUser = async (userId: string, reason?: string) => {
+    try {
+      await suspendUser.mutateAsync({ userId, reason });
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to suspend user');
+    }
+  };
+
+  const handleUnsuspendUser = async (userId: string) => {
+    try {
+      await unsuspendUser.mutateAsync(userId);
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to unsuspend user');
+    }
+  };
+
+  const handleVerifyUser = async (userId: string) => {
+    try {
+      await verifyUser.mutateAsync(userId);
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to verify user');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, reason?: string) => {
+    try {
+      await deleteUser.mutateAsync({ userId, reason });
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to delete user');
+    }
+  };
+
+  if (error) {
+    return (
+      <PageContainer>
+        <PageHeader>
+          <HeaderLeft>
+            <Heading level="h1">User Management</Heading>
+          </HeaderLeft>
+        </PageHeader>
+        <div style={{
+          background: '#fee2e2',
+          border: '1px solid #fecaca',
+          borderRadius: '12px',
+          padding: '2rem',
+          textAlign: 'center',
+          color: '#991b1b'
+        }}>
+          <p style={{ margin: '0 0 1rem 0', fontWeight: 600 }}>
+            Failed to load users
+          </p>
+          <p style={{ margin: '0', fontSize: '0.875rem' }}>
+            {(error as Error).message}
+          </p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const users = data?.users || [];
+
   // Filter users based on search and filters
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = (users || []).filter(user => {
     const matchesSearch = searchQuery === '' ||
       user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -368,15 +446,25 @@ const Users: React.FC = () => {
       header: 'Actions',
       accessor: (row) => (
         <ActionButtons onClick={(e) => e.stopPropagation()}>
-          <IconButton title="Edit user">
+          <IconButton
+            title="Edit user"
+            onClick={() => handleEditUser(row)}
+          >
             <FiEdit2 />
           </IconButton>
-          <IconButton title="Send email">
+          <IconButton
+            title="Send message"
+            onClick={() => handleMessageUser(row)}
+          >
             <FiMail />
           </IconButton>
-          <IconButton title="Manage permissions">
-            <FiShield />
-          </IconButton>
+          <UserActionsMenu
+            user={row}
+            onSuspend={handleSuspendUser}
+            onUnsuspend={handleUnsuspendUser}
+            onVerify={handleVerifyUser}
+            onDelete={handleDeleteUser}
+          />
         </ActionButtons>
       ),
       width: '140px',
@@ -392,11 +480,11 @@ const Users: React.FC = () => {
           <Text>Manage all platform users and permissions</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant="outline" size="medium">
+          <Button variant="outline" size="md">
             <FiFilter style={{ marginRight: '0.5rem' }} />
             Export
           </Button>
-          <Button variant="primary" size="medium">
+          <Button variant="primary" size="md">
             <FiUserPlus style={{ marginRight: '0.5rem' }} />
             Add User
           </Button>
@@ -438,11 +526,32 @@ const Users: React.FC = () => {
 
       <DataTable
         columns={columns}
-        data={filteredUsers}
-        loading={loading}
+        data={users}
+        loading={isLoading}
         emptyMessage="No users found matching your criteria"
-        onRowClick={(user) => console.log('View user:', user)}
+        onRowClick={handleRowClick}
         getRowId={(user) => user.userId}
+      />
+
+      {/* Modals */}
+      <UserDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        user={selectedUser}
+      />
+
+      <EditUserModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        user={selectedUser}
+        onSave={handleSaveUser}
+      />
+
+      <CreateSupportTicketModal
+        isOpen={isMessageModalOpen}
+        onClose={() => setIsMessageModalOpen(false)}
+        user={selectedUser}
+        onCreate={handleCreateSupportTicket}
       />
     </PageContainer>
   );

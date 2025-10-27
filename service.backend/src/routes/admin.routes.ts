@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Apply authentication and admin role requirement to all admin routes
 router.use(authenticateToken);
-router.use(requireRole(['ADMIN', 'SUPER_ADMIN']));
+router.use(requireRole(['admin', 'super_admin']));
 
 // Platform metrics and dashboard
 
@@ -990,6 +990,7 @@ router.get('/users/:userId', generalLimiter, AdminController.getUserDetails);
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.patch('/users/:userId/action', authLimiter, AdminController.performUserAction);
+router.patch('/users/:userId', authLimiter, AdminController.updateUserProfile);
 
 // Rescue organization management
 

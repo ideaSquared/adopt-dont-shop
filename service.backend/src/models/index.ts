@@ -32,6 +32,10 @@ import StaffMember from './StaffMember';
 // Content Moderation Models
 import ModeratorAction from './ModeratorAction';
 import Report from './Report';
+import UserSanction from './UserSanction';
+
+// Support System Models
+import SupportTicket from './SupportTicket';
 
 // Email Models
 import EmailPreference from './EmailPreference';
@@ -67,6 +71,8 @@ const models = {
   Invitation,
   ModeratorAction,
   Report,
+  UserSanction,
+  SupportTicket,
   EmailTemplate,
   EmailQueue,
   EmailPreference,
@@ -198,6 +204,29 @@ ModeratorAction.belongsTo(User, { foreignKey: 'targetUserId', as: 'TargetUser' }
 Report.hasMany(ModeratorAction, { foreignKey: 'reportId', as: 'Actions' });
 ModeratorAction.belongsTo(Report, { foreignKey: 'reportId', as: 'Report' });
 
+// UserSanction associations
+User.hasMany(UserSanction, { foreignKey: 'userId', as: 'ReceivedSanctions' });
+UserSanction.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+
+User.hasMany(UserSanction, { foreignKey: 'issuedBy', as: 'IssuedSanctions' });
+UserSanction.belongsTo(User, { foreignKey: 'issuedBy', as: 'Issuer' });
+
+Report.hasMany(UserSanction, { foreignKey: 'reportId', as: 'Sanctions' });
+UserSanction.belongsTo(Report, { foreignKey: 'reportId', as: 'Report' });
+
+ModeratorAction.hasMany(UserSanction, { foreignKey: 'moderatorActionId', as: 'Sanctions' });
+UserSanction.belongsTo(ModeratorAction, {
+  foreignKey: 'moderatorActionId',
+  as: 'ModeratorAction',
+});
+
+// SupportTicket associations
+User.hasMany(SupportTicket, { foreignKey: 'userId', as: 'SupportTickets' });
+SupportTicket.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+
+User.hasMany(SupportTicket, { foreignKey: 'assignedTo', as: 'AssignedTickets' });
+SupportTicket.belongsTo(User, { foreignKey: 'assignedTo', as: 'AssignedAgent' });
+
 // Email Service associations
 User.hasMany(EmailTemplate, { foreignKey: 'createdBy', as: 'CreatedEmailTemplates' });
 EmailTemplate.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
@@ -270,11 +299,13 @@ export {
   Role,
   RolePermission,
   StaffMember,
+  SupportTicket,
   SwipeAction,
   SwipeSession,
   User,
   UserFavorite,
   UserRole,
+  UserSanction,
 };
 
 export default models;

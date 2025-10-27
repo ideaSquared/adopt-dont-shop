@@ -412,7 +412,7 @@ const Rescues: React.FC = () => {
           <Text>Manage rescue organizations and verification status</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant="outline" size="medium">
+          <Button variant="outline" size="md">
             Export Data
           </Button>
         </HeaderActions>

@@ -403,7 +403,7 @@ const Audit: React.FC = () => {
           <Text>System activity tracking and security monitoring</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant="outline" size="medium">
+          <Button variant="outline" size="md">
             <FiDownload style={{ marginRight: '0.5rem' }} />
             Export Logs
           </Button>

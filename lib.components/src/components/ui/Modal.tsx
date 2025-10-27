@@ -189,6 +189,9 @@ const ModalFooter = styled.div`
 
 const CloseButton = styled.button`
   display: flex;
+  position: absolute;
+  top: ${({ theme }) => theme.spacing[4]};
+  right: ${({ theme }) => theme.spacing[4]};
   align-items: center;
   justify-content: center;
   width: 32px;
@@ -197,6 +200,7 @@ const CloseButton = styled.button`
   border: none;
   background: transparent;
   color: ${({ theme }) => theme.text.tertiary};
+  z-index: 10;
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.fast};
 
