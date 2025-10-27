@@ -3,6 +3,7 @@ import { body, param, query } from 'express-validator';
 import { NotificationController } from '../controllers/notification.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
+import { PERMISSIONS } from '../types/rbac';
 
 const router = Router();
 const notificationController = new NotificationController();
@@ -714,20 +715,20 @@ router.delete(
 router.post(
   '/',
   validateCreateNotification,
-  requirePermission('NOTIFICATION_MANAGEMENT'),
+  requirePermission(PERMISSIONS.NOTIFICATION_CREATE),
   notificationController.createNotification
 );
 
 router.post(
   '/bulk',
   validateBulkNotification,
-  requirePermission('ADMIN_NOTIFICATION_MANAGEMENT'),
+  requirePermission(PERMISSIONS.NOTIFICATION_BULK_CREATE),
   notificationController.createBulkNotifications
 );
 
 router.post(
   '/cleanup',
-  requirePermission('ADMIN_NOTIFICATION_MANAGEMENT'),
+  requirePermission(PERMISSIONS.NOTIFICATION_CLEANUP),
   notificationController.cleanupExpiredNotifications
 );
 

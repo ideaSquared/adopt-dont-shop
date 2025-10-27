@@ -1,10 +1,12 @@
 import express from 'express';
 import { ChatController } from '../controllers/chat.controller';
-import { authenticateToken, requireRole } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
 import { chatAttachmentUpload } from '../services/file-upload.service';
 import { chatValidation } from '../validation/chat.validation';
+import { PERMISSIONS } from '../types/rbac';
 
 const router = express.Router();
 
@@ -904,7 +906,7 @@ router.delete(
  */
 router.get(
   '/analytics',
-  requireRole(['admin', 'moderator']),
+  requirePermission(PERMISSIONS.CHAT_ANALYTICS_READ),
   generalLimiter,
   ChatController.getChatAnalytics
 );

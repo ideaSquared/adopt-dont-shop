@@ -1,6 +1,8 @@
 import express from 'express';
 import { UserSupportController } from '../controllers/userSupport.controller';
 import { authenticateToken } from '../middleware/auth';
+import { requirePermission } from '../middleware/rbac';
+import { PERMISSIONS } from '../types/rbac';
 import { generalLimiter } from '../middleware/rate-limiter';
 
 const router = express.Router();
@@ -48,7 +50,12 @@ router.use(authenticateToken);
  *       401:
  *         description: Unauthorized
  */
-router.post('/tickets', generalLimiter, UserSupportController.createMyTicket);
+router.post(
+  '/tickets',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_MANAGE_OWN),
+  generalLimiter,
+  UserSupportController.createMyTicket
+);
 
 /**
  * @swagger
@@ -80,7 +87,12 @@ router.post('/tickets', generalLimiter, UserSupportController.createMyTicket);
  *       401:
  *         description: Unauthorized
  */
-router.get('/my-tickets', generalLimiter, UserSupportController.getMyTickets);
+router.get(
+  '/my-tickets',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_MANAGE_OWN),
+  generalLimiter,
+  UserSupportController.getMyTickets
+);
 
 /**
  * @swagger
@@ -104,7 +116,12 @@ router.get('/my-tickets', generalLimiter, UserSupportController.getMyTickets);
  *       404:
  *         description: Ticket not found
  */
-router.get('/tickets/:ticketId', generalLimiter, UserSupportController.getMyTicket);
+router.get(
+  '/tickets/:ticketId',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_MANAGE_OWN),
+  generalLimiter,
+  UserSupportController.getMyTicket
+);
 
 /**
  * @swagger
@@ -140,7 +157,12 @@ router.get('/tickets/:ticketId', generalLimiter, UserSupportController.getMyTick
  *       404:
  *         description: Ticket not found
  */
-router.post('/tickets/:ticketId/reply', generalLimiter, UserSupportController.replyToMyTicket);
+router.post(
+  '/tickets/:ticketId/reply',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_MANAGE_OWN),
+  generalLimiter,
+  UserSupportController.replyToMyTicket
+);
 
 /**
  * @swagger
@@ -164,6 +186,11 @@ router.post('/tickets/:ticketId/reply', generalLimiter, UserSupportController.re
  *       404:
  *         description: Ticket not found
  */
-router.get('/tickets/:ticketId/messages', generalLimiter, UserSupportController.getMyTicketMessages);
+router.get(
+  '/tickets/:ticketId/messages',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_MANAGE_OWN),
+  generalLimiter,
+  UserSupportController.getMyTicketMessages
+);
 
 export default router;

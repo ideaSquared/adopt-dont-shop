@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import UserController, { userValidation } from '../controllers/user.controller';
 import { authenticateToken } from '../middleware/auth';
-import { requireAdmin, requirePermissionOrOwnership } from '../middleware/rbac';
+import { requirePermission, requirePermissionOrOwnership } from '../middleware/rbac';
 import { PERMISSIONS } from '../types';
 
 const router = Router();
@@ -846,7 +846,12 @@ router.delete('/account', UserController.deleteAccount);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/search', requireAdmin, userValidation.searchUsers, UserController.searchUsers);
+router.get(
+  '/search',
+  requirePermission(PERMISSIONS.ADMIN_USER_SEARCH),
+  userValidation.searchUsers,
+  UserController.searchUsers
+);
 
 /**
  * @swagger
@@ -955,7 +960,11 @@ router.get('/search', requireAdmin, userValidation.searchUsers, UserController.s
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/statistics', requireAdmin, UserController.getUserStats);
+router.get(
+  '/statistics',
+  requirePermission(PERMISSIONS.ADMIN_USER_READ),
+  UserController.getUserStats
+);
 
 /**
  * @swagger
@@ -1416,7 +1425,12 @@ router.get(
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.put('/:userId/role', requireAdmin, userValidation.updateRole, UserController.updateUserRole);
+router.put(
+  '/:userId/role',
+  requirePermission(PERMISSIONS.ADMIN_USER_ROLE_UPDATE),
+  userValidation.updateRole,
+  UserController.updateUserRole
+);
 
 /**
  * @swagger
@@ -1552,7 +1566,11 @@ router.put('/:userId/role', requireAdmin, userValidation.updateRole, UserControl
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.post('/:userId/deactivate', requireAdmin, UserController.deactivateUser);
+router.post(
+  '/:userId/deactivate',
+  requirePermission(PERMISSIONS.ADMIN_USER_DEACTIVATE),
+  UserController.deactivateUser
+);
 
 /**
  * @swagger
@@ -1686,7 +1704,11 @@ router.post('/:userId/deactivate', requireAdmin, UserController.deactivateUser);
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.post('/:userId/reactivate', requireAdmin, UserController.reactivateUser);
+router.post(
+  '/:userId/reactivate',
+  requirePermission(PERMISSIONS.ADMIN_USER_REACTIVATE),
+  UserController.reactivateUser
+);
 
 /**
  * @swagger
@@ -1759,7 +1781,7 @@ router.post('/:userId/reactivate', requireAdmin, UserController.reactivateUser);
  */
 router.post(
   '/bulk-update',
-  requireAdmin,
+  requirePermission(PERMISSIONS.ADMIN_USER_BULK_UPDATE),
   userValidation.bulkUpdate,
   UserController.bulkUpdateUsers
 );

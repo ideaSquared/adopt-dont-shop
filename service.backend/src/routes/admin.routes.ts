@@ -1,13 +1,14 @@
 import express from 'express';
 import { AdminController } from '../controllers/admin.controller';
-import { authenticateToken, requireRole } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
+import { PERMISSIONS } from '../types/rbac';
 
 const router = express.Router();
 
-// Apply authentication and admin role requirement to all admin routes
+// Apply authentication to all admin routes
 router.use(authenticateToken);
-router.use(requireRole(['admin', 'super_admin']));
 
 // Platform metrics and dashboard
 
@@ -118,7 +119,12 @@ router.use(requireRole(['admin', 'super_admin']));
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/metrics', generalLimiter, AdminController.getPlatformMetrics);
+router.get(
+  '/metrics',
+  requirePermission(PERMISSIONS.ADMIN_METRICS_READ),
+  generalLimiter,
+  AdminController.getPlatformMetrics
+);
 
 /**
  * @swagger
@@ -227,7 +233,12 @@ router.get('/metrics', generalLimiter, AdminController.getPlatformMetrics);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/analytics/usage', generalLimiter, AdminController.getUsageAnalytics);
+router.get(
+  '/analytics/usage',
+  requirePermission(PERMISSIONS.ADMIN_ANALYTICS_READ),
+  generalLimiter,
+  AdminController.getUsageAnalytics
+);
 
 // System health and monitoring
 
@@ -338,7 +349,12 @@ router.get('/analytics/usage', generalLimiter, AdminController.getUsageAnalytics
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/system/health', generalLimiter, AdminController.getSystemHealth);
+router.get(
+  '/system/health',
+  requirePermission(PERMISSIONS.ADMIN_SYSTEM_HEALTH_READ),
+  generalLimiter,
+  AdminController.getSystemHealth
+);
 
 /**
  * @swagger
@@ -447,7 +463,12 @@ router.get('/system/health', generalLimiter, AdminController.getSystemHealth);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/system/config', generalLimiter, AdminController.getConfiguration);
+router.get(
+  '/system/config',
+  requirePermission(PERMISSIONS.ADMIN_CONFIG_READ),
+  generalLimiter,
+  AdminController.getConfiguration
+);
 
 /**
  * @swagger
@@ -608,7 +629,12 @@ router.get('/system/config', generalLimiter, AdminController.getConfiguration);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.patch('/system/config', authLimiter, AdminController.updateConfiguration);
+router.patch(
+  '/system/config',
+  requirePermission(PERMISSIONS.ADMIN_CONFIG_UPDATE),
+  authLimiter,
+  AdminController.updateConfiguration
+);
 
 // User management
 
@@ -719,7 +745,12 @@ router.patch('/system/config', authLimiter, AdminController.updateConfiguration)
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/users', generalLimiter, AdminController.searchUsers);
+router.get(
+  '/users',
+  requirePermission(PERMISSIONS.ADMIN_USER_SEARCH),
+  generalLimiter,
+  AdminController.searchUsers
+);
 
 /**
  * @swagger
@@ -828,7 +859,12 @@ router.get('/users', generalLimiter, AdminController.searchUsers);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/users/:userId', generalLimiter, AdminController.getUserDetails);
+router.get(
+  '/users/:userId',
+  requirePermission(PERMISSIONS.ADMIN_USER_READ),
+  generalLimiter,
+  AdminController.getUserDetails
+);
 
 /**
  * @swagger
@@ -989,8 +1025,18 @@ router.get('/users/:userId', generalLimiter, AdminController.getUserDetails);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.patch('/users/:userId/action', authLimiter, AdminController.performUserAction);
-router.patch('/users/:userId', authLimiter, AdminController.updateUserProfile);
+router.patch(
+  '/users/:userId/action',
+  requirePermission(PERMISSIONS.ADMIN_USER_UPDATE),
+  authLimiter,
+  AdminController.performUserAction
+);
+router.patch(
+  '/users/:userId',
+  requirePermission(PERMISSIONS.ADMIN_USER_UPDATE),
+  authLimiter,
+  AdminController.updateUserProfile
+);
 
 // Rescue organization management
 
@@ -1101,7 +1147,12 @@ router.patch('/users/:userId', authLimiter, AdminController.updateUserProfile);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/rescues', generalLimiter, AdminController.getRescueManagement);
+router.get(
+  '/rescues',
+  requirePermission(PERMISSIONS.ADMIN_RESCUE_MANAGEMENT),
+  generalLimiter,
+  AdminController.getRescueManagement
+);
 
 /**
  * @swagger
@@ -1262,7 +1313,12 @@ router.get('/rescues', generalLimiter, AdminController.getRescueManagement);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.patch('/rescues/:rescueId/moderate', authLimiter, AdminController.moderateRescue);
+router.patch(
+  '/rescues/:rescueId/moderate',
+  requirePermission(PERMISSIONS.ADMIN_RESCUE_MANAGEMENT),
+  authLimiter,
+  AdminController.moderateRescue
+);
 
 // Audit logs and monitoring
 
@@ -1373,11 +1429,17 @@ router.patch('/rescues/:rescueId/moderate', authLimiter, AdminController.moderat
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/audit-logs', generalLimiter, AdminController.getAuditLogs);
+router.get(
+  '/audit-logs',
+  requirePermission(PERMISSIONS.ADMIN_AUDIT_LOGS_READ),
+  generalLimiter,
+  AdminController.getAuditLogs
+);
 
 // Data export
 router.get(
   '/export/:type',
+  requirePermission(PERMISSIONS.ADMIN_DATA_EXPORT),
   authLimiter, // More restrictive rate limiting for data export
   AdminController.exportData
 );

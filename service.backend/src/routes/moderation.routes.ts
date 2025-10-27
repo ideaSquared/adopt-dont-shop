@@ -1,7 +1,9 @@
 import express from 'express';
 import { ModerationController } from '../controllers/moderation.controller';
-import { authenticateToken, requireRole } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { requirePermission } from '../middleware/rbac';
 import { generalLimiter } from '../middleware/rate-limiter';
+import { PERMISSIONS } from '../types/rbac';
 
 const router = express.Router();
 const moderationController = new ModerationController();
@@ -61,7 +63,7 @@ router.use(authenticateToken);
  */
 router.get(
   '/reports',
-  requireRole(['admin', 'moderator', 'rescue_staff']),
+  requirePermission(PERMISSIONS.MODERATION_REPORTS_READ),
   generalLimiter,
   moderationController.getReports.bind(moderationController)
 );
@@ -88,7 +90,7 @@ router.get(
  */
 router.get(
   '/reports/:reportId',
-  requireRole(['admin', 'moderator', 'rescue_staff']),
+  requirePermission(PERMISSIONS.MODERATION_REPORTS_READ),
   generalLimiter,
   moderationController.getReportById.bind(moderationController)
 );
@@ -135,6 +137,7 @@ router.get(
  */
 router.post(
   '/reports',
+  requirePermission(PERMISSIONS.MODERATION_REPORTS_CREATE),
   generalLimiter,
   moderationController.submitReport.bind(moderationController)
 );
@@ -172,7 +175,7 @@ router.post(
  */
 router.patch(
   '/reports/:reportId/status',
-  requireRole(['admin', 'moderator']),
+  requirePermission(PERMISSIONS.MODERATION_REPORTS_UPDATE),
   generalLimiter,
   moderationController.updateReportStatus.bind(moderationController)
 );
@@ -208,7 +211,7 @@ router.patch(
  */
 router.post(
   '/reports/:reportId/assign',
-  requireRole(['admin', 'moderator']),
+  requirePermission(PERMISSIONS.MODERATION_REPORTS_ASSIGN),
   generalLimiter,
   moderationController.assignReport.bind(moderationController)
 );
@@ -247,7 +250,7 @@ router.post(
  */
 router.post(
   '/reports/:reportId/escalate',
-  requireRole(['admin', 'moderator']),
+  requirePermission(PERMISSIONS.MODERATION_REPORTS_ESCALATE),
   generalLimiter,
   moderationController.escalateReport.bind(moderationController)
 );
@@ -282,7 +285,7 @@ router.post(
  */
 router.post(
   '/reports/bulk-update',
-  requireRole(['admin', 'moderator']),
+  requirePermission(PERMISSIONS.MODERATION_REPORTS_BULK_UPDATE),
   generalLimiter,
   moderationController.bulkUpdateReports.bind(moderationController)
 );
@@ -332,7 +335,7 @@ router.post(
  */
 router.post(
   '/actions',
-  requireRole(['admin', 'moderator']),
+  requirePermission(PERMISSIONS.MODERATION_ACTIONS_CREATE),
   generalLimiter,
   moderationController.takeModerationAction.bind(moderationController)
 );
@@ -357,7 +360,7 @@ router.post(
  */
 router.get(
   '/actions/active',
-  requireRole(['admin', 'moderator', 'rescue_staff']),
+  requirePermission(PERMISSIONS.MODERATION_ACTIONS_READ),
   generalLimiter,
   moderationController.getActiveActions.bind(moderationController)
 );
@@ -376,7 +379,7 @@ router.get(
  */
 router.get(
   '/metrics',
-  requireRole(['admin', 'moderator', 'rescue_staff']),
+  requirePermission(PERMISSIONS.MODERATION_METRICS_READ),
   generalLimiter,
   moderationController.getModerationMetrics.bind(moderationController)
 );

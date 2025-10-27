@@ -1,13 +1,14 @@
 import express from 'express';
 import { SupportTicketController } from '../controllers/supportTicket.controller';
-import { authenticateToken, requireRole } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { requirePermission } from '../middleware/rbac';
+import { PERMISSIONS } from '../types/rbac';
 import { generalLimiter } from '../middleware/rate-limiter';
 
 const router = express.Router();
 
-// Apply authentication and admin role requirement to all routes
+// Apply authentication to all routes
 router.use(authenticateToken);
-router.use(requireRole(['admin', 'rescue_staff', 'moderator']));
 
 /**
  * @swagger
@@ -59,7 +60,12 @@ router.use(requireRole(['admin', 'rescue_staff', 'moderator']));
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get('/tickets', generalLimiter, SupportTicketController.getTickets);
+router.get(
+  '/tickets',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_READ),
+  generalLimiter,
+  SupportTicketController.getTickets
+);
 
 /**
  * @swagger
@@ -73,7 +79,12 @@ router.get('/tickets', generalLimiter, SupportTicketController.getTickets);
  *       200:
  *         description: Statistics retrieved successfully
  */
-router.get('/stats', generalLimiter, SupportTicketController.getTicketStats);
+router.get(
+  '/stats',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_READ),
+  generalLimiter,
+  SupportTicketController.getTicketStats
+);
 
 /**
  * @swagger
@@ -93,7 +104,12 @@ router.get('/stats', generalLimiter, SupportTicketController.getTicketStats);
  *       200:
  *         description: Assigned tickets retrieved successfully
  */
-router.get('/my-tickets', generalLimiter, SupportTicketController.getMyTickets);
+router.get(
+  '/my-tickets',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_READ),
+  generalLimiter,
+  SupportTicketController.getMyTickets
+);
 
 /**
  * @swagger
@@ -115,7 +131,12 @@ router.get('/my-tickets', generalLimiter, SupportTicketController.getMyTickets);
  *       404:
  *         description: Ticket not found
  */
-router.get('/tickets/:ticketId', generalLimiter, SupportTicketController.getTicketById);
+router.get(
+  '/tickets/:ticketId',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_READ),
+  generalLimiter,
+  SupportTicketController.getTicketById
+);
 
 /**
  * @swagger
@@ -155,7 +176,12 @@ router.get('/tickets/:ticketId', generalLimiter, SupportTicketController.getTick
  *       201:
  *         description: Ticket created successfully
  */
-router.post('/tickets', generalLimiter, SupportTicketController.createTicket);
+router.post(
+  '/tickets',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_CREATE),
+  generalLimiter,
+  SupportTicketController.createTicket
+);
 
 /**
  * @swagger
@@ -183,7 +209,12 @@ router.post('/tickets', generalLimiter, SupportTicketController.createTicket);
  *       404:
  *         description: Ticket not found
  */
-router.patch('/tickets/:ticketId', generalLimiter, SupportTicketController.updateTicket);
+router.patch(
+  '/tickets/:ticketId',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_UPDATE),
+  generalLimiter,
+  SupportTicketController.updateTicket
+);
 
 /**
  * @swagger
@@ -214,7 +245,12 @@ router.patch('/tickets/:ticketId', generalLimiter, SupportTicketController.updat
  *       200:
  *         description: Ticket assigned successfully
  */
-router.post('/tickets/:ticketId/assign', generalLimiter, SupportTicketController.assignTicket);
+router.post(
+  '/tickets/:ticketId/assign',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_ASSIGN),
+  generalLimiter,
+  SupportTicketController.assignTicket
+);
 
 /**
  * @swagger
@@ -247,7 +283,12 @@ router.post('/tickets/:ticketId/assign', generalLimiter, SupportTicketController
  *       200:
  *         description: Response added successfully
  */
-router.post('/tickets/:ticketId/reply', generalLimiter, SupportTicketController.addResponse);
+router.post(
+  '/tickets/:ticketId/reply',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_REPLY),
+  generalLimiter,
+  SupportTicketController.addResponse
+);
 
 /**
  * @swagger
@@ -281,7 +322,12 @@ router.post('/tickets/:ticketId/reply', generalLimiter, SupportTicketController.
  *       200:
  *         description: Ticket escalated successfully
  */
-router.post('/tickets/:ticketId/escalate', generalLimiter, SupportTicketController.escalateTicket);
+router.post(
+  '/tickets/:ticketId/escalate',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_ESCALATE),
+  generalLimiter,
+  SupportTicketController.escalateTicket
+);
 
 /**
  * @swagger
@@ -303,6 +349,7 @@ router.post('/tickets/:ticketId/escalate', generalLimiter, SupportTicketControll
  */
 router.get(
   '/tickets/:ticketId/messages',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_READ),
   generalLimiter,
   SupportTicketController.getTicketMessages
 );
