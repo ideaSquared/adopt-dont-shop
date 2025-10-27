@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Modal } from '@adopt-dont-shop/components';
-import type { AdminUser } from '../../services/libraryServices';
+import type { AdminUser } from '@/types';
 import { FiMail, FiPhone, FiCalendar, FiClock, FiUser, FiShield } from 'react-icons/fi';
 
 type UserDetailModalProps = {
@@ -130,8 +130,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 }) => {
   if (!user) return null;
 
-  const getUserInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const getUserInitials = (firstName: string | null, lastName: string | null) => {
+    return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase() || "??";
   };
 
   const getUserTypeBadge = (userType: string) => {
@@ -188,7 +188,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           </UserInfo>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
             {getUserTypeBadge(user.userType)}
-            {getStatusBadge(user.status, user.emailVerified)}
+            {getStatusBadge(user.status, (user.emailVerified ?? false))}
           </div>
         </UserHeader>
 
@@ -207,7 +207,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               Phone Number
             </DetailLabel>
             <DetailValue>
-              {user.phoneNumber || <EmptyValue>Not provided</EmptyValue>}
+              {(user.phoneNumber ?? "") || <EmptyValue>Not provided</EmptyValue>}
             </DetailValue>
           </DetailItem>
 
@@ -232,16 +232,16 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <FiShield />
               Email Verified
             </DetailLabel>
-            <DetailValue>{user.emailVerified ? 'Yes' : 'No'}</DetailValue>
+            <DetailValue>{(user.emailVerified ?? false) ? 'Yes' : 'No'}</DetailValue>
           </DetailItem>
 
-          {user.rescueName && (
+          {(user.rescueName ?? "") && (
             <DetailItem>
               <DetailLabel>
                 <FiUser />
                 Rescue Organization
               </DetailLabel>
-              <DetailValue>{user.rescueName}</DetailValue>
+              <DetailValue>{(user.rescueName ?? "")}</DetailValue>
             </DetailItem>
           )}
 
@@ -250,7 +250,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <FiCalendar />
               Joined
             </DetailLabel>
-            <DetailValue>{formatDate(user.createdAt)}</DetailValue>
+            <DetailValue>{new Date(user.createdAt).toLocaleDateString()}</DetailValue>
           </DetailItem>
 
           <DetailItem>
@@ -259,7 +259,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               Last Login
             </DetailLabel>
             <DetailValue>
-              {user.lastLogin ? formatDate(user.lastLogin) : <EmptyValue>Never</EmptyValue>}
+              {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : <EmptyValue>Never</EmptyValue>}
             </DetailValue>
           </DetailItem>
 
@@ -269,7 +269,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 <FiClock />
                 Last Updated
               </DetailLabel>
-              <DetailValue>{formatDate(user.updatedAt)}</DetailValue>
+              <DetailValue>{new Date(user.updatedAt).toLocaleDateString()}</DetailValue>
             </DetailItem>
           )}
         </DetailGrid>

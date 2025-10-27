@@ -8,18 +8,9 @@ export interface ApiResponse<T> {
   errors?: string[];
 }
 
-// User and Authentication Types
-export interface User {
-  user_id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: 'admin' | 'moderator' | 'super_admin';
-  is_active: boolean;
-  last_login?: Date;
-  created_at: Date;
-  updated_at: Date;
-}
+// Re-export User types from user.ts
+export type { User, AdminUser, UserType, UserStatus } from './user';
+import type { User, UserType } from './user';
 
 export interface LoginRequest {
   email: string;
@@ -29,9 +20,9 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  first_name: string;
-  last_name: string;
-  role?: 'admin' | 'moderator';
+  firstName: string | null;
+  lastName: string | null;
+  userType?: UserType;
 }
 
 export interface AuthResponse {

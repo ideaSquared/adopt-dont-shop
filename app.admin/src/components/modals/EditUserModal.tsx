@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Modal, Button, Input } from '@adopt-dont-shop/components';
-import type { AdminUser, UserType, UserStatus } from '../../services/libraryServices';
+import type { AdminUser, UserType, UserStatus } from '@/types';
 
 type EditUserModalProps = {
   isOpen: boolean;
@@ -87,7 +87,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     lastName: '',
     email: '',
     phoneNumber: '',
-    userType: 'adopter' as UserType,
+    userType: 'user' as UserType,
     status: 'active' as UserStatus,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,10 +96,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   useEffect(() => {
     if (user) {
       setFormData({
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstName ?? "",
+        lastName: user.lastName ?? "",
         email: user.email,
-        phoneNumber: user.phoneNumber || '',
+        phoneNumber: user.phoneNumber ?? '',
         userType: user.userType,
         status: user.status,
       });
@@ -120,8 +120,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       if (formData.firstName !== user.firstName) updates.firstName = formData.firstName;
       if (formData.lastName !== user.lastName) updates.lastName = formData.lastName;
       if (formData.email !== user.email) updates.email = formData.email;
-      if (formData.phoneNumber !== (user.phoneNumber || '')) updates.phoneNumber = formData.phoneNumber;
-      if (formData.userType !== user.userType) updates.userType = formData.userType;
+      if (formData.phoneNumber !== (user.phoneNumber ?? '')) updates.phoneNumber = formData.phoneNumber;
+      if (formData.userType !== user.userType) updates.userType = formData.userType as typeof user.userType;
       if (formData.status !== user.status) updates.status = formData.status;
 
       if (Object.keys(updates).length === 0) {
@@ -138,50 +138,33 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     }
   };
 
-  const handleClose = () => {
-    if (!isSubmitting) {
-      setError(null);
-      onClose();
-    }
-  };
-
   if (!user) return null;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title="Edit User"
-      size="lg"
-      centered
-      closeOnOverlayClick={!isSubmitting}
-      closeOnEscape={!isSubmitting}
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit User">
       <Form onSubmit={handleSubmit}>
         {error && <ErrorMessage>{error}</ErrorMessage>}
 
         <FormRow>
           <FormGroup>
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="first_name">First Name</Label>
             <Input
-              id="firstName"
+              id="first_name"
               type="text"
               value={formData.firstName}
               onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               required
-              disabled={isSubmitting}
             />
           </FormGroup>
 
           <FormGroup>
-            <Label htmlFor="lastName">Last Name</Label>
+            <Label htmlFor="last_name">Last Name</Label>
             <Input
-              id="lastName"
+              id="last_name"
               type="text"
               value={formData.lastName}
               onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
               required
-              disabled={isSubmitting}
             />
           </FormGroup>
         </FormRow>
@@ -194,71 +177,52 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             required
-            disabled={isSubmitting}
           />
         </FormGroup>
 
         <FormGroup>
-          <Label htmlFor="phoneNumber">Phone Number</Label>
+          <Label htmlFor="phone_number">Phone Number</Label>
           <Input
-            id="phoneNumber"
+            id="phone_number"
             type="tel"
             value={formData.phoneNumber}
             onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-            placeholder="Optional"
-            disabled={isSubmitting}
           />
         </FormGroup>
 
         <FormRow>
           <FormGroup>
-            <Label htmlFor="userType">User Type</Label>
+            <Label htmlFor="role">Role</Label>
             <Select
-              id="userType"
+              id="role"
               value={formData.userType}
               onChange={(e) => setFormData({ ...formData, userType: e.target.value as UserType })}
-              disabled={isSubmitting}
             >
-              <option value="adopter">Adopter</option>
-              <option value="rescue_staff">Rescue Staff</option>
-              <option value="moderator">Moderator</option>
+              <option value="user">User</option>
               <option value="admin">Admin</option>
+              <option value="moderator">Moderator</option>
               <option value="super_admin">Super Admin</option>
             </Select>
           </FormGroup>
 
           <FormGroup>
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="is_active">Status</Label>
             <Select
-              id="status"
-              value={formData.status}
+              id="is_active"
+              value={formData.status === "active" ? 'active' : 'suspended'}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as UserStatus })}
-              disabled={isSubmitting}
             >
               <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="pending">Pending</option>
               <option value="suspended">Suspended</option>
             </Select>
           </FormGroup>
         </FormRow>
 
         <ButtonGroup>
-          <Button
-            type="button"
-            variant="outline"
-            size="md"
-            onClick={handleClose}
-            disabled={isSubmitting}
-          >
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" variant="primary" disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>
         </ButtonGroup>

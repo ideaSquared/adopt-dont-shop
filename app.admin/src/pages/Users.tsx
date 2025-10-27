@@ -339,13 +339,13 @@ const Users: React.FC = () => {
     );
   }
 
-  const users = data?.users || [];
+  const users = data?.data || [];
 
   // Filter users based on search and filters
-  const filteredUsers = (users || []).filter(user => {
+  const filteredUsers = (users || []).filter((user: AdminUser) => {
     const matchesSearch = searchQuery === '' ||
-      user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.firstName?.toLowerCase() || "".includes(searchQuery.toLowerCase()) ||
+      user.lastName?.toLowerCase() || "".includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesUserType = userTypeFilter === 'all' || user.userType === userTypeFilter;
@@ -354,8 +354,10 @@ const Users: React.FC = () => {
     return matchesSearch && matchesUserType && matchesStatus;
   });
 
-  const getUserInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const getUserInitials = (firstName: string | null | undefined, lastName: string | null | undefined) => {
+    const firstInitial = firstName?.charAt(0) || '';
+    const lastInitial = lastName?.charAt(0) || '';
+    return `${firstInitial}${lastInitial}`.toUpperCase() || '??';
   };
 
   const getUserTypeBadge = (userType: string) => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Modal, Button, Input } from '@adopt-dont-shop/components';
-import type { AdminUser } from '../../services/libraryServices';
+import type { AdminUser } from '@/types';
 
 type CreateSupportTicketModalProps = {
   isOpen: boolean;

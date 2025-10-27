@@ -1,9 +1,9 @@
 import { apiService } from './libraryServices';
 import { User, PaginatedResponse } from '@/types';
 
-// User management types
-interface UserFilters {
-  role?: string;
+// User management types - exported for use in hooks
+export interface UserFilters {
+  userType?: string;
   status?: string;
   search?: string;
   page?: number;
@@ -12,7 +12,7 @@ interface UserFilters {
   created_to?: string;
 }
 
-interface CreateUserRequest {
+export interface CreateUserRequest {
   email: string;
   first_name: string;
   last_name: string;
@@ -20,14 +20,14 @@ interface CreateUserRequest {
   is_active?: boolean;
 }
 
-interface UpdateUserRequest {
+export interface UpdateUserRequest {
   first_name?: string;
   last_name?: string;
   role?: 'admin' | 'moderator';
   is_active?: boolean;
 }
 
-interface UserStats {
+export interface UserStats {
   total_users: number;
   active_users: number;
   inactive_users: number;
@@ -91,15 +91,44 @@ class UserManagementService {
   }
 
   /**
-   * Suspend/activate a user
+   * Suspend a user
    */
-  async toggleUserStatus(userId: string, isActive: boolean): Promise<User> {
+  async suspendUser(userId: string, reason?: string): Promise<User> {
     try {
-      return await apiService.patch<User>(`/api/v1/admin/users/${userId}/status`, {
-        is_active: isActive,
+      return await apiService.patch<User>(`/api/v1/admin/users/${userId}/action`, {
+        action: 'suspend',
+        reason,
       });
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to toggle user status:', error);
+      console.error('❌ UserManagementService: Failed to suspend user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unsuspend a user
+   */
+  async unsuspendUser(userId: string): Promise<User> {
+    try {
+      return await apiService.patch<User>(`/api/v1/admin/users/${userId}/action`, {
+        action: 'unsuspend',
+      });
+    } catch (error) {
+      console.error('❌ UserManagementService: Failed to unsuspend user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify a user
+   */
+  async verifyUser(userId: string): Promise<User> {
+    try {
+      return await apiService.patch<User>(`/api/v1/admin/users/${userId}/action`, {
+        action: 'verify',
+      });
+    } catch (error) {
+      console.error('❌ UserManagementService: Failed to verify user:', error);
       throw error;
     }
   }
@@ -107,9 +136,12 @@ class UserManagementService {
   /**
    * Delete a user (soft delete)
    */
-  async deleteUser(userId: string): Promise<void> {
+  async deleteUser(userId: string, reason?: string): Promise<void> {
     try {
-      await apiService.delete<void>(`/api/v1/admin/users/${userId}`);
+      await apiService.patch<void>(`/api/v1/admin/users/${userId}/action`, {
+        action: 'delete',
+        reason,
+      });
     } catch (error) {
       console.error('❌ UserManagementService: Failed to delete user:', error);
       throw error;
@@ -194,7 +226,7 @@ class UserManagementService {
    */
   async bulkUpdateUsers(
     userIds: string[],
-    updates: { role?: string; is_active?: boolean }
+    updates: { userType?: string; is_active?: boolean }
   ): Promise<{ success: number; failed: number }> {
     try {
       return await apiService.patch('/api/v1/admin/users/bulk-update', {

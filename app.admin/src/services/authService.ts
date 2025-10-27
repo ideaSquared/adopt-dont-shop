@@ -1,4 +1,4 @@
-import { AuthResponse, LoginRequest, RegisterRequest, User } from '@/types';
+import { AuthResponse, LoginRequest, RegisterRequest, User, UserStatus, UserType } from '@/types';
 import { apiService } from './libraryServices';
 
 class AuthService {
@@ -94,7 +94,7 @@ class AuthService {
   // Check if current user has specific admin role
   hasRole(role: 'admin' | 'moderator' | 'super_admin'): boolean {
     const user = this.getCurrentUser();
-    return user?.role === role;
+    return user?.userType === role;
   }
 
   // Check if current user is super admin
@@ -169,7 +169,7 @@ class AuthService {
 
   // Development helper for admin
   async loginWithDevToken(
-    userType: 'admin' | 'moderator' | 'super_admin' = 'admin'
+    userType: UserType = 'admin'
   ): Promise<void> {
     if (!import.meta.env.DEV) {
       throw new Error('Dev token login is only available in development mode');
@@ -177,14 +177,26 @@ class AuthService {
 
     const devToken = `dev-token-${userType}`;
     const mockUser: User = {
-      user_id: `dev-admin-${userType}`,
+      userId: `dev-admin-${userType}`,
       email: `${userType}@admin.dev.local`,
-      first_name: 'Dev',
-      last_name: 'Admin',
-      role: userType,
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date(),
+      firstName: 'Dev',
+      lastName: 'Admin',
+      emailVerified: true,
+      phoneNumber: null,
+      phoneVerified: false,
+      status: "active",
+      userType: userType,
+      profileImageUrl: null,
+      bio: null,
+      country: null,
+      city: null,
+      addressLine1: null,
+      addressLine2: null,
+      postalCode: null,
+      rescueId: null,
+      lastLoginAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     // Store dev tokens and user data
@@ -217,7 +229,7 @@ class AuthService {
 
     const response = await apiService.post<{ token: string; user: User }>(
       '/api/v1/admin/impersonate',
-      { user_id: userId }
+      { userId: userId }
     );
 
     // Store impersonation token

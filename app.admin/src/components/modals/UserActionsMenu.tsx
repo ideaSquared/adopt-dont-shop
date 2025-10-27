@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { ActionMenu } from '../ui/ActionMenu';
 import type { ActionMenuItem } from '../ui/ActionMenu';
-import type { AdminUser } from '../../services/libraryServices';
+import type { AdminUser } from '@/types';
 import {
   FiCheckCircle,
   FiXCircle,
@@ -239,7 +239,7 @@ export const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
   const menuItems: ActionMenuItem[] = [];
 
   // Verify email (if not verified)
-  if (!user.emailVerified) {
+  if (!(user.emailVerified ?? false)) {
     menuItems.push({
       id: 'verify',
       label: 'Verify Email',
