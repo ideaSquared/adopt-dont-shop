@@ -5,6 +5,8 @@ import { InvitationService } from '../services/invitation.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 import { AdoptionPolicy } from '../types/rescue';
+import EmailService from '../services/email.service';
+import { EmailType, EmailPriority } from '../models/EmailQueue';
 
 export class RescueController {
   /**
@@ -247,6 +249,56 @@ export class RescueController {
       res.status(500).json({
         success: false,
         message: 'Failed to verify rescue',
+        error: errorMessage,
+      });
+    }
+  };
+
+  /**
+   * Reject a rescue organization
+   */
+  rejectRescue = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { rescueId } = req.params;
+      const { reason, notes } = req.body;
+
+      const rescue = await RescueService.rejectRescue(rescueId, req.user!.userId, reason, notes);
+
+      res.status(200).json({
+        success: true,
+        message: 'Rescue rejected successfully',
+        data: rescue,
+      });
+    } catch (error) {
+      logger.error('Reject rescue failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage === 'Rescue not found') {
+        return res.status(404).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
+      if (errorMessage.includes('already verified') || errorMessage.includes('already rejected')) {
+        return res.status(409).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reject rescue',
         error: errorMessage,
       });
     }
@@ -767,6 +819,104 @@ export class RescueController {
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve adoption policies',
+        error: errorMessage,
+      });
+    }
+  };
+
+  /**
+   * Send email to rescue organization
+   */
+  sendEmail = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { rescueId } = req.params;
+      const { subject, body, template } = req.body;
+
+      // Validate required fields
+      if (!subject || !body) {
+        return res.status(400).json({
+          success: false,
+          message: 'Subject and body are required',
+        });
+      }
+
+      // Get rescue organization details
+      const rescue = await RescueService.getRescueById(rescueId, false);
+
+      if (!rescue) {
+        return res.status(404).json({
+          success: false,
+          message: 'Rescue not found',
+        });
+      }
+
+      // Check if rescue has an email address
+      if (!rescue.email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Rescue organization does not have an email address',
+        });
+      }
+
+      // Replace template variables in the body
+      const processedBody = body.replace(/{rescueName}/g, rescue.name);
+
+      // Send email via email service
+      const emailId = await EmailService.sendEmail({
+        toEmail: rescue.email,
+        toName: rescue.name,
+        subject,
+        htmlContent: processedBody,
+        userId: req.user!.userId,
+        type: EmailType.SYSTEM,
+        priority: EmailPriority.NORMAL,
+        tags: ['rescue-email', rescueId],
+        metadata: {
+          rescueId,
+          rescueName: rescue.name,
+          sentBy: req.user!.userId,
+          ...(template && { template }),
+        },
+      });
+
+      logger.info('Email sent to rescue organization', {
+        rescueId,
+        rescueName: rescue.name,
+        emailId,
+        sentBy: req.user!.userId,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Email sent successfully',
+        data: {
+          emailId,
+          recipientEmail: rescue.email,
+        },
+      });
+    } catch (error) {
+      logger.error('Send email to rescue failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage === 'Rescue not found') {
+        return res.status(404).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send email',
         error: errorMessage,
       });
     }

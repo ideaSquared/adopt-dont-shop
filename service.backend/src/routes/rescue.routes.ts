@@ -150,8 +150,30 @@ const validateVerification = [
   body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be max 500 characters'),
 ];
 
+
+const validateRejection = [
+  body('reason').optional().isLength({ max: 500 }).withMessage('Reason must be max 500 characters'),
+  body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be max 500 characters'),
+];
 const validateDeletion = [
   body('reason').optional().isLength({ max: 500 }).withMessage('Reason must be max 500 characters'),
+];
+
+
+const validateSendEmail = [
+  body('subject')
+    .trim()
+    .isLength({ min: 1, max: 200 })
+    .withMessage('Subject is required and must be max 200 characters'),
+  body('body')
+    .trim()
+    .isLength({ min: 1, max: 5000 })
+    .withMessage('Body is required and must be max 5000 characters'),
+  body('template')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('Template must be max 50 characters'),
 ];
 
 // Public routes (no authentication required)
@@ -991,12 +1013,30 @@ router.post(
   rescueController.verifyRescue
 );
 
+router.post(
+  '/:rescueId/reject',
+  validateRescueId,
+  validateRejection,
+  requirePermission('rescues.verify'),
+  rescueController.rejectRescue
+);
+
 router.delete(
   '/:rescueId',
   validateRescueId,
   validateDeletion,
   requirePermission('rescues.delete'),
   rescueController.deleteRescue
+);
+
+
+// Send email to rescue organization (admin only)
+router.post(
+  '/:rescueId/send-email',
+  validateRescueId,
+  validateSendEmail,
+  requirePermission('rescues.update'),
+  rescueController.sendEmail
 );
 
 export default router;
