@@ -109,9 +109,9 @@ export interface InviteStaffPayload {
  * Email payload for sending emails to rescues
  */
 export interface RescueEmailPayload {
-  subject: string;
-  body: string;
-  template?: string;
+  templateId?: string;  // Use a predefined template
+  subject?: string;     // Required for custom emails
+  body?: string;        // Required for custom emails
 }
 
 /**

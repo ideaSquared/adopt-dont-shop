@@ -839,17 +839,9 @@ export class RescueController {
       }
 
       const { rescueId } = req.params;
-      const { subject, body, template } = req.body;
+      const { subject, body, templateId } = req.body;
 
-      // Validate required fields
-      if (!subject || !body) {
-        return res.status(400).json({
-          success: false,
-          message: 'Subject and body are required',
-        });
-      }
-
-      // Get rescue organization details
+      // Get rescue organization details first
       const rescue = await RescueService.getRescueById(rescueId, false);
 
       if (!rescue) {
@@ -867,15 +859,27 @@ export class RescueController {
         });
       }
 
-      // Replace template variables in the body
-      const processedBody = body.replace(/{rescueName}/g, rescue.name);
+      // If using a template, only templateId is required
+      // If custom email, both subject and body are required
+      if (!templateId && (!subject || !body)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Either templateId or both subject and body are required',
+        });
+      }
 
-      // Send email via email service
+      // Send email via email service with template support
       const emailId = await EmailService.sendEmail({
+        templateId: templateId || undefined,
         toEmail: rescue.email,
         toName: rescue.name,
-        subject,
-        htmlContent: processedBody,
+        subject: subject || undefined,
+        htmlContent: body || undefined,
+        templateData: {
+          rescueName: rescue.name,
+          rescueId: rescue.rescueId,
+          baseUrl: process.env.FRONTEND_URL || 'https://adoptdontshop.com',
+        },
         userId: req.user!.userId,
         type: EmailType.SYSTEM,
         priority: EmailPriority.NORMAL,
@@ -884,7 +888,7 @@ export class RescueController {
           rescueId,
           rescueName: rescue.name,
           sentBy: req.user!.userId,
-          ...(template && { template }),
+          ...(templateId && { templateId }),
         },
       });
 

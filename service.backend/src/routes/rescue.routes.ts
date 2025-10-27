@@ -161,19 +161,21 @@ const validateDeletion = [
 
 
 const validateSendEmail = [
-  body('subject')
-    .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Subject is required and must be max 200 characters'),
-  body('body')
-    .trim()
-    .isLength({ min: 1, max: 5000 })
-    .withMessage('Body is required and must be max 5000 characters'),
-  body('template')
+  body('templateId')
     .optional()
     .trim()
-    .isLength({ max: 50 })
-    .withMessage('Template must be max 50 characters'),
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Template ID must be max 100 characters'),
+  body('subject')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 200 })
+    .withMessage('Subject must be max 200 characters'),
+  body('body')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 5000 })
+    .withMessage('Body must be max 5000 characters'),
 ];
 
 // Public routes (no authentication required)
