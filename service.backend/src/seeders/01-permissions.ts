@@ -91,6 +91,52 @@ const permissions = [
   'notifications.read',
   'notifications.update',
   'notifications.delete',
+
+  // Support Ticket Management
+  'support_tickets.create',
+  'support_tickets.read',
+  'support_tickets.update',
+  'support_tickets.delete',
+  'support_tickets.list',
+  'support_tickets.assign',
+  'support_tickets.escalate',
+  'support_tickets.reply',
+  'support_tickets.manage_own',
+
+  // Admin Management (expanded)
+  'admin.metrics.read',
+  'admin.analytics.read',
+  'admin.system.health.read',
+  'admin.config.read',
+  'admin.config.update',
+  'admin.users.search',
+  'admin.users.read',
+  'admin.users.update',
+  'admin.users.role.update',
+  'admin.users.deactivate',
+  'admin.users.reactivate',
+  'admin.users.bulk_update',
+  'admin.rescues.manage',
+  'admin.audit.read',
+  'admin.data.export',
+
+  // Moderation (expanded)
+  'moderation.reports.read',
+  'moderation.reports.create',
+  'moderation.reports.update',
+  'moderation.reports.assign',
+  'moderation.reports.escalate',
+  'moderation.reports.bulk_update',
+  'moderation.actions.create',
+  'moderation.actions.read',
+  'moderation.metrics.read',
+
+  // Chat Analytics
+  'chat.analytics.read',
+
+  // Notifications (expanded)
+  'notifications.bulk_create',
+  'notifications.cleanup',
 ];
 
 export async function seedPermissions() {
