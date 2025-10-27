@@ -36,6 +36,7 @@ const Label = styled.label`
   color: #374151;
 `;
 
+
 const Select = styled.select`
   padding: 0.625rem 0.875rem;
   border: 1px solid #d1d5db;

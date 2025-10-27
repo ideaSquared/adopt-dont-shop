@@ -61,7 +61,7 @@ router.use(authenticateToken);
  */
 router.get(
   '/reports',
-  requireRole(['ADMIN', 'MODERATOR', 'STAFF']),
+  requireRole(['admin', 'moderator', 'rescue_staff']),
   generalLimiter,
   moderationController.getReports.bind(moderationController)
 );
@@ -88,7 +88,7 @@ router.get(
  */
 router.get(
   '/reports/:reportId',
-  requireRole(['ADMIN', 'MODERATOR', 'STAFF']),
+  requireRole(['admin', 'moderator', 'rescue_staff']),
   generalLimiter,
   moderationController.getReportById.bind(moderationController)
 );
@@ -172,7 +172,7 @@ router.post(
  */
 router.patch(
   '/reports/:reportId/status',
-  requireRole(['ADMIN', 'MODERATOR']),
+  requireRole(['admin', 'moderator']),
   generalLimiter,
   moderationController.updateReportStatus.bind(moderationController)
 );
@@ -208,7 +208,7 @@ router.patch(
  */
 router.post(
   '/reports/:reportId/assign',
-  requireRole(['ADMIN', 'MODERATOR']),
+  requireRole(['admin', 'moderator']),
   generalLimiter,
   moderationController.assignReport.bind(moderationController)
 );
@@ -247,7 +247,7 @@ router.post(
  */
 router.post(
   '/reports/:reportId/escalate',
-  requireRole(['ADMIN', 'MODERATOR']),
+  requireRole(['admin', 'moderator']),
   generalLimiter,
   moderationController.escalateReport.bind(moderationController)
 );
@@ -282,7 +282,7 @@ router.post(
  */
 router.post(
   '/reports/bulk-update',
-  requireRole(['ADMIN', 'MODERATOR']),
+  requireRole(['admin', 'moderator']),
   generalLimiter,
   moderationController.bulkUpdateReports.bind(moderationController)
 );
@@ -332,7 +332,7 @@ router.post(
  */
 router.post(
   '/actions',
-  requireRole(['ADMIN', 'MODERATOR']),
+  requireRole(['admin', 'moderator']),
   generalLimiter,
   moderationController.takeModerationAction.bind(moderationController)
 );
@@ -357,7 +357,7 @@ router.post(
  */
 router.get(
   '/actions/active',
-  requireRole(['ADMIN', 'MODERATOR', 'STAFF']),
+  requireRole(['admin', 'moderator', 'rescue_staff']),
   generalLimiter,
   moderationController.getActiveActions.bind(moderationController)
 );
@@ -376,7 +376,7 @@ router.get(
  */
 router.get(
   '/metrics',
-  requireRole(['ADMIN', 'MODERATOR', 'STAFF']),
+  requireRole(['admin', 'moderator', 'rescue_staff']),
   generalLimiter,
   moderationController.getModerationMetrics.bind(moderationController)
 );

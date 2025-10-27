@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Apply authentication and admin role requirement to all routes
 router.use(authenticateToken);
-router.use(requireRole(['ADMIN', 'STAFF', 'MODERATOR']));
+router.use(requireRole(['admin', 'rescue_staff', 'moderator']));
 
 /**
  * @swagger
