@@ -498,8 +498,9 @@ const Rescues: React.FC = () => {
         />
       )}
 
-      {showEmailModal && selectedRescue && (
+      {selectedRescue && (
         <SendEmailModal
+          isOpen={showEmailModal}
           rescue={selectedRescue}
           onClose={handleModalClose}
           onSuccess={() => {}}

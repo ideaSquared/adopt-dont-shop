@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Button, Input, Heading, Text } from '@adopt-dont-shop/components';
-import { FiX, FiMail, FiAlertCircle, FiFileText } from 'react-icons/fi';
+import { Button, Input, Modal } from '@adopt-dont-shop/components';
+import { FiMail, FiAlertCircle, FiFileText } from 'react-icons/fi';
 import type { AdminRescue, RescueEmailPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 
 type SendEmailModalProps = {
+  isOpen: boolean;
   rescue: AdminRescue;
   onClose: () => void;
   onSuccess: () => void;
@@ -43,67 +44,6 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
   },
 ];
 
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  background: #ffffff;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 650px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  flex-shrink: 0;
-`;
-
-const IconWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: ${props => props.theme.colors.primary[50]};
-  color: ${props => props.theme.colors.primary[600]};
-
-  svg {
-    font-size: 1.5rem;
-  }
-`;
-
-const HeaderContent = styled.div`
-  flex: 1;
-`;
-
-const ModalBody = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 1.5rem;
-  min-height: 0;
-`;
-
 const FormGroup = styled.div`
   margin-bottom: 1.25rem;
 
@@ -116,7 +56,7 @@ const Label = styled.label`
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: ${({ theme }) => theme.text.primary};
   margin-bottom: 0.5rem;
 `;
 
@@ -124,29 +64,30 @@ const TextArea = styled.textarea`
   width: 100%;
   min-height: 200px;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid ${({ theme }) => theme.border.color.primary};
+  border-radius: ${({ theme }) => theme.border.radius.md};
   font-size: 0.9375rem;
   font-family: inherit;
-  color: #111827;
+  color: ${({ theme }) => theme.text.primary};
+  background: ${({ theme }) => theme.background.primary};
   resize: vertical;
-  transition: all 0.2s ease;
+  transition: all ${({ theme }) => theme.transitions.fast};
 
   &:focus {
     outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
+    border-color: ${({ theme }) => theme.colors.primary[500]};
+    box-shadow: ${({ theme }) => theme.shadows.focus};
   }
 
   &::placeholder {
-    color: #9ca3af;
+    color: ${({ theme }) => theme.text.tertiary};
   }
 `;
 
 const InfoBox = styled.div`
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: ${({ theme }) => theme.background.tertiary};
+  border: 1px solid ${({ theme }) => theme.border.color.secondary};
+  border-radius: ${({ theme }) => theme.border.radius.md};
   padding: 1rem;
   margin-bottom: 1.25rem;
 `;
@@ -154,7 +95,7 @@ const InfoBox = styled.div`
 const InfoLabel = styled.div`
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
+  color: ${({ theme }) => theme.text.tertiary};
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.375rem;
@@ -162,29 +103,20 @@ const InfoLabel = styled.div`
 
 const InfoValue = styled.div`
   font-size: 0.9375rem;
-  color: #111827;
+  color: ${({ theme }) => theme.text.primary};
   font-weight: 500;
 `;
 
 const HelpText = styled.div`
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: ${({ theme }) => theme.text.tertiary};
   margin-top: 0.375rem;
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  flex-shrink: 0;
 `;
 
 const ErrorMessage = styled.div`
   background: #fee2e2;
   border: 1px solid #fecaca;
-  border-radius: 8px;
+  border-radius: ${({ theme }) => theme.border.radius.md};
   padding: 0.875rem;
   color: #991b1b;
   font-size: 0.875rem;
@@ -201,7 +133,7 @@ const ErrorMessage = styled.div`
 const SuccessMessage = styled.div`
   background: #d1fae5;
   border: 1px solid #a7f3d0;
-  border-radius: 8px;
+  border-radius: ${({ theme }) => theme.border.radius.md};
   padding: 0.875rem;
   color: #065f46;
   font-size: 0.875rem;
@@ -223,16 +155,16 @@ const TemplateGrid = styled.div`
   margin-bottom: 1.25rem;
 `;
 
-const TemplateCard = styled.button<{ selected: boolean }>`
+const TemplateCard = styled.button<{ $selected: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   padding: 1rem;
-  border: 2px solid ${props => props.selected ? props.theme.colors.primary[500] : '#e5e7eb'};
-  border-radius: 8px;
-  background: ${props => props.selected ? props.theme.colors.primary[50] : '#ffffff'};
+  border: 2px solid ${props => props.$selected ? props.theme.colors.primary[500] : props.theme.border.color.primary};
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  background: ${props => props.$selected ? props.theme.colors.primary[50] : props.theme.background.primary};
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all ${({ theme }) => theme.transitions.fast};
   text-align: left;
 
   &:hover {
@@ -246,15 +178,15 @@ const TemplateCard = styled.button<{ selected: boolean }>`
   }
 `;
 
-const TemplateIcon = styled.div<{ selected: boolean }>`
+const TemplateIcon = styled.div<{ $selected: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 8px;
-  background: ${props => props.selected ? props.theme.colors.primary[100] : '#f3f4f6'};
-  color: ${props => props.selected ? props.theme.colors.primary[600] : '#6b7280'};
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  background: ${props => props.$selected ? props.theme.colors.primary[100] : props.theme.background.tertiary};
+  color: ${props => props.$selected ? props.theme.colors.primary[600] : props.theme.text.tertiary};
   margin-bottom: 0.75rem;
 
   svg {
@@ -265,20 +197,20 @@ const TemplateIcon = styled.div<{ selected: boolean }>`
 const TemplateName = styled.div`
   font-size: 0.875rem;
   font-weight: 600;
-  color: #111827;
+  color: ${({ theme }) => theme.text.primary};
   margin-bottom: 0.25rem;
 `;
 
 const TemplateDescription = styled.div`
   font-size: 0.75rem;
-  color: #6b7280;
+  color: ${({ theme }) => theme.text.secondary};
   line-height: 1.4;
 `;
 
 const TemplatePreview = styled.div`
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: ${({ theme }) => theme.background.tertiary};
+  border: 1px solid ${({ theme }) => theme.border.color.secondary};
+  border-radius: ${({ theme }) => theme.border.radius.md};
   padding: 1rem;
   margin-bottom: 1.25rem;
 `;
@@ -286,7 +218,7 @@ const TemplatePreview = styled.div`
 const PreviewLabel = styled.div`
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
+  color: ${({ theme }) => theme.text.tertiary};
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
@@ -294,18 +226,25 @@ const PreviewLabel = styled.div`
 
 const PreviewSubject = styled.div`
   font-size: 0.9375rem;
-  color: #111827;
+  color: ${({ theme }) => theme.text.primary};
   font-weight: 600;
   margin-bottom: 0.5rem;
 `;
 
 const PreviewDescription = styled.div`
   font-size: 0.875rem;
-  color: #4b5563;
+  color: ${({ theme }) => theme.text.secondary};
   line-height: 1.5;
 `;
 
+const FooterButtons = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+`;
+
 export const SendEmailModal: React.FC<SendEmailModalProps> = ({
+  isOpen,
   rescue,
   onClose,
   onSuccess,
@@ -371,154 +310,152 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
     }
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && !loading) {
-      onClose();
-    }
-  };
-
   const selectedTemplateData = EMAIL_TEMPLATES.find(t => t.id === selectedTemplate);
 
+  const modalHeader = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <FiMail size={20} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: '1.125rem' }}>Send Email</div>
+        <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.125rem' }}>
+          Send an email to {rescue.name}
+        </div>
+      </div>
+    </div>
+  );
+
+  const modalFooter = (
+    <FooterButtons>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onClose}
+        disabled={loading || success}
+      >
+        {success ? 'Close' : 'Cancel'}
+      </Button>
+      {!success && (
+        <Button
+          type="button"
+          variant="primary"
+          onClick={handleSubmit}
+          disabled={loading || !selectedTemplate}
+        >
+          {loading ? 'Sending...' : 'Send Email'}
+        </Button>
+      )}
+    </FooterButtons>
+  );
+
   return (
-    <Overlay onClick={handleOverlayClick}>
-      <ModalContainer>
-        <form onSubmit={handleSubmit}>
-          <ModalHeader>
-            <IconWrapper>
-              <FiMail />
-            </IconWrapper>
-            <HeaderContent>
-              <Heading level="h3" style={{ margin: 0 }}>
-                Send Email
-              </Heading>
-              <Text style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-                Send an email to {rescue.name}
-              </Text>
-            </HeaderContent>
-          </ModalHeader>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      header={modalHeader}
+      footer={modalFooter}
+      closeOnOverlayClick={!loading}
+    >
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <ErrorMessage>
+            <FiAlertCircle />
+            {error}
+          </ErrorMessage>
+        )}
 
-          <ModalBody>
-            {error && (
-              <ErrorMessage>
-                <FiAlertCircle />
-                {error}
-              </ErrorMessage>
-            )}
+        {success && (
+          <SuccessMessage>
+            <FiMail />
+            Email sent successfully!
+          </SuccessMessage>
+        )}
 
-            {success && (
-              <SuccessMessage>
-                <FiMail />
-                Email sent successfully!
-              </SuccessMessage>
-            )}
+        <InfoBox>
+          <InfoLabel>Recipient</InfoLabel>
+          <InfoValue>{rescue.email}</InfoValue>
+        </InfoBox>
 
-            <InfoBox>
-              <InfoLabel>Recipient</InfoLabel>
-              <InfoValue>{rescue.email}</InfoValue>
-            </InfoBox>
-
-            <FormGroup>
-              <Label>Select Email Template</Label>
-              <TemplateGrid>
-                {EMAIL_TEMPLATES.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    type="button"
-                    selected={selectedTemplate === template.id}
-                    onClick={() => handleTemplateSelect(template.id)}
-                    disabled={loading || success}
-                  >
-                    <TemplateIcon selected={selectedTemplate === template.id}>
-                      <FiFileText />
-                    </TemplateIcon>
-                    <TemplateName>{template.name}</TemplateName>
-                    <TemplateDescription>{template.description}</TemplateDescription>
-                  </TemplateCard>
-                ))}
-                <TemplateCard
-                  type="button"
-                  selected={selectedTemplate === 'custom'}
-                  onClick={handleCustomSelect}
-                  disabled={loading || success}
-                >
-                  <TemplateIcon selected={selectedTemplate === 'custom'}>
-                    <FiMail />
-                  </TemplateIcon>
-                  <TemplateName>Custom Email</TemplateName>
-                  <TemplateDescription>Write your own message</TemplateDescription>
-                </TemplateCard>
-              </TemplateGrid>
-              <HelpText>
-                Select a professional template or create a custom message
-              </HelpText>
-            </FormGroup>
-
-            {selectedTemplateData && (
-              <TemplatePreview>
-                <PreviewLabel>Template Preview</PreviewLabel>
-                <PreviewSubject>{selectedTemplateData.subject}</PreviewSubject>
-                <PreviewDescription>
-                  Professional HTML email will be sent with personalized content for {rescue.name}
-                </PreviewDescription>
-              </TemplatePreview>
-            )}
-
-            {selectedTemplate === 'custom' && (
-              <>
-                <FormGroup>
-                  <Label>
-                    Subject
-                    <RequiredIndicator>*</RequiredIndicator>
-                  </Label>
-                  <Input
-                    type="text"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Email subject..."
-                    required
-                    disabled={loading || success}
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>
-                    Message
-                    <RequiredIndicator>*</RequiredIndicator>
-                  </Label>
-                  <TextArea
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    placeholder="Type your message here..."
-                    required
-                    disabled={loading || success}
-                  />
-                  <HelpText>Plain text message for custom emails</HelpText>
-                </FormGroup>
-              </>
-            )}
-          </ModalBody>
-
-          <ModalFooter>
-            <Button
+        <FormGroup>
+          <Label>Select Email Template</Label>
+          <TemplateGrid>
+            {EMAIL_TEMPLATES.map((template) => (
+              <TemplateCard
+                key={template.id}
+                type="button"
+                $selected={selectedTemplate === template.id}
+                onClick={() => handleTemplateSelect(template.id)}
+                disabled={loading || success}
+              >
+                <TemplateIcon $selected={selectedTemplate === template.id}>
+                  <FiFileText />
+                </TemplateIcon>
+                <TemplateName>{template.name}</TemplateName>
+                <TemplateDescription>{template.description}</TemplateDescription>
+              </TemplateCard>
+            ))}
+            <TemplateCard
               type="button"
-              variant="outline"
-              onClick={onClose}
+              $selected={selectedTemplate === 'custom'}
+              onClick={handleCustomSelect}
               disabled={loading || success}
             >
-              {success ? 'Close' : 'Cancel'}
-            </Button>
-            {!success && (
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={loading || !selectedTemplate}
-              >
-                {loading ? 'Sending...' : 'Send Email'}
-              </Button>
-            )}
-          </ModalFooter>
-        </form>
-      </ModalContainer>
-    </Overlay>
+              <TemplateIcon $selected={selectedTemplate === 'custom'}>
+                <FiMail />
+              </TemplateIcon>
+              <TemplateName>Custom Email</TemplateName>
+              <TemplateDescription>Write your own message</TemplateDescription>
+            </TemplateCard>
+          </TemplateGrid>
+          <HelpText>
+            Select a professional template or create a custom message
+          </HelpText>
+        </FormGroup>
+
+        {selectedTemplateData && (
+          <TemplatePreview>
+            <PreviewLabel>Template Preview</PreviewLabel>
+            <PreviewSubject>{selectedTemplateData.subject}</PreviewSubject>
+            <PreviewDescription>
+              Professional HTML email will be sent with personalized content for {rescue.name}
+            </PreviewDescription>
+          </TemplatePreview>
+        )}
+
+        {selectedTemplate === 'custom' && (
+          <>
+            <FormGroup>
+              <Label>
+                Subject
+                <RequiredIndicator>*</RequiredIndicator>
+              </Label>
+              <Input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Email subject..."
+                required
+                disabled={loading || success}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>
+                Message
+                <RequiredIndicator>*</RequiredIndicator>
+              </Label>
+              <TextArea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Type your message here..."
+                required
+                disabled={loading || success}
+              />
+              <HelpText>Plain text message for custom emails</HelpText>
+            </FormGroup>
+          </>
+        )}
+      </form>
+    </Modal>
   );
 };
