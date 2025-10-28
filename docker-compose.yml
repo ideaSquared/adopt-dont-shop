@@ -98,7 +98,7 @@ services:
       VITE_API_BASE_URL: http://localhost:5000
       VITE_WS_BASE_URL: ws://localhost:5000
       # Memory and file watching optimizations
-      CHOKIDAR_USEPOLLING: false
+      CHOKIDAR_USEPOLLING: true
       CHOKIDAR_INTERVAL: 1000
       CHOKIDAR_AWAITWRITEFINISH: 2000
       NODE_OPTIONS: "--max-old-space-size=3072 --max-semi-space-size=128"
@@ -128,7 +128,7 @@ services:
       VITE_API_BASE_URL: http://localhost:5000
       VITE_WS_BASE_URL: ws://localhost:5000
       # Memory and file watching optimizations
-      CHOKIDAR_USEPOLLING: false
+      CHOKIDAR_USEPOLLING: true
       CHOKIDAR_INTERVAL: 1000
       CHOKIDAR_AWAITWRITEFINISH: 2000
       NODE_OPTIONS: "--max-old-space-size=3072 --max-semi-space-size=128"

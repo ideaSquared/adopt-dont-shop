@@ -45,6 +45,11 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       include: ['styled-components'],
+      // Include library source files in dependency optimization for HMR
+      entries: [
+        './src/**/*.{ts,tsx}',
+        '../lib.*/src/**/*.{ts,tsx}',
+      ],
     },
     server: {
       host: '0.0.0.0',
@@ -52,6 +57,8 @@ export default defineConfig(({ mode }) => {
       watch: {
         usePolling: true,
         interval: 100,
+        // Don't ignore library source folders - we want to watch them for changes
+        ignored: ['!**/lib.*/src/**'],
       },
       hmr: {
         overlay: true,

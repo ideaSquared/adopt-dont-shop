@@ -3,6 +3,9 @@ import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig(({ mode }) => {
+  // Check if we're running in Docker (service-backend hostname is available)
+  const isDocker = process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'production';
+
   // Development aliases for all libraries to use source files directly
   const libraryAliases =
     mode === 'development'
@@ -36,10 +39,39 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       include: ['styled-components'],
+      // Include library source files in dependency optimization for HMR
+      entries: [
+        './src/**/*.{ts,tsx}',
+        '../lib.*/src/**/*.{ts,tsx}',
+      ],
     },
     server: {
       host: '0.0.0.0',
       port: 3000,
+      watch: {
+        usePolling: true,
+        interval: 100,
+        // Don't ignore library source folders - we want to watch them for changes
+        ignored: ['!**/lib.*/src/**'],
+      },
+      hmr: {
+        overlay: true,
+      },
+      // Use proxy for local development outside Docker
+      proxy: !isDocker
+        ? {
+            '/api': {
+              target: 'http://localhost:5000',
+              changeOrigin: true,
+              secure: false,
+            },
+            '/health': {
+              target: 'http://localhost:5000',
+              changeOrigin: true,
+              secure: false,
+            },
+          }
+        : undefined,
     },
     build: {
       outDir: 'dist',
