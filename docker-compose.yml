@@ -73,6 +73,9 @@ services:
       redis:
         condition: service_started
     restart: unless-stopped
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: "1.0"
 
   # ============================================================================
   # FRONTEND APPLICATIONS - Using Optimized Workspace Pattern
@@ -105,6 +108,12 @@ services:
     depends_on:
       - service-backend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     mem_limit: 2g
     memswap_limit: 2g
 
@@ -135,6 +144,12 @@ services:
     depends_on:
       - service-backend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     mem_limit: 2g
     memswap_limit: 2g
 
@@ -168,6 +183,12 @@ services:
     depends_on:
       - service-backend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     mem_limit: 2g
     memswap_limit: 2g
 
