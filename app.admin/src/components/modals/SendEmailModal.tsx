@@ -74,6 +74,7 @@ const ModalHeader = styled.div`
   gap: 1rem;
   padding: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 `;
 
 const IconWrapper = styled.div`
@@ -98,7 +99,9 @@ const HeaderContent = styled.div`
 const ModalBody = styled.div`
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1.5rem;
+  min-height: 0;
 `;
 
 const FormGroup = styled.div`
@@ -175,6 +178,7 @@ const ModalFooter = styled.div`
   gap: 0.75rem;
   padding: 1.5rem;
   border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
 `;
 
 const ErrorMessage = styled.div`
