@@ -269,9 +269,25 @@ export class InvitationService {
         order: [['created_at', 'DESC']]
       });
 
+      // Transform to camelCase for frontend
+      const transformedInvitations = invitations.map(inv => {
+        const plain = inv.get({ plain: true });
+        return {
+          invitationId: plain.invitation_id,
+          rescueId: plain.rescue_id,
+          email: plain.email,
+          title: plain.title,
+          status: 'pending' as const,
+          token: '', // Don't expose token in list
+          invitedBy: plain.invited_by,
+          createdAt: plain.created_at,
+          expiresAt: plain.expiration,
+        };
+      });
+
       return {
         success: true,
-        invitations
+        data: transformedInvitations
       };
 
     } catch (error) {

@@ -190,27 +190,6 @@ const IconButton = styled.button`
   }
 `;
 
-const StatsGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  font-size: 0.8125rem;
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-`;
-
-const StatLabel = styled.div`
-  color: #6b7280;
-`;
-
-const StatValue = styled.div`
-  font-weight: 600;
-  color: #111827;
-`;
-
 const ErrorMessage = styled.div`
   background: #fee2e2;
   border: 1px solid #fecaca;
@@ -355,23 +334,6 @@ const Rescues: React.FC = () => {
       accessor: (row) => getStatusBadge(row.status),
       width: '140px',
       sortable: true
-    },
-    {
-      id: 'stats',
-      header: 'Statistics',
-      accessor: (row) => (
-        <StatsGroup>
-          <StatItem>
-            <StatLabel>Listings</StatLabel>
-            <StatValue>{row.activeListings}</StatValue>
-          </StatItem>
-          <StatItem>
-            <StatLabel>Staff</StatLabel>
-            <StatValue>{row.staffCount}</StatValue>
-          </StatItem>
-        </StatsGroup>
-      ),
-      width: '160px'
     },
     {
       id: 'createdAt',

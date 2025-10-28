@@ -11,6 +11,7 @@ export { ThemeProvider, useTheme } from './styles/ThemeProvider';
 export { Avatar } from './components/ui/Avatar';
 export { Badge } from './components/ui/Badge';
 export { Button } from './components/ui/Button';
+export { default as DateTime } from './components/ui/DateTime/DateTime';
 export { Heading } from './components/ui/Heading';
 export { DotSpinner, Spinner } from './components/ui/Spinner';
 export { Text } from './components/ui/Text';
