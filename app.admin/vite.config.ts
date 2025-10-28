@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    cacheDir: '/tmp/.vite-app-admin',
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),
@@ -45,10 +46,11 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       include: ['styled-components'],
+      exclude: ['@testing-library/dom', '@testing-library/react', '@testing-library/user-event', '@testing-library/jest-dom'],
       // Include library source files in dependency optimization for HMR
       entries: [
-        './src/**/*.{ts,tsx}',
-        '../lib.*/src/**/*.{ts,tsx}',
+        './src/**/!(*.test|*.spec).{ts,tsx}',
+        '../lib.*/src/**/!(*.test|*.spec).{ts,tsx}',
       ],
     },
     server: {

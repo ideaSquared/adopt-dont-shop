@@ -46,6 +46,9 @@ import EmailTemplate from './EmailTemplate';
 import { SwipeAction } from './SwipeAction';
 import { SwipeSession } from './SwipeSession';
 
+// Application Management Models
+import HomeVisit from './HomeVisit';
+
 // Define all models
 const models = {
   User,
@@ -79,6 +82,7 @@ const models = {
   SwipeSession,
   SwipeAction,
   FileUpload,
+  HomeVisit,
 };
 
 // Setup associations (done explicitly below instead of using associate methods)
@@ -270,6 +274,10 @@ Pet.hasMany(UserFavorite, { foreignKey: 'pet_id', as: 'Favorites' });
 UserFavorite.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
 
 // FileUpload associations
+
+// HomeVisit associations
+Application.hasMany(HomeVisit, { foreignKey: 'application_id', as: 'HomeVisits' });
+HomeVisit.belongsTo(Application, { foreignKey: 'application_id', as: 'Application' });
 User.hasMany(FileUpload, { foreignKey: 'uploaded_by', as: 'UploadedFiles' });
 FileUpload.belongsTo(User, { foreignKey: 'uploaded_by', as: 'Uploader' });
 
@@ -287,6 +295,7 @@ export {
   EmailTemplate,
   FeatureFlag,
   FileUpload,
+  HomeVisit,
   Invitation,
   Message,
   ModeratorAction,

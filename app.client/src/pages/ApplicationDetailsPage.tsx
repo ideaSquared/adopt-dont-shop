@@ -86,11 +86,6 @@ const StatusBadge = styled.span<{ $status: string }>`
           background: ${props.theme.colors.secondary[100]};
           color: ${props.theme.colors.secondary[700]};
         `;
-      case 'submitted':
-        return `
-          background: ${props.theme.colors.primary[100]};
-          color: ${props.theme.colors.primary[700]};
-        `;
       case 'approved':
         return `
           background: ${props.theme.colors.semantic.success[100]};

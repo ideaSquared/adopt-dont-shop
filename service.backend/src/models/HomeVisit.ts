@@ -136,9 +136,5 @@ HomeVisit.init(
   }
 );
 
-// Sync the model to create the table if it doesn't exist
-HomeVisit.sync({ alter: true }).catch(error => {
-  console.error('Error syncing HomeVisit model:', error);
-});
 
 export default HomeVisit;
