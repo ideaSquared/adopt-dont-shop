@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Button, Input, Heading, Text } from '@adopt-dont-shop/components';
-import { FiX, FiMail, FiAlertCircle } from 'react-icons/fi';
+import { FiX, FiMail, FiAlertCircle, FiFileText } from 'react-icons/fi';
 import type { AdminRescue, RescueEmailPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 
@@ -11,24 +11,37 @@ type SendEmailModalProps = {
   onSuccess: () => void;
 };
 
-const EMAIL_TEMPLATES = {
-  welcome: {
-    subject: 'Welcome to Adopt Don\'t Shop!',
-    body: 'Dear {rescueName},\n\nWelcome to our platform! We\'re excited to have you join our community of rescue organizations...',
-  },
-  approval: {
-    subject: 'Your rescue organization has been approved',
-    body: 'Dear {rescueName},\n\nCongratulations! Your rescue organization has been verified and approved on Adopt Don\'t Shop...',
-  },
-  reminder: {
-    subject: 'Update your rescue profile',
-    body: 'Dear {rescueName},\n\nWe noticed your profile could use some updates. Please take a moment to review and update your information...',
-  },
-  custom: {
-    subject: '',
-    body: '',
-  },
+type EmailTemplate = {
+  id: string;
+  name: string;
+  subject: string;
+  description: string;
+  templateId: string;
 };
+
+const EMAIL_TEMPLATES: EmailTemplate[] = [
+  {
+    id: 'welcome',
+    name: 'Welcome Email',
+    subject: "Welcome to Adopt Don't Shop",
+    description: 'Warm welcome message for new rescue organizations',
+    templateId: 'tmpl_rescue_welcome_001',
+  },
+  {
+    id: 'approval',
+    name: 'Verification Approved',
+    subject: 'Your rescue has been verified',
+    description: 'Congratulations message for verified organizations',
+    templateId: 'tmpl_rescue_approved_001',
+  },
+  {
+    id: 'reminder',
+    name: 'Profile Update Reminder',
+    subject: 'Time to update your profile',
+    description: 'Friendly reminder to keep rescue information current',
+    templateId: 'tmpl_rescue_reminder_001',
+  },
+];
 
 const Overlay = styled.div`
   position: fixed;
@@ -102,24 +115,6 @@ const Label = styled.label`
   font-weight: 600;
   color: #374151;
   margin-bottom: 0.5rem;
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.9375rem;
-  color: #111827;
-  background: #ffffff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
 `;
 
 const TextArea = styled.textarea`
@@ -217,30 +212,131 @@ const RequiredIndicator = styled.span`
   margin-left: 0.25rem;
 `;
 
+const TemplateGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+`;
+
+const TemplateCard = styled.button<{ selected: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1rem;
+  border: 2px solid ${props => props.selected ? props.theme.colors.primary[500] : '#e5e7eb'};
+  border-radius: 8px;
+  background: ${props => props.selected ? props.theme.colors.primary[50] : '#ffffff'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+
+  &:hover {
+    border-color: ${props => props.theme.colors.primary[400]};
+    background: ${props => props.theme.colors.primary[50]};
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
+const TemplateIcon = styled.div<{ selected: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: ${props => props.selected ? props.theme.colors.primary[100] : '#f3f4f6'};
+  color: ${props => props.selected ? props.theme.colors.primary[600] : '#6b7280'};
+  margin-bottom: 0.75rem;
+
+  svg {
+    font-size: 1.25rem;
+  }
+`;
+
+const TemplateName = styled.div`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+`;
+
+const TemplateDescription = styled.div`
+  font-size: 0.75rem;
+  color: #6b7280;
+  line-height: 1.4;
+`;
+
+const TemplatePreview = styled.div`
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+`;
+
+const PreviewLabel = styled.div`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+`;
+
+const PreviewSubject = styled.div`
+  font-size: 0.9375rem;
+  color: #111827;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+`;
+
+const PreviewDescription = styled.div`
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.5;
+`;
+
 export const SendEmailModal: React.FC<SendEmailModalProps> = ({
   rescue,
   onClose,
   onSuccess,
 }) => {
-  const [template, setTemplate] = useState<keyof typeof EMAIL_TEMPLATES>('custom');
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleTemplateChange = (newTemplate: keyof typeof EMAIL_TEMPLATES) => {
-    setTemplate(newTemplate);
-    const templateData = EMAIL_TEMPLATES[newTemplate];
-    setSubject(templateData.subject.replace('{rescueName}', rescue.name));
-    setBody(templateData.body.replace('{rescueName}', rescue.name));
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    setSubject('');
+    setBody('');
+    setError(null);
+  };
+
+  const handleCustomSelect = () => {
+    setSelectedTemplate('custom');
+    setSubject('');
+    setBody('');
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!subject.trim() || !body.trim()) {
-      setError('Subject and body are required');
+    if (selectedTemplate === 'custom') {
+      if (!subject.trim() || !body.trim()) {
+        setError('Subject and body are required for custom emails');
+        return;
+      }
+    } else if (!selectedTemplate) {
+      setError('Please select a template or choose custom email');
       return;
     }
 
@@ -248,11 +344,14 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
       setLoading(true);
       setError(null);
 
-      const payload: RescueEmailPayload = {
-        subject: subject.trim(),
-        body: body.trim(),
-        template: template !== 'custom' ? template : undefined,
-      };
+      const payload: RescueEmailPayload = selectedTemplate === 'custom'
+        ? {
+            subject: subject.trim(),
+            body: body.trim(),
+          }
+        : {
+            templateId: EMAIL_TEMPLATES.find(t => t.id === selectedTemplate)?.templateId,
+          };
 
       await rescueService.sendEmail(rescue.rescueId, payload);
 
@@ -273,6 +372,8 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
       onClose();
     }
   };
+
+  const selectedTemplateData = EMAIL_TEMPLATES.find(t => t.id === selectedTemplate);
 
   return (
     <Overlay onClick={handleOverlayClick}>
@@ -313,49 +414,84 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
             </InfoBox>
 
             <FormGroup>
-              <Label>Email Template</Label>
-              <Select
-                value={template}
-                onChange={(e) => handleTemplateChange(e.target.value as keyof typeof EMAIL_TEMPLATES)}
-                disabled={loading || success}
-              >
-                <option value="custom">Custom Message</option>
-                <option value="welcome">Welcome Email</option>
-                <option value="approval">Approval Notification</option>
-                <option value="reminder">Profile Update Reminder</option>
-              </Select>
-              <HelpText>Select a template or create a custom message</HelpText>
+              <Label>Select Email Template</Label>
+              <TemplateGrid>
+                {EMAIL_TEMPLATES.map((template) => (
+                  <TemplateCard
+                    key={template.id}
+                    type="button"
+                    selected={selectedTemplate === template.id}
+                    onClick={() => handleTemplateSelect(template.id)}
+                    disabled={loading || success}
+                  >
+                    <TemplateIcon selected={selectedTemplate === template.id}>
+                      <FiFileText />
+                    </TemplateIcon>
+                    <TemplateName>{template.name}</TemplateName>
+                    <TemplateDescription>{template.description}</TemplateDescription>
+                  </TemplateCard>
+                ))}
+                <TemplateCard
+                  type="button"
+                  selected={selectedTemplate === 'custom'}
+                  onClick={handleCustomSelect}
+                  disabled={loading || success}
+                >
+                  <TemplateIcon selected={selectedTemplate === 'custom'}>
+                    <FiMail />
+                  </TemplateIcon>
+                  <TemplateName>Custom Email</TemplateName>
+                  <TemplateDescription>Write your own message</TemplateDescription>
+                </TemplateCard>
+              </TemplateGrid>
+              <HelpText>
+                Select a professional template or create a custom message
+              </HelpText>
             </FormGroup>
 
-            <FormGroup>
-              <Label>
-                Subject
-                <RequiredIndicator>*</RequiredIndicator>
-              </Label>
-              <Input
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Email subject..."
-                required
-                disabled={loading || success}
-              />
-            </FormGroup>
+            {selectedTemplateData && (
+              <TemplatePreview>
+                <PreviewLabel>Template Preview</PreviewLabel>
+                <PreviewSubject>{selectedTemplateData.subject}</PreviewSubject>
+                <PreviewDescription>
+                  Professional HTML email will be sent with personalized content for {rescue.name}
+                </PreviewDescription>
+              </TemplatePreview>
+            )}
 
-            <FormGroup>
-              <Label>
-                Message
-                <RequiredIndicator>*</RequiredIndicator>
-              </Label>
-              <TextArea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="Type your message here..."
-                required
-                disabled={loading || success}
-              />
-              <HelpText>Use {'{rescueName}'} for personalization</HelpText>
-            </FormGroup>
+            {selectedTemplate === 'custom' && (
+              <>
+                <FormGroup>
+                  <Label>
+                    Subject
+                    <RequiredIndicator>*</RequiredIndicator>
+                  </Label>
+                  <Input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Email subject..."
+                    required
+                    disabled={loading || success}
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>
+                    Message
+                    <RequiredIndicator>*</RequiredIndicator>
+                  </Label>
+                  <TextArea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder="Type your message here..."
+                    required
+                    disabled={loading || success}
+                  />
+                  <HelpText>Plain text message for custom emails</HelpText>
+                </FormGroup>
+              </>
+            )}
           </ModalBody>
 
           <ModalFooter>
@@ -371,7 +507,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
               <Button
                 type="submit"
                 variant="primary"
-                disabled={loading}
+                disabled={loading || !selectedTemplate}
               >
                 {loading ? 'Sending...' : 'Send Email'}
               </Button>
