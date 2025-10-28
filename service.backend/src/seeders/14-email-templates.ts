@@ -416,7 +416,7 @@ Thank you for joining!`,
       </div>
     `,
     textContent: `Congratulations! Your rescue has been verified.`,
-    category: TemplateCategory.ACCOUNT_MANAGEMENT,
+    category: TemplateCategory.RESCUE_VERIFICATION,
     status: TemplateStatus.ACTIVE,
     variables: [],
     metadata: {},
@@ -466,5 +466,16 @@ Thank you for joining!`,
     testEmailsSent: 0,
     createdBy: 'user_admin_001',
     lastModifiedBy: 'user_admin_001',
-
+  },
 ];
+export async function seedEmailTemplates() {
+  for (const template of emailTemplateData) {
+    await EmailTemplate.findOrCreate({
+      where: { templateId: template.templateId },
+      defaults: template,
+    });
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(`✅ Created ${emailTemplateData.length} email templates`);
+}
