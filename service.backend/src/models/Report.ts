@@ -127,6 +127,7 @@ class Report extends Model<ReportAttributes, ReportCreationAttributes> implement
 Report.init(
   {
     reportId: {
+      field: 'report_id',
       type: DataTypes.STRING,
       primaryKey: true,
       defaultValue: () => `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

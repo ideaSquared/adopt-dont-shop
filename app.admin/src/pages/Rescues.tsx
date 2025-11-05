@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
 import { FiSearch, FiCheckCircle, FiXCircle, FiEye, FiMail, FiMapPin, FiAlertCircle } from 'react-icons/fi';
@@ -207,6 +208,9 @@ const ErrorMessage = styled.div`
 `;
 
 const Rescues: React.FC = () => {
+  const { rescueId } = useParams<{ rescueId?: string }>();
+  const navigate = useNavigate();
+
   const [rescues, setRescues] = useState<AdminRescue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -273,11 +277,24 @@ const Rescues: React.FC = () => {
     fetchRescues();
   }, [currentPage, itemsPerPage, searchQuery, statusFilter]);
 
-  const handleViewDetails = (rescueId: string): void => {
-    const rescue = rescues.find(r => r.rescueId === rescueId);
+  // Load rescue from URL parameter
+  useEffect(() => {
+    if (rescueId && rescues.length > 0) {
+      const rescue = rescues.find(r => r.rescueId === rescueId);
+      if (rescue) {
+        setSelectedRescue(rescue);
+        setShowDetailModal(true);
+      }
+    }
+  }, [rescueId, rescues]);
+
+  const handleViewDetails = (rescueIdParam: string): void => {
+    const rescue = rescues.find(r => r.rescueId === rescueIdParam);
     if (rescue) {
       setSelectedRescue(rescue);
       setShowDetailModal(true);
+      // Update URL to reflect selected rescue
+      navigate(`/rescues/${rescueIdParam}`, { replace: true });
     }
   };
 
@@ -303,6 +320,10 @@ const Rescues: React.FC = () => {
     setShowVerificationModal(false);
     setShowEmailModal(false);
     setSelectedRescue(null);
+    // Clear URL parameter when closing modal
+    if (rescueId) {
+      navigate('/rescues', { replace: true });
+    }
   };
 
   const handleVerificationSuccess = (): void => {

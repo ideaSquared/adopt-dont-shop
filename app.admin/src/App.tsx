@@ -10,6 +10,8 @@ import {
   Dashboard,
   Users,
   Rescues,
+  Pets,
+  Applications,
   Moderation,
   Support,
   Analytics,
@@ -68,6 +70,14 @@ const AdminApp: React.FC = () => {
           {/* Rescue Management */}
           <Route path="/rescues" element={<Rescues />} />
           <Route path="/rescues/:rescueId" element={<Rescues />} />
+
+          {/* Pet Management */}
+          <Route path="/pets" element={<Pets />} />
+          <Route path="/pets/:petId" element={<Pets />} />
+
+          {/* Application Management */}
+          <Route path="/applications" element={<Applications />} />
+          <Route path="/applications/:applicationId" element={<Applications />} />
 
           {/* Content Moderation & Safety */}
           <Route path="/moderation" element={<Moderation />} />

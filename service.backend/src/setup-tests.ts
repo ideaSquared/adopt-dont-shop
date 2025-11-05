@@ -677,3 +677,96 @@ export const createMockPet = (overrides: Record<string, unknown> = {}) => ({
   rescueId: 'rescue-123',
   ...overrides,
 });
+
+// Mock Report model
+jest.mock('./models/Report', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    findAndCountAll: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+  ReportStatus: {
+    PENDING: 'pending',
+    UNDER_REVIEW: 'under_review',
+    RESOLVED: 'resolved',
+    DISMISSED: 'dismissed',
+    ESCALATED: 'escalated',
+  },
+  ReportSeverity: {
+    LOW: 'low',
+    MEDIUM: 'medium',
+    HIGH: 'high',
+    CRITICAL: 'critical',
+  },
+  ReportCategory: {
+    INAPPROPRIATE_CONTENT: 'inappropriate_content',
+    SPAM: 'spam',
+    HARASSMENT: 'harassment',
+    FALSE_INFORMATION: 'false_information',
+    SCAM: 'scam',
+    ANIMAL_WELFARE: 'animal_welfare',
+    IDENTITY_THEFT: 'identity_theft',
+    OTHER: 'other',
+  },
+  ReportedEntityType: {
+    USER: 'user',
+    RESCUE: 'rescue',
+    PET: 'pet',
+    MESSAGE: 'message',
+    APPLICATION: 'application',
+    CONVERSATION: 'conversation',
+  },
+}));
+
+// Mock ModeratorAction model
+jest.mock('./models/ModeratorAction', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+  ActionType: {
+    WARNING_ISSUED: 'warning_issued',
+    CONTENT_REMOVED: 'content_removed',
+    USER_SUSPENDED: 'user_suspended',
+    USER_BANNED: 'user_banned',
+    ACCOUNT_RESTRICTED: 'account_restricted',
+    CONTENT_FLAGGED: 'content_flagged',
+  },
+  ActionSeverity: {
+    LOW: 'low',
+    MEDIUM: 'medium',
+    HIGH: 'high',
+    CRITICAL: 'critical',
+  },
+}));
+
+// Update sequelize.transaction mock to support callback pattern
+const originalSequelizeMock = jest.requireMock('./sequelize');
+originalSequelizeMock.default.transaction = jest.fn(async (callback) => {
+  if (typeof callback === 'function') {
+    const t = { commit: jest.fn(), rollback: jest.fn() };
+    return await callback(t);
+  }
+  return Promise.resolve({
+    commit: jest.fn(),
+    rollback: jest.fn(),
+  });
+});

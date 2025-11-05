@@ -2,6 +2,8 @@ import { Op, Transaction } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
 import User from '../models/User';
+import Pet from '../models/Pet';
+import Rescue from '../models/Rescue';
 import sequelize from '../sequelize';
 import logger from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
@@ -145,7 +147,7 @@ class ModerationService {
       page: number;
       limit: number;
       total: number;
-      pages: number;
+      totalPages: number;
     };
   }> {
     const page = Math.max(1, options.page || 1);
@@ -228,7 +230,7 @@ class ModerationService {
         page,
         limit,
         total: count,
-        pages: Math.ceil(count / limit),
+        totalPages: Math.ceil(count / limit),
       },
     };
   }
@@ -454,7 +456,7 @@ class ModerationService {
         'status',
         'category',
         'severity',
-        [sequelize.fn('COUNT', sequelize.col('reportId')), 'count'],
+        [sequelize.fn('COUNT', sequelize.col('Report.report_id')), 'count'],
       ],
       group: ['status', 'category', 'severity'],
       raw: true,
@@ -466,7 +468,7 @@ class ModerationService {
       attributes: [
         'actionType',
         'isActive',
-        [sequelize.fn('COUNT', sequelize.col('actionId')), 'count'],
+        [sequelize.fn('COUNT', sequelize.col('ModeratorAction.action_id')), 'count'],
       ],
       group: ['actionType', 'isActive'],
       raw: true,
@@ -476,13 +478,13 @@ class ModerationService {
     const responseTimeData = await Report.findAll({
       where: {
         ...whereClause,
-        firstResponseAt: { [Op.not]: null },
+        assignedAt: { [Op.not]: null },
       },
       attributes: [
         [
           sequelize.fn(
             'AVG',
-            sequelize.literal('EXTRACT(EPOCH FROM ("firstResponseAt" - "createdAt")) / 3600')
+            sequelize.literal('EXTRACT(EPOCH FROM ("assigned_at" - "created_at")) / 3600')
           ),
           'avgResponseTime',
         ],
@@ -499,7 +501,7 @@ class ModerationService {
         [
           sequelize.fn(
             'AVG',
-            sequelize.literal('EXTRACT(EPOCH FROM ("resolvedAt" - "createdAt")) / 3600')
+            sequelize.literal('EXTRACT(EPOCH FROM ("resolved_at" - "created_at")) / 3600')
           ),
           'avgResolutionTime',
         ],
@@ -573,6 +575,171 @@ class ModerationService {
     };
   }
 
+  async escalateReport(
+    reportId: string,
+    escalatedTo: string,
+    escalatedBy: string,
+    reason: string
+  ): Promise<Report> {
+    const transaction = await sequelize.transaction();
+
+    try {
+      const report = await Report.findByPk(reportId, { transaction });
+      if (!report) {
+        throw new Error('Report not found');
+      }
+
+      if (![ReportStatus.PENDING, ReportStatus.UNDER_REVIEW].includes(report.status)) {
+        throw new Error('Report cannot be escalated in its current status');
+      }
+
+      await report.update(
+        {
+          status: ReportStatus.ESCALATED,
+          escalatedTo,
+          escalatedAt: new Date(),
+          escalationReason: reason,
+        },
+        { transaction }
+      );
+
+      await transaction.commit();
+
+      await AuditLogService.log({
+        userId: escalatedBy,
+        action: 'REPORT_ESCALATED',
+        entity: 'Report',
+        entityId: reportId,
+        details: { escalatedTo, reason },
+      });
+
+      logger.info(`Report ${reportId} escalated by ${escalatedBy} to ${escalatedTo}`);
+      return report;
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error escalating report:', error);
+      throw error;
+    }
+  }
+
+  async bulkUpdateReports(options: {
+    reportIds: string[];
+    action: 'resolve' | 'dismiss' | 'assign' | 'escalate';
+    moderatorId: string;
+    resolutionNotes?: string;
+    assignTo?: string;
+    escalateTo?: string;
+    escalationReason?: string;
+  }): Promise<{ success: boolean; updated: number }> {
+    const { reportIds, action, moderatorId, resolutionNotes, assignTo, escalateTo, escalationReason } = options;
+
+    if (!reportIds || reportIds.length === 0) {
+      throw new Error('Report IDs are required');
+    }
+
+    const transaction = await sequelize.transaction();
+
+    try {
+      let updated = 0;
+
+      for (const reportId of reportIds) {
+        const report = await Report.findByPk(reportId, { transaction });
+        if (!report) {
+          throw new Error(`Report ${reportId} not found`);
+        }
+
+        switch (action) {
+          case 'resolve':
+            if ([ReportStatus.UNDER_REVIEW, ReportStatus.ESCALATED].includes(report.status)) {
+              await report.update(
+                {
+                  status: ReportStatus.RESOLVED,
+                  resolvedBy: moderatorId,
+                  resolvedAt: new Date(),
+                  resolutionNotes,
+                },
+                { transaction }
+              );
+              updated++;
+            }
+            break;
+
+          case 'dismiss':
+            if (report.status !== ReportStatus.RESOLVED) {
+              await report.update(
+                {
+                  status: ReportStatus.DISMISSED,
+                  resolvedBy: moderatorId,
+                  resolvedAt: new Date(),
+                  resolutionNotes,
+                },
+                { transaction }
+              );
+              updated++;
+            }
+            break;
+
+          case 'assign':
+            if (!assignTo) {
+              throw new Error('assignTo is required for assign action');
+            }
+            if (report.status === ReportStatus.PENDING) {
+              await report.update(
+                {
+                  assignedModerator: assignTo,
+                  assignedAt: new Date(),
+                  status: ReportStatus.UNDER_REVIEW,
+                },
+                { transaction }
+              );
+              updated++;
+            }
+            break;
+
+          case 'escalate':
+            if (!escalateTo) {
+              throw new Error('escalateTo is required for escalate action');
+            }
+            if ([ReportStatus.PENDING, ReportStatus.UNDER_REVIEW].includes(report.status)) {
+              await report.update(
+                {
+                  status: ReportStatus.ESCALATED,
+                  escalatedTo: escalateTo,
+                  escalatedAt: new Date(),
+                  escalationReason: escalationReason || 'Bulk escalation',
+                },
+                { transaction }
+              );
+              updated++;
+            }
+            break;
+        }
+      }
+
+      await transaction.commit();
+
+      await AuditLogService.log({
+        userId: moderatorId,
+        action: 'BULK_REPORTS_UPDATE',
+        entity: 'Report',
+        entityId: 'bulk',
+        details: {
+          action,
+          reportCount: reportIds.length,
+          updatedCount: updated,
+        },
+      });
+
+      logger.info(`Bulk ${action} completed: ${updated} of ${reportIds.length} reports updated by ${moderatorId}`);
+
+      return { success: true, updated };
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error in bulk update:', error);
+      throw error;
+    }
+  }
+
   // Helper methods
   private async autoAssignReport(reportId: string, transaction?: Transaction): Promise<void> {
     // Simple auto-assignment logic - assign to moderator with least pending reports
@@ -589,7 +756,7 @@ class ModerationService {
           required: false,
         },
       ],
-      order: [[sequelize.literal('"AssignedReports"."reportId"'), 'ASC']],
+      order: [[sequelize.literal('"AssignedReports"."report_id"'), 'ASC']],
       limit: 1,
       transaction,
     });
@@ -651,6 +818,125 @@ class ModerationService {
     }
 
     return affectedCount;
+  }
+
+  async enrichReportsWithEntityContext(reports: any[]): Promise<any[]> {
+    if (!reports || reports.length === 0) {
+      return reports;
+    }
+
+    const entityCache = new Map<string, any>();
+
+    const enrichedReports = await Promise.all(
+      reports.map(async (report) => {
+        const cacheKey = `${report.reportedEntityType}:${report.reportedEntityId}`;
+        let entityContext = null;
+
+        if (entityCache.has(cacheKey)) {
+          entityContext = entityCache.get(cacheKey);
+        } else {
+          try {
+            switch (report.reportedEntityType) {
+              case 'user':
+                const user = await User.findByPk(report.reportedEntityId);
+                entityContext = user
+                  ? {
+                      type: 'user',
+                      id: user.userId,
+                      displayName: `${user.firstName} ${user.lastName}`,
+                      email: user.email,
+                      userType: user.userType,
+                    }
+                  : {
+                      type: 'user',
+                      id: report.reportedEntityId,
+                      displayName: '[Deleted User]',
+                      deleted: true,
+                    };
+                break;
+
+              case 'pet':
+                const pet = await Pet.findByPk(report.reportedEntityId);
+                entityContext = pet
+                  ? {
+                      type: 'pet',
+                      id: pet.pet_id,
+                      displayName: pet.name,
+                      petType: pet.type,
+                      breed: pet.breed,
+                      rescueId: pet.rescue_id,
+                    }
+                  : {
+                      type: 'pet',
+                      id: report.reportedEntityId,
+                      displayName: '[Deleted Pet]',
+                      deleted: true,
+                    };
+                break;
+
+              case 'rescue':
+                const rescue = await Rescue.findByPk(report.reportedEntityId);
+                entityContext = rescue
+                  ? {
+                      type: 'rescue',
+                      id: rescue.rescueId,
+                      displayName: rescue.name,
+                      city: rescue.city,
+                      country: rescue.country,
+                    }
+                  : {
+                      type: 'rescue',
+                      id: report.reportedEntityId,
+                      displayName: '[Deleted Rescue]',
+                      deleted: true,
+                    };
+                break;
+
+              default:
+                entityContext = {
+                  type: report.reportedEntityType,
+                  id: report.reportedEntityId,
+                  displayName: `${report.reportedEntityType} ${report.reportedEntityId.substring(0, 8)}...`,
+                };
+            }
+
+            if (entityContext) {
+              entityCache.set(cacheKey, entityContext);
+            }
+          } catch (error) {
+            logger.error('Error fetching entity context:', error);
+            entityContext = {
+              type: report.reportedEntityType,
+              id: report.reportedEntityId,
+              displayName: '[Error Loading Entity]',
+              error: true,
+            };
+          }
+        }
+
+        return {
+          ...report.toJSON ? report.toJSON() : report,
+          entityContext,
+        };
+      })
+    );
+
+    return enrichedReports;
+  }
+
+  async getReportsWithContext(
+    filters: ReportFilters,
+    options: ReportSearchOptions
+  ): Promise<{
+    reports: any[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const result = await this.searchReports(filters, options);
+    const enrichedReports = await this.enrichReportsWithEntityContext(result.reports);
+    return {
+      reports: enrichedReports,
+      pagination: result.pagination,
+    };
   }
 }
 

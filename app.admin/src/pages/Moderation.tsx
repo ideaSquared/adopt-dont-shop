@@ -4,7 +4,19 @@ import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
 import { FiSearch, FiAlertTriangle, FiCheckCircle, FiXCircle, FiEye, FiShield } from 'react-icons/fi';
 import { DataTable } from '../components/data';
 import type { Column } from '../components/data';
-import type { ModerationItem } from '../types/admin';
+import {
+  useReports,
+  useModerationMetrics,
+  useReportMutations,
+  getSeverityLabel,
+  getStatusLabel,
+  formatRelativeTime,
+  type Report,
+  type ReportStatus,
+  type ReportSeverity
+} from '@adopt-dont-shop/lib-moderation';
+import { ActionSelectionModal, type ActionSelectionData } from '../components/moderation/ActionSelectionModal';
+import { ReportDetailModal } from '../components/moderation/ReportDetailModal';
 
 const PageContainer = styled.div`
   display: flex;
@@ -100,33 +112,14 @@ const FilterGroup = styled.div`
   flex: 1;
 `;
 
-const FilterLabel = styled.label`
+const Label = styled.label`
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: #374151;
 `;
 
-const SearchInputWrapper = styled.div`
-  position: relative;
-  flex: 2;
-  min-width: 300px;
-
-  svg {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9ca3af;
-    font-size: 1.125rem;
-  }
-
-  input {
-    padding-left: 2.5rem;
-  }
-`;
-
 const Select = styled.select`
-  padding: 0.625rem 0.875rem;
+  padding: 0.625rem 1rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 0.875rem;
@@ -141,52 +134,63 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 `;
 
-const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }>`
-  display: inline-flex;
-  align-items: center;
+const SearchWrapper = styled.div`
+  position: relative;
+  flex: 2;
+  min-width: 250px;
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+`;
+
+const SearchInput = styled(Input)`
+  padding-left: 2.75rem;
+  width: 100%;
+`;
+
+const Badge = styled.span<{ $variant: 'success' | 'danger' | 'info' | 'neutral' }>`
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: ${props => {
+  display: inline-block;
+
+  ${props => {
     switch (props.$variant) {
-      case 'success': return '#d1fae5';
-      case 'warning': return '#fef3c7';
-      case 'danger': return '#fee2e2';
-      case 'info': return '#dbeafe';
-      default: return '#f3f4f6';
+      case 'success':
+        return `
+          background: #dcfce7;
+          color: #15803d;
+        `;
+      case 'danger':
+        return `
+          background: #fee2e2;
+          color: #dc2626;
+        `;
+      case 'info':
+        return `
+          background: #dbeafe;
+          color: #1e40af;
+        `;
+      case 'neutral':
+      default:
+        return `
+          background: #f3f4f6;
+          color: #4b5563;
+        `;
     }
-  }};
-  color: ${props => {
-    switch (props.$variant) {
-      case 'success': return '#065f46';
-      case 'warning': return '#92400e';
-      case 'danger': return '#991b1b';
-      case 'info': return '#1e40af';
-      default: return '#374151';
-    }
-  }};
-`;
-
-const ReportInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const ReportReason = styled.div`
-  font-weight: 600;
-  color: #111827;
-`;
-
-const ReportMeta = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
+  }}
 `;
 
 const PriorityIndicator = styled.div<{ $level: string }>`
@@ -248,349 +252,280 @@ const ContentTypeTag = styled.span<{ $type: string }>`
   font-weight: 600;
   background: ${props => {
     switch (props.$type) {
-      case 'listing': return '#ede9fe';
+      case 'pet': return '#ede9fe';
       case 'message': return '#dbeafe';
-      case 'profile': return '#fce7f3';
-      case 'photo': return '#fef3c7';
+      case 'user': return '#fce7f3';
+      case 'rescue': return '#fef3c7';
       default: return '#f3f4f6';
     }
   }};
   color: ${props => {
     switch (props.$type) {
-      case 'listing': return '#6b21a8';
+      case 'pet': return '#6b21a8';
       case 'message': return '#1e40af';
-      case 'profile': return '#9f1239';
-      case 'photo': return '#92400e';
+      case 'user': return '#9f1239';
+      case 'rescue': return '#92400e';
       default: return '#374151';
     }
   }};
 `;
 
-// Mock data
-const mockReports: ModerationItem[] = [
-  {
-    reportId: '1',
-    contentType: 'listing',
-    contentId: 'pet-123',
-    reportedBy: 'user-5',
-    reportedByName: 'Sarah Wilson',
-    reason: 'Suspected scam - asking for money outside platform',
-    description: 'User is requesting payment via PayPal before allowing adoption',
-    status: 'pending',
-    priority: 'critical',
-    createdAt: '2024-10-21T10:30:00Z',
-    targetUserId: 'user-10',
-    targetUserName: 'Suspicious Rescue'
-  },
-  {
-    reportId: '2',
-    contentType: 'message',
-    contentId: 'msg-456',
-    reportedBy: 'user-8',
-    reportedByName: 'Michael Chen',
-    reason: 'Harassment and inappropriate language',
-    description: 'Received threatening messages after declining application',
-    status: 'reviewing',
-    priority: 'high',
-    createdAt: '2024-10-21T09:15:00Z',
-    assignedTo: 'admin-1',
-    targetUserId: 'user-12',
-    targetUserName: 'John Aggressive'
-  },
-  {
-    reportId: '3',
-    contentType: 'photo',
-    contentId: 'photo-789',
-    reportedBy: 'user-15',
-    reportedByName: 'Emma Johnson',
-    reason: 'Inappropriate or disturbing image',
-    description: 'Photo shows animal in poor conditions',
-    status: 'reviewing',
-    priority: 'high',
-    createdAt: '2024-10-21T08:00:00Z',
-    assignedTo: 'admin-2',
-    targetUserId: 'rescue-5',
-    targetUserName: 'Questionable Shelter'
-  },
-  {
-    reportId: '4',
-    contentType: 'profile',
-    contentId: 'profile-321',
-    reportedBy: 'user-20',
-    reportedByName: 'David Martinez',
-    reason: 'Impersonation',
-    description: 'Profile is using our rescue\'s name and photos',
-    status: 'pending',
-    priority: 'medium',
-    createdAt: '2024-10-20T16:00:00Z',
-    targetUserId: 'user-25',
-    targetUserName: 'Fake Rescue Account'
-  },
-  {
-    reportId: '5',
-    contentType: 'listing',
-    contentId: 'pet-654',
-    reportedBy: 'user-30',
-    reportedByName: 'Lisa Anderson',
-    reason: 'Incorrect or misleading information',
-    description: 'Pet age and breed don\'t match description',
-    status: 'resolved',
-    priority: 'low',
-    createdAt: '2024-10-19T14:00:00Z',
-    assignedTo: 'admin-1',
-    resolvedAt: '2024-10-20T10:00:00Z',
-    resolution: 'Contacted rescue - information updated',
-    targetUserId: 'rescue-3',
-    targetUserName: 'Happy Paws Rescue'
-  },
-  {
-    reportId: '6',
-    contentType: 'message',
-    contentId: 'msg-987',
-    reportedBy: 'user-35',
-    reportedByName: 'Robert Taylor',
-    reason: 'Spam or commercial solicitation',
-    description: 'Promoting external pet-finding service',
-    status: 'dismissed',
-    priority: 'low',
-    createdAt: '2024-10-18T11:00:00Z',
-    assignedTo: 'admin-2',
-    resolvedAt: '2024-10-18T15:00:00Z',
-    resolution: 'User was providing legitimate advice',
-    targetUserId: 'user-40',
-    targetUserName: 'Helpful User'
-  }
-];
-
 const Moderation: React.FC = () => {
-  const [reports] = useState<ModerationItem[]>(mockReports);
-  const [loading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [contentTypeFilter, setContentTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
+  const [severityFilter, setSeverityFilter] = useState<ReportSeverity | 'all'>('all');
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
-  // Calculate stats
-  const stats = {
-    pending: reports.filter(r => r.status === 'pending').length,
-    reviewing: reports.filter(r => r.status === 'reviewing').length,
-    resolved: reports.filter(r => r.status === 'resolved').length,
-    critical: reports.filter(r => r.priority === 'critical' && r.status !== 'resolved').length
-  };
-
-  // Filter reports
-  const filteredReports = reports.filter(report => {
-    const matchesSearch = searchQuery === '' ||
-      report.reason.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.reportedByName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.targetUserName?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || report.priority === priorityFilter;
-    const matchesContentType = contentTypeFilter === 'all' || report.contentType === contentTypeFilter;
-
-    return matchesSearch && matchesStatus && matchesPriority && matchesContentType;
+  // Use real hooks from lib.moderation
+  const { data: reportsData, isLoading, error, refetch } = useReports({
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    severity: severityFilter === 'all' ? undefined : severityFilter,
+    reportedEntityType: entityTypeFilter === 'all' ? undefined : entityTypeFilter as any,
+    search: searchQuery || undefined,
+    page: currentPage,
+    limit: pageSize,
+    sortBy: 'createdAt' as const,
+    sortOrder: 'desc' as const,
   });
+
+  const { data: metricsData } = useModerationMetrics();
+  const { resolveReport, dismissReport, isLoading: isActionLoading } = useReportMutations();
+
+  const reports = reportsData?.data || [];
+  const pagination = reportsData?.pagination;
+  const metrics = metricsData || {
+    pendingReports: 0,
+    underReviewReports: 0,
+    criticalReports: 0,
+    resolvedReports: 0,
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
         return <Badge $variant="danger">Pending Review</Badge>;
-      case 'reviewing':
+      case 'under_review':
         return <Badge $variant="info">Under Review</Badge>;
       case 'resolved':
         return <Badge $variant="success">Resolved</Badge>;
       case 'dismissed':
         return <Badge $variant="neutral">Dismissed</Badge>;
       default:
-        return <Badge $variant="neutral">{status}</Badge>;
+        return <Badge $variant="neutral">{getStatusLabel(status as ReportStatus)}</Badge>;
     }
   };
 
-  const getPriorityDisplay = (priority: string) => {
-    const labels: Record<string, string> = {
-      critical: 'Critical',
-      high: 'High',
-      medium: 'Medium',
-      low: 'Low'
-    };
-
+  const getPriorityDisplay = (severity: ReportSeverity) => {
     return (
       <PriorityLabel>
-        <PriorityIndicator $level={priority} />
-        {labels[priority] || priority}
+        <PriorityIndicator $level={severity} />
+        {getSeverityLabel(severity)}
       </PriorityLabel>
     );
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short'
-    });
+  const handleOpenDetailModal = (report: Report) => {
+    setSelectedReport(report);
+    setIsDetailModalOpen(true);
   };
 
-  const columns: Column<ModerationItem>[] = [
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedReport(null);
+  };
+
+  const handleOpenActionModal = (report: Report) => {
+    setSelectedReport(report);
+    setIsActionModalOpen(true);
+  };
+
+  const handleCloseActionModal = () => {
+    setIsActionModalOpen(false);
+    setSelectedReport(null);
+  };
+
+  const handleActionSubmit = async (actionData: ActionSelectionData) => {
+    if (!selectedReport) return;
+
+    try {
+      // Map action types to the appropriate mutations
+      if (actionData.actionType === 'no_action') {
+        await dismissReport(selectedReport.reportId, actionData.reason);
+      } else {
+        // For any action that resolves the report
+        await resolveReport(selectedReport.reportId, actionData.reason);
+      }
+
+      // Close modal and refetch data
+      handleCloseActionModal();
+      await refetch();
+    } catch (err) {
+      console.error('Failed to take moderation action:', err);
+      // TODO: Show error toast notification
+    }
+  };
+
+  const columns: Column<Report>[] = [
     {
-      id: 'report',
+      id: 'title',
       header: 'Report',
-      accessor: (row) => (
-        <ReportInfo>
-          <ReportReason>{row.reason}</ReportReason>
-          <ReportMeta>
-            Reported by {row.reportedByName} • Target: {row.targetUserName}
-          </ReportMeta>
-        </ReportInfo>
+      sortable: true,
+      accessor: (report: Report) => (
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{report.title}</div>
+          <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+            {report.description.substring(0, 80)}...
+          </div>
+          {(report as any).entityContext && (
+            <div style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '0.25rem' }}>
+              <strong>Reported Entity:</strong> {(report as any).entityContext.displayName}
+              {(report as any).entityContext.email && ` (${(report as any).entityContext.email})`}
+            </div>
+          )}
+          <div style={{ marginTop: '0.5rem' }}>
+            <ContentTypeTag $type={report.reportedEntityType}>{report.reportedEntityType}</ContentTypeTag>
+          </div>
+        </div>
       ),
-      width: '350px'
     },
     {
-      id: 'contentType',
-      header: 'Content Type',
-      accessor: (row) => (
-        <ContentTypeTag $type={row.contentType}>
-          {row.contentType.charAt(0).toUpperCase() + row.contentType.slice(1)}
-        </ContentTypeTag>
-      ),
-      width: '120px'
-    },
-    {
-      id: 'priority',
-      header: 'Priority',
-      accessor: (row) => getPriorityDisplay(row.priority),
-      width: '110px',
-      sortable: true
+      id: 'severity',
+      header: 'Severity',
+      sortable: true,
+      accessor: (report: Report) => getPriorityDisplay(report.severity),
     },
     {
       id: 'status',
       header: 'Status',
-      accessor: (row) => getStatusBadge(row.status),
-      width: '140px',
-      sortable: true
+      sortable: true,
+      accessor: (report: Report) => getStatusBadge(report.status),
     },
     {
-      id: 'created',
+      id: 'createdAt',
       header: 'Reported',
-      accessor: (row) => formatDate(row.createdAt),
-      width: '100px',
-      sortable: true
+      sortable: true,
+      accessor: (report: Report) => (
+        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+          {formatRelativeTime(report.createdAt)}
+        </div>
+      ),
     },
     {
       id: 'actions',
       header: 'Actions',
-      accessor: (row) => (
-        <ActionButtons onClick={(e) => e.stopPropagation()}>
-          <IconButton title="View details">
+      accessor: (report: Report) => (
+        <ActionButtons>
+          <IconButton title="View Details" onClick={() => handleOpenDetailModal(report)}>
             <FiEye />
           </IconButton>
-          {(row.status === 'pending' || row.status === 'reviewing') && (
-            <>
-              <IconButton title="Take action" style={{ color: '#10b981', borderColor: '#10b981' }}>
-                <FiShield />
-              </IconButton>
-              <IconButton title="Resolve" style={{ color: '#3b82f6', borderColor: '#3b82f6' }}>
-                <FiCheckCircle />
-              </IconButton>
-              <IconButton title="Dismiss" style={{ color: '#6b7280', borderColor: '#d1d5db' }}>
-                <FiXCircle />
-              </IconButton>
-            </>
-          )}
+          {report.status === 'pending' || report.status === 'under_review' ? (
+            <IconButton
+              title="Take Action"
+              onClick={() => handleOpenActionModal(report)}
+              disabled={isActionLoading}
+            >
+              <FiShield />
+            </IconButton>
+          ) : null}
         </ActionButtons>
       ),
-      width: '150px',
-      align: 'center'
-    }
+    },
   ];
+
+  if (error) {
+    return (
+      <PageContainer>
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+          Error loading reports: {error.message}
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">Content Moderation</Heading>
-          <Text>Review and manage reported content and user violations</Text>
+          <h1>Content Moderation</h1>
+          <p>Review and manage reported content across the platform</p>
         </HeaderLeft>
       </PageHeader>
 
       <StatsBar>
         <StatCard>
-          <StatIcon $color="#ef4444">
+          <StatIcon $color="#dc2626">
             <FiAlertTriangle />
           </StatIcon>
           <StatDetails>
-            <StatLabel>Pending Review</StatLabel>
-            <StatValue>{stats.pending}</StatValue>
+            <StatLabel>Pending Reviews</StatLabel>
+            <StatValue>{metrics.pendingReports}</StatValue>
           </StatDetails>
         </StatCard>
 
         <StatCard>
           <StatIcon $color="#3b82f6">
-            <FiEye />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Under Review</StatLabel>
-            <StatValue>{stats.reviewing}</StatValue>
-          </StatDetails>
-        </StatCard>
-
-        <StatCard>
-          <StatIcon $color="#dc2626">
             <FiShield />
           </StatIcon>
           <StatDetails>
-            <StatLabel>Critical Priority</StatLabel>
-            <StatValue>{stats.critical}</StatValue>
+            <StatLabel>Under Review</StatLabel>
+            <StatValue>{metrics.underReviewReports}</StatValue>
           </StatDetails>
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#10b981">
+          <StatIcon $color="#ea580c">
+            <FiAlertTriangle />
+          </StatIcon>
+          <StatDetails>
+            <StatLabel>Critical Priority</StatLabel>
+            <StatValue>{metrics.criticalReports}</StatValue>
+          </StatDetails>
+        </StatCard>
+
+        <StatCard>
+          <StatIcon $color="#16a34a">
             <FiCheckCircle />
           </StatIcon>
           <StatDetails>
             <StatLabel>Resolved</StatLabel>
-            <StatValue>{stats.resolved}</StatValue>
+            <StatValue>{metrics.resolvedReports}</StatValue>
           </StatDetails>
         </StatCard>
       </StatsBar>
 
       <FilterBar>
-        <SearchInputWrapper>
-          <FiSearch />
-          <Input
-            type="text"
-            placeholder="Search by reason, reporter, or target..."
+        <SearchWrapper>
+          <SearchIcon>
+            <FiSearch />
+          </SearchIcon>
+          <SearchInput
+            placeholder="Search reports..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </SearchInputWrapper>
+        </SearchWrapper>
 
         <FilterGroup>
-          <FilterLabel>Status</FilterLabel>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <Label>Status</Label>
+          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
             <option value="all">All Statuses</option>
-            <option value="pending">Pending Review</option>
-            <option value="reviewing">Under Review</option>
+            <option value="pending">Pending</option>
+            <option value="under_review">Under Review</option>
             <option value="resolved">Resolved</option>
             <option value="dismissed">Dismissed</option>
+            <option value="escalated">Escalated</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
-          <FilterLabel>Priority</FilterLabel>
-          <Select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
-            <option value="all">All Priorities</option>
+          <Label>Severity</Label>
+          <Select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value as any)}>
+            <option value="all">All Severities</option>
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
@@ -599,24 +534,40 @@ const Moderation: React.FC = () => {
         </FilterGroup>
 
         <FilterGroup>
-          <FilterLabel>Content Type</FilterLabel>
-          <Select value={contentTypeFilter} onChange={(e) => setContentTypeFilter(e.target.value)}>
+          <Label>Content Type</Label>
+          <Select value={entityTypeFilter} onChange={(e) => setEntityTypeFilter(e.target.value)}>
             <option value="all">All Types</option>
-            <option value="listing">Listing</option>
+            <option value="user">User</option>
+            <option value="rescue">Rescue</option>
+            <option value="pet">Pet</option>
             <option value="message">Message</option>
-            <option value="profile">Profile</option>
-            <option value="photo">Photo</option>
+            <option value="application">Application</option>
           </Select>
         </FilterGroup>
       </FilterBar>
 
       <DataTable
+        data={reports}
         columns={columns}
-        data={filteredReports}
-        loading={loading}
-        emptyMessage="No moderation reports found matching your criteria"
-        onRowClick={(report) => console.log('View report:', report)}
-        getRowId={(report) => report.reportId}
+        loading={isLoading}
+        onRowClick={handleOpenDetailModal}
+        currentPage={pagination?.page || 1}
+        totalPages={pagination?.totalPages || 1}
+        onPageChange={(page) => setCurrentPage(page)}
+      />
+
+      <ReportDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+        report={selectedReport}
+      />
+
+      <ActionSelectionModal
+        isOpen={isActionModalOpen}
+        onClose={handleCloseActionModal}
+        onSubmit={handleActionSubmit}
+        reportTitle={selectedReport?.title || ''}
+        isLoading={isActionLoading}
       />
     </PageContainer>
   );

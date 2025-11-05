@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
 import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail, FiShield } from 'react-icons/fi';
@@ -205,6 +206,9 @@ const IconButton = styled.button`
 `;
 
 const Users: React.FC = () => {
+  const { userId } = useParams<{ userId?: string }>();
+  const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -228,10 +232,31 @@ const Users: React.FC = () => {
   const verifyUser = useVerifyUser();
   const deleteUser = useDeleteUser();
 
+  // Load user from URL parameter
+  useEffect(() => {
+    if (userId && data?.data) {
+      const user = data.data.find((u: AdminUser) => u.userId === userId);
+      if (user) {
+        setSelectedUser(user);
+        setIsDetailModalOpen(true);
+      }
+    }
+  }, [userId, data?.data]);
+
   // Handler functions
   const handleRowClick = (user: AdminUser) => {
     setSelectedUser(user);
     setIsDetailModalOpen(true);
+    // Update URL to reflect selected user
+    navigate(`/users/${user.userId}`, { replace: true });
+  };
+
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    // Clear URL parameter when closing modal
+    if (userId) {
+      navigate('/users', { replace: true });
+    }
   };
 
   const handleEditUser = (user: AdminUser) => {
@@ -538,7 +563,7 @@ const Users: React.FC = () => {
       {/* Modals */}
       <UserDetailModal
         isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
+        onClose={handleCloseDetailModal}
         user={selectedUser}
       />
 
