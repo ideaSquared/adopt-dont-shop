@@ -339,7 +339,14 @@ const startServer = async () => {
     // Ensure PostGIS extension is ready before syncing models
     if (config.nodeEnv === 'development') {
       try {
-        logger.info('🔧 Development mode detected - preparing fresh database...');
+        const forceSeed = process.env.FORCE_SEED === 'true';
+
+        if (forceSeed) {
+          logger.info('🔧 Development mode detected - preparing FRESH database (FORCE_SEED=true)...');
+        } else {
+          logger.info('🔧 Development mode detected - preparing database (fast mode)...');
+        }
+
         // Wait for PostGIS to be fully initialized
         logger.info('Waiting for PostGIS extension to be fully ready...');
         await new Promise(resolve => setTimeout(resolve, 3000));
@@ -348,15 +355,35 @@ const startServer = async () => {
         await sequelize.query('SELECT PostGIS_Version();');
         logger.info('PostGIS extension is ready.');
 
-        // Sync database models (force recreate in development)
-        await sequelize.sync({ force: true });
-        logger.info('Database models synchronized (tables recreated).');
+        if (forceSeed) {
+          // Force recreate database (drops all tables)
+          await sequelize.sync({ force: true });
+          logger.info('Database models synchronized (tables recreated).');
 
-        // Run seeders after models are synced
-        logger.info('Running database seeders...');
-        const { runAllSeeders } = await import('./seeders');
-        await runAllSeeders();
-        logger.info('Database seeding completed.');
+          // Always run seeders after force sync
+          logger.info('Running database seeders...');
+          const { runAllSeeders } = await import('./seeders');
+          await runAllSeeders();
+          logger.info('Database seeding completed.');
+        } else {
+          // Use alter mode to preserve data while updating schema
+          await sequelize.sync({ alter: true });
+          logger.info('Database models synchronized (schema updated, data preserved).');
+
+          // Check if database is empty and needs seeding
+          const { User } = await import('./models/User');
+          const userCount = await User.count();
+
+          if (userCount === 0) {
+            logger.info('Empty database detected - running seeders...');
+            const { runAllSeeders } = await import('./seeders');
+            await runAllSeeders();
+            logger.info('Database seeding completed.');
+          } else {
+            logger.info(`Database already populated (${userCount} users found) - skipping seeders.`);
+            logger.info('💡 Tip: Use "npm run dev:fresh" to reset database or "npm run seed:dev" to re-seed.');
+          }
+        }
       } catch (error) {
         logger.error('Failed to sync database models:', error);
         throw error;

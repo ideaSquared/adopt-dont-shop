@@ -62,6 +62,8 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-password}
       DEV_DB_NAME: ${POSTGRES_DB:-adopt_dont_shop}
       DB_LOGGING: false
+      # Development mode configuration
+      FORCE_SEED: ${FORCE_SEED:-false}
       # Other services
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}

@@ -282,6 +282,53 @@ docker-compose exec service-backend bash
 docker-compose exec app-client sh
 ```
 
+### Backend Development & Hot Reload
+
+The backend uses **smart development mode** for optimal developer experience:
+
+#### **Normal Development (Fast - Recommended)**
+```bash
+# Start backend with hot reload and data preservation
+docker-compose up service-backend
+
+# Or locally without Docker
+npm run dev
+```
+
+**Features:**
+- ⚡ **1-2 second startup** - No database seeding on every reload
+- 💾 **Data preservation** - Test data survives file saves
+- 🔄 **Auto schema updates** - Database schema updates automatically
+- 🔥 **Hot reload enabled** - Code changes restart server instantly
+
+#### **Fresh Start (Clean Database)**
+
+When you need to reset the database to a clean state:
+
+```bash
+# Option 1: Temporary fresh start (recommended)
+FORCE_SEED=true docker-compose up service-backend
+
+# Option 2: Edit .env file
+# Change FORCE_SEED=true in .env, then restart:
+docker-compose restart service-backend
+
+# Option 3: Re-seed without restart (if backend is running)
+docker-compose exec service-backend npm run seed:dev
+```
+
+**When to use fresh start:**
+- Starting a new feature that needs clean data
+- Testing database migrations
+- Data becomes corrupted or inconsistent
+- Setting up the project for the first time
+
+**Performance:**
+- Normal mode: ~1-2 seconds per reload
+- Fresh mode: ~10-30 seconds (drops tables and runs 28 seeders)
+
+**💡 Pro Tip:** Use normal mode for daily development. Only use fresh start when explicitly needed. This dramatically improves your development workflow!
+
 ### Database Management
 
 #### **With Turborepo Setup**
@@ -289,10 +336,13 @@ docker-compose exec app-client sh
 # Run migrations
 docker-compose -f docker-compose.turbo.yml exec service-backend npm run migrate
 
-# Seed database
-docker-compose -f docker-compose.turbo.yml exec service-backend npm run seed
+# Seed database (manual)
+docker-compose -f docker-compose.turbo.yml exec service-backend npm run seed:dev
 
-# Reset database (⚠️ destructive)
+# Fresh start with clean data
+FORCE_SEED=true docker-compose -f docker-compose.turbo.yml up service-backend
+
+# Reset database (⚠️ destructive - removes volumes)
 docker-compose -f docker-compose.turbo.yml down --volumes
 docker-compose -f docker-compose.turbo.yml up --build -d
 ```
@@ -302,10 +352,13 @@ docker-compose -f docker-compose.turbo.yml up --build -d
 # Run migrations
 docker-compose exec service-backend npm run migrate
 
-# Seed database
-docker-compose exec service-backend npm run seed
+# Seed database (manual)
+docker-compose exec service-backend npm run seed:dev
 
-# Reset database (⚠️ destructive)
+# Fresh start with clean data
+FORCE_SEED=true docker-compose up service-backend
+
+# Reset database (⚠️ destructive - removes volumes)
 docker-compose down --volumes
 docker-compose up --build -d
 ```
