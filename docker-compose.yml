@@ -69,6 +69,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       API_URL: ${API_URL:-http://api.localhost}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5000}
+      # File watching for hot reload (critical for Windows/Docker)
+      CHOKIDAR_USEPOLLING: true
+      CHOKIDAR_INTERVAL: 1000
     depends_on:
       database:
         condition: service_healthy
