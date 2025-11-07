@@ -1,28 +1,24 @@
-// Feature Flag specific types
-export interface FeatureFlag {
-  id: string;
+// Statsig Gate types (for display/admin purposes)
+export interface StatsigGate {
   name: string;
   description?: string;
-  enabled: boolean;
-  config?: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
+  isEnabled: boolean;
+  ruleCount?: number;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface FeatureFlagFilters {
-  enabled?: boolean;
-  search?: string;
-  category?: string;
-}
-
-export interface FeatureFlagData {
+export interface StatsigDynamicConfig {
   name: string;
   description?: string;
-  enabled: boolean;
-  config?: Record<string, unknown>;
+  value: Record<string, unknown>;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// Statsig integration types
+// Statsig User type (compatible with Statsig SDK)
 export interface StatsigUser {
   userID: string;
   email?: string;
@@ -30,148 +26,68 @@ export interface StatsigUser {
   custom?: Record<string, unknown>;
 }
 
-export interface ExperimentConfig {
+// Admin configuration types
+export interface GateListItem {
   name: string;
-  groupName: string;
-  parameters: Record<string, unknown>;
+  description: string;
+  isEnabled: boolean;
+  category?: string;
 }
 
-export interface DynamicConfig {
+export interface DynamicConfigListItem {
   name: string;
-  value: Record<string, unknown>;
+  description: string;
+  valuePreview: string;
+  category?: string;
 }
 
-export interface FeatureFlagMetrics {
-  totalFlags: number;
-  enabledFlags: number;
-  disabledFlags: number;
-  cacheHitRate: number;
-  lastUpdated: Date;
-  flagUsageStats: Map<string, number>;
+// Known feature gates (for type safety and documentation)
+export const KNOWN_GATES = {
+  ENABLE_REAL_TIME_MESSAGING: 'enable_real_time_messaging',
+  ENABLE_ADVANCED_SEARCH: 'enable_advanced_search',
+  ENABLE_NOTIFICATION_CENTER: 'enable_notification_center',
+  ENABLE_APPLICATION_WORKFLOW: 'enable_application_workflow',
+  ENABLE_CONTENT_MODERATION: 'enable_content_moderation',
+  UI_SHOW_BETA_FEATURES: 'ui_show_beta_features',
+  FEATURE_SOCIAL_SHARING: 'feature_social_sharing',
+  ENABLE_ANALYTICS_TRACKING: 'enable_analytics_tracking',
+  ALLOW_BULK_OPERATIONS: 'allow_bulk_operations',
+  FEATURE_RATING_SYSTEM: 'feature_rating_system',
+} as const;
+
+export type KnownGate = typeof KNOWN_GATES[keyof typeof KNOWN_GATES];
+
+// Known dynamic configs (for type safety and documentation)
+export const KNOWN_CONFIGS = {
+  APPLICATION_SETTINGS: 'application_settings',
+  SYSTEM_SETTINGS: 'system_settings',
+  MODERATION_SETTINGS: 'moderation_settings',
+} as const;
+
+export type KnownConfig = typeof KNOWN_CONFIGS[keyof typeof KNOWN_CONFIGS];
+
+// Application settings config shape
+export interface ApplicationSettingsConfig {
+  max_applications_per_user: number;
+  auto_approve_verified_rescues: boolean;
+  maintenance_mode: boolean;
+  new_registrations_enabled: boolean;
+  adoption_approval_workflow_enabled: boolean;
 }
 
-export interface FeatureFlagEvent {
-  eventName: string;
-  value?: string | number;
-  metadata?: Record<string, string | number | boolean>;
-  timestamp: Date;
+// System settings config shape
+export interface SystemSettingsConfig {
+  max_file_upload_size_mb: number;
+  session_timeout_minutes: number;
+  enable_debug_logging: boolean;
+  api_rate_limit_per_minute: number;
 }
 
-// Cache types
-export interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-  ttl: number;
-}
-
-export interface CacheStats {
-  size: number;
-  maxSize: number;
-  hitRate: number;
-  evictionCount: number;
-}
-
-/**
- * Configuration options for FeatureFlagsService
- */
-export interface FeatureFlagsServiceConfig {
-  /**
-   * API base URL for backend feature flags
-   */
-  apiUrl?: string;
-
-  /**
-   * Statsig SDK key for client-side feature flags
-   */
-  statsigClientKey?: string;
-
-  /**
-   * Enable debug logging
-   */
-  debug?: boolean;
-
-  /**
-   * Custom headers to include with requests
-   */
-  headers?: Record<string, string>;
-
-  /**
-   * Cache TTL in milliseconds
-   */
-  cacheTtl?: number;
-
-  /**
-   * Maximum cache size
-   */
-  maxCacheSize?: number;
-
-  /**
-   * Enable Statsig integration
-   */
-  enableStatsig?: boolean;
-
-  /**
-   * Default user information for Statsig
-   */
-  defaultUser?: StatsigUser;
-}
-
-/**
- * Options for FeatureFlagsService operations
- */
-export interface FeatureFlagsServiceOptions {
-  /**
-   * Timeout in milliseconds
-   */
-  timeout?: number;
-
-  /**
-   * Whether to use caching
-   */
-  useCache?: boolean;
-
-  /**
-   * Custom metadata
-   */
-  metadata?: Record<string, unknown>;
-
-  /**
-   * Force refresh from server
-   */
-  forceRefresh?: boolean;
-}
-
-/**
- * Base response interface
- */
-export interface BaseResponse<T = unknown> {
-  data: T;
-  success: boolean;
-  message?: string;
-  timestamp: string;
-}
-
-/**
- * Error response interface
- */
-export interface ErrorResponse {
-  error: string;
-  code?: string;
-  details?: Record<string, unknown>;
-  timestamp: string;
-}
-
-/**
- * Paginated response interface
- */
-export interface PaginatedResponse<T> extends BaseResponse<T[]> {
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
+// Moderation settings config shape
+export interface ModerationSettingsConfig {
+  auto_moderate_enabled: boolean;
+  profanity_filter_enabled: boolean;
+  require_manual_review_threshold: number;
+  max_warnings_before_suspension: number;
 }
 
