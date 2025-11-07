@@ -303,10 +303,30 @@ export class ChatService {
         whereConditions.rescue_id = rescueId;
       }
 
-      // If userId provided, filter by participation
-      let participantFilter = {};
+      // Build includes array
+      const includes: any[] = [
+        {
+          model: Message,
+          as: 'Messages',
+          limit: 1,
+          order: [['created_at', 'DESC']],
+          include: [
+            {
+              model: User,
+              as: 'Sender',
+              attributes: ['userId', 'firstName', 'lastName'],
+            },
+          ],
+        },
+        {
+          association: 'rescue',
+          attributes: ['name'],
+        },
+      ];
+
+      // If userId provided, filter by participation; otherwise, include all participants
       if (userId) {
-        participantFilter = {
+        includes.push({
           model: ChatParticipant,
           as: 'Participants',
           where: { participant_id: userId },
@@ -318,31 +338,26 @@ export class ChatService {
               attributes: ['userId', 'firstName', 'lastName', 'profileImageUrl'],
             },
           ],
-        };
+        });
+      } else {
+        // For admin users, include all participants without filtering
+        includes.push({
+          model: ChatParticipant,
+          as: 'Participants',
+          required: false,
+          include: [
+            {
+              model: User,
+              as: 'User',
+              attributes: ['userId', 'firstName', 'lastName', 'profileImageUrl'],
+            },
+          ],
+        });
       }
 
       const { rows: chats, count: total } = await Chat.findAndCountAll({
         where: whereConditions,
-        include: [
-          participantFilter,
-          {
-            model: Message,
-            as: 'Messages',
-            limit: 1,
-            order: [['created_at', 'DESC']],
-            include: [
-              {
-                model: User,
-                as: 'Sender',
-                attributes: ['userId', 'firstName', 'lastName'],
-              },
-            ],
-          },
-          {
-            association: 'rescue',
-            attributes: ['name'],
-          },
-        ],
+        include: includes,
         limit,
         offset,
         order: [[sortBy, sortOrder]],
@@ -532,7 +547,7 @@ export class ChatService {
           {
             model: User,
             as: 'Sender',
-            attributes: ['userId', 'firstName'],
+            attributes: ['userId', 'firstName', 'lastName'],
           },
         ],
         transaction,
@@ -706,7 +721,7 @@ export class ChatService {
         whereConditions.created_at = { [Op.gt]: after }; // Fix: use snake_case
       }
 
-      // Include Sender (User) with firstName for each message
+      // Include Sender (User) with firstName and lastName for each message
       const { rows: messages, count: total } = await Message.findAndCountAll({
         where: whereConditions,
         order: [['created_at', 'ASC']],
@@ -716,7 +731,7 @@ export class ChatService {
           {
             model: User,
             as: 'Sender',
-            attributes: ['userId', 'firstName'],
+            attributes: ['userId', 'firstName', 'lastName'],
           },
         ],
       });
@@ -729,8 +744,9 @@ export class ChatService {
         page,
       });
 
+      // Return messages without using convertMessageToInterface to preserve Sender association
       return {
-        messages: messages.map(message => this.convertMessageToInterface(message)),
+        messages: messages as any, // Cast to any to preserve Sequelize model with associations
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -1074,13 +1090,21 @@ export class ChatService {
         where: rescueId ? { rescue_id: rescueId } : {},
       });
 
+      // Get active chats (chats with status 'active' or not archived)
+      const activeChats = await Chat.count({
+        where: rescueId
+          ? { rescue_id: rescueId, status: { [Op.ne]: 'archived' } }
+          : { status: { [Op.ne]: 'archived' } },
+      });
+
       // Calculate average messages per chat safely
-      const avgMessagesPerChat = totalChats > 0 ? Math.round(totalMessages / totalChats) : 0;
+      const averageMessagesPerChat = totalChats > 0 ? Math.round(totalMessages / totalChats) : 0;
 
       return {
         totalMessages,
         totalChats,
-        avgMessagesPerChat,
+        activeChats,
+        averageMessagesPerChat,
         messageGrowth: await this.calculateMessageGrowth(rescueId),
       };
     } catch (error) {

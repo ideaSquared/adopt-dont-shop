@@ -371,7 +371,8 @@ const startServer = async () => {
           logger.info('Database models synchronized (schema updated, data preserved).');
 
           // Check if database is empty and needs seeding
-          const { User } = await import('./models/User');
+          const UserModule = await import('./models/User');
+          const User = UserModule.default;
           const userCount = await User.count();
 
           if (userCount === 0) {
