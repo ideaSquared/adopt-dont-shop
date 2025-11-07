@@ -8,6 +8,10 @@ services:
   # ============================================================================
 
   # Database service - Single database for all microservices
+  # Environment Separation Strategy:
+  # - Development: adopt_dont_shop_dev (default in Docker)
+  # - Test: adopt_dont_shop_test (CI/CD creates separately)
+  # - Production: adopt_dont_shop_prod (separate infrastructure)
   database:
     image: postgis/postgis:16-3.4
     restart: always
@@ -16,12 +20,12 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop}
+      POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop_dev}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-adopt_dont_shop}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-adopt_dont_shop_dev}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,7 +64,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER:-user}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      DEV_DB_NAME: ${POSTGRES_DB:-adopt_dont_shop}
+      DEV_DB_NAME: ${POSTGRES_DB:-adopt_dont_shop_dev}
       DB_LOGGING: false
       # Development mode configuration
       FORCE_SEED: ${FORCE_SEED:-false}
