@@ -24,7 +24,6 @@ import UserRole from './UserRole';
 
 // Additional Models
 import AuditLog from './AuditLog';
-import FeatureFlag from './FeatureFlag';
 import Invitation from './Invitation';
 import Rating from './Rating';
 import StaffMember from './StaffMember';
@@ -71,7 +70,6 @@ const models = {
   AuditLog,
   Rating,
   StaffMember,
-  FeatureFlag,
   Invitation,
   ModeratorAction,
   Report,
@@ -302,7 +300,6 @@ export {
   EmailPreference,
   EmailQueue,
   EmailTemplate,
-  FeatureFlag,
   FileUpload,
   HomeVisit,
   Invitation,

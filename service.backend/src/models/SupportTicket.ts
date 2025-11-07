@@ -111,6 +111,10 @@ class SupportTicket
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
+  // Associations (defined in models/index.ts)
+  public responses?: Array<import('./SupportTicketResponse').default>;
+  public Responses?: Array<import('./SupportTicketResponse').default>;
+
   // Instance methods
   public isOpen(): boolean {
     return [

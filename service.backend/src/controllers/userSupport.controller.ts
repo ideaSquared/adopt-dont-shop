@@ -216,7 +216,7 @@ export class UserSupportController {
       }
 
       // Filter out internal messages (staff notes)
-      const publicResponses = ticket.responses.filter(r => !r.isInternal);
+      const publicResponses = ticket.responses?.filter((r) => !r.isInternal) || [];
 
       res.json({
         success: true,

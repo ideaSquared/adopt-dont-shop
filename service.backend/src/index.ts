@@ -41,31 +41,10 @@ import userRoutes from './routes/user.routes';
 import path from 'path';
 import { setupSwagger } from './config/swagger';
 import ConfigurationService from './services/configuration.service';
-import FeatureFlagService from './services/featureFlag.service';
 import { HealthCheckService } from './services/health-check.service';
 
-// Create feature flags and config routes
-const featureRoutes = Router();
+// Create config routes
 const configRoutes = Router();
-
-// Feature flags public endpoints
-featureRoutes.get('/', async (req, res) => {
-  try {
-    const flags = await FeatureFlagService.getPublicFlags();
-    res.json(flags);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get feature flags' });
-  }
-});
-
-featureRoutes.get('/:feature', async (req, res) => {
-  try {
-    const flag = await FeatureFlagService.getFlag(req.params.feature);
-    res.json({ enabled: flag?.enabled || false });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get feature flag' });
-  }
-});
 
 // Public configuration endpoints
 configRoutes.get('/', async (req, res) => {
@@ -182,7 +161,6 @@ app.use('/api/v1/support', userSupportRoutes); // User-facing support tickets
 app.use('/api/v1/admin/support', supportTicketRoutes); // Admin support ticket management
 app.use('/api/v1/admin/moderation', moderationRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1/features', featureRoutes);
 app.use('/api/v1/config', configRoutes);
 
 // Simple health check (no dependencies)

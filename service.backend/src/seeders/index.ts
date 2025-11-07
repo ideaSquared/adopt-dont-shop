@@ -6,7 +6,6 @@ import { seedUsers } from './04-users';
 import { seedUserRoles } from './05-user-roles';
 import { seedRescues } from './06-rescues';
 import { seedStaffMembers } from './06.5-staff-members';
-import { seedFeatureFlags } from './07-feature-flags';
 import { seedPets } from './08-pets';
 import { seedApplications } from './09-applications';
 import { seedChats } from './10-chats';
@@ -43,7 +42,6 @@ const seeders = [
   { name: 'Reports', seeder: seedReports },
   { name: 'Moderator Actions', seeder: seedModeratorActions },
   { name: 'User Sanctions', seeder: seedUserSanctions },
-  { name: 'Feature Flags', seeder: seedFeatureFlags },
   { name: 'Pets', seeder: seedPets },
   { name: 'Applications', seeder: seedApplications },
   { name: 'Home Visits', seeder: seedHomeVisits },
@@ -125,7 +123,6 @@ export async function clearAllData() {
       'rescues',
       'roles',
       'permissions',
-      'feature_flags',
       'email_templates',
       'email_queue',
       'email_preferences',
