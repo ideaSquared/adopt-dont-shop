@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
+import { StatsigWrapper } from './contexts/StatsigContext';
 
 const queryClient = new QueryClient();
 
@@ -14,11 +15,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider allowedUserTypes={['admin', 'moderator']} appType='admin'>
-          <ThemeProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </ThemeProvider>
+          <StatsigWrapper>
+            <ThemeProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+            </ThemeProvider>
+          </StatsigWrapper>
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>

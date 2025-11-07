@@ -1,6 +1,4 @@
 import { StatsigProvider, useClientAsyncInit } from '@statsig/react-bindings';
-import { StatsigSessionReplayPlugin } from '@statsig/session-replay';
-import { StatsigAutoCapturePlugin } from '@statsig/web-analytics';
 import React, { useMemo } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib-auth';
 
@@ -22,19 +20,14 @@ export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
     userID: user?.userId || 'anonymous',
     email: user?.email,
     custom: {
-      app: 'client',
+      app: 'admin',
       userType: user?.userType,
+      role: user?.userType,  // admin or moderator
       isAuthenticated: !!user,
     },
   }), [user]);
 
-  const { client } = useClientAsyncInit(
-    statsigClientKey || 'client-invalid-key',
-    statsigUser,
-    {
-      plugins: [new StatsigAutoCapturePlugin(), new StatsigSessionReplayPlugin()],
-    }
-  );
+  const { client } = useClientAsyncInit(statsigClientKey || 'client-invalid-key', statsigUser);
 
   return (
     <StatsigProvider
@@ -50,7 +43,7 @@ export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
             color: '#666',
           }}
         >
-          Loading analytics...
+          Loading...
         </div>
       }
     >

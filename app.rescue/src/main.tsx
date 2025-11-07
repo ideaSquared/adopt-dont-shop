@@ -21,9 +21,9 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <StatsigWrapper>
-        <QueryClientProvider client={queryClient}>
-          <AppWithAuth>
+      <QueryClientProvider client={queryClient}>
+        <AppWithAuth>
+          <StatsigWrapper>
             <PermissionsProvider>
               <ThemeProvider>
                 <BrowserRouter>
@@ -31,9 +31,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 </BrowserRouter>
               </ThemeProvider>
             </PermissionsProvider>
-          </AppWithAuth>
-        </QueryClientProvider>
-      </StatsigWrapper>
+          </StatsigWrapper>
+        </AppWithAuth>
+      </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

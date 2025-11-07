@@ -1,72 +1,53 @@
-import { createContext, useContext, ReactNode } from 'react';
-import { StatsigProvider } from '@statsig/react-bindings';
-
-interface StatsigContextType {
-  checkGate: (gateName: string) => boolean;
-  getConfig: (configName: string) => any;
-  logEvent: (eventName: string, value?: any, metadata?: Record<string, any>) => void;
-}
-
-const StatsigContext = createContext<StatsigContextType | null>(null);
-
-export const useStatsigInternal = () => {
-  const context = useContext(StatsigContext);
-  if (!context) {
-    throw new Error('useStatsigInternal must be used within StatsigWrapper');
-  }
-  return context;
-};
+import { StatsigProvider, useClientAsyncInit } from '@statsig/react-bindings';
+import React, { useMemo } from 'react';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 
 interface StatsigWrapperProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export const StatsigWrapper = ({ children }: StatsigWrapperProps) => {
-  // For rescue app, we'll use a simplified A/B testing setup
-  const sdkKey = import.meta.env.VITE_STATSIG_CLIENT_KEY;
-  
-  // If no valid SDK key is provided, just render children without Statsig
-  if (!sdkKey || sdkKey === 'client-rescue-dev-key') {
-    console.warn('Statsig SDK key not configured, running without feature flags');
-    return (
-      <StatsigInnerWrapper>
-        {children}
-      </StatsigInnerWrapper>
+export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
+  const { user } = useAuth();
+  const statsigClientKey = import.meta.env.VITE_STATSIG_CLIENT_KEY;
+
+  if (!statsigClientKey) {
+    console.error(
+      'VITE_STATSIG_CLIENT_KEY is not set. Feature flags will not work. Please add it to your .env file.'
     );
   }
 
-  const user = {
-    userID: 'rescue-staff',
-    email: 'rescue@adopt-dont-shop.com',
+  const statsigUser = useMemo(() => ({
+    userID: user?.userId || 'anonymous',
+    email: user?.email,
     custom: {
-      app: 'rescue'
-    }
-  };
+      app: 'rescue',
+      userType: user?.userType,
+      rescueId: user?.rescueId,
+      isAuthenticated: !!user,
+    },
+  }), [user]);
+
+  const { client } = useClientAsyncInit(statsigClientKey || 'client-invalid-key', statsigUser);
 
   return (
-    <StatsigProvider sdkKey={sdkKey} user={user}>
-      <StatsigInnerWrapper>
-        {children}
-      </StatsigInnerWrapper>
-    </StatsigProvider>
-  );
-};
-
-interface StatsigInnerWrapperProps {
-  children: ReactNode;
-}
-
-const StatsigInnerWrapper = ({ children }: StatsigInnerWrapperProps) => {
-  // Simplified implementation for now
-  const value: StatsigContextType = {
-    checkGate: () => false,
-    getConfig: () => ({}),
-    logEvent: () => {},
-  };
-
-  return (
-    <StatsigContext.Provider value={value}>
+    <StatsigProvider
+      client={client}
+      loadingComponent={
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            fontSize: '18px',
+            color: '#666',
+          }}
+        >
+          Loading...
+        </div>
+      }
+    >
       {children}
-    </StatsigContext.Provider>
+    </StatsigProvider>
   );
 };
