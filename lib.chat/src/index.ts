@@ -14,3 +14,13 @@ export type {
 } from './types';
 export * from './types';
 
+// Admin hooks
+export {
+  useAdminChats,
+  useAdminChatById,
+  useAdminChatMessages,
+  useAdminChatStats,
+  useAdminSearchChats,
+  useAdminChatMutations,
+} from './services/admin-chat-hooks';
+
