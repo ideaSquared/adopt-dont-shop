@@ -7,6 +7,11 @@ export { darkTheme, lightTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
 export { ThemeProvider, useTheme } from './styles/ThemeProvider';
 
+// Hooks
+export { useConfirm } from './hooks/useConfirm';
+export type { ConfirmOptions, UseConfirmReturn } from './hooks/useConfirm';
+export { useToast } from './hooks/useToast';
+
 // Foundation Components
 export { Avatar } from './components/ui/Avatar';
 export { Badge } from './components/ui/Badge';
@@ -32,6 +37,7 @@ export { Input } from './components/ui/Input';
 // Feedback Components
 export { Alert } from './components/ui/Alert';
 export { Modal } from './components/ui/Modal';
+export { ConfirmDialog } from './components/ui/ConfirmDialog';
 
 // Navigation Components
 export { Breadcrumbs } from './components/navigation/Breadcrumbs';
@@ -72,6 +78,8 @@ export type {
   TextAreaProps,
   TextInputProps,
 } from './types';
+
+export type { ConfirmDialogProps } from './components/ui/ConfirmDialog';
 
 // Component Types
 export type { FooterProps } from './components/navigation/Footer';

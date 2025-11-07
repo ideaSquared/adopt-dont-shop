@@ -143,17 +143,40 @@ export class ChatController {
         });
       }
 
-      const chatObj = chat.toJSON();
+const chatObj = chat.toJSON();
+
+      // Log participants data for debugging
+      logger.info('Chat participants data', {
+        chatId: chatObj.chat_id,
+        hasParticipants: !!chatObj.Participants,
+        participantsCount: chatObj.Participants?.length || 0,
+        participantIds: chatObj.Participants?.map((p: any) => p.participant_id) || [],
+      });
 
       // Transform participants to match frontend Participant interface
       const participants =
-        chatObj.Participants?.map((p: any) => ({
-          id: p.participant_id,
-          name: getUserFullName(p.User),
-          type: p.role === 'admin' ? 'admin' : 'user',
-          avatarUrl: p.User?.profileImageUrl,
-          isOnline: false,
-        })) || [];
+        chatObj.Participants?.map((p: any) => {
+          if (!p.User) {
+            logger.warn('Participant missing User association', {
+              chatId: chatObj.chat_id,
+              participantId: p.participant_id,
+            });
+          }
+
+          return {
+            id: p.participant_id,
+            name: getUserFullName(p.User),
+            type: p.role === 'admin' ? 'admin' : 'user',
+            avatarUrl: p.User?.profileImageUrl,
+            isOnline: false,
+          };
+        }) || [];
+
+      logger.info('Transformed participants', {
+        chatId: chatObj.chat_id,
+        participantsCount: participants.length,
+        participants: participants.map(p => ({ id: p.id, name: p.name })),
+      });
 
       // Transform to match frontend Conversation interface
       const transformedChat = {

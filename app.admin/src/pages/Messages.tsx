@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
-import { Heading, Text, Input } from '@adopt-dont-shop/components';
+import { Heading, Text, Input, useConfirm, ConfirmDialog } from '@adopt-dont-shop/components';
 import { FiSearch, FiMessageSquare, FiAlertCircle, FiCheckCircle, FiEye, FiFlag, FiTrash } from 'react-icons/fi';
 import {
   PageContainer,
@@ -129,6 +129,7 @@ const Messages: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const { confirm, confirmProps } = useConfirm();
 
   // Build filters for API
   const filters = useMemo(() => {
@@ -200,19 +201,49 @@ const Messages: React.FC = () => {
 
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this conversation?')) {
+
+    const confirmed = await confirm({
+      title: 'Delete Conversation',
+      message: 'Are you sure you want to delete this conversation? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
       try {
         await deleteChat.mutateAsync(chatId);
+        // Refetch the chat list to update the UI
+        await refetch();
       } catch (error) {
         console.error('Failed to delete chat:', error);
+        alert(`Failed to delete chat: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
   };
 
   const handleUpdateStatus = async (chatId: string, status: string, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Show confirmation for archiving
+    if (status === 'archived') {
+      const confirmed = await confirm({
+        title: 'Archive Conversation',
+        message: 'Are you sure you want to archive this conversation?',
+        confirmText: 'Archive',
+        cancelText: 'Cancel',
+        variant: 'warning',
+      });
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
     try {
       await updateChatStatus.mutateAsync({ chatId, status });
+      // Refetch the chat list to update the UI
+      await refetch();
     } catch (error) {
       console.error('Failed to update chat status:', error);
     }
@@ -419,6 +450,8 @@ const Messages: React.FC = () => {
         chatId={selectedChatId}
         onUpdate={refetch}
       />
+
+      <ConfirmDialog {...confirmProps} />
     </PageContainer>
   );
 };

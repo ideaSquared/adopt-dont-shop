@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Modal, Button } from '@adopt-dont-shop/components';
+import { Modal, Button, useConfirm, ConfirmDialog } from '@adopt-dont-shop/components';
 import {
   useAdminChatById,
   useAdminChatMessages,
@@ -9,6 +9,10 @@ import {
   type Message,
   type Participant,
 } from '@adopt-dont-shop/lib-chat';
+import {
+  moderationService,
+  type Report,
+} from '@adopt-dont-shop/lib-moderation';
 import {
   FiMessageSquare,
   FiUsers,
@@ -19,6 +23,8 @@ import {
   FiX,
   FiMoreVertical,
   FiClock,
+  FiFlag,
+  FiFileText,
 } from 'react-icons/fi';
 
 type ChatDetailModalProps = {
@@ -416,16 +422,71 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   const [deleteReason, setDeleteReason] = useState('');
   const [showDeleteReasonPrompt, setShowDeleteReasonPrompt] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [flaggingConversation, setFlaggingConversation] = useState(false);
+  const { confirm, confirmProps } = useConfirm();
+
 
   const { data: chat, isLoading: chatLoading } = useAdminChatById(chatId);
-  const { data: messagesData, isLoading: messagesLoading } = useAdminChatMessages(chatId, page, 50);
+  const { data: messagesData, isLoading: messagesLoading, refetch: refetchMessages } = useAdminChatMessages(chatId, page, 50);
   const { deleteChat, updateChatStatus, deleteMessage } = useAdminChatMutations();
+
+  const fetchReports = async () => {
+    if (!chat) return;
+
+    setLoadingReports(true);
+    try {
+      const result = await moderationService.getReports({
+        reportedEntityType: 'conversation',
+        page: 1,
+        limit: 100,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      });
+      setReports(result.data);
+    } catch (error) {
+      console.error('Failed to fetch reports:', error);
+      setReports([]);
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
+  const handleFlagConversation = async () => {
+    if (!chat || !chatId) return;
+
+    setFlaggingConversation(true);
+    try {
+      await moderationService.createReport({
+        reportedEntityType: 'conversation',
+        reportedEntityId: chatId,
+        category: 'inappropriate_content',
+        title: 'Flagged conversation',
+        description: 'Flagged from admin chat management interface for moderator review',
+      });
+      await fetchReports();
+      alert('Conversation flagged successfully');
+    } catch (error) {
+      console.error('Failed to flag conversation:', error);
+      alert('Failed to flag conversation. Please try again.');
+    } finally {
+      setFlaggingConversation(false);
+    }
+  };
+
+  useEffect(() => {
+    if (chat && activeTab === 'moderation') {
+      fetchReports();
+    }
+  }, [chatId, activeTab]);
+
 
   if (!chatId) {
     return null;
   }
 
-  const conversation = chat?.data;
+  const conversation = chat;
   const messages = messagesData?.data?.messages || [];
 
   const handleDeleteMessageClick = (messageId: string) => {
@@ -448,7 +509,10 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       setMessageToDelete(null);
       setDeleteReason('');
 
-      // Refresh messages
+      // Refresh messages to show the updated content
+      await refetchMessages();
+
+      // Also call the parent update callback if provided
       if (onUpdate) {
         onUpdate();
       }
@@ -465,7 +529,15 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   };
 
   const handleArchiveChat = async () => {
-    if (!window.confirm('Are you sure you want to archive this conversation?')) {
+    const confirmed = await confirm({
+      title: 'Archive Conversation',
+      message: 'Are you sure you want to archive this conversation?',
+      confirmText: 'Archive',
+      cancelText: 'Cancel',
+      variant: 'warning',
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -482,7 +554,15 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   };
 
   const handleDeleteChat = async () => {
-    if (!window.confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
+    const confirmed = await confirm({
+      title: 'Delete Conversation',
+      message: 'Are you sure you want to delete this conversation? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -698,7 +778,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
               <FiMessageSquare />
               Last Message
             </DetailLabel>
-            <DetailValue>{formatTimestamp(conversation.lastMessage.createdAt || '')}</DetailValue>
+            <DetailValue>{formatTimestamp(conversation.lastMessage.timestamp || '')}</DetailValue>
           </DetailItem>
         )}
       </DetailGrid>
@@ -706,21 +786,159 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   };
 
   const renderModeration = () => {
+    if (!chat) {
+      return <LoadingState>Loading moderation info...</LoadingState>;
+    }
+
     return (
       <DetailGrid>
+        {/* Flag Conversation Section */}
+        <DetailItem>
+          <DetailLabel>
+            <FiFlag />
+            Flag Conversation
+          </DetailLabel>
+          <DetailValue>
+            <Button
+              onClick={handleFlagConversation}
+              variant="warning"
+              disabled={flaggingConversation}
+            >
+              {flaggingConversation ? 'Flagging...' : 'Report This Conversation'}
+            </Button>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
+              Flag this conversation for moderator review if it contains inappropriate content,
+              spam, harassment, or policy violations.
+            </p>
+          </DetailValue>
+        </DetailItem>
+
+        {/* Existing Reports Section */}
+        <DetailItem>
+          <DetailLabel>
+            <FiFileText />
+            Existing Reports ({reports.length})
+          </DetailLabel>
+          <DetailValue>
+            {loadingReports ? (
+              'Loading reports...'
+            ) : reports.length > 0 ? (
+              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                {reports.map(report => (
+                  <div
+                    key={report.reportId}
+                    style={{
+                      padding: '0.75rem',
+                      marginBottom: '0.5rem',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '0.375rem',
+                      border: '1px solid #e5e7eb',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <strong style={{ textTransform: 'capitalize' }}>
+                        {report.category.replace('_', ' ')}
+                      </strong>
+                      <span style={{
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.75rem',
+                        fontWeight: '500',
+                        backgroundColor:
+                          report.status === 'resolved' ? '#d1fae5' :
+                          report.status === 'under_review' ? '#fef3c7' :
+                          '#fee2e2',
+                        color:
+                          report.status === 'resolved' ? '#065f46' :
+                          report.status === 'under_review' ? '#92400e' :
+                          '#991b1b',
+                      }}>
+                        {report.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                      {report.description || 'No description provided'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                      Reported: {new Date(report.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
+                No reports filed for this conversation
+              </div>
+            )}
+          </DetailValue>
+        </DetailItem>
+
+        {/* Full Moderation History Link */}
+        <DetailItem>
+          <DetailLabel>
+            <FiInfo />
+            Full Moderation History
+          </DetailLabel>
+          <DetailValue>
+            <a
+              href={`/moderation?entity=conversation&id=${chatId}`}
+              style={{
+                color: '#2563eb',
+                textDecoration: 'none',
+                fontWeight: '500',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
+              onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
+            >
+              View in Moderation Dashboard →
+            </a>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
+              View complete moderation history, take actions, and manage reports in the
+              dedicated moderation interface.
+            </p>
+          </DetailValue>
+        </DetailItem>
+
+        {/* Participant Moderation Actions */}
         <DetailItem>
           <DetailLabel>
             <FiAlertTriangle />
-            Moderation Tools
+            Participant Actions
           </DetailLabel>
           <DetailValue>
-            Moderation features coming soon. This will include:
-            <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem' }}>
-              <li>Flag conversation</li>
-              <li>Add internal notes</li>
-              <li>View moderation history</li>
-              <li>Block users</li>
-            </ul>
+            {chat && chat.participants && chat.participants.length > 0 ? (
+              <div>
+                <p style={{ marginBottom: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
+                  Moderate individual participants:
+                </p>
+                <ul style={{ listStyle: 'none', padding: 0 }}>
+                  {chat.participants.map((participant: Participant) => (
+                    <li
+                      key={participant.id}
+                      style={{
+                        padding: '0.5rem',
+                        marginBottom: '0.25rem',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '0.25rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span>{participant.name} ({participant.type})</span>
+                      <a
+                        href={`/moderation?user=${participant.id}`}
+                        style={{ fontSize: '0.875rem', color: '#2563eb' }}
+                      >
+                        View User
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              'No participants to moderate'
+            )}
           </DetailValue>
         </DetailItem>
       </DetailGrid>
@@ -740,7 +958,6 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
               <ChatId>Chat #{conversation.id.slice(-8)}</ChatId>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {getStatusBadge(conversation.status)}
-                <Badge $variant="neutral">{conversation.type}</Badge>
               </div>
             </>
           )}
@@ -829,6 +1046,8 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
           </DeletePromptContent>
         </DeletePrompt>
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </Modal>
   );
 };

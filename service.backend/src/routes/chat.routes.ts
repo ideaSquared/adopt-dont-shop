@@ -392,6 +392,56 @@ router.put(
   handleValidationErrors,
   ChatController.updateChat
 );
+/**
+ * @swagger
+ * /api/v1/chats/{chatId}:
+ *   patch:
+ *     tags: [Messaging]
+ *     summary: Update chat conversation (partial)
+ *     description: Partially update chat conversation details (title, description, status)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: chatId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Chat conversation ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 maxLength: 100
+ *               description:
+ *                 type: string
+ *                 maxLength: 500
+ *               status:
+ *                 type: string
+ *                 enum: [active, locked, archived]
+ *     responses:
+ *       200:
+ *         description: Chat updated successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.patch(
+  '/:chatId',
+  authLimiter,
+  chatValidation.updateChat,
+  handleValidationErrors,
+  ChatController.updateChat
+);
+
 
 /**
  * @swagger
