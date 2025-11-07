@@ -37,7 +37,8 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "@statsig/react-bindings": "^3.20.1"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",
@@ -53,6 +54,7 @@
     "typescript": "^5.4.5"
   },
   "peerDependencies": {
+    "react": "^18.0.0",
     "typescript": "^5.0.0"
   },
   "repository": {
