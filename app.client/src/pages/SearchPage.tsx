@@ -1,7 +1,7 @@
 import { PetCard } from '@/components/PetCard';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { useFeatureFlags } from '@/contexts/FeatureFlagsContext';
 import { useStatsig } from '@/hooks/useStatsig';
+import { useFeatureGate } from '@adopt-dont-shop/lib-feature-flags';
 import { petService } from '@/services';
 import { PaginatedResponse, Pet, PetSearchFilters } from '@/services';
 import {
@@ -211,7 +211,7 @@ export const SearchPage: React.FC = () => {
   // const [useAdvancedFilters, setUseAdvancedFilters] = useState(false); // Future feature
   const { logEvent } = useStatsig();
   const { trackPageView, trackEvent } = useAnalytics();
-  const { isFeatureEnabled } = useFeatureFlags();
+  const { value: advancedFiltersEnabled } = useFeatureGate('advanced_search_filters');
 
   // Search filters state
   const [filters, setFilters] = useState<PetSearchFilters>({
@@ -232,30 +232,17 @@ export const SearchPage: React.FC = () => {
 
   // Log page view
   useEffect(() => {
-    // Check feature flags first
-    const checkFeatureFlags = async () => {
-      try {
-        const advancedFiltersEnabled = await isFeatureEnabled('advanced_search_filters');
-        // setUseAdvancedFilters(advancedFiltersEnabled); // Future implementation
-        
-        // Track feature flag usage
-        trackEvent({
-          category: 'feature_flags',
-          action: 'search_filters_variant_shown',
-          label: advancedFiltersEnabled ? 'advanced_filters' : 'basic_filters',
-          sessionId: 'search-session',
-          timestamp: new Date(),
-          properties: {
-            variant: advancedFiltersEnabled ? 'advanced_filters' : 'basic_filters',
-          }
-        });
-      } catch (error) {
-        console.warn('Failed to check advanced filters feature flag:', error);
-        // setUseAdvancedFilters(false); // Future implementation
+    // Track feature flag usage
+    trackEvent({
+      category: 'feature_flags',
+      action: 'search_filters_variant_shown',
+      label: advancedFiltersEnabled ? 'advanced_filters' : 'basic_filters',
+      sessionId: 'search-session',
+      timestamp: new Date(),
+      properties: {
+        variant: advancedFiltersEnabled ? 'advanced_filters' : 'basic_filters',
       }
-    };
-
-    checkFeatureFlags();
+    });
 
     // Track with new analytics service
     trackPageView('/search');
@@ -279,7 +266,7 @@ export const SearchPage: React.FC = () => {
       page_number: (filters.page || 1).toString(),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackPageView, trackEvent, isFeatureEnabled]);
+  }, [trackPageView, trackEvent, advancedFiltersEnabled]);
 
   // Load pets based on current filters
   const loadPets = useCallback(async () => {

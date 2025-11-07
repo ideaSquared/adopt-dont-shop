@@ -9,7 +9,6 @@ export {
   chatService,
   searchService,
   notificationsService,
-  featureFlagsService,
   permissionsService,
   api,
   apiService,
@@ -46,8 +45,6 @@ export type {
   SearchServiceOptions,
   Notification,
   NotificationPreferences,
-  FeatureFlag,
-  DynamicConfig,
   Permission,
   UserWithPermissions,
 } from './libraryServices';

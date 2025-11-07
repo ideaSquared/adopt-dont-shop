@@ -13,7 +13,6 @@ import { RescueService } from '@adopt-dont-shop/lib-rescue';
 import { ChatService } from '@adopt-dont-shop/lib-chat';
 import { SearchService } from '@adopt-dont-shop/lib-search';
 import { NotificationsService } from '@adopt-dont-shop/lib-notifications';
-import { FeatureFlagsService } from '@adopt-dont-shop/lib-feature-flags';
 import { PermissionsService } from '@adopt-dont-shop/lib-permissions';
 
 // 🔧 DEBUG: Log environment variables
@@ -80,8 +79,6 @@ export const searchService = new SearchService({
 
 export const notificationsService = new NotificationsService(serviceConfig);
 
-export const featureFlagsService = new FeatureFlagsService(serviceConfig);
-
 export const permissionsService = new PermissionsService({
   debug: import.meta.env.DEV,
 });
@@ -124,7 +121,5 @@ export type {
 export type { SearchServiceConfig, SearchServiceOptions } from '@adopt-dont-shop/lib-search';
 
 export type { Notification, NotificationPreferences } from '@adopt-dont-shop/lib-notifications';
-
-export type { FeatureFlag, DynamicConfig } from '@adopt-dont-shop/lib-feature-flags';
 
 export type { Permission, UserWithPermissions } from '@adopt-dont-shop/lib-permissions';

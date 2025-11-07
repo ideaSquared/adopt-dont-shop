@@ -2,8 +2,8 @@ import { PetCard } from '@/components/PetCard';
 import { SwipeHero } from '@/components/hero/SwipeHero';
 import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { useFeatureFlags } from '@/contexts/FeatureFlagsContext';
 import { useStatsig } from '@/hooks/useStatsig';
+import { useFeatureGate } from '@adopt-dont-shop/lib-feature-flags';
 import { petService } from '@/services';
 import { Pet } from '@/services';
 import { Button, Spinner } from '@adopt-dont-shop/components';
@@ -128,38 +128,24 @@ export const HomePage: React.FC = () => {
   const [featuredPets, setFeaturedPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showNewHero, setShowNewHero] = useState(false);
   const { isAuthenticated } = useAuth();
   const { logEvent } = useStatsig();
   const { trackPageView, trackEvent } = useAnalytics();
-  const { isFeatureEnabled } = useFeatureFlags();
+  const { value: showNewHero } = useFeatureGate('new_hero_design');
 
   useEffect(() => {
-    // Check feature flags
-    const checkFeatureFlags = async () => {
-      try {
-        const newHeroEnabled = await isFeatureEnabled('new_hero_design');
-        setShowNewHero(newHeroEnabled);
-        
-        // Track feature flag impression
-        trackEvent({
-          category: 'feature_flags',
-          action: 'hero_variant_shown',
-          label: newHeroEnabled ? 'new_hero' : 'original_hero',
-          sessionId: 'homepage-session',
-          timestamp: new Date(),
-          properties: {
-            variant: newHeroEnabled ? 'new_hero' : 'original_hero',
-            user_authenticated: isAuthenticated,
-          }
-        });
-      } catch (error) {
-        console.warn('Failed to check feature flags:', error);
-        setShowNewHero(false);
+    // Track feature flag impression
+    trackEvent({
+      category: 'feature_flags',
+      action: 'hero_variant_shown',
+      label: showNewHero ? 'new_hero' : 'original_hero',
+      sessionId: 'homepage-session',
+      timestamp: new Date(),
+      properties: {
+        variant: showNewHero ? 'new_hero' : 'original_hero',
+        user_authenticated: isAuthenticated,
       }
-    };
-
-    checkFeatureFlags();
+    });
 
     // Track page view with new analytics service
     trackPageView('/');
@@ -222,7 +208,7 @@ export const HomePage: React.FC = () => {
     };
 
     loadFeaturedPets();
-  }, [isAuthenticated, logEvent, trackPageView, trackEvent, isFeatureEnabled]);
+  }, [isAuthenticated, logEvent, trackPageView, trackEvent, showNewHero]);
 
   const handleViewAllPetsClick = () => {
     // Track with new analytics service
