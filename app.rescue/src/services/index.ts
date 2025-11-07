@@ -6,7 +6,6 @@ export { ApplicationsService } from '@adopt-dont-shop/lib-applications';
 export { ChatService } from '@adopt-dont-shop/lib-chat';
 export { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
 export { NotificationsService } from '@adopt-dont-shop/lib-notifications';
-export { FeatureFlagsService } from '@adopt-dont-shop/lib-feature-flags';
 export { PermissionsService } from '@adopt-dont-shop/lib-permissions';
 
 // Export custom rescue app services
