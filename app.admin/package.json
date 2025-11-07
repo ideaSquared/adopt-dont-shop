@@ -24,6 +24,7 @@
     "@adopt-dont-shop/lib-auth": "*",
     "@adopt-dont-shop/lib-chat": "*",
     "@adopt-dont-shop/lib-moderation": "file:../lib.moderation",
+    "@adopt-dont-shop/lib-support-tickets": "file:../lib.support-tickets",
     "@adopt-dont-shop/lib-dev-tools": "*",
     "@adopt-dont-shop/lib-validation": "*",
     "@hookform/resolvers": "^3.3.4",

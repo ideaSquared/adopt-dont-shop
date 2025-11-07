@@ -1,10 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
 import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { DataTable } from '../components/data';
 import type { Column } from '../components/data';
-import type { SupportTicket } from '../types/admin';
+import {
+  useTickets,
+  useTicketStats,
+  useTicketMutations,
+  type SupportTicket,
+  type TicketStatus,
+  type TicketPriority,
+  type TicketCategory,
+  getStatusLabel,
+  getPriorityLabel,
+  getCategoryLabel,
+  formatRelativeTime,
+} from '@adopt-dont-shop/lib-support-tickets';
+import { TicketDetailModal } from '../components/modals/TicketDetailModal';
 
 const PageContainer = styled.div`
   display: flex;
@@ -221,170 +234,88 @@ const PriorityBadge = styled.span<{ $level: string }>`
   }
 `;
 
-// Mock data
-const mockTickets: SupportTicket[] = [
-  {
-    ticketId: '1',
-    userId: 'user-1',
-    userName: 'Sarah Johnson',
-    userEmail: 'sarah.j@example.com',
-    subject: 'Unable to complete adoption application',
-    category: 'technical',
-    priority: 'high',
-    status: 'in_progress',
-    description: 'Getting error when trying to submit application form',
-    assignedTo: 'admin-1',
-    createdAt: '2024-10-21T09:00:00Z',
-    updatedAt: '2024-10-21T10:30:00Z',
-    messagesCount: 3
-  },
-  {
-    ticketId: '2',
-    userId: 'user-2',
-    userName: 'Michael Chen',
-    userEmail: 'mchen@example.com',
-    subject: 'Account verification not working',
-    category: 'account',
-    priority: 'urgent',
-    status: 'open',
-    description: 'Email verification link expired',
-    createdAt: '2024-10-21T11:15:00Z',
-    updatedAt: '2024-10-21T11:15:00Z',
-    messagesCount: 1
-  },
-  {
-    ticketId: '3',
-    userId: 'user-3',
-    userName: 'Emma Wilson',
-    userEmail: 'emma.w@example.com',
-    subject: 'Question about adoption fees',
-    category: 'other',
-    priority: 'low',
-    status: 'waiting_user',
-    description: 'Wondering about payment options',
-    assignedTo: 'admin-2',
-    createdAt: '2024-10-20T14:00:00Z',
-    updatedAt: '2024-10-21T08:00:00Z',
-    messagesCount: 5
-  },
-  {
-    ticketId: '4',
-    userId: 'user-4',
-    userName: 'David Martinez',
-    userEmail: 'dmartinez@example.com',
-    subject: 'Reported inappropriate listing',
-    category: 'abuse',
-    priority: 'high',
-    status: 'in_progress',
-    description: 'Found a suspicious pet listing',
-    assignedTo: 'admin-1',
-    createdAt: '2024-10-21T07:30:00Z',
-    updatedAt: '2024-10-21T09:00:00Z',
-    messagesCount: 2
-  },
-  {
-    ticketId: '5',
-    userId: 'user-5',
-    userName: 'Lisa Anderson',
-    userEmail: 'l.anderson@example.com',
-    subject: 'Great experience - thank you!',
-    category: 'other',
-    priority: 'low',
-    status: 'resolved',
-    description: 'Just wanted to say thanks for the smooth process',
-    assignedTo: 'admin-2',
-    createdAt: '2024-10-19T10:00:00Z',
-    updatedAt: '2024-10-19T11:00:00Z',
-    resolvedAt: '2024-10-19T11:00:00Z',
-    messagesCount: 2
-  }
-];
-
 const Support: React.FC = () => {
-  const [tickets] = useState<SupportTicket[]>(mockTickets);
-  const [loading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
+  const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<TicketCategory | 'all'>('all');
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
 
-  // Calculate stats
+  // Build filters for API
+  const filters = useMemo(() => {
+    const apiFilters: {
+      status?: TicketStatus;
+      priority?: TicketPriority;
+      category?: TicketCategory;
+      search?: string;
+    } = {};
+
+    if (statusFilter !== 'all') apiFilters.status = statusFilter as TicketStatus;
+    if (priorityFilter !== 'all') apiFilters.priority = priorityFilter as TicketPriority;
+    if (categoryFilter !== 'all') apiFilters.category = categoryFilter as TicketCategory;
+    if (searchQuery) apiFilters.search = searchQuery;
+
+    return apiFilters;
+  }, [statusFilter, priorityFilter, categoryFilter, searchQuery]);
+
+  // Fetch tickets and stats using hooks
+  const { data: ticketsData, isLoading: ticketsLoading, error: ticketsError, refetch } = useTickets(filters);
+  const { data: statsData, isLoading: statsLoading } = useTicketStats();
+  const { addResponse } = useTicketMutations();
+
+  const tickets = ticketsData?.data || [];
+  const loading = ticketsLoading;
+
+  // Stats from API
   const stats = {
-    open: tickets.filter(t => t.status === 'open').length,
-    inProgress: tickets.filter(t => t.status === 'in_progress').length,
-    waitingUser: tickets.filter(t => t.status === 'waiting_user').length,
-    resolved: tickets.filter(t => t.status === 'resolved').length
+    open: statsData?.open || 0,
+    inProgress: statsData?.inProgress || 0,
+    waitingUser: statsData?.waitingForUser || 0,
+    resolved: statsData?.resolved || 0,
   };
 
-  // Filter tickets
-  const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = searchQuery === '' ||
-      ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.userEmail.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
-    const matchesCategory = categoryFilter === 'all' || ticket.category === categoryFilter;
-
-    return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
-  });
-
-  const getStatusBadge = (status: string) => {
+  const getStatusBadgeVariant = (status: TicketStatus): 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
     switch (status) {
       case 'open':
-        return <Badge $variant="danger">Open</Badge>;
+        return 'danger';
       case 'in_progress':
-        return <Badge $variant="info">In Progress</Badge>;
-      case 'waiting_user':
-        return <Badge $variant="warning">Waiting on User</Badge>;
+        return 'info';
+      case 'waiting_for_user':
+        return 'warning';
       case 'resolved':
-        return <Badge $variant="success">Resolved</Badge>;
+        return 'success';
       case 'closed':
-        return <Badge $variant="neutral">Closed</Badge>;
+        return 'neutral';
+      case 'escalated':
+        return 'danger';
       default:
-        return <Badge $variant="neutral">{status}</Badge>;
+        return 'neutral';
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    const icon = priority === 'urgent' || priority === 'high' ? <FiAlertCircle /> : <FiClock />;
-    return (
-      <PriorityBadge $level={priority}>
-        {icon}
-        {priority.charAt(0).toUpperCase() + priority.slice(1)}
-      </PriorityBadge>
-    );
-  };
-
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      technical: 'Technical',
-      account: 'Account',
-      billing: 'Billing',
-      abuse: 'Abuse Report',
-      other: 'Other'
+  const getPriorityLevel = (priority: TicketPriority): string => {
+    const mapping: Record<TicketPriority, string> = {
+      low: 'low',
+      normal: 'medium',
+      high: 'high',
+      urgent: 'urgent',
+      critical: 'urgent',
     };
-    return labels[category] || category;
+    return mapping[priority];
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+  const handleReply = async (content: string, isInternal: boolean) => {
+    if (!selectedTicket) return;
 
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    // addResponse returns the updated ticket with the new response
+    const updatedTicket = await addResponse(selectedTicket.ticketId, { content, isInternal });
 
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    // Create a new object reference to force React to re-render
+    // This is necessary because the modal might not detect the change otherwise
+    setSelectedTicket({ ...updatedTicket, responses: [...(updatedTicket.responses || [])] });
+
+    // Refresh the tickets list in the background
+    await refetch();
   };
 
   const columns: Column<SupportTicket>[] = [
@@ -393,9 +324,9 @@ const Support: React.FC = () => {
       header: 'Ticket',
       accessor: (row) => (
         <TicketInfo>
-          <TicketSubject>#{row.ticketId} - {row.subject}</TicketSubject>
+          <TicketSubject>#{row.ticketId.slice(-6)} - {row.subject}</TicketSubject>
           <TicketMeta>
-            {row.userName} ({row.userEmail})
+            {row.userName || 'Unknown'} ({row.userEmail})
           </TicketMeta>
         </TicketInfo>
       ),
@@ -405,19 +336,27 @@ const Support: React.FC = () => {
       id: 'category',
       header: 'Category',
       accessor: (row) => getCategoryLabel(row.category),
-      width: '120px'
+      width: '150px'
     },
     {
       id: 'priority',
       header: 'Priority',
-      accessor: (row) => getPriorityBadge(row.priority),
+      accessor: (row) => {
+        const icon = row.priority === 'urgent' || row.priority === 'critical' || row.priority === 'high' ? <FiAlertCircle /> : <FiClock />;
+        return (
+          <PriorityBadge $level={getPriorityLevel(row.priority)}>
+            {icon}
+            {getPriorityLabel(row.priority)}
+          </PriorityBadge>
+        );
+      },
       width: '120px',
       sortable: true
     },
     {
       id: 'status',
       header: 'Status',
-      accessor: (row) => getStatusBadge(row.status),
+      accessor: (row) => <Badge $variant={getStatusBadgeVariant(row.status)}>{getStatusLabel(row.status)}</Badge>,
       width: '140px',
       sortable: true
     },
@@ -427,7 +366,7 @@ const Support: React.FC = () => {
       accessor: (row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280' }}>
           <FiMessageSquare />
-          {row.messagesCount}
+          {row.responses?.length || 0}
         </div>
       ),
       width: '100px',
@@ -436,7 +375,7 @@ const Support: React.FC = () => {
     {
       id: 'updated',
       header: 'Last Updated',
-      accessor: (row) => formatDate(row.updatedAt),
+      accessor: (row) => formatRelativeTime(row.updatedAt),
       width: '120px',
       sortable: true
     }
@@ -506,47 +445,67 @@ const Support: React.FC = () => {
 
         <FilterGroup>
           <FilterLabel>Status</FilterLabel>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as TicketStatus | 'all')}>
             <option value="all">All Statuses</option>
             <option value="open">Open</option>
             <option value="in_progress">In Progress</option>
-            <option value="waiting_user">Waiting on User</option>
+            <option value="waiting_for_user">Waiting for User</option>
             <option value="resolved">Resolved</option>
             <option value="closed">Closed</option>
+            <option value="escalated">Escalated</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
           <FilterLabel>Priority</FilterLabel>
-          <Select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+          <Select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as TicketPriority | 'all')}>
             <option value="all">All Priorities</option>
+            <option value="critical">Critical</option>
             <option value="urgent">Urgent</option>
             <option value="high">High</option>
-            <option value="medium">Medium</option>
+            <option value="normal">Normal</option>
             <option value="low">Low</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
           <FilterLabel>Category</FilterLabel>
-          <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as TicketCategory | 'all')}>
             <option value="all">All Categories</option>
-            <option value="technical">Technical</option>
-            <option value="account">Account</option>
-            <option value="billing">Billing</option>
-            <option value="abuse">Abuse Report</option>
+            <option value="technical_issue">Technical Issue</option>
+            <option value="account_problem">Account Problem</option>
+            <option value="adoption_inquiry">Adoption Inquiry</option>
+            <option value="payment_issue">Payment Issue</option>
+            <option value="feature_request">Feature Request</option>
+            <option value="report_bug">Report Bug</option>
+            <option value="general_question">General Question</option>
+            <option value="compliance_concern">Compliance Concern</option>
+            <option value="data_request">Data Request</option>
             <option value="other">Other</option>
           </Select>
         </FilterGroup>
       </FilterBar>
 
+      {ticketsError && (
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
+          Error loading tickets: {ticketsError.message}
+        </div>
+      )}
+
       <DataTable
         columns={columns}
-        data={filteredTickets}
+        data={tickets}
         loading={loading}
         emptyMessage="No support tickets found matching your criteria"
-        onRowClick={(ticket) => console.log('View ticket:', ticket)}
+        onRowClick={(ticket) => setSelectedTicket(ticket)}
         getRowId={(ticket) => ticket.ticketId}
+      />
+
+      <TicketDetailModal
+        isOpen={!!selectedTicket}
+        onClose={() => setSelectedTicket(null)}
+        ticket={selectedTicket}
+        onReply={handleReply}
       />
     </PageContainer>
   );
