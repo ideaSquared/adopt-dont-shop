@@ -1,6 +1,8 @@
 import SupportTicket, { TicketStatus, TicketPriority, TicketCategory } from '../models/SupportTicket';
+import SupportTicketResponse, { ResponderType } from '../models/SupportTicketResponse';
 import User from '../models/User';
-import { Op } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
+import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
 
 interface TicketFilters {
@@ -100,6 +102,18 @@ class SupportTicketService {
             attributes: ['userId', 'firstName', 'lastName', 'email'],
             required: false,
           },
+          {
+            model: SupportTicketResponse,
+            as: 'Responses',
+            include: [
+              {
+                model: User,
+                as: 'Responder',
+                attributes: ['userId', 'firstName', 'lastName', 'email'],
+              },
+            ],
+            required: false,
+          },
         ],
       });
 
@@ -135,7 +149,20 @@ class SupportTicketService {
             as: 'AssignedAgent',
             attributes: ['userId', 'firstName', 'lastName', 'email'],
           },
+          {
+            model: SupportTicketResponse,
+            as: 'Responses',
+            include: [
+              {
+                model: User,
+                as: 'Responder',
+                attributes: ['userId', 'firstName', 'lastName', 'email'],
+              },
+            ],
+            order: [['createdAt', 'ASC']],
+          },
         ],
+        order: [[{ model: SupportTicketResponse, as: 'Responses' }, 'createdAt', 'ASC']],
       });
 
       if (!ticket) {
@@ -245,6 +272,7 @@ class SupportTicketService {
 
   /**
    * Add a response to a ticket
+   * Uses transaction to ensure atomicity - both response creation and ticket update succeed or both fail
    */
   async addResponse(
     ticketId: string,
@@ -261,23 +289,70 @@ class SupportTicketService {
       isInternal?: boolean;
     }
   ) {
+    const transaction: Transaction = await sequelize.transaction();
+
     try {
+      // Verify ticket exists
       const ticket = await this.getTicketById(ticketId);
 
-      ticket.addResponse({
+      // Validate attachments if provided
+      if (response.attachments && response.attachments.length > 0) {
+        const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10MB
+        const ALLOWED_MIME_TYPES = [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+          'text/plain',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+
+        for (const attachment of response.attachments) {
+          if (attachment.fileSize > MAX_ATTACHMENT_SIZE) {
+            throw new Error(`Attachment ${attachment.filename} exceeds maximum size of 10MB`);
+          }
+          if (!ALLOWED_MIME_TYPES.includes(attachment.mimeType)) {
+            throw new Error(`Attachment ${attachment.filename} has unsupported file type: ${attachment.mimeType}`);
+          }
+        }
+      }
+
+      // Create the response in the separate table
+      await SupportTicketResponse.create({
+        ticketId,
         responderId: response.responderId,
-        responderType: response.responderType,
+        responderType: response.responderType as ResponderType,
         content: response.content,
         attachments: response.attachments || [],
         isInternal: response.isInternal || false,
-      });
+      }, { transaction });
 
-      await ticket.save();
+      // Update ticket timestamps
+      const updateData: Partial<{
+        lastResponseAt: Date;
+        firstResponseAt: Date;
+      }> = {
+        lastResponseAt: new Date(),
+      };
+
+      if (!ticket.firstResponseAt && response.responderType === 'staff') {
+        updateData.firstResponseAt = new Date();
+      }
+
+      await ticket.update(updateData, { transaction });
+
+      // Commit transaction
+      await transaction.commit();
 
       logger.info(`Response added to ticket ${ticketId}`);
 
-      return ticket;
+      // Return ticket with responses included
+      return await this.getTicketById(ticketId);
     } catch (error) {
+      // Rollback transaction on error
+      await transaction.rollback();
       logger.error(`Error adding response to ticket ${ticketId}:`, error);
       throw error;
     }

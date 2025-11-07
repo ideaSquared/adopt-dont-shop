@@ -32,21 +32,6 @@ export enum TicketCategory {
   OTHER = 'other',
 }
 
-interface TicketResponse {
-  responseId: string;
-  responderId: string;
-  responderType: 'staff' | 'user';
-  content: string;
-  attachments?: Array<{
-    filename: string;
-    url: string;
-    fileSize: number;
-    mimeType: string;
-  }>;
-  isInternal: boolean;
-  createdAt: Date;
-}
-
 interface SupportTicketAttributes {
   ticketId: string;
   userId?: string;
@@ -59,7 +44,6 @@ interface SupportTicketAttributes {
   subject: string;
   description: string;
   tags?: string[];
-  responses: TicketResponse[];
   attachments?: Array<{
     filename: string;
     url: string;
@@ -103,7 +87,6 @@ class SupportTicket
   public subject!: string;
   public description!: string;
   public tags?: string[];
-  public responses!: TicketResponse[];
   public attachments?: Array<{
     filename: string;
     url: string;
@@ -143,37 +126,6 @@ class SupportTicket
 
   public isOverdue(): boolean {
     return this.dueDate ? new Date() > this.dueDate && this.isOpen() : false;
-  }
-
-  public getResponseCount(): number {
-    return this.responses ? this.responses.length : 0;
-  }
-
-  public getUserResponseCount(): number {
-    return this.responses ? this.responses.filter(r => r.responderType === 'user').length : 0;
-  }
-
-  public getStaffResponseCount(): number {
-    return this.responses ? this.responses.filter(r => r.responderType === 'staff').length : 0;
-  }
-
-  public addResponse(response: Omit<TicketResponse, 'responseId' | 'createdAt'>): void {
-    if (!this.responses) {
-      this.responses = [];
-    }
-
-    const newResponse: TicketResponse = {
-      ...response,
-      responseId: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date(),
-    };
-
-    this.responses.push(newResponse);
-    this.lastResponseAt = new Date();
-
-    if (!this.firstResponseAt && response.responderType === 'staff') {
-      this.firstResponseAt = new Date();
-    }
   }
 
   public canBeResolved(): boolean {
@@ -258,11 +210,6 @@ SupportTicket.init(
     },
     tags: {
       type: DataTypes.ARRAY(DataTypes.STRING),
-      allowNull: false,
-      defaultValue: [],
-    },
-    responses: {
-      type: DataTypes.JSONB,
       allowNull: false,
       defaultValue: [],
     },

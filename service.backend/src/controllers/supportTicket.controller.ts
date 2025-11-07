@@ -4,6 +4,18 @@ import { TicketStatus, TicketPriority, TicketCategory } from '../models/SupportT
 import { logger } from '../utils/logger';
 import { AuthenticatedRequest } from '../types/api';
 
+// Helper function to serialize ticket data for API response
+const serializeTicket = (ticket: any) => {
+  const ticketData = ticket.toJSON ? ticket.toJSON() : ticket;
+
+  // Map Sequelize alias 'Responses' to lowercase 'responses' for frontend compatibility
+  if (ticketData.Responses) {
+    ticketData.responses = ticketData.Responses;
+    delete ticketData.Responses;
+  }
+
+  return ticketData;
+};
 
 export class SupportTicketController {
   /**
@@ -53,7 +65,7 @@ export class SupportTicketController {
 
       res.json({
         success: true,
-        data: result.tickets,
+        data: result.tickets.map(serializeTicket),
         pagination: result.pagination,
       });
     } catch (error) {
@@ -77,7 +89,7 @@ export class SupportTicketController {
 
       res.json({
         success: true,
-        data: ticket,
+        data: serializeTicket(ticket),
       });
     } catch (error: any) {
       logger.error('Error in getTicketById:', error);
@@ -135,7 +147,7 @@ export class SupportTicketController {
 
       res.status(201).json({
         success: true,
-        data: ticket,
+        data: serializeTicket(ticket),
       });
     } catch (error) {
       logger.error('Error in createTicket:', error);
@@ -159,7 +171,7 @@ export class SupportTicketController {
 
       res.json({
         success: true,
-        data: ticket,
+        data: serializeTicket(ticket),
       });
     } catch (error: any) {
       logger.error('Error in updateTicket:', error);
@@ -197,7 +209,7 @@ export class SupportTicketController {
 
       res.json({
         success: true,
-        data: ticket,
+        data: serializeTicket(ticket),
         message: 'Ticket assigned successfully',
       });
     } catch (error: any) {
@@ -243,7 +255,7 @@ export class SupportTicketController {
 
       res.json({
         success: true,
-        data: ticket,
+        data: serializeTicket(ticket),
         message: 'Response added successfully',
       });
     } catch (error: any) {
@@ -282,7 +294,7 @@ export class SupportTicketController {
 
       res.json({
         success: true,
-        data: ticket,
+        data: serializeTicket(ticket),
         message: 'Ticket escalated successfully',
       });
     } catch (error: any) {
@@ -378,7 +390,7 @@ export class SupportTicketController {
 
       res.json({
         success: true,
-        data: tickets,
+        data: tickets.map(serializeTicket),
       });
     } catch (error) {
       logger.error('Error in getMyTickets:', error);

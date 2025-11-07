@@ -36,6 +36,7 @@ import UserSanction from './UserSanction';
 
 // Support System Models
 import SupportTicket from './SupportTicket';
+import SupportTicketResponse from './SupportTicketResponse';
 
 // Email Models
 import EmailPreference from './EmailPreference';
@@ -76,6 +77,7 @@ const models = {
   Report,
   UserSanction,
   SupportTicket,
+  SupportTicketResponse,
   EmailTemplate,
   EmailQueue,
   EmailPreference,
@@ -231,6 +233,13 @@ SupportTicket.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 User.hasMany(SupportTicket, { foreignKey: 'assignedTo', as: 'AssignedTickets' });
 SupportTicket.belongsTo(User, { foreignKey: 'assignedTo', as: 'AssignedAgent' });
 
+// SupportTicketResponse associations
+SupportTicket.hasMany(SupportTicketResponse, { foreignKey: 'ticketId', as: 'Responses' });
+SupportTicketResponse.belongsTo(SupportTicket, { foreignKey: 'ticketId', as: 'Ticket' });
+
+User.hasMany(SupportTicketResponse, { foreignKey: 'responderId', as: 'TicketResponses' });
+SupportTicketResponse.belongsTo(User, { foreignKey: 'responderId', as: 'Responder' });
+
 // Email Service associations
 User.hasMany(EmailTemplate, { foreignKey: 'createdBy', as: 'CreatedEmailTemplates' });
 EmailTemplate.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
@@ -309,6 +318,7 @@ export {
   RolePermission,
   StaffMember,
   SupportTicket,
+  SupportTicketResponse,
   SwipeAction,
   SwipeSession,
   User,

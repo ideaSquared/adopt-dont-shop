@@ -68,6 +68,14 @@ export const PERMISSIONS = {
   CHAT_UPDATE: 'chats.update',
   CHAT_DELETE: 'chats.delete',
   CHAT_PARTICIPATE: 'chats.participate',
+  CHAT_MODERATE: 'chats.moderate',
+
+  // Message Management
+  MESSAGE_CREATE: 'messages.create',
+  MESSAGE_READ: 'messages.read',
+  MESSAGE_UPDATE: 'messages.update',
+  MESSAGE_DELETE: 'messages.delete',
+  MESSAGE_MODERATE: 'messages.moderate',
 
   // Support Ticket Management
   SUPPORT_TICKET_CREATE: 'support_tickets.create',
