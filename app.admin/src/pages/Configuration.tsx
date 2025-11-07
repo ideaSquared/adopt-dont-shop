@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { useFeatureGate, useDynamicConfig, KNOWN_GATES, KNOWN_CONFIGS } from '@adopt-dont-shop/lib-feature-flags';
+import { useFeatureGate, useConfigValue, KNOWN_GATES, KNOWN_CONFIGS } from '@adopt-dont-shop/lib-feature-flags';
 import { Heading, Text, Button } from '@adopt-dont-shop/components';
 import { FiRefreshCw, FiSettings, FiFlag, FiExternalLink, FiInfo } from 'react-icons/fi';
 import { PageContainer, PageHeader, HeaderLeft, Card, CardHeader, CardTitle, CardContent } from '../components/ui';
@@ -204,9 +204,24 @@ const GateDisplay: React.FC<{ gateName: string }> = ({ gateName }) => {
 };
 
 const Configuration: React.FC = () => {
-  const appConfig = useDynamicConfig(KNOWN_CONFIGS.APPLICATION_SETTINGS);
-  const systemConfig = useDynamicConfig(KNOWN_CONFIGS.SYSTEM_SETTINGS);
-  const modConfig = useDynamicConfig(KNOWN_CONFIGS.MODERATION_SETTINGS);
+  // Application Settings
+  const maxApplicationsPerUser = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'max_applications_per_user', 5);
+  const autoApproveVerifiedRescues = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'auto_approve_verified_rescues', false);
+  const maintenanceMode = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'maintenance_mode', false);
+  const newRegistrationsEnabled = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'new_registrations_enabled', true);
+  const adoptionApprovalWorkflowEnabled = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'adoption_approval_workflow_enabled', true);
+
+  // System Settings
+  const maxFileUploadSizeMb = useConfigValue(KNOWN_CONFIGS.SYSTEM_SETTINGS, 'max_file_upload_size_mb', 10);
+  const sessionTimeoutMinutes = useConfigValue(KNOWN_CONFIGS.SYSTEM_SETTINGS, 'session_timeout_minutes', 120);
+  const enableDebugLogging = useConfigValue(KNOWN_CONFIGS.SYSTEM_SETTINGS, 'enable_debug_logging', false);
+  const apiRateLimitPerMinute = useConfigValue(KNOWN_CONFIGS.SYSTEM_SETTINGS, 'api_rate_limit_per_minute', 100);
+
+  // Moderation Settings
+  const autoModerateEnabled = useConfigValue(KNOWN_CONFIGS.MODERATION_SETTINGS, 'auto_moderate_enabled', true);
+  const profanityFilterEnabled = useConfigValue(KNOWN_CONFIGS.MODERATION_SETTINGS, 'profanity_filter_enabled', true);
+  const requireManualReviewThreshold = useConfigValue(KNOWN_CONFIGS.MODERATION_SETTINGS, 'require_manual_review_threshold', 0.7);
+  const maxWarningsBeforeSuspension = useConfigValue(KNOWN_CONFIGS.MODERATION_SETTINGS, 'max_warnings_before_suspension', 3);
 
   const handleRefresh = () => {
     window.location.reload();
@@ -275,23 +290,23 @@ const Configuration: React.FC = () => {
           <CardContent>
             <SettingItem>
               <SettingLabel>Max Applications Per User</SettingLabel>
-              <SettingValue>{appConfig.get('max_applications_per_user', 5)}</SettingValue>
+              <SettingValue>{maxApplicationsPerUser}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>Auto-Approve Verified Rescues</SettingLabel>
-              <SettingValue>{appConfig.get('auto_approve_verified_rescues', false) ? 'true' : 'false'}</SettingValue>
+              <SettingValue>{autoApproveVerifiedRescues ? 'true' : 'false'}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>Maintenance Mode</SettingLabel>
-              <SettingValue>{appConfig.get('maintenance_mode', false) ? 'true' : 'false'}</SettingValue>
+              <SettingValue>{maintenanceMode ? 'true' : 'false'}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>New Registrations Enabled</SettingLabel>
-              <SettingValue>{appConfig.get('new_registrations_enabled', true) ? 'true' : 'false'}</SettingValue>
+              <SettingValue>{newRegistrationsEnabled ? 'true' : 'false'}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>Adoption Approval Workflow Enabled</SettingLabel>
-              <SettingValue>{appConfig.get('adoption_approval_workflow_enabled', true) ? 'true' : 'false'}</SettingValue>
+              <SettingValue>{adoptionApprovalWorkflowEnabled ? 'true' : 'false'}</SettingValue>
             </SettingItem>
           </CardContent>
         </SectionCard>
@@ -307,19 +322,19 @@ const Configuration: React.FC = () => {
           <CardContent>
             <SettingItem>
               <SettingLabel>Max File Upload Size (MB)</SettingLabel>
-              <SettingValue>{systemConfig.get('max_file_upload_size_mb', 10)}</SettingValue>
+              <SettingValue>{maxFileUploadSizeMb}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>Session Timeout (Minutes)</SettingLabel>
-              <SettingValue>{systemConfig.get('session_timeout_minutes', 120)}</SettingValue>
+              <SettingValue>{sessionTimeoutMinutes}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>Enable Debug Logging</SettingLabel>
-              <SettingValue>{systemConfig.get('enable_debug_logging', false) ? 'true' : 'false'}</SettingValue>
+              <SettingValue>{enableDebugLogging ? 'true' : 'false'}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>API Rate Limit (Per Minute)</SettingLabel>
-              <SettingValue>{systemConfig.get('api_rate_limit_per_minute', 100)}</SettingValue>
+              <SettingValue>{apiRateLimitPerMinute}</SettingValue>
             </SettingItem>
           </CardContent>
         </SectionCard>
@@ -335,19 +350,19 @@ const Configuration: React.FC = () => {
           <CardContent>
             <SettingItem>
               <SettingLabel>Auto-Moderate Enabled</SettingLabel>
-              <SettingValue>{modConfig.get('auto_moderate_enabled', true) ? 'true' : 'false'}</SettingValue>
+              <SettingValue>{autoModerateEnabled ? 'true' : 'false'}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>Profanity Filter Enabled</SettingLabel>
-              <SettingValue>{modConfig.get('profanity_filter_enabled', true) ? 'true' : 'false'}</SettingValue>
+              <SettingValue>{profanityFilterEnabled ? 'true' : 'false'}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>Manual Review Threshold</SettingLabel>
-              <SettingValue>{modConfig.get('require_manual_review_threshold', 0.7)}</SettingValue>
+              <SettingValue>{requireManualReviewThreshold}</SettingValue>
             </SettingItem>
             <SettingItem>
               <SettingLabel>Max Warnings Before Suspension</SettingLabel>
-              <SettingValue>{modConfig.get('max_warnings_before_suspension', 3)}</SettingValue>
+              <SettingValue>{maxWarningsBeforeSuspension}</SettingValue>
             </SettingItem>
           </CardContent>
         </SectionCard>

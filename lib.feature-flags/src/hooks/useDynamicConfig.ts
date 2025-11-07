@@ -71,5 +71,6 @@ export const useConfigValue = <T = unknown>(
   }
 
   const config = client.getDynamicConfig(configName);
-  return config?.get(key, defaultValue) ?? defaultValue;
+  const value = config?.get(key, defaultValue);
+  return (value ?? defaultValue) as T;
 };
