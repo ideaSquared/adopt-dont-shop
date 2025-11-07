@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    envDir: resolve(__dirname, '..'), // Load .env from monorepo root
     cacheDir: '/tmp/.vite-app-client',
     resolve: {
       alias: {
