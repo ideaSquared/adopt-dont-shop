@@ -8,6 +8,7 @@ export class AuditLog extends Model {
   public user!: string | null;
   public action!: string;
   public level!: 'INFO' | 'WARNING' | 'ERROR';
+  public status!: 'success' | 'failure' | null;
   public timestamp!: Date;
   public metadata!: JsonObject | null;
   public category!: string;
@@ -37,6 +38,10 @@ AuditLog.init(
     level: {
       type: DataTypes.ENUM('INFO', 'WARNING', 'ERROR'),
       allowNull: false,
+    },
+    status: {
+      type: DataTypes.ENUM('success', 'failure'),
+      allowNull: true,
     },
     timestamp: {
       type: DataTypes.DATE,
@@ -74,6 +79,9 @@ AuditLog.init(
       },
       {
         fields: ['level'],
+      },
+      {
+        fields: ['status'],
       },
       {
         fields: ['category'],

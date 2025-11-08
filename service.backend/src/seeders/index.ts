@@ -28,6 +28,7 @@ import { seedSupportTickets } from './25-support-tickets';
 import { seedReports } from './26-reports';
 import { seedModeratorActions } from './27-moderator-actions';
 import { seedUserSanctions } from './28-user-sanctions';
+import { up as seedAuditLogs } from './29-audit-logs';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -59,6 +60,7 @@ const seeders = [
   { name: 'Emily Attachment Test', seeder: seedEmilyAttachmentTest },
   { name: 'Swipe Sessions', seeder: () => seedSwipeSessions(sequelize.getQueryInterface()) },
   { name: 'Swipe Actions', seeder: () => seedSwipeActions(sequelize.getQueryInterface()) },
+  { name: 'Audit Logs', seeder: seedAuditLogs },
 ];
 
 export async function runAllSeeders() {
@@ -101,6 +103,7 @@ export async function clearAllData() {
 
     // Clear in reverse order to handle foreign key constraints
     const clearOrder = [
+      'audit_logs',
       'swipe_actions',
       'swipe_sessions',
       'messages',

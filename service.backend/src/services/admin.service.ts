@@ -556,27 +556,45 @@ class AdminService {
       userId?: string;
       entity?: string;
       action?: string;
+      level?: 'INFO' | 'WARNING' | 'ERROR';
+      status?: 'success' | 'failure';
       startDate?: Date;
       endDate?: Date;
       page?: number;
       limit?: number;
     } = {}
-  ): Promise<{ logs: AuditLog[]; total: number; page: number; totalPages: number }> {
+  ): Promise<{ logs: unknown[]; total: number; page: number; totalPages: number }> {
     const startTime = Date.now();
 
     try {
-      const { userId, entity, action, startDate, endDate, page = 1, limit = 50 } = filters;
+      const {
+        userId,
+        entity,
+        action,
+        level,
+        status,
+        startDate,
+        endDate,
+        page = 1,
+        limit = 50,
+      } = filters;
 
       const whereConditions: WhereOptions = {};
 
       if (userId) {
-        whereConditions.userId = userId;
+        whereConditions.user = userId;
       }
       if (entity) {
-        whereConditions.entity = entity;
+        whereConditions.category = entity;
       }
       if (action) {
         whereConditions.action = action;
+      }
+      if (level) {
+        whereConditions.level = level;
+      }
+      if (status) {
+        whereConditions.status = status;
       }
 
       if (startDate && endDate) {
@@ -599,6 +617,25 @@ class AdminService {
         order: [['timestamp', 'DESC']],
       });
 
+      const formattedLogs = logs.map((log: AuditLog & { userDetails?: User }) => ({
+        id: log.id,
+        service: log.service,
+        user: log.user,
+        userName: log.userDetails
+          ? `${log.userDetails.firstName} ${log.userDetails.lastName}`
+          : null,
+        userEmail: log.userDetails?.email || null,
+        userType: log.userDetails?.userType || null,
+        action: log.action,
+        level: log.level,
+        status: log.status,
+        timestamp: log.timestamp,
+        metadata: log.metadata,
+        category: log.category,
+        ip_address: log.ip_address,
+        user_agent: log.user_agent,
+      }));
+
       loggerHelpers.logPerformance('Admin Audit Logs', {
         duration: Date.now() - startTime,
         filters: Object.keys(filters),
@@ -608,7 +645,7 @@ class AdminService {
       });
 
       return {
-        logs,
+        logs: formattedLogs,
         total,
         page,
         totalPages: Math.ceil(total / limit),

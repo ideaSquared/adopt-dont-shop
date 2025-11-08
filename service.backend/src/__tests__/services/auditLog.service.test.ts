@@ -127,6 +127,115 @@ describe('AuditLogService', () => {
 
       await expect(AuditLogService.log(mockAuditData)).rejects.toThrow('Database error');
     });
+
+    it('should create audit log with success status', async () => {
+      const dataWithStatus = {
+        ...mockAuditData,
+        status: 'success' as const,
+      };
+
+      const mockLog = {
+        id: 'log-3',
+        service: 'adopt-dont-shop-backend',
+        user: dataWithStatus.userId,
+        action: dataWithStatus.action,
+        level: 'INFO',
+        status: 'success',
+        timestamp: new Date(),
+        metadata: {
+          entity: dataWithStatus.entity,
+          entityId: dataWithStatus.entityId,
+          details: dataWithStatus.details,
+          ipAddress: dataWithStatus.ipAddress,
+          userAgent: dataWithStatus.userAgent,
+        },
+        category: dataWithStatus.entity,
+        ip_address: dataWithStatus.ipAddress,
+        user_agent: dataWithStatus.userAgent,
+      };
+
+      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
+
+      const result = await AuditLogService.log(dataWithStatus);
+
+      expect(MockedAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+        })
+      );
+      expect(result).toEqual(mockLog);
+    });
+
+    it('should create audit log with failure status', async () => {
+      const dataWithFailure = {
+        ...mockAuditData,
+        status: 'failure' as const,
+      };
+
+      const mockLog = {
+        id: 'log-4',
+        service: 'adopt-dont-shop-backend',
+        user: dataWithFailure.userId,
+        action: dataWithFailure.action,
+        level: 'ERROR',
+        status: 'failure',
+        timestamp: new Date(),
+        metadata: {
+          entity: dataWithFailure.entity,
+          entityId: dataWithFailure.entityId,
+          details: dataWithFailure.details,
+          ipAddress: dataWithFailure.ipAddress,
+          userAgent: dataWithFailure.userAgent,
+        },
+        category: dataWithFailure.entity,
+        ip_address: dataWithFailure.ipAddress,
+        user_agent: dataWithFailure.userAgent,
+      };
+
+      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
+
+      const result = await AuditLogService.log(dataWithFailure);
+
+      expect(MockedAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'failure',
+        })
+      );
+      expect(result).toEqual(mockLog);
+    });
+
+    it('should create audit log with null status when not provided', async () => {
+      const mockLog = {
+        id: 'log-5',
+        service: 'adopt-dont-shop-backend',
+        user: mockAuditData.userId,
+        action: mockAuditData.action,
+        level: 'INFO',
+        status: null,
+        timestamp: new Date(),
+        metadata: {
+          entity: mockAuditData.entity,
+          entityId: mockAuditData.entityId,
+          details: mockAuditData.details,
+          ipAddress: mockAuditData.ipAddress,
+          userAgent: mockAuditData.userAgent,
+        },
+        category: mockAuditData.entity,
+        ip_address: mockAuditData.ipAddress,
+        user_agent: mockAuditData.userAgent,
+      };
+
+      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
+
+      const result = await AuditLogService.log(mockAuditData);
+
+      expect(MockedAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: undefined,
+        })
+      );
+      expect(result).toEqual(mockLog);
+    });
   });
 
   describe('getLogs', () => {

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
+import { useQuery } from 'react-query';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
-import { FiSearch, FiDownload, FiUser, FiEdit, FiTrash, FiShield, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiSearch, FiDownload, FiUser, FiEdit, FiTrash, FiShield, FiCheckCircle, FiXCircle, FiRefreshCw } from 'react-icons/fi';
 import {
   PageContainer,
   PageHeader,
@@ -15,7 +16,7 @@ import {
 } from '../components/ui';
 import { DataTable } from '../components/data';
 import type { Column } from '../components/data';
-import type { AuditLog } from '../types/admin';
+import { AuditLogsService, AuditLogLevel, AuditLogStatus, type AuditLog } from '@adopt-dont-shop/lib-audit-logs';
 
 const HeaderActions = styled.div`
   display: flex;
@@ -129,136 +130,128 @@ const IpAddress = styled.span`
   border-radius: 4px;
 `;
 
-// Mock data
-const mockAuditLogs: AuditLog[] = [
-  {
-    logId: '1',
-    timestamp: '2024-10-21T10:45:00Z',
-    userId: 'admin-1',
-    userName: 'Sarah Admin',
-    userType: 'admin',
-    action: 'update',
-    resource: 'feature_flag',
-    resourceId: 'video_uploads',
-    changes: { enabled: { from: false, to: true }, rolloutPercentage: { from: 0, to: 50 } },
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-    status: 'success'
-  },
-  {
-    logId: '2',
-    timestamp: '2024-10-21T10:30:00Z',
-    userId: 'admin-2',
-    userName: 'Mike Moderator',
-    userType: 'moderator',
-    action: 'create',
-    resource: 'user_sanction',
-    resourceId: 'sanction-123',
-    changes: { userId: 'user-42', type: 'warning', reason: 'Policy violation' },
-    ipAddress: '192.168.1.105',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-    status: 'success'
-  },
-  {
-    logId: '3',
-    timestamp: '2024-10-21T10:15:00Z',
-    userId: 'admin-1',
-    userName: 'Sarah Admin',
-    userType: 'admin',
-    action: 'delete',
-    resource: 'user',
-    resourceId: 'user-999',
-    changes: { email: 'spam@example.com', reason: 'Spam account removal' },
-    ipAddress: '192.168.1.100',
-    status: 'success'
-  },
-  {
-    logId: '4',
-    timestamp: '2024-10-21T09:50:00Z',
-    userId: 'admin-3',
-    userName: 'John Support',
-    userType: 'support',
-    action: 'update',
-    resource: 'support_ticket',
-    resourceId: 'ticket-456',
-    changes: { status: { from: 'open', to: 'resolved' } },
-    ipAddress: '192.168.1.110',
-    status: 'success'
-  },
-  {
-    logId: '5',
-    timestamp: '2024-10-21T09:30:00Z',
-    userId: 'admin-2',
-    userName: 'Mike Moderator',
-    userType: 'moderator',
-    action: 'update',
-    resource: 'rescue',
-    resourceId: 'rescue-10',
-    changes: { verificationStatus: { from: 'pending', to: 'verified' } },
-    ipAddress: '192.168.1.105',
-    status: 'success'
-  },
-  {
-    logId: '6',
-    timestamp: '2024-10-21T09:00:00Z',
-    userId: 'admin-1',
-    userName: 'Sarah Admin',
-    userType: 'admin',
-    action: 'login',
-    resource: 'auth',
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-    status: 'success'
-  },
-  {
-    logId: '7',
-    timestamp: '2024-10-21T08:45:00Z',
-    userId: 'admin-4',
-    userName: 'Unknown User',
-    userType: 'admin',
-    action: 'login',
-    resource: 'auth',
-    ipAddress: '203.0.113.42',
-    userAgent: 'Mozilla/5.0',
-    status: 'failure',
-    errorMessage: 'Invalid credentials'
-  },
-  {
-    logId: '8',
-    timestamp: '2024-10-21T08:30:00Z',
-    userId: 'admin-1',
-    userName: 'Sarah Admin',
-    userType: 'admin',
-    action: 'update',
-    resource: 'system_setting',
-    resourceId: 'session_timeout_minutes',
-    changes: { value: { from: 60, to: 120 } },
-    ipAddress: '192.168.1.100',
-    status: 'success'
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const ModalTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f3f4f6;
+    color: #111827;
   }
-];
+`;
+
+const JsonBlock = styled.pre`
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow: auto;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+`;
 
 const Audit: React.FC = () => {
-  const [logs] = useState<AuditLog[]>(mockAuditLogs);
-  const [loading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [resourceFilter, setResourceFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
-  // Filter logs
-  const filteredLogs = logs.filter(log => {
-    const matchesSearch = searchQuery === '' ||
-      log.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.resource.toLowerCase().includes(searchQuery.toLowerCase());
+  // Calculate default date range (7 days ago)
+  const sevenDaysAgo = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 7);
+    return date.toISOString();
+  }, []);
 
-    const matchesAction = actionFilter === 'all' || log.action === actionFilter;
-    const matchesResource = resourceFilter === 'all' || log.resource === resourceFilter;
-    const matchesStatus = statusFilter === 'all' || log.status === statusFilter;
+  const now = useMemo(() => new Date().toISOString(), []);
 
-    return matchesSearch && matchesAction && matchesResource && matchesStatus;
-  });
+  // Fetch audit logs using React Query
+  const { data, isLoading, isError, error, refetch } = useQuery(
+    ['auditLogs', page, actionFilter, resourceFilter, statusFilter],
+    () => AuditLogsService.getAuditLogs({
+      action: actionFilter !== 'all' ? actionFilter : undefined,
+      entity: resourceFilter !== 'all' ? resourceFilter : undefined,
+      status: statusFilter !== 'all' ? (statusFilter as 'success' | 'failure') : undefined,
+      page,
+      limit: 50,
+      startDate: sevenDaysAgo,
+      endDate: now,
+    }),
+    {
+      keepPreviousData: true,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const logs = data?.data || [];
+
+  // Filter logs by search query (client-side filtering)
+  const filteredLogs = useMemo(() => {
+    if (!searchQuery) return logs;
+
+    return logs.filter(log => {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        (log.userName && log.userName.toLowerCase().includes(searchLower)) ||
+        log.action.toLowerCase().includes(searchLower) ||
+        log.category.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [logs, searchQuery]);
 
   const getActionIcon = (action: string) => {
     switch (action) {
@@ -329,13 +322,13 @@ const Audit: React.FC = () => {
       accessor: (row) => (
         <LogDetails>
           <LogAction>
-            <ActionIcon $type={row.action}>
-              {getActionIcon(row.action)}
+            <ActionIcon $type={row.action.toLowerCase()}>
+              {getActionIcon(row.action.toLowerCase())}
             </ActionIcon>
-            {row.action.charAt(0).toUpperCase() + row.action.slice(1)} {formatResourceName(row.resource)}
+            {row.action} {formatResourceName(row.category)}
           </LogAction>
-          {row.resourceId && (
-            <LogResource>ID: {row.resourceId}</LogResource>
+          {row.metadata?.entityId && (
+            <LogResource>ID: {row.metadata.entityId}</LogResource>
           )}
         </LogDetails>
       ),
@@ -346,10 +339,10 @@ const Audit: React.FC = () => {
       header: 'User',
       accessor: (row) => (
         <UserInfo>
-          <UserAvatar>{getUserInitials(row.userName)}</UserAvatar>
+          <UserAvatar>{row.userName ? getUserInitials(row.userName) : 'NA'}</UserAvatar>
           <div>
-            <UserName>{row.userName}</UserName>
-            <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{row.userType}</div>
+            <UserName>{row.userName || 'System'}</UserName>
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{row.userType || 'system'}</div>
           </div>
         </UserInfo>
       ),
@@ -359,10 +352,10 @@ const Audit: React.FC = () => {
       id: 'changes',
       header: 'Changes',
       accessor: (row) => (
-        row.changes ? (
+        row.metadata?.details ? (
           <ChangesButton onClick={(e) => {
             e.stopPropagation();
-            console.log('Show changes:', row.changes);
+            setSelectedLog(row);
           }}>
             View Details
           </ChangesButton>
@@ -376,20 +369,20 @@ const Audit: React.FC = () => {
     {
       id: 'ipAddress',
       header: 'IP Address',
-      accessor: (row) => row.ipAddress ? <IpAddress>{row.ipAddress}</IpAddress> : '—',
+      accessor: (row) => row.ip_address ? <IpAddress>{row.ip_address}</IpAddress> : '—',
       width: '140px'
     },
     {
       id: 'status',
       header: 'Status',
-      accessor: (row) => getStatusBadge(row.status),
+      accessor: (row) => getStatusBadge(row.status || 'success'),
       width: '100px',
       sortable: true
     },
     {
       id: 'timestamp',
       header: 'Time',
-      accessor: (row) => formatTimestamp(row.timestamp),
+      accessor: (row) => formatTimestamp(row.timestamp.toString()),
       width: '120px',
       sortable: true
     }
@@ -400,12 +393,12 @@ const Audit: React.FC = () => {
       <PageHeader>
         <HeaderLeft>
           <Heading level="h1">Audit Logs</Heading>
-          <Text>System activity tracking and security monitoring</Text>
+          <Text>System activity tracking and security monitoring (Last 7 days)</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant="outline" size="md">
-            <FiDownload style={{ marginRight: '0.5rem' }} />
-            Export Logs
+          <Button variant="outline" size="md" onClick={() => refetch()} disabled={isLoading}>
+            <FiRefreshCw style={{ marginRight: '0.5rem' }} />
+            Refresh
           </Button>
         </HeaderActions>
       </PageHeader>
@@ -457,14 +450,55 @@ const Audit: React.FC = () => {
         </FilterGroup>
       </FilterBar>
 
+      {isError && (
+        <div style={{ padding: '1rem', color: '#dc2626', background: '#fee2e2', borderRadius: '8px', margin: '1rem 0' }}>
+          Error loading audit logs: {error instanceof Error ? error.message : 'Unknown error'}
+        </div>
+      )}
+
       <DataTable
         columns={columns}
         data={filteredLogs}
-        loading={loading}
+        loading={isLoading}
         emptyMessage="No audit logs found matching your criteria"
-        onRowClick={(log) => console.log('View log details:', log)}
-        getRowId={(log) => log.logId}
+        onRowClick={(log) => setSelectedLog(log)}
+        getRowId={(log) => log.id.toString()}
       />
+
+      {selectedLog && (
+        <Modal onClick={() => setSelectedLog(null)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>Audit Log Details</ModalTitle>
+              <CloseButton onClick={() => setSelectedLog(null)}>×</CloseButton>
+            </ModalHeader>
+            <JsonBlock>
+              {JSON.stringify({
+                id: selectedLog.id,
+                action: selectedLog.action,
+                level: selectedLog.level,
+                status: selectedLog.status,
+                timestamp: selectedLog.timestamp,
+                user: {
+                  id: selectedLog.user,
+                  name: selectedLog.userName,
+                  email: selectedLog.userEmail,
+                  type: selectedLog.userType,
+                },
+                entity: {
+                  category: selectedLog.category,
+                  entityId: selectedLog.metadata?.entityId,
+                },
+                details: selectedLog.metadata?.details || null,
+                network: {
+                  ipAddress: selectedLog.ip_address,
+                  userAgent: selectedLog.user_agent,
+                },
+              }, null, 2)}
+            </JsonBlock>
+          </ModalContent>
+        </Modal>
+      )}
     </PageContainer>
   );
 };

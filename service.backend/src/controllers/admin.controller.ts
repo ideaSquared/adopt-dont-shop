@@ -196,12 +196,24 @@ export class AdminController {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 50, action, userId, entity, startDate, endDate } = req.query;
+      const {
+        page = 1,
+        limit = 50,
+        action,
+        userId,
+        entity,
+        level,
+        status,
+        startDate,
+        endDate,
+      } = req.query;
 
       const result = await AdminService.getAuditLogs({
         action: action as string,
         userId: userId as string,
         entity: entity as string,
+        level: level as 'INFO' | 'WARNING' | 'ERROR' | undefined,
+        status: status as 'success' | 'failure' | undefined,
         startDate: startDate ? new Date(startDate as string) : undefined,
         endDate: endDate ? new Date(endDate as string) : undefined,
         page: parseInt(page as string),

@@ -162,8 +162,8 @@ Permission.belongsToMany(Role, {
 });
 
 // Audit and tracking associations
-User.hasMany(AuditLog, { foreignKey: 'user_id', as: 'AuditLogs' });
-AuditLog.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+User.hasMany(AuditLog, { foreignKey: 'user', sourceKey: 'userId', as: 'AuditLogs' });
+AuditLog.belongsTo(User, { foreignKey: 'user', targetKey: 'userId', as: 'userDetails' });
 
 // Rating associations
 User.hasMany(Rating, { foreignKey: 'reviewer_id', as: 'GivenRatings' });

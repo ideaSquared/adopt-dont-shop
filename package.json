@@ -11,12 +11,14 @@
     "lib.analytics",
     "lib.api",
     "lib.applications",
+    "lib.audit-logs",
     "lib.auth",
     "lib.chat",
     "lib.components",
     "lib.dev-tools",
     "lib.discovery",
     "lib.feature-flags",
+    "lib.invitations",
     "lib.notifications",
     "lib.permissions",
     "lib.pets",
@@ -24,7 +26,6 @@
     "lib.search",
     "lib.utils",
     "lib.validation",
-    "lib.invitations",
     "service.backend"
   ],
   "scripts": {
