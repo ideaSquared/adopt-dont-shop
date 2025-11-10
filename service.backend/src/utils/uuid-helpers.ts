@@ -4,7 +4,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import { QueryInterface, QueryTypes } from 'sequelize';
+import { Model, ModelStatic, QueryInterface, QueryTypes } from 'sequelize';
 
 /**
  * OPTION 1: Use PostgreSQL's gen_random_uuid() function
@@ -78,14 +78,15 @@ export const prepareBulkDataWithoutUuid = (
  * OPTION 5: Use Sequelize model creation (recommended for ORM)
  * Best for: When using Sequelize models properly
  */
-export const createWithSequelizeModel = async (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Model: any,
+export const createWithSequelizeModel = async <T extends Model>(
+  SequelizeModel: ModelStatic<T>,
   data: Record<string, unknown>[]
-) => {
-  const results = [];
+): Promise<T[]> => {
+  const results: T[] = [];
   for (const row of data) {
-    const instance = await Model.create(row);
+    // Type assertion needed: Sequelize's complex generic constraints don't allow
+    // Record<string, unknown> even though it's compatible at runtime
+    const instance = await SequelizeModel.create(row as any);
     results.push(instance);
   }
   return results;

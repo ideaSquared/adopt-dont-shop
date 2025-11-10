@@ -16,7 +16,8 @@
       "Bash(cat User.ts)",
       "Bash(find ./docs -name \"*.md\" -exec wc -l {})",
       "Bash(cat:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(timeout /t 30 npm test -- email.service.test.ts --maxWorkers=1)"
     ],
     "deny": [],
     "ask": []
