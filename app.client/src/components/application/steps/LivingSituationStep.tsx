@@ -10,16 +10,21 @@ interface LivingSituationStepProps {
 }
 
 interface LivingSituationFormData {
-  housingType: string;
+  housingType: 'house' | 'apartment' | 'condo' | 'other';
   isOwned: boolean;
   hasYard: boolean;
-  yardSize: string;
-  yardFenced: boolean;
+  yardSize?: 'small' | 'medium' | 'large';
+  yardFenced?: boolean;
   allowsPets: boolean;
-  landlordContact: string;
+  landlordContact?: string;
   householdSize: number;
+  householdMembers?: Array<{
+    name: string;
+    age: number;
+    relationship: string;
+  }>;
   hasAllergies: boolean;
-  allergyDetails: string;
+  allergyDetails?: string;
 }
 
 const StepContainer = styled.div`
@@ -72,12 +77,12 @@ const CheckboxGroup = styled.div`
 export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({ data, onComplete }) => {
   const { register, handleSubmit } = useForm<LivingSituationFormData>({
     defaultValues: {
-      housingType: data.housingType || '',
+      housingType: (data.housingType as 'house' | 'apartment' | 'condo' | 'other') || 'house',
       isOwned: data.isOwned || false,
       hasYard: data.hasYard || false,
-      yardSize: data.yardSize || '',
+      yardSize: data.yardSize,
       yardFenced: data.yardFenced || false,
-      allowsPets: data.allowsPets || true,
+      allowsPets: data.allowsPets !== undefined ? data.allowsPets : true,
       landlordContact: data.landlordContact || '',
       householdSize: data.householdSize || 1,
       hasAllergies: data.hasAllergies || false,
@@ -137,6 +142,11 @@ export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({ data, 
           <input type='checkbox' {...register('allowsPets')} />
           <Label>Pets are allowed in my housing</Label>
         </CheckboxGroup>
+
+        <FormGroup>
+          <Label>Landlord Contact (if renting)</Label>
+          <Input {...register('landlordContact')} placeholder='Landlord name and phone number' />
+        </FormGroup>
 
         <FormGroup>
           <Label>Household Size *</Label>

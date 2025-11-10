@@ -5,6 +5,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
+import { WithdrawApplicationModal } from '../components/application';
+
 const Container = styled.div`
   max-width: 800px;
   margin: 0 auto;
@@ -96,6 +98,12 @@ const StatusBadge = styled.span<{ $status: string }>`
           background: ${props.theme.colors.semantic.error[100]};
           color: ${props.theme.colors.semantic.error[700]};
         `;
+      case 'withdrawn':
+        return `
+          background: ${props.theme.colors.neutral[200]};
+          color: ${props.theme.colors.neutral[600]};
+          border: 1px solid ${props.theme.colors.neutral[300]};
+        `;
       default:
         return `
           background: ${props.theme.colors.neutral[100]};
@@ -124,6 +132,9 @@ export const ApplicationDetailsPage: React.FC = () => {
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const loadApplication = async () => {
@@ -148,6 +159,30 @@ export const ApplicationDetailsPage: React.FC = () => {
 
     loadApplication();
   }, [id]);
+
+  const handleWithdraw = async (reason?: string) => {
+    if (!application) return;
+
+    setIsWithdrawing(true);
+    try {
+      const updatedApplication = await applicationService.withdrawApplication(
+        application.id,
+        reason
+      );
+
+      setApplication(updatedApplication);
+      setSuccessMessage('Application withdrawn successfully');
+      setIsWithdrawModalOpen(false);
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (error) {
+      console.error('Failed to withdraw application:', error);
+      // Error handling is done in the modal
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not available';
@@ -188,6 +223,20 @@ export const ApplicationDetailsPage: React.FC = () => {
         <p>Application #{application.id.slice(-6)}</p>
       </Header>
 
+      {successMessage && (
+        <Alert variant='success' title='Success'>
+          {successMessage}
+        </Alert>
+      )}
+
+      {application.status === 'withdrawn' && (
+        <Alert variant='info' title='Application Withdrawn'>
+          This application has been withdrawn. You can still view the details below for your
+          records. If you&apos;d like to adopt this pet or another pet, you can submit a new
+          application from the pet&apos;s profile page.
+        </Alert>
+      )}
+
       <Section>
         <SectionTitle>Application Status</SectionTitle>
         <InfoGrid>
@@ -217,6 +266,12 @@ export const ApplicationDetailsPage: React.FC = () => {
             <InfoItem>
               <InfoLabel>Reviewed By</InfoLabel>
               <InfoValue>{application.reviewedBy}</InfoValue>
+            </InfoItem>
+          )}
+          {application.status === 'withdrawn' && application.updatedAt && (
+            <InfoItem>
+              <InfoLabel>Withdrawn On</InfoLabel>
+              <InfoValue>{formatDate(application.updatedAt)}</InfoValue>
             </InfoItem>
           )}
         </InfoGrid>
@@ -257,14 +312,29 @@ export const ApplicationDetailsPage: React.FC = () => {
         {application.status === 'submitted' && (
           <Button
             variant='secondary'
-            onClick={() => {
-              // TODO: Implement withdraw functionality
+            onClick={() => setIsWithdrawModalOpen(true)}
+            style={{
+              backgroundColor: '#dc2626',
+              borderColor: '#dc2626',
+              color: 'white',
             }}
           >
             Withdraw Application
           </Button>
         )}
+        {application.status === 'withdrawn' && (
+          <Button variant='primary' onClick={() => navigate('/pets')}>
+            Browse Available Pets
+          </Button>
+        )}
       </ButtonGroup>
+
+      <WithdrawApplicationModal
+        isOpen={isWithdrawModalOpen}
+        onClose={() => setIsWithdrawModalOpen(false)}
+        onConfirm={handleWithdraw}
+        isLoading={isWithdrawing}
+      />
     </Container>
   );
 };

@@ -84,23 +84,21 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const loadConversations = useCallback(async () => {
     if (!isAuthenticated) return;
 
-    try {
-      setIsLoading(true);
-      setError(null);
-      const conversationList = await chatService.getConversations();
+    const result = await handleAsyncAction(() => chatService.getConversations(), {
+      setError,
+      onError: error => console.error('Failed to load conversations:', error),
+    });
+
+    if (result) {
       // Map chat_id to id for frontend compatibility
-      const mappedConversations = (conversationList || []).map(
-        (conv: ConversationApiResponse) =>
+      const mappedConversations = (result || []).map(
+        (conv: BaseConversation & { chat_id?: string }) =>
           ({
             ...conv,
             id: conv.id || conv.chat_id,
           }) as Conversation
       );
       setConversations(mappedConversations);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load conversations');
-    } finally {
-      setIsLoading(false);
     }
   }, [isAuthenticated]);
 
@@ -203,19 +201,19 @@ export function ChatProvider({ children }: ChatProviderProps) {
   }, [isAuthenticated, user?.userId]); // Only depend on auth state and userId
 
   const loadMessages = async (conversationId: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      setCurrentPage(1);
-      setHasMoreMessages(true);
+    setCurrentPage(1);
+    setHasMoreMessages(true);
 
-      const messageData = await chatService.getMessages(conversationId, {
-        page: 1,
-        limit: 50,
-      });
-
-      if (!messageData) {
-        throw new Error('No message data received from API');
+    const messageData = await handleAsyncAction(
+      () =>
+        chatService.getMessages(conversationId, {
+          page: 1,
+          limit: 50,
+        }),
+      {
+        setError,
+        setLoading: setIsLoading,
+        onError: error => console.error('Failed to load messages:', error),
       }
 
       if (!messageData.data) {
@@ -232,11 +230,6 @@ export function ChatProvider({ children }: ChatProviderProps) {
       if (messageData.data.length < 50) {
         setHasMoreMessages(false);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -284,12 +277,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const sendMessage = async (content: string, attachments?: File[]) => {
     if (!activeConversation || !user) return;
 
-    try {
-      setError(null);
-
-      // Check if we're offline and queue the message
-      if (!isOnline) {
-        const tempId = queueMessageForOffline(activeConversation.id, content);
+    // Handle offline case first
+    if (!isOnline) {
+      const tempId = queueMessageForOffline(activeConversation.id, content);
 
         // Add temporary message to UI for immediate feedback
         const tempMessage: Message = {
@@ -303,23 +293,40 @@ export function ChatProvider({ children }: ChatProviderProps) {
           status: 'sending',
         };
 
-        setMessages(prev => [...(prev || []), tempMessage]);
-        setError("📡 Message queued for when you're back online");
-        return;
-      }
+      setMessages(prev => [...(prev || []), tempMessage]);
+      setError("📡 Message queued for when you're back online");
+      return;
+    }
 
-      if (attachments && attachments.length > 0) {
-        // Handle file attachments
-        for (const file of attachments) {
-          await chatService.uploadAttachment(activeConversation.id, file);
+    // Handle online message sending
+    const result = await handleAsyncAction(
+      async () => {
+        if (attachments && attachments.length > 0) {
+          // Handle file attachments
+          for (const file of attachments) {
+            await chatService.uploadAttachment(activeConversation.id, file);
+          }
         }
+
+        // Send message and get the response
+        return await chatService.sendMessage(activeConversation.id, content);
+      },
+      {
+        setError,
+        onError: error => {
+          // Check if it's a rate limit error and provide specific feedback
+          if (error.message.includes('Rate limit exceeded')) {
+            setError(`⚠️ ${error.message}`);
+          } else {
+            console.error('Failed to send message:', error);
+          }
+        },
       }
+    );
 
-      // Send message and get the response
-      const sentMessage = await chatService.sendMessage(activeConversation.id, content);
-
+    if (result) {
       // Add message to local state immediately (don't wait for socket)
-      setMessages(prev => [...(prev || []), sentMessage]);
+      setMessages(prev => [...(prev || []), result]);
 
       // Update conversation with latest message
       setConversations(prev =>
@@ -329,30 +336,13 @@ export function ChatProvider({ children }: ChatProviderProps) {
             : conv
         )
       );
-
-      // Socket event will also fire, but we handle deduplication in handleMessage if needed
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
-
-      // Check if it's a rate limit error and provide specific feedback
-      if (errorMessage.includes('Rate limit exceeded')) {
-        setError(`⚠️ ${errorMessage}`);
-      } else if (!isOnline) {
-        // If we're offline, queue the message instead of showing error
-        queueMessageForOffline(activeConversation.id, content);
-        setError("📡 Message queued for when you're back online");
-      } else {
-        setError(errorMessage);
-      }
     }
   };
 
   const markAsRead = async (conversationId: string) => {
-    try {
-      await chatService.markAsRead(conversationId);
-    } catch (err) {
-      console.error('Failed to mark as read:', err);
-    }
+    await handleAsyncAction(() => chatService.markAsRead(conversationId), {
+      onError: error => console.error('Failed to mark as read:', error),
+    });
   };
 
   const startConversation = async (rescueId: string, petId?: string): Promise<Conversation> => {
@@ -364,13 +354,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
         petId,
       });
 
-      setConversations(prev => [conversation, ...(prev || [])]);
-      return conversation;
-    } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to start conversation';
-      setError(error);
-      throw new Error(error);
-    }
+    setConversations(prev => [conversation, ...(prev || [])]);
+    return conversation;
   };
 
   const startTyping = useCallback((conversationId: string) => {

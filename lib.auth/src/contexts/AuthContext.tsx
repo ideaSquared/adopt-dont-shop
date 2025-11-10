@@ -89,6 +89,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           }
 
           setUser(freshUser);
+
+          // Initialize notifications for existing authenticated user
+          await notificationService.initializeForUser();
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
@@ -307,8 +310,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const setDevUser = (devUser: User) => {
     if (import.meta.env?.DEV) {
       setUser(devUser);
-      // Store in localStorage for persistence during dev
-      localStorage.setItem('dev_user', JSON.stringify(devUser));
+      devAuthUtils.setDevUser(devUser);
     }
   };
 

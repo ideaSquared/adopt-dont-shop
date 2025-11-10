@@ -1,6 +1,7 @@
+import notificationService from '@/services/notificationService';
 import { User } from '@/types';
 import { Button } from '@adopt-dont-shop/components';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
 const Form = styled.form`
@@ -156,6 +157,13 @@ interface UserSettings {
     email: boolean;
     push: boolean;
     sms: boolean;
+    applications: boolean;
+    messages: boolean;
+    system: boolean;
+    marketing: boolean;
+    reminders: boolean;
+    quietHoursStart?: string;
+    quietHoursEnd?: string;
   };
   privacy: {
     profileVisibility: 'public' | 'private';
@@ -187,6 +195,13 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
       email: true,
       push: false,
       sms: false,
+      applications: true,
+      messages: true,
+      system: true,
+      marketing: false,
+      reminders: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '08:00',
     },
     privacy: {
       profileVisibility: 'public',
@@ -201,6 +216,36 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
   });
 
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Load notification preferences on component mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const prefs = await notificationService.getPreferences();
+
+        setSettings(prev => ({
+          ...prev,
+          notifications: {
+            email: prefs.email,
+            push: prefs.push,
+            sms: prefs.sms,
+            applications: prefs.applications,
+            messages: prefs.messages,
+            system: prefs.system,
+            marketing: prefs.marketing,
+            reminders: prefs.reminders,
+            quietHoursStart: prefs.quietHoursStart || '22:00',
+            quietHoursEnd: prefs.quietHoursEnd || '08:00',
+          },
+        }));
+      } catch (error) {
+        console.error('Failed to load notification preferences:', error);
+        // Keep default values on error
+      }
+    };
+
+    loadPreferences();
+  }, []);
 
   const handleToggle = (section: keyof UserSettings, key: string) => {
     setSettings(prev => {
@@ -242,6 +287,21 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
     e.preventDefault();
 
     try {
+      // Save notification preferences to backend
+      await notificationService.updatePreferences({
+        email: settings.notifications.email,
+        push: settings.notifications.push,
+        sms: settings.notifications.sms,
+        applications: settings.notifications.applications,
+        messages: settings.notifications.messages,
+        system: settings.notifications.system,
+        marketing: settings.notifications.marketing,
+        reminders: settings.notifications.reminders,
+        quietHoursStart: settings.notifications.quietHoursStart,
+        quietHoursEnd: settings.notifications.quietHoursEnd,
+      });
+
+      // Save other settings via the onSave prop
       await onSave(settings);
       setHasChanges(false);
     } catch (error) {
@@ -301,6 +361,96 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                 type='checkbox'
                 checked={settings.notifications.sms}
                 onChange={() => handleToggle('notifications', 'sms')}
+                disabled={isLoading}
+              />
+              <span />
+            </Switch>
+          </SettingControl>
+        </SettingItem>
+
+        <SettingItem>
+          <SettingLabel>
+            <h4>Application Updates</h4>
+            <p>Get notified when your adoption applications change status</p>
+          </SettingLabel>
+          <SettingControl>
+            <Switch>
+              <input
+                type='checkbox'
+                checked={settings.notifications.applications}
+                onChange={() => handleToggle('notifications', 'applications')}
+                disabled={isLoading}
+              />
+              <span />
+            </Switch>
+          </SettingControl>
+        </SettingItem>
+
+        <SettingItem>
+          <SettingLabel>
+            <h4>Messages</h4>
+            <p>Receive notifications for new messages from rescue organizations</p>
+          </SettingLabel>
+          <SettingControl>
+            <Switch>
+              <input
+                type='checkbox'
+                checked={settings.notifications.messages}
+                onChange={() => handleToggle('notifications', 'messages')}
+                disabled={isLoading}
+              />
+              <span />
+            </Switch>
+          </SettingControl>
+        </SettingItem>
+
+        <SettingItem>
+          <SettingLabel>
+            <h4>System Notifications</h4>
+            <p>Important system updates and announcements</p>
+          </SettingLabel>
+          <SettingControl>
+            <Switch>
+              <input
+                type='checkbox'
+                checked={settings.notifications.system}
+                onChange={() => handleToggle('notifications', 'system')}
+                disabled={isLoading}
+              />
+              <span />
+            </Switch>
+          </SettingControl>
+        </SettingItem>
+
+        <SettingItem>
+          <SettingLabel>
+            <h4>Marketing & Promotions</h4>
+            <p>Receive updates about special events and adoption promotions</p>
+          </SettingLabel>
+          <SettingControl>
+            <Switch>
+              <input
+                type='checkbox'
+                checked={settings.notifications.marketing}
+                onChange={() => handleToggle('notifications', 'marketing')}
+                disabled={isLoading}
+              />
+              <span />
+            </Switch>
+          </SettingControl>
+        </SettingItem>
+
+        <SettingItem>
+          <SettingLabel>
+            <h4>Reminders</h4>
+            <p>Get reminders about incomplete applications and follow-ups</p>
+          </SettingLabel>
+          <SettingControl>
+            <Switch>
+              <input
+                type='checkbox'
+                checked={settings.notifications.reminders}
+                onChange={() => handleToggle('notifications', 'reminders')}
                 disabled={isLoading}
               />
               <span />
@@ -411,6 +561,56 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
         </SettingItem>
       </Section>
 
+      <Section>
+        <SectionTitle>Quiet Hours</SectionTitle>
+
+        <SettingItem>
+          <SettingLabel>
+            <h4>Quiet Hours Start</h4>
+            <p>Time when non-urgent notifications will be paused</p>
+          </SettingLabel>
+          <SettingControl>
+            <Select
+              value={settings.notifications.quietHoursStart || '22:00'}
+              onChange={e => handleSelectChange('notifications', 'quietHoursStart', e.target.value)}
+              disabled={isLoading}
+            >
+              {Array.from({ length: 24 }, (_, i) => {
+                const hour = i.toString().padStart(2, '0');
+                return (
+                  <option key={hour} value={`${hour}:00`}>
+                    {hour}:00
+                  </option>
+                );
+              })}
+            </Select>
+          </SettingControl>
+        </SettingItem>
+
+        <SettingItem>
+          <SettingLabel>
+            <h4>Quiet Hours End</h4>
+            <p>Time when notifications will resume</p>
+          </SettingLabel>
+          <SettingControl>
+            <Select
+              value={settings.notifications.quietHoursEnd || '08:00'}
+              onChange={e => handleSelectChange('notifications', 'quietHoursEnd', e.target.value)}
+              disabled={isLoading}
+            >
+              {Array.from({ length: 24 }, (_, i) => {
+                const hour = i.toString().padStart(2, '0');
+                return (
+                  <option key={hour} value={`${hour}:00`}>
+                    {hour}:00
+                  </option>
+                );
+              })}
+            </Select>
+          </SettingControl>
+        </SettingItem>
+      </Section>
+
       {hasChanges && (
         <ButtonGroup>
           <Button
@@ -423,6 +623,13 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   email: true,
                   push: false,
                   sms: false,
+                  applications: true,
+                  messages: true,
+                  system: true,
+                  marketing: false,
+                  reminders: true,
+                  quietHoursStart: '22:00',
+                  quietHoursEnd: '08:00',
                 },
                 privacy: {
                   profileVisibility: 'public',

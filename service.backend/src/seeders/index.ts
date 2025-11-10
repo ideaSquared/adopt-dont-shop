@@ -21,6 +21,7 @@ import { seedEmilyAttachmentTest } from './20-emily-attachment-test';
 import { seedEmilyConversation3 } from './20-emily-conversation-3';
 import { seedFileUploads } from './20250111-file-uploads-seeder';
 import { seedEmilyConversation4 } from './21-emily-conversation-4';
+import { seedEmilyTestNotifications } from './22-emily-test-notifications';
 import { seedHomeVisits } from './22-home-visits';
 import { seedApplicationTimeline } from './23-application-timeline';
 import { seedInvitations } from './24-invitations';
@@ -58,6 +59,7 @@ const seeders = [
   { name: 'Emily Conversation 3', seeder: seedEmilyConversation3 },
   { name: 'Emily Conversation 4', seeder: seedEmilyConversation4 },
   { name: 'Emily Attachment Test', seeder: seedEmilyAttachmentTest },
+  { name: 'Emily Test Notifications', seeder: seedEmilyTestNotifications },
   { name: 'Swipe Sessions', seeder: () => seedSwipeSessions(sequelize.getQueryInterface()) },
   { name: 'Swipe Actions', seeder: () => seedSwipeActions(sequelize.getQueryInterface()) },
   { name: 'Audit Logs', seeder: seedAuditLogs },

@@ -9,6 +9,7 @@ interface SwipeStackProps {
   onEndReached: () => void;
   sessionId?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 const StackContainer = styled.div`
@@ -66,6 +67,7 @@ export const SwipeStack: React.FC<SwipeStackProps> = ({
   onEndReached,
   sessionId = '',
   className,
+  disabled = false,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -144,6 +146,7 @@ export const SwipeStack: React.FC<SwipeStackProps> = ({
             onSwipe={handleSwipe}
             isTop={isTop}
             zIndex={zIndex}
+            disabled={disabled}
             style={{
               transform: `scale(${scale}) translateY(${yOffset}px)`,
               transformOrigin: 'center bottom',

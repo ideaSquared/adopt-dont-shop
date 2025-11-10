@@ -236,7 +236,24 @@ Notification.init(
       type: DataTypes.STRING(50),
       allowNull: true,
       validate: {
-        isIn: [['application', 'pet', 'message', 'user', 'rescue', 'conversation']],
+        isIn: [
+          [
+            'application',
+            'pet',
+            'message',
+            'user',
+            'rescue',
+            'conversation',
+            'interview',
+            'home_visit',
+            'reminder',
+            'announcement',
+            'adoption',
+            'event',
+            'reference',
+            'security',
+          ],
+        ],
       },
     },
     related_entity_id: {

@@ -8,6 +8,8 @@ const testUsers = [
     lastName: 'Admin',
     email: 'superadmin@adoptdontshop.dev',
     phoneNumber: '+1234567890',
+    auto_populate: true,
+    quick_apply_enabled: false,
     userType: UserType.ADMIN,
     status: UserStatus.ACTIVE,
     emailVerified: true,
@@ -126,17 +128,17 @@ const testUsers = [
     firstName: 'Emily',
     lastName: 'Davis',
     email: 'emily.davis@yahoo.com',
-    phoneNumber: '+1234567897',
+    phoneNumber: '07789123456',
     userType: UserType.ADOPTER,
     status: UserStatus.ACTIVE,
     emailVerified: true,
-    country: 'US',
-    city: 'Portland',
-    addressLine1: '456 Oak Avenue',
-    postalCode: '97201',
-    timezone: 'America/Los_Angeles',
+    country: 'United Kingdom',
+    city: 'Manchester',
+    addressLine1: '25 Victoria Road',
+    postalCode: 'M14 5TB',
+    timezone: 'Europe/London',
     language: 'en',
-    bio: 'Cat lover looking for a special feline companion.',
+    bio: 'Cat lover looking for a special feline companion. Living in a cozy flat with a garden.',
     dateOfBirth: new Date('1992-03-22'),
     termsAcceptedAt: new Date(),
     privacyPolicyAcceptedAt: new Date(),
@@ -207,6 +209,94 @@ export async function seedUsers() {
           chatMessages: true,
           newPetAlerts: true,
         },
+        // Phase 1: Application defaults (JSON structure for adopters)
+        applicationDefaults:
+          userData.userType === UserType.ADOPTER
+            ? JSON.parse(
+                JSON.stringify({
+                  personalInfo: {
+                    firstName: userData.firstName || '',
+                    lastName: userData.lastName || '',
+                    email: userData.email || '',
+                    phone: userData.phoneNumber || '',
+                    address: userData.addressLine1 || '',
+                    city: userData.city || '',
+                    county: userData.userId === 'user_adopter_002' ? 'Greater Manchester' : '',
+                    postcode: userData.postalCode || '',
+                    country: userData.country || 'United Kingdom',
+                    dateOfBirth: userData.userId === 'user_adopter_002' ? '1992-03-22' : '',
+                    occupation:
+                      userData.userId === 'user_adopter_002' ? 'Marketing Coordinator' : '',
+                  },
+                  livingSituation: {
+                    housingType: userData.userId === 'user_adopter_002' ? 'apartment' : 'house',
+                    isOwned: userData.userId === 'user_adopter_002' ? false : true,
+                    hasYard: userData.userId === 'user_adopter_002' ? true : true,
+                    allowsPets: true,
+                    householdSize: userData.userId === 'user_adopter_002' ? 1 : 2,
+                    householdMembers: [],
+                    hasAllergies: false,
+                    allergyDetails: '',
+                  },
+                  petExperience: {
+                    experienceLevel: userData.userId === 'user_adopter_002' ? 'some' : 'some',
+                    hasPetsCurrently: false,
+                    currentPets: [],
+                    previousPets: [],
+                    willingToTrain: true,
+                    hoursAloneDaily: userData.userId === 'user_adopter_002' ? 6 : 4,
+                    exercisePlans:
+                      userData.userId === 'user_adopter_002'
+                        ? 'Daily walks in the nearby park and interactive indoor play sessions'
+                        : 'Regular outdoor activities and exercise',
+                  },
+                  references:
+                    userData.userId !== 'user_adopter_004'
+                      ? {
+                          personal:
+                            userData.userId === 'user_adopter_002'
+                              ? [
+                                  {
+                                    name: 'Sophie Williams',
+                                    relationship: 'Close Friend',
+                                    phone: '07892345678',
+                                    email: 'sophie.williams@gmail.com',
+                                    yearsKnown: 8,
+                                  },
+                                  {
+                                    name: 'James Thompson',
+                                    relationship: 'Colleague',
+                                    phone: '07765432109',
+                                    email: 'j.thompson@workplace.co.uk',
+                                    yearsKnown: 3,
+                                  },
+                                ]
+                              : [],
+                        }
+                      : null,
+                })
+              )
+            : null,
+        applicationPreferences:
+          userData.userType === UserType.ADOPTER
+            ? JSON.parse(
+                JSON.stringify({
+                  auto_populate: true,
+                  quick_apply_enabled: true,
+                  completion_reminders: true,
+                })
+              )
+            : undefined,
+        profileCompletionStatus:
+          userData.userType === UserType.ADOPTER
+            ? JSON.parse(
+                JSON.stringify({
+                  overall_percentage: userData.userId === 'user_adopter_004' ? 75 : 100,
+                  last_updated: new Date().toISOString(),
+                })
+              )
+            : undefined,
+        applicationTemplateVersion: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

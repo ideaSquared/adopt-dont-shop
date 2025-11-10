@@ -4,65 +4,50 @@ import { useStatsig } from '@/hooks/useStatsig';
 import { applicationService, petService } from '@/services';
 import { Application, ApplicationData, Pet } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import {
+  ApplicationForm,
+  ApplicationProgress,
+  ProfileCompletionPrompt,
+  QuickApplicationPrompt,
+} from '../components/application';
+import { useAuth } from '../contexts/AuthContext';
+import { applicationProfileService } from '../services/applicationProfileService';
+import { applicationService } from '../services/applicationService';
+import { petService } from '../services/petService';
+import {
+  ApplicationData,
+  ApplicationDefaults,
+  ApplicationPrePopulationData,
+  Pet,
+  QuickApplicationCapability,
+} from '../types';
+
+/**
+ * Application Page
+ * Features smart pre-population and quick application based on user profile
+ */
 
 const Container = styled.div`
-  max-width: 1000px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
-
-  @media (max-width: 768px) {
-    padding: 1rem;
-  }
 `;
 
 const Header = styled.div`
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 
   h1 {
-    font-size: 2.5rem;
-    color: ${props => props.theme.text.primary};
-    margin-bottom: 1rem;
+    color: ${props => props.theme.colors.neutral[900]};
+    margin-bottom: 0.5rem;
   }
 
   p {
+    color: ${props => props.theme.colors.neutral[600]};
     font-size: 1.1rem;
-    color: ${props => props.theme.text.secondary};
-  }
-
-  @media (max-width: 768px) {
-    margin-bottom: 2rem;
-
-    h1 {
-      font-size: 2rem;
-    }
-  }
-`;
-
-const Content = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 3rem;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-`;
-
-const MainContent = styled.div`
-  background: ${props => props.theme.background.primary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 12px;
-  padding: 2rem;
-`;
-
-const Sidebar = styled.div`
-  @media (max-width: 1024px) {
-    order: -1;
   }
 `;
 
@@ -70,7 +55,7 @@ const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 400px;
+  min-height: 200px;
 `;
 
 const steps = [
@@ -78,126 +63,233 @@ const steps = [
   { id: 2, title: 'Living Situation', description: 'Your home environment' },
   { id: 3, title: 'Pet Experience', description: 'Your experience with pets' },
   { id: 4, title: 'References', description: 'Veterinary and personal references' },
-  { id: 5, title: 'Review & Submit', description: 'Review your application' },
+  { id: 5, title: 'Additional Information', description: 'Why do you want to adopt?' },
+  { id: 6, title: 'Review & Submit', description: 'Review your application' },
 ];
 
 export const ApplicationPage: React.FC = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const { logEvent } = useStatsig();
 
+  // Component state
   const [pet, setPet] = useState<Pet | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [applicationData, setApplicationData] = useState<Partial<ApplicationData>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [existingApplication, setExistingApplication] = useState<Application | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Debug logging in development
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.log('ApplicationPage useEffect triggered:', {
-        authLoading,
-        isAuthenticated,
-        user: user?.email,
-        petId,
-        timestamp: new Date().toISOString(),
-      });
-    }
+  // Phase 1 enhanced state
+  const [quickApplicationCapability, setQuickApplicationCapability] =
+    useState<QuickApplicationCapability | null>(null);
+  const [prePopulationData, setPrePopulationData] = useState<ApplicationPrePopulationData | null>(
+    null
+  );
+  const [showQuickApplicationPrompt, setShowQuickApplicationPrompt] = useState(false);
+  const [showProfileCompletionPrompt, setShowProfileCompletionPrompt] = useState(false);
+  const [usePrePopulation] = useState(true);
 
-    // Wait for auth to finish loading before checking authentication
-    if (authLoading) {
-      if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
-        console.log('ApplicationPage: Auth still loading, waiting...');
-      }
-      return;
-    }
+  const populateFormWithData = useCallback(
+    (data: ApplicationPrePopulationData) => {
+      const populatedData: Partial<ApplicationData> = {
+        petId: petId!,
+        userId: user!.userId,
+        personalInfo: {
+          firstName: data.defaults.personalInfo?.firstName || user!.firstName,
+          lastName: data.defaults.personalInfo?.lastName || user!.lastName,
+          email: data.defaults.personalInfo?.email || user!.email,
+          phone: data.defaults.personalInfo?.phone || user!.phoneNumber || '',
+          address: data.defaults.personalInfo?.address || user!.addressLine1 || '',
+          city: data.defaults.personalInfo?.city || user!.city || '',
+          county: data.defaults.personalInfo?.county || '', // County is specific to the application, not stored in user profile
+          postcode: data.defaults.personalInfo?.postcode || user!.postalCode || '',
+          country: data.defaults.personalInfo?.country || user!.country || 'United Kingdom',
+          dateOfBirth: data.defaults.personalInfo?.dateOfBirth || '',
+          occupation: data.defaults.personalInfo?.occupation || '',
+        },
+        // Use type assertion for partial data with required fields
+        livingsituation: {
+          housingType: data.defaults.livingSituation?.housingType || 'apartment',
+          isOwned: data.defaults.livingSituation?.isOwned || false,
+          hasYard: data.defaults.livingSituation?.hasYard || false,
+          ...data.defaults.livingSituation,
+        } as ApplicationData['livingsituation'],
+        petExperience: {
+          hasPetsCurrently: data.defaults.petExperience?.hasPetsCurrently || false,
+          experienceLevel: data.defaults.petExperience?.experienceLevel || 'beginner',
+          willingToTrain: data.defaults.petExperience?.willingToTrain || true,
+          hoursAloneDaily: data.defaults.petExperience?.hoursAloneDaily || 0,
+          exercisePlans: data.defaults.petExperience?.exercisePlans || '',
+          ...data.defaults.petExperience,
+        } as ApplicationData['petExperience'],
+        references: {
+          personal: data.defaults.references?.personal || [],
+          ...data.defaults.references,
+        } as ApplicationData['references'],
+      };
 
-    if (!isAuthenticated) {
-      if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
-        console.log('ApplicationPage: Not authenticated, redirecting to login');
-      }
-      navigate(`/login?redirect=/apply/${petId}`);
-      return;
-    }
+      setApplicationData(populatedData);
 
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.log('ApplicationPage: Authentication passed, loading data...');
-    }
+      // Note: lastSavedStep is not part of ApplicationDefaults,
+      // step progression will be handled by the application flow
+    },
+    [petId, user]
+  );
 
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        if (!petId) throw new Error('Pet ID is required');
+  const populateFormWithDefaults = useCallback(
+    (defaults: ApplicationDefaults) => {
+      const populatedData: Partial<ApplicationData> = {
+        petId: petId!,
+        userId: user!.userId,
+        personalInfo: {
+          firstName: defaults.personalInfo?.firstName || user!.firstName,
+          lastName: defaults.personalInfo?.lastName || user!.lastName,
+          email: defaults.personalInfo?.email || user!.email,
+          phone: defaults.personalInfo?.phone || user!.phoneNumber || '',
+          address: defaults.personalInfo?.address || user!.addressLine1 || '',
+          city: defaults.personalInfo?.city || user!.city || '',
+          county: defaults.personalInfo?.county || '',
+          postcode: defaults.personalInfo?.postcode || user!.postalCode || '',
+          country: defaults.personalInfo?.country || user!.country || 'United Kingdom',
+          dateOfBirth: defaults.personalInfo?.dateOfBirth || '',
+          occupation: defaults.personalInfo?.occupation || '',
+        },
+        livingsituation: {
+          housingType: defaults.livingSituation?.housingType || 'apartment',
+          isOwned: defaults.livingSituation?.isOwned || false,
+          hasYard: defaults.livingSituation?.hasYard || false,
+          ...defaults.livingSituation,
+        } as ApplicationData['livingsituation'],
+        petExperience: {
+          hasPetsCurrently: defaults.petExperience?.hasPetsCurrently || false,
+          experienceLevel: defaults.petExperience?.experienceLevel || 'beginner',
+          willingToTrain: defaults.petExperience?.willingToTrain || true,
+          hoursAloneDaily: defaults.petExperience?.hoursAloneDaily || 0,
+          exercisePlans: defaults.petExperience?.exercisePlans || '',
+          ...defaults.petExperience,
+        } as ApplicationData['petExperience'],
+        references: {
+          personal: defaults.references?.personal || [],
+          ...defaults.references,
+        } as ApplicationData['references'],
+      };
+
+      setApplicationData(populatedData);
+    },
+    [petId, user]
+  );
+
+  const loadApplicationData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      if (!petId) throw new Error('Pet ID is required');
 
         // Load pet data
         const petData = await petService.getPetById(petId);
         setPet(petData);
 
-        // Log application page view
-        logEvent('application_page_viewed', 1, {
-          pet_id: petId,
-          pet_name: petData.name || 'unknown',
-          pet_type: petData.type || 'unknown',
-          user_authenticated: isAuthenticated.toString(),
-        });
+      // Phase 1: Check quick application capability
+      const quickAppCapability = await applicationProfileService.canUseQuickApplication(petId);
+      setQuickApplicationCapability(quickAppCapability);
 
-        // Check for existing application
-        try {
-          const existing = await applicationService.getApplicationByPetId(petId);
-          if (existing) {
-            setExistingApplication(existing);
-            setApplicationData(existing);
-          }
-        } catch (error) {
-          // No existing application found, continue with new application
-        }
+      // Phase 1: Get pre-population data
+      const prePopData = await applicationProfileService.getPrePopulationData(petId);
+      setPrePopulationData(prePopData);
 
-        // Initialize application data with user info
-        if (user) {
-          setApplicationData(prev => ({
-            ...prev,
-            petId,
-            userId: user.userId,
-            personalInfo: {
-              firstName: user.firstName,
-              lastName: user.lastName,
-              email: user.email,
-              phone: user.phone || '',
-              address: user.location?.address || '',
-              city: user.location?.city || '',
-              state: user.location?.state || '',
-              zipCode: user.location?.zipCode || '',
-            },
-          }));
-        }
-      } catch (error) {
-        console.error('Failed to load application data:', error);
-        setError('Failed to load pet information. Please try again.');
-      } finally {
-        setIsLoading(false);
+      // Phase 1: Determine what prompts to show
+      if (quickAppCapability.canProceed && !quickAppCapability.missingFields?.length) {
+        setShowQuickApplicationPrompt(true);
+      } else if (quickAppCapability.missingFields?.length) {
+        setShowProfileCompletionPrompt(true);
       }
-    };
 
-    loadData();
-  }, [petId, isAuthenticated, navigate, user, authLoading, logEvent]);
+      // Phase 1: Pre-populate form with available data
+      if (usePrePopulation && prePopData) {
+        populateFormWithData(prePopData);
+      }
+    } catch (error) {
+      console.error('Failed to load application data:', error);
+      setError('Failed to load application information. Please try again.');
+      // Scroll to top so user sees the error notification
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [petId, usePrePopulation, populateFormWithData]);
 
-  const handleStepComplete = (stepData: Partial<ApplicationData>) => {
-    setApplicationData(prev => ({ ...prev, ...stepData }));
-    if (currentStep < steps.length) {
-      setCurrentStep(prev => prev + 1);
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      navigate(`/login?redirect=/apply/${petId}`);
+      return;
+    }
+
+    loadApplicationData();
+  }, [petId, isAuthenticated, authLoading, navigate, loadApplicationData]);
+
+  const handleQuickApplicationAccept = async () => {
+    try {
+      setShowQuickApplicationPrompt(false);
+
+      if (prePopulationData?.defaults) {
+        populateFormWithDefaults(prePopulationData.defaults);
+        // Jump to additional info step so user can add personal motivation
+        setCurrentStep(5);
+      }
+    } catch (error) {
+      console.error('Failed to set up quick application:', error);
+      setError('Failed to set up quick application. Please try the regular form.');
+      // Scroll to top so user sees the error notification
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleQuickApplicationDecline = () => {
+    setShowQuickApplicationPrompt(false);
+    // Continue with regular form flow
+  };
+
+  const handleProfileCompletionAction = async (action: 'complete' | 'skip') => {
+    setShowProfileCompletionPrompt(false);
+
+    if (action === 'complete') {
+      // Navigate to profile completion page
+      navigate('/profile/setup?returnTo=' + encodeURIComponent(`/apply/${petId}`));
+    }
+    // If skip, continue with regular form
+  };
+
+  const handleStepComplete = async (stepData: Partial<ApplicationData>) => {
+    // Phase 1: Auto-save progress
+    try {
+      const updatedData = { ...applicationData, ...stepData };
+      setApplicationData(updatedData);
+
+      // Auto-save progress (if enabled in user preferences)
+      // await applicationProgressService.saveProgress({
+      //   petId: petId!,
+      //   stepNumber: currentStep,
+      //   totalSteps: steps.length,
+      //   stepData: updatedData,
+      // });
+
+      if (currentStep < steps.length) {
+        setCurrentStep(prev => prev + 1);
+        setSuccessMessage(null); // Clear any success messages when moving to next step
+      }
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+      // Don't block the user, just log the error
     }
   };
 
   const handleStepBack = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
+      setSuccessMessage(null); // Clear any success messages when going back
     }
   };
 
@@ -205,69 +297,98 @@ export const ApplicationPage: React.FC = () => {
     try {
       setIsSubmitting(true);
       setError(null);
+      setSuccessMessage(null);
 
       if (!pet || !user || !applicationData.personalInfo) {
         throw new Error('Application data is incomplete');
       }
 
-      // Log application submission attempt
-      logEvent('application_submission_attempted', 1, {
-        pet_id: pet.pet_id.toString(),
-        pet_name: pet.name || 'unknown',
-        pet_type: pet.type || 'unknown',
-        rescue_id: pet.rescue_id?.toString() || 'unknown',
-        is_update: existingApplication ? 'true' : 'false',
-        user_authenticated: isAuthenticated.toString(),
-      });
+      // Format data to match backend expectations
+      const references = [];
 
-      const submissionData: ApplicationData = {
-        ...(applicationData as ApplicationData),
-        petId: pet.pet_id,
-        userId: user.userId,
-        rescueId: pet.rescue_id,
-      };
-
-      let result;
-      if (existingApplication) {
-        result = await applicationService.updateApplication(existingApplication.id, submissionData);
-      } else {
-        result = await applicationService.submitApplication(submissionData);
-      }
-
-      // Log successful application submission
-      logEvent('application_submission_successful', 1, {
-        pet_id: pet.pet_id.toString(),
-        pet_name: pet.name || 'unknown',
-        application_id: result.id.toString(),
-        rescue_id: pet.rescue_id?.toString() || 'unknown',
-        is_update: existingApplication ? 'true' : 'false',
-        user_authenticated: isAuthenticated.toString(),
-      });
-
-      // Navigate to success page or application tracking
-      navigate(`/applications/${result.id}`, {
-        state: {
-          message: existingApplication
-            ? 'Application updated successfully!'
-            : 'Application submitted successfully!',
-        },
-      });
-    } catch (error) {
-      console.error('Failed to submit application:', error);
-
-      // Log application submission error
-      if (pet) {
-        logEvent('application_submission_error', 1, {
-          pet_id: pet.pet_id.toString(),
-          pet_name: pet.name || 'unknown',
-          rescue_id: pet.rescue_id?.toString() || 'unknown',
-          error_message: error instanceof Error ? error.message : 'unknown_error',
-          is_update: existingApplication ? 'true' : 'false',
-          user_authenticated: isAuthenticated.toString(),
+      // Add veterinarian reference if provided
+      if (
+        applicationData.references?.veterinarian?.name &&
+        applicationData.references?.veterinarian?.phone
+      ) {
+        const vet = applicationData.references.veterinarian;
+        references.push({
+          name: vet.name,
+          relationship: 'Veterinarian',
+          phone: vet.phone,
+          email: vet.email || '',
         });
       }
 
+      // Add personal references if provided
+      if (applicationData.references?.personal && applicationData.references.personal.length > 0) {
+        applicationData.references.personal.forEach(ref => {
+          // Only add references that have required fields
+          if (ref.name && ref.relationship && ref.phone) {
+            references.push({
+              name: ref.name,
+              relationship: ref.relationship,
+              phone: ref.phone,
+              email: ref.email || '',
+            });
+          }
+        });
+      }
+
+      // References are now optional - no need to add placeholder
+
+      // Format answers object containing all application data
+      const answers = {
+        personal_info: applicationData.personalInfo || {},
+        living_situation: applicationData.livingsituation || {},
+        pet_experience: applicationData.petExperience || {},
+        additional_info: applicationData.additionalInfo || {},
+      };
+
+      const submissionData = {
+        pet_id: pet.pet_id,
+        answers,
+        ...(references.length > 0 && { references }),
+        priority: 'normal' as const,
+      };
+
+      const result = await applicationService.submitApplication(submissionData);
+
+      // Phase 1: Mark progress as completed
+      // await applicationProgressService.completeProgress(petId!);
+
+      // Phase 1: Save successful application data as defaults for future use
+      await applicationProfileService.updateApplicationDefaults({
+        personalInfo: applicationData.personalInfo,
+        livingSituation: applicationData.livingsituation,
+        petExperience: applicationData.petExperience,
+        references: applicationData.references,
+      });
+
+      // Show success message
+      setSuccessMessage(
+        'Application submitted successfully! You will be redirected to your application details page shortly.'
+      );
+      setError(null);
+
+      // Scroll to top so user sees the success notification
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Navigate after a longer delay to let user see the success message and feel confident
+      setTimeout(() => {
+        navigate(`/applications/${result.id}`, {
+          state: {
+            message: 'Application submitted successfully!',
+          },
+        });
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to submit application:', error);
       setError('Failed to submit application. Please try again.');
+      setSuccessMessage(null);
+
+      // Scroll to top so user sees the error notification
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -303,46 +424,64 @@ export const ApplicationPage: React.FC = () => {
   return (
     <Container>
       <Header>
-        <h1>{existingApplication ? 'Update Application' : 'Adoption Application'}</h1>
-        <p>
-          {existingApplication
-            ? 'Update your application for this special pet'
-            : 'Complete your application to adopt this special pet'}
-        </p>
+        <h1>Adoption Application</h1>
+        <p>Complete your application to adopt {pet?.name}</p>
+        {prePopulationData && (
+          <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
+            Form data has been pre-populated from your profile
+          </p>
+        )}
       </Header>
 
-      <Content>
-        <MainContent>
-          {error && (
-            <div style={{ marginBottom: '2rem' }}>
-              <Alert variant='error' title='Error' onClose={() => setError(null)}>
-                {error}
-              </Alert>
-            </div>
-          )}
+      {/* Phase 1: Quick Application Prompt */}
+      {showQuickApplicationPrompt && quickApplicationCapability && (
+        <QuickApplicationPrompt
+          capability={quickApplicationCapability}
+          onQuickApply={handleQuickApplicationAccept}
+          onRegularApply={handleQuickApplicationDecline}
+          petName={pet?.name}
+        />
+      )}
 
-          <ApplicationProgress
-            steps={steps}
-            currentStep={currentStep}
-            onStepClick={setCurrentStep}
-          />
+      {/* Phase 1: Profile Completion Prompt */}
+      {showProfileCompletionPrompt && quickApplicationCapability?.missingFields && (
+        <ProfileCompletionPrompt
+          completionPercentage={quickApplicationCapability.completionPercentage || 0}
+          missingFields={quickApplicationCapability.missingFields}
+          onCompleteProfile={() => handleProfileCompletionAction('complete')}
+          onSkip={() => handleProfileCompletionAction('skip')}
+          onDismiss={() => setShowProfileCompletionPrompt(false)}
+        />
+      )}
 
-          <ApplicationForm
-            step={currentStep}
-            data={applicationData}
-            pet={pet}
-            onStepComplete={handleStepComplete}
-            onStepBack={handleStepBack}
-            onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
-            isUpdate={!!existingApplication}
-          />
-        </MainContent>
+      {error && (
+        <div style={{ marginBottom: '2rem' }}>
+          <Alert variant='error' title='Error' onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        </div>
+      )}
 
-        <Sidebar>{pet && <PetSummary pet={pet} />}</Sidebar>
-      </Content>
+      {successMessage && (
+        <div style={{ marginBottom: '2rem' }}>
+          <Alert variant='success' title='Success' onClose={() => setSuccessMessage(null)}>
+            {successMessage}
+          </Alert>
+        </div>
+      )}
+
+      <ApplicationProgress steps={steps} currentStep={currentStep} onStepClick={setCurrentStep} />
+
+      <ApplicationForm
+        step={currentStep}
+        data={applicationData}
+        pet={pet}
+        onStepComplete={handleStepComplete}
+        onStepBack={handleStepBack}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        isUpdate={false}
+      />
     </Container>
   );
 };
-
-export default ApplicationPage;

@@ -101,11 +101,12 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete }
           <Input
             label='Phone Number'
             type='tel'
+            placeholder='07123 456789'
             {...register('phone', {
               required: 'Phone number is required',
               pattern: {
-                value: /^(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/,
-                message: 'Please enter a valid phone number',
+                value: /^(\+44\s?7\d{3}|\(?07\d{3}\)?)\s?\d{3}\s?\d{3}$/,
+                message: 'Please enter a valid UK mobile number (e.g., 07123 456789)',
               },
             })}
             error={errors.phone?.message}
@@ -135,26 +136,36 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete }
           />
 
           <Input
-            label='State'
-            {...register('state', {
-              required: 'State is required',
-              minLength: { value: 2, message: 'State must be at least 2 characters' },
+            label='County'
+            {...register('county', {
+              required: 'County is required',
+              minLength: { value: 2, message: 'County must be at least 2 characters' },
             })}
-            error={errors.state?.message}
+            error={errors.county?.message}
             required
           />
 
           <Input
-            label='ZIP Code'
-            {...register('zipCode', {
-              required: 'ZIP code is required',
+            label='Postcode'
+            {...register('postcode', {
+              required: 'Postcode is required',
               pattern: {
-                value: /^[0-9]{5}(-[0-9]{4})?$/,
-                message: 'Please enter a valid ZIP code',
+                value: /^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][A-Z]{2}$/i,
+                message: 'Please enter a valid UK postcode (e.g. SW1A 1AA)',
               },
             })}
-            error={errors.zipCode?.message}
+            error={errors.postcode?.message}
             required
+          />
+
+          <Input
+            label='Country'
+            {...register('country', {
+              required: 'Country is required',
+            })}
+            error={errors.country?.message}
+            required
+            defaultValue='United Kingdom'
           />
 
           <Input

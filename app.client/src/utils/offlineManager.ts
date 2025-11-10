@@ -1,16 +1,16 @@
 /**
- * Offline handling utility for chat system
- * Manages network state, message queuing, and reconnection logic
+ * Offline Manager for Chat System
+ * Handles offline message queuing, connection monitoring, and sync capabilities
  */
+
+import { api } from '@/services/api';
 
 export interface QueuedMessage {
   id: string;
   conversationId: string;
   content: string;
-  messageType: 'text' | 'image' | 'file';
+  messageType: string;
   timestamp: number;
-  retryCount: number;
-  maxRetries: number;
 }
 
 export interface QueuedAction {
@@ -18,390 +18,275 @@ export interface QueuedAction {
   type: 'mark_read' | 'typing_start' | 'typing_stop';
   conversationId: string;
   timestamp: number;
-  retryCount: number;
-  maxRetries: number;
-  payload?: Record<string, unknown>;
 }
 
 export interface OfflineState {
   isOnline: boolean;
-  lastOnline: number;
-  connectionQuality: 'excellent' | 'good' | 'poor' | 'offline';
+  connectionQuality: 'good' | 'poor' | 'offline';
   pendingMessages: QueuedMessage[];
   pendingActions: QueuedAction[];
-  syncInProgress: boolean;
 }
 
-class OfflineManager {
-  private state: OfflineState = {
-    isOnline: navigator.onLine,
-    lastOnline: Date.now(),
-    connectionQuality: 'excellent',
-    pendingMessages: [],
-    pendingActions: [],
-    syncInProgress: false,
-  };
+type SyncCallback = (messages: QueuedMessage[], actions: QueuedAction[]) => Promise<void>;
+type OfflineStateChangeListener = (state: OfflineState) => void;
 
-  private listeners: Array<(state: OfflineState) => void> = [];
+class OfflineManager {
+  private isOnline: boolean = navigator.onLine;
+  private connectionQuality: 'good' | 'poor' | 'offline' = 'good';
+  private pendingMessages: QueuedMessage[] = [];
+  private pendingActions: QueuedAction[] = [];
+  private syncCallback: SyncCallback | null = null;
+  private listeners: OfflineStateChangeListener[] = [];
+  private syncInterval: NodeJS.Timeout | null = null;
   private connectionCheckInterval: NodeJS.Timeout | null = null;
-  private syncCallback?: (messages: QueuedMessage[], actions: QueuedAction[]) => Promise<void>;
+  private consecutiveFailures: number = 0;
 
   constructor() {
-    this.setupEventListeners();
-    this.startConnectionMonitoring();
+    this.initializeNetworkListeners();
     this.loadPersistedData();
+    this.startPeriodicSync();
+    this.startConnectionQualityCheck();
   }
 
-  // Set up online/offline event listeners
-  private setupEventListeners(): void {
+  private initializeNetworkListeners() {
     window.addEventListener('online', this.handleOnline.bind(this));
     window.addEventListener('offline', this.handleOffline.bind(this));
-
-    // Also listen for visibility change to check connection when app becomes visible
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && this.state.isOnline) {
-        this.checkConnectionQuality();
-      }
-    });
   }
 
-  // Start monitoring connection quality
-  private startConnectionMonitoring(): void {
+  private handleOnline() {
+    this.isOnline = true;
+    this.connectionQuality = 'good';
+    this.notifyListeners();
+    this.trySync();
+  }
+
+  private handleOffline() {
+    this.isOnline = false;
+    this.connectionQuality = 'offline';
+    this.notifyListeners();
+  }
+
+  private startPeriodicSync() {
+    this.syncInterval = setInterval(() => {
+      if (this.isOnline && (this.pendingMessages.length > 0 || this.pendingActions.length > 0)) {
+        this.trySync();
+      }
+    }, 30000); // Sync every 30 seconds
+  }
+
+  private startConnectionQualityCheck() {
+    // Do an initial check after a short delay
+    setTimeout(() => this.checkConnectionQuality(), 2000);
+
+    // Check every 2 minutes in development to reduce log noise, or 30 seconds in production
+    const isDev =
+      process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+    const interval = isDev ? 120000 : 30000; // 2 minutes for dev, 30 seconds for prod
+
     this.connectionCheckInterval = setInterval(() => {
-      if (this.state.isOnline) {
-        this.checkConnectionQuality();
-      }
-    }, 30000); // Check every 30 seconds
+      this.checkConnectionQuality();
+    }, interval);
   }
 
-  // Check connection quality by measuring response time
-  private async checkConnectionQuality(): Promise<void> {
+  private async checkConnectionQuality() {
+    if (!this.isOnline) {
+      this.connectionQuality = 'offline';
+      return;
+    }
+
     try {
       const startTime = Date.now();
       // Use the same API base URL as the rest of the app to avoid calling localhost:3000
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const healthUrl = `${apiBaseUrl}/api/v1/health/simple`;
 
-      const response = await fetch(healthUrl, {
+      // Use the simple health endpoint for quick connection quality checks
+      await api.fetch('/api/v1/health/simple', {
         method: 'GET',
-        cache: 'no-cache',
-        signal: AbortSignal.timeout(5000), // 5 second timeout
+        timeout: 3000, // Reduced timeout to 3 seconds
       });
 
-      if (response.ok) {
-        const responseTime = Date.now() - startTime;
-        let quality: OfflineState['connectionQuality'] = 'excellent';
+      const endTime = Date.now();
+      const latency = endTime - startTime;
 
-        if (responseTime > 2000) {
-          quality = 'poor';
-        } else if (responseTime > 1000) {
-          quality = 'good';
-        }
-
-        this.updateState({ connectionQuality: quality });
-      }
+      // If we got here without throwing, the response was successful
+      this.connectionQuality = latency < 1000 ? 'good' : 'poor';
+      this.consecutiveFailures = 0; // Reset on success
     } catch (error) {
-      // If health check fails, connection might be poor or offline
-      this.updateState({ connectionQuality: 'poor' });
+      this.consecutiveFailures++;
+      // Only log connection errors occasionally to avoid spam
+      if (this.connectionQuality !== 'poor' && this.consecutiveFailures <= 3) {
+        console.warn('Health check failed, marking connection as poor:', error);
+      }
+      this.connectionQuality = 'poor';
 
-      // Double-check if we're actually offline
-      if (!navigator.onLine) {
-        this.handleOffline();
+      // If there are 5 consecutive failures, back off the check interval to every 2 minutes
+      if (this.consecutiveFailures >= 5) {
+        clearInterval(this.connectionCheckInterval!);
+        this.connectionCheckInterval = setInterval(() => {
+          this.checkConnectionQuality();
+        }, 120000); // 2 minutes
       }
     }
-  }
 
-  // Handle going online
-  private handleOnline(): void {
-    this.updateState({
-      isOnline: true,
-      lastOnline: Date.now(),
-      connectionQuality: 'good', // Will be updated by connection check
-    });
-
-    // Start syncing when connection is restored
-    this.syncPendingData();
-
-    // Check connection quality
-    this.checkConnectionQuality();
-  }
-
-  // Handle going offline
-  private handleOffline(): void {
-    this.updateState({
-      isOnline: false,
-      connectionQuality: 'offline',
-    });
-  }
-
-  // Update state and notify listeners
-  private updateState(updates: Partial<OfflineState>): void {
-    this.state = { ...this.state, ...updates };
-    this.persistState();
     this.notifyListeners();
   }
 
-  // Add listener for state changes
-  addListener(listener: (state: OfflineState) => void): void {
-    this.listeners.push(listener);
+  private loadPersistedData() {
+    try {
+      const savedMessages = localStorage.getItem('offline_pending_messages');
+      const savedActions = localStorage.getItem('offline_pending_actions');
+
+      if (savedMessages) {
+        this.pendingMessages = JSON.parse(savedMessages);
+      }
+
+      if (savedActions) {
+        this.pendingActions = JSON.parse(savedActions);
+      }
+    } catch (error) {
+      console.error('Failed to load persisted offline data:', error);
+    }
   }
 
-  // Remove listener
-  removeListener(listener: (state: OfflineState) => void): void {
-    this.listeners = this.listeners.filter(l => l !== listener);
+  private persistData() {
+    try {
+      localStorage.setItem('offline_pending_messages', JSON.stringify(this.pendingMessages));
+      localStorage.setItem('offline_pending_actions', JSON.stringify(this.pendingActions));
+    } catch (error) {
+      console.error('Failed to persist offline data:', error);
+    }
   }
 
-  // Notify all listeners of state changes
-  private notifyListeners(): void {
+  private notifyListeners() {
+    const state: OfflineState = {
+      isOnline: this.isOnline,
+      connectionQuality: this.connectionQuality,
+      pendingMessages: [...this.pendingMessages],
+      pendingActions: [...this.pendingActions],
+    };
+
     this.listeners.forEach(listener => {
       try {
-        listener(this.state);
+        listener(state);
       } catch (error) {
         console.error('Error in offline state listener:', error);
       }
     });
   }
 
-  // Set sync callback for handling queued data
-  setSyncCallback(
-    callback: (messages: QueuedMessage[], actions: QueuedAction[]) => Promise<void>
-  ): void {
+  private async trySync() {
+    if (!this.syncCallback || (!this.pendingMessages.length && !this.pendingActions.length)) {
+      return;
+    }
+
+    try {
+      await this.syncCallback([...this.pendingMessages], [...this.pendingActions]);
+    } catch (error) {
+      console.error('Sync failed:', error);
+    }
+  }
+
+  // Public API
+  setSyncCallback(callback: SyncCallback) {
     this.syncCallback = callback;
   }
 
-  // Queue a message for offline sending
-  queueMessage(
-    conversationId: string,
-    content: string,
-    messageType: 'text' | 'image' | 'file' = 'text',
-    maxRetries = 3
-  ): string {
-    const queuedMessage: QueuedMessage = {
-      id: `offline_${Date.now()}_${Math.random()}`,
+  queueMessage(conversationId: string, content: string, messageType: string = 'text'): string {
+    const id = `offline_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const message: QueuedMessage = {
+      id,
       conversationId,
       content,
       messageType,
       timestamp: Date.now(),
-      retryCount: 0,
-      maxRetries,
     };
 
-    this.updateState({
-      pendingMessages: [...this.state.pendingMessages, queuedMessage],
-    });
+    this.pendingMessages.push(message);
+    this.persistData();
+    this.notifyListeners();
 
-    return queuedMessage.id;
+    return id;
   }
 
-  // Queue an action for offline execution
-  queueAction(
-    type: QueuedAction['type'],
-    conversationId: string,
-    payload?: Record<string, unknown>,
-    maxRetries = 3
-  ): string {
-    const queuedAction: QueuedAction = {
-      id: `action_${Date.now()}_${Math.random()}`,
+  queueAction(type: QueuedAction['type'], conversationId: string): string {
+    const id = `offline_action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const action: QueuedAction = {
+      id,
       type,
       conversationId,
       timestamp: Date.now(),
-      retryCount: 0,
-      maxRetries,
-      payload,
     };
 
-    this.updateState({
-      pendingActions: [...this.state.pendingActions, queuedAction],
-    });
+    this.pendingActions.push(action);
+    this.persistData();
+    this.notifyListeners();
 
-    return queuedAction.id;
+    return id;
   }
 
-  // Remove a queued message
-  removeQueuedMessage(messageId: string): void {
-    this.updateState({
-      pendingMessages: this.state.pendingMessages.filter(m => m.id !== messageId),
-    });
+  removeQueuedMessage(messageId: string) {
+    this.pendingMessages = this.pendingMessages.filter(msg => msg.id !== messageId);
+    this.persistData();
+    this.notifyListeners();
   }
 
-  // Remove a queued action
-  removeQueuedAction(actionId: string): void {
-    this.updateState({
-      pendingActions: this.state.pendingActions.filter(a => a.id !== actionId),
-    });
+  removeQueuedAction(actionId: string) {
+    this.pendingActions = this.pendingActions.filter(action => action.id !== actionId);
+    this.persistData();
+    this.notifyListeners();
   }
 
-  // Sync all pending data when connection is restored
-  private async syncPendingData(): Promise<void> {
-    if (this.state.syncInProgress || !this.state.isOnline || !this.syncCallback) {
-      return;
-    }
-
-    this.updateState({ syncInProgress: true });
-
-    try {
-      // Sort messages by timestamp to maintain order
-      const messagesToSync = [...this.state.pendingMessages].sort(
-        (a, b) => a.timestamp - b.timestamp
-      );
-
-      // Sort actions by timestamp
-      const actionsToSync = [...this.state.pendingActions].sort(
-        (a, b) => a.timestamp - b.timestamp
-      );
-
-      if (messagesToSync.length > 0 || actionsToSync.length > 0) {
-        await this.syncCallback(messagesToSync, actionsToSync);
-      }
-    } catch (error) {
-      console.error('Failed to sync pending data:', error);
-
-      // Increment retry count for failed items
-      this.updateState({
-        pendingMessages: this.state.pendingMessages.map(msg => ({
-          ...msg,
-          retryCount: msg.retryCount + 1,
-        })),
-        pendingActions: this.state.pendingActions.map(action => ({
-          ...action,
-          retryCount: action.retryCount + 1,
-        })),
-      });
-
-      // Remove items that have exceeded max retries
-      this.cleanupFailedItems();
-    } finally {
-      this.updateState({ syncInProgress: false });
+  async forceSync() {
+    if (this.isOnline) {
+      await this.trySync();
     }
   }
 
-  // Remove items that have exceeded their retry limits
-  private cleanupFailedItems(): void {
-    const validMessages = this.state.pendingMessages.filter(msg => msg.retryCount < msg.maxRetries);
-    const validActions = this.state.pendingActions.filter(
-      action => action.retryCount < action.maxRetries
-    );
-
-    this.updateState({
-      pendingMessages: validMessages,
-      pendingActions: validActions,
-    });
+  onStateChange(listener: OfflineStateChangeListener) {
+    this.listeners.push(listener);
+    // Immediately notify with current state
+    this.notifyListeners();
   }
 
-  // Get current offline state
-  getState(): OfflineState {
-    return { ...this.state };
+  removeStateListener(listener: OfflineStateChangeListener) {
+    this.listeners = this.listeners.filter(l => l !== listener);
   }
 
-  // Check if currently online
-  isOnline(): boolean {
-    return this.state.isOnline;
-  }
-
-  // Get connection quality
-  getConnectionQuality(): OfflineState['connectionQuality'] {
-    return this.state.connectionQuality;
-  }
-
-  // Get count of pending items
-  getPendingCount(): { messages: number; actions: number } {
+  getCurrentState(): OfflineState {
     return {
-      messages: this.state.pendingMessages.length,
-      actions: this.state.pendingActions.length,
+      isOnline: this.isOnline,
+      connectionQuality: this.connectionQuality,
+      pendingMessages: [...this.pendingMessages],
+      pendingActions: [...this.pendingActions],
     };
   }
 
-  // Persist state to localStorage
-  private persistState(): void {
-    try {
-      const dataToStore = {
-        pendingMessages: this.state.pendingMessages,
-        pendingActions: this.state.pendingActions,
-        lastOnline: this.state.lastOnline,
-      };
-      localStorage.setItem('chat_offline_state', JSON.stringify(dataToStore));
-    } catch (error) {
-      console.warn('Failed to persist offline state:', error);
+  cleanup() {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
     }
-  }
-
-  // Load persisted state from localStorage
-  private loadPersistedData(): void {
-    try {
-      const stored = localStorage.getItem('chat_offline_state');
-      if (stored) {
-        const data = JSON.parse(stored);
-        this.updateState({
-          pendingMessages: data.pendingMessages || [],
-          pendingActions: data.pendingActions || [],
-          lastOnline: data.lastOnline || Date.now(),
-        });
-      }
-    } catch (error) {
-      console.warn('Failed to load persisted offline state:', error);
-    }
-  }
-
-  // Clear all pending data (for testing or manual cleanup)
-  clearPendingData(): void {
-    this.updateState({
-      pendingMessages: [],
-      pendingActions: [],
-    });
-  }
-
-  // Manually trigger sync (useful for testing or manual retry)
-  async forceSync(): Promise<void> {
-    if (this.state.isOnline) {
-      await this.syncPendingData();
-    }
-  }
-
-  // Clean up resources
-  destroy(): void {
     if (this.connectionCheckInterval) {
       clearInterval(this.connectionCheckInterval);
     }
-
     window.removeEventListener('online', this.handleOnline.bind(this));
     window.removeEventListener('offline', this.handleOffline.bind(this));
-
-    this.listeners = [];
   }
 }
 
 // Create singleton instance
 export const offlineManager = new OfflineManager();
 
-// Helper functions for easier usage
-export const queueMessageForOffline = (
-  conversationId: string,
-  content: string,
-  messageType: 'text' | 'image' | 'file' = 'text'
-): string => {
-  return offlineManager.queueMessage(conversationId, content, messageType);
-};
+// Convenience functions for the expected interface
+export const isCurrentlyOnline = () => offlineManager.getCurrentState().isOnline;
 
-export const queueActionForOffline = (
-  type: QueuedAction['type'],
-  conversationId: string,
-  payload?: Record<string, unknown>
-): string => {
-  return offlineManager.queueAction(type, conversationId, payload);
-};
+export const getConnectionQuality = () => offlineManager.getCurrentState().connectionQuality;
 
-export const isCurrentlyOnline = (): boolean => {
-  return offlineManager.isOnline();
-};
+export const queueMessageForOffline = (conversationId: string, content: string) =>
+  offlineManager.queueMessage(conversationId, content);
 
-export const getConnectionQuality = (): OfflineState['connectionQuality'] => {
-  return offlineManager.getConnectionQuality();
-};
+export const onOfflineStateChange = (listener: OfflineStateChangeListener) =>
+  offlineManager.onStateChange(listener);
 
-export const onOfflineStateChange = (callback: (state: OfflineState) => void): void => {
-  offlineManager.addListener(callback);
-};
-
-export const removeOfflineStateListener = (callback: (state: OfflineState) => void): void => {
-  offlineManager.removeListener(callback);
-};
+export const removeOfflineStateListener = (listener: OfflineStateChangeListener) =>
+  offlineManager.removeStateListener(listener);

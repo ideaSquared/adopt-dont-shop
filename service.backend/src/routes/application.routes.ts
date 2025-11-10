@@ -186,7 +186,7 @@ router.get(
  *                   format: uuid
  *                 status:
  *                   type: string
- *                   example: "DRAFT"
+ *                   example: "SUBMITTED"
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -319,7 +319,7 @@ router.get(
  *   put:
  *     tags: [Application Management]
  *     summary: Update adoption application
- *     description: Update application details. Only allowed for applications in DRAFT or SUBMITTED status by the owner.
+ *     description: Update application details. Only allowed for applications in SUBMITTED status by the owner.
  *     security:
  *       - bearerAuth: []
  *       - cookieAuth: []
@@ -370,65 +370,11 @@ router.get(
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-// Update application (owner only for draft/submitted)
+// Update application (owner only for submitted applications)
 router.put(
   '/:applicationId',
   ApplicationController.validateUpdateApplication,
   applicationController.updateApplication
-);
-
-/**
- * @swagger
- * /api/v1/applications/{applicationId}/submit:
- *   post:
- *     tags: [Application Management]
- *     summary: Submit application for review
- *     description: Submit a draft application for review by rescue staff. Only the application owner can submit their own application.
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: applicationId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Application ID
- *     responses:
- *       200:
- *         description: Application submitted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Application submitted for review"
- *                 status:
- *                   type: string
- *                   example: "SUBMITTED"
- *                 submittedAt:
- *                   type: string
- *                   format: date-time
- *       400:
- *         description: Application cannot be submitted (not in DRAFT status)
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
-// Submit application for review (owner only)
-router.post(
-  '/:applicationId/submit',
-  ApplicationController.validateApplicationId,
-  applicationController.submitApplication
 );
 
 /**
@@ -573,7 +519,7 @@ router.post(
  *   delete:
  *     tags: [Application Management]
  *     summary: Delete application
- *     description: Permanently delete an application. Only the application owner can delete their own application, and only if it's in DRAFT status.
+ *     description: Permanently delete an application. Applications cannot be deleted once submitted.
  *     security:
  *       - bearerAuth: []
  *       - cookieAuth: []
@@ -600,7 +546,7 @@ router.post(
  *                   type: string
  *                   example: "Application deleted successfully"
  *       400:
- *         description: Application cannot be deleted (not in DRAFT status)
+ *         description: Application cannot be deleted once submitted
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -1036,8 +982,6 @@ router.post('/validate/:rescueId', applicationController.validateApplicationAnsw
  *                     applicationsByStatus:
  *                       type: object
  *                       properties:
- *                         DRAFT:
- *                           type: integer
  *                         SUBMITTED:
  *                           type: integer
  *                         APPROVED:

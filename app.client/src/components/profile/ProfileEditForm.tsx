@@ -362,7 +362,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             onChange={e => handleInputChange('phone', e.target.value)}
             error={errors.phone}
             disabled={isLoading}
-            placeholder='(555) 123-4567'
+            placeholder='07123 456789'
           />
         </FormGroup>
       </FormRow>
