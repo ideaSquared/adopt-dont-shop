@@ -15,6 +15,14 @@ import { EmailProvider } from './email-providers/base-provider';
 import { ConsoleEmailProvider } from './email-providers/console-provider';
 import { EtherealProvider } from './email-providers/ethereal-provider';
 
+// Type for provider info (Ethereal test account)
+type ProviderInfo = {
+  user: string;
+  password: string;
+  webUrl: string;
+  inboxUrl: string;
+} | null;
+
 class EmailService {
   private provider: EmailProvider;
   private isProcessing = false;
@@ -69,14 +77,14 @@ class EmailService {
     return this.provider;
   }
 
-  public getProviderInfo(): any {
+  public getProviderInfo(): ProviderInfo {
     if (this.provider instanceof EtherealProvider) {
       return this.provider.getPreviewInfo();
     }
     return null;
   }
 
-  public static getProviderInfo(): any {
+  public static getProviderInfo(): ProviderInfo {
     const emailService = new EmailService();
     return emailService.getProviderInfo();
   }
@@ -608,7 +616,7 @@ class EmailService {
       }
 
       await email.save();
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Error processing email ${email.emailId}:`, error);
       email.markAsFailed(error instanceof Error ? error.message : 'Unknown error');
       await email.save();
@@ -677,7 +685,7 @@ class EmailService {
 
       logger.info(`Email preferences created for user: ${userId}`);
       return preference;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to create email preferences:', error);
       throw new Error(
         `Failed to create email preferences: ${error instanceof Error ? error.message : 'Unknown error'}`

@@ -1,9 +1,10 @@
 import SupportTicket, { TicketStatus, TicketPriority, TicketCategory } from '../models/SupportTicket';
 import SupportTicketResponse, { ResponderType } from '../models/SupportTicketResponse';
 import User from '../models/User';
-import { Op, Transaction } from 'sequelize';
+import { Op, Transaction, WhereOptions } from 'sequelize';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
+import { JsonObject } from '../types/common';
 
 interface TicketFilters {
   status?: TicketStatus | TicketStatus[];
@@ -39,7 +40,7 @@ class SupportTicketService {
       const offset = (page - 1) * limit;
 
       // Build where clause
-      const where: any = {};
+      const where: WhereOptions = {};
 
       if (filters.status) {
         where.status = Array.isArray(filters.status) ? { [Op.in]: filters.status } : filters.status;
@@ -66,22 +67,26 @@ class SupportTicketService {
       }
 
       if (filters.search) {
-        where[Op.or] = [
+        // Type assertion needed: Sequelize's types don't support Op.or as index signature
+        // This is a valid runtime pattern - Op.or is a symbol used for OR queries
+        const orConditions = [
           { subject: { [Op.iLike]: `%${filters.search}%` } },
           { description: { [Op.iLike]: `%${filters.search}%` } },
           { userEmail: { [Op.iLike]: `%${filters.search}%` } },
           { userName: { [Op.iLike]: `%${filters.search}%` } },
         ];
+        Object.assign(where, { [Op.or]: orConditions });
       }
 
       if (filters.dateFrom || filters.dateTo) {
-        where.createdAt = {};
+        const dateFilter: Record<symbol, Date> = {};
         if (filters.dateFrom) {
-          where.createdAt[Op.gte] = filters.dateFrom;
+          dateFilter[Op.gte] = filters.dateFrom;
         }
         if (filters.dateTo) {
-          where.createdAt[Op.lte] = filters.dateTo;
+          dateFilter[Op.lte] = filters.dateTo;
         }
+        where.createdAt = dateFilter;
       }
 
       const { rows: tickets, count } = await SupportTicket.findAndCountAll({
@@ -188,18 +193,17 @@ class SupportTicketService {
     category: TicketCategory;
     priority?: TicketPriority;
     tags?: string[];
-    metadata?: any;
+    metadata?: JsonObject;
   }) {
     try {
       const ticket = await SupportTicket.create({
         ...ticketData,
         status: TicketStatus.OPEN,
         priority: ticketData.priority || TicketPriority.NORMAL,
-        responses: [],
         attachments: [],
         metadata: ticketData.metadata || {},
         tags: ticketData.tags || [],
-      } as any);
+      });
 
       logger.info(`Support ticket created: ${ticket.ticketId}`);
 
@@ -407,11 +411,13 @@ class SupportTicketService {
         }),
       ]);
 
-      // Calculate average resolution time
+      // Calculate average resolution time using Op.ne instead of Op.not
+      // Type assertion needed: Sequelize's type system doesn't accept null with Op.ne
+      // This is a valid runtime pattern - we're checking for non-null values
       const resolvedWithTime = await SupportTicket.findAll({
         where: {
           status: TicketStatus.RESOLVED,
-          resolvedAt: { [Op.not]: null } as any,
+          resolvedAt: { [Op.ne]: null } as unknown as Date,
         },
         attributes: ['createdAt', 'resolvedAt'],
         limit: 100, // Last 100 resolved tickets
@@ -447,7 +453,7 @@ class SupportTicketService {
    */
   async getAgentTickets(agentId: string, status?: TicketStatus) {
     try {
-      const where: any = { assignedTo: agentId };
+      const where: WhereOptions = { assignedTo: agentId };
       if (status) {
         where.status = status;
       }
@@ -480,7 +486,7 @@ class SupportTicketService {
       const offset = (page - 1) * limit;
 
       // Build where clause - always filter by userId
-      const where: any = { userId };
+      const where: WhereOptions = { userId };
 
       if (filters.status) {
         where.status = Array.isArray(filters.status) ? { [Op.in]: filters.status } : filters.status;

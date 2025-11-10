@@ -469,10 +469,14 @@ export class PetService {
         'temperament',
         'tags',
         'location',
-      ];
+      ] as const;
+
+      type SimpleFieldKey = typeof simpleFields[number];
+
       simpleFields.forEach(field => {
-        if ((updateData as any)[field] !== undefined) {
-          dbUpdateData[field] = (updateData as any)[field];
+        const value = updateData[field as keyof PetUpdateData];
+        if (value !== undefined) {
+          dbUpdateData[field] = value;
         }
       });
 
@@ -1206,7 +1210,7 @@ export class PetService {
         whereClause.good_with_children = goodWithKids;
       }
       if (goodWithPets !== undefined) {
-        whereClause[Op.or as any] = [
+        (whereClause as Record<symbol, unknown>)[Op.or] = [
           { good_with_dogs: goodWithPets },
           { good_with_cats: goodWithPets },
         ];
@@ -1220,7 +1224,7 @@ export class PetService {
 
       // Numeric range filters
       if (adoptionFeeMin !== undefined || adoptionFeeMax !== undefined) {
-        const feeFilter: any = {};
+        const feeFilter: SequelizeOperatorFilter = {};
         if (adoptionFeeMin !== undefined) {
           feeFilter[Op.gte] = adoptionFeeMin;
         }
@@ -1231,7 +1235,7 @@ export class PetService {
       }
 
       if (weightMin !== undefined || weightMax !== undefined) {
-        const weightFilter: any = {};
+        const weightFilter: SequelizeOperatorFilter = {};
         if (weightMin !== undefined) {
           weightFilter[Op.gte] = weightMin;
         }
@@ -1243,7 +1247,7 @@ export class PetService {
 
       // Date range filters
       if (createdAfter || createdBefore) {
-        const dateFilter: any = {};
+        const dateFilter: SequelizeOperatorFilter = {};
         if (createdAfter) {
           dateFilter[Op.gte] = createdAfter;
         }
@@ -1255,7 +1259,7 @@ export class PetService {
 
       // Search functionality
       if (search) {
-        whereClause[Op.or as any] = [
+        (whereClause as Record<symbol, unknown>)[Op.or] = [
           { name: { [Op.iLike]: `%${search}%` } },
           { breed: { [Op.iLike]: `%${search}%` } },
           { short_description: { [Op.iLike]: `%${search}%` } },
@@ -1360,6 +1364,10 @@ export class PetService {
       const { page = 1, limit = 20 } = options;
       const offset = (page - 1) * limit;
 
+      interface UserFavoriteWithPet extends UserFavorite {
+        Pet: Pet;
+      }
+
       const { rows: favorites, count: total } = await UserFavorite.findAndCountAll({
         where: { user_id: userId },
         include: [
@@ -1380,7 +1388,7 @@ export class PetService {
         order: [['created_at', 'DESC']],
       });
 
-      const pets = favorites.map((favorite: any) => favorite.Pet);
+      const pets = (favorites as UserFavoriteWithPet[]).map(favorite => favorite.Pet);
       const totalPages = Math.ceil(total / limit);
 
       return {

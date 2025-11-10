@@ -5,6 +5,7 @@ import { Op } from 'sequelize';
 import User, { UserStatus, UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { env } from '../config/env';
 
 import {
   AuthResponse,
@@ -15,8 +16,8 @@ import {
 } from '../types';
 
 export class AuthService {
-  private static readonly JWT_SECRET = process.env.JWT_SECRET!;
-  private static readonly JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+  private static readonly JWT_SECRET = env.JWT_SECRET;
+  private static readonly JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
   private static readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
   private static readonly JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 

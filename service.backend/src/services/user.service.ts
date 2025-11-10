@@ -1,3 +1,4 @@
+import { JsonObject } from "../types/common";
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import Application from '../models/Application';
 import { AuditLog } from '../models/AuditLog';
@@ -21,7 +22,7 @@ import { AuditLogService } from './auditLog.service';
 
 // Safe wrapper for loggerHelpers to prevent test failures
 const safeLoggerHelpers = {
-  logBusiness: (event: string, data: any, userId?: string) => {
+  logBusiness: (event: string, data: JsonObject, userId?: string) => {
     try {
       if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(event, data, userId);
@@ -35,6 +36,23 @@ const safeLoggerHelpers = {
 };
 
 // Define UserActivitySummary interface
+interface UserWithPermissions {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  userType: string;
+  status: string;
+  emailVerified: boolean;
+  phoneNumber: string | null;
+  profileImageUrl: string | null;
+  bio: string | null;
+  location: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+  roles: unknown[] | undefined;
+  permissions: string[];
+}
 interface UserActivitySummary {
   applicationsCount: number;
   activeChatsCount: number;
@@ -43,7 +61,7 @@ interface UserActivitySummary {
     action: string;
     entity: string;
     timestamp: Date;
-    details: any;
+    details: JsonObject;
   }>;
   stats: {
     totalLoginCount: number;
@@ -152,7 +170,7 @@ export class UserService {
       const originalData = user.toJSON();
 
       // Process the update data to match the database model format
-      const processedUpdateData: any = { ...updateData };
+      const processedUpdateData: Record<string, unknown> = { ...updateData };
 
       // Handle location transformation if present
       if (updateData.location) {
@@ -477,7 +495,7 @@ export class UserService {
         action: 'RESET_PREFERENCES',
         entity: 'User',
         entityId: userId,
-        details: { resetToDefaults: true } as any,
+        details: { resetToDefaults: true },
         userId,
       });
 
@@ -766,7 +784,7 @@ export class UserService {
   /**
    * Format activity description from action and metadata
    */
-  private static formatActivityDescription(action: string, metadata?: any): string {
+  private static formatActivityDescription(action: string, metadata?: JsonObject | null): string {
     switch (action) {
       case 'APPLICATION_SUBMITTED':
         return `Submitted application for ${metadata?.petName || 'a pet'}`;
@@ -1262,7 +1280,7 @@ export class UserService {
         'User Account Self-Deleted',
         {
           userId,
-          reason,
+          reason: reason || null,
           timestamp: new Date().toISOString(),
         },
         userId
@@ -1327,7 +1345,7 @@ export class UserService {
   /**
    * Get user with their permissions
    */
-  static async getUserWithPermissions(userId: string): Promise<any> {
+  static async getUserWithPermissions(userId: string): Promise<UserWithPermissions | null> {
     try {
       const user = await User.findByPk(userId, {
         attributes: [

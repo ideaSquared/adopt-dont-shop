@@ -1,4 +1,4 @@
-import { Op, Transaction } from 'sequelize';
+import { Op, Transaction, WhereOptions } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
 import User from '../models/User';
@@ -7,6 +7,7 @@ import Rescue from '../models/Rescue';
 import sequelize from '../sequelize';
 import logger from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { JsonObject } from '../types/common';
 
 export interface ReportFilters {
   status?: ReportStatus;
@@ -60,6 +61,19 @@ export interface ReportSubmission {
     description?: string;
     uploadedAt: Date;
   }>;
+}
+
+interface ReportCountRow {
+  status: string;
+  category: string;
+  severity: string;
+  count: string;
+}
+
+interface ActionCountRow {
+  actionType: string;
+  isActive: boolean;
+  count: string;
 }
 
 // Export the enums from models for consistency
@@ -154,7 +168,7 @@ class ModerationService {
     const limit = Math.min(100, Math.max(1, options.limit || 20));
     const offset = (page - 1) * limit;
 
-    const whereClause: any = {};
+    const whereClause: WhereOptions = {};
 
     // Apply filters
     if (filters.status) {
@@ -180,28 +194,32 @@ class ModerationService {
     }
 
     if (filters.dateFrom || filters.dateTo) {
-      whereClause.createdAt = {};
+      const dateFilter: Record<symbol, Date> = {};
       if (filters.dateFrom) {
-        whereClause.createdAt[Op.gte] = filters.dateFrom;
+        dateFilter[Op.gte] = filters.dateFrom;
       }
       if (filters.dateTo) {
-        whereClause.createdAt[Op.lte] = filters.dateTo;
+        dateFilter[Op.lte] = filters.dateTo;
       }
+      whereClause.createdAt = dateFilter;
     }
 
     if (filters.search) {
-      whereClause[Op.or] = [
+      // Type assertion needed: Sequelize's types don't support Op.or as index signature
+      // This is a valid runtime pattern - Op.or is a symbol used for OR queries
+      const orConditions = [
         { title: { [Op.iLike]: `%${filters.search}%` } },
         { description: { [Op.iLike]: `%${filters.search}%` } },
         { reportId: { [Op.iLike]: `%${filters.search}%` } },
       ];
+      Object.assign(whereClause, { [Op.or]: orConditions });
     }
 
     const orderClause = [[options.sortBy || 'createdAt', options.sortOrder || 'DESC']];
 
     const { count, rows } = await Report.findAndCountAll({
       where: whereClause,
-      order: orderClause as any,
+      order: orderClause as [[string, string]],
       limit,
       offset,
       include: [
@@ -236,7 +254,17 @@ class ModerationService {
   }
 
   async getReportById(reportId: string, includeActions = true): Promise<Report | null> {
-    const includeOptions: any[] = [
+    const includeOptions: Array<{
+      model: typeof User | typeof ModeratorAction;
+      as: string;
+      attributes?: string[];
+      include?: Array<{
+        model: typeof User;
+        as: string;
+        attributes: string[];
+      }>;
+      order?: [[string, string]];
+    }> = [
       {
         model: User,
         as: 'Reporter',
@@ -442,7 +470,7 @@ class ModerationService {
       averageResolutionTime: number; // in hours
     };
   }> {
-    const whereClause: any = {};
+    const whereClause: WhereOptions = {};
     if (dateRange) {
       whereClause.createdAt = {
         [Op.between]: [dateRange.from, dateRange.to],
@@ -474,11 +502,13 @@ class ModerationService {
       raw: true,
     });
 
-    // Calculate response times
+    // Calculate response times - use Op.ne instead of Op.not for null checks
+    // Type assertion needed: Sequelize's type system doesn't support Op.ne with null correctly
+    // This is a valid runtime pattern - we're checking for non-null values
     const responseTimeData = await Report.findAll({
       where: {
         ...whereClause,
-        assignedAt: { [Op.not]: null },
+        assignedAt: { [Op.ne]: null } as unknown as Date,
       },
       attributes: [
         [
@@ -495,7 +525,7 @@ class ModerationService {
     const resolutionTimeData = await Report.findAll({
       where: {
         ...whereClause,
-        resolvedAt: { [Op.not]: null },
+        resolvedAt: { [Op.ne]: null } as unknown as Date,
       },
       attributes: [
         [
@@ -528,7 +558,7 @@ class ModerationService {
     };
 
     // Process report counts
-    reportCounts.forEach((row: any) => {
+    (reportCounts as unknown as ReportCountRow[]).forEach((row) => {
       const count = parseInt(row.count);
       reports.total += count;
 
@@ -548,7 +578,7 @@ class ModerationService {
     });
 
     // Process action counts
-    actionCounts.forEach((row: any) => {
+    (actionCounts as unknown as ActionCountRow[]).forEach((row) => {
       const count = parseInt(row.count);
       actions.total += count;
       actions.byType[row.actionType] = (actions.byType[row.actionType] || 0) + count;
@@ -559,17 +589,22 @@ class ModerationService {
       }
     });
 
+    interface AvgTimeResult {
+      avgResponseTime?: string;
+      avgResolutionTime?: string;
+    }
+
     return {
       reports,
       actions,
       response: {
         averageResponseTime:
           responseTimeData.length > 0
-            ? parseFloat(String((responseTimeData[0] as any).avgResponseTime || '0'))
+            ? parseFloat(String((responseTimeData[0] as unknown as AvgTimeResult).avgResponseTime || '0'))
             : 0,
         averageResolutionTime:
           resolutionTimeData.length > 0
-            ? parseFloat(String((resolutionTimeData[0] as any).avgResolutionTime || '0'))
+            ? parseFloat(String((resolutionTimeData[0] as unknown as AvgTimeResult).avgResolutionTime || '0'))
             : 0,
       },
     };
@@ -778,12 +813,14 @@ class ModerationService {
 
   async getActiveActionsForUser(userId: string): Promise<ModeratorAction[]> {
     // Split the query to avoid complex Op.or with null handling
+    // Type assertion needed: Sequelize doesn't allow null in where clause correctly
+    // This is a valid runtime pattern - checking for records where expiresAt is null
     const [neverExpiringActions, futureExpiringActions] = await Promise.all([
       ModeratorAction.findAll({
         where: {
           targetUserId: userId,
           isActive: true,
-          expiresAt: { [Op.is]: null } as any,
+          expiresAt: null as unknown as undefined,
         },
         order: [['createdAt', 'DESC']],
       }),
@@ -820,20 +857,20 @@ class ModerationService {
     return affectedCount;
   }
 
-  async enrichReportsWithEntityContext(reports: any[]): Promise<any[]> {
+  async enrichReportsWithEntityContext(reports: Report[]): Promise<Array<Report & { entityContext?: JsonObject }>> {
     if (!reports || reports.length === 0) {
       return reports;
     }
 
-    const entityCache = new Map<string, any>();
+    const entityCache = new Map<string, JsonObject>();
 
     const enrichedReports = await Promise.all(
       reports.map(async (report) => {
         const cacheKey = `${report.reportedEntityType}:${report.reportedEntityId}`;
-        let entityContext = null;
+        let entityContext: JsonObject | null = null;
 
         if (entityCache.has(cacheKey)) {
-          entityContext = entityCache.get(cacheKey);
+          entityContext = entityCache.get(cacheKey)!;
         } else {
           try {
             switch (report.reportedEntityType) {
@@ -915,9 +952,9 @@ class ModerationService {
         }
 
         return {
-          ...report.toJSON ? report.toJSON() : report,
+          ...(report.toJSON ? report.toJSON() : report),
           entityContext,
-        };
+        } as Report & { entityContext?: JsonObject };
       })
     );
 
@@ -928,7 +965,7 @@ class ModerationService {
     filters: ReportFilters,
     options: ReportSearchOptions
   ): Promise<{
-    reports: any[];
+    reports: Array<Report & { entityContext?: JsonObject }>;
     pagination: { page: number; limit: number; total: number; totalPages: number };
   }> {
     const result = await this.searchReports(filters, options);

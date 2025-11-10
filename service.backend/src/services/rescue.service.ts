@@ -919,7 +919,7 @@ export class RescueService {
       const { page = 1, limit = 20, status, sortBy = 'createdAt', sortOrder = 'DESC' } = options;
       const offset = (page - 1) * limit;
 
-      const whereClause: any = { rescue_id: rescueId };
+      const whereClause: WhereOptions = { rescue_id: rescueId };
       if (status) {
         whereClause.status = status;
       }
@@ -1024,19 +1024,22 @@ export class RescueService {
       const { page = 1, limit = 20, search, role } = options;
       const offset = (page - 1) * limit;
 
-      const whereConditions: any = {
+      const whereConditions: WhereOptions = {
         rescueId,
         isDeleted: false // Only get active staff members
       };
 
       // Build user search conditions for the included User model
-      const userWhereConditions: any = {};
+      const userWhereConditions: WhereOptions = {};
       if (search) {
-        userWhereConditions[Op.or] = [
+        // Type assertion needed: Sequelize's types don't support Op.or as index signature
+        // This is a valid runtime pattern - Op.or is a symbol used for OR queries
+        const orConditions = [
           { firstName: { [Op.iLike]: `%${search}%` } },
           { lastName: { [Op.iLike]: `%${search}%` } },
           { email: { [Op.iLike]: `%${search}%` } },
         ];
+        Object.assign(userWhereConditions, { [Op.or]: orConditions });
       }
 
       const { rows: staffMembers, count: total } = await StaffMember.findAndCountAll({

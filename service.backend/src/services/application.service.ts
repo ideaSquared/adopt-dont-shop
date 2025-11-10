@@ -8,7 +8,7 @@ import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import ApplicationTimelineService from './applicationTimeline.service';
 import { TimelineEventType } from '../models/ApplicationTimeline';
-import { JsonObject } from '../types/common';
+import { JsonObject, JsonValue } from '../types/common';
 
 import {
   ApplicationData,
@@ -1333,7 +1333,7 @@ export class ApplicationService {
           answeredQuestions++;
 
           // Validate answer format
-          const validation = question.validateAnswer(answer);
+          const validation = question.validateAnswer(answer as JsonValue);
           if (!validation.isValid) {
             errors.push({
               field: question.question_key,
