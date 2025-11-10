@@ -5,6 +5,7 @@ import Role from '../models/Role';
 import Permission from '../models/Permission';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger, loggerHelpers } from '../utils/logger';
+import { env } from '../config/env';
 
 export interface JWTPayload {
   userId: string;
@@ -37,7 +38,7 @@ export const authenticateToken = async (
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
 
     // Fetch user from database to ensure they still exist and are active
     const user = await User.findByPk(decoded.userId, {
@@ -147,7 +148,7 @@ export const optionalAuth = async (
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
     const user = await User.findByPk(decoded.userId, {
       include: [
         {
@@ -263,7 +264,7 @@ export const authenticateOptionalToken = async (
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
 
     // Fetch user from database to ensure they still exist and are active
     const user = await User.findByPk(decoded.userId, {

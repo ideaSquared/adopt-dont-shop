@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types/auth';
 import StaffMember from '../models/StaffMember';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -77,7 +78,7 @@ router.get('/rescue', async (req: AuthenticatedRequest, res) => {
         ],
       };
     } catch (error) {
-      console.error('Error fetching real rescue statistics:', error);
+      logger.error('Error fetching real rescue statistics:', { error });
       // Fallback to basic mock data if database query fails
       dashboardData = {
         totalAnimals: 0,
@@ -98,7 +99,7 @@ router.get('/rescue', async (req: AuthenticatedRequest, res) => {
       message: 'Dashboard statistics retrieved successfully',
     });
   } catch (error) {
-    console.error('Dashboard statistics error:', error);
+    logger.error('Dashboard statistics error:', { error });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({
       success: false,
@@ -180,7 +181,7 @@ router.get('/activity', async (req: AuthenticatedRequest, res) => {
       message: 'Activity retrieved successfully',
     });
   } catch (error) {
-    console.error('Dashboard activity error:', error);
+    logger.error('Dashboard activity error:', { error });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({
       success: false,

@@ -1,3 +1,8 @@
+// Initialize Sentry FIRST - must be before any other imports
+import { initializeSentry, Sentry } from './config/sentry';
+initializeSentry();
+
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Router } from 'express';
 import helmet from 'helmet';
@@ -6,6 +11,7 @@ import morgan from 'morgan';
 import { Server as SocketIOServer } from 'socket.io';
 import { config } from './config';
 import { errorHandler } from './middleware/error-handler';
+import { csrfProtection, csrfErrorHandler, getCsrfToken } from './middleware/csrf';
 import { apiLimiter } from './middleware/rate-limiter';
 import sequelize from './sequelize';
 import { initializeMessageBroker } from './services/messageBroker.service';
@@ -72,21 +78,58 @@ const io = new SocketIOServer(server, {
 
 // Apply middleware
 app.use(cors(config.cors));
+
+// Sentry instrumentation - automatically instruments Express
+// Note: In Sentry v8+, instrumentation is automatic with setupExpressErrorHandler
+
+// Enhanced Security Headers with Helmet
 app.use(
   helmet({
+    // Content Security Policy - prevents XSS attacks
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Required for inline styles in some frameworks
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: ["'self'", 'ws:', 'wss:'], // Allow WebSocket connections
+        fontSrc: ["'self'", 'https:', 'data:'],
+        objectSrc: ["'none'"], // Disallow plugins
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"], // Prevent clickjacking via iframes
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"], // X-Frame-Options equivalent in CSP
+        upgradeInsecureRequests: [], // Upgrade HTTP to HTTPS
       },
     },
+    // HTTP Strict Transport Security - force HTTPS
     hsts: {
-      maxAge: 31536000,
+      maxAge: 31536000, // 1 year
       includeSubDomains: true,
       preload: true,
+    },
+    // X-Frame-Options - prevent clickjacking
+    frameguard: {
+      action: 'deny',
+    },
+    // X-Content-Type-Options - prevent MIME sniffing
+    noSniff: true,
+    // X-XSS-Protection - legacy XSS protection (deprecated but still useful for old browsers)
+    xssFilter: true,
+    // Referrer-Policy - control referrer information
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin',
+    },
+    // X-DNS-Prefetch-Control - control DNS prefetching
+    dnsPrefetchControl: {
+      allow: false,
+    },
+    // X-Download-Options - prevent IE from executing downloads in site's context
+    ieNoOpen: true,
+    // X-Permitted-Cross-Domain-Policies - control Adobe Flash/PDF cross-domain requests
+    permittedCrossDomainPolicies: {
+      permittedPolicies: 'none',
     },
   })
 );
@@ -94,8 +137,28 @@ app.use(express.json({ limit: '10mb' }));
 app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Cookie parser for CSRF tokens
+app.use(cookieParser());
+
 // Apply rate limiting
 app.use('/api', apiLimiter);
+
+// CSRF Protection for state-changing requests
+// Provide CSRF token endpoint (must be before csrfProtection middleware)
+app.get('/api/v1/csrf-token', getCsrfToken);
+
+// Apply CSRF protection to all API routes except token endpoint and health checks
+app.use(
+  '/api',
+  (req, res, next) => {
+    // Skip CSRF for health checks and read-only endpoints
+    const skipPaths = ['/api/v1/csrf-token', '/health', '/api/v1/health'];
+    if (skipPaths.some(path => req.path.startsWith(path)) || req.method === 'GET') {
+      return next();
+    }
+    return csrfProtection(req, res, next);
+  }
+);
 
 // Serve uploaded files in development
 if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
@@ -279,6 +342,9 @@ app.get('/health/ready', async (req, res) => {
 });
 
 // Apply error handler middleware
+// Order: CSRF errors -> Sentry errors -> general errors
+app.use(csrfErrorHandler);
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 // Start server

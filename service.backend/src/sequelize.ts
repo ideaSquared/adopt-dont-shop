@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import { Sequelize } from 'sequelize';
+import { env, getDatabaseName } from './config/env';
 
 dotenv.config();
 
@@ -23,16 +24,16 @@ const buildConnectionString = (database: string): string => {
  * 2. Built from individual environment variables
  */
 const getDatabaseUrl = (): string => {
-  const env = process.env.NODE_ENV || 'development';
+  const nodeEnv = process.env.NODE_ENV || 'development';
 
-  switch (env) {
+  switch (nodeEnv) {
     case 'development':
-      return process.env.DEV_DATABASE_URL || buildConnectionString(process.env.DEV_DB_NAME!);
+      return env.DEV_DATABASE_URL || buildConnectionString(getDatabaseName(nodeEnv));
     case 'test':
-      return process.env.TEST_DATABASE_URL || buildConnectionString(process.env.TEST_DB_NAME!);
+      return env.TEST_DATABASE_URL || buildConnectionString(getDatabaseName(nodeEnv));
     case 'production':
       // In production, prefer DATABASE_URL (standard for managed services)
-      return process.env.DATABASE_URL || buildConnectionString(process.env.PROD_DB_NAME!);
+      return env.DATABASE_URL || buildConnectionString(getDatabaseName(nodeEnv));
     default:
       throw new Error('NODE_ENV is not set to a valid environment');
   }
