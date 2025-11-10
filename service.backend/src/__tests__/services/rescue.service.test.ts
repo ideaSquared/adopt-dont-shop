@@ -79,6 +79,7 @@ const mockStaffMemberData = {
   updatedAt: new Date(),
   toJSON: jest.fn(),
   destroy: jest.fn(),
+  update: jest.fn().mockResolvedValue(undefined),
   user: mockUserData,
 };
 
@@ -196,19 +197,20 @@ describe('RescueService', () => {
 
       await RescueService.searchRescues(options);
 
-      expect(mockRescue.findAndCountAll).toHaveBeenCalledWith({
-        where: {
-          [Op.or]: [
-            { city: { [Op.iLike]: '%New York%' } },
-            { state: { [Op.iLike]: '%New York%' } },
-            { country: { [Op.iLike]: '%New York%' } },
-          ],
-        },
-        order: [['createdAt', 'DESC']],
-        limit: 20,
-        offset: 0,
-        include: expect.any(Array),
-      });
+      expect(mockRescue.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            [Op.or]: [
+              { city: { [Op.iLike]: '%New York%' } },
+              { county: { [Op.iLike]: '%New York%' } },
+              { country: { [Op.iLike]: '%New York%' } },
+            ],
+          },
+          order: [['createdAt', 'DESC']],
+          limit: 20,
+          offset: 0,
+        })
+      );
     });
 
     it('should sort rescues by name', async () => {
@@ -340,8 +342,8 @@ describe('RescueService', () => {
       email: 'new@rescue.org',
       address: '456 Oak St',
       city: 'New City',
-      state: 'NC',
-      zipCode: '54321',
+      county: 'New County',
+      postcode: '54321',
       country: 'US',
       contactPerson: 'Jane Smith',
     };
@@ -559,7 +561,7 @@ describe('RescueService', () => {
       );
 
       expect(mockStaffMember.findOne).toHaveBeenCalledWith({
-        where: { rescueId: 'rescue-123', userId: 'user-123' },
+        where: { rescueId: 'rescue-123', userId: 'user-123', isDeleted: false },
         transaction: expect.any(Object),
       });
 
@@ -636,7 +638,7 @@ describe('RescueService', () => {
       const result = await RescueService.removeStaffMember('rescue-123', 'user-123', 'admin-123');
 
       expect(mockStaffMember.findOne).toHaveBeenCalledWith({
-        where: { rescueId: 'rescue-123', userId: 'user-123' },
+        where: { rescueId: 'rescue-123', userId: 'user-123', isDeleted: false },
         include: [
           {
             model: User,
@@ -647,9 +649,14 @@ describe('RescueService', () => {
         transaction: expect.any(Object),
       });
 
-      expect(mockStaffMemberData.destroy).toHaveBeenCalledWith({
-        transaction: expect.any(Object),
-      });
+      expect(mockStaffMemberData.update).toHaveBeenCalledWith(
+        {
+          isDeleted: true,
+          deletedAt: expect.any(Date),
+          deletedBy: 'admin-123',
+        },
+        { transaction: expect.any(Object) }
+      );
 
       expect(mockAuditLogAction).toHaveBeenCalled();
       expect(result).toEqual({

@@ -301,8 +301,8 @@ describe('SwipeService', () => {
         passes: '15',
         super_likes: '2',
         info_views: '0',
-        start_time: '2025-01-01T12:00:00Z',
-        last_activity: '2025-01-01T12:30:00Z',
+        start_time: new Date('2025-01-01T12:00:00Z'),
+        last_activity: new Date('2025-01-01T12:30:00Z'),
         duration: 30.5,
       },
     ];
@@ -319,8 +319,8 @@ describe('SwipeService', () => {
         passes: 15,
         superLikes: 2,
         infoViews: 0,
-        startTime: '2025-01-01T12:00:00Z',
-        lastActivity: '2025-01-01T12:30:00Z',
+        startTime: '2025-01-01T12:00:00.000Z',
+        lastActivity: '2025-01-01T12:30:00.000Z',
         duration: 30.5,
       });
 
