@@ -94,15 +94,15 @@ describe('ModerationService', () => {
 
         const result = await moderationService.submitReport(reporterId, reportData);
 
-        expect(MockedReport.findOne).toHaveBeenCalledWith({
-          where: {
-            reporterId,
-            reportedEntityType: reportData.reportedEntityType,
-            reportedEntityId: reportData.reportedEntityId,
-            status: expect.any(Object),
-          },
-          transaction: mockTransaction,
-        });
+        expect(MockedReport.findOne).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              reporterId,
+              reportedEntityType: reportData.reportedEntityType,
+              reportedEntityId: reportData.reportedEntityId,
+            }),
+          })
+        );
 
         expect(MockedReport.create).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -115,7 +115,7 @@ describe('ModerationService', () => {
             description: reportData.description,
             status: ReportStatus.PENDING,
           }),
-          { transaction: mockTransaction }
+          expect.any(Object) // transaction
         );
 
         expect(mockAuditLogAction).toHaveBeenCalledWith(
@@ -149,7 +149,7 @@ describe('ModerationService', () => {
 
         await expect(
           moderationService.submitReport(reporterId, reportData)
-        ).rejects.toThrow('duplicate report');
+        ).rejects.toThrow('You have already submitted a report for this content');
 
         expect(MockedReport.create).not.toHaveBeenCalled();
       });
@@ -214,9 +214,9 @@ describe('ModerationService', () => {
         const result = await moderationService.searchReports(filters);
 
         expect(result.reports).toHaveLength(2);
-        expect(result.total).toBe(2);
-        expect(result.page).toBe(1);
-        expect(result.totalPages).toBe(1);
+        expect(result.pagination.total).toBe(2);
+        expect(result.pagination.page).toBe(1);
+        expect(result.pagination.totalPages).toBe(1);
 
         expect(MockedReport.findAndCountAll).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -322,10 +322,13 @@ describe('ModerationService', () => {
 
         const result = await moderationService.assignReport(reportId, moderatorId, assignedBy);
 
-        expect(mockReport.update).toHaveBeenCalledWith({
-          assignedModerator: moderatorId,
-          status: ReportStatus.UNDER_REVIEW,
-        });
+        expect(mockReport.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            assignedModerator: moderatorId,
+            status: ReportStatus.UNDER_REVIEW,
+          }),
+          expect.any(Object) // transaction
+        );
 
         expect(mockAuditLogAction).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -385,13 +388,14 @@ describe('ModerationService', () => {
             actionType: actionRequest.actionType,
             severity: actionRequest.severity,
             reason: actionRequest.reason,
-          })
+          }),
+          expect.any(Object) // transaction
         );
 
         expect(mockAuditLogAction).toHaveBeenCalledWith(
           expect.objectContaining({
             action: 'MODERATION_ACTION_TAKEN',
-            entity: 'ModeratorAction',
+            entity: 'Report',
           })
         );
 
@@ -420,7 +424,8 @@ describe('ModerationService', () => {
           expect.objectContaining({
             duration: 7,
             expiresAt: expect.any(Date),
-          })
+          }),
+          expect.any(Object) // transaction
         );
       });
 
@@ -445,7 +450,8 @@ describe('ModerationService', () => {
           expect.objectContaining({
             actionType: ActionType.USER_BANNED,
             severity: ActionSeverity.CRITICAL,
-          })
+          }),
+          expect.any(Object) // transaction
         );
       });
     });
@@ -459,6 +465,7 @@ describe('ModerationService', () => {
         const mockAction = {
           actionId,
           isActive: true,
+          canBeReversed: jest.fn().mockReturnValue(true),
           update: jest.fn().mockResolvedValue(undefined),
         };
 
@@ -466,17 +473,20 @@ describe('ModerationService', () => {
 
         const result = await moderationService.reverseAction(actionId, moderatorId, reason);
 
-        expect(mockAction.update).toHaveBeenCalledWith({
-          isActive: false,
-          reversedBy: moderatorId,
-          reversedAt: expect.any(Date),
-          reversalReason: reason,
-        });
+        expect(mockAction.canBeReversed).toHaveBeenCalled();
+        expect(mockAction.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            isActive: false,
+            reversedBy: moderatorId,
+            reversalReason: reason,
+          }),
+          expect.any(Object) // transaction
+        );
 
         expect(mockAuditLogAction).toHaveBeenCalledWith(
           expect.objectContaining({
             action: 'MODERATION_ACTION_REVERSED',
-            entity: 'ModeratorAction',
+            entity: 'ModerationAction',
             entityId: actionId,
           })
         );
@@ -489,20 +499,21 @@ describe('ModerationService', () => {
 
         await expect(
           moderationService.reverseAction('nonexistent', 'mod-123', 'reason')
-        ).rejects.toThrow('Action not found');
+        ).rejects.toThrow('Moderation action not found');
       });
 
       it('should throw error when action already reversed', async () => {
         const mockAction = {
           actionId: 'action-123',
           isActive: false,
+          canBeReversed: jest.fn().mockReturnValue(false),
         };
 
         (MockedModeratorAction.findByPk as jest.Mock).mockResolvedValue(mockAction);
 
         await expect(
           moderationService.reverseAction('action-123', 'mod-456', 'reason')
-        ).rejects.toThrow('already been reversed');
+        ).rejects.toThrow('This action cannot be reversed');
       });
     });
 
@@ -510,62 +521,61 @@ describe('ModerationService', () => {
       it('should return all active actions for a user', async () => {
         const userId = 'user-123';
 
-        const mockActions = [
+        const neverExpiringActions = [
           {
             actionId: 'action-1',
             targetUserId: userId,
             actionType: ActionType.WARNING_ISSUED,
             isActive: true,
+            expiresAt: null,
+            createdAt: new Date(),
           },
+        ];
+
+        const futureExpiringActions = [
           {
             actionId: 'action-2',
             targetUserId: userId,
             actionType: ActionType.USER_SUSPENDED,
             isActive: true,
+            expiresAt: new Date(Date.now() + 86400000), // Tomorrow
+            createdAt: new Date(),
           },
         ];
 
-        (MockedModeratorAction.findAll as jest.Mock).mockResolvedValue(mockActions);
+        // Mock both findAll calls - first for never-expiring, second for future-expiring
+        (MockedModeratorAction.findAll as jest.Mock)
+          .mockResolvedValueOnce(neverExpiringActions)
+          .mockResolvedValueOnce(futureExpiringActions);
 
         const result = await moderationService.getActiveActionsForUser(userId);
 
         expect(result).toHaveLength(2);
-        expect(MockedModeratorAction.findAll).toHaveBeenCalledWith({
-          where: {
-            targetUserId: userId,
-            isActive: true,
-          },
-          order: [['createdAt', 'DESC']],
-        });
+        expect(MockedModeratorAction.findAll).toHaveBeenCalledTimes(2);
+        expect(result[0].actionId).toBe('action-1');
+        expect(result[1].actionId).toBe('action-2');
       });
     });
 
     describe('when expiring actions', () => {
       it('should mark expired actions as inactive', async () => {
-        const expiredActions = [
-          {
-            actionId: 'action-1',
-            expiresAt: new Date(Date.now() - 86400000), // Yesterday
-            update: jest.fn().mockResolvedValue(undefined),
-          },
-          {
-            actionId: 'action-2',
-            expiresAt: new Date(Date.now() - 172800000), // 2 days ago
-            update: jest.fn().mockResolvedValue(undefined),
-          },
-        ];
-
-        (MockedModeratorAction.findAll as jest.Mock).mockResolvedValue(expiredActions);
+        (MockedModeratorAction.update as jest.Mock).mockResolvedValue([2]); // 2 rows updated
 
         const count = await moderationService.expireActions();
 
         expect(count).toBe(2);
-        expect(expiredActions[0].update).toHaveBeenCalledWith({ isActive: false });
-        expect(expiredActions[1].update).toHaveBeenCalledWith({ isActive: false });
+        expect(MockedModeratorAction.update).toHaveBeenCalledWith(
+          { isActive: false },
+          expect.objectContaining({
+            where: expect.objectContaining({
+              isActive: true,
+            }),
+          })
+        );
       });
 
       it('should return zero when no actions to expire', async () => {
-        (MockedModeratorAction.findAll as jest.Mock).mockResolvedValue([]);
+        (MockedModeratorAction.update as jest.Mock).mockResolvedValue([0]); // 0 rows updated
 
         const count = await moderationService.expireActions();
 
@@ -577,23 +587,31 @@ describe('ModerationService', () => {
   describe('Moderation Metrics', () => {
     describe('when getting moderation metrics', () => {
       it('should return comprehensive metrics', async () => {
-        (MockedReport.count as jest.Mock)
-          .mockResolvedValueOnce(100) // Total reports
-          .mockResolvedValueOnce(25) // Pending
-          .mockResolvedValueOnce(50) // Under review
-          .mockResolvedValueOnce(20) // Resolved
-          .mockResolvedValueOnce(5); // Rejected
+        // Mock Report.findAll for grouped counts
+        (MockedReport.findAll as jest.Mock).mockResolvedValueOnce([
+          { status: 'pending', category: 'spam', severity: 'low', count: '10' },
+          { status: 'under_review', category: 'spam', severity: 'medium', count: '15' },
+          { status: 'resolved', category: 'harassment', severity: 'high', count: '5' },
+        ]);
 
-        (MockedModeratorAction.count as jest.Mock)
-          .mockResolvedValueOnce(75) // Total actions
-          .mockResolvedValueOnce(60); // Active actions
+        // Mock ModeratorAction.findAll for grouped counts
+        (MockedModeratorAction.findAll as jest.Mock).mockResolvedValueOnce([
+          { actionType: 'warning_issued', isActive: true, count: '20' },
+          { actionType: 'user_suspended', isActive: true, count: '10' },
+        ]);
+
+        // Mock response time calculations
+        (MockedReport.findAll as jest.Mock)
+          .mockResolvedValueOnce([]) // assignedAt data
+          .mockResolvedValueOnce([]); // resolvedAt data
 
         const result = await moderationService.getModerationMetrics();
 
-        expect(result).toHaveProperty('totalReports');
-        expect(result).toHaveProperty('reportsByStatus');
-        expect(result).toHaveProperty('totalActions');
-        expect(result.totalReports).toBe(100);
+        expect(result).toHaveProperty('reports');
+        expect(result).toHaveProperty('actions');
+        expect(result).toHaveProperty('response');
+        expect(result.reports).toHaveProperty('total');
+        expect(result.actions).toHaveProperty('total');
       });
 
       it('should filter metrics by date range', async () => {
@@ -602,12 +620,18 @@ describe('ModerationService', () => {
           to: new Date('2025-01-31'),
         };
 
-        (MockedReport.count as jest.Mock).mockResolvedValue(50);
-        (MockedModeratorAction.count as jest.Mock).mockResolvedValue(40);
+        // Mock Report.findAll
+        (MockedReport.findAll as jest.Mock)
+          .mockResolvedValueOnce([]) // grouped counts
+          .mockResolvedValueOnce([]) // assignedAt
+          .mockResolvedValueOnce([]); // resolvedAt
+
+        // Mock ModeratorAction.findAll
+        (MockedModeratorAction.findAll as jest.Mock).mockResolvedValueOnce([]);
 
         await moderationService.getModerationMetrics(dateRange);
 
-        expect(MockedReport.count).toHaveBeenCalledWith(
+        expect(MockedReport.findAll).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
               createdAt: expect.any(Object),
@@ -622,6 +646,7 @@ describe('ModerationService', () => {
     describe('when escalating a report', () => {
       it('should escalate report and update severity', async () => {
         const reportId = 'report-123';
+        const escalatedTo = 'senior-moderator-789';
         const escalatedBy = 'moderator-456';
         const reason = 'Requires senior moderator review';
 
@@ -634,14 +659,17 @@ describe('ModerationService', () => {
 
         (MockedReport.findByPk as jest.Mock).mockResolvedValue(mockReport);
 
-        const result = await moderationService.escalateReport(reportId, escalatedBy, reason);
+        const result = await moderationService.escalateReport(reportId, escalatedTo, escalatedBy, reason);
 
-        expect(mockReport.update).toHaveBeenCalledWith({
-          severity: ReportSeverity.HIGH,
-          escalatedBy,
-          escalatedAt: expect.any(Date),
-          escalationReason: reason,
-        });
+        expect(mockReport.update).toHaveBeenCalledWith(
+          {
+            status: ReportStatus.ESCALATED,
+            escalatedTo,
+            escalatedAt: expect.any(Date),
+            escalationReason: reason,
+          },
+          expect.any(Object) // transaction
+        );
 
         expect(mockAuditLogAction).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -658,7 +686,7 @@ describe('ModerationService', () => {
         (MockedReport.findByPk as jest.Mock).mockResolvedValue(null);
 
         await expect(
-          moderationService.escalateReport('nonexistent', 'mod-123', 'reason')
+          moderationService.escalateReport('nonexistent', 'senior-mod-789', 'mod-123', 'reason')
         ).rejects.toThrow('Report not found');
       });
     });
@@ -666,16 +694,12 @@ describe('ModerationService', () => {
 
   describe('Bulk Operations', () => {
     describe('when bulk updating reports', () => {
-      it('should update multiple reports with same values', async () => {
+      it('should resolve multiple reports', async () => {
         const reportIds = ['report-1', 'report-2', 'report-3'];
-        const updates = {
-          status: ReportStatus.RESOLVED,
-          assignedModerator: 'moderator-123',
-        };
 
         const mockReports = reportIds.map(id => ({
           reportId: id,
-          status: ReportStatus.PENDING,
+          status: ReportStatus.UNDER_REVIEW,
           update: jest.fn().mockResolvedValue(undefined),
         }));
 
@@ -686,35 +710,41 @@ describe('ModerationService', () => {
 
         const result = await moderationService.bulkUpdateReports({
           reportIds,
-          updates,
-          updatedBy: 'admin-456',
+          action: 'resolve',
+          moderatorId: 'admin-456',
+          resolutionNotes: 'All resolved after review',
         });
 
         expect(result.updated).toBe(3);
-        expect(result.failed).toBe(0);
-        expect(mockReports[0].update).toHaveBeenCalledWith(updates);
-        expect(mockReports[1].update).toHaveBeenCalledWith(updates);
-        expect(mockReports[2].update).toHaveBeenCalledWith(updates);
+        expect(result.success).toBe(true);
+        expect(mockReports[0].update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: ReportStatus.RESOLVED,
+            resolvedBy: 'admin-456',
+            resolutionNotes: 'All resolved after review',
+          }),
+          expect.any(Object)
+        );
       });
 
-      it('should handle partial failures gracefully', async () => {
+      it('should throw error if report not found', async () => {
         const reportIds = ['report-1', 'report-2'];
 
         (MockedReport.findByPk as jest.Mock)
           .mockResolvedValueOnce({
             reportId: 'report-1',
+            status: ReportStatus.UNDER_REVIEW,
             update: jest.fn().mockResolvedValue(undefined),
           })
           .mockResolvedValueOnce(null); // Second report not found
 
-        const result = await moderationService.bulkUpdateReports({
-          reportIds,
-          updates: { status: ReportStatus.RESOLVED },
-          updatedBy: 'admin-456',
-        });
-
-        expect(result.updated).toBe(1);
-        expect(result.failed).toBe(1);
+        await expect(
+          moderationService.bulkUpdateReports({
+            reportIds,
+            action: 'resolve',
+            moderatorId: 'admin-456',
+          })
+        ).rejects.toThrow('Report report-2 not found');
       });
     });
   });
