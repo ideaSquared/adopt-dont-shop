@@ -155,10 +155,6 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public canLogin(): boolean {
     return this.status === UserStatus.ACTIVE && this.emailVerified && !this.isAccountLocked();
   }
-
-  public static associate(models: any) {
-    this.belongsToMany(models.Role, { through: models.UserRole, foreignKey: 'userId' });
-  }
 }
 
 User.init(

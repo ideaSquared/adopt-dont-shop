@@ -36,6 +36,12 @@ export enum SwipeActionType {
   INFO = 'info',
 }
 
+// Result type for count operations
+interface SwipeActionCountResult {
+  action: SwipeActionType;
+  count: string;
+}
+
 // SwipeAction model class
 export class SwipeAction
   extends Model<SwipeActionAttributes, SwipeActionCreationAttributes>
@@ -71,12 +77,12 @@ export class SwipeAction
     superLikes: number;
     infos: number;
   }> {
-    const results = await SwipeAction.findAll({
+    const results = (await SwipeAction.findAll({
       where: { userId },
       attributes: ['action', [sequelize.fn('COUNT', sequelize.col('action')), 'count']],
       group: ['action'],
       raw: true,
-    });
+    })) as unknown as SwipeActionCountResult[];
 
     const counts = {
       totalSwipes: 0,
@@ -86,7 +92,7 @@ export class SwipeAction
       infos: 0,
     };
 
-    results.forEach((result: any) => {
+    results.forEach((result: SwipeActionCountResult) => {
       const count = parseInt(result.count);
       counts.totalSwipes += count;
 
@@ -129,12 +135,12 @@ export class SwipeAction
     infos: number;
     likeRatio: number;
   }> {
-    const results = await SwipeAction.findAll({
+    const results = (await SwipeAction.findAll({
       where: { petId },
       attributes: ['action', [sequelize.fn('COUNT', sequelize.col('action')), 'count']],
       group: ['action'],
       raw: true,
-    });
+    })) as unknown as SwipeActionCountResult[];
 
     const stats = {
       likes: 0,
@@ -146,7 +152,7 @@ export class SwipeAction
 
     let totalActions = 0;
 
-    results.forEach((result: any) => {
+    results.forEach((result: SwipeActionCountResult) => {
       const count = parseInt(result.count);
       totalActions += count;
 

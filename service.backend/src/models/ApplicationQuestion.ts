@@ -1,6 +1,6 @@
-import { DataTypes, Model, Op, Optional } from 'sequelize';
+import { DataTypes, Model, Op, Optional, WhereOptions } from 'sequelize';
 import sequelize from '../sequelize';
-import { JsonObject } from '../types/common';
+import { JsonObject, JsonValue } from '../types/common';
 
 export enum QuestionCategory {
   PERSONAL_INFORMATION = 'personal_information',
@@ -103,7 +103,7 @@ class ApplicationQuestion
     return this.isSelectType();
   }
 
-  public validateAnswer(answer: any): { isValid: boolean; error?: string } {
+  public validateAnswer(answer: JsonValue): { isValid: boolean; error?: string } {
     // Basic validation
     if (this.is_required && (answer === null || answer === undefined || answer === '')) {
       return { isValid: false, error: 'This question is required' };
@@ -112,12 +112,12 @@ class ApplicationQuestion
     // Type-specific validation
     switch (this.question_type) {
       case QuestionType.EMAIL:
-        if (answer && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answer)) {
+        if (answer && typeof answer === 'string' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answer)) {
           return { isValid: false, error: 'Please enter a valid email address' };
         }
         break;
       case QuestionType.PHONE:
-        if (answer && !/^\+?[1-9]\d{1,14}$/.test(answer.replace(/\s|-|\(|\)/g, ''))) {
+        if (answer && typeof answer === 'string' && !/^\+?[1-9]\d{1,14}$/.test(answer.replace(/\s|-|\(|\)/g, ''))) {
           return { isValid: false, error: 'Please enter a valid phone number' };
         }
         break;
@@ -127,13 +127,13 @@ class ApplicationQuestion
         }
         break;
       case QuestionType.SELECT:
-        if (answer && this.options && !this.options.includes(answer)) {
+        if (answer && typeof answer === 'string' && this.options && !this.options.includes(answer)) {
           return { isValid: false, error: 'Please select a valid option' };
         }
         break;
       case QuestionType.MULTI_SELECT:
         if (answer && Array.isArray(answer) && this.options) {
-          const invalidOptions = answer.filter(opt => !this.options!.includes(opt));
+          const invalidOptions = answer.filter(opt => typeof opt === 'string' && !this.options!.includes(opt));
           if (invalidOptions.length > 0) {
             return { isValid: false, error: 'Some selected options are invalid' };
           }
@@ -154,7 +154,7 @@ class ApplicationQuestion
   public static async getCoreQuestions(
     category?: QuestionCategory
   ): Promise<ApplicationQuestion[]> {
-    const where: any = { scope: QuestionScope.CORE, is_enabled: true };
+    const where: WhereOptions<ApplicationQuestionAttributes> = { scope: QuestionScope.CORE, is_enabled: true };
     if (category) {
       where.category = category;
     }
@@ -172,7 +172,7 @@ class ApplicationQuestion
     rescueId: string,
     category?: QuestionCategory
   ): Promise<ApplicationQuestion[]> {
-    const where: any = {
+    const where: WhereOptions<ApplicationQuestionAttributes> = {
       rescue_id: rescueId,
       scope: QuestionScope.RESCUE_SPECIFIC,
       is_enabled: true,
@@ -266,7 +266,7 @@ ApplicationQuestion.init(
       allowNull: true,
       validate: {
         isValidOptions(value: string[] | null) {
-          const question = this as any;
+          const question = this as unknown as ApplicationQuestion;
           if (
             question.question_type &&
             ['select', 'multi_select'].includes(question.question_type) &&
