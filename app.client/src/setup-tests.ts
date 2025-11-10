@@ -1,20 +1,24 @@
 import '@testing-library/jest-dom';
+import { setupServer } from 'msw/node';
+import { mswHandlers } from './test-utils/msw-handlers';
 
-// Note: MSW setup commented out for now to avoid module resolution issues
-// TODO: Set up MSW properly for integration testing
-// import { setupServer } from 'msw/node';
-// import { mswHandlers } from './test-utils/msw-handlers';
-
-// const server = setupServer(...mswHandlers);
+// Set up MSW server for all tests
+const server = setupServer(...mswHandlers);
 
 // Start MSW server before all tests
-// beforeAll(() => server.listen());
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'warn' });
+});
 
 // Reset any runtime request handlers between tests
-// afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+});
 
 // Clean up after all tests are done
-// afterAll(() => server.close());
+afterAll(() => {
+  server.close();
+});
 
 // Mock import.meta for Jest
 Object.defineProperty(globalThis, 'import', {
