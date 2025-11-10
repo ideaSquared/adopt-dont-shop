@@ -1,11 +1,12 @@
 import { Express } from 'express';
 import path from 'path';
-import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerJsdoc, { Options, OAS3Definition } from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
+import { logger } from '../utils/logger';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SwaggerSpec = any;
+// Type for the generated Swagger specification
+type SwaggerSpec = OAS3Definition & { paths?: Record<string, unknown> };
 
 /**
  * Setup Swagger UI for API documentation
@@ -13,7 +14,7 @@ type SwaggerSpec = any;
 export function setupSwagger(app: Express) {
   try {
     // swagger-jsdoc configuration
-    const swaggerOptions = {
+    const swaggerOptions: Options = {
       definition: {
         openapi: '3.0.3',
         info: {
@@ -184,33 +185,33 @@ export function setupSwagger(app: Express) {
     };
 
     // Generate OpenAPI specification from JSDoc comments
-    const swaggerSpec: SwaggerSpec = swaggerJsdoc(swaggerOptions);
+    const swaggerSpec = swaggerJsdoc(swaggerOptions) as SwaggerSpec;
 
     // Also try to merge with existing OpenAPI YAML if it exists
-    let finalSpec = swaggerSpec;
+    let finalSpec: SwaggerSpec = swaggerSpec;
     try {
-      const existingSpec: SwaggerSpec = YAML.load(path.join(__dirname, '../../docs/openapi.yaml'));
+      const existingSpec = YAML.load(path.join(__dirname, '../../docs/openapi.yaml')) as SwaggerSpec | undefined;
       if (existingSpec) {
         // Merge the specs - JSDoc takes precedence for paths, existing spec for schemas
         finalSpec = {
           ...existingSpec,
           ...swaggerSpec,
           paths: {
-            ...existingSpec.paths,
-            ...swaggerSpec.paths,
+            ...(existingSpec.paths || {}),
+            ...(swaggerSpec.paths || {}),
           },
           components: {
-            ...existingSpec.components,
-            ...swaggerSpec.components,
+            ...(existingSpec.components || {}),
+            ...(swaggerSpec.components || {}),
             securitySchemes: {
-              ...existingSpec.components?.securitySchemes,
-              ...swaggerSpec.components?.securitySchemes,
+              ...(existingSpec.components?.securitySchemes || {}),
+              ...(swaggerSpec.components?.securitySchemes || {}),
             },
           },
         };
       }
     } catch (yamlError) {
-      console.warn('Could not load existing OpenAPI YAML file, using JSDoc-generated spec only');
+      logger.warn('Could not load existing OpenAPI YAML file, using JSDoc-generated spec only');
     }
 
     // Swagger UI options
@@ -270,16 +271,12 @@ export function setupSwagger(app: Express) {
     });
 
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.log('📖 Swagger UI setup complete');
-      // eslint-disable-next-line no-console
-      console.log('📍 API Documentation available at: /api/docs');
-      // eslint-disable-next-line no-console
-      console.log('📄 OpenAPI JSON available at: /api/docs/swagger.json');
+      logger.info('Swagger UI setup complete');
+      logger.info('API Documentation available at: /api/docs');
+      logger.info('OpenAPI JSON available at: /api/docs/swagger.json');
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('❌ Failed to setup Swagger UI:', error);
+    logger.error('Failed to setup Swagger UI:', { error });
   }
 }
 

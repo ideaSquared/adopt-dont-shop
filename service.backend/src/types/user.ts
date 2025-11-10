@@ -70,7 +70,7 @@ export interface UserUpdateData {
   };
   bio?: string;
   profileImage?: string;
-  preferences?: any;
+  preferences?: UserPreferences;
 }
 
 export interface UserPreferences {

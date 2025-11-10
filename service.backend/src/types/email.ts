@@ -101,9 +101,18 @@ export interface EmailNotificationPreference {
   channels?: string[];
 }
 
-// Email provider types
+// Email provider types - removed index signature that conflicts with optional properties
 export interface EmailProviderConfig {
-  [key: string]: any;
+  host?: string;
+  port?: number;
+  secure?: boolean;
+  auth?: {
+    user?: string;
+    pass?: string;
+  };
+  service?: string;
+  apiKey?: string;
+  region?: string;
 }
 
 export interface EmailSendResult {

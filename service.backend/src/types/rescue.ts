@@ -20,5 +20,25 @@ export interface AdoptionPolicy {
 
 export interface RescueSettings {
   adoptionPolicies?: AdoptionPolicy;
-  [key: string]: any;
+  autoApprovalEnabled?: boolean;
+  notificationPreferences?: {
+    email?: boolean;
+    sms?: boolean;
+    push?: boolean;
+  };
+  operatingHours?: {
+    monday?: string;
+    tuesday?: string;
+    wednesday?: string;
+    thursday?: string;
+    friday?: string;
+    saturday?: string;
+    sunday?: string;
+  };
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    website?: string;
+  };
 }
