@@ -29,6 +29,7 @@ export interface AuditLogData {
   userAgent?: string;
   service?: string;
   level?: 'INFO' | 'WARNING' | 'ERROR';
+  status?: 'success' | 'failure';
 }
 
 export class AuditLogService {
@@ -42,6 +43,7 @@ export class AuditLogService {
         user: data.userId,
         action: data.action,
         level: data.level || 'INFO',
+        status: data.status,
         timestamp: new Date(),
         metadata: {
           entity: data.entity,
@@ -87,8 +89,8 @@ export class AuditLogService {
         include: [
           {
             model: User,
-            as: 'user',
-            attributes: ['userId', 'firstName', 'lastName', 'email'],
+            as: 'userDetails',
+            attributes: ['userId', 'firstName', 'lastName', 'email', 'userType'],
           },
         ],
         ...options,

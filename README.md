@@ -1,33 +1,80 @@
-[![Backend CI](https://github.com/ideaSquared/adopt-dont-shop/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/ideaSquared/adopt-dont-shop/actions/workflows/backend-ci.yml)
-[![Frontend CI](https://github.com/ideaSquared/adopt-dont-shop/actions/workflows/frontend-ci.yml/badge.svg?branch=main)](https://github.com/ideaSquared/adopt-dont-shop/actions/workflows/frontend-ci.yml)
+# 🐾 Adopt Don't Shop - Pet Adoption Platform
 
-# Adopt Don't Shop - Pet Adoption Platform
-
-A comprehensive pet adoption platform connecting rescue organizations with potential adopters. Built as a multi-service architecture with React frontends and Node.js backend services.
+A comprehensive pet adoption platform connecting rescue organizations with potential adopters. Built with **industry-standard monorepo workspace architecture** using React frontends and Node.js backend services.
 
 ## 🚀 Quick Start
 
-### For Docker Development
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v20+)
+- [Docker](https://www.docker.com/) & Docker Compose
+- [Git](https://git-scm.com/)
 
-1. **Start all services:**
-   ```bash
-   docker-compose up -d
-   ```
+### 1. Clone & Setup
+```bash
+git clone <repository-url>
+cd adopt-dont-shop
+npm install
+```
 
-2. **Access the applications:**
-   - **✅ Recommended:** `http://localhost` (through nginx)
-   - **Development only:** `http://localhost:3000` (direct access)
+### 2. Start Development Environment
+```bash
+# Start all services with Docker
+docker-compose up -d
 
-3. **Important:** Use `http://localhost` for proper API routing. Direct access to `:3000` may cause API connectivity issues.
+# Or start individual services locally
+npm run dev:client    # Port 3000
+npm run dev:admin     # Port 3001  
+npm run dev:rescue    # Port 3002
+npm run dev:backend   # Port 5000
+```
 
-📋 **See [DOCKER-ACCESS-GUIDE.md](./DOCKER-ACCESS-GUIDE.md) for detailed setup instructions and troubleshooting.**
+### 3. Access Applications
+- **🌐 Client App**: http://localhost:3000 - Public adoption portal
+- **👨‍💼 Admin App**: http://localhost:3001 - Platform management
+- **🏥 Rescue App**: http://localhost:3002 - Rescue organizations
+- **⚡ Backend API**: http://localhost:5000 - REST API server
+- **🔄 Nginx Proxy**: http://localhost:80 - Reverse proxy (production)
 
-## 🏗️ Architecture
+## 📖 **Documentation**
 
-The platform consists of multiple specialized applications:
+Complete documentation is available in the [`docs/`](./docs/) folder:
 
-- **🐕 Client App** - Public-facing pet adoption interface
-- **👨‍💼 Admin App** - Administrative dashboard for platform management  
+### 🚀 **Quick Links**
+- **[📋 Documentation Index](./docs/README.md)** - Start here for complete documentation
+- **[🏗️ Setup Guide](./docs/infrastructure/docker-setup.md)** - Get development environment running
+- **[📚 Libraries](./docs/libraries/README.md)** - Shared packages and utilities
+- **[🎯 Architecture](./docs/infrastructure/INFRASTRUCTURE.md)** - System design overview
+
+### 👥 **Role-Based Entry Points**
+- **New Developer** → [Docker Setup Guide](./docs/infrastructure/docker-setup.md)
+- **Frontend Developer** → [Frontend Apps](./docs/frontend/)
+- **Backend Developer** → [Backend Services](./docs/backend/)
+- **DevOps Engineer** → [Infrastructure](./docs/infrastructure/)
+
+## 🏗️ **Optimized Architecture**
+
+### **Monorepo Workspace Structure**
+```
+adopt-dont-shop/
+├── 📱 Frontend Apps
+│   ├── app.client/         # Public adoption portal
+│   ├── app.admin/          # Internal management
+│   └── app.rescue/         # Rescue organizations
+├── 🔧 Backend Services  
+│   └── service.backend/    # Main API server
+├── 📚 Shared Libraries
+│   ├── lib.api/           # API client utilities
+│   ├── lib.auth/          # Authentication logic
+│   ├── lib.chat/          # Real-time messaging
+│   ├── lib.validation/    # Data validation
+│   └── lib.components/    # React UI components
+├── 🗃️ Infrastructure
+│   ├── docker-compose.yml # Optimized container setup
+│   ├── nginx/             # Reverse proxy config
+│   └── scripts/           # Development utilities
+└── 📖 Documentation
+    └── docs/              # All project documentation
+```  
 - **🏠 Rescue App** - Rescue organization management portal
 - **🔧 Backend Service** - Main API and business logic
 - **📦 Component Library** - Shared UI components across apps
@@ -147,10 +194,43 @@ POSTGRES_DB=adopt_dont_shop
 # Security
 JWT_SECRET=your-secure-secret-key
 
-# API URLs
-VITE_API_URL=http://api.localhost
-VITE_WS_URL=ws://api.localhost
+# API URLs - Industry Standard Configuration
+VITE_API_BASE_URL=http://api.localhost:5000
+VITE_WS_BASE_URL=ws://api.localhost:5000
 ```
+
+### 🌐 CORS Configuration
+
+**⚡ Centralized CORS Management:** All CORS origins are configured in the root `.env` file for consistency across all applications.
+
+```env
+# CORS Configuration - Centralized for all applications
+# Includes both direct container access and nginx proxied access
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost,http://admin.localhost,http://admin.localhost:3001,http://rescue.localhost,http://rescue.localhost:3002,http://api.localhost:5000
+```
+
+**Supported Access Methods:**
+- **Nginx Proxy Access** (Recommended): `http://localhost`, `http://admin.localhost`, `http://rescue.localhost`
+- **Direct Container Access**: `http://localhost:3000`, `http://localhost:3001`, `http://localhost:3002`
+- **API Access**: `http://api.localhost:5000`
+
+**Important Notes:**
+- **Single Source of Truth**: CORS origins are defined once in the root `.env` file
+- **All Apps Included**: Configuration covers both nginx-proxied and direct container access
+- **Docker Integration**: The `docker-compose.yml` automatically uses the centralized CORS configuration
+- **No Individual App Configuration**: Do not modify CORS settings in individual app `.env` files
+
+**Troubleshooting CORS Issues:**
+1. Ensure all your app URLs are included in the root `.env` CORS_ORIGIN setting
+2. Restart Docker services after changing CORS configuration: `docker-compose restart service-backend`
+3. Use browser dev tools to verify Access-Control-Allow-Origin headers are present
+4. Check if you're accessing via nginx proxy (`rescue.localhost`) or direct container (`localhost:3002`)
+
+**⚠️ Important API Endpoint Notes:**
+- **All API endpoints use `/api/v1/` prefix** (e.g., `/api/v1/auth/login`, not `/api/auth/login`)
+- **Backend API Base URL**: `http://api.localhost:5000` for local development  
+- **API Documentation**: Available at `http://api.localhost:5000/api/docs` (Swagger UI)
+- Always check the backend routes in `service.backend/src/index.ts` for the correct endpoint structure
 
 ### Common Commands
 
@@ -202,6 +282,53 @@ docker-compose exec service-backend bash
 docker-compose exec app-client sh
 ```
 
+### Backend Development & Hot Reload
+
+The backend uses **smart development mode** for optimal developer experience:
+
+#### **Normal Development (Fast - Recommended)**
+```bash
+# Start backend with hot reload and data preservation
+docker-compose up service-backend
+
+# Or locally without Docker
+npm run dev
+```
+
+**Features:**
+- ⚡ **1-2 second startup** - No database seeding on every reload
+- 💾 **Data preservation** - Test data survives file saves
+- 🔄 **Auto schema updates** - Database schema updates automatically
+- 🔥 **Hot reload enabled** - Code changes restart server instantly
+
+#### **Fresh Start (Clean Database)**
+
+When you need to reset the database to a clean state:
+
+```bash
+# Option 1: Temporary fresh start (recommended)
+FORCE_SEED=true docker-compose up service-backend
+
+# Option 2: Edit .env file
+# Change FORCE_SEED=true in .env, then restart:
+docker-compose restart service-backend
+
+# Option 3: Re-seed without restart (if backend is running)
+docker-compose exec service-backend npm run seed:dev
+```
+
+**When to use fresh start:**
+- Starting a new feature that needs clean data
+- Testing database migrations
+- Data becomes corrupted or inconsistent
+- Setting up the project for the first time
+
+**Performance:**
+- Normal mode: ~1-2 seconds per reload
+- Fresh mode: ~10-30 seconds (drops tables and runs 28 seeders)
+
+**💡 Pro Tip:** Use normal mode for daily development. Only use fresh start when explicitly needed. This dramatically improves your development workflow!
+
 ### Database Management
 
 #### **With Turborepo Setup**
@@ -209,10 +336,13 @@ docker-compose exec app-client sh
 # Run migrations
 docker-compose -f docker-compose.turbo.yml exec service-backend npm run migrate
 
-# Seed database
-docker-compose -f docker-compose.turbo.yml exec service-backend npm run seed
+# Seed database (manual)
+docker-compose -f docker-compose.turbo.yml exec service-backend npm run seed:dev
 
-# Reset database (⚠️ destructive)
+# Fresh start with clean data
+FORCE_SEED=true docker-compose -f docker-compose.turbo.yml up service-backend
+
+# Reset database (⚠️ destructive - removes volumes)
 docker-compose -f docker-compose.turbo.yml down --volumes
 docker-compose -f docker-compose.turbo.yml up --build -d
 ```
@@ -222,10 +352,13 @@ docker-compose -f docker-compose.turbo.yml up --build -d
 # Run migrations
 docker-compose exec service-backend npm run migrate
 
-# Seed database
-docker-compose exec service-backend npm run seed
+# Seed database (manual)
+docker-compose exec service-backend npm run seed:dev
 
-# Reset database (⚠️ destructive)
+# Fresh start with clean data
+FORCE_SEED=true docker-compose up service-backend
+
+# Reset database (⚠️ destructive - removes volumes)
 docker-compose down --volumes
 docker-compose up --build -d
 ```

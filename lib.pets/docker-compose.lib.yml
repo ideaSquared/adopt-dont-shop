@@ -1,0 +1,30 @@
+# Docker Compose for lib.pets development
+services:
+  lib-pets:
+    build:
+      context: ./lib.pets
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.pets:/app
+      - /app/node_modules
+      - lib_pets_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Example service that uses the library
+  lib-pets-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.pets:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-pets
+
+volumes:
+  lib_pets_dist:

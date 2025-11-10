@@ -79,7 +79,7 @@ class OfflineManager {
     try {
       const startTime = Date.now();
       // Use the same API base URL as the rest of the app to avoid calling localhost:3000
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const healthUrl = `${apiBaseUrl}/api/v1/health/simple`;
 
       const response = await fetch(healthUrl, {

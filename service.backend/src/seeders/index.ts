@@ -6,7 +6,6 @@ import { seedUsers } from './04-users';
 import { seedUserRoles } from './05-user-roles';
 import { seedRescues } from './06-rescues';
 import { seedStaffMembers } from './06.5-staff-members';
-import { seedFeatureFlags } from './07-feature-flags';
 import { seedPets } from './08-pets';
 import { seedApplications } from './09-applications';
 import { seedChats } from './10-chats';
@@ -22,6 +21,14 @@ import { seedEmilyAttachmentTest } from './20-emily-attachment-test';
 import { seedEmilyConversation3 } from './20-emily-conversation-3';
 import { seedFileUploads } from './20250111-file-uploads-seeder';
 import { seedEmilyConversation4 } from './21-emily-conversation-4';
+import { seedHomeVisits } from './22-home-visits';
+import { seedApplicationTimeline } from './23-application-timeline';
+import { seedInvitations } from './24-invitations';
+import { seedSupportTickets } from './25-support-tickets';
+import { seedReports } from './26-reports';
+import { seedModeratorActions } from './27-moderator-actions';
+import { seedUserSanctions } from './28-user-sanctions';
+import { up as seedAuditLogs } from './29-audit-logs';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -31,9 +38,15 @@ const seeders = [
   { name: 'User Roles', seeder: seedUserRoles },
   { name: 'Rescues', seeder: seedRescues },
   { name: 'Staff Members', seeder: seedStaffMembers },
-  { name: 'Feature Flags', seeder: seedFeatureFlags },
+  { name: 'Invitations', seeder: seedInvitations },
+  { name: 'Support Tickets', seeder: seedSupportTickets },
+  { name: 'Reports', seeder: seedReports },
+  { name: 'Moderator Actions', seeder: seedModeratorActions },
+  { name: 'User Sanctions', seeder: seedUserSanctions },
   { name: 'Pets', seeder: seedPets },
   { name: 'Applications', seeder: seedApplications },
+  { name: 'Home Visits', seeder: seedHomeVisits },
+  { name: 'Application Timeline', seeder: seedApplicationTimeline },
   { name: 'Chats', seeder: seedChats },
   { name: 'Messages', seeder: seedMessages },
   { name: 'File Uploads', seeder: seedFileUploads },
@@ -47,6 +60,7 @@ const seeders = [
   { name: 'Emily Attachment Test', seeder: seedEmilyAttachmentTest },
   { name: 'Swipe Sessions', seeder: () => seedSwipeSessions(sequelize.getQueryInterface()) },
   { name: 'Swipe Actions', seeder: () => seedSwipeActions(sequelize.getQueryInterface()) },
+  { name: 'Audit Logs', seeder: seedAuditLogs },
 ];
 
 export async function runAllSeeders() {
@@ -89,6 +103,7 @@ export async function clearAllData() {
 
     // Clear in reverse order to handle foreign key constraints
     const clearOrder = [
+      'audit_logs',
       'swipe_actions',
       'swipe_sessions',
       'messages',
@@ -96,6 +111,13 @@ export async function clearAllData() {
       'chats',
       'notifications',
       'ratings',
+      'home_visits',
+      'user_sanctions',
+      'moderator_actions',
+      'reports',
+      'support_tickets',
+      'invitations',
+      'staff_members',
       'applications',
       'pets',
       'user_roles',
@@ -104,7 +126,6 @@ export async function clearAllData() {
       'rescues',
       'roles',
       'permissions',
-      'feature_flags',
       'email_templates',
       'email_queue',
       'email_preferences',

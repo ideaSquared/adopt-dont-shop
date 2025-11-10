@@ -1,6 +1,5 @@
 import { PetCard } from '@/components/PetCard';
-import { rescueService } from '@/services/rescueService';
-import { Pet, Rescue } from '@/types';
+import { rescueService, petService, Rescue, Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import {
@@ -14,6 +13,7 @@ import {
 } from 'react-icons/md';
 import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { AdoptionPoliciesDisplay } from '@/components/rescue/AdoptionPoliciesDisplay';
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -262,8 +262,6 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
   const [totalPets, setTotalPets] = useState(0);
   const [hasMorePets, setHasMorePets] = useState(false);
 
-  const petsPerPage = 12;
-
   useEffect(() => {
     const fetchRescue = async () => {
       if (!id) {
@@ -276,7 +274,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
         setLoading(true);
         const [rescueData, petsData] = await Promise.all([
           rescueService.getRescue(id),
-          rescueService.getPetsByRescue(id, 1, petsPerPage),
+          petService.getPetsByRescue(id, 1),
         ]);
 
         setRescue(rescueData);
@@ -300,7 +298,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
     try {
       setPetsLoading(true);
       const nextPage = currentPage + 1;
-      const petsData = await rescueService.getPetsByRescue(id, nextPage, petsPerPage);
+      const petsData = await petService.getPetsByRescue(id, nextPage);
 
       setPets(prevPets => [...prevPets, ...petsData.data]);
       setCurrentPage(nextPage);
@@ -530,6 +528,11 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           )}
         </ContactCard>
       </RescueInfo>
+
+      <AdoptionPoliciesDisplay
+        adoptionPolicies={rescue.adoptionPolicies}
+        rescueName={rescue.name}
+      />
 
       <PetsSection>
         <div className='pets-header'>

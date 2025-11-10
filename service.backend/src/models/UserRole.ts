@@ -4,37 +4,41 @@ import Role from './Role';
 import User from './User';
 
 class UserRole extends Model {
-  public user_id!: string;
-  public role_id!: string;
-  public created_at!: Date;
-  public updated_at!: Date;
+  public userId!: string;
+  public roleId!: number;
+  public createdAt!: Date;
+  public updatedAt!: Date;
 }
 
 UserRole.init(
   {
-    user_id: {
+    userId: {
       type: DataTypes.STRING,
       references: {
         model: User,
         key: 'user_id',
       },
       primaryKey: true,
+      field: 'user_id', // Map to database column
     },
-    role_id: {
-      type: DataTypes.STRING,
+    roleId: {
+      type: DataTypes.INTEGER,
       references: {
         model: Role,
         key: 'role_id',
       },
       primaryKey: true,
+      field: 'role_id', // Map to database column
     },
-    created_at: {
+    createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      field: 'created_at',
     },
-    updated_at: {
+    updatedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      field: 'updated_at',
     },
   },
   {
@@ -43,6 +47,7 @@ UserRole.init(
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    underscored: false, // Use camelCase in the model
   }
 );
 

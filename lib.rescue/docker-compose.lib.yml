@@ -1,0 +1,30 @@
+# Docker Compose for lib.rescue development
+services:
+  lib-rescue:
+    build:
+      context: ./lib.rescue
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.rescue:/app
+      - /app/node_modules
+      - lib_rescue_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Example service that uses the library
+  lib-rescue-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.rescue:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-rescue
+
+volumes:
+  lib_rescue_dist:

@@ -57,7 +57,7 @@ export interface ConfigurationValidationError {
   key: string;
   field: string;
   message: string;
-  value?: any;
+  value?: JsonValue;
 }
 
 export interface ConfigurationValidationResult {

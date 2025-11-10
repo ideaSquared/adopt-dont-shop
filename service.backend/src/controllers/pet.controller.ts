@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
+import { PetType, Size, Gender, PetStatus, AgeGroup } from '../models/Pet';
 import PetService, { PetSearchFilters } from '../services/pet.service';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
@@ -52,8 +53,18 @@ export class PetController {
       .withMessage('Long description must be between 10 and 5000 characters'),
     body('adoptionFee')
       .optional()
-      .isFloat({ min: 0 })
-      .withMessage('Adoption fee must be a positive number'),
+      .custom(value => {
+        // Allow empty string, null, undefined (will be converted to null)
+        if (value === '' || value === null || value === undefined) {
+          return true;
+        }
+        // If value is provided, it must be a valid positive number
+        if (isNaN(value) || parseFloat(value) < 0) {
+          throw new Error('Adoption fee must be a positive number');
+        }
+        return true;
+      })
+      .withMessage('Adoption fee must be a positive number or empty'),
     body('energyLevel')
       .optional()
       .isIn(['low', 'medium', 'high', 'very_high'])
@@ -108,8 +119,18 @@ export class PetController {
       .withMessage('Size must be extra_small, small, medium, large, or extra_large'),
     body('adoptionFee')
       .optional()
-      .isFloat({ min: 0 })
-      .withMessage('Adoption fee must be a positive number'),
+      .custom(value => {
+        // Allow empty string, null, undefined (will be converted to null)
+        if (value === '' || value === null || value === undefined) {
+          return true;
+        }
+        // If value is provided, it must be a valid positive number
+        if (isNaN(value) || parseFloat(value) < 0) {
+          throw new Error('Adoption fee must be a positive number');
+        }
+        return true;
+      })
+      .withMessage('Adoption fee must be a positive number or empty'),
     body('energyLevel')
       .optional()
       .isIn(['low', 'medium', 'high', 'very_high'])
@@ -181,10 +202,10 @@ export class PetController {
 
       const filters: PetSearchFilters = {
         search: req.query.search as string,
-        type: req.query.type as any,
+        type: req.query.type as PetType | undefined,
         breed: req.query.breed as string,
-        size: req.query.size as any,
-        gender: req.query.gender as any,
+        size: req.query.size as Size | undefined,
+        gender: req.query.gender as Gender | undefined,
         goodWithChildren:
           req.query.goodWithChildren === 'true'
             ? true
@@ -210,7 +231,7 @@ export class PetController {
               ? false
               : undefined,
         rescueId: req.query.rescueId as string,
-        status: req.query.status as any,
+        status: req.query.status as PetStatus | undefined,
         ageMin: req.query.ageMin ? parseInt(req.query.ageMin as string) : undefined,
         ageMax: req.query.ageMax ? parseInt(req.query.ageMax as string) : undefined,
         adoptionFeeMin: req.query.adoptionFeeMin
@@ -220,6 +241,33 @@ export class PetController {
           ? parseFloat(req.query.adoptionFeeMax as string)
           : undefined,
       };
+
+      // If user is authenticated and is rescue staff, and no specific rescueId is provided,
+      // automatically filter by their rescue
+      const authenticatedReq = req as AuthenticatedRequest;
+      if (authenticatedReq.user && !filters.rescueId) {
+        try {
+          const StaffMember = (await import('../models/StaffMember')).default;
+          const staffMember = await StaffMember.findOne({
+            where: {
+              userId: authenticatedReq.user.userId,
+              isDeleted: false,
+              isVerified: true,
+            },
+          });
+
+          if (staffMember) {
+            filters.rescueId = staffMember.rescueId;
+            logger.info('Auto-filtering pets by user rescue:', {
+              userId: authenticatedReq.user.userId,
+              rescueId: staffMember.rescueId,
+            });
+          }
+        } catch (error) {
+          // If there's an error getting staff member, just continue without filtering
+          logger.warn('Could not determine user rescue for auto-filtering:', error);
+        }
+      }
 
       const options = {
         page: req.query.page ? parseInt(req.query.page as string) : 1,
@@ -254,8 +302,17 @@ export class PetController {
   // Create a new pet
   createPet = async (req: AuthenticatedRequest, res: Response) => {
     try {
+      logger.info('Pet creation request received', {
+        userId: req.user?.userId,
+        bodyKeys: Object.keys(req.body),
+      });
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        logger.warn('Pet creation validation failed', {
+          errors: errors.array(),
+          userId: req.user?.userId,
+        });
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
@@ -263,7 +320,57 @@ export class PetController {
         });
       }
 
-      const pet = await this.petService.createPet(req.body, req.body.rescueId, req.user!.userId);
+      const user = req.user;
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+        });
+      }
+
+      // Import StaffMember model to get rescue ID
+      const StaffMember = (await import('../models/StaffMember')).default;
+
+      // Find the user's rescue association
+      const staffMember = await StaffMember.findOne({
+        where: {
+          userId: user.userId,
+          isDeleted: false,
+          isVerified: true,
+        },
+      });
+
+      if (!staffMember) {
+        return res.status(403).json({
+          success: false,
+          message: 'User is not associated with a rescue organization',
+        });
+      }
+
+      logger.info('Creating pet for rescue', { rescueId: staffMember.rescueId });
+
+      // Sanitize request body - convert empty strings to null for numeric fields
+      const sanitizedBody = { ...req.body };
+
+      // Handle numeric fields that might be empty strings
+      const numericFields = ['adoption_fee', 'adoptionFee', 'weight_kg', 'weightKg'];
+      numericFields.forEach(field => {
+        if (
+          sanitizedBody[field] === '' ||
+          sanitizedBody[field] === null ||
+          sanitizedBody[field] === undefined
+        ) {
+          sanitizedBody[field] = null;
+        }
+      });
+
+      // Use the rescue ID from the staff member association
+      const pet = await this.petService.createPet(
+        sanitizedBody,
+        staffMember.rescueId,
+        req.user!.userId
+      );
 
       res.status(201).json({
         success: true,
@@ -328,7 +435,26 @@ export class PetController {
         });
       }
 
-      const pet = await this.petService.updatePet(req.params.petId, req.body, req.user!.userId);
+      // Sanitize request body - convert empty strings to null for numeric fields
+      const sanitizedBody = { ...req.body };
+
+      // Handle numeric fields that might be empty strings
+      const numericFields = ['adoption_fee', 'adoptionFee', 'weight_kg', 'weightKg'];
+      numericFields.forEach(field => {
+        if (
+          sanitizedBody[field] === '' ||
+          sanitizedBody[field] === null ||
+          sanitizedBody[field] === undefined
+        ) {
+          sanitizedBody[field] = null;
+        }
+      });
+
+      const pet = await this.petService.updatePet(
+        req.params.petId,
+        sanitizedBody,
+        req.user!.userId
+      );
 
       res.status(200).json({
         success: true,
@@ -469,6 +595,90 @@ export class PetController {
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve pets by rescue',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  };
+
+  // Get pets for the authenticated user's rescue
+  getMyRescuePets = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const user = req.user;
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+        });
+      }
+
+      // Import StaffMember model to get rescue ID
+      const StaffMember = (await import('../models/StaffMember')).default;
+
+      // Find the user's rescue association
+      const staffMember = await StaffMember.findOne({
+        where: {
+          userId: user.userId,
+          isDeleted: false,
+          isVerified: true,
+        },
+      });
+
+      if (!staffMember) {
+        return res.status(403).json({
+          success: false,
+          message: 'User is not associated with a rescue organization',
+        });
+      }
+
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const status = req.query.status as string;
+      const search = req.query.search as string;
+      const type = req.query.type as string;
+      const size = req.query.size as string;
+      const breed = req.query.breed as string;
+      const ageGroup = req.query.ageGroup as string;
+      const gender = req.query.gender as string;
+      const sortBy = (req.query.sortBy as string) || 'created_at';
+      const sortOrder = (req.query.sortOrder as string) || 'DESC';
+
+      // Use the searchPets method with rescue filter
+      const result = await this.petService.searchPets(
+        {
+          rescueId: staffMember.rescueId,
+          status: status as PetStatus,
+          search,
+          type: type as PetType,
+          size: size as Size,
+          breed,
+          ageGroup: ageGroup as AgeGroup,
+          gender: gender as Gender,
+        },
+        {
+          page,
+          limit,
+          sortBy,
+          sortOrder: sortOrder as 'ASC' | 'DESC',
+        }
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result.pets,
+        meta: {
+          total: result.total,
+          page: result.page,
+          totalPages: result.totalPages,
+          hasNext: result.page < result.totalPages,
+          hasPrev: result.page > 1,
+        },
+      });
+    } catch (error) {
+      logger.error('Get my rescue pets failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve your rescue pets',
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }

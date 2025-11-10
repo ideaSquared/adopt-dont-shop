@@ -313,16 +313,7 @@ export interface ApplicationData {
   };
 }
 
-export type ApplicationStatus =
-  | 'draft'
-  | 'submitted'
-  | 'under_review'
-  | 'pending_references'
-  | 'home_visit_scheduled'
-  | 'approved'
-  | 'rejected'
-  | 'withdrawn'
-  | 'on_hold';
+export type ApplicationStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn';
 
 export interface Application {
   id: string;

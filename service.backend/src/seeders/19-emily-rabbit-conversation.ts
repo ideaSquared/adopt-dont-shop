@@ -299,7 +299,7 @@ export async function seedEmilyRabbitConversation() {
     // Create file attachments
     for (const attachment of emilyRabbitConversationData.attachments) {
       await FileUpload.findOrCreate({
-        where: { upload_id: attachment.upload_id },
+        where: { stored_filename: attachment.stored_filename },
         defaults: attachment,
       });
     }

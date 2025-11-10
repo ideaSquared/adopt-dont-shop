@@ -1,5 +1,6 @@
 import Application from './Application';
 import ApplicationQuestion from './ApplicationQuestion';
+import ApplicationTimeline from './ApplicationTimeline';
 import Pet from './Pet';
 import Rescue from './Rescue';
 import User from './User';
@@ -23,7 +24,6 @@ import UserRole from './UserRole';
 
 // Additional Models
 import AuditLog from './AuditLog';
-import FeatureFlag from './FeatureFlag';
 import Invitation from './Invitation';
 import Rating from './Rating';
 import StaffMember from './StaffMember';
@@ -31,6 +31,11 @@ import StaffMember from './StaffMember';
 // Content Moderation Models
 import ModeratorAction from './ModeratorAction';
 import Report from './Report';
+import UserSanction from './UserSanction';
+
+// Support System Models
+import SupportTicket from './SupportTicket';
+import SupportTicketResponse from './SupportTicketResponse';
 
 // Email Models
 import EmailPreference from './EmailPreference';
@@ -41,6 +46,9 @@ import EmailTemplate from './EmailTemplate';
 import { SwipeAction } from './SwipeAction';
 import { SwipeSession } from './SwipeSession';
 
+// Application Management Models
+import HomeVisit from './HomeVisit';
+
 // Define all models
 const models = {
   User,
@@ -49,6 +57,7 @@ const models = {
   Pet,
   Application,
   ApplicationQuestion,
+  ApplicationTimeline,
   Chat,
   ChatParticipant,
   Message,
@@ -61,16 +70,19 @@ const models = {
   AuditLog,
   Rating,
   StaffMember,
-  FeatureFlag,
   Invitation,
   ModeratorAction,
   Report,
+  UserSanction,
+  SupportTicket,
+  SupportTicketResponse,
   EmailTemplate,
   EmailQueue,
   EmailPreference,
   SwipeSession,
   SwipeAction,
   FileUpload,
+  HomeVisit,
 };
 
 // Setup associations (done explicitly below instead of using associate methods)
@@ -81,6 +93,13 @@ Application.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
 Pet.hasMany(Application, { foreignKey: 'pet_id', as: 'Applications' });
 Application.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
+
+// Application Timeline associations
+Application.hasMany(ApplicationTimeline, { foreignKey: 'application_id', as: 'Timeline' });
+ApplicationTimeline.belongsTo(Application, { foreignKey: 'application_id', as: 'Application' });
+
+User.hasMany(ApplicationTimeline, { foreignKey: 'created_by', as: 'CreatedTimelineEvents' });
+ApplicationTimeline.belongsTo(User, { foreignKey: 'created_by', as: 'CreatedBy' });
 
 Rescue.hasMany(Application, { foreignKey: 'rescue_id', as: 'Applications' });
 Application.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
@@ -143,8 +162,8 @@ Permission.belongsToMany(Role, {
 });
 
 // Audit and tracking associations
-User.hasMany(AuditLog, { foreignKey: 'user_id', as: 'AuditLogs' });
-AuditLog.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+User.hasMany(AuditLog, { foreignKey: 'user', sourceKey: 'userId', as: 'AuditLogs' });
+AuditLog.belongsTo(User, { foreignKey: 'user', targetKey: 'userId', as: 'userDetails' });
 
 // Rating associations
 User.hasMany(Rating, { foreignKey: 'reviewer_id', as: 'GivenRatings' });
@@ -162,6 +181,13 @@ StaffMember.belongsTo(Rescue, { foreignKey: 'rescueId', as: 'rescue' });
 
 User.hasMany(StaffMember, { foreignKey: 'userId', as: 'staffMemberships' });
 StaffMember.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// Invitation associations
+Rescue.hasMany(Invitation, { foreignKey: 'rescue_id', as: 'invitations' });
+Invitation.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' });
+
+User.hasMany(Invitation, { foreignKey: 'user_id', as: 'acceptedInvitations' });
+Invitation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 // Content Moderation associations
 User.hasMany(Report, { foreignKey: 'reporterId', as: 'SubmittedReports' });
@@ -181,6 +207,36 @@ ModeratorAction.belongsTo(User, { foreignKey: 'targetUserId', as: 'TargetUser' }
 
 Report.hasMany(ModeratorAction, { foreignKey: 'reportId', as: 'Actions' });
 ModeratorAction.belongsTo(Report, { foreignKey: 'reportId', as: 'Report' });
+
+// UserSanction associations
+User.hasMany(UserSanction, { foreignKey: 'userId', as: 'ReceivedSanctions' });
+UserSanction.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+
+User.hasMany(UserSanction, { foreignKey: 'issuedBy', as: 'IssuedSanctions' });
+UserSanction.belongsTo(User, { foreignKey: 'issuedBy', as: 'Issuer' });
+
+Report.hasMany(UserSanction, { foreignKey: 'reportId', as: 'Sanctions' });
+UserSanction.belongsTo(Report, { foreignKey: 'reportId', as: 'Report' });
+
+ModeratorAction.hasMany(UserSanction, { foreignKey: 'moderatorActionId', as: 'Sanctions' });
+UserSanction.belongsTo(ModeratorAction, {
+  foreignKey: 'moderatorActionId',
+  as: 'ModeratorAction',
+});
+
+// SupportTicket associations
+User.hasMany(SupportTicket, { foreignKey: 'userId', as: 'SupportTickets' });
+SupportTicket.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+
+User.hasMany(SupportTicket, { foreignKey: 'assignedTo', as: 'AssignedTickets' });
+SupportTicket.belongsTo(User, { foreignKey: 'assignedTo', as: 'AssignedAgent' });
+
+// SupportTicketResponse associations
+SupportTicket.hasMany(SupportTicketResponse, { foreignKey: 'ticketId', as: 'Responses' });
+SupportTicketResponse.belongsTo(SupportTicket, { foreignKey: 'ticketId', as: 'Ticket' });
+
+User.hasMany(SupportTicketResponse, { foreignKey: 'responderId', as: 'TicketResponses' });
+SupportTicketResponse.belongsTo(User, { foreignKey: 'responderId', as: 'Responder' });
 
 // Email Service associations
 User.hasMany(EmailTemplate, { foreignKey: 'createdBy', as: 'CreatedEmailTemplates' });
@@ -225,6 +281,10 @@ Pet.hasMany(UserFavorite, { foreignKey: 'pet_id', as: 'Favorites' });
 UserFavorite.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
 
 // FileUpload associations
+
+// HomeVisit associations
+Application.hasMany(HomeVisit, { foreignKey: 'application_id', as: 'HomeVisits' });
+HomeVisit.belongsTo(Application, { foreignKey: 'application_id', as: 'Application' });
 User.hasMany(FileUpload, { foreignKey: 'uploaded_by', as: 'UploadedFiles' });
 FileUpload.belongsTo(User, { foreignKey: 'uploaded_by', as: 'Uploader' });
 
@@ -232,6 +292,7 @@ FileUpload.belongsTo(User, { foreignKey: 'uploaded_by', as: 'Uploader' });
 export {
   Application,
   ApplicationQuestion,
+  ApplicationTimeline,
   AuditLog,
   Chat,
   ChatParticipant,
@@ -239,8 +300,8 @@ export {
   EmailPreference,
   EmailQueue,
   EmailTemplate,
-  FeatureFlag,
   FileUpload,
+  HomeVisit,
   Invitation,
   Message,
   ModeratorAction,
@@ -253,11 +314,14 @@ export {
   Role,
   RolePermission,
   StaffMember,
+  SupportTicket,
+  SupportTicketResponse,
   SwipeAction,
   SwipeSession,
   User,
   UserFavorite,
   UserRole,
+  UserSanction,
 };
 
 export default models;

@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import User, { UserType } from '../models/User';
 import { TokenPair } from './api';
-import { JsonObject } from './common';
+import { JsonObject, JsonValue } from './common';
 
 // Authentication Request Types
 export interface LoginCredentials {
@@ -82,9 +82,17 @@ export interface RefreshTokenRequest {
   refreshToken: string;
 }
 
+export interface TokenPayload {
+  userId: string;
+  email: string;
+  userType: UserType;
+  iat?: number;
+  exp?: number;
+}
+
 export interface TokenValidationResult {
   isValid: boolean;
-  payload?: any;
+  payload?: TokenPayload;
   error?: string;
 }
 

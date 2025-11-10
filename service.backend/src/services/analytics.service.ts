@@ -44,27 +44,103 @@ interface StatusMetricsAccumulator {
   [status: string]: number;
 }
 
-interface SequelizeQueryResult {
-  getDataValue(key: string): string | number | null;
-  [key: string]: any; // Sequelize model instance methods and properties
+// Base interface for Sequelize model instances with common methods
+interface SequelizeModelInstance {
+  getDataValue(key: string): string | number | null | undefined;
 }
 
-interface ApplicationTrendRow extends SequelizeQueryResult {
+// Specific query result types for Sequelize findAll queries
+interface AdoptionTrendQueryResult extends SequelizeModelInstance {
   date: string;
+  count: string | number;
+}
+
+interface ApplicationStatusQueryResult extends SequelizeModelInstance {
+  status: string;
+  count: string | number;
+}
+
+interface ApplicationTrendQueryResult extends SequelizeModelInstance {
+  date: string;
+  count: string | number;
+}
+
+interface MessageTrendQueryResult extends SequelizeModelInstance {
+  date: string;
+  count: string | number;
+}
+
+interface UserRegistrationQueryResult extends SequelizeModelInstance {
+  date: string;
+  count: string | number;
+}
+
+interface PetTypeCountQueryResult extends SequelizeModelInstance {
+  type: string;
+  count: string | number;
+}
+
+interface PetAdoptionTrendQueryResult extends SequelizeModelInstance {
+  date: string;
+  count: string | number;
+}
+
+interface RescuePerformancePetQueryResult extends SequelizeModelInstance {
+  rescue_id: string;
+  rescue?: {
+    rescue_id: string;
+    name: string;
+  } | null;
+}
+
+// Session data from raw query
+interface SessionDataQueryResult {
+  user_id: string;
+  session_date: string;
+  first_action: Date;
+  last_action: Date;
+}
+
+// Activity data from raw query
+interface ActivityQueryResult {
+  action: string;
   count: number;
 }
 
-interface MessageTrendRow extends SequelizeQueryResult {
-  date: string;
+// Response time data from raw query
+interface ResponseTimeQueryResult {
+  avg_response_time: number | null;
+}
+
+// Database statistics from raw query
+interface DatabaseStatsQueryResult {
+  active_connections: number;
+  total_transactions: number;
+  total_blocks: number;
+  cache_hit_ratio: number;
+}
+
+// Storage statistics from raw query
+interface StorageStatsQueryResult {
+  total_images: number;
+  pet_photos: number;
+  documents: number;
+  avatars: number;
+  avg_file_size: number;
+  total_storage_bytes: number;
+}
+
+// Slow queries count from raw query
+interface SlowQueriesQueryResult {
   count: number;
 }
 
-interface AnalyticsItemResult {
-  date?: string;
-  count?: number;
-  status?: string;
-  type?: string;
-  [key: string]: string | number | undefined;
+// Rescue performance from raw query
+interface RescuePerformanceRawQueryResult {
+  rescue_id: string;
+  rescue_name: string;
+  adoptions: number;
+  avg_processing_days: number | null;
 }
 
 export class AnalyticsService {
@@ -101,7 +177,7 @@ export class AnalyticsService {
       // Get user counts
       const totalUsers = await User.count();
       const newUsers = await User.count({
-        where: { createdAt: dateFilter as any },
+        where: { createdAt: dateFilter as unknown as Date },
       });
 
       // Active users (users with recent activity - messages, applications, logins)
@@ -110,7 +186,7 @@ export class AnalyticsService {
         include: [
           {
             model: Message,
-            where: { created_at: dateFilter as any },
+            where: { created_at: dateFilter as unknown as Date },
             required: true,
           },
         ],
@@ -121,7 +197,7 @@ export class AnalyticsService {
         include: [
           {
             model: Application,
-            where: { created_at: dateFilter as any },
+            where: { created_at: dateFilter as unknown as Date },
             required: true,
           },
         ],
@@ -129,7 +205,7 @@ export class AnalyticsService {
 
       const activeUsersFromLogins = await User.count({
         where: {
-          lastLoginAt: dateFilter as any,
+          lastLoginAt: dateFilter as unknown as Date,
         },
       });
 
@@ -164,12 +240,12 @@ export class AnalyticsService {
       // Calculate average session duration from audit logs
       const sessionData = (await sequelize.query(
         `
-        SELECT 
+        SELECT
           user_id,
           DATE_TRUNC('day', created_at) as session_date,
           MIN(created_at) as first_action,
           MAX(created_at) as last_action
-        FROM audit_logs 
+        FROM audit_logs
         WHERE created_at BETWEEN :startDate AND :endDate
           AND user_id IS NOT NULL
         GROUP BY user_id, DATE_TRUNC('day', created_at)
@@ -179,12 +255,7 @@ export class AnalyticsService {
           replacements: { startDate: defaultStartDate, endDate: defaultEndDate },
           type: QueryTypes.SELECT,
         }
-      )) as Array<{
-        user_id: string;
-        session_date: string;
-        first_action: Date;
-        last_action: Date;
-      }>;
+      )) as SessionDataQueryResult[];
 
       const avgSessionDuration =
         sessionData.length > 0
@@ -198,10 +269,10 @@ export class AnalyticsService {
       // Get top user activities from audit logs
       const topActivities = (await sequelize.query(
         `
-        SELECT 
+        SELECT
           action,
           COUNT(*) as count
-        FROM audit_logs 
+        FROM audit_logs
         WHERE created_at BETWEEN :startDate AND :endDate
           AND user_id IS NOT NULL
         GROUP BY action
@@ -212,7 +283,7 @@ export class AnalyticsService {
           replacements: { startDate: defaultStartDate, endDate: defaultEndDate },
           type: QueryTypes.SELECT,
         }
-      )) as Array<{ action: string; count: number }>;
+      )) as ActivityQueryResult[];
 
       const topUserActivities = topActivities.map(activity => ({
         activity: activity.action,
@@ -288,7 +359,7 @@ export class AnalyticsService {
         where: {
           ...whereConditions,
           status: 'approved',
-          updated_at: { [Op.not]: null } as any,
+          updated_at: { [Op.not]: null } as unknown as Date,
         },
         attributes: ['created_at', 'updated_at'],
       });
@@ -305,7 +376,7 @@ export class AnalyticsService {
       // Get popular pet types from adopted pets
       const popularPetTypes = (await sequelize.query(
         `
-        SELECT 
+        SELECT
           p.type,
           COUNT(*) as adoptions
         FROM pets p
@@ -335,7 +406,7 @@ export class AnalyticsService {
       }));
 
       // Get adoption trends over time
-      const adoptionTrends = await Application.findAll({
+      const adoptionTrends = (await Application.findAll({
         where: {
           ...whereConditions,
           status: 'approved',
@@ -347,23 +418,23 @@ export class AnalyticsService {
         group: [sequelize.fn('DATE', sequelize.col('created_at'))],
         order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
         raw: true,
-      });
+      })) as unknown as AdoptionTrendQueryResult[];
 
-      const trends = (adoptionTrends as any[]).map((row: any) => ({
+      const trends = adoptionTrends.map(row => ({
         date: row.date as string,
-        value: parseInt(row.count || '0'),
+        value: parseInt(String(row.count || '0')),
       }));
 
       // Get rescue performance
       const rescuePerformanceQuery = (await sequelize.query(
         `
-        SELECT 
+        SELECT
           r.rescue_id,
           r.name as rescue_name,
           COUNT(a.application_id) as adoptions,
           AVG(EXTRACT(EPOCH FROM (a.updated_at - a.created_at)) / 86400) as avg_processing_days
         FROM rescues r
-        LEFT JOIN applications a ON r.rescue_id = a.rescue_id 
+        LEFT JOIN applications a ON r.rescue_id = a.rescue_id
           AND a.status = 'approved'
           AND a.created_at BETWEEN :startDate AND :endDate
         ${rescueId ? 'WHERE r.rescue_id = :rescueId' : ''}
@@ -379,12 +450,7 @@ export class AnalyticsService {
           },
           type: QueryTypes.SELECT,
         }
-      )) as Array<{
-        rescue_id: string;
-        rescue_name: string;
-        adoptions: number;
-        avg_processing_days: number;
-      }>;
+      )) as RescuePerformanceRawQueryResult[];
 
       const rescuePerformance: RescuePerformance[] = rescuePerformanceQuery.map(rescue => ({
         rescueId: rescue.rescue_id,
@@ -442,9 +508,9 @@ export class AnalyticsService {
       // Calculate average response time from audit logs with timing data
       const responseTimeData = (await sequelize.query(
         `
-        SELECT 
+        SELECT
           AVG(CAST(details->>'response_time' AS FLOAT)) as avg_response_time
-        FROM audit_logs 
+        FROM audit_logs
         WHERE created_at BETWEEN :startDate AND :endDate
           AND details->>'response_time' IS NOT NULL
       `,
@@ -452,7 +518,7 @@ export class AnalyticsService {
           replacements: { startDate: defaultStartDate, endDate: defaultEndDate },
           type: QueryTypes.SELECT,
         }
-      )) as Array<{ avg_response_time: number }>;
+      )) as ResponseTimeQueryResult[];
 
       const avgResponseTime = responseTimeData[0]?.avg_response_time || 0;
 
@@ -476,27 +542,22 @@ export class AnalyticsService {
       // Get database performance metrics
       const dbStats = (await sequelize.query(
         `
-        SELECT 
+        SELECT
           pg_stat_database.numbackends as active_connections,
           pg_stat_database.xact_commit + pg_stat_database.xact_rollback as total_transactions,
           pg_stat_database.blks_read + pg_stat_database.blks_hit as total_blocks,
-          CASE 
-            WHEN pg_stat_database.blks_read + pg_stat_database.blks_hit > 0 
-            THEN (pg_stat_database.blks_hit::float / (pg_stat_database.blks_read + pg_stat_database.blks_hit)) * 100 
-            ELSE 0 
+          CASE
+            WHEN pg_stat_database.blks_read + pg_stat_database.blks_hit > 0
+            THEN (pg_stat_database.blks_hit::float / (pg_stat_database.blks_read + pg_stat_database.blks_hit)) * 100
+            ELSE 0
           END as cache_hit_ratio
-        FROM pg_stat_database 
+        FROM pg_stat_database
         WHERE datname = current_database()
       `,
         {
           type: QueryTypes.SELECT,
         }
-      )) as Array<{
-        active_connections: number;
-        total_transactions: number;
-        total_blocks: number;
-        cache_hit_ratio: number;
-      }>;
+      )) as DatabaseStatsQueryResult[];
 
       const dbStat = dbStats[0] || {
         active_connections: 0,
@@ -510,19 +571,19 @@ export class AnalyticsService {
         .query(
           `
         SELECT COUNT(*) as count
-        FROM pg_stat_statements 
+        FROM pg_stat_statements
         WHERE mean_time > 1000
       `,
           {
             type: QueryTypes.SELECT,
           }
         )
-        .catch(() => [{ count: 0 }])) as Array<{ count: number }>;
+        .catch(() => [{ count: 0 }])) as SlowQueriesQueryResult[];
 
       // Get storage usage from file uploads and images
       const storageStats = (await sequelize.query(
         `
-        SELECT 
+        SELECT
           COUNT(*) as total_images,
           SUM(CASE WHEN file_type LIKE 'image%' THEN 1 ELSE 0 END) as pet_photos,
           SUM(CASE WHEN file_type = 'application/pdf' THEN 1 ELSE 0 END) as documents,
@@ -530,34 +591,27 @@ export class AnalyticsService {
           AVG(file_size) as avg_file_size,
           SUM(file_size) as total_storage_bytes
         FROM (
-          SELECT 
+          SELECT
             'image/jpeg' as file_type,
             'pet_photo.jpg' as original_name,
             2800000 as file_size
-          FROM pets 
+          FROM pets
           WHERE photos IS NOT NULL AND jsonb_array_length(photos) > 0
-          
+
           UNION ALL
-          
-          SELECT 
+
+          SELECT
             'application/pdf' as file_type,
             'document.pdf' as original_name,
             1500000 as file_size
-          FROM applications 
+          FROM applications
           WHERE documents IS NOT NULL AND jsonb_array_length(documents) > 0
         ) file_data
       `,
         {
           type: QueryTypes.SELECT,
         }
-      )) as Array<{
-        total_images: number;
-        pet_photos: number;
-        documents: number;
-        avatars: number;
-        avg_file_size: number;
-        total_storage_bytes: number;
-      }>;
+      )) as StorageStatsQueryResult[];
 
       const storage = storageStats[0] || {
         total_images: 0,
@@ -576,8 +630,8 @@ export class AnalyticsService {
         where: {
           created_at: {
             [Op.between]: [previousPeriodStart, defaultStartDate],
-          } as any,
-          images: { [Op.not]: null } as any,
+          } as unknown as Date,
+          images: { [Op.not]: null } as unknown as string[],
         },
       });
 
@@ -585,8 +639,8 @@ export class AnalyticsService {
         where: {
           created_at: {
             [Op.between]: [defaultStartDate, defaultEndDate],
-          } as any,
-          images: { [Op.not]: null } as any,
+          } as unknown as Date,
+          images: { [Op.not]: null } as unknown as string[],
         },
       });
 
@@ -662,23 +716,23 @@ export class AnalyticsService {
       }
 
       // Get application counts by status
-      const applicationsByStatus = await Application.findAll({
+      const applicationsByStatus = (await Application.findAll({
         where: whereConditions,
         attributes: ['status', [sequelize.fn('COUNT', sequelize.col('application_id')), 'count']],
         group: ['status'],
         raw: true,
-      });
+      })) as unknown as ApplicationStatusQueryResult[];
 
-      const statusMetrics = (applicationsByStatus as any[]).reduce(
-        (acc: StatusMetricsAccumulator, row: any) => {
-          acc[row.status] = parseInt(row.count || '0');
+      const statusMetrics = applicationsByStatus.reduce(
+        (acc: StatusMetricsAccumulator, row: ApplicationStatusQueryResult) => {
+          acc[row.status] = parseInt(String(row.count || '0'));
           return acc;
         },
         {} as StatusMetricsAccumulator
       );
 
       // Get application trends
-      const applicationTrends = await Application.findAll({
+      const applicationTrends = (await Application.findAll({
         where: whereConditions,
         attributes: [
           [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
@@ -687,11 +741,11 @@ export class AnalyticsService {
         group: [sequelize.fn('DATE', sequelize.col('created_at'))],
         order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
         raw: true,
-      });
+      })) as unknown as ApplicationTrendQueryResult[];
 
-      const trends = (applicationTrends as any[]).map((row: any) => ({
+      const trends = applicationTrends.map(row => ({
         date: row.date as string,
-        count: parseInt(row.count || '0'),
+        count: parseInt(String(row.count || '0')),
       }));
 
       // Calculate processing time for completed applications
@@ -699,7 +753,7 @@ export class AnalyticsService {
         where: {
           ...whereConditions,
           status: { [Op.in]: ['approved', 'rejected'] },
-          updated_at: { [Op.not]: null } as any,
+          updated_at: { [Op.not]: null } as unknown as Date,
         },
         attributes: ['created_at', 'updated_at'],
       });
@@ -787,7 +841,7 @@ export class AnalyticsService {
       // Get message metrics
       const totalMessages = await Message.count({
         where: {
-          created_at: dateFilter as any,
+          created_at: dateFilter as unknown as Date,
         },
         include: [
           {
@@ -801,7 +855,7 @@ export class AnalyticsService {
       const responseTimeData = (await sequelize.query(
         `
         WITH message_pairs AS (
-          SELECT 
+          SELECT
             m1.chat_id,
             m1.sender_id as first_sender,
             m1.created_at as first_message_time,
@@ -816,9 +870,9 @@ export class AnalyticsService {
             AND m1.created_at BETWEEN :startDate AND :endDate
             ${rescueId ? 'AND c.rescue_id = :rescueId' : ''}
             AND NOT EXISTS (
-              SELECT 1 FROM messages m3 
-              WHERE m3.chat_id = m1.chat_id 
-                AND m3.created_at > m1.created_at 
+              SELECT 1 FROM messages m3
+              WHERE m3.chat_id = m1.chat_id
+                AND m3.created_at > m1.created_at
                 AND m3.created_at < m2.created_at
             )
         )
@@ -834,14 +888,14 @@ export class AnalyticsService {
           },
           type: QueryTypes.SELECT,
         }
-      )) as Array<{ avg_response_time: number }>;
+      )) as ResponseTimeQueryResult[];
 
       const avgResponseTime = Math.round((responseTimeData[0]?.avg_response_time || 0) * 100) / 100;
 
       // Get message trends
-      const messageTrends = await Message.findAll({
+      const messageTrends = (await Message.findAll({
         where: {
-          created_at: dateFilter as any,
+          created_at: dateFilter as unknown as Date,
         },
         include: rescueId
           ? [
@@ -858,11 +912,11 @@ export class AnalyticsService {
         group: [sequelize.fn('DATE', sequelize.col('messages.created_at'))],
         order: [[sequelize.fn('DATE', sequelize.col('messages.created_at')), 'ASC']],
         raw: true,
-      });
+      })) as unknown as MessageTrendQueryResult[];
 
-      const trends = (messageTrends as any[]).map((row: any) => ({
+      const trends = messageTrends.map(row => ({
         date: row.date as string,
-        count: parseInt(row.count || '0'),
+        count: parseInt(String(row.count || '0')),
       }));
 
       loggerHelpers.logPerformance('Communication Metrics', {
@@ -1036,7 +1090,7 @@ export class AnalyticsService {
       }
 
       // Get user registration trends
-      const userRegistrations = await User.findAll({
+      const userRegistrations = (await User.findAll({
         where: whereConditions,
         attributes: [
           [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
@@ -1045,7 +1099,7 @@ export class AnalyticsService {
         group: [sequelize.fn('DATE', sequelize.col('created_at'))],
         order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
         raw: true,
-      });
+      })) as unknown as UserRegistrationQueryResult[];
 
       // Get user activity metrics
       const activeUsers = await User.count({
@@ -1063,6 +1117,11 @@ export class AnalyticsService {
       const activityRate =
         totalUsers > 0 ? Math.round((Number(activeUsers) / Number(totalUsers)) * 100) : 0;
 
+      const firstRegistration = userRegistrations[0];
+      const firstRegistrationCount = firstRegistration
+        ? parseInt(String(firstRegistration.count || '0'))
+        : 0;
+
       loggerHelpers.logPerformance('User Analytics', {
         duration: Date.now() - startTime,
         dateRange: {
@@ -1071,13 +1130,13 @@ export class AnalyticsService {
         },
         totalUsers,
         activeUsers,
-        newUsers: Number((userRegistrations as any)?.[0]?.count || 0),
+        newUsers: firstRegistrationCount,
       });
 
       return {
-        userRegistrations: (userRegistrations as any[]).map((item: any) => ({
+        userRegistrations: userRegistrations.map(item => ({
           date: item.date as string,
-          count: parseInt(item.count || '0'),
+          count: parseInt(String(item.count || '0')),
         })),
         totalUsers,
         activeUsers,
@@ -1120,7 +1179,7 @@ export class AnalyticsService {
       });
 
       // Get adoptions by pet type
-      const adoptionsByType = await Pet.findAll({
+      const adoptionsByType = (await Pet.findAll({
         where: {
           ...whereConditions,
           status: 'adopted',
@@ -1130,10 +1189,10 @@ export class AnalyticsService {
         group: ['type'],
         order: [[sequelize.fn('COUNT', sequelize.col('pet_id')), 'DESC']],
         limit: 10,
-      });
+      })) as unknown as PetTypeCountQueryResult[];
 
       // Get adoption trends over time
-      const adoptionTrends = await Pet.findAll({
+      const adoptionTrends = (await Pet.findAll({
         where: {
           ...whereConditions,
           status: 'adopted',
@@ -1145,10 +1204,10 @@ export class AnalyticsService {
         ],
         group: [sequelize.fn('DATE', sequelize.col('created_at'))],
         order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
-      });
+      })) as unknown as PetAdoptionTrendQueryResult[];
 
       // Get top performing rescues
-      const rescuePerformanceQuery = await Pet.findAll({
+      const rescuePerformanceQuery = (await Pet.findAll({
         where: {
           status: 'adopted',
           created_at: dateFilter,
@@ -1164,12 +1223,12 @@ export class AnalyticsService {
         group: ['rescue_id', 'rescue.rescue_id', 'rescue.name'],
         order: [[sequelize.fn('COUNT', sequelize.col('pet_id')), 'DESC']],
         limit: 10,
-      });
+      })) as unknown as RescuePerformancePetQueryResult[];
 
-      const rescuePerformance = rescuePerformanceQuery.map((row: any) => ({
+      const rescuePerformance = rescuePerformanceQuery.map(row => ({
         rescueId: row.rescue_id,
         rescueName: row.rescue?.name || 'Unknown',
-        adoptions: parseInt(row.getDataValue('adoptions') || '0'),
+        adoptions: parseInt(String(row.getDataValue('adoptions') || '0')),
       }));
 
       // Calculate adoption rate safely
@@ -1188,13 +1247,13 @@ export class AnalyticsService {
       return {
         totalAdoptions: adoptedPets,
         adoptionRate,
-        adoptionsByType: adoptionsByType.map((item: any) => ({
+        adoptionsByType: adoptionsByType.map(item => ({
           type: item.type,
-          count: parseInt(item.getDataValue('count') || '0'),
+          count: parseInt(String(item.getDataValue('count') || '0')),
         })),
-        adoptionTrends: adoptionTrends.map((item: any) => ({
+        adoptionTrends: adoptionTrends.map(item => ({
           date: item.getDataValue('date'),
-          count: parseInt(item.getDataValue('count') || '0'),
+          count: parseInt(String(item.getDataValue('count') || '0')),
         })),
         rescuePerformance,
       };
@@ -1223,14 +1282,14 @@ export class AnalyticsService {
       }
 
       // Get application counts by status
-      const applicationsByStatus = await Application.findAll({
+      const applicationsByStatus = (await Application.findAll({
         where: whereConditions,
         attributes: ['status', [sequelize.fn('COUNT', sequelize.col('application_id')), 'count']],
         group: ['status'],
-      });
+      })) as unknown as ApplicationStatusQueryResult[];
 
       // Get application trends over time
-      const applicationTrends = await Application.findAll({
+      const applicationTrends = (await Application.findAll({
         where: whereConditions,
         attributes: [
           [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
@@ -1238,14 +1297,14 @@ export class AnalyticsService {
         ],
         group: [sequelize.fn('DATE', sequelize.col('created_at'))],
         order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
-      });
+      })) as unknown as ApplicationTrendQueryResult[];
 
       // Calculate average processing time using snake_case field names
       const completedApplications = await Application.findAll({
         where: {
           ...whereConditions,
           status: { [Op.in]: ['approved', 'rejected'] },
-          updated_at: { [Op.not]: null } as any,
+          updated_at: { [Op.not]: null } as unknown as Date,
         },
         attributes: ['created_at', 'updated_at'],
       });
@@ -1262,6 +1321,16 @@ export class AnalyticsService {
             )
           : 0;
 
+      const approvedApplication = applicationsByStatus.find(item => item.status === 'approved');
+      const rejectedApplication = applicationsByStatus.find(item => item.status === 'rejected');
+
+      const approvedCount = approvedApplication
+        ? parseInt(String(approvedApplication.getDataValue('count') || '0'))
+        : 0;
+      const rejectedCount = rejectedApplication
+        ? parseInt(String(rejectedApplication.getDataValue('count') || '0'))
+        : 0;
+
       loggerHelpers.logPerformance('Application Analytics', {
         duration: Date.now() - startTime,
         dateRange: {
@@ -1272,30 +1341,18 @@ export class AnalyticsService {
           (sum: number, count) => sum + Number(count || 0),
           0
         ),
-        approvedApplications: Number(
-          (applicationsByStatus as any[]).find(item => item.status === 'approved')?.getDataValue
-            ? (applicationsByStatus as any[])
-                .find(item => item.status === 'approved')
-                ?.getDataValue('count')
-            : (applicationsByStatus as any[]).find(item => item.status === 'approved')?.count || 0
-        ),
-        rejectedApplications: Number(
-          (applicationsByStatus as any[]).find(item => item.status === 'rejected')?.getDataValue
-            ? (applicationsByStatus as any[])
-                .find(item => item.status === 'rejected')
-                ?.getDataValue('count')
-            : (applicationsByStatus as any[]).find(item => item.status === 'rejected')?.count || 0
-        ),
+        approvedApplications: approvedCount,
+        rejectedApplications: rejectedCount,
       });
 
       return {
-        applicationsByStatus: applicationsByStatus.map((item: any) => ({
+        applicationsByStatus: applicationsByStatus.map(item => ({
           status: item.status,
-          count: parseInt(item.getDataValue('count') || '0'),
+          count: parseInt(String(item.getDataValue('count') || '0')),
         })),
-        applicationTrends: applicationTrends.map((item: any) => ({
+        applicationTrends: applicationTrends.map(item => ({
           date: item.getDataValue('date'),
-          count: parseInt(item.getDataValue('count') || '0'),
+          count: parseInt(String(item.getDataValue('count') || '0')),
         })),
         averageProcessingTimeHours: averageProcessingTime,
       };
@@ -1344,7 +1401,7 @@ export class AnalyticsService {
       });
 
       // Get message trends over time
-      const messageTrends = await Message.findAll({
+      const messageTrends = (await Message.findAll({
         where: {
           created_at: dateFilter,
         },
@@ -1362,7 +1419,7 @@ export class AnalyticsService {
         ],
         group: [sequelize.fn('DATE', sequelize.col('messages.created_at'))],
         order: [[sequelize.fn('DATE', sequelize.col('messages.created_at')), 'ASC']],
-      });
+      })) as unknown as MessageTrendQueryResult[];
 
       // Calculate average messages per chat safely
       const avgMessagesPerChat = totalChats > 0 ? Math.round(totalMessages / totalChats) : 0;
@@ -1381,9 +1438,9 @@ export class AnalyticsService {
         totalChats,
         totalMessages,
         avgMessagesPerChat,
-        messageTrends: messageTrends.map((item: any) => ({
+        messageTrends: messageTrends.map(item => ({
           date: item.getDataValue('date'),
-          count: parseInt(item.getDataValue('count') || '0'),
+          count: parseInt(String(item.getDataValue('count') || '0')),
         })),
       };
     } catch (error) {

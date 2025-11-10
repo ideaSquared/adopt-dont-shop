@@ -1,4 +1,5 @@
 // Modern component library exports for Adopt Don't Shop
+// Testing hot reload functionality - if you see this change, hot reload is working!
 
 // Theme exports
 export { GlobalStyles } from './styles/GlobalStyles';
@@ -6,10 +7,16 @@ export { darkTheme, lightTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
 export { ThemeProvider, useTheme } from './styles/ThemeProvider';
 
+// Hooks
+export { useConfirm } from './hooks/useConfirm';
+export type { ConfirmOptions, UseConfirmReturn } from './hooks/useConfirm';
+export { useToast } from './hooks/useToast';
+
 // Foundation Components
 export { Avatar } from './components/ui/Avatar';
 export { Badge } from './components/ui/Badge';
 export { Button } from './components/ui/Button';
+export { default as DateTime } from './components/ui/DateTime/DateTime';
 export { Heading } from './components/ui/Heading';
 export { DotSpinner, Spinner } from './components/ui/Spinner';
 export { Text } from './components/ui/Text';
@@ -30,6 +37,7 @@ export { Input } from './components/ui/Input';
 // Feedback Components
 export { Alert } from './components/ui/Alert';
 export { Modal } from './components/ui/Modal';
+export { ConfirmDialog } from './components/ui/ConfirmDialog';
 
 // Navigation Components
 export { Breadcrumbs } from './components/navigation/Breadcrumbs';
@@ -70,6 +78,8 @@ export type {
   TextAreaProps,
   TextInputProps,
 } from './types';
+
+export type { ConfirmDialogProps } from './components/ui/ConfirmDialog';
 
 // Component Types
 export type { FooterProps } from './components/navigation/Footer';

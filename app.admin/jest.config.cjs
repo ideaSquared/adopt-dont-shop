@@ -10,11 +10,19 @@ module.exports = {
     '^@/utils/(.*)$': '<rootDir>/src/utils/$1',
     '^@/types/(.*)$': '<rootDir>/src/types/$1',
     '^@/services/(.*)$': '<rootDir>/src/services/$1',
-    '^@/pages/(.*)$': '<rootDir>/src/pages/$1',
+    '^@adopt-dont-shop/lib-moderation$': '<rootDir>/../lib.moderation/src/index.ts',
+    '^@adopt-dont-shop/components$': '<rootDir>/../lib.components/src/index.ts',
+    '^@adopt-dont-shop/lib-(.*)$': '<rootDir>/../lib.$1/src/index.ts',
   },
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': [
+      'ts-jest',
+      {
+        useESM: true,
+      },
+    ],
   },
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

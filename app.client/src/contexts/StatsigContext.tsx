@@ -1,16 +1,36 @@
 import { StatsigProvider, useClientAsyncInit } from '@statsig/react-bindings';
 import { StatsigSessionReplayPlugin } from '@statsig/session-replay';
 import { StatsigAutoCapturePlugin } from '@statsig/web-analytics';
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 
 interface StatsigWrapperProps {
   children: React.ReactNode;
 }
 
 export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
+  const { user } = useAuth();
+  const statsigClientKey = import.meta.env.VITE_STATSIG_CLIENT_KEY;
+
+  if (!statsigClientKey) {
+    console.error(
+      'VITE_STATSIG_CLIENT_KEY is not set. Feature flags will not work. Please add it to your .env file.'
+    );
+  }
+
+  const statsigUser = useMemo(() => ({
+    userID: user?.userId || 'anonymous',
+    email: user?.email,
+    custom: {
+      app: 'client',
+      userType: user?.userType,
+      isAuthenticated: !!user,
+    },
+  }), [user]);
+
   const { client } = useClientAsyncInit(
-    'client-rXmg6Q7MJwqPhWwb4rJUlRlj3iXDvR0P8hxHlkIuX2f',
-    { userID: 'a-user' },
+    statsigClientKey || 'client-invalid-key',
+    statsigUser,
     {
       plugins: [new StatsigAutoCapturePlugin(), new StatsigSessionReplayPlugin()],
     }

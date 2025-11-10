@@ -1,8 +1,16 @@
-# lib.components - Modern React Component Library
+# Components Library
 
-## Overview
+Shared UI components and design system.
 
-This package contains shared UI components, hooks, and utilities used across all Adopt Don't Shop applications.
+## Documentation
+
+See the centralized documentation: [docs/libraries/components.md](../docs/libraries/components.md)
+
+## Installation
+
+```bash
+npm install @adopt-dont-shop/lib-components
+```
 
 ## Structure
 

@@ -1,5 +1,5 @@
 import { useStatsig } from '@/hooks/useStatsig';
-import { DiscoveryPet } from '@/types';
+import { DiscoveryPet } from '@/services';
 import { animated, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import React, { useCallback, useRef, useState } from 'react';

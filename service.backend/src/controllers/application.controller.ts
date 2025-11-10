@@ -1,18 +1,22 @@
 import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
+import { HomeVisitStatus } from '../models/HomeVisit';
 import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
 import { AuthenticatedRequest } from '../types';
 import {
+  ApplicationDocument,
   ApplicationSearchFilters,
   ApplicationSearchOptions,
   ApplicationStatusUpdateRequest,
   CreateApplicationRequest,
+  FrontendApplication,
 } from '../types/application';
 import { logger } from '../utils/logger';
+import { BaseController } from './base.controller';
 
-export class ApplicationController {
+export class ApplicationController extends BaseController {
   // Validation rules
   static validateCreateApplication = [
     body('pet_id').isUUID().withMessage('Valid pet ID is required'),
@@ -91,10 +95,6 @@ export class ApplicationController {
       .trim()
       .isLength({ max: 1000 })
       .withMessage('Rejection reason must not exceed 1000 characters'),
-    body('conditional_requirements')
-      .optional()
-      .isArray()
-      .withMessage('Conditional requirements must be an array'),
     body('notes')
       .optional()
       .trim()
@@ -175,9 +175,21 @@ export class ApplicationController {
       .isString()
       .isLength({ min: 1, max: 255 })
       .withMessage('Valid application ID is required'),
+    // Support both reference_index and referenceId approaches for flexible reference handling
+    body().custom(value => {
+      if (!value.reference_index && !value.referenceId) {
+        throw new Error('Either reference_index or referenceId is required');
+      }
+      return true;
+    }),
     body('reference_index')
+      .optional()
       .isInt({ min: 0, max: 4 })
       .withMessage('Reference index must be between 0 and 4'),
+    body('referenceId')
+      .optional()
+      .matches(/^ref-\d+$/)
+      .withMessage('Reference ID must be in format ref-X (e.g., ref-0, ref-1)'),
     body('status')
       .isIn(['pending', 'contacted', 'verified', 'failed'])
       .withMessage('Invalid reference status'),
@@ -215,16 +227,142 @@ export class ApplicationController {
       .withMessage('Notes must not exceed 2000 characters'),
   ];
 
+  /**
+   * Transform database Application model to frontend-compatible format
+   */
+  protected transformApplicationModel(
+    applicationModel: Record<string, unknown>
+  ): FrontendApplication {
+    const User = applicationModel.User as Record<string, unknown> | undefined;
+    const Pet = applicationModel.Pet as Record<string, unknown> | undefined;
+
+    // Extract personal info from answers (common pattern in adoption forms)
+    const answers = (applicationModel.answers as Record<string, unknown>) || {};
+
+    const personalInfo = {
+      firstName:
+        (User?.first_name as string) ||
+        (answers.firstName as string) ||
+        (answers.first_name as string),
+      lastName:
+        (User?.last_name as string) ||
+        (answers.lastName as string) ||
+        (answers.last_name as string),
+      email: (User?.email as string) || (answers.email as string),
+      phone:
+        (User?.phone_number as string) ||
+        (answers.phone as string) ||
+        (answers.phoneNumber as string) ||
+        (answers.phone_number as string),
+      address:
+        (User?.address_line_1 as string) ||
+        (answers.address as string) ||
+        (answers.street_address as string),
+      city: (User?.city as string) || (answers.city as string),
+      state: answers.state as string, // State typically comes from form answers
+      zipCode:
+        (User?.postal_code as string) ||
+        (answers.zipCode as string) ||
+        (answers.zip_code as string),
+      dateOfBirth: User?.date_of_birth
+        ? new Date(User.date_of_birth as string).toISOString().split('T')[0]
+        : (answers.dateOfBirth as string),
+      occupation: answers.occupation as string, // Occupation typically comes from form answers
+    };
+
+    // Extract living situation from answers
+    const livingsituation = {
+      housingType: answers.housing_type as string,
+      isOwned: answers.home_ownership === 'owned',
+      hasYard: answers.yard_fenced as boolean,
+      householdSize: answers.household_members
+        ? (answers.household_members as Record<string, unknown>[]).length
+        : 1,
+      hasAllergies: false, // Not in current data, could be added to form
+    };
+
+    // Extract pet experience from answers
+    const petExperience = {
+      hasPetsCurrently: (answers.current_pets as Record<string, unknown>[])?.length > 0,
+      experienceLevel: answers.experience_level as string,
+      willingToTrain: answers.training_experience !== 'No experience',
+      hoursAloneDaily: answers.hours_alone as string,
+      exercisePlans: answers.exercise_plan as string,
+    };
+
+    // Extract references from answers
+    const references = {
+      personal: answers.emergency_contact
+        ? [
+            {
+              name: (answers.emergency_contact as Record<string, string>).name,
+              phone: (answers.emergency_contact as Record<string, string>).phone,
+              relationship: (answers.emergency_contact as Record<string, string>).relationship,
+              yearsKnown: 'Unknown', // Not in current data
+            },
+          ]
+        : [],
+      veterinarian: answers.veterinarian
+        ? {
+            name: (answers.veterinarian as Record<string, string>).name,
+            phone: (answers.veterinarian as Record<string, string>).phone,
+            clinicName: (answers.veterinarian as Record<string, string>).clinic,
+          }
+        : undefined,
+    };
+
+    const transformed: FrontendApplication = {
+      id: applicationModel.application_id as string,
+      petId: applicationModel.pet_id as string,
+      userId: applicationModel.user_id as string,
+      rescueId: applicationModel.rescue_id as string,
+      status: applicationModel.status as ApplicationStatus,
+      submittedAt: applicationModel.submitted_at as string,
+      reviewedAt: applicationModel.reviewed_at as string,
+      reviewedBy: applicationModel.actioned_by as string,
+      reviewNotes: applicationModel.notes as string,
+      data: {
+        personalInfo,
+        livingsituation,
+        petExperience,
+        references,
+        answers: answers,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      documents:
+        (applicationModel.documents as ApplicationDocument[])?.map(doc => ({
+          id: doc.document_id,
+          type: doc.document_type,
+          filename: doc.file_name,
+          url: doc.file_url,
+          uploadedAt: doc.uploaded_at?.toString() || new Date().toISOString(),
+        })) || [],
+      createdAt: applicationModel.created_at as string,
+      updatedAt: applicationModel.updated_at as string,
+    };
+
+    // Add pet information if available
+    if (Pet) {
+      transformed.petName = Pet.name as string;
+      transformed.petType = Pet.type as string;
+      transformed.petBreed = Pet.breed as string;
+    }
+
+    // Add user information if available
+    if (User) {
+      transformed.userName = `${User.first_name as string} ${User.last_name as string}`.trim();
+      transformed.userEmail = User.email as string;
+    }
+
+    return transformed;
+  }
+
   // Get applications with filtering and pagination
   getApplications = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
+        return this.sendValidationError(res, errors.array());
       }
 
       const filters: ApplicationSearchFilters = {
@@ -265,25 +403,25 @@ export class ApplicationController {
         req.user!.userType as UserType
       );
 
-      res.status(200).json({
-        success: true,
-        data: result.applications,
-        pagination: result.pagination,
-        filters_applied: result.filters_applied,
-        total_filtered: result.total_filtered,
+      // Transform the applications to frontend format
+      const transformedApplications = result.applications.map(app =>
+        this.transformApplicationModel(app as unknown as Record<string, unknown>)
+      );
+
+      return this.sendPaginatedSuccess(res, transformedApplications, {
+        total: result.total_filtered || 0,
+        page: result.pagination.page,
+        limit: result.pagination.limit,
+        totalPages: result.pagination.totalPages,
       });
     } catch (error) {
       logger.error('Error getting applications:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve applications',
-        error:
-          process.env.NODE_ENV === 'development'
-            ? error instanceof Error
-              ? error.message
-              : 'Unknown error'
-            : undefined,
-      });
+      return this.sendError(
+        res,
+        'Failed to retrieve applications',
+        500,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     }
   };
 
@@ -380,9 +518,14 @@ export class ApplicationController {
         });
       }
 
+      // Transform the raw application data to frontend format
+      const transformedApplication = this.transformApplicationModel(
+        application as unknown as Record<string, unknown>
+      );
+
       res.status(200).json({
         success: true,
-        data: application,
+        data: transformedApplication,
       });
     } catch (error) {
       logger.error('Error getting application by ID:', error);
@@ -533,7 +676,6 @@ export class ApplicationController {
         status: req.body.status,
         actioned_by: req.user!.userId,
         rejection_reason: req.body.rejection_reason,
-        conditional_requirements: req.body.conditional_requirements,
         notes: req.body.notes,
         follow_up_date: req.body.follow_up_date,
       };
@@ -894,15 +1036,14 @@ export class ApplicationController {
     }
   };
 
-  // Legacy methods for backwards compatibility
+  // Application history now provided by timeline events
   getApplicationHistory = async (req: Request, res: Response) => {
     try {
-      // This would need to be implemented with a proper audit/history system
-      // For now, return empty array
+      // Application history is now handled by the timeline system
       res.status(200).json({
         success: true,
         data: [],
-        message: 'Application history feature not yet implemented',
+        message: 'Application history is now available through timeline events',
       });
     } catch (error) {
       logger.error('Error getting application history:', error);
@@ -925,6 +1066,211 @@ export class ApplicationController {
       res.status(500).json({
         success: false,
         message: 'Failed to schedule visit',
+      });
+    }
+  };
+
+  // Home Visits CRUD operations
+  getHomeVisits = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { applicationId } = req.params;
+      const HomeVisit = (await import('../models/HomeVisit')).default;
+
+      const visits = await HomeVisit.findAll({
+        where: { application_id: applicationId },
+        order: [['created_at', 'DESC']],
+      });
+
+      // If no visits exist, return empty array
+      if (visits.length === 0) {
+        return res.json({
+          success: true,
+          visits: [],
+        });
+      }
+
+      // Convert to frontend format
+      const formattedVisits = visits.map(visit => ({
+        id: visit.visit_id,
+        applicationId: visit.application_id,
+        scheduledDate: visit.scheduled_date,
+        scheduledTime: visit.scheduled_time,
+        assignedStaff: visit.assigned_staff,
+        status: visit.status,
+        notes: visit.notes,
+        outcome: visit.outcome,
+        outcomeNotes: visit.outcome_notes,
+        rescheduleReason: visit.reschedule_reason,
+        cancelledReason: visit.cancelled_reason,
+        completedAt: visit.completed_at?.toISOString(),
+      }));
+
+      res.json({
+        success: true,
+        visits: formattedVisits,
+      });
+    } catch (error) {
+      logger.error('Error getting home visits:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve home visits',
+      });
+    }
+  };
+
+  scheduleHomeVisit = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { applicationId } = req.params;
+      const { scheduled_date, scheduled_time, assigned_staff, notes } = req.body;
+
+      if (!scheduled_date || !scheduled_time || !assigned_staff) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing required fields: scheduled_date, scheduled_time, assigned_staff',
+        });
+      }
+
+      const HomeVisit = (await import('../models/HomeVisit')).default;
+
+      // Generate a unique visit_id
+      const visitId = `visit_${applicationId}_${Date.now()}`;
+
+      const visit = await HomeVisit.create({
+        visit_id: visitId,
+        application_id: applicationId,
+        scheduled_date,
+        scheduled_time,
+        assigned_staff,
+        notes,
+        status: HomeVisitStatus.SCHEDULED,
+      });
+
+      // Update application status to indicate scheduling progress
+      const Application = (await import('../models/Application')).default;
+      await Application.update(
+        { status: ApplicationStatus.SUBMITTED },
+        { where: { application_id: applicationId } }
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Home visit scheduled successfully',
+        visit: {
+          id: visit.visit_id,
+          applicationId: visit.application_id,
+          scheduledDate: visit.scheduled_date,
+          scheduledTime: visit.scheduled_time,
+          assignedStaff: visit.assigned_staff,
+          status: visit.status,
+          notes: visit.notes,
+        },
+      });
+    } catch (error) {
+      logger.error('Error scheduling home visit:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to schedule home visit',
+      });
+    }
+  };
+
+  updateHomeVisit = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { applicationId, visitId } = req.params;
+      const updateData = req.body;
+
+      const HomeVisit = (await import('../models/HomeVisit')).default;
+
+      const visit = await HomeVisit.findOne({
+        where: { visit_id: visitId, application_id: applicationId },
+      });
+
+      if (!visit) {
+        return res.status(404).json({
+          success: false,
+          message: 'Home visit not found',
+        });
+      }
+
+      // Convert frontend camelCase to backend snake_case
+      const dbUpdateData: Record<string, string | Date | null> = {};
+      if (updateData.scheduledDate) {
+        dbUpdateData.scheduled_date = updateData.scheduledDate;
+      }
+      if (updateData.scheduledTime) {
+        dbUpdateData.scheduled_time = updateData.scheduledTime;
+      }
+      if (updateData.assignedStaff) {
+        dbUpdateData.assigned_staff = updateData.assignedStaff;
+      }
+      if (updateData.status) {
+        dbUpdateData.status = updateData.status;
+      }
+      if (updateData.notes !== undefined) {
+        dbUpdateData.notes = updateData.notes;
+      }
+      if (updateData.outcome) {
+        dbUpdateData.outcome = updateData.outcome;
+      }
+      if (updateData.outcomeNotes !== undefined) {
+        dbUpdateData.outcome_notes = updateData.outcomeNotes;
+      }
+      if (updateData.rescheduleReason !== undefined) {
+        dbUpdateData.reschedule_reason = updateData.rescheduleReason;
+      }
+      if (updateData.cancelledReason !== undefined) {
+        dbUpdateData.cancelled_reason = updateData.cancelledReason;
+      }
+
+      // Set completed_at when status changes to completed
+      if (updateData.status === 'completed' && visit.status !== 'completed') {
+        dbUpdateData.completed_at = new Date();
+      }
+
+      await visit.update(dbUpdateData);
+
+      // Update application status based on visit outcome
+      if (updateData.status === 'completed' && updateData.outcome) {
+        const Application = (await import('../models/Application')).default;
+        let applicationStatus: ApplicationStatus = ApplicationStatus.SUBMITTED;
+
+        if (updateData.outcome === 'approved') {
+          applicationStatus = ApplicationStatus.APPROVED;
+        } else if (updateData.outcome === 'conditional') {
+          applicationStatus = ApplicationStatus.APPROVED; // Treat conditional as approved
+        } else if (updateData.outcome === 'rejected') {
+          applicationStatus = ApplicationStatus.REJECTED;
+        }
+
+        await Application.update(
+          { status: applicationStatus },
+          { where: { application_id: applicationId } }
+        );
+      }
+
+      res.json({
+        success: true,
+        message: 'Home visit updated successfully',
+        visit: {
+          id: visit.visit_id,
+          applicationId: visit.application_id,
+          scheduledDate: visit.scheduled_date,
+          scheduledTime: visit.scheduled_time,
+          assignedStaff: visit.assigned_staff,
+          status: visit.status,
+          notes: visit.notes,
+          outcome: visit.outcome,
+          outcomeNotes: visit.outcome_notes,
+          rescheduleReason: visit.reschedule_reason,
+          cancelledReason: visit.cancelled_reason,
+          completedAt: visit.completed_at?.toISOString(),
+        },
+      });
+    } catch (error) {
+      logger.error('Error updating home visit:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update home visit',
       });
     }
   };

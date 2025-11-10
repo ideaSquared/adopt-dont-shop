@@ -63,7 +63,7 @@ export class ModerationController {
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
       };
 
-      const result = await ModerationService.searchReports(filters, options);
+      const result = await ModerationService.getReportsWithContext(filters, options);
 
       res.json({
         success: true,
@@ -244,10 +244,12 @@ export class ModerationController {
       const { escalatedTo, reason } = req.body;
       const escalatedBy = req.user!.userId;
 
-      // This would require additional method in ModerationService
+      const report = await ModerationService.escalateReport(reportId, escalatedTo, escalatedBy, reason);
+
       res.json({
         success: true,
         message: 'Report escalated successfully',
+        data: report,
       });
     } catch (error) {
       logger.error('Error escalating report:', error);
@@ -261,8 +263,8 @@ export class ModerationController {
   // Bulk operations
   async bulkUpdateReports(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { reportIds, action, actionData } = req.body;
-      const updatedBy = req.user!.userId;
+      const { reportIds, action, resolutionNotes, assignTo, escalateTo, escalationReason } = req.body;
+      const moderatorId = req.user!.userId;
 
       // Validate input
       if (!Array.isArray(reportIds) || reportIds.length === 0) {
@@ -273,15 +275,17 @@ export class ModerationController {
         return;
       }
 
-      // This would require additional method in ModerationService
-      res.json({
-        success: true,
-        message: `Bulk action '${action}' applied to ${reportIds.length} reports`,
-        data: {
-          processed: reportIds.length,
-          action,
-        },
+      const result = await ModerationService.bulkUpdateReports({
+        reportIds,
+        action,
+        moderatorId,
+        resolutionNotes,
+        assignTo,
+        escalateTo,
+        escalationReason,
       });
+
+      res.json(result);
     } catch (error) {
       logger.error('Error performing bulk update:', error);
       res.status(400).json({

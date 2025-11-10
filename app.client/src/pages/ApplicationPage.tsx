@@ -1,8 +1,8 @@
 import { ApplicationForm, ApplicationProgress, PetSummary } from '@/components/application';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useStatsig } from '@/hooks/useStatsig';
 import { applicationService, petService } from '@/services';
-import { Application, ApplicationData, Pet } from '@/types';
+import { Application, ApplicationData, Pet } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -137,7 +137,7 @@ export const ApplicationPage: React.FC = () => {
         if (!petId) throw new Error('Pet ID is required');
 
         // Load pet data
-        const petData = await petService.getPet(petId);
+        const petData = await petService.getPetById(petId);
         setPet(petData);
 
         // Log application page view

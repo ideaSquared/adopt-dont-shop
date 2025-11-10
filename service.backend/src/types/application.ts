@@ -14,7 +14,6 @@ export interface ApplicationData {
   actioned_by?: string | null;
   actioned_at?: Date | null;
   rejection_reason?: string | null;
-  conditional_requirements?: string[] | null;
   answers: JsonObject;
   references: ApplicationReference[];
   documents: ApplicationDocument[];
@@ -28,12 +27,23 @@ export interface ApplicationData {
   decision_at?: Date | null;
   expires_at?: Date | null;
   follow_up_date?: Date | null;
-  created_at: Date;
-  updated_at: Date;
+  created_at?: Date;
+  updated_at?: Date;
   deleted_at?: Date | null;
+
+  // New stage-based fields
+  stage?: string;
+  final_outcome?: string | null;
+  review_started_at?: Date | null;
+  visit_scheduled_at?: Date | null;
+  visit_completed_at?: Date | null;
+  resolved_at?: Date | null;
+  withdrawal_reason?: string | null;
+  stage_rejection_reason?: string | null;
 }
 
 export interface ApplicationReference {
+  id: string;
   name: string;
   relationship: string;
   phone: string;
@@ -41,6 +51,70 @@ export interface ApplicationReference {
   contacted_at?: Date;
   status: 'pending' | 'contacted' | 'verified' | 'failed';
   notes?: string;
+  contacted_by?: string;
+}
+
+// Frontend-compatible Application format
+export interface FrontendApplication {
+  id: string;
+  petId: string;
+  userId: string;
+  rescueId: string;
+  status: ApplicationStatus;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewNotes?: string;
+  data: {
+    personalInfo?: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+    };
+    householdInfo?: {
+      householdSize?: number;
+      hasChildren?: boolean;
+      childrenAges?: number[];
+      householdMembers?: string[];
+    };
+    petExperience?: {
+      previousPets?: boolean;
+      currentPets?: boolean;
+      petTypes?: string[];
+      experience?: string;
+    };
+    livingConditions?: {
+      homeType?: string;
+      hasYard?: boolean;
+      yardSize?: string;
+      rentOrOwn?: string;
+      landlordContact?: string;
+    };
+    answers?: Record<string, unknown>;
+    references?: {
+      personal?: ApplicationReference[];
+    };
+    documents?: ApplicationDocument[];
+  };
+  documents?: Array<{
+    id: string;
+    type: string;
+    filename: string;
+    url: string;
+    uploadedAt: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+  petName?: string;
+  petType?: string;
+  petBreed?: string;
+  userName?: string;
+  userEmail?: string;
 }
 
 export interface ApplicationDocument {
@@ -77,7 +151,6 @@ export interface ApplicationStatusUpdateRequest {
   status: ApplicationStatus;
   actioned_by: string;
   rejection_reason?: string;
-  conditional_requirements?: string[];
   notes?: string;
   follow_up_date?: Date;
 }
@@ -150,7 +223,6 @@ export interface ApplicationWorkflowStatistics {
   completion_rates: {
     submitted_to_approved: number;
     submitted_to_rejected: number;
-    under_review_completion: number;
   };
 }
 
@@ -265,7 +337,8 @@ export interface ReferenceContactRequest {
 }
 
 export interface ReferenceUpdateRequest {
-  reference_index: number;
+  reference_index?: number; // Support for index-based reference updates
+  referenceId?: string; // Support for ID-based approach (ref-0, ref-1, etc.)
   status: 'pending' | 'contacted' | 'verified' | 'failed';
   notes?: string;
   contacted_at?: Date;

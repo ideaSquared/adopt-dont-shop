@@ -1,5 +1,5 @@
 # Multi-stage build for service.backend
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install security updates and necessary packages
 RUN apk update && apk upgrade && apk add --no-cache \

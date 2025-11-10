@@ -1,5 +1,5 @@
-import { applicationService } from '@/services/applicationService';
-import { Application } from '@/types';
+import { applicationService } from '@/services';
+import { Application } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -85,11 +85,6 @@ const StatusBadge = styled.span<{ $status: string }>`
         return `
           background: ${props.theme.colors.secondary[100]};
           color: ${props.theme.colors.secondary[700]};
-        `;
-      case 'under_review':
-        return `
-          background: ${props.theme.colors.primary[100]};
-          color: ${props.theme.colors.primary[700]};
         `;
       case 'approved':
         return `

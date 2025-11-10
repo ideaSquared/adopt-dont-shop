@@ -149,10 +149,11 @@ const StyledCheckbox = styled.div<{
       }
     `}
 
-  ${({ $checked, $indeterminate }) =>
+  ${({ $checked, $indeterminate, theme }) =>
     ($checked || $indeterminate) &&
     css`
-      border-color: currentColor;
+      background-color: ${theme.colors.primary[500]};
+      border-color: ${theme.colors.primary[500]};
     `}
 `;
 

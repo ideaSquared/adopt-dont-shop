@@ -32,52 +32,105 @@ export interface UserRole {
 // Permission Definitions
 export const PERMISSIONS = {
   // User Management
-  USER_CREATE: 'user:create',
-  USER_READ: 'user:read',
-  USER_UPDATE: 'user:update',
-  USER_DELETE: 'user:delete',
-  USER_READ_OWN: 'user:read:own',
-  USER_UPDATE_OWN: 'user:update:own',
+  USER_CREATE: 'users.create',
+  USER_READ: 'users.read',
+  USER_UPDATE: 'users.update',
+  USER_DELETE: 'users.delete',
+  USER_READ_OWN: 'users.read.own',
+  USER_UPDATE_OWN: 'users.update.own',
 
   // Pet Management
-  PET_CREATE: 'pet:create',
-  PET_READ: 'pet:read',
-  PET_UPDATE: 'pet:update',
-  PET_DELETE: 'pet:delete',
-  PET_MANAGE_OWN: 'pet:manage:own',
+  PET_CREATE: 'pets.create',
+  PET_READ: 'pets.read',
+  PET_UPDATE: 'pets.update',
+  PET_DELETE: 'pets.delete',
+  PET_MANAGE_OWN: 'pets.manage.own',
 
   // Application Management
-  APPLICATION_CREATE: 'application:create',
-  APPLICATION_READ: 'application:read',
-  APPLICATION_UPDATE: 'application:update',
-  APPLICATION_DELETE: 'application:delete',
-  APPLICATION_MANAGE_OWN: 'application:manage:own',
-  APPLICATION_APPROVE: 'application:approve',
-  APPLICATION_REJECT: 'application:reject',
+  APPLICATION_CREATE: 'applications.create',
+  APPLICATION_READ: 'applications.read',
+  APPLICATION_UPDATE: 'applications.update',
+  APPLICATION_DELETE: 'applications.delete',
+  APPLICATION_MANAGE_OWN: 'applications.manage.own',
+  APPLICATION_APPROVE: 'applications.approve',
+  APPLICATION_REJECT: 'applications.reject',
 
   // Rescue Management
-  RESCUE_CREATE: 'rescue:create',
-  RESCUE_READ: 'rescue:read',
-  RESCUE_UPDATE: 'rescue:update',
-  RESCUE_DELETE: 'rescue:delete',
-  RESCUE_MANAGE_OWN: 'rescue:manage:own',
+  RESCUE_CREATE: 'rescues.create',
+  RESCUE_READ: 'rescues.read',
+  RESCUE_UPDATE: 'rescues.update',
+  RESCUE_DELETE: 'rescues.delete',
+  RESCUE_MANAGE_OWN: 'rescues.manage.own',
 
   // Chat/Communication
-  CHAT_CREATE: 'chat:create',
-  CHAT_READ: 'chat:read',
-  CHAT_UPDATE: 'chat:update',
-  CHAT_DELETE: 'chat:delete',
-  CHAT_PARTICIPATE: 'chat:participate',
+  CHAT_CREATE: 'chats.create',
+  CHAT_READ: 'chats.read',
+  CHAT_UPDATE: 'chats.update',
+  CHAT_DELETE: 'chats.delete',
+  CHAT_PARTICIPATE: 'chats.participate',
+  CHAT_MODERATE: 'chats.moderate',
 
-  // Admin Functions
-  ADMIN_PANEL: 'admin:panel',
-  ADMIN_USERS: 'admin:users',
-  ADMIN_REPORTS: 'admin:reports',
-  ADMIN_SYSTEM: 'admin:system',
+  // Message Management
+  MESSAGE_CREATE: 'messages.create',
+  MESSAGE_READ: 'messages.read',
+  MESSAGE_UPDATE: 'messages.update',
+  MESSAGE_DELETE: 'messages.delete',
+  MESSAGE_MODERATE: 'messages.moderate',
+
+  // Support Ticket Management
+  SUPPORT_TICKET_CREATE: 'support_tickets.create',
+  SUPPORT_TICKET_READ: 'support_tickets.read',
+  SUPPORT_TICKET_UPDATE: 'support_tickets.update',
+  SUPPORT_TICKET_DELETE: 'support_tickets.delete',
+  SUPPORT_TICKET_ASSIGN: 'support_tickets.assign',
+  SUPPORT_TICKET_ESCALATE: 'support_tickets.escalate',
+  SUPPORT_TICKET_REPLY: 'support_tickets.reply',
+  SUPPORT_TICKET_MANAGE_OWN: 'support_tickets.manage_own',
+  SUPPORT_TICKET_LIST: 'support_tickets.list',
+
+  // Admin Management
+  ADMIN_PANEL: 'admin.panel',
+  ADMIN_USERS: 'admin.users',
+  ADMIN_REPORTS: 'admin.reports',
+  ADMIN_SYSTEM: 'admin.system',
+  ADMIN_METRICS_READ: 'admin.metrics.read',
+  ADMIN_ANALYTICS_READ: 'admin.analytics.read',
+  ADMIN_SYSTEM_HEALTH_READ: 'admin.system.health.read',
+  ADMIN_CONFIG_READ: 'admin.config.read',
+  ADMIN_CONFIG_UPDATE: 'admin.config.update',
+  ADMIN_USER_SEARCH: 'admin.users.search',
+  ADMIN_USER_READ: 'admin.users.read',
+  ADMIN_USER_UPDATE: 'admin.users.update',
+  ADMIN_USER_ROLE_UPDATE: 'admin.users.role.update',
+  ADMIN_USER_DEACTIVATE: 'admin.users.deactivate',
+  ADMIN_USER_REACTIVATE: 'admin.users.reactivate',
+  ADMIN_USER_BULK_UPDATE: 'admin.users.bulk_update',
+  ADMIN_RESCUE_MANAGEMENT: 'admin.rescues.manage',
+  ADMIN_AUDIT_LOGS_READ: 'admin.audit.read',
+  ADMIN_DATA_EXPORT: 'admin.data.export',
+
+  // Moderation
+  MODERATION_REPORTS_READ: 'moderation.reports.read',
+  MODERATION_REPORTS_CREATE: 'moderation.reports.create',
+  MODERATION_REPORTS_UPDATE: 'moderation.reports.update',
+  MODERATION_REPORTS_ASSIGN: 'moderation.reports.assign',
+  MODERATION_REPORTS_ESCALATE: 'moderation.reports.escalate',
+  MODERATION_REPORTS_BULK_UPDATE: 'moderation.reports.bulk_update',
+  MODERATION_ACTIONS_CREATE: 'moderation.actions.create',
+  MODERATION_ACTIONS_READ: 'moderation.actions.read',
+  MODERATION_METRICS_READ: 'moderation.metrics.read',
+
+  // Chat Analytics
+  CHAT_ANALYTICS_READ: 'chat.analytics.read',
+
+  // Notifications
+  NOTIFICATION_CREATE: 'notifications.create',
+  NOTIFICATION_BULK_CREATE: 'notifications.bulk_create',
+  NOTIFICATION_CLEANUP: 'notifications.cleanup',
 
   // System
-  AUDIT_LOG_READ: 'audit:read',
-  FEATURE_FLAG_MANAGE: 'feature:manage',
+  AUDIT_LOG_READ: 'audit.read',
+  FEATURE_FLAG_MANAGE: 'feature.manage',
 } as const;
 
 export type PermissionName = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -90,9 +143,12 @@ export type ResourceType =
   | 'rescue'
   | 'chat'
   | 'message'
+  | 'support_ticket'
   | 'admin'
   | 'audit'
-  | 'feature_flag';
+  | 'feature_flag'
+  | 'moderation'
+  | 'notification';
 
 export type ActionType =
   | 'create'

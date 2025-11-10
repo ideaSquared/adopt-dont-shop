@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useChat } from '@/contexts/ChatContext';
 import { Spinner } from '@adopt-dont-shop/components';
 import { useEffect, useRef } from 'react';

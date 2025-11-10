@@ -2,8 +2,33 @@ import { Router } from 'express';
 import { config } from '../config';
 import { authLimiter, uploadLimiter } from '../middleware/rate-limiter';
 import { HealthCheckService } from '../services/health-check.service';
+import { logger } from '../utils/logger';
 
 const router = Router();
+
+// Helper function to generate descriptions for dev users
+const getDevUserDescription = (userType: string, email: string): string => {
+  if (email.includes('superadmin')) return 'Super Administrator - Full system access';
+  if (email.includes('admin@adoptdontshop')) return 'System Administrator';
+  if (email.includes('moderator')) return 'Content Moderator';
+  if (email.includes('rescue.manager')) return 'Rescue Manager';
+  if (email.includes('sarah.johnson')) return 'Veterinary Technician';
+  if (email.includes('maria@happytailsrescue')) return 'Happy Tails Director';
+  if (email.includes('alex.thompson')) return 'Active Volunteer';
+  if (email.includes('john.smith')) return 'Family dog seeker';
+  if (email.includes('emily.davis')) return 'Cat lover';
+  if (email.includes('michael.brown')) return 'Active dog owner';
+  if (email.includes('jessica.wilson')) return 'First-time adopter';
+
+  // Fallback based on user type
+  switch (userType) {
+    case 'admin': return 'Administrator';
+    case 'moderator': return 'Moderator';
+    case 'rescue_staff': return 'Rescue Staff';
+    case 'adopter': return 'Adopter';
+    default: return 'Dev User';
+  }
+};
 
 // Only enable in development
 if (process.env.NODE_ENV === 'development') {
@@ -123,7 +148,7 @@ if (process.env.NODE_ENV === 'development') {
       const EmailService = (await import('../services/email.service')).default;
       emailProviderInfo = EmailService.getProviderInfo();
     } catch (error) {
-      console.warn('Could not get email provider info:', error);
+      logger.warn('Could not get email provider info:', { error });
     }
 
     // Simple HTML dashboard
@@ -134,9 +159,9 @@ if (process.env.NODE_ENV === 'development') {
         <title>Service Monitor</title>
         <meta http-equiv="refresh" content="5">
         <style>
-          body { 
-            font-family: Arial, sans-serif; 
-            margin: 20px; 
+          body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
             background-color: #f5f5f5;
           }
           .container {
@@ -160,17 +185,17 @@ if (process.env.NODE_ENV === 'development') {
             font-weight: bold;
             text-transform: uppercase;
           }
-          .healthy { 
+          .healthy {
             background-color: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
           }
-          .degraded { 
+          .degraded {
             background-color: #fff3cd;
             color: #856404;
             border: 1px solid #ffeaa7;
           }
-          .unhealthy { 
+          .unhealthy {
             background-color: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
@@ -181,10 +206,10 @@ if (process.env.NODE_ENV === 'development') {
             gap: 20px;
             margin: 20px 0;
           }
-          .service { 
-            margin: 10px 0; 
-            padding: 15px; 
-            border: 1px solid #ddd; 
+          .service {
+            margin: 10px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
             border-radius: 8px;
             background: #fafafa;
           }
@@ -244,14 +269,14 @@ if (process.env.NODE_ENV === 'development') {
         <div class="container">
           <div class="header">
             <h1>🚀 Adopt Don't Shop - Service Monitor</h1>
-            <p><strong>Overall Status:</strong> 
+            <p><strong>Overall Status:</strong>
               <span class="status-badge ${health.status}">${health.status.toUpperCase()}</span>
             </p>
-            <p><strong>Environment:</strong> ${health.environment} | 
-               <strong>Uptime:</strong> ${Math.round(health.uptime)}s | 
+            <p><strong>Environment:</strong> ${health.environment} |
+               <strong>Uptime:</strong> ${Math.round(health.uptime)}s |
                <strong>Last Updated:</strong> ${health.timestamp.toLocaleString()}</p>
           </div>
-          
+
           <h2>📊 Services Status</h2>
           <div class="service-grid">
             ${Object.entries(health.services)
@@ -270,14 +295,14 @@ if (process.env.NODE_ENV === 'development') {
               )
               .join('')}
           </div>
-          
+
           <h2>📈 System Metrics</h2>
           <div class="metrics">
             <div class="metrics-grid">
                              <div class="metric">
-                 <div class="metric-value">${Math.round(health.metrics.memoryUsage.rss / 1024 / 1024)}MB</div>
-                 <div class="metric-label">Memory Used</div>
-               </div>
+                <div class="metric-value">${Math.round(health.metrics.memoryUsage.rss / 1024 / 1024)}MB</div>
+                <div class="metric-label">Memory Used</div>
+              </div>
               <div class="metric">
                 <div class="metric-value">${Math.round(health.metrics.memoryUsage.heapUsed / 1024 / 1024)}MB</div>
                 <div class="metric-label">Heap Used</div>
@@ -295,44 +320,44 @@ if (process.env.NODE_ENV === 'development') {
 
           <h2>🔗 Quick Links</h2>
                      <div style="margin: 20px 0; text-align: center;">
-             <a href="/health" style="margin: 0 10px; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">Health Check JSON</a>
-             <a href="/health/simple" style="margin: 0 10px; padding: 10px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px;">Simple Health</a>
-             <a href="/health/ready" style="margin: 0 10px; padding: 10px 20px; background: #ffc107; color: black; text-decoration: none; border-radius: 5px;">Readiness Check</a>
-             <a href="/monitoring/api/email/provider-info" target="_blank" style="margin: 0 10px; padding: 10px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;">📧 Email Login Info</a>
-           </div>
+            <a href="/health" style="margin: 0 10px; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">Health Check JSON</a>
+            <a href="/health/simple" style="margin: 0 10px; padding: 10px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px;">Simple Health</a>
+            <a href="/health/ready" style="margin: 0 10px; padding: 10px 20px; background: #ffc107; color: black; text-decoration: none; border-radius: 5px;">Readiness Check</a>
+            <a href="/monitoring/api/email/provider-info" target="_blank" style="margin: 0 10px; padding: 10px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;">📧 Email Login Info</a>
+          </div>
 
-           ${
-             emailProviderInfo
-               ? `
-           <h2>📧 Email Testing (Development)</h2>
-           <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #dee2e6;">
-             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-               <div>
-                 <h5 style="color: #495057; margin-bottom: 10px;">🔑 Login Credentials</h5>
-                 <div style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
-                   <div><strong>Username:</strong> <code>${emailProviderInfo.user}</code></div>
-                   <div style="margin-top: 5px;"><strong>Password:</strong> <code>${emailProviderInfo.password}</code></div>
-                 </div>
-               </div>
-               <div>
-                 <h5 style="color: #495057; margin-bottom: 10px;">🌐 Quick Access</h5>
-                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                   <a href="https://ethereal.email/login" target="_blank" style="padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; text-align: center;">
-                     🔐 Login to Ethereal
-                   </a>
-                   <a href="https://ethereal.email/messages" target="_blank" style="padding: 10px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; text-align: center;">
-                     📬 View All Messages
-                   </a>
-                 </div>
-               </div>
-             </div>
-             <div style="margin-top: 15px; padding: 10px; background: #d1ecf1; border-radius: 5px; color: #0c5460; font-size: 0.9em;">
-               💡 <strong>Pro Tip:</strong> All emails sent in development are captured here. Check the console for direct message preview links!
-             </div>
-           </div>
-           `
-               : ''
-           }
+          ${
+            emailProviderInfo
+              ? `
+          <h2>📧 Email Testing (Development)</h2>
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #dee2e6;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+              <div>
+                <h5 style="color: #495057; margin-bottom: 10px;">🔑 Login Credentials</h5>
+                <div style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
+                  <div><strong>Username:</strong> <code>${emailProviderInfo.user}</code></div>
+                  <div style="margin-top: 5px;"><strong>Password:</strong> <code>${emailProviderInfo.password}</code></div>
+                </div>
+              </div>
+              <div>
+                <h5 style="color: #495057; margin-bottom: 10px;">🌐 Quick Access</h5>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <a href="https://ethereal.email/login" target="_blank" style="padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; text-align: center;">
+                    🔐 Login to Ethereal
+                  </a>
+                  <a href="https://ethereal.email/messages" target="_blank" style="padding: 10px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; text-align: center;">
+                    📬 View All Messages
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top: 15px; padding: 10px; background: #d1ecf1; border-radius: 5px; color: #0c5460; font-size: 0.9em;">
+              💡 <strong>Pro Tip:</strong> All emails sent in development are captured here. Check the console for direct message preview links!
+            </div>
+          </div>
+          `
+              : ''
+          }
 
           <h2>🛡️ Rate Limiting Status</h2>
           <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #dee2e6;">
@@ -341,7 +366,7 @@ if (process.env.NODE_ENV === 'development') {
                 <h5 style="color: #495057; margin-bottom: 10px;">⚙️ Current Status</h5>
                 <div style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
                   <div style="margin-bottom: 10px;">
-                    <strong>Mode:</strong> 
+                    <strong>Mode:</strong>
                     <span style="background: ${
                       health.environment === 'development' ? '#fff3cd' : '#d4edda'
                     }; color: ${
@@ -1111,6 +1136,60 @@ if (process.env.NODE_ENV === 'development') {
       });
     } catch (error) {
       res.status(500).json({ error: 'Failed to get email provider info' });
+    }
+  });
+
+  // Dev seeded users endpoint (development only)
+  router.get('/api/dev/seeded-users', async (req, res) => {
+    try {
+      // Import User model to fetch seeded users
+      const User = (await import('../models/User')).default;
+
+      // Get all seeded dev users (identifiable by specific email patterns)
+      const seededUsers = await User.findAll({
+        where: {
+          email: {
+            [require('sequelize').Op.or]: [
+              { [require('sequelize').Op.like]: '%@adoptdontshop.dev' },
+              { [require('sequelize').Op.like]: '%@pawsrescue.dev' },
+              { [require('sequelize').Op.like]: '%@happytailsrescue.dev' },
+              { [require('sequelize').Op.like]: '%@happytails.org' },
+              { [require('sequelize').Op.in]: [
+                'john.smith@gmail.com',
+                'emily.davis@yahoo.com',
+                'michael.brown@outlook.com',
+                'jessica.wilson@gmail.com'
+              ]}
+            ]
+          }
+        },
+        attributes: [
+          'userId', 'firstName', 'lastName', 'email', 'userType', 'status',
+          'emailVerified', 'country', 'city', 'addressLine1', 'postalCode',
+          'timezone', 'language', 'bio', 'dateOfBirth', 'phoneNumber',
+          'termsAcceptedAt', 'privacyPolicyAcceptedAt', 'createdAt', 'updatedAt'
+        ],
+        order: [['userType', 'ASC'], ['email', 'ASC']]
+      });
+
+      // Transform to DevUser format with descriptions
+      const transformedUsers = seededUsers.map(user => ({
+        ...user.toJSON(),
+        description: getDevUserDescription(user.userType, user.email)
+      }));
+
+      res.json({
+        users: transformedUsers,
+        password: 'DevPassword123!',
+        source: 'database',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      logger.error('Failed to fetch seeded users:', { error });
+      res.status(500).json({
+        error: 'Failed to fetch seeded users',
+        fallback: 'Use local data'
+      });
     }
   });
 

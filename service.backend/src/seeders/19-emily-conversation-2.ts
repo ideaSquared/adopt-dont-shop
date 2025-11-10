@@ -280,7 +280,7 @@ export async function seedEmilyConversation2() {
     // Create file attachments
     for (const attachment of emilyConversation2Data.attachments) {
       await FileUpload.findOrCreate({
-        where: { upload_id: attachment.upload_id },
+        where: { stored_filename: attachment.stored_filename },
         defaults: attachment,
       });
     }

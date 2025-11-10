@@ -1,5 +1,5 @@
-import { Message } from '@/services/chatService';
-import { formatDistanceToNow } from 'date-fns';
+import { Message } from '@/services';
+import { safeFormatDistanceToNow } from '@/utils/dateHelpers';
 import { useState } from 'react';
 import {
   MdDownload,
@@ -338,7 +338,7 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
         )}
 
         <MessageInfo $isOwn={isOwn} aria-label={'Message time'}>
-          {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+          {safeFormatDistanceToNow(message.timestamp, 'Just now')}
         </MessageInfo>
       </MessageBubble>
 

@@ -1,7 +1,9 @@
 import { Op, WhereOptions } from 'sequelize';
-import { Application, Pet, Rescue, StaffMember, User } from '../models';
+import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import sequelize from '../sequelize';
+import { AdoptionPolicy } from '../types/rescue';
 
 export interface RescueSearchOptions {
   page?: number;
@@ -19,8 +21,8 @@ export interface CreateRescueRequest {
   phone?: string;
   address: string;
   city: string;
-  state: string;
-  zipCode: string;
+  county: string;
+  postcode: string;
   country: string;
   website?: string;
   description?: string;
@@ -118,7 +120,7 @@ export class RescueService {
           ...whereClause,
           [Op.or]: [
             { city: { [Op.iLike]: `%${location}%` } },
-            { state: { [Op.iLike]: `%${location}%` } },
+            { county: { [Op.iLike]: `%${location}%` } },
             { country: { [Op.iLike]: `%${location}%` } },
           ],
         };
@@ -130,7 +132,7 @@ export class RescueService {
             {
               [Op.or]: [
                 { city: { [Op.iLike]: `%${location}%` } },
-                { state: { [Op.iLike]: `%${location}%` } },
+                { county: { [Op.iLike]: `%${location}%` } },
                 { country: { [Op.iLike]: `%${location}%` } },
               ],
             },
@@ -476,6 +478,80 @@ export class RescueService {
   }
 
   /**
+   * Reject a rescue organization
+   */
+  static async rejectRescue(rescueId: string, rejectedBy: string, reason?: string, notes?: string): Promise<Rescue> {
+    const startTime = Date.now();
+
+    const transaction = await Rescue.sequelize!.transaction();
+
+    try {
+      const rescue = await Rescue.findByPk(rescueId, { transaction });
+
+      if (!rescue) {
+        throw new Error('Rescue not found');
+      }
+
+      if (rescue.status === 'verified') {
+        throw new Error('Cannot reject an already verified rescue');
+      }
+
+      if (rescue.status === 'inactive') {
+        throw new Error('Rescue is already rejected');
+      }
+
+      await rescue.update(
+        {
+          status: 'inactive',
+        },
+        { transaction }
+      );
+
+      // Log the action
+      await AuditLogService.log({
+        userId: rejectedBy,
+        action: 'reject',
+        entity: 'rescue',
+        entityId: rescueId,
+        details: {
+          rescueId,
+          name: rescue.name,
+          rejectionReason: reason || null,
+          rejectionNotes: notes || null,
+        },
+      });
+
+      loggerHelpers.logBusiness(
+        'Rescue Rejected',
+        {
+          rescueId,
+          rejectedBy,
+          reason: reason || 'No reason provided',
+          duration: Date.now() - startTime,
+        },
+        rejectedBy
+      );
+
+      await transaction.commit();
+
+      logger.info(`Rejected rescue: ${rescueId}`);
+      return rescue.toJSON() as any;
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error rejecting rescue:', {
+        error: error instanceof Error ? error.message : String(error),
+        rescueId,
+        rejectedBy,
+        duration: Date.now() - startTime,
+      });
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to reject rescue');
+    }
+  }
+
+  /**
    * Add staff member to rescue
    */
   static async addStaffMember(
@@ -484,6 +560,8 @@ export class RescueService {
     title: string | undefined,
     addedBy: string
   ): Promise<any> {
+    logger.info(`addStaffMember called with: rescueId=${rescueId}, userId=${userId}, title=${title}, addedBy=${addedBy}`);
+    
     const transaction = await Rescue.sequelize!.transaction();
 
     try {
@@ -499,28 +577,86 @@ export class RescueService {
         throw new Error('User not found');
       }
 
-      // Check if user is already a staff member
-      const existingStaff = await StaffMember.findOne({
-        where: { rescueId, userId },
+      // Check if user is already an active staff member
+      const existingActiveStaff = await StaffMember.findOne({
+        where: { rescueId, userId, isDeleted: false },
         transaction,
       });
 
-      if (existingStaff) {
+      if (existingActiveStaff) {
         throw new Error('User is already a staff member of this rescue');
       }
 
-      const staffMember = await StaffMember.create(
-        {
-          rescueId,
-          userId,
+      // Check if user was previously a staff member (soft deleted)
+      const existingSoftDeletedStaff = await StaffMember.findOne({
+        where: { rescueId, userId, isDeleted: true },
+        transaction,
+      });
+
+      let staffMember;
+      if (existingSoftDeletedStaff) {
+        // Restore the soft-deleted staff member
+        // Preserve verification status if they were previously verified
+        const wasVerified = existingSoftDeletedStaff.isVerified;
+        
+        await existingSoftDeletedStaff.update({
           title,
-          addedBy,
-          isVerified: false,
           isDeleted: false,
+          deletedAt: undefined,
+          deletedBy: undefined,
+          addedBy,
           addedAt: new Date(),
-        },
-        { transaction }
-      );
+          isVerified: wasVerified, // Keep previous verification status
+        }, { transaction });
+        
+        staffMember = existingSoftDeletedStaff;
+        logger.info(`Restored soft-deleted staff member ${userId} in rescue ${rescueId} (verified: ${wasVerified})`);
+      } else {
+        // Create new staff member
+        staffMember = await StaffMember.create(
+          {
+            rescueId,
+            userId,
+            title,
+            addedBy,
+            isVerified: false,
+            isDeleted: false,
+            addedAt: new Date(),
+          },
+          { transaction }
+        );
+        
+        logger.info(`Created new staff member ${userId} in rescue ${rescueId}`);
+      }
+
+      // Ensure user has rescue_staff role (only assign if they don't have it)
+      const rescueStaffRole = await Role.findOne({ 
+        where: { name: 'rescue_staff' },
+        transaction 
+      });
+
+      if (rescueStaffRole) {
+        const existingUserRole = await UserRole.findOne({
+          where: { 
+            userId: userId, 
+            roleId: rescueStaffRole.roleId 
+          },
+          transaction
+        });
+
+        if (!existingUserRole) {
+          await UserRole.create({
+            userId: userId,
+            roleId: rescueStaffRole.roleId
+          }, { transaction });
+
+          logger.info(`Assigned rescue_staff role to user ${userId}`);
+        } else {
+          logger.info(`User ${userId} already has rescue_staff role`);
+        }
+      } else {
+        logger.warn('rescue_staff role not found in database');
+      }
 
       // Log the action
       await AuditLogService.log({
@@ -533,6 +669,7 @@ export class RescueService {
           staffUserId: userId,
           title: title || null,
           staffName: `${user.firstName} ${user.lastName}`,
+          roleAssigned: rescueStaffRole ? 'rescue_staff' : 'none',
         },
       });
 
@@ -558,7 +695,7 @@ export class RescueService {
 
     try {
       const staffMember = await StaffMember.findOne({
-        where: { rescueId, userId },
+        where: { rescueId, userId, isDeleted: false },
         include: [
           {
             model: User,
@@ -574,7 +711,17 @@ export class RescueService {
       }
 
       const user = staffMember.user!;
-      await staffMember.destroy({ transaction });
+      
+      // Soft delete the staff member instead of hard delete
+      await staffMember.update({
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedBy: removedBy
+      }, { transaction });
+
+      // Keep the user's rescue_staff role intact
+      // This allows them to be re-added easily and maintains their capability level
+      // Roles represent what they CAN do, not what they ARE currently doing
 
       // Log the action
       await AuditLogService.log({
@@ -586,12 +733,13 @@ export class RescueService {
           rescueId,
           removedUserId: userId,
           staffName: `${user.firstName} ${user.lastName}`,
+          method: 'soft_delete',
         },
       });
 
       await transaction.commit();
 
-      logger.info(`Removed staff member ${userId} from rescue ${rescueId}`);
+      logger.info(`Soft deleted staff member ${userId} from rescue ${rescueId}`);
       return { success: true, message: 'Staff member removed successfully' };
     } catch (error) {
       await transaction.rollback();
@@ -600,6 +748,65 @@ export class RescueService {
         throw error;
       }
       throw new Error('Failed to remove staff member');
+    }
+  }
+
+  /**
+   * Update staff member in rescue
+   */
+  static async updateStaffMember(
+    rescueId: string, 
+    userId: string, 
+    updates: { title?: string }, 
+    updatedBy: string
+  ): Promise<any> {
+    const transaction = await sequelize.transaction();
+
+    try {
+      // Verify rescue exists
+      const rescue = await Rescue.findByPk(rescueId);
+      if (!rescue) {
+        throw new Error('Rescue not found');
+      }
+
+      // Find the staff member
+      const staffMember = await StaffMember.findOne({
+        where: { rescueId, userId },
+        include: [{ model: User, as: 'user' }],
+      });
+
+      if (!staffMember) {
+        throw new Error('Staff member not found');
+      }
+
+      // Update the staff member
+      await staffMember.update(updates, { transaction });
+
+      // Log the action
+      await AuditLogService.log({
+        userId: updatedBy,
+        action: 'updateStaff',
+        entity: 'rescue',
+        entityId: rescueId,
+        details: {
+          rescueId,
+          updatedUserId: userId,
+          staffName: `${staffMember.user.firstName} ${staffMember.user.lastName}`,
+          updates,
+        },
+      });
+
+      await transaction.commit();
+
+      logger.info(`Updated staff member ${userId} in rescue ${rescueId}`);
+      return staffMember.toJSON();
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error updating staff member:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to update staff member');
     }
   }
 
@@ -620,11 +827,15 @@ export class RescueService {
       // Get application statistics
       const [totalApplications, pendingApplications] = await Promise.all([
         Application.count({
-          include: [{ model: Pet, where: { rescue_id: rescueId } }],
+          include: [{ model: Pet, as: 'Pet', where: { rescue_id: rescueId } }],
         }),
         Application.count({
-          where: { status: 'pending' },
-          include: [{ model: Pet, where: { rescue_id: rescueId } }],
+          where: {
+            status: {
+              [Op.in]: ['submitted'],
+            },
+          },
+          include: [{ model: Pet, as: 'Pet', where: { rescue_id: rescueId } }],
         }),
       ]);
 
@@ -708,7 +919,7 @@ export class RescueService {
       const { page = 1, limit = 20, status, sortBy = 'createdAt', sortOrder = 'DESC' } = options;
       const offset = (page - 1) * limit;
 
-      const whereClause: any = { rescue_id: rescueId };
+      const whereClause: WhereOptions = { rescue_id: rescueId };
       if (status) {
         whereClause.status = status;
       }
@@ -813,27 +1024,51 @@ export class RescueService {
       const { page = 1, limit = 20, search, role } = options;
       const offset = (page - 1) * limit;
 
-      const whereConditions: any = { rescueId };
+      const whereConditions: WhereOptions = {
+        rescueId,
+        isDeleted: false // Only get active staff members
+      };
 
+      // Build user search conditions for the included User model
+      const userWhereConditions: WhereOptions = {};
       if (search) {
-        whereConditions[Op.or] = [
+        // Type assertion needed: Sequelize's types don't support Op.or as index signature
+        // This is a valid runtime pattern - Op.or is a symbol used for OR queries
+        const orConditions = [
           { firstName: { [Op.iLike]: `%${search}%` } },
           { lastName: { [Op.iLike]: `%${search}%` } },
           { email: { [Op.iLike]: `%${search}%` } },
         ];
+        Object.assign(userWhereConditions, { [Op.or]: orConditions });
       }
 
-      if (role) {
-        whereConditions.role = role;
-      }
-
-      const { rows: staff, count: total } = await User.findAndCountAll({
+      const { rows: staffMembers, count: total } = await StaffMember.findAndCountAll({
         where: whereConditions,
-        include: ['Roles'],
-        order: [['firstName', 'ASC']],
+        include: [
+          {
+            model: User,
+            as: 'user',
+            where: Object.keys(userWhereConditions).length > 0 ? userWhereConditions : undefined,
+            attributes: ['userId', 'firstName', 'lastName', 'email', 'userType'],
+          }
+        ],
+        order: [['addedAt', 'DESC']],
         limit,
         offset,
       });
+
+      // Transform to the expected format
+      const staff = staffMembers.map(staffMember => ({
+        id: staffMember.staffMemberId,
+        userId: staffMember.userId,
+        rescueId: staffMember.rescueId,
+        firstName: staffMember.user?.firstName || 'Unknown',
+        lastName: staffMember.user?.lastName || 'User',
+        email: staffMember.user?.email || '',
+        title: staffMember.title || 'Staff Member',
+        isVerified: staffMember.isVerified,
+        addedAt: staffMember.addedAt,
+      }));
 
       return {
         staff,
@@ -847,6 +1082,114 @@ export class RescueService {
     } catch (error) {
       logger.error('Error getting rescue staff:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Update adoption policies for a rescue
+   */
+  static async updateAdoptionPolicies(
+    rescueId: string,
+    adoptionPolicies: AdoptionPolicy,
+    updatedBy: string
+  ): Promise<AdoptionPolicy> {
+    const startTime = Date.now();
+    const transaction = await Rescue.sequelize!.transaction();
+
+    try {
+      const rescue = await Rescue.findByPk(rescueId, { transaction });
+
+      if (!rescue) {
+        throw new Error('Rescue not found');
+      }
+
+      // Get current settings or initialize empty object
+      const currentSettings = (rescue.settings as any) || {};
+
+      // Update settings with new adoption policies
+      const updatedSettings = {
+        ...currentSettings,
+        adoptionPolicies,
+      };
+
+      await rescue.update({ settings: updatedSettings }, { transaction });
+
+      // Log the action
+      await AuditLogService.log({
+        userId: updatedBy,
+        action: 'update',
+        entity: 'rescue',
+        entityId: rescueId,
+        details: {
+          rescueId,
+          field: 'adoptionPolicies',
+          action: 'updated',
+        },
+      });
+
+      loggerHelpers.logBusiness(
+        'Adoption Policies Updated',
+        {
+          rescueId,
+          updatedBy,
+          duration: Date.now() - startTime,
+        },
+        updatedBy
+      );
+
+      await transaction.commit();
+
+      logger.info(`Updated adoption policies for rescue: ${rescueId}`);
+      return adoptionPolicies;
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error updating adoption policies:', {
+        error: error instanceof Error ? error.message : String(error),
+        rescueId,
+        updatedBy,
+        duration: Date.now() - startTime,
+      });
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to update adoption policies');
+    }
+  }
+
+  /**
+   * Get adoption policies for a rescue
+   */
+  static async getAdoptionPolicies(rescueId: string): Promise<AdoptionPolicy | null> {
+    const startTime = Date.now();
+
+    try {
+      const rescue = await Rescue.findByPk(rescueId);
+
+      if (!rescue) {
+        throw new Error('Rescue not found');
+      }
+
+      const settings = (rescue.settings as any) || {};
+      const adoptionPolicies = settings.adoptionPolicies || null;
+
+      loggerHelpers.logDatabase('READ', {
+        rescueId,
+        field: 'adoptionPolicies',
+        duration: Date.now() - startTime,
+        found: !!adoptionPolicies,
+      });
+
+      return adoptionPolicies;
+    } catch (error) {
+      logger.error('Error getting adoption policies:', {
+        error: error instanceof Error ? error.message : String(error),
+        rescueId,
+        duration: Date.now() - startTime,
+      });
+      if (error instanceof Error && error.message === 'Rescue not found') {
+        throw error;
+      }
+      throw new Error('Failed to retrieve adoption policies');
     }
   }
 }

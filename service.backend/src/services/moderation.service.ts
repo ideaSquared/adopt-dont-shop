@@ -1,10 +1,13 @@
-import { Op, Transaction } from 'sequelize';
+import { Op, Transaction, WhereOptions } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
 import User from '../models/User';
+import Pet from '../models/Pet';
+import Rescue from '../models/Rescue';
 import sequelize from '../sequelize';
 import logger from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { JsonObject } from '../types/common';
 
 export interface ReportFilters {
   status?: ReportStatus;
@@ -58,6 +61,19 @@ export interface ReportSubmission {
     description?: string;
     uploadedAt: Date;
   }>;
+}
+
+interface ReportCountRow {
+  status: string;
+  category: string;
+  severity: string;
+  count: string;
+}
+
+interface ActionCountRow {
+  actionType: string;
+  isActive: boolean;
+  count: string;
 }
 
 // Export the enums from models for consistency
@@ -145,14 +161,14 @@ class ModerationService {
       page: number;
       limit: number;
       total: number;
-      pages: number;
+      totalPages: number;
     };
   }> {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 20));
     const offset = (page - 1) * limit;
 
-    const whereClause: any = {};
+    const whereClause: WhereOptions = {};
 
     // Apply filters
     if (filters.status) {
@@ -178,28 +194,32 @@ class ModerationService {
     }
 
     if (filters.dateFrom || filters.dateTo) {
-      whereClause.createdAt = {};
+      const dateFilter: Record<symbol, Date> = {};
       if (filters.dateFrom) {
-        whereClause.createdAt[Op.gte] = filters.dateFrom;
+        dateFilter[Op.gte] = filters.dateFrom;
       }
       if (filters.dateTo) {
-        whereClause.createdAt[Op.lte] = filters.dateTo;
+        dateFilter[Op.lte] = filters.dateTo;
       }
+      whereClause.createdAt = dateFilter;
     }
 
     if (filters.search) {
-      whereClause[Op.or] = [
+      // Type assertion needed: Sequelize's types don't support Op.or as index signature
+      // This is a valid runtime pattern - Op.or is a symbol used for OR queries
+      const orConditions = [
         { title: { [Op.iLike]: `%${filters.search}%` } },
         { description: { [Op.iLike]: `%${filters.search}%` } },
         { reportId: { [Op.iLike]: `%${filters.search}%` } },
       ];
+      Object.assign(whereClause, { [Op.or]: orConditions });
     }
 
     const orderClause = [[options.sortBy || 'createdAt', options.sortOrder || 'DESC']];
 
     const { count, rows } = await Report.findAndCountAll({
       where: whereClause,
-      order: orderClause as any,
+      order: orderClause as [[string, string]],
       limit,
       offset,
       include: [
@@ -228,13 +248,23 @@ class ModerationService {
         page,
         limit,
         total: count,
-        pages: Math.ceil(count / limit),
+        totalPages: Math.ceil(count / limit),
       },
     };
   }
 
   async getReportById(reportId: string, includeActions = true): Promise<Report | null> {
-    const includeOptions: any[] = [
+    const includeOptions: Array<{
+      model: typeof User | typeof ModeratorAction;
+      as: string;
+      attributes?: string[];
+      include?: Array<{
+        model: typeof User;
+        as: string;
+        attributes: string[];
+      }>;
+      order?: [[string, string]];
+    }> = [
       {
         model: User,
         as: 'Reporter',
@@ -440,7 +470,7 @@ class ModerationService {
       averageResolutionTime: number; // in hours
     };
   }> {
-    const whereClause: any = {};
+    const whereClause: WhereOptions = {};
     if (dateRange) {
       whereClause.createdAt = {
         [Op.between]: [dateRange.from, dateRange.to],
@@ -454,7 +484,7 @@ class ModerationService {
         'status',
         'category',
         'severity',
-        [sequelize.fn('COUNT', sequelize.col('reportId')), 'count'],
+        [sequelize.fn('COUNT', sequelize.col('Report.report_id')), 'count'],
       ],
       group: ['status', 'category', 'severity'],
       raw: true,
@@ -466,23 +496,25 @@ class ModerationService {
       attributes: [
         'actionType',
         'isActive',
-        [sequelize.fn('COUNT', sequelize.col('actionId')), 'count'],
+        [sequelize.fn('COUNT', sequelize.col('ModeratorAction.action_id')), 'count'],
       ],
       group: ['actionType', 'isActive'],
       raw: true,
     });
 
-    // Calculate response times
+    // Calculate response times - use Op.ne instead of Op.not for null checks
+    // Type assertion needed: Sequelize's type system doesn't support Op.ne with null correctly
+    // This is a valid runtime pattern - we're checking for non-null values
     const responseTimeData = await Report.findAll({
       where: {
         ...whereClause,
-        firstResponseAt: { [Op.not]: null },
+        assignedAt: { [Op.ne]: null } as unknown as Date,
       },
       attributes: [
         [
           sequelize.fn(
             'AVG',
-            sequelize.literal('EXTRACT(EPOCH FROM ("firstResponseAt" - "createdAt")) / 3600')
+            sequelize.literal('EXTRACT(EPOCH FROM ("assigned_at" - "created_at")) / 3600')
           ),
           'avgResponseTime',
         ],
@@ -493,13 +525,13 @@ class ModerationService {
     const resolutionTimeData = await Report.findAll({
       where: {
         ...whereClause,
-        resolvedAt: { [Op.not]: null },
+        resolvedAt: { [Op.ne]: null } as unknown as Date,
       },
       attributes: [
         [
           sequelize.fn(
             'AVG',
-            sequelize.literal('EXTRACT(EPOCH FROM ("resolvedAt" - "createdAt")) / 3600')
+            sequelize.literal('EXTRACT(EPOCH FROM ("resolved_at" - "created_at")) / 3600')
           ),
           'avgResolutionTime',
         ],
@@ -526,7 +558,7 @@ class ModerationService {
     };
 
     // Process report counts
-    reportCounts.forEach((row: any) => {
+    (reportCounts as unknown as ReportCountRow[]).forEach((row) => {
       const count = parseInt(row.count);
       reports.total += count;
 
@@ -546,7 +578,7 @@ class ModerationService {
     });
 
     // Process action counts
-    actionCounts.forEach((row: any) => {
+    (actionCounts as unknown as ActionCountRow[]).forEach((row) => {
       const count = parseInt(row.count);
       actions.total += count;
       actions.byType[row.actionType] = (actions.byType[row.actionType] || 0) + count;
@@ -557,20 +589,190 @@ class ModerationService {
       }
     });
 
+    interface AvgTimeResult {
+      avgResponseTime?: string;
+      avgResolutionTime?: string;
+    }
+
     return {
       reports,
       actions,
       response: {
         averageResponseTime:
           responseTimeData.length > 0
-            ? parseFloat(String((responseTimeData[0] as any).avgResponseTime || '0'))
+            ? parseFloat(String((responseTimeData[0] as unknown as AvgTimeResult).avgResponseTime || '0'))
             : 0,
         averageResolutionTime:
           resolutionTimeData.length > 0
-            ? parseFloat(String((resolutionTimeData[0] as any).avgResolutionTime || '0'))
+            ? parseFloat(String((resolutionTimeData[0] as unknown as AvgTimeResult).avgResolutionTime || '0'))
             : 0,
       },
     };
+  }
+
+  async escalateReport(
+    reportId: string,
+    escalatedTo: string,
+    escalatedBy: string,
+    reason: string
+  ): Promise<Report> {
+    const transaction = await sequelize.transaction();
+
+    try {
+      const report = await Report.findByPk(reportId, { transaction });
+      if (!report) {
+        throw new Error('Report not found');
+      }
+
+      if (![ReportStatus.PENDING, ReportStatus.UNDER_REVIEW].includes(report.status)) {
+        throw new Error('Report cannot be escalated in its current status');
+      }
+
+      await report.update(
+        {
+          status: ReportStatus.ESCALATED,
+          escalatedTo,
+          escalatedAt: new Date(),
+          escalationReason: reason,
+        },
+        { transaction }
+      );
+
+      await transaction.commit();
+
+      await AuditLogService.log({
+        userId: escalatedBy,
+        action: 'REPORT_ESCALATED',
+        entity: 'Report',
+        entityId: reportId,
+        details: { escalatedTo, reason },
+      });
+
+      logger.info(`Report ${reportId} escalated by ${escalatedBy} to ${escalatedTo}`);
+      return report;
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error escalating report:', error);
+      throw error;
+    }
+  }
+
+  async bulkUpdateReports(options: {
+    reportIds: string[];
+    action: 'resolve' | 'dismiss' | 'assign' | 'escalate';
+    moderatorId: string;
+    resolutionNotes?: string;
+    assignTo?: string;
+    escalateTo?: string;
+    escalationReason?: string;
+  }): Promise<{ success: boolean; updated: number }> {
+    const { reportIds, action, moderatorId, resolutionNotes, assignTo, escalateTo, escalationReason } = options;
+
+    if (!reportIds || reportIds.length === 0) {
+      throw new Error('Report IDs are required');
+    }
+
+    const transaction = await sequelize.transaction();
+
+    try {
+      let updated = 0;
+
+      for (const reportId of reportIds) {
+        const report = await Report.findByPk(reportId, { transaction });
+        if (!report) {
+          throw new Error(`Report ${reportId} not found`);
+        }
+
+        switch (action) {
+          case 'resolve':
+            if ([ReportStatus.UNDER_REVIEW, ReportStatus.ESCALATED].includes(report.status)) {
+              await report.update(
+                {
+                  status: ReportStatus.RESOLVED,
+                  resolvedBy: moderatorId,
+                  resolvedAt: new Date(),
+                  resolutionNotes,
+                },
+                { transaction }
+              );
+              updated++;
+            }
+            break;
+
+          case 'dismiss':
+            if (report.status !== ReportStatus.RESOLVED) {
+              await report.update(
+                {
+                  status: ReportStatus.DISMISSED,
+                  resolvedBy: moderatorId,
+                  resolvedAt: new Date(),
+                  resolutionNotes,
+                },
+                { transaction }
+              );
+              updated++;
+            }
+            break;
+
+          case 'assign':
+            if (!assignTo) {
+              throw new Error('assignTo is required for assign action');
+            }
+            if (report.status === ReportStatus.PENDING) {
+              await report.update(
+                {
+                  assignedModerator: assignTo,
+                  assignedAt: new Date(),
+                  status: ReportStatus.UNDER_REVIEW,
+                },
+                { transaction }
+              );
+              updated++;
+            }
+            break;
+
+          case 'escalate':
+            if (!escalateTo) {
+              throw new Error('escalateTo is required for escalate action');
+            }
+            if ([ReportStatus.PENDING, ReportStatus.UNDER_REVIEW].includes(report.status)) {
+              await report.update(
+                {
+                  status: ReportStatus.ESCALATED,
+                  escalatedTo: escalateTo,
+                  escalatedAt: new Date(),
+                  escalationReason: escalationReason || 'Bulk escalation',
+                },
+                { transaction }
+              );
+              updated++;
+            }
+            break;
+        }
+      }
+
+      await transaction.commit();
+
+      await AuditLogService.log({
+        userId: moderatorId,
+        action: 'BULK_REPORTS_UPDATE',
+        entity: 'Report',
+        entityId: 'bulk',
+        details: {
+          action,
+          reportCount: reportIds.length,
+          updatedCount: updated,
+        },
+      });
+
+      logger.info(`Bulk ${action} completed: ${updated} of ${reportIds.length} reports updated by ${moderatorId}`);
+
+      return { success: true, updated };
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error in bulk update:', error);
+      throw error;
+    }
   }
 
   // Helper methods
@@ -589,7 +791,7 @@ class ModerationService {
           required: false,
         },
       ],
-      order: [[sequelize.literal('"AssignedReports"."reportId"'), 'ASC']],
+      order: [[sequelize.literal('"AssignedReports"."report_id"'), 'ASC']],
       limit: 1,
       transaction,
     });
@@ -611,12 +813,14 @@ class ModerationService {
 
   async getActiveActionsForUser(userId: string): Promise<ModeratorAction[]> {
     // Split the query to avoid complex Op.or with null handling
+    // Type assertion needed: Sequelize doesn't allow null in where clause correctly
+    // This is a valid runtime pattern - checking for records where expiresAt is null
     const [neverExpiringActions, futureExpiringActions] = await Promise.all([
       ModeratorAction.findAll({
         where: {
           targetUserId: userId,
           isActive: true,
-          expiresAt: { [Op.is]: null } as any,
+          expiresAt: null as unknown as undefined,
         },
         order: [['createdAt', 'DESC']],
       }),
@@ -651,6 +855,125 @@ class ModerationService {
     }
 
     return affectedCount;
+  }
+
+  async enrichReportsWithEntityContext(reports: Report[]): Promise<Array<Report & { entityContext?: JsonObject }>> {
+    if (!reports || reports.length === 0) {
+      return reports;
+    }
+
+    const entityCache = new Map<string, JsonObject>();
+
+    const enrichedReports = await Promise.all(
+      reports.map(async (report) => {
+        const cacheKey = `${report.reportedEntityType}:${report.reportedEntityId}`;
+        let entityContext: JsonObject | null = null;
+
+        if (entityCache.has(cacheKey)) {
+          entityContext = entityCache.get(cacheKey)!;
+        } else {
+          try {
+            switch (report.reportedEntityType) {
+              case 'user':
+                const user = await User.findByPk(report.reportedEntityId);
+                entityContext = user
+                  ? {
+                      type: 'user',
+                      id: user.userId,
+                      displayName: `${user.firstName} ${user.lastName}`,
+                      email: user.email,
+                      userType: user.userType,
+                    }
+                  : {
+                      type: 'user',
+                      id: report.reportedEntityId,
+                      displayName: '[Deleted User]',
+                      deleted: true,
+                    };
+                break;
+
+              case 'pet':
+                const pet = await Pet.findByPk(report.reportedEntityId);
+                entityContext = pet
+                  ? {
+                      type: 'pet',
+                      id: pet.pet_id,
+                      displayName: pet.name,
+                      petType: pet.type,
+                      breed: pet.breed,
+                      rescueId: pet.rescue_id,
+                    }
+                  : {
+                      type: 'pet',
+                      id: report.reportedEntityId,
+                      displayName: '[Deleted Pet]',
+                      deleted: true,
+                    };
+                break;
+
+              case 'rescue':
+                const rescue = await Rescue.findByPk(report.reportedEntityId);
+                entityContext = rescue
+                  ? {
+                      type: 'rescue',
+                      id: rescue.rescueId,
+                      displayName: rescue.name,
+                      city: rescue.city,
+                      country: rescue.country,
+                    }
+                  : {
+                      type: 'rescue',
+                      id: report.reportedEntityId,
+                      displayName: '[Deleted Rescue]',
+                      deleted: true,
+                    };
+                break;
+
+              default:
+                entityContext = {
+                  type: report.reportedEntityType,
+                  id: report.reportedEntityId,
+                  displayName: `${report.reportedEntityType} ${report.reportedEntityId.substring(0, 8)}...`,
+                };
+            }
+
+            if (entityContext) {
+              entityCache.set(cacheKey, entityContext);
+            }
+          } catch (error) {
+            logger.error('Error fetching entity context:', error);
+            entityContext = {
+              type: report.reportedEntityType,
+              id: report.reportedEntityId,
+              displayName: '[Error Loading Entity]',
+              error: true,
+            };
+          }
+        }
+
+        return {
+          ...(report.toJSON ? report.toJSON() : report),
+          entityContext,
+        } as Report & { entityContext?: JsonObject };
+      })
+    );
+
+    return enrichedReports;
+  }
+
+  async getReportsWithContext(
+    filters: ReportFilters,
+    options: ReportSearchOptions
+  ): Promise<{
+    reports: Array<Report & { entityContext?: JsonObject }>;
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const result = await this.searchReports(filters, options);
+    const enrichedReports = await this.enrichReportsWithEntityContext(result.reports);
+    return {
+      reports: enrichedReports,
+      pagination: result.pagination,
+    };
   }
 }
 

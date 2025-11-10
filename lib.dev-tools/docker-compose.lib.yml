@@ -1,0 +1,30 @@
+# Docker Compose for lib.dev-tools development
+services:
+  lib-dev-tools:
+    build:
+      context: ./lib.dev-tools
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.dev-tools:/app
+      - /app/node_modules
+      - lib_dev_tools_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Example service that uses the library
+  lib-dev-tools-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.dev-tools:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-dev-tools
+
+volumes:
+  lib_dev_tools_dist:

@@ -1,4 +1,4 @@
-import { Pet } from '@/types';
+import { Pet } from '@/services';
 import React from 'react';
 import styled from 'styled-components';
 import { resolveFileUrl } from '../../utils/fileUtils';

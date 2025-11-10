@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import { RescueController } from '../controllers/rescue.controller';
 import { authenticateToken } from '../middleware/auth';
+import { isUKPostcode, isUKPhoneNumber } from '../utils/uk-validators-middleware';
 import { requirePermission } from '../middleware/rbac';
 
 const router = Router();
@@ -9,22 +10,19 @@ const rescueController = new RescueController();
 
 // Validation middleware
 const validateRescueId = param('rescueId').isUUID().withMessage('Invalid rescue ID format');
-const validateUserId = param('userId').isUUID().withMessage('Invalid user ID format');
+const validateUserId = param('userId').notEmpty().withMessage('User ID is required');
 
 const validateCreateRescue = [
   body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
+  body('phone').optional().custom(isUKPhoneNumber).withMessage('Valid phone number required'),
   body('address')
     .trim()
     .isLength({ min: 5, max: 255 })
     .withMessage('Address must be 5-255 characters'),
   body('city').trim().isLength({ min: 2, max: 100 }).withMessage('City must be 2-100 characters'),
-  body('state').trim().isLength({ min: 2, max: 100 }).withMessage('State must be 2-100 characters'),
-  body('zipCode')
-    .trim()
-    .isLength({ min: 3, max: 20 })
-    .withMessage('ZIP code must be 3-20 characters'),
+  body('county').optional().trim().isLength({ min: 2, max: 100 }).withMessage('County must be 2-100 characters'),
+  body('postcode').trim().custom(isUKPostcode).withMessage('Please enter a valid UK postcode'),
   body('country')
     .trim()
     .isLength({ min: 2, max: 100 })
@@ -52,7 +50,7 @@ const validateCreateRescue = [
     .isLength({ max: 100 })
     .withMessage('Contact title must be max 100 characters'),
   body('contactEmail').optional().isEmail().withMessage('Valid contact email required'),
-  body('contactPhone').optional().isMobilePhone('any').withMessage('Valid contact phone required'),
+  body('contactPhone').optional().custom(isUKPhoneNumber).withMessage('Valid contact phone required'),
 ];
 
 const validateUpdateRescue = [
@@ -62,7 +60,7 @@ const validateUpdateRescue = [
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be 2-100 characters'),
   body('email').optional().isEmail().withMessage('Valid email is required'),
-  body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
+  body('phone').optional().custom(isUKPhoneNumber).withMessage('Valid phone number required'),
   body('address')
     .optional()
     .trim()
@@ -73,16 +71,16 @@ const validateUpdateRescue = [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('City must be 2-100 characters'),
-  body('state')
+  body('county')
     .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('State must be 2-100 characters'),
-  body('zipCode')
+    .withMessage('County must be 2-100 characters'),
+  body('postcode')
     .optional()
     .trim()
-    .isLength({ min: 3, max: 20 })
-    .withMessage('ZIP code must be 3-20 characters'),
+    .custom(isUKPostcode)
+    .withMessage('Please enter a valid UK postcode'),
   body('country')
     .optional()
     .trim()
@@ -112,7 +110,7 @@ const validateUpdateRescue = [
     .isLength({ max: 100 })
     .withMessage('Contact title must be max 100 characters'),
   body('contactEmail').optional().isEmail().withMessage('Valid contact email required'),
-  body('contactPhone').optional().isMobilePhone('any').withMessage('Valid contact phone required'),
+  body('contactPhone').optional().custom(isUKPhoneNumber).withMessage('Valid contact phone required'),
 ];
 
 const validateSearchQuery = [
@@ -140,7 +138,7 @@ const validateSearchQuery = [
 ];
 
 const validateStaffMember = [
-  body('userId').isUUID().withMessage('Valid user ID is required'),
+  body('userId').notEmpty().withMessage('User ID is required'),
   body('title')
     .optional()
     .trim()
@@ -152,8 +150,32 @@ const validateVerification = [
   body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be max 500 characters'),
 ];
 
+
+const validateRejection = [
+  body('reason').optional().isLength({ max: 500 }).withMessage('Reason must be max 500 characters'),
+  body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be max 500 characters'),
+];
 const validateDeletion = [
   body('reason').optional().isLength({ max: 500 }).withMessage('Reason must be max 500 characters'),
+];
+
+
+const validateSendEmail = [
+  body('templateId')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Template ID must be max 100 characters'),
+  body('subject')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 200 })
+    .withMessage('Subject must be max 200 characters'),
+  body('body')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 5000 })
+    .withMessage('Body must be max 5000 characters'),
 ];
 
 // Public routes (no authentication required)
@@ -707,6 +729,9 @@ router.get('/:rescueId', validateRescueId, rescueController.getRescueById);
  */
 router.get('/:rescueId/pets', validateRescueId, rescueController.getRescuePets);
 
+// Get adoption policies (public route)
+router.get('/:rescueId/adoption-policies', validateRescueId, rescueController.getAdoptionPolicies);
+
 // Routes requiring authentication
 router.use(authenticateToken);
 
@@ -870,7 +895,7 @@ router.put(
   '/:rescueId',
   validateRescueId,
   validateUpdateRescue,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('rescues.update'),
   rescueController.updateRescue
 );
 
@@ -878,7 +903,7 @@ router.patch(
   '/:rescueId',
   validateRescueId,
   validateUpdateRescue,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('rescues.update'),
   rescueController.updateRescue
 );
 
@@ -886,7 +911,7 @@ router.patch(
 router.get(
   '/:rescueId/staff',
   validateRescueId,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('staff.read'),
   rescueController.getRescueStaff
 );
 
@@ -894,24 +919,91 @@ router.post(
   '/:rescueId/staff',
   validateRescueId,
   validateStaffMember,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('staff.create'),
   rescueController.addStaffMember
+);
+
+router.put(
+  '/:rescueId/staff/:userId',
+  validateRescueId,
+  validateUserId,
+  [
+    body('title')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Title must be max 100 characters'),
+  ],
+  requirePermission('staff.update'),
+  rescueController.updateStaffMember
 );
 
 router.delete(
   '/:rescueId/staff/:userId',
   validateRescueId,
   validateUserId,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('staff.delete'),
   rescueController.removeStaffMember
+);
+
+// Staff invitation management (rescue admin)
+router.post(
+  '/:rescueId/invitations',
+  validateRescueId,
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('title')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Title must be max 100 characters'),
+  ],
+  requirePermission('staff.create'),
+  rescueController.inviteStaffMember
+);
+
+router.get(
+  '/:rescueId/invitations',
+  validateRescueId,
+  requirePermission('staff.read'),
+  rescueController.getPendingInvitations
+);
+
+router.delete(
+  '/:rescueId/invitations/:invitationId',
+  validateRescueId,
+  param('invitationId').isInt().withMessage('Invalid invitation ID'),
+  requirePermission('staff.delete'),
+  rescueController.cancelInvitation
 );
 
 // Analytics (rescue admin/staff)
 router.get(
   '/:rescueId/analytics',
   validateRescueId,
-  requirePermission('RESCUE_MANAGEMENT'),
+  requirePermission('admin.reports'),
   rescueController.getRescueAnalytics
+);
+
+// Adoption policies (rescue admin/staff can update, public can read)
+router.put(
+  '/:rescueId/adoption-policies',
+  validateRescueId,
+  [
+    body('requireHomeVisit').isBoolean().withMessage('requireHomeVisit must be a boolean'),
+    body('requireReferences').isBoolean().withMessage('requireReferences must be a boolean'),
+    body('minimumReferenceCount').isInt({ min: 0, max: 10 }).withMessage('minimumReferenceCount must be 0-10'),
+    body('requireVeterinarianReference').isBoolean().withMessage('requireVeterinarianReference must be a boolean'),
+    body('adoptionFeeRange.min').isFloat({ min: 0 }).withMessage('Minimum fee must be 0 or greater'),
+    body('adoptionFeeRange.max').isFloat({ min: 0 }).withMessage('Maximum fee must be 0 or greater'),
+    body('requirements').isArray().withMessage('requirements must be an array'),
+    body('policies').isArray().withMessage('policies must be an array'),
+    body('returnPolicy').optional().isString().isLength({ max: 1000 }).withMessage('returnPolicy must be max 1000 characters'),
+    body('spayNeuterPolicy').optional().isString().isLength({ max: 1000 }).withMessage('spayNeuterPolicy must be max 1000 characters'),
+    body('followUpPolicy').optional().isString().isLength({ max: 1000 }).withMessage('followUpPolicy must be max 1000 characters'),
+  ],
+  requirePermission('rescues.update'),
+  rescueController.updateAdoptionPolicies
 );
 
 // Admin-only routes
@@ -919,16 +1011,34 @@ router.post(
   '/:rescueId/verify',
   validateRescueId,
   validateVerification,
-  requirePermission('ADMIN_RESCUE_MANAGEMENT'),
+  requirePermission('rescues.verify'),
   rescueController.verifyRescue
+);
+
+router.post(
+  '/:rescueId/reject',
+  validateRescueId,
+  validateRejection,
+  requirePermission('rescues.verify'),
+  rescueController.rejectRescue
 );
 
 router.delete(
   '/:rescueId',
   validateRescueId,
   validateDeletion,
-  requirePermission('ADMIN_RESCUE_MANAGEMENT'),
+  requirePermission('rescues.delete'),
   rescueController.deleteRescue
+);
+
+
+// Send email to rescue organization (admin only)
+router.post(
+  '/:rescueId/send-email',
+  validateRescueId,
+  validateSendEmail,
+  requirePermission('rescues.update'),
+  rescueController.sendEmail
 );
 
 export default router;

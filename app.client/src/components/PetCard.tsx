@@ -1,7 +1,7 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useStatsig } from '@/hooks/useStatsig';
-import { Pet } from '@/types';
+import { Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder } from 'react-icons/md';

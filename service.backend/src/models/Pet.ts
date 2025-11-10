@@ -1,5 +1,5 @@
 // src/models/Pet.ts
-import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize';
+import { DataTypes, Model, Op, Optional, QueryTypes, WhereOptions } from 'sequelize';
 import sequelize from '../sequelize';
 import { JsonObject } from '../types/common';
 
@@ -83,6 +83,9 @@ export enum GoodWith {
   SMALL_ANIMALS = 'small_animals',
 }
 
+// Sequelize TSVECTOR type representation
+type TSVector = unknown;
+
 export interface PetAttributes {
   pet_id: string;
   name: string;
@@ -152,7 +155,7 @@ export interface PetAttributes {
   view_count: number;
   favorite_count: number;
   application_count: number;
-  search_vector?: any;
+  search_vector?: TSVector;
   tags?: string[] | null;
   created_at?: Date;
   updated_at?: Date;
@@ -245,7 +248,7 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
   public view_count!: number;
   public favorite_count!: number;
   public application_count!: number;
-  public search_vector!: any;
+  public search_vector!: TSVector;
   public tags!: string[] | null;
   public created_at!: Date;
   public updated_at!: Date;
@@ -303,7 +306,7 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
     limit = 50,
     offset = 0
   ): Promise<Pet[]> {
-    const whereClause: any = { ...filters };
+    const whereClause: WhereOptions<PetAttributes> = { ...filters };
 
     if (query) {
       whereClause.search_vector = {
@@ -563,12 +566,12 @@ Pet.init(
       allowNull: false,
       defaultValue: [],
       validate: {
-        isValidImages(value: any[]) {
+        isValidImages(value: unknown) {
           if (!Array.isArray(value)) {
             throw new Error('Images must be an array');
           }
           value.forEach((img, index) => {
-            if (!img.image_id || !img.url) {
+            if (typeof img !== 'object' || img === null || !('image_id' in img) || !('url' in img)) {
               throw new Error(`Image at index ${index} must have image_id and url`);
             }
           });
@@ -753,11 +756,11 @@ Pet.init(
             .join(' ');
 
           if (searchText.trim()) {
-            const [results] = await sequelize.query("SELECT to_tsvector('english', ?) as vector", {
+            const [results] = await sequelize.query<{ vector: TSVector }>("SELECT to_tsvector('english', ?) as vector", {
               replacements: [searchText],
               type: QueryTypes.SELECT,
             });
-            pet.search_vector = (results as any).vector;
+            pet.search_vector = results.vector;
           }
         }
       },

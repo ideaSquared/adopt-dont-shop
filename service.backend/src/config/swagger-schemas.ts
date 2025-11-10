@@ -426,7 +426,7 @@
  *           format: uuid
  *         status:
  *           type: string
- *           enum: [SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *           enum: [SUBMITTED, APPROVED, REJECTED, WITHDRAWN]
  *         submittedAt:
  *           type: string
  *           format: date-time

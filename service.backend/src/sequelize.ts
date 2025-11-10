@@ -1,28 +1,47 @@
 import * as dotenv from 'dotenv';
 import { Sequelize } from 'sequelize';
+import { env, getDatabaseName } from './config/env';
 
 dotenv.config();
 
-const env = process.env.NODE_ENV || 'development';
-let database: string;
+/**
+ * Build a PostgreSQL connection string from individual environment variables
+ * Follows the format: postgresql://username:password@host:port/database
+ */
+const buildConnectionString = (database: string): string => {
+  const username = process.env.DB_USERNAME || 'user';
+  const password = process.env.DB_PASSWORD || 'password';
+  const host = process.env.DB_HOST || 'localhost';
+  const port = process.env.DB_PORT || '5432';
 
-switch (env) {
-  case 'development':
-    database = process.env.DEV_DB_NAME!;
-    break;
-  case 'test':
-    database = process.env.TEST_DB_NAME!;
-    break;
-  case 'production':
-    database = process.env.PROD_DB_NAME!;
-    break;
-  default:
-    throw new Error('NODE_ENV is not set to a valid environment');
-}
+  return `postgresql://${username}:${password}@${host}:${port}/${database}`;
+};
 
-const sequelize = new Sequelize(database, process.env.DB_USERNAME!, process.env.DB_PASSWORD!, {
-  host: process.env.DB_HOST!,
-  port: Number(process.env.DB_PORT!),
+/**
+ * Get the appropriate database connection string based on NODE_ENV
+ * Priority:
+ * 1. Environment-specific DATABASE_URL (e.g., DEV_DATABASE_URL, DATABASE_URL)
+ * 2. Built from individual environment variables
+ */
+const getDatabaseUrl = (): string => {
+  const nodeEnv = process.env.NODE_ENV || 'development';
+
+  switch (nodeEnv) {
+    case 'development':
+      return env.DEV_DATABASE_URL || buildConnectionString(getDatabaseName(nodeEnv));
+    case 'test':
+      return env.TEST_DATABASE_URL || buildConnectionString(getDatabaseName(nodeEnv));
+    case 'production':
+      // In production, prefer DATABASE_URL (standard for managed services)
+      return env.DATABASE_URL || buildConnectionString(getDatabaseName(nodeEnv));
+    default:
+      throw new Error('NODE_ENV is not set to a valid environment');
+  }
+};
+
+const databaseUrl = getDatabaseUrl();
+
+const sequelize = new Sequelize(databaseUrl, {
   dialect: 'postgres',
   define: {
     // Convert camelCase to snake_case for database columns

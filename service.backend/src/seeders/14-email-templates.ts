@@ -348,8 +348,126 @@ const emailTemplateData = [
     createdBy: 'user_admin_001',
     lastModifiedBy: 'user_admin_001',
   },
-];
+  {
+    templateId: 'tmpl_rescue_welcome_001',
+    name: 'Rescue Welcome Email',
+    type: TemplateType.TRANSACTIONAL,
+    subject: "Welcome to Adopt Don't Shop, {{rescueName}}! 🐾",
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
+          <h1>Welcome to Adopt Don't Shop!</h1>
+        </div>
+        <div style="padding: 30px;">
+          <p>Dear {{rescueName}},</p>
+          <p>Thank you for joining our platform! We're thrilled to have you as part of our community dedicated to finding loving homes for rescue animals.</p>
+          <h3 style="color: #4CAF50;">What You Can Do Now:</h3>
+          <ul style="line-height: 1.8;">
+            <li><strong>Add Your Pets</strong> - List available animals for adoption</li>
+            <li><strong>Manage Applications</strong> - Review and process adoption applications</li>
+            <li><strong>Connect with Adopters</strong> - Chat directly with potential families</li>
+          </ul>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{baseUrl}}/rescue/dashboard" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px;">Go to Dashboard</a>
+          </div>
+          <p>Together, we're making a difference!</p>
+          <p>The Adopt Don't Shop Team</p>
+        </div>
+      </div>
+    `,
+    textContent: `Welcome to Adopt Don't Shop!
 
+Dear {{rescueName}},
+
+Thank you for joining!`,
+    category: TemplateCategory.WELCOME,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {},
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: false,
+    priority: 0,
+    tags: ['rescue'],
+    usageCount: 0,
+    testEmailsSent: 0,
+    createdBy: 'user_admin_001',
+    lastModifiedBy: 'user_admin_001',
+  },
+  {
+    templateId: 'tmpl_rescue_approved_001',
+    name: 'Rescue Verification Approved',
+    type: TemplateType.TRANSACTIONAL,
+    subject: "🎉 {{rescueName}} Has Been Verified!",
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #4CAF50; color: white; padding: 30px; text-align: center;">
+          <h1>🎉 Congratulations!</h1>
+        </div>
+        <div style="padding: 30px;">
+          <p>Dear {{rescueName}},</p>
+          <p><strong>Great news!</strong> Your rescue has been verified on Adopt Don't Shop.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{baseUrl}}/rescue/pets/new" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px;">Add Your First Pet</a>
+          </div>
+          <p>The Adopt Don't Shop Team</p>
+        </div>
+      </div>
+    `,
+    textContent: `Congratulations! Your rescue has been verified.`,
+    category: TemplateCategory.RESCUE_VERIFICATION,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {},
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: false,
+    priority: 0,
+    tags: ['rescue', 'verification'],
+    usageCount: 0,
+    testEmailsSent: 0,
+    createdBy: 'user_admin_001',
+    lastModifiedBy: 'user_admin_001',
+  },
+  {
+    templateId: 'tmpl_rescue_reminder_001',
+    name: 'Rescue Profile Reminder',
+    type: TemplateType.NOTIFICATION,
+    subject: "Time to Update Your Profile 📋",
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #2196F3; color: white; padding: 20px; text-align: center;">
+          <h1>📋 Profile Update Reminder</h1>
+        </div>
+        <div style="padding: 30px;">
+          <p>Hello {{rescueName}},</p>
+          <p>Time to update your rescue profile to keep information current!</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{baseUrl}}/rescue/profile/edit" style="background-color: #2196F3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px;">Update Now</a>
+          </div>
+          <p>The Adopt Don't Shop Team</p>
+        </div>
+      </div>
+    `,
+    textContent: `Time to update your profile!`,
+    category: TemplateCategory.REMINDER,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {},
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: false,
+    priority: 0,
+    tags: ['rescue', 'reminder'],
+    usageCount: 0,
+    testEmailsSent: 0,
+    createdBy: 'user_admin_001',
+    lastModifiedBy: 'user_admin_001',
+  },
+];
 export async function seedEmailTemplates() {
   for (const template of emailTemplateData) {
     await EmailTemplate.findOrCreate({

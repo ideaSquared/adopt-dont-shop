@@ -1,10 +1,12 @@
 import express from 'express';
 import { ChatController } from '../controllers/chat.controller';
-import { authenticateToken, requireRole } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
 import { chatAttachmentUpload } from '../services/file-upload.service';
 import { chatValidation } from '../validation/chat.validation';
+import { PERMISSIONS } from '../types/rbac';
 
 const router = express.Router();
 
@@ -390,6 +392,56 @@ router.put(
   handleValidationErrors,
   ChatController.updateChat
 );
+/**
+ * @swagger
+ * /api/v1/chats/{chatId}:
+ *   patch:
+ *     tags: [Messaging]
+ *     summary: Update chat conversation (partial)
+ *     description: Partially update chat conversation details (title, description, status)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: chatId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Chat conversation ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 maxLength: 100
+ *               description:
+ *                 type: string
+ *                 maxLength: 500
+ *               status:
+ *                 type: string
+ *                 enum: [active, locked, archived]
+ *     responses:
+ *       200:
+ *         description: Chat updated successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.patch(
+  '/:chatId',
+  authLimiter,
+  chatValidation.updateChat,
+  handleValidationErrors,
+  ChatController.updateChat
+);
+
 
 /**
  * @swagger
@@ -577,6 +629,66 @@ router.get(
   chatValidation.getMessages,
   handleValidationErrors,
   ChatController.getMessages
+);
+
+/**
+ * @swagger
+ * /api/v1/chats/{chatId}/messages/{messageId}:
+ *   delete:
+ *     tags: [Messaging]
+ *     summary: Delete a message
+ *     description: Delete a specific message from a chat conversation (admin/moderator only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: chatId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Chat conversation ID
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Message ID to delete
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Reason for deletion (optional)
+ *                 example: "Inappropriate content"
+ *     responses:
+ *       200:
+ *         description: Message deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Message deleted successfully"
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.delete(
+  '/:chatId/messages/:messageId',
+  requirePermission(PERMISSIONS.MESSAGE_DELETE),
+  authLimiter,
+  ChatController.deleteMessage
 );
 
 /**
@@ -904,7 +1016,7 @@ router.delete(
  */
 router.get(
   '/analytics',
-  requireRole(['admin', 'moderator']),
+  requirePermission(PERMISSIONS.CHAT_ANALYTICS_READ),
   generalLimiter,
   ChatController.getChatAnalytics
 );

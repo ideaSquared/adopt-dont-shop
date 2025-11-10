@@ -1,0 +1,131 @@
+# Industry Standard Monorepo Workspace Dockerfile
+# Follows patterns used by Uber, Google, and other tech giants
+# Builds libraries once, references via npm workspace
+# Usage: docker build --build-arg APP_NAME=app.client -f Dockerfile.app.optimized .
+
+ARG NODE_VERSION=20
+FROM node:${NODE_VERSION}-alpine AS base
+
+WORKDIR /app
+
+# Install necessary packages including wget for health checks
+RUN apk add --no-cache git wget
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S viteuser -u 1001
+
+# Development stage
+FROM base AS development
+ARG APP_NAME
+
+# Copy workspace configuration files for better caching
+COPY --chown=viteuser:nodejs package*.json turbo.json ./
+
+# Copy library package.json files first (better layer caching)
+COPY --chown=viteuser:nodejs lib.analytics/package.json ./lib.analytics/
+COPY --chown=viteuser:nodejs lib.api/package.json ./lib.api/
+COPY --chown=viteuser:nodejs lib.applications/package.json ./lib.applications/
+COPY --chown=viteuser:nodejs lib.audit-logs/package.json ./lib.audit-logs/
+COPY --chown=viteuser:nodejs lib.auth/package.json ./lib.auth/
+COPY --chown=viteuser:nodejs lib.chat/package.json ./lib.chat/
+COPY --chown=viteuser:nodejs lib.components/package.json ./lib.components/
+COPY --chown=viteuser:nodejs lib.discovery/package.json ./lib.discovery/
+COPY --chown=viteuser:nodejs lib.dev-tools/package.json ./lib.dev-tools/
+COPY --chown=viteuser:nodejs lib.feature-flags/package.json ./lib.feature-flags/
+COPY --chown=viteuser:nodejs lib.invitations/package.json ./lib.invitations/
+COPY --chown=viteuser:nodejs lib.notifications/package.json ./lib.notifications/
+COPY --chown=viteuser:nodejs lib.permissions/package.json ./lib.permissions/
+COPY --chown=viteuser:nodejs lib.pets/package.json ./lib.pets/
+COPY --chown=viteuser:nodejs lib.rescue/package.json ./lib.rescue/
+COPY --chown=viteuser:nodejs lib.search/package.json ./lib.search/
+COPY --chown=viteuser:nodejs lib.utils/package.json ./lib.utils/
+COPY --chown=viteuser:nodejs lib.validation/package.json ./lib.validation/
+
+# Copy app package.json
+COPY --chown=viteuser:nodejs ${APP_NAME}/package.json ./${APP_NAME}/
+
+# Install dependencies (this layer is cached unless package.json changes)
+RUN npm ci
+
+# Copy all library source code
+COPY --chown=viteuser:nodejs lib.analytics/ ./lib.analytics/
+COPY --chown=viteuser:nodejs lib.api/ ./lib.api/
+COPY --chown=viteuser:nodejs lib.applications/ ./lib.applications/
+COPY --chown=viteuser:nodejs lib.audit-logs/ ./lib.audit-logs/
+COPY --chown=viteuser:nodejs lib.auth/ ./lib.auth/
+COPY --chown=viteuser:nodejs lib.chat/ ./lib.chat/
+COPY --chown=viteuser:nodejs lib.components/ ./lib.components/
+COPY --chown=viteuser:nodejs lib.discovery/ ./lib.discovery/
+COPY --chown=viteuser:nodejs lib.dev-tools/ ./lib.dev-tools/
+COPY --chown=viteuser:nodejs lib.feature-flags/ ./lib.feature-flags/
+COPY --chown=viteuser:nodejs lib.invitations/ ./lib.invitations/
+COPY --chown=viteuser:nodejs lib.notifications/ ./lib.notifications/
+COPY --chown=viteuser:nodejs lib.permissions/ ./lib.permissions/
+COPY --chown=viteuser:nodejs lib.pets/ ./lib.pets/
+COPY --chown=viteuser:nodejs lib.rescue/ ./lib.rescue/
+COPY --chown=viteuser:nodejs lib.search/ ./lib.search/
+COPY --chown=viteuser:nodejs lib.utils/ ./lib.utils/
+COPY --chown=viteuser:nodejs lib.validation/ ./lib.validation/
+
+# Copy specific app source code
+COPY --chown=viteuser:nodejs ${APP_NAME}/ ./${APP_NAME}/
+
+# Switch to non-root user
+USER viteuser
+
+# Expose port
+EXPOSE 3000
+
+# Development command
+WORKDIR /app/${APP_NAME}
+CMD ["npm", "run", "dev"]
+
+# Build stage for production
+FROM base AS build
+ARG APP_NAME
+
+# Copy entire workspace
+COPY . .
+
+# Install dependencies
+RUN npm ci
+
+# Build libraries first, then the specific app using Turbo
+RUN npx turbo run build --filter=${APP_NAME}
+
+# Production stage
+FROM nginx:alpine AS production
+ARG APP_NAME
+
+# Copy built app
+COPY --from=build /app/${APP_NAME}/dist /usr/share/nginx/html
+
+# Create optimized nginx config for SPA
+RUN echo 'events { worker_connections 1024; } \
+    http { \
+    include /etc/nginx/mime.types; \
+    default_type application/octet-stream; \
+    gzip on; \
+    gzip_vary on; \
+    gzip_comp_level 6; \
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json; \
+    server { \
+    listen 80; \
+    location / { \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    try_files $uri $uri/ /index.html; \
+    } \
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ { \
+    expires 1y; \
+    add_header Cache-Control "public, immutable"; \
+    } \
+    } \
+    }' > /etc/nginx/nginx.conf
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

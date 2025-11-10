@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import path from 'path';
 import winston from 'winston';
+import { JsonValue, JsonObject } from '../types/common';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -17,6 +18,18 @@ interface AuthenticatedRequest extends Request {
   };
   userId?: string;
 }
+
+// Type for log entry structure
+type LogEntryValue = string | number | boolean | null | undefined | LogData;
+
+type LogEntry = {
+  timestamp: string;
+  level: string;
+  service: string;
+  message: string;
+  correlationId?: string;
+  meta?: Record<string, LogEntryValue>;
+};
 
 // Enhanced log levels with more granularity
 const logLevels = {
@@ -54,19 +67,19 @@ const logFormat = winston.format.combine(
       service = 'adopt-dont-shop-backend',
       ...meta
     } = info;
-    const logEntry: Record<string, any> = {
-      timestamp,
-      level,
-      service,
-      message,
+    const logEntry: LogEntry = {
+      timestamp: timestamp as string,
+      level: level as string,
+      service: service as string,
+      message: message as string,
     };
 
     if (correlationId) {
-      logEntry.correlationId = correlationId;
+      logEntry.correlationId = correlationId as string;
     }
 
     if (Object.keys(meta).length > 0) {
-      logEntry.meta = meta;
+      logEntry.meta = meta as Record<string, LogEntryValue>;
     }
 
     return JSON.stringify(logEntry);
@@ -280,7 +293,7 @@ export const loggerHelpers = {
         action,
         entity: data.entity as string,
         entityId: data.entityId as string,
-        details: data.details as any,
+        details: (data.details && typeof data.details === 'object' && !Array.isArray(data.details)) ? data.details as JsonObject : undefined,
         ipAddress: data.ip as string,
         userAgent: data.userAgent as string,
       });

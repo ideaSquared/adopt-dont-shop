@@ -3,6 +3,7 @@ import { ApplicationController } from '../controllers/application.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
 import { UserType } from '../models/User';
+import applicationTimelineRoutes from './applicationTimeline.routes';
 
 const router = express.Router();
 const applicationController = new ApplicationController();
@@ -25,7 +26,7 @@ router.use(authenticateToken);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *           enum: [SUBMITTED, APPROVED, REJECTED, WITHDRAWN]
  *         description: Filter by application status
  *       - in: query
  *         name: petId
@@ -81,7 +82,7 @@ router.use(authenticateToken);
  *                         format: uuid
  *                       status:
  *                         type: string
- *                         enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *                         enum: [SUBMITTED, APPROVED, REJECTED, WITHDRAWN]
  *                       pet:
  *                         type: object
  *                         properties:
@@ -239,7 +240,7 @@ router.post(
  *                       format: uuid
  *                     status:
  *                       type: string
- *                       enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *                       enum: [SUBMITTED, APPROVED, REJECTED, WITHDRAWN]
  *                     pet:
  *                       type: object
  *                       properties:
@@ -459,7 +460,7 @@ router.post(
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [UNDER_REVIEW, APPROVED, REJECTED]
+ *                 enum: [APPROVED, REJECTED]
  *                 description: New application status
  *               reviewNotes:
  *                 type: string
@@ -1039,8 +1040,6 @@ router.post('/validate/:rescueId', applicationController.validateApplicationAnsw
  *                           type: integer
  *                         SUBMITTED:
  *                           type: integer
- *                         UNDER_REVIEW:
- *                           type: integer
  *                         APPROVED:
  *                           type: integer
  *                         REJECTED:
@@ -1107,7 +1106,7 @@ router.get(
  *                 properties:
  *                   status:
  *                     type: string
- *                     enum: [UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+ *                     enum: [APPROVED, REJECTED, WITHDRAWN]
  *                     description: New status for all selected applications
  *                   reviewNotes:
  *                     type: string
@@ -1159,7 +1158,7 @@ router.patch(
   applicationController.bulkUpdateApplications
 );
 
-// Legacy routes for backwards compatibility
+// Application history routes
 
 /**
  * @swagger
@@ -1167,7 +1166,7 @@ router.patch(
  *   get:
  *     tags: [Application Management]
  *     summary: Get application history
- *     description: Get the history of changes and status updates for an application. Legacy endpoint for backwards compatibility.
+ *     description: Get the history of changes and status updates for an application. Use timeline events for comprehensive history.
  *     security:
  *       - bearerAuth: []
  *       - cookieAuth: []
@@ -1318,5 +1317,136 @@ router.post(
   ApplicationController.validateApplicationId,
   applicationController.scheduleVisit
 );
+
+/**
+ * @swagger
+ * /api/v1/applications/{applicationId}/home-visits:
+ *   get:
+ *     tags: [Application Management]
+ *     summary: Get home visits for application
+ *     description: Retrieve all home visits for a specific application
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: applicationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Application ID
+ *     responses:
+ *       200:
+ *         description: Home visits retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 visits:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ */
+router.get(
+  '/:applicationId/home-visits',
+  requireRole(UserType.RESCUE_STAFF, UserType.ADMIN),
+  ApplicationController.validateApplicationId,
+  applicationController.getHomeVisits
+);
+
+/**
+ * @swagger
+ * /api/v1/applications/{applicationId}/home-visits:
+ *   post:
+ *     tags: [Application Management]
+ *     summary: Schedule a home visit
+ *     description: Schedule a new home visit for an application
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: applicationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Application ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - scheduled_date
+ *               - scheduled_time
+ *               - assigned_staff
+ *             properties:
+ *               scheduled_date:
+ *                 type: string
+ *                 format: date
+ *               scheduled_time:
+ *                 type: string
+ *               assigned_staff:
+ *                 type: string
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Visit scheduled successfully
+ */
+router.post(
+  '/:applicationId/home-visits',
+  requireRole(UserType.RESCUE_STAFF, UserType.ADMIN),
+  ApplicationController.validateApplicationId,
+  applicationController.scheduleHomeVisit
+);
+
+/**
+ * @swagger
+ * /api/v1/applications/{applicationId}/home-visits/{visitId}:
+ *   put:
+ *     tags: [Application Management]
+ *     summary: Update a home visit
+ *     description: Update an existing home visit
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: applicationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Application ID
+ *       - in: path
+ *         name: visitId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Visit ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Visit updated successfully
+ */
+router.put(
+  '/:applicationId/home-visits/:visitId',
+  requireRole(UserType.RESCUE_STAFF, UserType.ADMIN),
+  ApplicationController.validateApplicationId,
+  applicationController.updateHomeVisit
+);
+
+// Timeline routes
+router.use('/', applicationTimelineRoutes);
 
 export default router;

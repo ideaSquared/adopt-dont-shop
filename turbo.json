@@ -11,6 +11,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
+      "dependsOn": [],
       "env": ["NODE_ENV", "VITE_*", "CHOKIDAR_USEPOLLING"]
     },
     "test": {
@@ -22,7 +23,11 @@
       "outputs": []
     },
     "type-check": {
+      "dependsOn": ["^build"],
       "outputs": []
+    },
+    "clean": {
+      "cache": false
     }
   }
 }

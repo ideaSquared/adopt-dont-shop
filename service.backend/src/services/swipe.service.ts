@@ -1,4 +1,5 @@
 import sequelize from '../sequelize';
+import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 
 interface SessionLengthResult {
@@ -37,6 +38,14 @@ export interface SessionStats {
   duration: number; // in minutes
 }
 
+interface UserPreference {
+  preference_type: string;
+  preference_value: string;
+  score: number;
+}
+
+type PreferencesByType = Record<string, Array<{ value: string; score: number }>>;
+
 export class SwipeService {
   private skipTableCreation: boolean = false;
 
@@ -64,20 +73,20 @@ export class SwipeService {
       await sequelize.query(
         `
         INSERT INTO swipe_actions (
-          action, 
-          pet_id, 
-          session_id, 
-          user_id, 
-          timestamp, 
-          created_at, 
+          action,
+          pet_id,
+          session_id,
+          user_id,
+          timestamp,
+          created_at,
           updated_at
         ) VALUES (
-          :action, 
-          :petId, 
-          :sessionId, 
-          :userId, 
-          :timestamp, 
-          NOW(), 
+          :action,
+          :petId,
+          :sessionId,
+          :userId,
+          :timestamp,
+          NOW(),
           NOW()
         )
       `,
@@ -151,13 +160,13 @@ export class SwipeService {
       // Get basic swipe counts
       const [swipeResults] = await sequelize.query(
         `
-        SELECT 
+        SELECT
           COUNT(*) as total_swipes,
           COUNT(CASE WHEN action = 'like' THEN 1 END) as likes,
           COUNT(CASE WHEN action = 'pass' THEN 1 END) as passes,
           COUNT(CASE WHEN action = 'super_like' THEN 1 END) as super_likes,
           COUNT(CASE WHEN action = 'info' THEN 1 END) as info_views
-        FROM swipe_actions 
+        FROM swipe_actions
         WHERE user_id = :userId
       `,
         {
@@ -165,7 +174,15 @@ export class SwipeService {
         }
       );
 
-      const stats = swipeResults[0] as any;
+      interface SwipeStatsRow {
+        total_swipes: string;
+        likes: string;
+        passes: string;
+        super_likes: string;
+        info_views: string;
+      }
+
+      const stats = (swipeResults as SwipeStatsRow[])[0];
 
       // Get top breeds liked by user
       const [breedResults] = await sequelize.query(
@@ -173,7 +190,7 @@ export class SwipeService {
         SELECT p.breed, COUNT(*) as count
         FROM swipe_actions sa
         JOIN pets p ON sa.pet_id = p.pet_id
-        WHERE sa.user_id = :userId 
+        WHERE sa.user_id = :userId
           AND sa.action IN ('like', 'super_like')
           AND p.breed IS NOT NULL
         GROUP BY p.breed
@@ -191,7 +208,7 @@ export class SwipeService {
         SELECT p.type, COUNT(*) as count
         FROM swipe_actions sa
         JOIN pets p ON sa.pet_id = p.pet_id
-        WHERE sa.user_id = :userId 
+        WHERE sa.user_id = :userId
           AND sa.action IN ('like', 'super_like')
         GROUP BY p.type
         ORDER BY count DESC
@@ -207,10 +224,10 @@ export class SwipeService {
         `
         SELECT AVG(session_duration) as avg_session_length
         FROM (
-          SELECT 
+          SELECT
             session_id,
             EXTRACT(EPOCH FROM (MAX(timestamp) - MIN(timestamp)))/60 as session_duration
-          FROM swipe_actions 
+          FROM swipe_actions
           WHERE user_id = :userId
           GROUP BY session_id
           HAVING COUNT(*) > 1
@@ -252,7 +269,7 @@ export class SwipeService {
 
       const [results] = await sequelize.query(
         `
-        SELECT 
+        SELECT
           session_id,
           COUNT(*) as total_swipes,
           COUNT(CASE WHEN action = 'like' THEN 1 END) as likes,
@@ -262,7 +279,7 @@ export class SwipeService {
           MIN(timestamp) as start_time,
           MAX(timestamp) as last_activity,
           EXTRACT(EPOCH FROM (MAX(timestamp) - MIN(timestamp)))/60 as duration
-        FROM swipe_actions 
+        FROM swipe_actions
         WHERE session_id = :sessionId
         GROUP BY session_id
       `,
@@ -275,7 +292,19 @@ export class SwipeService {
         throw new Error('Session not found');
       }
 
-      const stats = results[0] as any;
+      interface SessionStatsRow {
+        session_id: string;
+        total_swipes: string;
+        likes: string;
+        passes: string;
+        super_likes: string;
+        info_views: string;
+        start_time: Date;
+        last_activity: Date;
+        duration: number;
+      }
+
+      const stats = (results as SessionStatsRow[])[0];
 
       return {
         sessionId,
@@ -284,8 +313,8 @@ export class SwipeService {
         passes: parseInt(stats.passes) || 0,
         superLikes: parseInt(stats.super_likes) || 0,
         infoViews: parseInt(stats.info_views) || 0,
-        startTime: stats.start_time,
-        lastActivity: stats.last_activity,
+        startTime: stats.start_time.toISOString(),
+        lastActivity: stats.last_activity.toISOString(),
         duration: Math.round((stats.duration || 0) * 100) / 100,
       };
     } catch (error) {
@@ -306,9 +335,9 @@ export class SwipeService {
       // Get pet details for preference learning
       const [petResults] = await sequelize.query(
         `
-        SELECT type, breed, age_group, size, gender, good_with_children, 
+        SELECT type, breed, age_group, size, gender, good_with_children,
                good_with_dogs, good_with_cats, energy_level
-        FROM pets 
+        FROM pets
         WHERE pet_id = :petId
       `,
         {
@@ -320,7 +349,19 @@ export class SwipeService {
         return;
       }
 
-      const pet = petResults[0] as any;
+      interface PetPreferenceData {
+        type: string;
+        breed: string;
+        age_group: string;
+        size: string;
+        gender: string;
+        good_with_children: boolean;
+        good_with_dogs: boolean;
+        good_with_cats: boolean;
+        energy_level: string;
+      }
+
+      const pet = (petResults as PetPreferenceData[])[0];
       const weight = action === 'super_like' ? 2 : 1; // Super likes count more
 
       // Update or insert user preference scores
@@ -328,14 +369,14 @@ export class SwipeService {
         `
         INSERT INTO user_preferences (
           user_id, preference_type, preference_value, score, updated_at
-        ) VALUES 
+        ) VALUES
           (:userId, 'type', :type, :weight, NOW()),
           (:userId, 'breed', :breed, :weight, NOW()),
           (:userId, 'age_group', :ageGroup, :weight, NOW()),
           (:userId, 'size', :size, :weight, NOW()),
           (:userId, 'gender', :gender, :weight, NOW())
-        ON CONFLICT (user_id, preference_type, preference_value) 
-        DO UPDATE SET 
+        ON CONFLICT (user_id, preference_type, preference_value)
+        DO UPDATE SET
           score = user_preferences.score + :weight,
           updated_at = NOW()
       `,
@@ -362,12 +403,12 @@ export class SwipeService {
   /**
    * Get user preferences for discovery algorithm
    */
-  async getUserPreferences(userId: string): Promise<any> {
+  async getUserPreferences(userId: string): Promise<PreferencesByType> {
     try {
       const [results] = await sequelize.query(
         `
         SELECT preference_type, preference_value, score
-        FROM user_preferences 
+        FROM user_preferences
         WHERE user_id = :userId
         ORDER BY score DESC
       `,
@@ -377,8 +418,8 @@ export class SwipeService {
       );
 
       // Group preferences by type
-      const preferences: any = {};
-      for (const pref of results as any[]) {
+      const preferences: PreferencesByType = {};
+      for (const pref of results as UserPreference[]) {
         if (!preferences[pref.preference_type]) {
           preferences[pref.preference_type] = [];
         }

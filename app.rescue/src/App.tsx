@@ -1,26 +1,55 @@
-// Rescue App Placeholder - To be implemented during migration
-import { Button, Card } from '@adopt-dont-shop/components';
+import { Routes, Route } from 'react-router-dom';
 
-const RescueApp = () => {
+// Components
+import ProtectedRoute from './components/ProtectedRoute';
+import DevLoginPanel from './components/dev/DevLoginPanel';
+import Layout from './components/shared/Layout';
+
+// Pages
+import Dashboard from './pages/Dashboard';
+import PetManagement from './pages/PetManagement';
+import Applications from './pages/Applications';
+import StaffManagement from './pages/StaffManagement';
+import RescueSettings from './pages/RescueSettings';
+import Communication from './pages/Communication';
+import Events from './pages/Events';
+import AcceptInvitation from './pages/AcceptInvitation';
+import Analytics from './pages/Analytics';
+import './App.css';
+
+function App() {
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Rescue Dashboard</h1>
-      <p>This will be implemented during the migration process.</p>
+    <>
+      {/* Public Routes */}
+      <Routes>
+        <Route path="/accept-invitation" element={<AcceptInvitation />} />
 
-      <Card>
-        <h2>Features to Implement</h2>
-        <ul>
-          <li>Pet Management</li>
-          <li>Application Processing</li>
-          <li>Staff Management</li>
-          <li>Communication Center</li>
-          <li>Analytics & Reports</li>
-        </ul>
+        {/* Protected Routes */}
+        <Route
+          path="*"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/pets" element={<PetManagement />} />
+                  <Route path="/applications" element={<Applications />} />
+                  <Route path="/staff" element={<StaffManagement />} />
+                  <Route path="/settings" element={<RescueSettings />} />
+                  <Route path="/communication" element={<Communication />} />
+                  <Route path="/events" element={<Events />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                </Routes>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
 
-        <Button variant='primary'>Get Started</Button>
-      </Card>
-    </div>
+      {/* Dev Login Panel - only shows in development */}
+      <DevLoginPanel />
+    </>
   );
-};
+}
 
-export default RescueApp;
+export default App;

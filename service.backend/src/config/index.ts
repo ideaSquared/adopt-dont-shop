@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { env } from './env';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') });
@@ -54,7 +55,15 @@ export const config = {
       if (process.env.NODE_ENV === 'production') {
         throw new Error('CORS_ORIGIN environment variable is required in production');
       }
-      return ['http://localhost:3000', 'http://localhost', 'http://api.localhost']; // Safe defaults for development
+      return [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'http://localhost',
+        'http://admin.localhost',
+        'http://rescue.localhost',
+        'http://api.localhost',
+      ]; // Safe defaults for development
     })(),
     credentials: true,
   },
@@ -122,13 +131,7 @@ export const config = {
   // Security configuration
   security: {
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
-    sessionSecret:
-      process.env.SESSION_SECRET ||
-      (() => {
-        if (process.env.NODE_ENV === 'production') {
-          throw new Error('SESSION_SECRET environment variable is required in production');
-        }
-        return 'dev-session-secret';
-      })(),
+    sessionSecret: env.SESSION_SECRET, // Validated in env.ts (minimum 32 characters)
+    csrfSecret: env.CSRF_SECRET, // Validated in env.ts (minimum 32 characters)
   },
 };

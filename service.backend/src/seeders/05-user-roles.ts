@@ -18,6 +18,7 @@ const userRoleAssignments = [
 export async function seedUserRoles() {
   let assignmentCount = 0;
 
+  // First, assign roles based on explicit email assignments
   for (const assignment of userRoleAssignments) {
     const user = await User.findOne({ where: { email: assignment.email } });
     if (!user) {
@@ -26,7 +27,7 @@ export async function seedUserRoles() {
     }
 
     for (const roleName of assignment.roles) {
-      const role = await Role.findOne({ where: { role_name: roleName } });
+      const role = await Role.findOne({ where: { name: roleName } });
       if (!role) {
         console.warn(`⚠️  Role ${roleName} not found, skipping`);
         continue;
@@ -34,15 +35,53 @@ export async function seedUserRoles() {
 
       await UserRole.findOrCreate({
         where: {
-          user_id: user.userId,
-          role_id: role.role_id,
+          userId: user.userId,
+          roleId: role.roleId,
         },
         defaults: {
-          user_id: user.userId,
-          role_id: role.role_id,
+          userId: user.userId,
+          roleId: role.roleId,
         },
       });
       assignmentCount++;
+    }
+  }
+
+  // Second, assign roles to any staff members who don't have roles yet
+  // This handles newly added staff members who weren't in the explicit assignments
+  const rescueStaffRole = await Role.findOne({ where: { name: 'rescue_staff' } });
+  if (rescueStaffRole) {
+    // Find all users who are rescue staff type
+    const rescueStaffUsers = await User.findAll({
+      where: {
+        userType: 'rescue_staff'
+      }
+    });
+
+    for (const user of rescueStaffUsers) {
+      // Check if user already has the rescue_staff role
+      const existingRole = await UserRole.findOne({
+        where: {
+          userId: user.userId,
+          roleId: rescueStaffRole.roleId,
+        }
+      });
+
+      // If no role exists, assign it
+      if (!existingRole) {
+        await UserRole.findOrCreate({
+          where: {
+            userId: user.userId,
+            roleId: rescueStaffRole.roleId,
+          },
+          defaults: {
+            userId: user.userId,
+            roleId: rescueStaffRole.roleId,
+          },
+        });
+        assignmentCount++;
+        console.log(`✅ Assigned rescue_staff role to ${user.email} (${user.userId})`);
+      }
     }
   }
 

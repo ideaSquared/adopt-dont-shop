@@ -5,12 +5,14 @@ import {
   MdClose,
   MdFavorite,
   MdMenu,
+  MdNotifications,
   MdPerson,
   MdSearch,
   MdSwipe,
 } from 'react-icons/md';
 import { Link, useLocation } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
+import { useNotifications } from '@/contexts/NotificationsContext';
 
 const pulseGlow = keyframes`
   0%, 100% {
@@ -217,6 +219,7 @@ interface AppNavbarProps {
 export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { unreadCount } = useNotifications();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -268,6 +271,35 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
           >
             <MdChat className='nav-icon' />
             Messages
+          </NavLink>
+
+          <NavLink
+            to='/notifications'
+            $isActive={isActive('/notifications')}
+            onClick={() => setMobileMenuOpen(false)}
+            style={{ position: 'relative' }}
+          >
+            <MdNotifications className='nav-icon' />
+            Notifications
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-2px',
+                right: '8px',
+                background: '#ff4081',
+                color: 'white',
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold'
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </NavLink>
 
           <NavLink

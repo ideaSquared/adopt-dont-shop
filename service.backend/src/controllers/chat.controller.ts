@@ -1,24 +1,82 @@
 import { Request, Response } from 'express';
 import { ChatParticipant } from '../models/ChatParticipant';
-import User from '../models/User';
+import User, { UserType } from '../models/User';
 import { ChatService } from '../services/chat.service';
 import { FileUploadService } from '../services/file-upload.service';
 import { ChatMessage } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
 
 interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-    role: string;
-    rescueId?: string;
-  };
+  user?: User;
 }
 
+// Type for participant with User association
+type ParticipantWithUser = ChatParticipant & {
+  User?: User | SerializedUser;
+};
+
+// Type for serialized user data (from toJSON)
+type SerializedUser = {
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+  profileImageUrl?: string;
+  getFullName?: () => string;
+};
+
 // Interface for messages with populated Sender
-interface MessageWithSender extends ChatMessage {
-  Sender?: { firstName?: string; lastName?: string };
+interface MessageWithSender {
+  message_id: string;
+  chat_id: string;
+  sender_id: string;
+  content: string;
+  content_format: string;
+  type: string;
+  attachments: unknown[];
+  created_at: string;
+  updated_at: string;
+  Sender?: User | SerializedUser;
   sender_name?: string;
+  toJSON?: () => SerializedMessage;
 }
+
+// Type for serialized message object
+type SerializedMessage = {
+  message_id: string;
+  chat_id: string;
+  sender_id: string;
+  content: string;
+  content_format: string;
+  type: string;
+  attachments: unknown[];
+  created_at: string;
+  updated_at: string;
+  Sender?: User | SerializedUser;
+};
+
+/**
+ * Safely extract full name from a User object or serialized user data
+ * Handles both Sequelize model instances and plain objects (from toJSON)
+ */
+const getUserFullName = (user: User | SerializedUser | undefined | null): string => {
+  if (!user) {
+    return 'Unknown User';
+  }
+
+  // If it's a User model instance with getFullName method, use it
+  if (typeof (user as User).getFullName === 'function') {
+    return (user as User).getFullName() || 'Unknown User';
+  }
+
+  // Otherwise extract from properties (handles both camelCase and snake_case)
+  const userData = user as SerializedUser;
+  const firstName = userData.firstName || userData.first_name || '';
+  const lastName = userData.lastName || userData.last_name || '';
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  return fullName || 'Unknown User';
+};
 
 export class ChatController {
   /**
@@ -119,9 +177,66 @@ export class ChatController {
 
       const chat = await ChatService.getChatById(chatId, userId);
 
+      if (!chat) {
+        return res.status(404).json({
+          error: 'Chat not found',
+        });
+      }
+
+const chatObj = chat.toJSON();
+
+      // Log participants data for debugging
+      logger.info('Chat participants data', {
+        chatId: chatObj.chat_id,
+        hasParticipants: !!chatObj.Participants,
+        participantsCount: chatObj.Participants?.length || 0,
+        participantIds: (chatObj.Participants as ParticipantWithUser[] | undefined)?.map((p) => p.participant_id) || [],
+      });
+
+      // Transform participants to match frontend Participant interface
+      const participants =
+        (chatObj.Participants as ParticipantWithUser[] | undefined)?.map((p) => {
+          if (!p.User) {
+            logger.warn('Participant missing User association', {
+              chatId: chatObj.chat_id,
+              participantId: p.participant_id,
+            });
+          }
+
+          return {
+            id: p.participant_id,
+            name: getUserFullName(p.User),
+            type: p.role === 'admin' ? 'admin' : 'user',
+            avatarUrl: p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User ? p.User.profileImageUrl : undefined,
+            isOnline: false,
+          };
+        }) || [];
+
+      logger.info('Transformed participants', {
+        chatId: chatObj.chat_id,
+        participantsCount: participants.length,
+        participants: participants.map(p => ({ id: p.id, name: p.name })),
+      });
+
+      // Transform to match frontend Conversation interface
+      const transformedChat = {
+        id: chatObj.chat_id,
+        chat_id: chatObj.chat_id,
+        participants,
+        unreadCount: 0, // TODO: Calculate unread count
+        updatedAt: chatObj.updated_at,
+        createdAt: chatObj.created_at,
+        isActive: chatObj.status === 'active',
+        petId: chatObj.pet_id,
+        rescueId: chatObj.rescue_id,
+        rescueName: chatObj.rescue?.name || null,
+        status: chatObj.status,
+        metadata: {},
+      };
+
       res.json({
         success: true,
-        data: chat,
+        data: transformedChat,
       });
     } catch (error) {
       logger.error('Error getting chat:', error);
@@ -143,6 +258,7 @@ export class ChatController {
   static async getChats(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user!.userId;
+      const userType = req.user!.userType;
       const rescueId = req.user!.rescueId;
       const {
         petId,
@@ -153,15 +269,27 @@ export class ChatController {
         sortOrder = 'DESC',
       } = req.query;
 
-      const result = await ChatService.searchChats({
-        userId,
-        rescueId,
+      // Admin users can see all chats, regular users only see chats they're participants in
+      const isAdmin = userType === UserType.ADMIN;
+      const searchOptions = {
+        userId: isAdmin ? undefined : userId,
+        rescueId: isAdmin ? undefined : rescueId || undefined,
         petId: petId as string,
         type: type as string,
         page: parseInt(page as string),
         limit: parseInt(limit as string),
         sortBy: sortBy as string,
         sortOrder: sortOrder as 'ASC' | 'DESC',
+      };
+
+      const result = await ChatService.searchChats(searchOptions);
+
+      logger.info('Chat search results', {
+        isAdmin,
+        userId: isAdmin ? 'undefined (admin)' : userId,
+        rescueId: isAdmin ? 'undefined (admin)' : rescueId,
+        totalChats: result.chats.length,
+        totalCount: result.pagination.total,
       });
 
       // Add rescueName and lastMessage to each chat in the response
@@ -182,6 +310,17 @@ export class ChatController {
             // Add more fields if needed
           };
         }
+
+        // Transform participants to match frontend Participant interface
+        const participants =
+          (chatObj.Participants as ParticipantWithUser[] | undefined)?.map((p) => ({
+            id: p.participant_id,
+            name: getUserFullName(p.User),
+            type: p.role === 'admin' ? 'admin' : 'user',
+            avatarUrl: p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User ? p.User.profileImageUrl : undefined,
+            isOnline: false, // TODO: Implement online status
+          })) || [];
+
         return {
           id: chatObj.chat_id,
           userId: undefined, // No user_id field in chat model
@@ -190,7 +329,7 @@ export class ChatController {
           applicationId: chatObj.application_id,
           type: 'general', // Default type since not in model
           status: chatObj.status,
-          participants: chatObj.Participants || [],
+          participants,
           unreadCount: 0, // TODO: Calculate unread count
           isTyping: [],
           createdAt: chatObj.created_at,
@@ -237,7 +376,7 @@ export class ChatController {
 
       const result = await ChatService.searchConversations({
         userId,
-        rescueId,
+        rescueId: rescueId || undefined,
         query: query.trim(),
         type: type as string,
         page: parseInt(page as string),
@@ -313,19 +452,9 @@ export class ChatController {
         attachments,
       });
 
-      // Fetch sender's first name for sender_name
-      let senderName = undefined;
+      // Get sender's full name using the helper function
       const messageWithSender = message as unknown as MessageWithSender;
-      if (
-        messageWithSender &&
-        typeof messageWithSender.Sender === 'object' &&
-        messageWithSender.Sender &&
-        typeof messageWithSender.Sender.firstName === 'string'
-      ) {
-        senderName = messageWithSender.Sender.firstName;
-      } else if (messageWithSender && typeof messageWithSender.sender_name === 'string') {
-        senderName = messageWithSender.sender_name;
-      }
+      const senderName = getUserFullName(messageWithSender.Sender);
 
       res.status(201).json({
         success: true,
@@ -370,30 +499,34 @@ export class ChatController {
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      // Attach sender_name to each message if possible
-      const messagesWithSenderName = result.messages.map(msg => {
-        const messageWithSender = msg as unknown as MessageWithSender;
-        let senderName = undefined;
-        if (
-          messageWithSender &&
-          typeof messageWithSender.Sender === 'object' &&
-          messageWithSender.Sender &&
-          typeof messageWithSender.Sender.firstName === 'string'
-        ) {
-          senderName = messageWithSender.Sender.firstName;
-        } else if (messageWithSender && typeof messageWithSender.sender_name === 'string') {
-          senderName = messageWithSender.sender_name;
-        }
+      // Transform messages to match frontend Message interface
+      const transformedMessages = result.messages.map(msg => {
+        const msgObj: SerializedMessage = typeof (msg as MessageWithSender).toJSON === 'function'
+          ? (msg as MessageWithSender).toJSON!()
+          : (msg as unknown as SerializedMessage);
+
+        // Get sender name using the helper function
+        const senderName = getUserFullName(msgObj.Sender);
+
         return {
-          ...messageWithSender,
-          sender_name: senderName,
+          id: msgObj.message_id,
+          conversationId: msgObj.chat_id,
+          senderId: msgObj.sender_id,
+          senderName,
+          content: msgObj.content || '',
+          timestamp: msgObj.created_at,
+          type: msgObj.content_format || 'text',
+          status: 'sent',
+          attachments: msgObj.attachments || [],
+          isEdited: false,
+          metadata: {},
         };
       });
 
       res.json({
         success: true,
         data: {
-          messages: messagesWithSenderName,
+          messages: transformedMessages,
           pagination: {
             page: result.page,
             limit: parsedLimit,
@@ -599,6 +732,35 @@ export class ChatController {
   }
 
   /**
+   * Delete a message
+   */
+  static async deleteMessage(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { chatId, messageId } = req.params;
+      const { reason } = req.body;
+      const deletedBy = req.user!.userId;
+
+      await ChatService.deleteMessage(messageId, deletedBy, reason);
+
+      res.json({
+        success: true,
+        message: 'Message deleted successfully',
+      });
+    } catch (error) {
+      logger.error('Error deleting message:', error);
+      if (error instanceof Error && error.message === 'Message not found') {
+        return res.status(404).json({
+          error: 'Message not found',
+        });
+      }
+      res.status(500).json({
+        error: 'Failed to delete message',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
    * React to a message
    */
   static async addReaction(req: AuthenticatedRequest, res: Response) {
@@ -683,9 +845,12 @@ export class ChatController {
    */
   static async getChatAnalytics(req: AuthenticatedRequest, res: Response) {
     try {
+      const userType = req.user!.userType;
       const rescueId = req.user!.rescueId;
       const { startDate, endDate } = req.query;
 
+      // Admin users get analytics for all chats, regular users get rescue-specific analytics
+      const isAdmin = userType === UserType.ADMIN;
       const analytics = await ChatService.getChatAnalytics(
         startDate && endDate
           ? {
@@ -693,7 +858,7 @@ export class ChatController {
               end: new Date(endDate as string),
             }
           : undefined,
-        rescueId
+        isAdmin ? undefined : rescueId || undefined
       );
 
       res.json({

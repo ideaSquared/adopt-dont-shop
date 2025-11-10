@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, Optional, WhereOptions } from 'sequelize';
 import sequelize from '../sequelize';
 
 export enum RatingType {
@@ -122,7 +122,9 @@ export class Rating
     entityId: string,
     category?: RatingCategory
   ): Promise<{ average: number; count: number; distribution: Record<number, number> }> {
-    const whereClause: any = {};
+    const whereClause: WhereOptions<RatingAttributes> = {
+      is_moderated: true,
+    };
 
     switch (entityType) {
       case 'pet':
@@ -139,8 +141,6 @@ export class Rating
     if (category) {
       whereClause.category = category;
     }
-
-    whereClause.is_moderated = true; // Only count moderated ratings
 
     const ratings = await Rating.findAll({
       where: whereClause,
@@ -171,7 +171,9 @@ export class Rating
     limit: number = 10,
     category?: RatingCategory
   ): Promise<Rating[]> {
-    const whereClause: any = { is_moderated: true };
+    const whereClause: WhereOptions<RatingAttributes> = {
+      is_moderated: true,
+    };
 
     if (category) {
       whereClause.category = category;
@@ -192,7 +194,9 @@ export class Rating
     entityId: string,
     limit: number = 10
   ): Promise<Rating[]> {
-    const whereClause: any = { is_moderated: true };
+    const whereClause: WhereOptions<RatingAttributes> = {
+      is_moderated: true,
+    };
 
     switch (entityType) {
       case 'pet':

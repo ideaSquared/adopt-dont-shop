@@ -1,8 +1,7 @@
 import { ProfileEditForm, SettingsForm } from '@/components/profile';
-import { useAuth } from '@/contexts/AuthContext';
-import { applicationService } from '@/services/applicationService';
-import { authService } from '@/services/authService';
-import { Application, User } from '@/types';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { applicationService, authService } from '@/services';
+import { Application, User } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -156,11 +155,6 @@ const StatusBadge = styled.span<{ $status: string }>`
         return `
           background: ${props.theme.colors.secondary[100]};
           color: ${props.theme.colors.secondary[700]};
-        `;
-      case 'under_review':
-        return `
-          background: ${props.theme.colors.primary[100]};
-          color: ${props.theme.colors.primary[700]};
         `;
       case 'approved':
         return `

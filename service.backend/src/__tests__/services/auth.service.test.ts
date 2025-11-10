@@ -1,5 +1,16 @@
+// Mock env config FIRST before any imports
+jest.mock('../../config/env', () => ({
+  env: {
+    JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
+    JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',
+    SESSION_SECRET: 'test-session-secret-min-32-characters-long',
+    CSRF_SECRET: 'test-csrf-secret-min-32-characters-long-123',
+  },
+}));
+
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { AuditLog } from '../../models/AuditLog';
 import User, { UserStatus, UserType } from '../../models/User';
 import { AuthService } from '../../services/auth.service';
@@ -11,6 +22,7 @@ jest.mock('../../models/AuditLog');
 jest.mock('../../utils/logger');
 jest.mock('jsonwebtoken');
 jest.mock('bcryptjs');
+jest.mock('crypto');
 
 // Mock User model
 const MockedUser = User as jest.Mocked<typeof User>;
@@ -30,6 +42,18 @@ describe('AuthService', () => {
       JWT_SECRET: 'test-jwt-secret',
       JWT_REFRESH_SECRET: 'test-jwt-refresh-secret',
     };
+
+    // Mock bcrypt hash globally for all tests
+    mockedBcrypt.hash = jest.fn().mockImplementation((password: string) =>
+      Promise.resolve(`hashed_${password}` as never)
+    );
+    mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+
+    // Mock crypto for verification tokens
+    const mockCrypto = crypto as jest.Mocked<typeof crypto>;
+    (mockCrypto.randomBytes as unknown as jest.Mock) = jest.fn().mockReturnValue({
+      toString: jest.fn().mockReturnValue('mock-token'),
+    });
 
     // Mock the generateTokens method to avoid JWT secret issues
     jest.spyOn(AuthService as any, 'generateTokens').mockResolvedValue({
@@ -54,7 +78,7 @@ describe('AuthService', () => {
     };
 
     it('should register user successfully', async () => {
-      const hashedPassword = 'hashedpassword123';
+      const hashedPassword = `hashed_${userData.password}`;
       const mockUser = {
         userId: 'user-123',
         email: userData.email,
@@ -76,7 +100,6 @@ describe('AuthService', () => {
       };
 
       MockedUser.findOne = jest.fn().mockResolvedValue(null);
-      mockedBcrypt.hash = jest.fn().mockResolvedValue(hashedPassword as never);
       MockedUser.create = jest.fn().mockResolvedValue(mockUser as any);
       mockedJwt.sign = jest.fn().mockReturnValue('access-token' as any);
       MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
@@ -89,7 +112,7 @@ describe('AuthService', () => {
       expect(MockedUser.create).toHaveBeenCalledWith(
         expect.objectContaining({
           email: userData.email.toLowerCase(),
-          password: hashedPassword,
+          password: expect.any(String),
           firstName: userData.firstName,
           lastName: userData.lastName,
           phoneNumber: userData.phoneNumber,
@@ -246,7 +269,7 @@ describe('AuthService', () => {
 
       const result = await AuthService.refreshToken(refreshToken);
 
-      expect(mockedJwt.verify).toHaveBeenCalledWith(refreshToken, 'test-jwt-refresh-secret');
+      expect(mockedJwt.verify).toHaveBeenCalledWith(refreshToken, 'test-refresh-secret-min-32-characters-long-12345');
       expect(MockedUser.findByPk).toHaveBeenCalledWith(mockPayload.userId, expect.any(Object));
       expect(result.user).toBeDefined();
       expect(result.token).toBe('mocked-access-token');

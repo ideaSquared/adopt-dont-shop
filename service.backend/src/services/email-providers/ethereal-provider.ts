@@ -3,9 +3,19 @@ import EmailQueue from '../../models/EmailQueue';
 import { logger } from '../../utils/logger';
 import { BaseEmailProvider } from './base-provider';
 
+// Type for nodemailer test account
+type TestAccount = {
+  user: string;
+  pass: string;
+  smtp: { host: string; port: number; secure: boolean };
+  imap: { host: string; port: number; secure: boolean };
+  pop3: { host: string; port: number; secure: boolean };
+  web: string;
+};
+
 export class EtherealProvider extends BaseEmailProvider {
   private transporter: nodemailer.Transporter | null = null;
-  private testAccount: any = null;
+  private testAccount: TestAccount | null = null;
 
   constructor() {
     super({});
@@ -56,7 +66,7 @@ export class EtherealProvider extends BaseEmailProvider {
 
       // In development, log the preview URL
       if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Preview Email: %s', nodemailer.getTestMessageUrl(info));
+        logger.debug('Preview Email: %s', nodemailer.getTestMessageUrl(info));
       }
 
       return {
@@ -82,8 +92,8 @@ export class EtherealProvider extends BaseEmailProvider {
 
   getPreviewInfo() {
     return {
-      user: this.testAccount?.user,
-      password: this.testAccount?.pass,
+      user: this.testAccount?.user || '',
+      password: this.testAccount?.pass || '',
       webUrl: 'https://ethereal.email',
       inboxUrl: `https://ethereal.email/messages`,
     };

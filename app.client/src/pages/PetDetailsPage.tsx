@@ -1,8 +1,9 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
-import { petService } from '@/services/petService';
-import { Pet } from '@/types';
+import { petService } from '@/services';
+import { Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -377,6 +378,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const { isAuthenticated } = useAuth();
   const { startConversation } = useChat();
   const { logEvent } = useStatsig();
+  const { trackPageView, trackEvent } = useAnalytics();
   const [pet, setPet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -395,10 +397,33 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
 
       try {
         setLoading(true);
-        const petData = await petService.getPet(id);
+        const petData = await petService.getPetById(id);
         setPet(petData);
 
-        // Log pet details view
+        // Track page view with new analytics service
+        trackPageView(`/pets/${id}`);
+        trackEvent({
+          category: 'pet_details',
+          action: 'pet_viewed',
+          label: petData.name,
+          sessionId: 'pet-details-session',
+          timestamp: new Date(),
+          properties: {
+            pet_id: id,
+            pet_name: petData.name,
+            pet_type: petData.type,
+            pet_breed: petData.breed || 'unknown',
+            pet_age_years: petData.age_years || 0,
+            pet_status: petData.status,
+            pet_gender: petData.gender || 'unknown',
+            pet_size: petData.size || 'unknown',
+            has_images: !!(petData.images && petData.images.length > 0),
+            image_count: petData.images?.length || 0,
+            user_authenticated: isAuthenticated,
+          }
+        });
+
+        // Log pet details view (existing Statsig tracking)
         logEvent('pet_details_viewed', 1, {
           pet_id: id,
           pet_name: petData.name,
@@ -431,7 +456,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     };
 
     fetchPet();
-  }, [id, isAuthenticated, logEvent]);
+  }, [id, isAuthenticated, logEvent, trackPageView, trackEvent]);
 
   const handleFavoriteToggle = async () => {
     if (!isAuthenticated || !pet) return;
@@ -544,6 +569,26 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
 
   const handleApplyClick = () => {
     if (pet) {
+      // Track with new analytics service
+      trackEvent({
+        category: 'adoption',
+        action: 'application_started',
+        label: 'pet_details_apply_click',
+        sessionId: 'pet-details-session',
+        timestamp: new Date(),
+        properties: {
+          pet_id: pet.pet_id,
+          pet_name: pet.name || 'unknown',
+          pet_type: pet.type || 'unknown',
+          pet_breed: pet.breed || 'unknown',
+          pet_age_years: pet.age_years || 0,
+          pet_status: pet.status || 'unknown',
+          source_page: 'pet_details',
+          user_authenticated: isAuthenticated,
+        }
+      });
+
+      // Existing Statsig tracking
       logEvent('adoption_application_started', 1, {
         pet_id: pet.pet_id.toString(),
         pet_name: pet.name || 'unknown',

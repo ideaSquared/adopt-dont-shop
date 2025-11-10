@@ -5,6 +5,7 @@ import { Op } from 'sequelize';
 import User, { UserStatus, UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { env } from '../config/env';
 
 import {
   AuthResponse,
@@ -15,11 +16,10 @@ import {
 } from '../types';
 
 export class AuthService {
-  private static readonly JWT_SECRET = process.env.JWT_SECRET!;
-  private static readonly JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+  private static readonly JWT_SECRET = env.JWT_SECRET;
+  private static readonly JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
   private static readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
   private static readonly JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
-  private static readonly BCRYPT_ROUNDS = 12;
 
   static async register(userData: RegisterData): Promise<AuthResponse> {
     try {
@@ -32,19 +32,16 @@ export class AuthService {
       // Validate password
       this.validatePassword(userData.password);
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(userData.password, this.BCRYPT_ROUNDS);
-
       // Generate verification token
       const verificationToken = crypto.randomBytes(32).toString('hex');
       const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-      // Create user
+      // Create user (password will be hashed by User model beforeCreate hook)
       const user = await User.create({
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email.toLowerCase(),
-        password: hashedPassword,
+        password: userData.password,
         phoneNumber: userData.phoneNumber,
         userType: userData.userType || UserType.ADOPTER,
         status: UserStatus.PENDING_VERIFICATION,
@@ -305,17 +302,113 @@ export class AuthService {
       // Send password reset email
       try {
         const emailService = (await import('./email.service')).default;
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+
         await emailService.sendEmail({
           toEmail: user.email,
+          toName: `${user.firstName} ${user.lastName}`,
+          subject: 'Password Reset Request - Adopt Don\'t Shop',
+          htmlContent: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Password Reset Request</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+                <tr>
+                  <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <!-- Header -->
+                      <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
+                          <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Password Reset Request</h1>
+                        </td>
+                      </tr>
+
+                      <!-- Body -->
+                      <tr>
+                        <td style="padding: 40px 30px;">
+                          <p style="font-size: 16px; color: #333333; margin: 0 0 20px 0;">Hi ${user.firstName},</p>
+
+                          <p style="font-size: 16px; color: #333333; margin: 0 0 20px 0; line-height: 1.6;">
+                            We received a request to reset your password for your Adopt Don't Shop account.
+                            Click the button below to create a new password.
+                          </p>
+
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                            <tr>
+                              <td align="center">
+                                <a href="${resetUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Reset Your Password</a>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <p style="font-size: 14px; color: #666666; margin: 20px 0 10px 0; line-height: 1.6;">
+                            Or copy and paste this link into your browser:
+                          </p>
+                          <p style="font-size: 14px; color: #667eea; word-break: break-all; margin: 0 0 20px 0;">
+                            ${resetUrl}
+                          </p>
+
+                          <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin: 30px 0;">
+                            <p style="font-size: 14px; color: #856404; margin: 0; line-height: 1.6;">
+                              <strong>⏰ This link will expire in 1 hour</strong> for your security.
+                            </p>
+                          </div>
+
+                          <p style="font-size: 14px; color: #666666; margin: 20px 0 0 0; line-height: 1.6;">
+                            If you didn't request a password reset, you can safely ignore this email.
+                            Your password will remain unchanged.
+                          </p>
+                        </td>
+                      </tr>
+
+                      <!-- Footer -->
+                      <tr>
+                        <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                          <p style="font-size: 14px; color: #6c757d; margin: 0 0 10px 0;">
+                            Need help? Contact us at <a href="mailto:support@adoptdontshop.com" style="color: #667eea; text-decoration: none;">support@adoptdontshop.com</a>
+                          </p>
+                          <p style="font-size: 12px; color: #adb5bd; margin: 0;">
+                            © ${new Date().getFullYear()} Adopt Don't Shop. All rights reserved.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          `,
+          textContent: `
+Hi ${user.firstName},
+
+We received a request to reset your password for your Adopt Don't Shop account.
+
+To reset your password, click the link below or copy and paste it into your browser:
+
+${resetUrl}
+
+This link will expire in 1 hour for your security.
+
+If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+
+Need help? Contact us at support@adoptdontshop.com
+
+© ${new Date().getFullYear()} Adopt Don't Shop. All rights reserved.
+          `,
           templateData: {
             firstName: user.firstName,
             resetToken: resetToken,
-            resetUrl: `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`,
+            resetUrl: resetUrl,
             expiresAt: resetExpires.toISOString(),
           },
           type: 'transactional',
           priority: 'high',
-          subject: 'Password Reset Request',
         });
 
         logger.info('Password reset email sent', { userId: user.userId, email: user.email });
@@ -352,9 +445,8 @@ export class AuthService {
         throw new Error('Invalid or expired reset token');
       }
 
-      // Hash new password
-      const hashedPassword = await bcrypt.hash(data.newPassword, 12);
-      user.password = hashedPassword;
+      // Set new password (will be hashed by User model beforeUpdate hook)
+      user.password = data.newPassword;
       user.resetToken = null;
       user.resetTokenExpiration = null;
       user.resetTokenForceFlag = false;

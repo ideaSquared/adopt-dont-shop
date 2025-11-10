@@ -1,4 +1,4 @@
-import { ApplicationData } from '@/types';
+import { ApplicationData } from '@/services';
 import React from 'react';
 import styled from 'styled-components';
 

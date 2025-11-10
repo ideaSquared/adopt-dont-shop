@@ -133,7 +133,7 @@ describe('PetService', () => {
       expect(MockedPet.findAndCountAll).toHaveBeenCalledWith({
         where: {
           type: PetType.DOG,
-          status: { [Op.ne]: PetStatus.ADOPTED },
+          status: PetStatus.AVAILABLE,
           archived: false,
         },
         order: [

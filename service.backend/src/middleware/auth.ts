@@ -1,8 +1,11 @@
 import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
+import Role from '../models/Role';
+import Permission from '../models/Permission';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger, loggerHelpers } from '../utils/logger';
+import { env } from '../config/env';
 
 export interface JWTPayload {
   userId: string;
@@ -35,11 +38,22 @@ export const authenticateToken = async (
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
 
     // Fetch user from database to ensure they still exist and are active
     const user = await User.findByPk(decoded.userId, {
-      include: ['Roles'],
+      include: [
+        {
+          model: Role,
+          as: 'Roles',
+          include: [
+            {
+              model: Permission,
+              as: 'Permissions',
+            },
+          ],
+        },
+      ],
     });
 
     if (!user) {
@@ -55,6 +69,13 @@ export const authenticateToken = async (
       res.status(401).json({ error: 'User not found' });
       return;
     }
+
+    // Debug: Log loaded user data structure
+    logger.info('🔍 Auth Middleware - User loaded with roles and permissions', {
+      userId: decoded.userId,
+      email: user.email,
+      rolesCount: user.Roles?.length || 0,
+    });
 
     if (user.status !== 'active') {
       loggerHelpers.logSecurity(
@@ -127,9 +148,20 @@ export const optionalAuth = async (
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
     const user = await User.findByPk(decoded.userId, {
-      include: ['Roles'],
+      include: [
+        {
+          model: Role,
+          as: 'Roles',
+          include: [
+            {
+              model: Permission,
+              as: 'Permissions',
+            },
+          ],
+        },
+      ],
     });
 
     if (user && user.status === 'active') {
@@ -211,4 +243,67 @@ export const requireRole = (requiredRoles: string | string[]) => {
       res.status(500).json({ error: 'Authorization error' });
     }
   };
+};
+
+/**
+ * Optional authentication middleware - continues if no token provided
+ * Used for endpoints that work with or without authentication
+ */
+export const authenticateOptionalToken = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      // No token provided, continue without authentication
+      next();
+      return;
+    }
+
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
+
+    // Fetch user from database to ensure they still exist and are active
+    const user = await User.findByPk(decoded.userId, {
+      include: [
+        {
+          model: Role,
+          as: 'Roles',
+          include: [
+            {
+              model: Permission,
+              as: 'Permissions',
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!user) {
+      // Invalid token, but continue without authentication
+      next();
+      return;
+    }
+
+    // Attach user to request if found
+    req.user = user;
+
+    logger.info('Optional authentication successful', {
+      userId: user.userId,
+      userType: user.userType,
+      ip: req.ip,
+    });
+
+    next();
+  } catch (error) {
+    // Token verification failed, but continue without authentication
+    logger.warn('Optional authentication failed, continuing without auth', {
+      error: error instanceof Error ? error.message : String(error),
+      ip: req.ip,
+    });
+    next();
+  }
 };

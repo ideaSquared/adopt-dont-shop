@@ -433,7 +433,7 @@ export class FileUploadService {
    * Generate file URL
    */
   private static generateFileUrl(filename: string): string {
-    return `/api/v1/uploads/${filename}`;
+    return `/uploads/${filename}`;
   }
 
   /**

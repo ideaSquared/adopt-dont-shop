@@ -1,5 +1,6 @@
 import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
+import bcrypt from 'bcrypt';
 import { JsonObject } from '../types/common';
 
 // Forward declarations to avoid circular imports
@@ -146,12 +147,13 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     return this.emailVerified || false;
   }
 
-  public canLogin(): boolean {
-    return this.status === UserStatus.ACTIVE && this.emailVerified && !this.isAccountLocked();
+  // Password comparison method
+  public async comparePassword(candidatePassword: string): Promise<boolean> {
+    return bcrypt.compare(candidatePassword, this.password);
   }
 
-  public static associate(models: any) {
-    this.belongsToMany(models.Role, { through: models.UserRole, foreignKey: 'userId' });
+  public canLogin(): boolean {
+    return this.status === UserStatus.ACTIVE && this.emailVerified && !this.isAccountLocked();
   }
 }
 
@@ -435,6 +437,20 @@ User.init(
         fields: ['created_at'],
       },
     ],
+    hooks: {
+      beforeCreate: async (user: User) => {
+        if (user.password) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
+        }
+      },
+      beforeUpdate: async (user: User) => {
+        if (user.changed('password') && user.password) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
+        }
+      },
+    },
   }
 );
 

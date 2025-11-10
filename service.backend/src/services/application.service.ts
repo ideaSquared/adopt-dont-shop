@@ -1,6 +1,3 @@
-// Placeholder Application Service
-// TODO: Implement full application service functionality
-
 import { Includeable, Op, Order, WhereOptions } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
@@ -9,6 +6,9 @@ import Pet from '../models/Pet';
 import User, { UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import ApplicationTimelineService from './applicationTimeline.service';
+import { TimelineEventType } from '../models/ApplicationTimeline';
+import { JsonObject, JsonValue } from '../types/common';
 
 import {
   ApplicationData,
@@ -62,11 +62,7 @@ export class ApplicationService {
           user_id: userId,
           pet_id: applicationData.pet_id,
           status: {
-            [Op.notIn]: [
-              ApplicationStatus.REJECTED,
-              ApplicationStatus.WITHDRAWN,
-              ApplicationStatus.EXPIRED,
-            ],
+            [Op.notIn]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
           },
         },
       });
@@ -100,13 +96,30 @@ export class ApplicationService {
         user_id: userId,
         pet_id: applicationData.pet_id,
         rescue_id: pet.rescue_id,
-        status: ApplicationStatus.DRAFT,
+        status: ApplicationStatus.SUBMITTED,
         priority: applicationData.priority || ApplicationPriority.NORMAL,
         answers: applicationData.answers,
         references: processedReferences,
         documents: [],
         notes: applicationData.notes,
         tags: applicationData.tags || [],
+      });
+
+      // Create initial timeline event
+      await ApplicationTimelineService.createEvent({
+        application_id: application.application_id,
+        event_type: TimelineEventType.STATUS_UPDATE,
+        title: 'Application Submitted',
+        description: 'Application was submitted for review',
+        created_by: userId,
+        created_by_system: false,
+        new_status: ApplicationStatus.SUBMITTED,
+        metadata: {
+          pet_id: applicationData.pet_id,
+          rescue_id: pet.rescue_id,
+          priority: application.priority,
+          submission_date: new Date(),
+        },
       });
 
       // Log creation
@@ -161,7 +174,19 @@ export class ApplicationService {
         {
           model: User,
           as: 'User',
-          attributes: ['user_id', 'first_name', 'last_name', 'email', 'phone_number'],
+          attributes: [
+            'user_id',
+            'first_name',
+            'last_name',
+            'email',
+            'phone_number',
+            'date_of_birth',
+            'address_line_1',
+            'address_line_2',
+            'city',
+            'country',
+            'postal_code',
+          ],
         },
         {
           model: Pet,
@@ -243,6 +268,31 @@ export class ApplicationService {
       // Permission-based filtering
       if (userId && userType === UserType.ADOPTER) {
         whereConditions.user_id = userId;
+      }
+
+      // Auto-filter by rescue for rescue staff (unless rescue_id explicitly provided)
+      if (userId && userType === UserType.RESCUE_STAFF && !filters.rescue_id) {
+        try {
+          const StaffMember = (await import('../models/StaffMember')).default;
+          const staffMember = await StaffMember.findOne({
+            where: {
+              userId: userId,
+              isDeleted: false,
+              isVerified: true,
+            },
+          });
+
+          if (staffMember) {
+            whereConditions.rescue_id = staffMember.rescueId;
+            logger.info('Auto-filtering applications by user rescue:', {
+              userId: userId,
+              rescueId: staffMember.rescueId,
+            });
+          }
+        } catch (error) {
+          // If there's an error getting staff member, just continue without filtering
+          logger.warn('Could not determine user rescue for auto-filtering applications:', error);
+        }
       }
 
       // Status filtering
@@ -337,6 +387,13 @@ export class ApplicationService {
           { rejection_reason: { [Op.iLike]: `%${filters.search}%` } },
           { interview_notes: { [Op.iLike]: `%${filters.search}%` } },
           { home_visit_notes: { [Op.iLike]: `%${filters.search}%` } },
+          // Search in user fields
+          { '$User.first_name$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$User.last_name$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$User.email$': { [Op.iLike]: `%${filters.search}%` } },
+          // Search in pet fields
+          { '$Pet.name$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$Pet.breed$': { [Op.iLike]: `%${filters.search}%` } },
         ];
         (whereConditions as Record<string | symbol, unknown>)[Op.or] = searchConditions;
       }
@@ -437,14 +494,14 @@ export class ApplicationService {
         throw new Error('Application not found');
       }
 
-      // Check permissions - only owner can update draft applications
-      if (application.user_id !== userId && application.status === ApplicationStatus.DRAFT) {
+      // Check permissions - only owner can update their own applications
+      if (application.user_id !== userId) {
         throw new Error('Access denied');
       }
 
-      // Validate that application can be updated
-      if (![ApplicationStatus.DRAFT, ApplicationStatus.SUBMITTED].includes(application.status)) {
-        throw new Error('Application cannot be updated in current status');
+      // Validate that application can be updated (only submitted applications can be updated)
+      if (application.status !== ApplicationStatus.SUBMITTED) {
+        throw new Error('Application cannot be updated once processed');
       }
 
       // Store original data for audit
@@ -458,6 +515,20 @@ export class ApplicationService {
 
       // Update application
       await application.update(updateData);
+
+      // Create timeline event for application update
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: TimelineEventType.NOTE_ADDED,
+        title: 'Application Updated',
+        description: `Application was updated by the applicant`,
+        created_by: userId,
+        created_by_system: false,
+        metadata: {
+          updated_fields: Object.keys(updateData),
+          update_date: new Date(),
+        },
+      });
 
       // Log the update
       await AuditLogService.log({
@@ -509,9 +580,10 @@ export class ApplicationService {
         throw new Error('Access denied');
       }
 
-      // Validate application can be submitted
-      if (application.status !== ApplicationStatus.DRAFT) {
-        throw new Error('Only draft applications can be submitted');
+      // In simplified workflow, applications are submitted upon creation
+      // This method is kept for API compatibility but does nothing
+      if (application.status !== ApplicationStatus.SUBMITTED) {
+        throw new Error('Application is not in a valid state');
       }
 
       // Validate application completeness
@@ -582,10 +654,6 @@ export class ApplicationService {
         updateFields.rejection_reason = statusUpdate.rejection_reason;
       }
 
-      if (statusUpdate.conditional_requirements) {
-        updateFields.conditional_requirements = statusUpdate.conditional_requirements;
-      }
-
       if (statusUpdate.notes) {
         updateFields.notes = statusUpdate.notes;
       }
@@ -596,17 +664,33 @@ export class ApplicationService {
 
       // Set specific timestamps based on status
       switch (statusUpdate.status) {
-        case ApplicationStatus.UNDER_REVIEW:
-          updateFields.reviewed_at = new Date();
-          break;
         case ApplicationStatus.APPROVED:
         case ApplicationStatus.REJECTED:
-        case ApplicationStatus.CONDITIONALLY_APPROVED:
           updateFields.decision_at = new Date();
           break;
       }
 
       await application.update(updateFields);
+
+      // Create timeline event for status change
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: ApplicationService.getTimelineEventTypeForStatus(statusUpdate.status),
+        title: `Application ${ApplicationService.formatStatusName(statusUpdate.status)}`,
+        description:
+          statusUpdate.rejection_reason ||
+          statusUpdate.notes ||
+          `Application status changed from ${ApplicationService.formatStatusName(previousStatus)} to ${ApplicationService.formatStatusName(statusUpdate.status)}`,
+        created_by: actionedBy,
+        created_by_system: false,
+        previous_status: previousStatus,
+        new_status: statusUpdate.status,
+        metadata: {
+          rejection_reason: statusUpdate.rejection_reason,
+          follow_up_date: statusUpdate.follow_up_date,
+          notes: statusUpdate.notes,
+        },
+      });
 
       // Log status change
       await AuditLogService.log({
@@ -664,6 +748,22 @@ export class ApplicationService {
         actioned_at: new Date(),
       });
 
+      // Create timeline event for withdrawal
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: TimelineEventType.APPLICATION_WITHDRAWN,
+        title: 'Application Withdrawn',
+        description: 'Application was withdrawn by the applicant',
+        created_by: userId,
+        created_by_system: false,
+        previous_status: application.status,
+        new_status: ApplicationStatus.WITHDRAWN,
+        metadata: {
+          withdrawn_by: userId,
+          withdrawn_at: new Date(),
+        },
+      });
+
       // Log withdrawal
       await AuditLogService.log({
         action: 'WITHDRAW',
@@ -712,6 +812,22 @@ export class ApplicationService {
 
       await application.update({ documents: updatedDocuments });
 
+      // Create timeline event for document upload
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: TimelineEventType.DOCUMENT_UPLOADED,
+        title: 'Document Uploaded',
+        description: `${documentData.document_type} document "${documentData.file_name}" was uploaded`,
+        created_by: userId,
+        created_by_system: false,
+        metadata: {
+          document_id: newDocument.document_id,
+          document_type: documentData.document_type,
+          file_name: documentData.file_name,
+          upload_date: new Date(),
+        },
+      });
+
       // Log document upload
       await AuditLogService.log({
         action: 'DOCUMENT_UPLOAD',
@@ -748,13 +864,140 @@ export class ApplicationService {
         throw new Error('Application not found');
       }
 
-      if (referenceUpdate.reference_index >= application.references.length) {
-        throw new Error('Reference index out of bounds');
+      // Determine the reference index to update
+      let referenceIndex: number;
+
+      if (referenceUpdate.referenceId) {
+        // ID-based approach
+        if (!referenceUpdate.referenceId.startsWith('ref-')) {
+          throw new Error(
+            `Invalid reference ID format: ${referenceUpdate.referenceId}. Expected format: ref-X`
+          );
+        }
+
+        const indexFromId = parseInt(referenceUpdate.referenceId.split('-')[1], 10);
+        if (isNaN(indexFromId)) {
+          throw new Error(
+            `Could not extract reference index from ID: ${referenceUpdate.referenceId}`
+          );
+        }
+        referenceIndex = indexFromId;
+      } else if (referenceUpdate.reference_index !== undefined) {
+        // Fallback index-based approach
+        referenceIndex = referenceUpdate.reference_index;
+      } else {
+        throw new Error('Either referenceId or reference_index must be provided');
+      }
+
+      logger.info(
+        `Updating reference for application ${applicationId}, index ${referenceIndex}, current references count: ${application.references.length}`
+      );
+
+      // If references array is empty but we have reference data in the application answers,
+      // initialize the references array from the client data
+      if (application.references.length === 0 && application.answers) {
+        logger.info('Initializing references array from client data');
+        const answers = application.answers as JsonObject;
+        const initializedReferences: Array<{
+          id: string;
+          name: string;
+          relationship: string;
+          phone: string;
+          email?: string;
+          status: 'pending' | 'contacted' | 'verified' | 'failed';
+        }> = [];
+
+        // Check for references in answers.references
+        if (answers.references) {
+          const clientRefs = answers.references as {
+            veterinarian?: { name: string; phone?: string; email?: string; clinicName?: string };
+            personal?: Array<{
+              name: string;
+              relationship: string;
+              phone?: string;
+              email?: string;
+            }>;
+          };
+
+          // Add veterinarian reference if exists
+          if (clientRefs.veterinarian && clientRefs.veterinarian.name) {
+            initializedReferences.push({
+              id: `ref-${initializedReferences.length}`,
+              name: clientRefs.veterinarian.name,
+              relationship: 'Veterinarian',
+              phone: clientRefs.veterinarian.phone || 'TBD',
+              email: clientRefs.veterinarian.email || '',
+              status: 'pending' as const,
+            });
+          }
+
+          // Add personal references
+          if (Array.isArray(clientRefs.personal)) {
+            clientRefs.personal.forEach(ref => {
+              initializedReferences.push({
+                id: `ref-${initializedReferences.length}`,
+                name: ref.name,
+                relationship: ref.relationship,
+                phone: ref.phone || 'TBD',
+                email: ref.email || '',
+                status: 'pending' as const,
+              });
+            });
+          }
+        }
+
+        // Also check for emergency_contact in answers
+        if (answers.emergency_contact && typeof answers.emergency_contact === 'object') {
+          const emergency = answers.emergency_contact as {
+            name?: string;
+            phone?: string;
+            email?: string;
+            relationship?: string;
+          };
+          if (emergency.name) {
+            initializedReferences.push({
+              id: `ref-${initializedReferences.length}`,
+              name: emergency.name,
+              relationship: emergency.relationship || 'Emergency Contact',
+              phone: emergency.phone || 'TBD',
+              email: emergency.email || '',
+              status: 'pending' as const,
+            });
+          }
+        }
+
+        // Update the application with initialized references
+        if (initializedReferences.length > 0) {
+          await application.update({ references: initializedReferences });
+          await application.reload(); // Reload to get updated data
+          logger.info(`Initialized ${initializedReferences.length} references from client data`);
+        }
+      }
+
+      // If still out of bounds after initialization, extend the array with placeholders
+      if (referenceIndex >= application.references.length) {
+        const currentRefs = [...application.references];
+
+        // Extend array to accommodate the requested index
+        while (currentRefs.length <= referenceIndex) {
+          currentRefs.push({
+            id: `ref-${currentRefs.length}`,
+            name: `Reference ${currentRefs.length + 1}`,
+            relationship: 'Unknown',
+            phone: 'TBD', // Provide a non-empty placeholder phone
+            email: '',
+            status: 'pending' as const,
+          });
+        }
+
+        await application.update({ references: currentRefs });
+        await application.reload();
+        logger.info(`Extended references array to ${currentRefs.length} items`);
       }
 
       const updatedReferences = [...application.references];
-      updatedReferences[referenceUpdate.reference_index] = {
-        ...updatedReferences[referenceUpdate.reference_index],
+      updatedReferences[referenceIndex] = {
+        ...updatedReferences[referenceIndex],
         status: referenceUpdate.status,
         notes: referenceUpdate.notes,
         contacted_at: referenceUpdate.contacted_at,
@@ -762,13 +1005,40 @@ export class ApplicationService {
 
       await application.update({ references: updatedReferences });
 
+      // Create timeline event for reference update
+      const eventType =
+        referenceUpdate.status === 'contacted'
+          ? TimelineEventType.REFERENCE_CONTACTED
+          : referenceUpdate.status === 'verified'
+            ? TimelineEventType.REFERENCE_VERIFIED
+            : TimelineEventType.NOTE_ADDED;
+
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: eventType,
+        title: `Reference ${ApplicationService.formatStatusName(referenceUpdate.status)}`,
+        description:
+          referenceUpdate.notes ||
+          `Reference at index ${referenceIndex} status updated to ${referenceUpdate.status}`,
+        created_by: userId,
+        created_by_system: false,
+        metadata: {
+          reference_index: referenceIndex,
+          reference_id: referenceUpdate.referenceId,
+          reference_status: referenceUpdate.status,
+          contacted_at: referenceUpdate.contacted_at,
+          notes: referenceUpdate.notes,
+        },
+      });
+
       // Log reference update
       await AuditLogService.log({
         action: 'REFERENCE_UPDATE',
         entity: 'Application',
         entityId: applicationId,
         details: {
-          reference_index: referenceUpdate.reference_index,
+          reference_index: referenceIndex,
+          referenceId: referenceUpdate.referenceId || null,
           status: referenceUpdate.status,
         },
         userId,
@@ -776,7 +1046,8 @@ export class ApplicationService {
 
       logger.info('Reference updated', {
         applicationId,
-        referenceIndex: referenceUpdate.reference_index,
+        referenceIndex,
+        referenceId: referenceUpdate.referenceId || null,
         userId,
       });
 
@@ -803,7 +1074,12 @@ export class ApplicationService {
       const totalApplications = await Application.count({ where: whereConditions });
 
       // Get applications by status
-      const applicationsByStatus: Record<ApplicationStatus, number> = {} as any;
+      const applicationsByStatus: Record<ApplicationStatus, number> = {
+        [ApplicationStatus.SUBMITTED]: 0,
+        [ApplicationStatus.APPROVED]: 0,
+        [ApplicationStatus.REJECTED]: 0,
+        [ApplicationStatus.WITHDRAWN]: 0,
+      };
       for (const status of Object.values(ApplicationStatus)) {
         applicationsByStatus[status] = await Application.count({
           where: { ...whereConditions, status },
@@ -811,7 +1087,12 @@ export class ApplicationService {
       }
 
       // Get applications by priority
-      const applicationsByPriority: Record<ApplicationPriority, number> = {} as any;
+      const applicationsByPriority: Record<ApplicationPriority, number> = {
+        [ApplicationPriority.LOW]: 0,
+        [ApplicationPriority.NORMAL]: 0,
+        [ApplicationPriority.HIGH]: 0,
+        [ApplicationPriority.URGENT]: 0,
+      };
       for (const priority of Object.values(ApplicationPriority)) {
         applicationsByPriority[priority] = await Application.count({
           where: { ...whereConditions, priority },
@@ -875,16 +1156,7 @@ export class ApplicationService {
         where: {
           ...whereConditions,
           status: {
-            [Op.in]: [
-              ApplicationStatus.SUBMITTED,
-              ApplicationStatus.UNDER_REVIEW,
-              ApplicationStatus.PENDING_REFERENCES,
-              ApplicationStatus.REFERENCE_CHECK,
-              ApplicationStatus.INTERVIEW_SCHEDULED,
-              ApplicationStatus.INTERVIEW_COMPLETED,
-              ApplicationStatus.HOME_VISIT_SCHEDULED,
-              ApplicationStatus.HOME_VISIT_COMPLETED,
-            ],
+            [Op.in]: [ApplicationStatus.SUBMITTED],
           },
         },
       });
@@ -1061,7 +1333,7 @@ export class ApplicationService {
           answeredQuestions++;
 
           // Validate answer format
-          const validation = question.validateAnswer(answer);
+          const validation = question.validateAnswer(answer as JsonValue);
           if (!validation.isValid) {
             errors.push({
               field: question.question_key,
@@ -1112,6 +1384,20 @@ export class ApplicationService {
 
       await application.destroy();
 
+      // Create timeline event for application deletion
+      await ApplicationTimelineService.createEvent({
+        application_id: applicationId,
+        event_type: TimelineEventType.NOTE_ADDED,
+        title: 'Application Deleted',
+        description: 'Application was deleted by the applicant',
+        created_by: userId,
+        created_by_system: false,
+        metadata: {
+          deleted_by: userId,
+          deletion_date: new Date(),
+        },
+      });
+
       // Log deletion
       await AuditLogService.log({
         action: 'DELETE',
@@ -1157,119 +1443,43 @@ export class ApplicationService {
     };
     return descriptions[category];
   }
-}
 
-// Legacy compatibility - keeping the old interface but delegating to the new service
-export interface ApplicationFilters {
-  status?: string;
-  petId?: string;
-  userId?: string;
-  rescueId?: string;
-  startDate?: Date;
-  endDate?: Date;
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
-  page?: number;
-  limit?: number;
-}
+  /**
+   * Get the appropriate timeline event type for a status change
+   */
+  private static getTimelineEventTypeForStatus(status: ApplicationStatus): TimelineEventType {
+    switch (status) {
+      case ApplicationStatus.APPROVED:
+        return TimelineEventType.APPLICATION_APPROVED;
+      case ApplicationStatus.REJECTED:
+        return TimelineEventType.APPLICATION_REJECTED;
+      case ApplicationStatus.WITHDRAWN:
+        return TimelineEventType.APPLICATION_WITHDRAWN;
+      case ApplicationStatus.SUBMITTED:
+      default:
+        return TimelineEventType.STATUS_UPDATE;
+    }
+  }
 
-class LegacyApplicationService {
-  static async getApplications(filters: ApplicationFilters, userId?: string, userType?: string) {
-    // Convert legacy filters to new format
-    const newFilters: ApplicationSearchFilters = {};
-    const newOptions: ApplicationSearchOptions = {};
+  /**
+   * Format a status string for display
+   */
+  private static formatStatusName(status: string): string {
+    const statusMap: Record<string, string> = {
+      submitted: 'Submitted',
+      approved: 'Approved',
+      rejected: 'Rejected',
+      withdrawn: 'Withdrawn',
+    };
 
-    if (filters.status) {
-      newFilters.status = filters.status as ApplicationStatus;
-    }
-    if (filters.petId) {
-      newFilters.pet_id = filters.petId;
-    }
-    if (filters.userId) {
-      newFilters.user_id = filters.userId;
-    }
-    if (filters.rescueId) {
-      newFilters.rescue_id = filters.rescueId;
-    }
-    if (filters.startDate) {
-      newFilters.created_from = filters.startDate;
-    }
-    if (filters.endDate) {
-      newFilters.created_to = filters.endDate;
-    }
-
-    if (filters.page) {
-      newOptions.page = filters.page;
-    }
-    if (filters.limit) {
-      newOptions.limit = filters.limit;
-    }
-    if (filters.sortBy) {
-      newOptions.sortBy = filters.sortBy;
-    }
-    if (filters.sortOrder) {
-      newOptions.sortOrder = filters.sortOrder;
-    }
-
-    const result = await ApplicationService.searchApplications(
-      newFilters,
-      newOptions,
-      userId,
-      userType as UserType
+    return (
+      statusMap[status] ||
+      status
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
     );
-
-    return {
-      applications: result.applications,
-      pagination: result.pagination,
-    };
-  }
-
-  static async getApplicationById(applicationId: string) {
-    return ApplicationService.getApplicationById(applicationId);
-  }
-
-  static async createApplication(applicationData: CreateApplicationRequest, userId?: string) {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    return ApplicationService.createApplication(applicationData, userId);
-  }
-
-  static async updateApplicationStatus(applicationId: string, status: string, userId?: string) {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    const statusUpdate: ApplicationStatusUpdateRequest = {
-      status: status as ApplicationStatus,
-      actioned_by: userId,
-    };
-    return ApplicationService.updateApplicationStatus(applicationId, statusUpdate, userId);
-  }
-
-  static async withdrawApplication(applicationId: string, userId?: string) {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-    await ApplicationService.withdrawApplication(applicationId, userId);
-    return { message: 'Application withdrawn successfully' };
-  }
-
-  static async getApplicationHistory(applicationId: string) {
-    // This would need to be implemented with a proper audit/history system
-    return [];
-  }
-
-  static async getApplicationStatistics(rescueId?: string) {
-    return ApplicationService.getApplicationStatistics(rescueId);
-  }
-
-  static async scheduleVisit(
-    applicationId: string,
-    visitData: Record<string, unknown>,
-    userId?: string
-  ) {
-    throw new Error('Visit scheduling not implemented in this version');
   }
 }
 
-export default LegacyApplicationService;
+export default ApplicationService;

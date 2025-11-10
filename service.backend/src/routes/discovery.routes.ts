@@ -409,6 +409,52 @@ router.post(
   discoveryController.loadMorePets
 );
 
+/**
+ * @swagger
+ * /api/v1/discovery/queue:
+ *   post:
+ *     tags: [Discovery Service]
+ *     summary: Add pet to discovery queue
+ *     description: Add a pet to the user's discovery queue for swiping
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: User ID
+ *               preferences:
+ *                 type: object
+ *                 description: User preferences for discovery
+ *     responses:
+ *       200:
+ *         description: Successfully added to queue
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Added to discovery queue
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.post('/queue', discoveryController.addToQueue);
+
 // Swipe action routes
 router.post(
   '/swipe/action',

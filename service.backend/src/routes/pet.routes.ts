@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PetController } from '../controllers/pet.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, authenticateOptionalToken } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 
 const router = Router();
@@ -199,7 +199,12 @@ const petController = new PetController();
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/', PetController.validateSearchPets, petController.searchPets);
+router.get(
+  '/',
+  authenticateOptionalToken,
+  PetController.validateSearchPets,
+  petController.searchPets
+);
 
 /**
  * @swagger
@@ -836,6 +841,82 @@ router.get('/statistics', petController.getPetStatistics);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
+
+/**
+ * @swagger
+ * /api/v1/pets/rescue/my:
+ *   get:
+ *     tags: [Pet Management]
+ *     summary: Get pets for the authenticated user's rescue
+ *     description: Retrieve all pets belonging to the authenticated user's rescue organization
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Number of pets per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [available, pending, adopted, on_hold]
+ *         description: Filter pets by status
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search pets by name, breed, or description
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: created_at
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [ASC, DESC]
+ *           default: DESC
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: My rescue pets retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Pet'
+ *                 meta:
+ *                   $ref: '#/components/schemas/PaginationMeta'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: User not associated with a rescue
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get('/rescue/my', authenticateToken, petController.getMyRescuePets);
+
 router.get('/rescue/:rescueId', petController.getPetsByRescue);
 
 /**
@@ -1243,7 +1324,7 @@ router.get('/:petId/similar', PetController.validatePetId, petController.getSimi
 router.post(
   '/',
   authenticateToken,
-  requirePermission('pets:create'),
+  requirePermission('pets.create'),
   PetController.validateCreatePet,
   petController.createPet
 );
@@ -1251,7 +1332,7 @@ router.post(
 router.put(
   '/:petId',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validateUpdatePet,
   petController.updatePet
 );
@@ -1259,7 +1340,7 @@ router.put(
 router.patch(
   '/:petId',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validateUpdatePet,
   petController.updatePet
 );
@@ -1267,7 +1348,7 @@ router.patch(
 router.delete(
   '/:petId',
   authenticateToken,
-  requirePermission('pets:delete'),
+  requirePermission('pets.delete'),
   PetController.validatePetId,
   petController.deletePet
 );
@@ -1275,7 +1356,7 @@ router.delete(
 router.post(
   '/:petId/images',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validatePetId,
   petController.updatePetImages
 );
@@ -1283,7 +1364,7 @@ router.post(
 router.delete(
   '/:petId/images',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validatePetId,
   petController.removePetImage
 );
@@ -1291,7 +1372,7 @@ router.delete(
 router.patch(
   '/:petId/status',
   authenticateToken,
-  requirePermission('pets:update'),
+  requirePermission('pets.update'),
   PetController.validatePetId,
   petController.updatePetStatus
 );

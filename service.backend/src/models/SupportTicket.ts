@@ -5,7 +5,7 @@ import { JsonObject } from '../types/common';
 export enum TicketStatus {
   OPEN = 'open',
   IN_PROGRESS = 'in_progress',
-  WAITING_FOR_CUSTOMER = 'waiting_for_customer',
+  WAITING_FOR_USER = 'waiting_for_user',
   RESOLVED = 'resolved',
   CLOSED = 'closed',
   ESCALATED = 'escalated',
@@ -32,26 +32,11 @@ export enum TicketCategory {
   OTHER = 'other',
 }
 
-interface TicketResponse {
-  responseId: string;
-  responderId: string;
-  responderType: 'staff' | 'customer';
-  content: string;
-  attachments?: Array<{
-    filename: string;
-    url: string;
-    fileSize: number;
-    mimeType: string;
-  }>;
-  isInternal: boolean;
-  createdAt: Date;
-}
-
 interface SupportTicketAttributes {
   ticketId: string;
-  customerId?: string;
-  customerEmail: string;
-  customerName?: string;
+  userId?: string;
+  userEmail: string;
+  userName?: string;
   assignedTo?: string;
   status: TicketStatus;
   priority: TicketPriority;
@@ -59,7 +44,6 @@ interface SupportTicketAttributes {
   subject: string;
   description: string;
   tags?: string[];
-  responses: TicketResponse[];
   attachments?: Array<{
     filename: string;
     url: string;
@@ -93,9 +77,9 @@ class SupportTicket
   implements SupportTicketAttributes
 {
   public ticketId!: string;
-  public customerId?: string;
-  public customerEmail!: string;
-  public customerName?: string;
+  public userId?: string;
+  public userEmail!: string;
+  public userName?: string;
   public assignedTo?: string;
   public status!: TicketStatus;
   public priority!: TicketPriority;
@@ -103,7 +87,6 @@ class SupportTicket
   public subject!: string;
   public description!: string;
   public tags?: string[];
-  public responses!: TicketResponse[];
   public attachments?: Array<{
     filename: string;
     url: string;
@@ -128,12 +111,16 @@ class SupportTicket
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
+  // Associations (defined in models/index.ts)
+  public responses?: Array<import('./SupportTicketResponse').default>;
+  public Responses?: Array<import('./SupportTicketResponse').default>;
+
   // Instance methods
   public isOpen(): boolean {
     return [
       TicketStatus.OPEN,
       TicketStatus.IN_PROGRESS,
-      TicketStatus.WAITING_FOR_CUSTOMER,
+      TicketStatus.WAITING_FOR_USER,
     ].includes(this.status);
   }
 
@@ -145,39 +132,8 @@ class SupportTicket
     return this.dueDate ? new Date() > this.dueDate && this.isOpen() : false;
   }
 
-  public getResponseCount(): number {
-    return this.responses ? this.responses.length : 0;
-  }
-
-  public getCustomerResponseCount(): number {
-    return this.responses ? this.responses.filter(r => r.responderType === 'customer').length : 0;
-  }
-
-  public getStaffResponseCount(): number {
-    return this.responses ? this.responses.filter(r => r.responderType === 'staff').length : 0;
-  }
-
-  public addResponse(response: Omit<TicketResponse, 'responseId' | 'createdAt'>): void {
-    if (!this.responses) {
-      this.responses = [];
-    }
-
-    const newResponse: TicketResponse = {
-      ...response,
-      responseId: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date(),
-    };
-
-    this.responses.push(newResponse);
-    this.lastResponseAt = new Date();
-
-    if (!this.firstResponseAt && response.responderType === 'staff') {
-      this.firstResponseAt = new Date();
-    }
-  }
-
   public canBeResolved(): boolean {
-    return this.isOpen() && this.status !== TicketStatus.WAITING_FOR_CUSTOMER;
+    return this.isOpen() && this.status !== TicketStatus.WAITING_FOR_USER;
   }
 
   public getAge(): number {
@@ -192,30 +148,35 @@ SupportTicket.init(
     ticketId: {
       type: DataTypes.STRING,
       primaryKey: true,
+      field: 'ticket_id',
       defaultValue: () => `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     },
-    customerId: {
+    userId: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'user_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
     },
-    customerEmail: {
+    userEmail: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'user_email',
       validate: {
         isEmail: true,
       },
     },
-    customerName: {
+    userName: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'user_name',
     },
     assignedTo: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'assigned_to',
       references: {
         model: 'users',
         key: 'user_id',
@@ -256,11 +217,6 @@ SupportTicket.init(
       allowNull: false,
       defaultValue: [],
     },
-    responses: {
-      type: DataTypes.JSONB,
-      allowNull: false,
-      defaultValue: [],
-    },
     attachments: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -274,26 +230,32 @@ SupportTicket.init(
     firstResponseAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'first_response_at',
     },
     lastResponseAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'last_response_at',
     },
     resolvedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'resolved_at',
     },
     closedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'closed_at',
     },
     escalatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'escalated_at',
     },
     escalatedTo: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'escalated_to',
       references: {
         model: 'users',
         key: 'user_id',
@@ -302,10 +264,12 @@ SupportTicket.init(
     escalationReason: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'escalation_reason',
     },
     satisfactionRating: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: 'satisfaction_rating',
       validate: {
         min: 1,
         max: 5,
@@ -314,18 +278,22 @@ SupportTicket.init(
     satisfactionFeedback: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'satisfaction_feedback',
     },
     internalNotes: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'internal_notes',
     },
     dueDate: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'due_date',
     },
     estimatedResolutionTime: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: 'estimated_resolution_time',
       validate: {
         min: 1,
       },
@@ -333,6 +301,7 @@ SupportTicket.init(
     actualResolutionTime: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: 'actual_resolution_time',
       validate: {
         min: 1,
       },
@@ -340,11 +309,13 @@ SupportTicket.init(
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: 'created_at',
       defaultValue: DataTypes.NOW,
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: 'updated_at',
       defaultValue: DataTypes.NOW,
     },
   },
@@ -352,17 +323,17 @@ SupportTicket.init(
     sequelize,
     tableName: 'support_tickets',
     timestamps: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
-        fields: ['customerId'],
+        fields: ['user_id'],
       },
       {
-        fields: ['customerEmail'],
+        fields: ['user_email'],
       },
       {
-        fields: ['assignedTo'],
+        fields: ['assigned_to'],
       },
       {
         fields: ['status'],
@@ -374,10 +345,10 @@ SupportTicket.init(
         fields: ['category'],
       },
       {
-        fields: ['createdAt'],
+        fields: ['created_at'],
       },
       {
-        fields: ['dueDate'],
+        fields: ['due_date'],
       },
       {
         fields: ['tags'],

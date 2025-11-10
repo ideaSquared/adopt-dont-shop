@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { UserStatus, UserType } from '../models/User';
+import User, { UserStatus, UserType } from '../models/User';
 import AdminService from '../services/admin.service';
 import { logger, loggerHelpers } from '../utils/logger';
+import { AuditLogService } from '../services/auditLog.service';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -103,7 +104,7 @@ export class AdminController {
 
     try {
       const { userId } = req.params;
-      const { action, reason } = req.body;
+      const { action, reason, status } = req.body;
       const adminId = req.user!.userId;
 
       // Validation
@@ -120,6 +121,17 @@ export class AdminController {
           break;
         case 'unsuspend':
           result = await AdminService.unsuspendUser(userId, adminId);
+          break;
+        case 'verify':
+          result = await AdminService.verifyUser(userId, adminId);
+          break;
+        case 'update_status':
+          if (!status) {
+            return res.status(400).json({
+              error: 'Status is required for update_status action',
+            });
+          }
+          result = await AdminService.updateUserStatus(userId, status, adminId);
           break;
         case 'delete':
           await AdminService.deleteUser(userId, adminId, reason);
@@ -184,12 +196,24 @@ export class AdminController {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 50, action, userId, entity, startDate, endDate } = req.query;
+      const {
+        page = 1,
+        limit = 50,
+        action,
+        userId,
+        entity,
+        level,
+        status,
+        startDate,
+        endDate,
+      } = req.query;
 
       const result = await AdminService.getAuditLogs({
         action: action as string,
         userId: userId as string,
         entity: entity as string,
+        level: level as 'INFO' | 'WARNING' | 'ERROR' | undefined,
+        status: status as 'success' | 'failure' | undefined,
         startDate: startDate ? new Date(startDate as string) : undefined,
         endDate: endDate ? new Date(endDate as string) : undefined,
         page: parseInt(page as string),
@@ -827,6 +851,75 @@ export class AdminController {
       });
       res.status(500).json({
         error: 'Failed to search users',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * Update user profile (admin action)
+   */
+  static async updateUserProfile(req: AuthenticatedRequest, res: Response) {
+    const startTime = Date.now();
+
+    try {
+      const { userId } = req.params;
+      const { firstName, lastName, email, phoneNumber, userType } = req.body;
+      const adminId = req.user!.userId;
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({
+          error: 'User not found',
+        });
+      }
+
+      const oldData = {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        userType: user.userType,
+      };
+
+      // Update user fields
+      if (firstName !== undefined) user.firstName = firstName;
+      if (lastName !== undefined) user.lastName = lastName;
+      if (email !== undefined) user.email = email;
+      if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+      if (userType !== undefined) user.userType = userType;
+
+      await user.save();
+
+      // Log the change
+      await AuditLogService.log({
+        userId: adminId,
+        action: 'UPDATE',
+        entity: 'User',
+        entityId: userId,
+        details: { 
+          old: oldData, 
+          new: { firstName, lastName, email, phoneNumber, userType } 
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || '',
+      });
+
+      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+      res.json({
+        success: true,
+        data: user,
+        message: 'User profile updated successfully',
+      });
+    } catch (error) {
+      logger.error('Error updating user profile:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId: req.params.userId,
+        duration: Date.now() - startTime,
+      });
+      res.status(500).json({
+        error: 'Failed to update user profile',
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }

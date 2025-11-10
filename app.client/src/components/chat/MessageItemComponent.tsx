@@ -1,4 +1,4 @@
-import { Message } from '@/services/chatService';
+import { Message } from '@/services';
 import styled from 'styled-components';
 import { AvatarComponent } from './AvatarComponent';
 import { MessageBubbleComponent } from './MessageBubbleComponent';

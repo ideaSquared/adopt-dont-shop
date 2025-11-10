@@ -1,5 +1,6 @@
 import { NextFunction, Response } from 'express';
 import { UserType } from '../models/User';
+import Permission from '../models/Permission';
 import { AuthenticatedRequest, PERMISSIONS } from '../types';
 import { logger } from '../utils/logger';
 // Import the actual model types instead of defining local interfaces
@@ -50,7 +51,9 @@ export const requirePermission = (requiredPermission: string) => {
 
     // Check if user has the required permission through roles
     const hasPermission = req.user.Roles?.some(role =>
-      role.Permissions?.some(permission => permission.name === requiredPermission)
+      role.Permissions?.some(
+        permission => (permission as any).permissionName === requiredPermission
+      )
     );
 
     if (!hasPermission) {

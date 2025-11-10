@@ -260,12 +260,15 @@ jest.mock('./models/Application', () => ({
     associate: jest.fn(),
   },
   ApplicationStatus: {
-    DRAFT: 'draft',
     SUBMITTED: 'submitted',
-    UNDER_REVIEW: 'under_review',
     APPROVED: 'approved',
     REJECTED: 'rejected',
     WITHDRAWN: 'withdrawn',
+  },
+  ApplicationPriority: {
+    NORMAL: 'normal',
+    HIGH: 'high',
+    URGENT: 'urgent',
   },
 }));
 
@@ -498,9 +501,23 @@ jest.mock('./models/ApplicationQuestion', () => ({
     belongsTo: jest.fn(),
     associate: jest.fn(),
     init: jest.fn(),
-    getCoreQuestions: jest.fn(),
-    getRescueQuestions: jest.fn(),
-    getAllQuestionsForRescue: jest.fn(),
+    getCoreQuestions: jest.fn().mockResolvedValue([]),
+    getRescueQuestions: jest.fn().mockResolvedValue([]),
+    getAllQuestionsForRescue: jest.fn().mockResolvedValue([]),
+  },
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    init: jest.fn(),
+    getCoreQuestions: jest.fn().mockResolvedValue([]),
+    getRescueQuestions: jest.fn().mockResolvedValue([]),
+    getAllQuestionsForRescue: jest.fn().mockResolvedValue([]),
   },
   QuestionCategory: {
     PERSONAL_INFORMATION: 'personal_information',
@@ -526,6 +543,47 @@ jest.mock('./models/ApplicationQuestion', () => ({
   QuestionScope: {
     CORE: 'core',
     RESCUE_SPECIFIC: 'rescue_specific',
+  },
+}));
+
+// Mock ApplicationTimeline model
+jest.mock('./models/ApplicationTimeline', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+  TimelineEventType: {
+    STAGE_CHANGE: 'stage_change',
+    STATUS_UPDATE: 'status_update',
+    NOTE_ADDED: 'note_added',
+    REFERENCE_CONTACTED: 'reference_contacted',
+    REFERENCE_VERIFIED: 'reference_verified',
+    INTERVIEW_SCHEDULED: 'interview_scheduled',
+    INTERVIEW_COMPLETED: 'interview_completed',
+    HOME_VISIT_SCHEDULED: 'home_visit_scheduled',
+    HOME_VISIT_COMPLETED: 'home_visit_completed',
+    HOME_VISIT_RESCHEDULED: 'home_visit_rescheduled',
+    HOME_VISIT_CANCELLED: 'home_visit_cancelled',
+    SCORE_UPDATED: 'score_updated',
+    DOCUMENT_UPLOADED: 'document_uploaded',
+    DECISION_MADE: 'decision_made',
+    APPLICATION_APPROVED: 'application_approved',
+    APPLICATION_REJECTED: 'application_rejected',
+    APPLICATION_WITHDRAWN: 'application_withdrawn',
+    APPLICATION_REOPENED: 'application_reopened',
+    COMMUNICATION_SENT: 'communication_sent',
+    COMMUNICATION_RECEIVED: 'communication_received',
+    SYSTEM_AUTO_PROGRESSION: 'system_auto_progression',
+    MANUAL_OVERRIDE: 'manual_override',
   },
 }));
 
@@ -669,6 +727,31 @@ jest.mock('./models', () => ({
     },
     associate: jest.fn(),
   },
+  Role: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    belongsToMany: jest.fn(),
+    associate: jest.fn(),
+  },
+  UserRole: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    bulkCreate: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
 }));
 
 export const createMockPet = (overrides: Record<string, unknown> = {}) => ({
@@ -678,4 +761,115 @@ export const createMockPet = (overrides: Record<string, unknown> = {}) => ({
   status: 'available',
   rescueId: 'rescue-123',
   ...overrides,
+});
+
+// Mock Report model
+jest.mock('./models/Report', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    findAndCountAll: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+  ReportStatus: {
+    PENDING: 'pending',
+    UNDER_REVIEW: 'under_review',
+    RESOLVED: 'resolved',
+    DISMISSED: 'dismissed',
+    ESCALATED: 'escalated',
+  },
+  ReportSeverity: {
+    LOW: 'low',
+    MEDIUM: 'medium',
+    HIGH: 'high',
+    CRITICAL: 'critical',
+  },
+  ReportCategory: {
+    INAPPROPRIATE_CONTENT: 'inappropriate_content',
+    SPAM: 'spam',
+    HARASSMENT: 'harassment',
+    FALSE_INFORMATION: 'false_information',
+    SCAM: 'scam',
+    ANIMAL_WELFARE: 'animal_welfare',
+    IDENTITY_THEFT: 'identity_theft',
+    OTHER: 'other',
+  },
+  ReportedEntityType: {
+    USER: 'user',
+    RESCUE: 'rescue',
+    PET: 'pet',
+    MESSAGE: 'message',
+    APPLICATION: 'application',
+    CONVERSATION: 'conversation',
+  },
+}));
+
+// Mock ModeratorAction model
+jest.mock('./models/ModeratorAction', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+  ActionType: {
+    WARNING_ISSUED: 'warning_issued',
+    CONTENT_REMOVED: 'content_removed',
+    USER_SUSPENDED: 'user_suspended',
+    USER_BANNED: 'user_banned',
+    ACCOUNT_RESTRICTED: 'account_restricted',
+    CONTENT_FLAGGED: 'content_flagged',
+  },
+  ActionSeverity: {
+    LOW: 'low',
+    MEDIUM: 'medium',
+    HIGH: 'high',
+    CRITICAL: 'critical',
+  },
+}));
+
+// Mock Invitation model
+jest.mock('./models/Invitation', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    findAndCountAll: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+  },
+}));
+
+// Update sequelize.transaction mock to support callback pattern
+const originalSequelizeMock = jest.requireMock('./sequelize');
+originalSequelizeMock.default.transaction = jest.fn(async (callback) => {
+  if (typeof callback === 'function') {
+    const t = { commit: jest.fn(), rollback: jest.fn() };
+    return await callback(t);
+  }
+  return Promise.resolve({
+    commit: jest.fn(),
+    rollback: jest.fn(),
+  });
 });

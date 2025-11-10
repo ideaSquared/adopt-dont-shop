@@ -1,3 +1,8 @@
+// Initialize Sentry FIRST - must be before any other imports
+import { initializeSentry, Sentry } from './config/sentry';
+initializeSentry();
+
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Router } from 'express';
 import helmet from 'helmet';
@@ -6,6 +11,7 @@ import morgan from 'morgan';
 import { Server as SocketIOServer } from 'socket.io';
 import { config } from './config';
 import { errorHandler } from './middleware/error-handler';
+import { csrfProtection, csrfErrorHandler, getCsrfToken } from './middleware/csrf';
 import { apiLimiter } from './middleware/rate-limiter';
 import sequelize from './sequelize';
 import { initializeMessageBroker } from './services/messageBroker.service';
@@ -18,47 +24,33 @@ import './models';
 
 // Import routes
 import adminRoutes from './routes/admin.routes';
+import analyticsRoutes from './routes/analytics.routes';
 import applicationRoutes from './routes/application.routes';
 import authRoutes from './routes/auth.routes';
 import chatRoutes from './routes/chat.routes';
+import dashboardRoutes from './routes/dashboard.routes';
 import discoveryRoutes from './routes/discovery.routes';
 import emailRoutes from './routes/email.routes';
 import monitoringRoutes from './routes/monitoring.routes';
 import notificationRoutes from './routes/notification.routes';
 import petRoutes from './routes/pet.routes';
 import rescueRoutes from './routes/rescue.routes';
+import invitationRoutes from './routes/invitation.routes';
 import searchRoutes from './routes/search.routes';
+import staffRoutes from './routes/staff.routes';
+import supportTicketRoutes from './routes/supportTicket.routes';
+import userSupportRoutes from './routes/userSupport.routes';
+import moderationRoutes from './routes/moderation.routes';
 import userRoutes from './routes/user.routes';
 
 // Import additional routes for PRD compliance
 import path from 'path';
 import { setupSwagger } from './config/swagger';
 import ConfigurationService from './services/configuration.service';
-import FeatureFlagService from './services/featureFlag.service';
 import { HealthCheckService } from './services/health-check.service';
 
-// Create feature flags and config routes
-const featureRoutes = Router();
+// Create config routes
 const configRoutes = Router();
-
-// Feature flags public endpoints
-featureRoutes.get('/', async (req, res) => {
-  try {
-    const flags = await FeatureFlagService.getPublicFlags();
-    res.json(flags);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get feature flags' });
-  }
-});
-
-featureRoutes.get('/:feature', async (req, res) => {
-  try {
-    const flag = await FeatureFlagService.getFlag(req.params.feature);
-    res.json({ enabled: flag?.enabled || false });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get feature flag' });
-  }
-});
 
 // Public configuration endpoints
 configRoutes.get('/', async (req, res) => {
@@ -86,21 +78,58 @@ const io = new SocketIOServer(server, {
 
 // Apply middleware
 app.use(cors(config.cors));
+
+// Sentry instrumentation - automatically instruments Express
+// Note: In Sentry v8+, instrumentation is automatic with setupExpressErrorHandler
+
+// Enhanced Security Headers with Helmet
 app.use(
   helmet({
+    // Content Security Policy - prevents XSS attacks
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Required for inline styles in some frameworks
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: ["'self'", 'ws:', 'wss:'], // Allow WebSocket connections
+        fontSrc: ["'self'", 'https:', 'data:'],
+        objectSrc: ["'none'"], // Disallow plugins
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"], // Prevent clickjacking via iframes
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"], // X-Frame-Options equivalent in CSP
+        upgradeInsecureRequests: [], // Upgrade HTTP to HTTPS
       },
     },
+    // HTTP Strict Transport Security - force HTTPS
     hsts: {
-      maxAge: 31536000,
+      maxAge: 31536000, // 1 year
       includeSubDomains: true,
       preload: true,
+    },
+    // X-Frame-Options - prevent clickjacking
+    frameguard: {
+      action: 'deny',
+    },
+    // X-Content-Type-Options - prevent MIME sniffing
+    noSniff: true,
+    // X-XSS-Protection - legacy XSS protection (deprecated but still useful for old browsers)
+    xssFilter: true,
+    // Referrer-Policy - control referrer information
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin',
+    },
+    // X-DNS-Prefetch-Control - control DNS prefetching
+    dnsPrefetchControl: {
+      allow: false,
+    },
+    // X-Download-Options - prevent IE from executing downloads in site's context
+    ieNoOpen: true,
+    // X-Permitted-Cross-Domain-Policies - control Adobe Flash/PDF cross-domain requests
+    permittedCrossDomainPolicies: {
+      permittedPolicies: 'none',
     },
   })
 );
@@ -108,8 +137,28 @@ app.use(express.json({ limit: '10mb' }));
 app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Cookie parser for CSRF tokens
+app.use(cookieParser());
+
 // Apply rate limiting
 app.use('/api', apiLimiter);
+
+// CSRF Protection for state-changing requests
+// Provide CSRF token endpoint (must be before csrfProtection middleware)
+app.get('/api/v1/csrf-token', getCsrfToken);
+
+// Apply CSRF protection to all API routes except token endpoint and health checks
+app.use(
+  '/api',
+  (req, res, next) => {
+    // Skip CSRF for health checks and read-only endpoints
+    const skipPaths = ['/api/v1/csrf-token', '/health', '/api/v1/health'];
+    if (skipPaths.some(path => req.path.startsWith(path)) || req.method === 'GET') {
+      return next();
+    }
+    return csrfProtection(req, res, next);
+  }
+);
 
 // Serve uploaded files in development
 if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
@@ -157,18 +206,24 @@ app.use('/monitoring', monitoringRoutes);
 
 // API routes
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/applications', applicationRoutes);
 app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/conversations', chatRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/discovery', discoveryRoutes);
 app.use('/api/v1/email', emailRoutes);
 app.use('/api/v1/pets', petRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/rescues', rescueRoutes);
+app.use('/api/v1/invitations', invitationRoutes);
 app.use('/api/v1/search', searchRoutes);
+app.use('/api/v1/staff', staffRoutes);
+app.use('/api/v1/support', userSupportRoutes); // User-facing support tickets
+app.use('/api/v1/admin/support', supportTicketRoutes); // Admin support ticket management
+app.use('/api/v1/admin/moderation', moderationRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1/features', featureRoutes);
 app.use('/api/v1/config', configRoutes);
 
 // Simple health check (no dependencies)
@@ -287,6 +342,9 @@ app.get('/health/ready', async (req, res) => {
 });
 
 // Apply error handler middleware
+// Order: CSRF errors -> Sentry errors -> general errors
+app.use(csrfErrorHandler);
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 // Start server
@@ -325,7 +383,14 @@ const startServer = async () => {
     // Ensure PostGIS extension is ready before syncing models
     if (config.nodeEnv === 'development') {
       try {
-        logger.info('🔧 Development mode detected - preparing fresh database...');
+        const forceSeed = process.env.FORCE_SEED === 'true';
+
+        if (forceSeed) {
+          logger.info('🔧 Development mode detected - preparing FRESH database (FORCE_SEED=true)...');
+        } else {
+          logger.info('🔧 Development mode detected - preparing database (fast mode)...');
+        }
+
         // Wait for PostGIS to be fully initialized
         logger.info('Waiting for PostGIS extension to be fully ready...');
         await new Promise(resolve => setTimeout(resolve, 3000));
@@ -334,15 +399,36 @@ const startServer = async () => {
         await sequelize.query('SELECT PostGIS_Version();');
         logger.info('PostGIS extension is ready.');
 
-        // Sync database models (force recreate in development)
-        await sequelize.sync({ force: true });
-        logger.info('Database models synchronized (tables recreated).');
+        if (forceSeed) {
+          // Force recreate database (drops all tables)
+          await sequelize.sync({ force: true });
+          logger.info('Database models synchronized (tables recreated).');
 
-        // Run seeders after models are synced
-        logger.info('Running database seeders...');
-        const { runAllSeeders } = await import('./seeders');
-        await runAllSeeders();
-        logger.info('Database seeding completed.');
+          // Always run seeders after force sync
+          logger.info('Running database seeders...');
+          const { runAllSeeders } = await import('./seeders');
+          await runAllSeeders();
+          logger.info('Database seeding completed.');
+        } else {
+          // Use alter mode to preserve data while updating schema
+          await sequelize.sync({ alter: true });
+          logger.info('Database models synchronized (schema updated, data preserved).');
+
+          // Check if database is empty and needs seeding
+          const UserModule = await import('./models/User');
+          const User = UserModule.default;
+          const userCount = await User.count();
+
+          if (userCount === 0) {
+            logger.info('Empty database detected - running seeders...');
+            const { runAllSeeders } = await import('./seeders');
+            await runAllSeeders();
+            logger.info('Database seeding completed.');
+          } else {
+            logger.info(`Database already populated (${userCount} users found) - skipping seeders.`);
+            logger.info('💡 Tip: Use "npm run dev:fresh" to reset database or "npm run seed:dev" to re-seed.');
+          }
+        }
       } catch (error) {
         logger.error('Failed to sync database models:', error);
         throw error;
