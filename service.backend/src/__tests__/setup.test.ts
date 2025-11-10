@@ -1,3 +1,13 @@
+// Mock env config FIRST before any imports
+jest.mock('../config/env', () => ({
+  env: {
+    JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
+    JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',
+    SESSION_SECRET: 'test-session-secret-min-32-characters-long',
+    CSRF_SECRET: 'test-csrf-secret-min-32-characters-long-123',
+  },
+}));
+
 describe('Setup Test', () => {
   it('should run a basic test', () => {
     expect(1 + 1).toBe(2);

@@ -15,13 +15,13 @@ module.exports = {
   rules: {
     // TypeScript specific rules
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-explicit-any': 'error', // Prevent any types - use unknown or proper types
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-empty-object-type': 'off',
 
     // General rules
-    'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+    'no-console': 'error', // Prevent all console usage - use logger instead
     'no-debugger': 'warn',
     'prefer-const': 'error',
     'no-var': 'error',
@@ -56,6 +56,13 @@ module.exports = {
         'jest/no-disabled-tests': 'warn',
         'jest/no-focused-tests': 'error',
         'jest/prefer-to-have-length': 'warn',
+      },
+    },
+    // Seeders and development scripts can use console
+    {
+      files: ['src/seeders/**/*.ts', 'src/services/email-providers/console-provider.ts'],
+      rules: {
+        'no-console': 'off', // Console is intentional for CLI feedback in seeders
       },
     },
   ],
