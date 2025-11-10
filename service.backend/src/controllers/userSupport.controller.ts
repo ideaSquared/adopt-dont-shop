@@ -1,9 +1,15 @@
 import { Response } from 'express';
 import SupportTicketService from '../services/supportTicket.service';
-import { TicketCategory, TicketPriority } from '../models/SupportTicket';
+import { TicketCategory, TicketPriority, TicketStatus } from '../models/SupportTicket';
 import { logger } from '../utils/logger';
 import { AuthenticatedRequest } from '../types/api';
 import User from '../models/User';
+
+// Type for pagination options
+type PaginationOptions = {
+  page?: number;
+  limit?: number;
+};
 
 export class UserSupportController {
   /**
@@ -71,16 +77,25 @@ export class UserSupportController {
       const userId = req.user!.userId;
       const { status, page, limit } = req.query;
 
-      const filters: any = { userId };
+      // Build validated filters - convert string status to TicketStatus enum if needed
+      const ticketFilters: {
+        userId: string;
+        status?: TicketStatus | TicketStatus[];
+      } = { userId };
+
       if (status) {
-        filters.status = typeof status === 'string' ? status.split(',') : status;
+        const statusArray = typeof status === 'string' ? status.split(',') : (status as string[]);
+        // Type assertion safe: we're passing validated status strings to the service
+        ticketFilters.status = statusArray.length === 1
+          ? statusArray[0] as TicketStatus
+          : statusArray as TicketStatus[];
       }
 
-      const pagination: any = {};
+      const pagination: PaginationOptions = {};
       if (page) pagination.page = parseInt(page as string, 10);
       if (limit) pagination.limit = parseInt(limit as string, 10);
 
-      const result = await SupportTicketService.getUserTickets(userId, filters, pagination);
+      const result = await SupportTicketService.getUserTickets(userId, ticketFilters, pagination);
 
       res.json({
         success: true,
@@ -119,9 +134,9 @@ export class UserSupportController {
         success: true,
         data: ticket,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error in getMyTicket:', error);
-      if (error.message === 'Ticket not found') {
+      if (error instanceof Error && error.message === 'Ticket not found') {
         res.status(404).json({
           success: false,
           error: 'Ticket not found',
@@ -181,9 +196,9 @@ export class UserSupportController {
         success: true,
         data: updatedTicket,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error in replyToMyTicket:', error);
-      if (error.message === 'Ticket not found') {
+      if (error instanceof Error && error.message === 'Ticket not found') {
         res.status(404).json({
           success: false,
           error: 'Ticket not found',
@@ -216,15 +231,16 @@ export class UserSupportController {
       }
 
       // Filter out internal messages (staff notes)
-      const publicResponses = ticket.responses?.filter((r) => !r.isInternal) || [];
+      const allResponses = ticket.Responses || ticket.responses || [];
+      const publicResponses = allResponses.filter((r) => !r.isInternal);
 
       res.json({
         success: true,
         data: publicResponses,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error in getMyTicketMessages:', error);
-      if (error.message === 'Ticket not found') {
+      if (error instanceof Error && error.message === 'Ticket not found') {
         res.status(404).json({
           success: false,
           error: 'Ticket not found',

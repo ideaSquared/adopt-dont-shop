@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import ApplicationTimelineService from '../services/applicationTimeline.service';
 import { TimelineEventType } from '../models/ApplicationTimeline';
+import { logger } from '../utils/logger';
 
 // Extend Request type to include user
 interface AuthenticatedRequest extends Request {
@@ -42,7 +43,7 @@ export class ApplicationTimelineController {
         },
       });
     } catch (error) {
-      console.error('Error fetching application timeline:', error);
+      logger.error('Error fetching application timeline:', { error });
       res.status(500).json({
         success: false,
         error: 'Failed to fetch application timeline',
@@ -65,7 +66,7 @@ export class ApplicationTimelineController {
         data: stats,
       });
     } catch (error) {
-      console.error('Error fetching timeline stats:', error);
+      logger.error('Error fetching timeline stats:', { error });
       res.status(500).json({
         success: false,
         error: 'Failed to fetch timeline statistics',
@@ -108,7 +109,7 @@ export class ApplicationTimelineController {
         data: event,
       });
     } catch (error) {
-      console.error('Error creating timeline event:', error);
+      logger.error('Error creating timeline event:', { error });
       res.status(500).json({
         success: false,
         error: 'Failed to create timeline event',
@@ -146,7 +147,7 @@ export class ApplicationTimelineController {
         data: event,
       });
     } catch (error) {
-      console.error('Error adding note to timeline:', error);
+      logger.error('Error adding note to timeline:', { error });
       res.status(500).json({
         success: false,
         error: 'Failed to add note to timeline',
@@ -177,7 +178,7 @@ export class ApplicationTimelineController {
         summaries: stats,
       });
     } catch (error) {
-      console.error('Error fetching bulk timeline stats:', error);
+      logger.error('Error fetching bulk timeline stats:', { error });
       res.status(500).json({
         success: false,
         error: 'Failed to fetch bulk timeline statistics',

@@ -378,7 +378,6 @@ export class PetController {
         data: pet,
       });
     } catch (error) {
-      console.error('Create pet failed:', error);
       logger.error('Create pet failed:', error);
       res.status(500).json({
         success: false,

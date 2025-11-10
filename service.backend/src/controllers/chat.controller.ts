@@ -10,29 +10,69 @@ interface AuthenticatedRequest extends Request {
   user?: User;
 }
 
+// Type for participant with User association
+type ParticipantWithUser = ChatParticipant & {
+  User?: User | SerializedUser;
+};
+
+// Type for serialized user data (from toJSON)
+type SerializedUser = {
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+  profileImageUrl?: string;
+  getFullName?: () => string;
+};
+
 // Interface for messages with populated Sender
-interface MessageWithSender extends ChatMessage {
-  Sender?: User | { firstName?: string; lastName?: string; first_name?: string; last_name?: string };
+interface MessageWithSender {
+  message_id: string;
+  chat_id: string;
+  sender_id: string;
+  content: string;
+  content_format: string;
+  type: string;
+  attachments: unknown[];
+  created_at: string;
+  updated_at: string;
+  Sender?: User | SerializedUser;
   sender_name?: string;
+  toJSON?: () => SerializedMessage;
 }
+
+// Type for serialized message object
+type SerializedMessage = {
+  message_id: string;
+  chat_id: string;
+  sender_id: string;
+  content: string;
+  content_format: string;
+  type: string;
+  attachments: unknown[];
+  created_at: string;
+  updated_at: string;
+  Sender?: User | SerializedUser;
+};
 
 /**
  * Safely extract full name from a User object or serialized user data
  * Handles both Sequelize model instances and plain objects (from toJSON)
  */
-const getUserFullName = (user: User | { firstName?: string; lastName?: string; first_name?: string; last_name?: string; getFullName?: () => string } | undefined | null): string => {
+const getUserFullName = (user: User | SerializedUser | undefined | null): string => {
   if (!user) {
     return 'Unknown User';
   }
 
   // If it's a User model instance with getFullName method, use it
-  if (typeof (user as any).getFullName === 'function') {
+  if (typeof (user as User).getFullName === 'function') {
     return (user as User).getFullName() || 'Unknown User';
   }
 
   // Otherwise extract from properties (handles both camelCase and snake_case)
-  const firstName = (user as any).firstName || (user as any).first_name || '';
-  const lastName = (user as any).lastName || (user as any).last_name || '';
+  const userData = user as SerializedUser;
+  const firstName = userData.firstName || userData.first_name || '';
+  const lastName = userData.lastName || userData.last_name || '';
   const fullName = `${firstName} ${lastName}`.trim();
 
   return fullName || 'Unknown User';
@@ -150,12 +190,12 @@ const chatObj = chat.toJSON();
         chatId: chatObj.chat_id,
         hasParticipants: !!chatObj.Participants,
         participantsCount: chatObj.Participants?.length || 0,
-        participantIds: chatObj.Participants?.map((p: any) => p.participant_id) || [],
+        participantIds: (chatObj.Participants as ParticipantWithUser[] | undefined)?.map((p) => p.participant_id) || [],
       });
 
       // Transform participants to match frontend Participant interface
       const participants =
-        chatObj.Participants?.map((p: any) => {
+        (chatObj.Participants as ParticipantWithUser[] | undefined)?.map((p) => {
           if (!p.User) {
             logger.warn('Participant missing User association', {
               chatId: chatObj.chat_id,
@@ -167,7 +207,7 @@ const chatObj = chat.toJSON();
             id: p.participant_id,
             name: getUserFullName(p.User),
             type: p.role === 'admin' ? 'admin' : 'user',
-            avatarUrl: p.User?.profileImageUrl,
+            avatarUrl: p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User ? p.User.profileImageUrl : undefined,
             isOnline: false,
           };
         }) || [];
@@ -273,11 +313,11 @@ const chatObj = chat.toJSON();
 
         // Transform participants to match frontend Participant interface
         const participants =
-          chatObj.Participants?.map((p: any) => ({
+          (chatObj.Participants as ParticipantWithUser[] | undefined)?.map((p) => ({
             id: p.participant_id,
             name: getUserFullName(p.User),
             type: p.role === 'admin' ? 'admin' : 'user',
-            avatarUrl: p.User?.profileImageUrl,
+            avatarUrl: p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User ? p.User.profileImageUrl : undefined,
             isOnline: false, // TODO: Implement online status
           })) || [];
 
@@ -461,7 +501,9 @@ const chatObj = chat.toJSON();
 
       // Transform messages to match frontend Message interface
       const transformedMessages = result.messages.map(msg => {
-        const msgObj: any = typeof (msg as any).toJSON === 'function' ? (msg as any).toJSON() : msg;
+        const msgObj: SerializedMessage = typeof (msg as MessageWithSender).toJSON === 'function'
+          ? (msg as MessageWithSender).toJSON!()
+          : (msg as unknown as SerializedMessage);
 
         // Get sender name using the helper function
         const senderName = getUserFullName(msgObj.Sender);
