@@ -70,24 +70,20 @@ jest.mock('./sequelize', () => ({
 }));
 
 // Mock loggerHelpers to prevent undefined errors in tests
+const loggerMock = {
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+  http: jest.fn(),
+  end: jest.fn(),
+  log: jest.fn(),
+};
+
 jest.mock('./utils/logger', () => ({
   __esModule: true,
-  default: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-    http: jest.fn(),
-    end: jest.fn(),
-  },
-  logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-    http: jest.fn(),
-    end: jest.fn(),
-  },
+  default: loggerMock,
+  logger: loggerMock,
   loggerHelpers: {
     logBusiness: jest.fn(),
     logAuth: jest.fn(),
@@ -858,6 +854,70 @@ jest.mock('./models/Invitation', () => ({
     hasMany: jest.fn(),
     belongsTo: jest.fn(),
     associate: jest.fn(),
+  },
+}));
+
+// Mock EmailQueue model
+jest.mock('./models/EmailQueue', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    findAndCountAll: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    init: jest.fn(),
+  },
+  EmailQueue: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    init: jest.fn(),
+  },
+}));
+
+// Mock EmailTemplate model
+jest.mock('./models/EmailTemplate', () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    findAndCountAll: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    init: jest.fn(),
+  },
+  EmailTemplate: {
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
+    count: jest.fn(),
+    hasMany: jest.fn(),
+    belongsTo: jest.fn(),
+    associate: jest.fn(),
+    init: jest.fn(),
   },
 }));
 
