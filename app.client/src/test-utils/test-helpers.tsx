@@ -2,6 +2,7 @@ import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { ThemeProvider } from '@adopt-dont-shop/components';
 import {
   PermissionsProvider,
   AnalyticsProvider,
@@ -45,15 +46,17 @@ export const renderWithProviders = (
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <PermissionsProvider>
-          <AnalyticsProvider>
-            <NotificationsProvider>
-              <ChatProvider>
-                <FavoritesProvider>{children}</FavoritesProvider>
-              </ChatProvider>
-            </NotificationsProvider>
-          </AnalyticsProvider>
-        </PermissionsProvider>
+        <ThemeProvider>
+          <PermissionsProvider>
+            <AnalyticsProvider>
+              <NotificationsProvider>
+                <ChatProvider>
+                  <FavoritesProvider>{children}</FavoritesProvider>
+                </ChatProvider>
+              </NotificationsProvider>
+            </AnalyticsProvider>
+          </PermissionsProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </BrowserRouter>
   );

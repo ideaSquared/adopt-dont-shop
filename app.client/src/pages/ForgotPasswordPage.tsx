@@ -237,7 +237,7 @@ export const ForgotPasswordPage: React.FC = () => {
             disabled={isLoading}
             style={{ width: '100%' }}
           >
-            {isLoading ? 'Sending Instructions...' : 'Send Reset Instructions'}
+            {isLoading ? 'Sending...' : 'Send Reset Link'}
           </Button>
         </Form>
 

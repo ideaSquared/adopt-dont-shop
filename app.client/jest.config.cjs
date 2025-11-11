@@ -16,8 +16,9 @@ module.exports = {
     // Map workspace packages to their source directories
     '^@adopt-dont-shop/lib-(.*)$': '<rootDir>/lib.$1/src',
     '^@adopt-dont-shop/components$': '<rootDir>/lib.components/src',
-    // Mock specific contexts before general @/ pattern
+    // Mock specific contexts and hooks before general @/ pattern
     '^@/contexts/NotificationsContext$': '<rootDir>/app.client/src/__mocks__/contexts/NotificationsContext.tsx',
+    '^@/hooks/useStatsig$': '<rootDir>/app.client/src/__mocks__/hooks/useStatsig.ts',
     '^@/(.*)$': '<rootDir>/app.client/src/$1',
     '^@/components/(.*)$': '<rootDir>/app.client/src/components/$1',
     '^@/hooks/(.*)$': '<rootDir>/app.client/src/hooks/$1',

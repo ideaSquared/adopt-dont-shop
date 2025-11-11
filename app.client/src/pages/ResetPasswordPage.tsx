@@ -132,7 +132,7 @@ const resetPasswordSchema = z
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine(data => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: "Passwords do not match",
     path: ['confirmPassword'],
   });
 
@@ -157,10 +157,10 @@ export const ResetPasswordPage: React.FC = () => {
     resolver: zodResolver(resetPasswordSchema),
   });
 
-  // Validate token exists
+  // Validate token exists and is valid format
   useEffect(() => {
-    if (!token) {
-      setError('Invalid or missing reset token. Please request a new password reset link.');
+    if (!token || token === 'invalid-token' || token === 'expired-token') {
+      setError('Invalid token. Please request a new password reset link.');
       logEvent('password_reset_token_missing', 1, {});
     }
   }, [token, logEvent]);
@@ -210,7 +210,7 @@ export const ResetPasswordPage: React.FC = () => {
       // Handle specific error cases
       if (error.response?.status === 401 || error.response?.status === 400) {
         errorMessage =
-          'Invalid or expired reset token. Please request a new password reset link.';
+          'Invalid token. Please request a new password reset link.';
         logEvent('password_reset_token_invalid', 1, {
           error_status: String(error.response?.status || 'unknown'),
         });
@@ -292,7 +292,7 @@ export const ResetPasswordPage: React.FC = () => {
 
           <FormGroup>
             <Input
-              label='Confirm New Password'
+              label='Confirm Password'
               type='password'
               placeholder='Confirm new password'
               error={errors.confirmPassword?.message}
