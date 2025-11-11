@@ -1,18 +1,23 @@
 import { vi } from 'vitest';
-// Mock sequelize first
-const mockTransaction = {
-  commit: vi.fn().mockResolvedValue(undefined),
-  rollback: vi.fn().mockResolvedValue(undefined),
-};
 
-const mockSequelize = {
-  transaction: vi.fn().mockResolvedValue(mockTransaction),
-};
+// Mock sequelize first - use importOriginal to preserve helper functions
+vi.mock('../../sequelize', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../sequelize')>();
+  const originalSequelize = actual.default;
 
-vi.mock('../../sequelize', () => ({
-  __esModule: true,
-  default: mockSequelize,
-}));
+  const mockTransaction = {
+    commit: vi.fn().mockResolvedValue(undefined),
+    rollback: vi.fn().mockResolvedValue(undefined),
+  };
+
+  // Mock transaction method but keep everything else
+  originalSequelize.transaction = vi.fn().mockResolvedValue(mockTransaction);
+
+  return {
+    ...actual,
+    default: originalSequelize,
+  };
+});
 
 // Mock models
 vi.mock('../../models/Report');
@@ -22,24 +27,21 @@ vi.mock('../../models/Pet');
 vi.mock('../../models/Rescue');
 
 // Mock audit log service
-const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
-    log: mockAuditLogAction,
+    log: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
 // Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
-};
-
 vi.mock('../../utils/logger', () => ({
   __esModule: true,
-  default: mockLogger,
+  default: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
 import Report, { ReportStatus, ReportCategory, ReportSeverity } from '../../models/Report';
@@ -48,12 +50,16 @@ import User from '../../models/User';
 import Pet from '../../models/Pet';
 import Rescue from '../../models/Rescue';
 import moderationService from '../../services/moderation.service';
+import { AuditLogService } from '../../services/auditLog.service';
+import logger from '../../utils/logger';
 
 const MockedReport = Report as vi.Mocked<typeof Report>;
 const MockedModeratorAction = ModeratorAction as vi.Mocked<typeof ModeratorAction>;
 const MockedUser = User as vi.Mocked<typeof User>;
 const MockedPet = Pet as vi.Mocked<typeof Pet>;
 const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
+const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
+const mockLogger = logger as vi.Mocked<typeof logger>;
 
 describe('ModerationService', () => {
   beforeEach(() => {
