@@ -322,13 +322,11 @@ EmailQueue.init(
     ccEmails: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
-      defaultValue: [],
       field: 'cc_emails',
     },
     bccEmails: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
-      defaultValue: [],
       field: 'bcc_emails',
     },
     replyToEmail: {
@@ -369,7 +367,6 @@ EmailQueue.init(
     attachments: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
     },
     type: {
       type: DataTypes.ENUM(...Object.values(EmailType)),
@@ -469,7 +466,6 @@ EmailQueue.init(
     tags: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
-      defaultValue: [],
     },
     createdAt: {
       type: DataTypes.DATE,

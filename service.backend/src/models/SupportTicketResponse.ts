@@ -106,7 +106,6 @@ SupportTicketResponse.init(
     attachments: {
       type: getJsonType(),
       allowNull: true,
-      defaultValue: [],
     },
     isInternal: {
       type: DataTypes.BOOLEAN,

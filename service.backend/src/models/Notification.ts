@@ -173,7 +173,6 @@ Notification.init(
     notification_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'notification_' || left(md5(random()::text), 12)`),
     },
     user_id: {
       type: DataTypes.STRING,

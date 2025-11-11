@@ -212,7 +212,8 @@ Application.init(
     application_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'application_' || left(md5(random()::text), 12)`),
+      // Remove default value for SQLite compatibility
+      // Application IDs will be generated in beforeCreate hook
     },
     user_id: {
       type: DataTypes.STRING,
@@ -314,7 +315,6 @@ Application.init(
     references: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidReferences(
           value: Array<{
@@ -343,7 +343,6 @@ Application.init(
     documents: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidDocuments(
           value: Array<{
@@ -385,7 +384,7 @@ Application.init(
     tags: {
       type: getArrayType(DataTypes.STRING),
       allowNull: true,
-      defaultValue: [],
+      // Remove defaultValue for SQLite compatibility (TEXT type can't have array default)
     },
     notes: {
       type: DataTypes.TEXT,
@@ -485,6 +484,13 @@ Application.init(
       },
     ],
     hooks: {
+      beforeCreate: (application: Application) => {
+        // Generate application ID if not provided
+        if (!application.application_id) {
+          const randomStr = Math.random().toString(36).substring(2, 14);
+          application.application_id = `application_${randomStr}`;
+        }
+      },
       beforeValidate: (application: Application) => {
         // Auto-set submitted_at when status changes to submitted
         if (application.status === ApplicationStatus.SUBMITTED && !application.submitted_at) {

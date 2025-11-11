@@ -193,7 +193,6 @@ Report.init(
     evidence: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
     },
     metadata: {
       type: getJsonType(),

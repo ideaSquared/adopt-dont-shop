@@ -177,7 +177,6 @@ Message.init(
     message_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'message_' || left(md5(random()::text), 12)`),
     },
     chat_id: {
       type: DataTypes.STRING,
@@ -215,7 +214,6 @@ Message.init(
     attachments: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidAttachments(value: MessageAttachment[]) {
           if (!Array.isArray(value)) {
@@ -232,7 +230,6 @@ Message.init(
     reactions: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidReactions(value: MessageReaction[]) {
           if (!Array.isArray(value)) {
@@ -249,7 +246,6 @@ Message.init(
     read_status: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidReadStatus(value: MessageReadStatus[]) {
           if (!Array.isArray(value)) {

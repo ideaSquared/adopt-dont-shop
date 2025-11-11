@@ -211,7 +211,6 @@ ApplicationQuestion.init(
     question_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'question_' || left(md5(random()::text), 12)`),
     },
     rescue_id: {
       type: getUuidType(),

@@ -81,7 +81,6 @@ DeviceToken.init(
     token_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'token_' || left(md5(random()::text), 12)`),
     },
     user_id: {
       type: DataTypes.STRING,

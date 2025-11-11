@@ -346,7 +346,6 @@ Pet.init(
     pet_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'pet_' || left(md5(random()::text), 12)`),
     },
     name: {
       type: DataTypes.STRING(100),
@@ -521,7 +520,6 @@ Pet.init(
     temperament: {
       type: getArrayType(DataTypes.STRING),
       allowNull: true,
-      defaultValue: [],
     },
     medical_notes: {
       type: DataTypes.TEXT,
@@ -564,7 +562,6 @@ Pet.init(
     images: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidImages(value: unknown) {
           if (!Array.isArray(value)) {
@@ -581,7 +578,6 @@ Pet.init(
     videos: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
     },
     location: {
       type: getGeometryType('POINT'),
@@ -634,7 +630,6 @@ Pet.init(
     tags: {
       type: getArrayType(DataTypes.STRING),
       allowNull: true,
-      defaultValue: [],
     },
     created_at: {
       type: DataTypes.DATE,

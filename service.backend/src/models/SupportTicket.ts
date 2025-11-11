@@ -215,12 +215,10 @@ SupportTicket.init(
     tags: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
-      defaultValue: [],
     },
     attachments: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
     },
     metadata: {
       type: getJsonType(),

@@ -63,7 +63,6 @@ Chat.init(
     chat_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'chat_' || left(md5(random()::text), 12)`),
     },
     application_id: {
       type: DataTypes.STRING,

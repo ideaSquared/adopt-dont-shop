@@ -325,7 +325,6 @@ EmailTemplate.init(
     variables: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidVariables(value: TemplateVariable[]) {
           if (!Array.isArray(value)) {
@@ -364,7 +363,6 @@ EmailTemplate.init(
     versions: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
     },
     currentVersion: {
       type: DataTypes.INTEGER,
@@ -393,7 +391,6 @@ EmailTemplate.init(
     tags: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
-      defaultValue: [],
     },
     createdBy: {
       type: DataTypes.STRING,

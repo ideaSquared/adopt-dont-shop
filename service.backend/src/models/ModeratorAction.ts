@@ -227,7 +227,6 @@ ModeratorAction.init(
     evidence: {
       type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
     },
     notificationSent: {
       type: DataTypes.BOOLEAN,

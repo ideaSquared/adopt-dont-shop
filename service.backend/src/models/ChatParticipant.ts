@@ -48,7 +48,6 @@ ChatParticipant.init(
     chat_participant_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'chat_participant_' || left(md5(random()::text), 12)`),
     },
     chat_id: {
       type: DataTypes.STRING,
