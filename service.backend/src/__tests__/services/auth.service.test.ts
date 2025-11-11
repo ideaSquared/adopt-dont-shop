@@ -1,5 +1,6 @@
+import { vi } from 'vitest';
 // Mock env config FIRST before any imports
-jest.mock('../../config/env', () => ({
+vi.mock('../../config/env', () => ({
   env: {
     JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',
@@ -17,25 +18,25 @@ import { AuthService } from '../../services/auth.service';
 import { LoginCredentials, RegisterData } from '../../types';
 
 // Mock dependencies
-jest.mock('../../models/User');
-jest.mock('../../models/AuditLog');
-jest.mock('../../utils/logger');
-jest.mock('jsonwebtoken');
-jest.mock('bcryptjs');
-jest.mock('crypto');
+vi.mock('../../models/User');
+vi.mock('../../models/AuditLog');
+vi.mock('../../utils/logger');
+vi.mock('jsonwebtoken');
+vi.mock('bcryptjs');
+vi.mock('crypto');
 
 // Mock User model
-const MockedUser = User as jest.Mocked<typeof User>;
-const MockedAuditLog = AuditLog as jest.Mocked<typeof AuditLog>;
-const mockedJwt = jwt as jest.Mocked<typeof jwt>;
-const mockedBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
+const MockedUser = User as vi.Mocked<typeof User>;
+const MockedAuditLog = AuditLog as vi.Mocked<typeof AuditLog>;
+const mockedJwt = jwt as vi.Mocked<typeof jwt>;
+const mockedBcrypt = bcrypt as vi.Mocked<typeof bcrypt>;
 
 // Mock environment variables
 const originalEnv = process.env;
 
 describe('AuthService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Set up environment variables for tests
     process.env = {
       ...originalEnv,
@@ -44,19 +45,19 @@ describe('AuthService', () => {
     };
 
     // Mock bcrypt hash globally for all tests
-    mockedBcrypt.hash = jest.fn().mockImplementation((password: string) =>
+    mockedBcrypt.hash = vi.fn().mockImplementation((password: string) =>
       Promise.resolve(`hashed_${password}` as never)
     );
-    mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+    mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
     // Mock crypto for verification tokens
-    const mockCrypto = crypto as jest.Mocked<typeof crypto>;
-    (mockCrypto.randomBytes as unknown as jest.Mock) = jest.fn().mockReturnValue({
-      toString: jest.fn().mockReturnValue('mock-token'),
+    const mockCrypto = crypto as vi.Mocked<typeof crypto>;
+    (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
+      toString: vi.fn().mockReturnValue('mock-token'),
     });
 
     // Mock the generateTokens method to avoid JWT secret issues
-    jest.spyOn(AuthService as any, 'generateTokens').mockResolvedValue({
+    vi.spyOn(AuthService as any, 'generateTokens').mockResolvedValue({
       token: 'mocked-access-token',
       refreshToken: 'mocked-refresh-token',
       expiresIn: 900000, // 15 minutes in ms
@@ -87,7 +88,7 @@ describe('AuthService', () => {
         userType: userData.userType,
         status: UserStatus.PENDING_VERIFICATION,
         emailVerified: false,
-        toJSON: jest.fn().mockReturnValue({
+        toJSON: vi.fn().mockReturnValue({
           userId: 'user-123',
           email: userData.email,
           firstName: userData.firstName,
@@ -96,13 +97,13 @@ describe('AuthService', () => {
           status: UserStatus.PENDING_VERIFICATION,
           emailVerified: false,
         }),
-        save: jest.fn(),
+        save: vi.fn(),
       };
 
-      MockedUser.findOne = jest.fn().mockResolvedValue(null);
-      MockedUser.create = jest.fn().mockResolvedValue(mockUser as any);
-      mockedJwt.sign = jest.fn().mockReturnValue('access-token' as any);
-      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
+      MockedUser.findOne = vi.fn().mockResolvedValue(null);
+      MockedUser.create = vi.fn().mockResolvedValue(mockUser as any);
+      mockedJwt.sign = vi.fn().mockReturnValue('access-token' as any);
+      MockedAuditLog.create = vi.fn().mockResolvedValue({} as any);
 
       const result = await AuthService.register(userData);
 
@@ -129,7 +130,7 @@ describe('AuthService', () => {
 
     it('should throw error if user already exists', async () => {
       const existingUser = { userId: 'existing-user' };
-      MockedUser.findOne = jest.fn().mockResolvedValue(existingUser as any);
+      MockedUser.findOne = vi.fn().mockResolvedValue(existingUser as any);
 
       await expect(AuthService.register(userData)).rejects.toThrow(
         'User already exists with this email'
@@ -138,7 +139,7 @@ describe('AuthService', () => {
 
     it('should throw error for invalid password', async () => {
       const invalidUserData = { ...userData, password: 'weak' };
-      MockedUser.findOne = jest.fn().mockResolvedValue(null);
+      MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
       await expect(AuthService.register(invalidUserData)).rejects.toThrow(
         'Password must be at least 8 characters long'
@@ -164,22 +165,22 @@ describe('AuthService', () => {
         lastLoginAt: null,
         twoFactorEnabled: false,
         userType: UserType.ADOPTER,
-        isAccountLocked: jest.fn().mockReturnValue(false),
-        isEmailVerified: jest.fn().mockReturnValue(true),
-        toJSON: jest.fn().mockReturnValue({
+        isAccountLocked: vi.fn().mockReturnValue(false),
+        isEmailVerified: vi.fn().mockReturnValue(true),
+        toJSON: vi.fn().mockReturnValue({
           userId: 'user-123',
           email: credentials.email,
           userType: UserType.ADOPTER,
         }),
-        save: jest.fn(),
+        save: vi.fn(),
       };
 
-      MockedUser.scope = jest.fn().mockReturnValue({
-        findOne: jest.fn().mockResolvedValue(mockUser),
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(mockUser),
       } as any);
-      mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
-      mockedJwt.sign = jest.fn().mockReturnValue('access-token' as any);
-      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+      mockedJwt.sign = vi.fn().mockReturnValue('access-token' as any);
+      MockedAuditLog.create = vi.fn().mockResolvedValue({} as any);
 
       const result = await AuthService.login(credentials);
 
@@ -190,8 +191,8 @@ describe('AuthService', () => {
     });
 
     it('should throw error for invalid credentials', async () => {
-      MockedUser.scope = jest.fn().mockReturnValue({
-        findOne: jest.fn().mockResolvedValue(null),
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(null),
       } as any);
 
       await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
@@ -206,14 +207,14 @@ describe('AuthService', () => {
         emailVerified: true,
         loginAttempts: 0,
         lockedUntil: null,
-        isAccountLocked: jest.fn().mockReturnValue(false),
-        save: jest.fn(),
+        isAccountLocked: vi.fn().mockReturnValue(false),
+        save: vi.fn(),
       };
 
-      MockedUser.scope = jest.fn().mockReturnValue({
-        findOne: jest.fn().mockResolvedValue(mockUser),
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(mockUser),
       } as any);
-      mockedBcrypt.compare = jest.fn().mockResolvedValue(false as never);
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(false as never);
 
       await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
     });
@@ -227,15 +228,15 @@ describe('AuthService', () => {
         emailVerified: true,
         loginAttempts: 4,
         lockedUntil: null,
-        isAccountLocked: jest.fn().mockReturnValue(false),
-        save: jest.fn(),
+        isAccountLocked: vi.fn().mockReturnValue(false),
+        save: vi.fn(),
       };
 
-      MockedUser.scope = jest.fn().mockReturnValue({
-        findOne: jest.fn().mockResolvedValue(mockUser),
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(mockUser),
       } as any);
-      mockedBcrypt.compare = jest.fn().mockResolvedValue(false as never);
-      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(false as never);
+      MockedAuditLog.create = vi.fn().mockResolvedValue({} as any);
 
       await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
 
@@ -256,16 +257,16 @@ describe('AuthService', () => {
         userId: 'user-123',
         email: 'test@example.com',
         userType: UserType.ADOPTER,
-        canLogin: jest.fn().mockReturnValue(true),
-        toJSON: jest.fn().mockReturnValue({
+        canLogin: vi.fn().mockReturnValue(true),
+        toJSON: vi.fn().mockReturnValue({
           userId: 'user-123',
           email: 'test@example.com',
           userType: UserType.ADOPTER,
         }),
       };
 
-      mockedJwt.verify = jest.fn().mockReturnValue(mockPayload);
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      mockedJwt.verify = vi.fn().mockReturnValue(mockPayload);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
 
       const result = await AuthService.refreshToken(refreshToken);
 
@@ -278,7 +279,7 @@ describe('AuthService', () => {
     it('should throw error for invalid refresh token', async () => {
       const invalidToken = 'invalid-token';
 
-      mockedJwt.verify = jest.fn().mockImplementation(() => {
+      mockedJwt.verify = vi.fn().mockImplementation(() => {
         throw new Error('Invalid token');
       });
 
@@ -292,10 +293,10 @@ describe('AuthService', () => {
       const mockUser = {
         userId: 'user-123',
         email,
-        save: jest.fn(),
+        save: vi.fn(),
       };
 
-      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as any);
+      MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as any);
 
       const authService = new AuthService();
       await authService.requestPasswordReset({ email });
@@ -308,7 +309,7 @@ describe('AuthService', () => {
 
     it('should not throw error for non-existent email', async () => {
       const email = 'nonexistent@example.com';
-      MockedUser.findOne = jest.fn().mockResolvedValue(null);
+      MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
       const authService = new AuthService();
       await expect(authService.requestPasswordReset({ email })).resolves.not.toThrow();
@@ -324,11 +325,11 @@ describe('AuthService', () => {
         status: UserStatus.PENDING_VERIFICATION,
         verificationToken: token,
         verificationTokenExpiresAt: new Date(Date.now() + 3600000),
-        save: jest.fn(),
+        save: vi.fn(),
       };
 
-      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as any);
-      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
+      MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as any);
+      MockedAuditLog.create = vi.fn().mockResolvedValue({} as any);
 
       const authService = new AuthService();
       await authService.verifyEmail(token);
@@ -341,7 +342,7 @@ describe('AuthService', () => {
 
     it('should throw error for invalid token', async () => {
       const token = 'invalid-token';
-      MockedUser.findOne = jest.fn().mockResolvedValue(null);
+      MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
       const authService = new AuthService();
       await expect(authService.verifyEmail(token)).rejects.toThrow(
@@ -363,7 +364,7 @@ describe('AuthService', () => {
     it('should log the logout event when refresh token provided', async () => {
       const refreshToken = 'some.refresh.token.that.is.long.enough';
       const { logger } = await import('../../utils/logger');
-      const loggerSpy = jest.spyOn(logger, 'info');
+      const loggerSpy = vi.spyOn(logger, 'info');
 
       await AuthService.logout(refreshToken);
 

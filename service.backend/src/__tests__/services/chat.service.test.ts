@@ -1,35 +1,36 @@
+import { vi } from 'vitest';
 // Mock models at the models/index level
-jest.mock('../../models', () => ({
+vi.mock('../../models', () => ({
   Chat: {
-    create: jest.fn(),
-    findByPk: jest.fn(),
-    findAndCountAll: jest.fn(),
-    count: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
+    create: vi.fn(),
+    findByPk: vi.fn(),
+    findAndCountAll: vi.fn(),
+    count: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
   },
   ChatParticipant: {
-    create: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    destroy: jest.fn(),
+    create: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    destroy: vi.fn(),
   },
   Message: {
-    create: jest.fn(),
-    findByPk: jest.fn(),
-    findAll: jest.fn(),
-    findAndCountAll: jest.fn(),
-    count: jest.fn(),
-    update: jest.fn(),
+    create: vi.fn(),
+    findByPk: vi.fn(),
+    findAll: vi.fn(),
+    findAndCountAll: vi.fn(),
+    count: vi.fn(),
+    update: vi.fn(),
   },
   User: {
-    findByPk: jest.fn(),
-    findAll: jest.fn(),
+    findByPk: vi.fn(),
+    findAll: vi.fn(),
   },
 }));
 
 // Mock NotificationType and NotificationPriority
-jest.mock('../../models/Notification', () => ({
+vi.mock('../../models/Notification', () => ({
   NotificationType: {
     MESSAGE_RECEIVED: 'MESSAGE_RECEIVED',
   },
@@ -39,44 +40,44 @@ jest.mock('../../models/Notification', () => ({
 }));
 
 // Mock the static log method first (before imports to avoid hoisting issues)
-const mockAuditLogAction = jest.fn().mockResolvedValue(undefined);
-jest.mock('../../services/auditLog.service', () => ({
+const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
+vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: mockAuditLogAction,
   },
 }));
 
 // Mock notification service
-const mockCreateNotification = jest.fn().mockResolvedValue(undefined);
-jest.mock('../../services/notification.service', () => ({
+const mockCreateNotification = vi.fn().mockResolvedValue(undefined);
+vi.mock('../../services/notification.service', () => ({
   NotificationService: {
     createNotification: mockCreateNotification,
   },
 }));
 
 // Mock logger
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
   loggerHelpers: {
-    logBusiness: jest.fn(),
-    logDatabase: jest.fn(),
-    logPerformance: jest.fn(),
+    logBusiness: vi.fn(),
+    logDatabase: vi.fn(),
+    logPerformance: vi.fn(),
   },
 }));
 
 // Mock sequelize
 const mockTransaction = {
-  commit: jest.fn(),
-  rollback: jest.fn(),
+  commit: vi.fn(),
+  rollback: vi.fn(),
 };
-jest.mock('../../sequelize', () => ({
+vi.mock('../../sequelize', () => ({
   __esModule: true,
   default: {
-    transaction: jest.fn().mockResolvedValue(mockTransaction),
+    transaction: vi.fn().mockResolvedValue(mockTransaction),
   },
 }));
 
@@ -85,14 +86,14 @@ import { Chat, ChatParticipant, Message, User } from '../../models';
 import { ChatService } from '../../services/chat.service';
 import { ChatStatus, ParticipantRole, MessageContentFormat } from '../../types/chat';
 
-const MockedChat = Chat as jest.Mocked<typeof Chat>;
-const MockedChatParticipant = ChatParticipant as jest.Mocked<typeof ChatParticipant>;
-const MockedMessage = Message as jest.Mocked<typeof Message>;
-const MockedUser = User as jest.Mocked<typeof User>;
+const MockedChat = Chat as vi.Mocked<typeof Chat>;
+const MockedChatParticipant = ChatParticipant as vi.Mocked<typeof ChatParticipant>;
+const MockedMessage = Message as vi.Mocked<typeof Message>;
+const MockedUser = User as vi.Mocked<typeof User>;
 
 describe('ChatService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Creating chats', () => {
@@ -113,8 +114,8 @@ describe('ChatService', () => {
           updated_at: new Date(),
         };
 
-        (MockedChat.create as jest.Mock).mockResolvedValue(mockChat);
-        (MockedChatParticipant.create as jest.Mock).mockResolvedValue({
+        (MockedChat.create as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChatParticipant.create as vi.Mock).mockResolvedValue({
           chat_id: mockChat.chat_id,
           participant_id: userId,
           role: ParticipantRole.USER,
@@ -182,9 +183,9 @@ describe('ChatService', () => {
           updated_at: new Date(),
         };
 
-        (MockedChat.create as jest.Mock).mockResolvedValue(mockChat);
-        (MockedChatParticipant.create as jest.Mock).mockResolvedValue({});
-        (MockedMessage.create as jest.Mock).mockResolvedValue({
+        (MockedChat.create as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChatParticipant.create as vi.Mock).mockResolvedValue({});
+        (MockedMessage.create as vi.Mock).mockResolvedValue({
           message_id: 'message-001',
           chat_id: mockChat.chat_id,
           sender_id: userId,
@@ -223,8 +224,8 @@ describe('ChatService', () => {
           status: ChatStatus.ACTIVE,
         };
 
-        (MockedChat.create as jest.Mock).mockResolvedValue(mockChat);
-        (MockedChatParticipant.create as jest.Mock).mockResolvedValue({});
+        (MockedChat.create as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChatParticipant.create as vi.Mock).mockResolvedValue({});
 
         const result = await ChatService.createChat(chatData, userId);
 
@@ -255,8 +256,8 @@ describe('ChatService', () => {
           status: ChatStatus.ACTIVE,
         };
 
-        (MockedChat.create as jest.Mock).mockResolvedValue(mockChat);
-        (MockedChatParticipant.create as jest.Mock).mockResolvedValue({});
+        (MockedChat.create as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChatParticipant.create as vi.Mock).mockResolvedValue({});
 
         await ChatService.createChat(chatData, userId);
 
@@ -306,25 +307,25 @@ describe('ChatService', () => {
         ];
 
         // Mock for findByPk with includes (for checking chat and participants)
-        (MockedChat.findByPk as jest.Mock).mockResolvedValue({
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
           ...mockChat,
           Participants: [{ participant_id: senderId }],
         });
 
         // Mock for checking rate limit
-        (MockedMessage.count as jest.Mock).mockResolvedValue(0);
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
 
         // Mock for creating the message
-        (MockedMessage.create as jest.Mock).mockResolvedValue(mockMessage);
+        (MockedMessage.create as vi.Mock).mockResolvedValue(mockMessage);
 
         // Mock for loading message with sender after creation
-        (MockedMessage.findByPk as jest.Mock).mockResolvedValue(mockMessage);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
 
         // Mock for updating chat last activity
-        (MockedChat.update as jest.Mock).mockResolvedValue([1]);
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
 
         // Mock for finding participants to notify (excluding sender)
-        (MockedChatParticipant.findAll as jest.Mock).mockResolvedValue(mockParticipants);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue(mockParticipants);
 
         await ChatService.sendMessage({
           chatId,
@@ -363,9 +364,9 @@ describe('ChatService', () => {
           status: ChatStatus.ACTIVE,
         };
 
-        (MockedChat.findByPk as jest.Mock).mockResolvedValue(mockChat);
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
         // Mock 10 recent messages (at the rate limit)
-        (MockedMessage.count as jest.Mock).mockResolvedValue(10);
+        (MockedMessage.count as vi.Mock).mockResolvedValue(10);
 
         await expect(
           ChatService.sendMessage({
@@ -385,7 +386,7 @@ describe('ChatService', () => {
         const senderId = 'user-456';
 
         // Mock no chat found (user is not a participant)
-        (MockedChat.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(null);
 
         await expect(
           ChatService.sendMessage({
@@ -412,22 +413,22 @@ describe('ChatService', () => {
             chat_id: chatId,
             sender_id: 'other-user',
             content: 'Message 1',
-            isReadBy: jest.fn().mockReturnValue(false),
-            markAsRead: jest.fn(),
-            save: jest.fn().mockResolvedValue(undefined),
+            isReadBy: vi.fn().mockReturnValue(false),
+            markAsRead: vi.fn(),
+            save: vi.fn().mockResolvedValue(undefined),
           },
           {
             message_id: 'msg-002',
             chat_id: chatId,
             sender_id: 'other-user',
             content: 'Message 2',
-            isReadBy: jest.fn().mockReturnValue(false),
-            markAsRead: jest.fn(),
-            save: jest.fn().mockResolvedValue(undefined),
+            isReadBy: vi.fn().mockReturnValue(false),
+            markAsRead: vi.fn(),
+            save: vi.fn().mockResolvedValue(undefined),
           },
         ];
 
-        (MockedMessage.findAll as jest.Mock).mockResolvedValue(mockMessages);
+        (MockedMessage.findAll as vi.Mock).mockResolvedValue(mockMessages);
 
         const result = await ChatService.markMessagesAsRead(chatId, userId);
 
@@ -454,21 +455,21 @@ describe('ChatService', () => {
             message_id: 'msg-001',
             chat_id: chatId,
             sender_id: 'other-user',
-            isReadBy: jest.fn().mockReturnValue(true), // Already read
-            markAsRead: jest.fn(),
-            save: jest.fn(),
+            isReadBy: vi.fn().mockReturnValue(true), // Already read
+            markAsRead: vi.fn(),
+            save: vi.fn(),
           },
           {
             message_id: 'msg-002',
             chat_id: chatId,
             sender_id: 'other-user',
-            isReadBy: jest.fn().mockReturnValue(false), // Unread
-            markAsRead: jest.fn(),
-            save: jest.fn().mockResolvedValue(undefined),
+            isReadBy: vi.fn().mockReturnValue(false), // Unread
+            markAsRead: vi.fn(),
+            save: vi.fn().mockResolvedValue(undefined),
           },
         ];
 
-        (MockedMessage.findAll as jest.Mock).mockResolvedValue(mockMessages);
+        (MockedMessage.findAll as vi.Mock).mockResolvedValue(mockMessages);
 
         await ChatService.markMessagesAsRead(chatId, userId);
 
@@ -491,21 +492,21 @@ describe('ChatService', () => {
           {
             message_id: 'msg-001',
             sender_id: 'other-user',
-            isReadBy: jest.fn().mockReturnValue(false),
+            isReadBy: vi.fn().mockReturnValue(false),
           },
           {
             message_id: 'msg-002',
             sender_id: 'other-user',
-            isReadBy: jest.fn().mockReturnValue(false),
+            isReadBy: vi.fn().mockReturnValue(false),
           },
           {
             message_id: 'msg-003',
             sender_id: 'other-user',
-            isReadBy: jest.fn().mockReturnValue(true),
+            isReadBy: vi.fn().mockReturnValue(true),
           },
         ];
 
-        (MockedMessage.findAll as jest.Mock).mockResolvedValue(mockMessages);
+        (MockedMessage.findAll as vi.Mock).mockResolvedValue(mockMessages);
 
         const count = await ChatService.getUnreadMessageCount(chatId, userId);
 
@@ -526,11 +527,11 @@ describe('ChatService', () => {
           {
             message_id: 'msg-001',
             sender_id: 'other-user',
-            isReadBy: jest.fn().mockReturnValue(true),
+            isReadBy: vi.fn().mockReturnValue(true),
           },
         ];
 
-        (MockedMessage.findAll as jest.Mock).mockResolvedValue(mockMessages);
+        (MockedMessage.findAll as vi.Mock).mockResolvedValue(mockMessages);
 
         const count = await ChatService.getUnreadMessageCount(chatId, userId);
 
@@ -552,11 +553,11 @@ describe('ChatService', () => {
           role: 'rescue',
         };
 
-        (MockedChatParticipant.findOne as jest.Mock)
+        (MockedChatParticipant.findOne as vi.Mock)
           .mockResolvedValueOnce(mockAdder) // Verify adder has rescue role
           .mockResolvedValueOnce(null); // Verify user is not already participant
 
-        (MockedChatParticipant.create as jest.Mock).mockResolvedValue({
+        (MockedChatParticipant.create as vi.Mock).mockResolvedValue({
           chat_id: chatId,
           participant_id: userId,
           role: ParticipantRole.USER,
@@ -586,7 +587,7 @@ describe('ChatService', () => {
         const addedBy = 'regular-user-789';
 
         // Mock returns null (user is not rescue staff)
-        (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(null);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
 
         await expect(
           ChatService.addParticipant(chatId, userId, addedBy)
@@ -609,7 +610,7 @@ describe('ChatService', () => {
           participant_id: userId,
         };
 
-        (MockedChatParticipant.findOne as jest.Mock)
+        (MockedChatParticipant.findOne as vi.Mock)
           .mockResolvedValueOnce(mockAdder)
           .mockResolvedValueOnce(mockExisting); // User already exists
 
@@ -633,8 +634,8 @@ describe('ChatService', () => {
           role: 'rescue',
         };
 
-        (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(mockRemover);
-        (MockedChatParticipant.destroy as jest.Mock).mockResolvedValue(1);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(mockRemover);
+        (MockedChatParticipant.destroy as vi.Mock).mockResolvedValue(1);
 
         const result = await ChatService.removeParticipant(chatId, userId, removedBy);
 
@@ -656,7 +657,7 @@ describe('ChatService', () => {
         const chatId = 'chat-123';
         const userId = 'user-456';
 
-        (MockedChatParticipant.destroy as jest.Mock).mockResolvedValue(1);
+        (MockedChatParticipant.destroy as vi.Mock).mockResolvedValue(1);
 
         const result = await ChatService.removeParticipant(chatId, userId, userId);
 
@@ -672,7 +673,7 @@ describe('ChatService', () => {
         const removedBy = 'regular-user-789';
 
         // Mock returns null (remover is not rescue staff)
-        (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(null);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
 
         await expect(
           ChatService.removeParticipant(chatId, userId, removedBy)
@@ -693,8 +694,8 @@ describe('ChatService', () => {
         const mockMessage = {
           message_id: messageId,
           chat_id: 'chat-789',
-          addReaction: jest.fn(),
-          save: jest.fn().mockResolvedValue(undefined),
+          addReaction: vi.fn(),
+          save: vi.fn().mockResolvedValue(undefined),
         };
 
         const mockParticipant = {
@@ -702,8 +703,8 @@ describe('ChatService', () => {
           participant_id: userId,
         };
 
-        (MockedMessage.findByPk as jest.Mock).mockResolvedValue(mockMessage);
-        (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(mockParticipant);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(mockParticipant);
 
         const result = await ChatService.addMessageReaction(messageId, userId, emoji);
 
@@ -723,8 +724,8 @@ describe('ChatService', () => {
           chat_id: 'chat-789',
         };
 
-        (MockedMessage.findByPk as jest.Mock).mockResolvedValue(mockMessage);
-        (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(null);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
 
         await expect(
           ChatService.addMessageReaction(messageId, userId, emoji)
@@ -738,7 +739,7 @@ describe('ChatService', () => {
         const userId = 'user-456';
         const emoji = '👍';
 
-        (MockedMessage.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(null);
 
         await expect(
           ChatService.addMessageReaction(messageId, userId, emoji)
@@ -754,11 +755,11 @@ describe('ChatService', () => {
 
         const mockMessage = {
           message_id: messageId,
-          removeReaction: jest.fn(),
-          save: jest.fn().mockResolvedValue(undefined),
+          removeReaction: vi.fn(),
+          save: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedMessage.findByPk as jest.Mock).mockResolvedValue(mockMessage);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
 
         const result = await ChatService.removeMessageReaction(messageId, userId, emoji);
 
@@ -798,7 +799,7 @@ describe('ChatService', () => {
           },
         ];
 
-        (MockedMessage.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: mockMessages,
           count: 2,
         });
@@ -827,7 +828,7 @@ describe('ChatService', () => {
         const senderId = 'user-456';
         const query = 'hello';
 
-        (MockedMessage.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -854,7 +855,7 @@ describe('ChatService', () => {
         const startDate = new Date('2025-01-01');
         const endDate = new Date('2025-01-31');
 
-        (MockedMessage.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -886,8 +887,8 @@ describe('ChatService', () => {
         const totalChats = 25;
         const activeChats = 20;
 
-        (MockedMessage.count as jest.Mock).mockResolvedValue(totalMessages);
-        (MockedChat.count as jest.Mock)
+        (MockedMessage.count as vi.Mock).mockResolvedValue(totalMessages);
+        (MockedChat.count as vi.Mock)
           .mockResolvedValueOnce(totalChats) // Total chats
           .mockResolvedValueOnce(activeChats); // Active chats
 
@@ -904,8 +905,8 @@ describe('ChatService', () => {
         const totalMessages = 50;
         const totalChats = 10;
 
-        (MockedMessage.count as jest.Mock).mockResolvedValue(totalMessages);
-        (MockedChat.count as jest.Mock).mockResolvedValue(totalChats);
+        (MockedMessage.count as vi.Mock).mockResolvedValue(totalMessages);
+        (MockedChat.count as vi.Mock).mockResolvedValue(totalChats);
 
         const result = await ChatService.getChatAnalytics(undefined, rescueId);
 
@@ -920,8 +921,8 @@ describe('ChatService', () => {
       });
 
       it('should handle zero chats gracefully', async () => {
-        (MockedMessage.count as jest.Mock).mockResolvedValue(0);
-        (MockedChat.count as jest.Mock).mockResolvedValue(0);
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedChat.count as vi.Mock).mockResolvedValue(0);
 
         const result = await ChatService.getChatAnalytics();
 
@@ -941,10 +942,10 @@ describe('ChatService', () => {
           message_id: messageId,
           chat_id: 'chat-789',
           content: 'Original message content',
-          update: jest.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedMessage.findByPk as jest.Mock).mockResolvedValue(mockMessage);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
 
         await ChatService.deleteMessage(messageId, deletedBy, reason);
 
@@ -970,7 +971,7 @@ describe('ChatService', () => {
         const messageId = 'non-existent-msg';
         const deletedBy = 'moderator-456';
 
-        (MockedMessage.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(null);
 
         await expect(
           ChatService.deleteMessage(messageId, deletedBy)
@@ -988,7 +989,7 @@ describe('ChatService', () => {
           message_id: messageId,
           chat_id: 'chat-789',
           content: 'Original message',
-          update: jest.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
         const mockParticipant = {
@@ -996,8 +997,8 @@ describe('ChatService', () => {
           participant_id: moderatorId,
         };
 
-        (MockedMessage.findByPk as jest.Mock).mockResolvedValue(mockMessage);
-        (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(mockParticipant);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(mockParticipant);
 
         await ChatService.moderateMessage(moderatorId, messageId, reason);
 
@@ -1028,8 +1029,8 @@ describe('ChatService', () => {
           chat_id: 'chat-789',
         };
 
-        (MockedMessage.findByPk as jest.Mock).mockResolvedValue(mockMessage);
-        (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(null);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
 
         await expect(
           ChatService.moderateMessage(moderatorId, messageId, reason)

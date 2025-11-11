@@ -1,6 +1,7 @@
+import { vi } from 'vitest';
 // Mock sequelize first
-const mockSequelizeQuery = jest.fn().mockResolvedValue([]);
-jest.mock('../../sequelize', () => ({
+const mockSequelizeQuery = vi.fn().mockResolvedValue([]);
+vi.mock('../../sequelize', () => ({
   __esModule: true,
   default: {
     query: mockSequelizeQuery,
@@ -9,16 +10,16 @@ jest.mock('../../sequelize', () => ({
 }));
 
 // Mock models
-const mockAuditLogFindAll = jest.fn().mockResolvedValue([]);
-jest.mock('../../models/User');
-jest.mock('../../models/Rescue');
-jest.mock('../../models/Pet');
-jest.mock('../../models/Application');
-jest.mock('../../models/AuditLog', () => {
+const mockAuditLogFindAll = vi.fn().mockResolvedValue([]);
+vi.mock('../../models/User');
+vi.mock('../../models/Rescue');
+vi.mock('../../models/Pet');
+vi.mock('../../models/Application');
+vi.mock('../../models/AuditLog', () => {
   const mockModel = {
     findAll: mockAuditLogFindAll,
-    findAndCountAll: jest.fn(),
-    count: jest.fn(),
+    findAndCountAll: vi.fn(),
+    count: vi.fn(),
   };
   return {
     __esModule: true,
@@ -27,9 +28,9 @@ jest.mock('../../models/AuditLog', () => {
 });
 
 // Mock audit log service
-const mockAuditLogAction = jest.fn().mockResolvedValue(undefined);
-const mockGetLogs = jest.fn().mockResolvedValue({ rows: [], count: 0 });
-jest.mock('../../services/auditLog.service', () => ({
+const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
+const mockGetLogs = vi.fn().mockResolvedValue({ rows: [], count: 0 });
+vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: mockAuditLogAction,
     getLogs: mockGetLogs,
@@ -38,21 +39,21 @@ jest.mock('../../services/auditLog.service', () => ({
 
 // Mock logger
 const mockLogger = {
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
 };
 
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../utils/logger', () => ({
   __esModule: true,
   default: mockLogger,
   logger: mockLogger,
   loggerHelpers: {
-    logBusiness: jest.fn(),
-    logDatabase: jest.fn(),
-    logPerformance: jest.fn(),
-    logExternalService: jest.fn(),
+    logBusiness: vi.fn(),
+    logDatabase: vi.fn(),
+    logPerformance: vi.fn(),
+    logExternalService: vi.fn(),
   },
 }));
 
@@ -63,15 +64,15 @@ import Application from '../../models/Application';
 import AuditLog from '../../models/AuditLog';
 import AdminService from '../../services/admin.service';
 
-const MockedUser = User as jest.Mocked<typeof User>;
-const MockedRescue = Rescue as jest.Mocked<typeof Rescue>;
-const MockedPet = Pet as jest.Mocked<typeof Pet>;
-const MockedApplication = Application as jest.Mocked<typeof Application>;
-const MockedAuditLog = AuditLog as jest.Mocked<typeof AuditLog>;
+const MockedUser = User as vi.Mocked<typeof User>;
+const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
+const MockedPet = Pet as vi.Mocked<typeof Pet>;
+const MockedApplication = Application as vi.Mocked<typeof Application>;
+const MockedAuditLog = AuditLog as vi.Mocked<typeof AuditLog>;
 
 describe('AdminService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('User Management', () => {
@@ -96,7 +97,7 @@ describe('AdminService', () => {
           },
         ];
 
-        (MockedUser.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedUser.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: mockUsers,
           count: 2,
         });
@@ -111,7 +112,7 @@ describe('AdminService', () => {
       });
 
       it('should filter users by status', async () => {
-        (MockedUser.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedUser.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -128,7 +129,7 @@ describe('AdminService', () => {
       });
 
       it('should filter users by user type', async () => {
-        (MockedUser.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedUser.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -145,7 +146,7 @@ describe('AdminService', () => {
       });
 
       it('should search users by name or email', async () => {
-        (MockedUser.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedUser.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -166,7 +167,7 @@ describe('AdminService', () => {
           status: UserStatus.ACTIVE,
         };
 
-        (MockedUser.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         const result = await AdminService.getUserById('user-123');
 
@@ -178,7 +179,7 @@ describe('AdminService', () => {
       });
 
       it('should return null when user not found', async () => {
-        (MockedUser.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedUser.findByPk as vi.Mock).mockResolvedValue(null);
 
         const result = await AdminService.getUserById('nonexistent');
 
@@ -191,11 +192,11 @@ describe('AdminService', () => {
         const mockUser = {
           userId: 'user-123',
           status: UserStatus.ACTIVE,
-          save: jest.fn().mockResolvedValue(undefined),
-          update: jest.fn().mockResolvedValue(undefined),
+          save: vi.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedUser.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await AdminService.updateUserStatus(
           'user-123',
@@ -216,7 +217,7 @@ describe('AdminService', () => {
       });
 
       it('should throw error when user not found', async () => {
-        (MockedUser.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedUser.findByPk as vi.Mock).mockResolvedValue(null);
 
         await expect(
           AdminService.updateUserStatus('nonexistent', UserStatus.ACTIVE, 'admin-456')
@@ -229,11 +230,11 @@ describe('AdminService', () => {
         const mockUser = {
           userId: 'user-123',
           status: UserStatus.ACTIVE,
-          save: jest.fn().mockResolvedValue(undefined),
-          update: jest.fn().mockResolvedValue(undefined),
+          save: vi.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedUser.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         const result = await AdminService.suspendUser(
           'user-123',
@@ -264,11 +265,11 @@ describe('AdminService', () => {
         const mockUser = {
           userId: 'user-123',
           status: UserStatus.SUSPENDED,
-          save: jest.fn().mockResolvedValue(undefined),
-          update: jest.fn().mockResolvedValue(undefined),
+          save: vi.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedUser.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await AdminService.unsuspendUser('user-123', 'admin-456');
 
@@ -291,8 +292,8 @@ describe('AdminService', () => {
           firstName: 'John',
           lastName: 'Doe',
           email: 'john@example.com',
-          destroy: jest.fn().mockResolvedValue(undefined),
-          toJSON: jest.fn().mockReturnValue({
+          destroy: vi.fn().mockResolvedValue(undefined),
+          toJSON: vi.fn().mockReturnValue({
             userId: 'user-123',
             firstName: 'John',
             lastName: 'Doe',
@@ -300,7 +301,7 @@ describe('AdminService', () => {
           }),
         };
 
-        (MockedUser.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await AdminService.deleteUser('user-123', 'admin-456', 'Account closure request');
 
@@ -324,10 +325,10 @@ describe('AdminService', () => {
         const mockUser = {
           userId: 'user-123',
           emailVerified: false,
-          update: jest.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedUser.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await AdminService.verifyUser('user-123', 'admin-456');
 
@@ -361,7 +362,7 @@ describe('AdminService', () => {
           },
         ];
 
-        (MockedRescue.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedRescue.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: mockRescues,
           count: 2,
         });
@@ -374,7 +375,7 @@ describe('AdminService', () => {
       });
 
       it('should filter rescues by status', async () => {
-        (MockedRescue.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedRescue.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -398,11 +399,11 @@ describe('AdminService', () => {
           name: 'Pet Rescue Org',
           status: 'pending',
           verifiedAt: null,
-          save: jest.fn().mockResolvedValue(undefined),
-          update: jest.fn().mockResolvedValue(undefined),
+          save: vi.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedRescue.findByPk as jest.Mock).mockResolvedValue(mockRescue);
+        (MockedRescue.findByPk as vi.Mock).mockResolvedValue(mockRescue);
 
         const result = await AdminService.verifyRescue('rescue-123', 'admin-456');
 
@@ -422,7 +423,7 @@ describe('AdminService', () => {
       });
 
       it('should throw error when rescue not found', async () => {
-        (MockedRescue.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedRescue.findByPk as vi.Mock).mockResolvedValue(null);
 
         await expect(
           AdminService.verifyRescue('nonexistent', 'admin-456')
@@ -435,10 +436,10 @@ describe('AdminService', () => {
         const mockRescue = {
           rescueId: 'rescue-123',
           verified: false,
-          update: jest.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedRescue.findByPk as jest.Mock).mockResolvedValue(mockRescue);
+        (MockedRescue.findByPk as vi.Mock).mockResolvedValue(mockRescue);
 
         await AdminService.rejectRescueVerification(
           'rescue-123',
@@ -462,7 +463,7 @@ describe('AdminService', () => {
   describe('System Health and Metrics', () => {
     describe('when getting system health', () => {
       it('should return health status indicators', async () => {
-        (MockedUser.findOne as jest.Mock).mockResolvedValue({ userId: 'test' });
+        (MockedUser.findOne as vi.Mock).mockResolvedValue({ userId: 'test' });
 
         const result = await AdminService.getSystemHealth();
 
@@ -477,10 +478,10 @@ describe('AdminService', () => {
 
     describe('when getting platform metrics', () => {
       it('should return comprehensive platform statistics', async () => {
-        (MockedUser.count as jest.Mock).mockResolvedValue(500);
-        (MockedRescue.count as jest.Mock).mockResolvedValue(50);
-        (MockedPet.count as jest.Mock).mockResolvedValue(200);
-        (MockedApplication.count as jest.Mock).mockResolvedValue(300);
+        (MockedUser.count as vi.Mock).mockResolvedValue(500);
+        (MockedRescue.count as vi.Mock).mockResolvedValue(50);
+        (MockedPet.count as vi.Mock).mockResolvedValue(200);
+        (MockedApplication.count as vi.Mock).mockResolvedValue(300);
         mockSequelizeQuery.mockResolvedValueOnce([
           { role_name: 'admin', count: 10 },
           { role_name: 'user', count: 490 },
@@ -499,10 +500,10 @@ describe('AdminService', () => {
 
     describe('when getting system statistics', () => {
       it('should return detailed system statistics', async () => {
-        (MockedUser.count as jest.Mock).mockResolvedValue(1000);
-        (MockedRescue.count as jest.Mock).mockResolvedValue(100);
-        (MockedPet.count as jest.Mock).mockResolvedValue(400);
-        (MockedApplication.count as jest.Mock).mockResolvedValue(500);
+        (MockedUser.count as vi.Mock).mockResolvedValue(1000);
+        (MockedRescue.count as vi.Mock).mockResolvedValue(100);
+        (MockedPet.count as vi.Mock).mockResolvedValue(400);
+        (MockedApplication.count as vi.Mock).mockResolvedValue(500);
         mockAuditLogFindAll.mockResolvedValueOnce([]);
 
         const result = await AdminService.getSystemStatistics();
@@ -592,16 +593,16 @@ describe('AdminService', () => {
           {
             userId: 'user-1',
             status: UserStatus.ACTIVE,
-            save: jest.fn().mockResolvedValue(undefined),
+            save: vi.fn().mockResolvedValue(undefined),
           },
           {
             userId: 'user-2',
             status: UserStatus.ACTIVE,
-            save: jest.fn().mockResolvedValue(undefined),
+            save: vi.fn().mockResolvedValue(undefined),
           },
         ];
 
-        (MockedUser.findByPk as jest.Mock)
+        (MockedUser.findByPk as vi.Mock)
           .mockResolvedValueOnce(mockUsers[0])
           .mockResolvedValueOnce(mockUsers[1]);
 
@@ -621,10 +622,10 @@ describe('AdminService', () => {
         const mockUser = {
           userId: 'user-1',
           status: UserStatus.ACTIVE,
-          save: jest.fn().mockResolvedValue(undefined),
+          save: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedUser.findByPk as jest.Mock)
+        (MockedUser.findByPk as vi.Mock)
           .mockResolvedValueOnce(mockUser)
           .mockResolvedValueOnce(null); // Second user not found
 
@@ -644,7 +645,7 @@ describe('AdminService', () => {
 
   describe('Error Handling', () => {
     it('should log errors when user operations fail', async () => {
-      (MockedUser.findByPk as jest.Mock).mockRejectedValue(
+      (MockedUser.findByPk as vi.Mock).mockRejectedValue(
         new Error('Database error')
       );
 
@@ -653,7 +654,7 @@ describe('AdminService', () => {
     });
 
     it('should log errors when rescue operations fail', async () => {
-      (MockedRescue.findByPk as jest.Mock).mockRejectedValue(
+      (MockedRescue.findByPk as vi.Mock).mockRejectedValue(
         new Error('Connection error')
       );
 
@@ -663,7 +664,7 @@ describe('AdminService', () => {
     });
 
     it('should handle errors in platform metrics gracefully', async () => {
-      (MockedUser.count as jest.Mock).mockRejectedValue(new Error('Query failed'));
+      (MockedUser.count as vi.Mock).mockRejectedValue(new Error('Query failed'));
 
       await expect(AdminService.getPlatformMetrics()).rejects.toThrow();
       expect(mockLogger.error).toHaveBeenCalled();

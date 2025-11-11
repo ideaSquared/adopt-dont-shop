@@ -1,32 +1,33 @@
 // Test setup for backend service
 import { config } from 'dotenv';
 import { DataTypes, Op } from 'sequelize';
+import { vi } from 'vitest';
 
 // Load test environment variables
 config({ path: '.env.test' });
 
 // Mock Sequelize completely FIRST - this must be done before models are imported
-jest.mock('sequelize', () => {
+vi.mock('sequelize', async () => {
   // Use ES module import approach that ESLint prefers
-  const actualSequelize = jest.requireActual('sequelize') as typeof import('sequelize');
+  const actualSequelize = await vi.importActual('sequelize') as typeof import('sequelize');
 
   // Create a mock sequelize instance
   const mockSequelizeInstance = {
-    query: jest.fn(() => Promise.resolve([[]])),
-    transaction: jest.fn(() =>
+    query: vi.fn(() => Promise.resolve([[]])),
+    transaction: vi.fn(() =>
       Promise.resolve({
-        commit: jest.fn(),
-        rollback: jest.fn(),
+        commit: vi.fn(),
+        rollback: vi.fn(),
       })
     ),
-    authenticate: jest.fn(() => Promise.resolve()),
-    define: jest.fn(() => ({})),
+    authenticate: vi.fn(() => Promise.resolve()),
+    define: vi.fn(() => ({})),
     models: {},
     DataTypes: actualSequelize.DataTypes,
-    literal: jest.fn((sql: string) => ({ val: sql })), // Mock literal function
-    fn: jest.fn((func: string, ...args: Array<string | number | object>) => ({ fn: func, args })),
-    col: jest.fn((column: string) => ({ col: column })),
-    where: jest.fn(
+    literal: vi.fn((sql: string) => ({ val: sql })), // Mock literal function
+    fn: vi.fn((func: string, ...args: Array<string | number | object>) => ({ fn: func, args })),
+    col: vi.fn((column: string) => ({ col: column })),
+    where: vi.fn(
       (left: string | number | object, operator: string, right: string | number | object) => ({
         where: { left, operator, right },
       })
@@ -37,30 +38,30 @@ jest.mock('sequelize', () => {
   // Return both the constructor and the instance methods
   return {
     ...actualSequelize,
-    Sequelize: jest.fn(() => mockSequelizeInstance),
+    Sequelize: vi.fn(() => mockSequelizeInstance),
     default: mockSequelizeInstance,
   };
 });
 
 // Mock the sequelize instance file specifically
-jest.mock('./sequelize', () => ({
+vi.mock('./sequelize', () => ({
   __esModule: true,
   default: {
-    query: jest.fn(() => Promise.resolve([[]])),
-    transaction: jest.fn(() =>
+    query: vi.fn(() => Promise.resolve([[]])),
+    transaction: vi.fn(() =>
       Promise.resolve({
-        commit: jest.fn(),
-        rollback: jest.fn(),
+        commit: vi.fn(),
+        rollback: vi.fn(),
       })
     ),
-    authenticate: jest.fn(() => Promise.resolve()),
-    define: jest.fn(() => ({})),
+    authenticate: vi.fn(() => Promise.resolve()),
+    define: vi.fn(() => ({})),
     models: {},
     DataTypes,
-    literal: jest.fn((sql: string) => ({ val: sql })), // Mock literal function
-    fn: jest.fn((func: string, ...args: Array<string | number | object>) => ({ fn: func, args })),
-    col: jest.fn((column: string) => ({ col: column })),
-    where: jest.fn(
+    literal: vi.fn((sql: string) => ({ val: sql })), // Mock literal function
+    fn: vi.fn((func: string, ...args: Array<string | number | object>) => ({ fn: func, args })),
+    col: vi.fn((column: string) => ({ col: column })),
+    where: vi.fn(
       (left: string | number | object, operator: string, right: string | number | object) => ({
         where: { left, operator, right },
       })
@@ -70,42 +71,42 @@ jest.mock('./sequelize', () => ({
 }));
 
 // Mock loggerHelpers to prevent undefined errors in tests
-jest.mock('./utils/logger', () => ({
+vi.mock('./utils/logger', () => ({
   __esModule: true,
   default: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-    http: jest.fn(),
-    end: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    http: vi.fn(),
+    end: vi.fn(),
   },
   logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-    http: jest.fn(),
-    end: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    http: vi.fn(),
+    end: vi.fn(),
   },
   loggerHelpers: {
-    logBusiness: jest.fn(),
-    logAuth: jest.fn(),
-    logSecurity: jest.fn(),
-    logDatabase: jest.fn(),
-    logPerformance: jest.fn(),
-    logLifecycle: jest.fn(),
-    logExternalService: jest.fn(),
-    logAuditableAction: jest.fn(),
-    logRequest: jest.fn(),
+    logBusiness: vi.fn(),
+    logAuth: vi.fn(),
+    logSecurity: vi.fn(),
+    logDatabase: vi.fn(),
+    logPerformance: vi.fn(),
+    logLifecycle: vi.fn(),
+    logExternalService: vi.fn(),
+    logAuditableAction: vi.fn(),
+    logRequest: vi.fn(),
   },
   safeLoggerHelpers: {
-    logBusiness: jest.fn(),
+    logBusiness: vi.fn(),
   },
 }));
 
 // Mock the config
-jest.mock('./config', () => ({
+vi.mock('./config', () => ({
   config: {
     database: {
       host: 'localhost',
@@ -129,28 +130,28 @@ jest.mock('./config', () => ({
 // Mock Sequelize models with proper methods - removed unused createMockSequelizeModel function
 
 // Mock User model
-jest.mock('./models/User', () => ({
+vi.mock('./models/User', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    bulkCreate: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    hasOne: jest.fn(),
-    belongsToMany: jest.fn(),
-    scope: jest.fn().mockReturnThis(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    bulkCreate: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    hasOne: vi.fn(),
+    belongsToMany: vi.fn(),
+    scope: vi.fn().mockReturnThis(),
     sequelize: {
-      query: jest.fn(),
-      transaction: jest.fn(),
+      query: vi.fn(),
+      transaction: vi.fn(),
     },
-    associate: jest.fn(),
+    associate: vi.fn(),
   },
   UserStatus: {
     ACTIVE: 'active',
@@ -168,24 +169,24 @@ jest.mock('./models/User', () => ({
 }));
 
 // Mock Pet model with ALL enums
-jest.mock('./models/Pet', () => ({
+vi.mock('./models/Pet', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    bulkCreate: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    hasOne: jest.fn(),
-    belongsToMany: jest.fn(),
-    searchPets: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    bulkCreate: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    hasOne: vi.fn(),
+    belongsToMany: vi.fn(),
+    searchPets: vi.fn(),
+    associate: vi.fn(),
   },
   PetStatus: {
     AVAILABLE: 'available',
@@ -246,18 +247,18 @@ jest.mock('./models/Pet', () => ({
 }));
 
 // Mock Application model
-jest.mock('./models/Application', () => ({
+vi.mock('./models/Application', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
   ApplicationStatus: {
     SUBMITTED: 'submitted',
@@ -273,62 +274,62 @@ jest.mock('./models/Application', () => ({
 }));
 
 // Mock Chat model
-jest.mock('./models/Chat', () => ({
+vi.mock('./models/Chat', () => ({
   __esModule: true,
   Chat: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
 // Mock Message model
-jest.mock('./models/Message', () => ({
+vi.mock('./models/Message', () => ({
   __esModule: true,
   Message: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
 // Mock Rescue model
-jest.mock('./models/Rescue', () => ({
+vi.mock('./models/Rescue', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
     sequelize: {
-      query: jest.fn(),
-      transaction: jest.fn(() =>
+      query: vi.fn(),
+      transaction: vi.fn(() =>
         Promise.resolve({
-          commit: jest.fn(),
-          rollback: jest.fn(),
+          commit: vi.fn(),
+          rollback: vi.fn(),
         })
       ),
     },
@@ -336,188 +337,188 @@ jest.mock('./models/Rescue', () => ({
 }));
 
 // Mock AuditLog model
-jest.mock('./models/AuditLog', () => ({
+vi.mock('./models/AuditLog', () => ({
   __esModule: true,
   AuditLog: {
-    create: jest.fn(),
-    findAll: jest.fn(),
-    findOne: jest.fn(),
-    findAndCountAll: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    associate: jest.fn(),
+    create: vi.fn(),
+    findAll: vi.fn(),
+    findOne: vi.fn(),
+    findAndCountAll: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
 // Mock external services
-jest.mock('bcryptjs', () => ({
-  hash: jest.fn(),
-  compare: jest.fn(),
-  genSalt: jest.fn(),
+vi.mock('bcryptjs', () => ({
+  hash: vi.fn(),
+  compare: vi.fn(),
+  genSalt: vi.fn(),
 }));
 
-jest.mock('jsonwebtoken', () => ({
-  sign: jest.fn(),
-  verify: jest.fn(),
-  decode: jest.fn(),
+vi.mock('jsonwebtoken', () => ({
+  sign: vi.fn(),
+  verify: vi.fn(),
+  decode: vi.fn(),
 }));
 
 // Mock crypto for UUID generation
-jest.mock('crypto', () => ({
-  randomUUID: jest.fn(() => 'mock-uuid-123'),
-  randomBytes: jest.fn(() => Buffer.from('mock-random-bytes')),
-  createHash: jest.fn(() => ({
-    update: jest.fn().mockReturnThis(),
-    digest: jest.fn(() => 'mock-hash'),
+vi.mock('crypto', () => ({
+  randomUUID: vi.fn(() => 'mock-uuid-123'),
+  randomBytes: vi.fn(() => Buffer.from('mock-random-bytes')),
+  createHash: vi.fn(() => ({
+    update: vi.fn().mockReturnThis(),
+    digest: vi.fn(() => 'mock-hash'),
   })),
 }));
 
 // Mock nodemailer
-jest.mock('nodemailer', () => ({
-  createTransporter: jest.fn(),
-  createTestAccount: jest.fn(),
+vi.mock('nodemailer', () => ({
+  createTransporter: vi.fn(),
+  createTestAccount: vi.fn(),
 }));
 
 // Mock ChatParticipant model
-jest.mock('./models/ChatParticipant', () => ({
+vi.mock('./models/ChatParticipant', () => ({
   __esModule: true,
   ChatParticipant: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
-    init: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
+    init: vi.fn(),
   },
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
-    init: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
+    init: vi.fn(),
   },
 }));
 
 // Mock UserFavorite model
-jest.mock('./models/UserFavorite', () => ({
+vi.mock('./models/UserFavorite', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
 // Mock other models that might be imported
-jest.mock('./models/StaffMember', () => ({
+vi.mock('./models/StaffMember', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
     sequelize: {
-      query: jest.fn(),
-      transaction: jest.fn(() =>
+      query: vi.fn(),
+      transaction: vi.fn(() =>
         Promise.resolve({
-          commit: jest.fn(),
-          rollback: jest.fn(),
+          commit: vi.fn(),
+          rollback: vi.fn(),
         })
       ),
     },
   },
 }));
 
-jest.mock('./models/Notification', () => ({
+vi.mock('./models/Notification', () => ({
   __esModule: true,
   Notification: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
-jest.mock('./models/EmailPreference', () => ({
+vi.mock('./models/EmailPreference', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
-jest.mock('./models/DeviceToken', () => ({
+vi.mock('./models/DeviceToken', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
 // Mock ApplicationQuestion model
-jest.mock('./models/ApplicationQuestion', () => ({
+vi.mock('./models/ApplicationQuestion', () => ({
   __esModule: true,
   ApplicationQuestion: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
-    init: jest.fn(),
-    getCoreQuestions: jest.fn().mockResolvedValue([]),
-    getRescueQuestions: jest.fn().mockResolvedValue([]),
-    getAllQuestionsForRescue: jest.fn().mockResolvedValue([]),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
+    init: vi.fn(),
+    getCoreQuestions: vi.fn().mockResolvedValue([]),
+    getRescueQuestions: vi.fn().mockResolvedValue([]),
+    getAllQuestionsForRescue: vi.fn().mockResolvedValue([]),
   },
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
-    init: jest.fn(),
-    getCoreQuestions: jest.fn().mockResolvedValue([]),
-    getRescueQuestions: jest.fn().mockResolvedValue([]),
-    getAllQuestionsForRescue: jest.fn().mockResolvedValue([]),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
+    init: vi.fn(),
+    getCoreQuestions: vi.fn().mockResolvedValue([]),
+    getRescueQuestions: vi.fn().mockResolvedValue([]),
+    getAllQuestionsForRescue: vi.fn().mockResolvedValue([]),
   },
   QuestionCategory: {
     PERSONAL_INFORMATION: 'personal_information',
@@ -547,19 +548,19 @@ jest.mock('./models/ApplicationQuestion', () => ({
 }));
 
 // Mock ApplicationTimeline model
-jest.mock('./models/ApplicationTimeline', () => ({
+vi.mock('./models/ApplicationTimeline', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
   TimelineEventType: {
     STAGE_CHANGE: 'stage_change',
@@ -588,29 +589,29 @@ jest.mock('./models/ApplicationTimeline', () => ({
 }));
 
 // Mock Rating model
-jest.mock('./models/Rating', () => ({
+vi.mock('./models/Rating', () => ({
   __esModule: true,
   Rating: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
 // Mock models/index to prevent circular imports
-jest.mock('./models/index', () => ({
+vi.mock('./models/index', () => ({
   __esModule: true,
   default: {},
 }));
 
 // Global test setup
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 // Set up test environment variables
@@ -636,121 +637,121 @@ export const createMockUser = (overrides: Record<string, unknown> = {}) => ({
 });
 
 // Mock the models index file that exports named models
-jest.mock('./models', () => ({
+vi.mock('./models', () => ({
   __esModule: true,
   Application: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
   Pet: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    bulkCreate: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    hasOne: jest.fn(),
-    belongsToMany: jest.fn(),
-    searchPets: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    bulkCreate: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    hasOne: vi.fn(),
+    belongsToMany: vi.fn(),
+    searchPets: vi.fn(),
+    associate: vi.fn(),
   },
   Rescue: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
     sequelize: {
-      query: jest.fn(),
-      transaction: jest.fn(() =>
+      query: vi.fn(),
+      transaction: vi.fn(() =>
         Promise.resolve({
-          commit: jest.fn(),
-          rollback: jest.fn(),
+          commit: vi.fn(),
+          rollback: vi.fn(),
         })
       ),
     },
   },
   StaffMember: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
     sequelize: {
-      query: jest.fn(),
-      transaction: jest.fn(() =>
+      query: vi.fn(),
+      transaction: vi.fn(() =>
         Promise.resolve({
-          commit: jest.fn(),
-          rollback: jest.fn(),
+          commit: vi.fn(),
+          rollback: vi.fn(),
         })
       ),
     },
   },
   User: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    bulkCreate: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    hasOne: jest.fn(),
-    belongsToMany: jest.fn(),
-    scope: jest.fn().mockReturnThis(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    bulkCreate: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    hasOne: vi.fn(),
+    belongsToMany: vi.fn(),
+    scope: vi.fn().mockReturnThis(),
     sequelize: {
-      query: jest.fn(),
-      transaction: jest.fn(),
+      query: vi.fn(),
+      transaction: vi.fn(),
     },
-    associate: jest.fn(),
+    associate: vi.fn(),
   },
   Role: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    belongsToMany: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    belongsToMany: vi.fn(),
+    associate: vi.fn(),
   },
   UserRole: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    bulkCreate: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    bulkCreate: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
@@ -764,20 +765,20 @@ export const createMockPet = (overrides: Record<string, unknown> = {}) => ({
 });
 
 // Mock Report model
-jest.mock('./models/Report', () => ({
+vi.mock('./models/Report', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
   ReportStatus: {
     PENDING: 'pending',
@@ -813,19 +814,19 @@ jest.mock('./models/Report', () => ({
 }));
 
 // Mock ModeratorAction model
-jest.mock('./models/ModeratorAction', () => ({
+vi.mock('./models/ModeratorAction', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
   ActionType: {
     WARNING_ISSUED: 'warning_issued',
@@ -844,32 +845,37 @@ jest.mock('./models/ModeratorAction', () => ({
 }));
 
 // Mock Invitation model
-jest.mock('./models/Invitation', () => ({
+vi.mock('./models/Invitation', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    findAndCountAll: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    findAndCountAll: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
 // Update sequelize.transaction mock to support callback pattern
-const originalSequelizeMock = jest.requireMock('./sequelize');
-originalSequelizeMock.default.transaction = jest.fn(async (callback) => {
-  if (typeof callback === 'function') {
-    const t = { commit: jest.fn(), rollback: jest.fn() };
-    return await callback(t);
+// This must be done after mocks are set up
+beforeEach(async () => {
+  const originalSequelizeMock = await vi.importMock<typeof import('./sequelize')>('./sequelize');
+  if (originalSequelizeMock.default) {
+    originalSequelizeMock.default.transaction = vi.fn(async (callback) => {
+      if (typeof callback === 'function') {
+        const t = { commit: vi.fn(), rollback: vi.fn() };
+        return await callback(t);
+      }
+      return Promise.resolve({
+        commit: vi.fn(),
+        rollback: vi.fn(),
+      });
+    });
   }
-  return Promise.resolve({
-    commit: jest.fn(),
-    rollback: jest.fn(),
-  });
 });

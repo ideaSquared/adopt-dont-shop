@@ -1,5 +1,6 @@
+import { vi } from 'vitest';
 // Mock env config FIRST before any imports
-jest.mock('../../config/env', () => ({
+vi.mock('../../config/env', () => ({
   env: {
     JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',
@@ -24,54 +25,54 @@ import {
 } from '../../types';
 
 // Mock dependencies
-jest.mock('../../models/User');
-jest.mock('../../models/AuditLog');
-jest.mock('../../services/auditLog.service');
-jest.mock('../../utils/logger');
-jest.mock('jsonwebtoken');
-jest.mock('bcryptjs');
-jest.mock('crypto');
+vi.mock('../../models/User');
+vi.mock('../../models/AuditLog');
+vi.mock('../../services/auditLog.service');
+vi.mock('../../utils/logger');
+vi.mock('jsonwebtoken');
+vi.mock('bcryptjs');
+vi.mock('crypto');
 
 // Mock email service
-jest.mock('../../services/email.service', () => ({
+vi.mock('../../services/email.service', () => ({
   default: {
-    sendEmail: jest.fn().mockResolvedValue(undefined),
+    sendEmail: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-const MockedUser = User as jest.Mocked<typeof User>;
-const MockedAuditLogService = AuditLogService as jest.Mocked<typeof AuditLogService>;
-const mockedJwt = jwt as jest.Mocked<typeof jwt>;
-const mockedBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
-const mockedCrypto = crypto as jest.Mocked<typeof crypto>;
+const MockedUser = User as vi.Mocked<typeof User>;
+const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
+const mockedJwt = jwt as vi.Mocked<typeof jwt>;
+const mockedBcrypt = bcrypt as vi.Mocked<typeof bcrypt>;
+const mockedCrypto = crypto as vi.Mocked<typeof crypto>;
 
 describe('Authentication Flow Integration Tests', () => {
   const validPassword = 'SecurePass123!';
   const hashedPassword = 'hashed_SecurePass123!';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default bcrypt mocks
-    mockedBcrypt.hash = jest.fn().mockResolvedValue(hashedPassword as never);
-    mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
-    mockedBcrypt.genSalt = jest.fn().mockResolvedValue('salt' as never);
+    mockedBcrypt.hash = vi.fn().mockResolvedValue(hashedPassword as never);
+    mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+    mockedBcrypt.genSalt = vi.fn().mockResolvedValue('salt' as never);
 
     // Setup default crypto mocks
-    (mockedCrypto.randomBytes as unknown as jest.Mock) = jest.fn().mockReturnValue({
-      toString: jest.fn().mockReturnValue('mock-token-12345678901234567890'),
+    (mockedCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
+      toString: vi.fn().mockReturnValue('mock-token-12345678901234567890'),
     });
 
     // Setup default JWT mocks
-    mockedJwt.sign = jest.fn().mockReturnValue('mock-jwt-token' as never);
-    mockedJwt.verify = jest.fn().mockReturnValue({
+    mockedJwt.sign = vi.fn().mockReturnValue('mock-jwt-token' as never);
+    mockedJwt.verify = vi.fn().mockReturnValue({
       userId: 'user-123',
       email: 'test@example.com',
       userType: UserType.ADOPTER,
     } as never);
 
     // Setup default AuditLog mocks
-    MockedAuditLogService.log = jest.fn().mockResolvedValue(undefined as never);
+    MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined as never);
   });
 
   describe('User Registration and Email Verification', () => {
@@ -95,8 +96,8 @@ describe('Authentication Flow Integration Tests', () => {
           emailVerified: false,
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
-        MockedUser.create = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+        MockedUser.create = vi.fn().mockResolvedValue(mockUser as never);
 
         const result = await AuthService.register(registerData);
 
@@ -125,8 +126,8 @@ describe('Authentication Flow Integration Tests', () => {
           email: registerData.email.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
-        MockedUser.create = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+        MockedUser.create = vi.fn().mockResolvedValue(mockUser as never);
 
         await AuthService.register(registerData);
 
@@ -144,8 +145,8 @@ describe('Authentication Flow Integration Tests', () => {
           email: registerData.email.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
-        MockedUser.create = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+        MockedUser.create = vi.fn().mockResolvedValue(mockUser as never);
 
         await AuthService.register(registerData);
 
@@ -170,8 +171,8 @@ describe('Authentication Flow Integration Tests', () => {
           email: registerData.email.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
-        MockedUser.create = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+        MockedUser.create = vi.fn().mockResolvedValue(mockUser as never);
 
         await AuthService.register(registerData);
 
@@ -191,8 +192,8 @@ describe('Authentication Flow Integration Tests', () => {
           email: registerData.email.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
-        MockedUser.create = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+        MockedUser.create = vi.fn().mockResolvedValue(mockUser as never);
 
         const result = await AuthService.register(registerData);
 
@@ -207,7 +208,7 @@ describe('Authentication Flow Integration Tests', () => {
           email: registerData.email.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(existingUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(existingUser as never);
 
         await expect(AuthService.register(registerData)).rejects.toThrow(
           'User already exists with this email'
@@ -221,7 +222,7 @@ describe('Authentication Flow Integration Tests', () => {
           email: registerData.email.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(existingUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(existingUser as never);
 
         const upperCaseData = { ...registerData, email: registerData.email.toUpperCase() };
 
@@ -233,7 +234,7 @@ describe('Authentication Flow Integration Tests', () => {
 
     describe('when validating passwords during registration', () => {
       it('should reject password shorter than 8 characters', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const invalidData = { ...registerData, password: 'Short1!' };
 
@@ -243,7 +244,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject password without lowercase letter', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const invalidData = { ...registerData, password: 'PASSWORD123!' };
 
@@ -253,7 +254,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject password without uppercase letter', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const invalidData = { ...registerData, password: 'password123!' };
 
@@ -263,7 +264,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject password without number', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const invalidData = { ...registerData, password: 'PasswordOnly!' };
 
@@ -273,7 +274,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject password without special character', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const invalidData = { ...registerData, password: 'Password123' };
 
@@ -296,7 +297,7 @@ describe('Authentication Flow Integration Tests', () => {
           verificationTokenExpiresAt: new Date(Date.now() + 3600000),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const result = await authService.verifyEmail(verificationToken);
@@ -318,7 +319,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject verification with invalid token', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const authService = new AuthService();
 
@@ -330,7 +331,7 @@ describe('Authentication Flow Integration Tests', () => {
       it('should reject verification with expired token', async () => {
         const expiredDate = new Date(Date.now() - 3600000);
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const authService = new AuthService();
 
@@ -349,7 +350,7 @@ describe('Authentication Flow Integration Tests', () => {
           verificationTokenExpiresAt: new Date(Date.now() + 3600000),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         await authService.verifyEmail(verificationToken);
@@ -373,7 +374,7 @@ describe('Authentication Flow Integration Tests', () => {
           verificationTokenExpiresAt: new Date(Date.now() + 3600000),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         await authService.verifyEmail(verificationToken);
@@ -393,7 +394,7 @@ describe('Authentication Flow Integration Tests', () => {
           status: UserStatus.PENDING_VERIFICATION,
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         await authService.resendVerificationEmail(email);
@@ -404,7 +405,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should not reveal if email does not exist', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const authService = new AuthService();
         const result = await authService.resendVerificationEmail('nonexistent@example.com');
@@ -422,7 +423,7 @@ describe('Authentication Flow Integration Tests', () => {
           status: UserStatus.ACTIVE,
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const result = await authService.resendVerificationEmail(email);
@@ -441,7 +442,7 @@ describe('Authentication Flow Integration Tests', () => {
           status: UserStatus.PENDING_VERIFICATION,
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         await authService.resendVerificationEmail(email);
@@ -476,7 +477,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         const result = await AuthService.login(loginCredentials);
 
@@ -497,7 +498,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         await AuthService.login(loginCredentials);
 
@@ -519,7 +520,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         await AuthService.login(loginCredentials);
 
@@ -536,7 +537,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         await AuthService.login(loginCredentials);
 
@@ -574,7 +575,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         const result = await AuthService.login(loginCredentials);
 
@@ -585,8 +586,8 @@ describe('Authentication Flow Integration Tests', () => {
 
     describe('when login fails due to invalid credentials', () => {
       it('should reject login with non-existent email', async () => {
-        MockedUser.scope = jest.fn().mockReturnValue({
-          findOne: jest.fn().mockResolvedValue(null),
+        MockedUser.scope = vi.fn().mockReturnValue({
+          findOne: vi.fn().mockResolvedValue(null),
         } as never);
 
         await expect(AuthService.login(loginCredentials)).rejects.toThrow('Invalid credentials');
@@ -603,7 +604,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(false as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(false as never);
 
         await expect(AuthService.login(loginCredentials)).rejects.toThrow('Invalid credentials');
       });
@@ -619,7 +620,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(false as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(false as never);
 
         await expect(AuthService.login(loginCredentials)).rejects.toThrow('Invalid credentials');
 
@@ -639,7 +640,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(false as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(false as never);
 
         await expect(AuthService.login(loginCredentials)).rejects.toThrow('Invalid credentials');
 
@@ -659,7 +660,7 @@ describe('Authentication Flow Integration Tests', () => {
           lockedUntil: new Date(Date.now() + 1800000), // 30 minutes from now
         });
 
-        mockUser.isAccountLocked = jest.fn().mockReturnValue(true);
+        mockUser.isAccountLocked = vi.fn().mockReturnValue(true);
 
         setupLoginMocks(mockUser);
 
@@ -678,7 +679,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         await expect(AuthService.login(loginCredentials)).rejects.toThrow(
           'Please verify your email before logging in'
@@ -698,7 +699,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         await expect(AuthService.login(loginCredentials)).rejects.toThrow(
           'Two-factor authentication code required'
@@ -716,7 +717,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         const credentialsWithInvalid2FA = {
           ...loginCredentials,
@@ -739,7 +740,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         const credentialsWithValid2FA = {
           ...loginCredentials,
@@ -773,10 +774,10 @@ describe('Authentication Flow Integration Tests', () => {
           status: UserStatus.ACTIVE,
         });
 
-        mockUser.canLogin = jest.fn().mockReturnValue(true);
+        mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = jest.fn().mockReturnValue(mockPayload as never);
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
+        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         const result = await AuthService.refreshToken(validRefreshToken);
 
@@ -797,10 +798,10 @@ describe('Authentication Flow Integration Tests', () => {
           status: UserStatus.ACTIVE,
         });
 
-        mockUser.canLogin = jest.fn().mockReturnValue(true);
+        mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = jest.fn().mockReturnValue(mockPayload as never);
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
+        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         await AuthService.refreshToken(validRefreshToken);
 
@@ -831,10 +832,10 @@ describe('Authentication Flow Integration Tests', () => {
           ],
         });
 
-        mockUser.canLogin = jest.fn().mockReturnValue(true);
+        mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = jest.fn().mockReturnValue(mockPayload as never);
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
+        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         const result = await AuthService.refreshToken(validRefreshToken);
 
@@ -843,7 +844,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject refresh with invalid token', async () => {
-        mockedJwt.verify = jest.fn().mockImplementation(() => {
+        mockedJwt.verify = vi.fn().mockImplementation(() => {
           throw new Error('Invalid token');
         });
 
@@ -853,7 +854,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject refresh with expired token', async () => {
-        mockedJwt.verify = jest.fn().mockImplementation(() => {
+        mockedJwt.verify = vi.fn().mockImplementation(() => {
           const error = new Error('Token expired');
           error.name = 'TokenExpiredError';
           throw error;
@@ -870,8 +871,8 @@ describe('Authentication Flow Integration Tests', () => {
           tokenId: 'token-123',
         };
 
-        mockedJwt.verify = jest.fn().mockReturnValue(mockPayload as never);
-        MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
         await expect(AuthService.refreshToken(validRefreshToken)).rejects.toThrow(
           'Invalid refresh token'
@@ -889,10 +890,10 @@ describe('Authentication Flow Integration Tests', () => {
           status: UserStatus.SUSPENDED,
         });
 
-        mockUser.canLogin = jest.fn().mockReturnValue(false);
+        mockUser.canLogin = vi.fn().mockReturnValue(false);
 
-        mockedJwt.verify = jest.fn().mockReturnValue(mockPayload as never);
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
+        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         await expect(AuthService.refreshToken(validRefreshToken)).rejects.toThrow(
           'Invalid refresh token'
@@ -912,10 +913,10 @@ describe('Authentication Flow Integration Tests', () => {
           status: UserStatus.ACTIVE,
         });
 
-        mockUser.canLogin = jest.fn().mockReturnValue(true);
+        mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = jest.fn().mockReturnValue(mockPayload as never);
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
+        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         const result = await AuthService.refreshToken(validRefreshToken);
 
@@ -936,7 +937,7 @@ describe('Authentication Flow Integration Tests', () => {
           email: resetEmail.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const resetRequest: PasswordResetRequest = { email: resetEmail };
@@ -954,7 +955,7 @@ describe('Authentication Flow Integration Tests', () => {
           email: resetEmail.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const resetRequest: PasswordResetRequest = { email: resetEmail };
@@ -971,7 +972,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should not reveal if email does not exist', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const authService = new AuthService();
         const resetRequest: PasswordResetRequest = { email: 'nonexistent@example.com' };
@@ -987,7 +988,7 @@ describe('Authentication Flow Integration Tests', () => {
           email: resetEmail.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const resetRequest: PasswordResetRequest = { email: resetEmail };
@@ -1009,7 +1010,7 @@ describe('Authentication Flow Integration Tests', () => {
           email: resetEmail.toLowerCase(),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const resetRequest: PasswordResetRequest = { email: resetEmail.toUpperCase() };
@@ -1034,7 +1035,7 @@ describe('Authentication Flow Integration Tests', () => {
           resetTokenExpiration: new Date(Date.now() + 3600000),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const confirmData: PasswordResetConfirm = { token: resetToken, newPassword };
@@ -1050,7 +1051,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject reset with invalid token', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const authService = new AuthService();
         const confirmData: PasswordResetConfirm = { token: 'invalid-token', newPassword };
@@ -1061,7 +1062,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject reset with expired token', async () => {
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const authService = new AuthService();
         const confirmData: PasswordResetConfirm = { token: resetToken, newPassword };
@@ -1079,7 +1080,7 @@ describe('Authentication Flow Integration Tests', () => {
           resetTokenExpiration: new Date(Date.now() + 3600000),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const confirmData: PasswordResetConfirm = { token: resetToken, newPassword };
@@ -1104,7 +1105,7 @@ describe('Authentication Flow Integration Tests', () => {
           resetTokenForceFlag: true,
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const confirmData: PasswordResetConfirm = { token: resetToken, newPassword };
@@ -1122,7 +1123,7 @@ describe('Authentication Flow Integration Tests', () => {
           resetTokenExpiration: new Date(Date.now() + 3600000),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as never);
 
         const authService = new AuthService();
         const confirmData: PasswordResetConfirm = { token: resetToken, newPassword };
@@ -1156,7 +1157,7 @@ describe('Authentication Flow Integration Tests', () => {
       it('should log logout event when refresh token provided', async () => {
         const refreshToken = 'valid.refresh.token.with.sufficient.length';
         const { logger } = await import('../../utils/logger');
-        const loggerSpy = jest.spyOn(logger, 'info');
+        const loggerSpy = vi.spyOn(logger, 'info');
 
         await AuthService.logout(refreshToken);
 
@@ -1202,8 +1203,8 @@ describe('Authentication Flow Integration Tests', () => {
           verificationToken: 'verification-token-123',
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(null);
-        MockedUser.create = jest.fn().mockResolvedValue(mockUserAfterRegister as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+        MockedUser.create = vi.fn().mockResolvedValue(mockUserAfterRegister as never);
 
         const registerResult = await AuthService.register(registerData);
 
@@ -1219,7 +1220,7 @@ describe('Authentication Flow Integration Tests', () => {
           verificationTokenExpiresAt: null,
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUserAfterVerification as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUserAfterVerification as never);
 
         const authService = new AuthService();
         await authService.verifyEmail('verification-token-123');
@@ -1234,7 +1235,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUserForLogin);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         const loginCredentials: LoginCredentials = {
           email: registerData.email,
@@ -1262,7 +1263,7 @@ describe('Authentication Flow Integration Tests', () => {
           password: hashedPassword,
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUserBeforeReset as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUserBeforeReset as never);
 
         const authService = new AuthService();
         await authService.requestPasswordReset({ email });
@@ -1277,7 +1278,7 @@ describe('Authentication Flow Integration Tests', () => {
           resetTokenExpiration: new Date(Date.now() + 3600000),
         });
 
-        MockedUser.findOne = jest.fn().mockResolvedValue(mockUserWithResetToken as never);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUserWithResetToken as never);
 
         await authService.confirmPasswordReset({ token: resetToken, newPassword });
 
@@ -1293,7 +1294,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUserForLogin);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         const loginResult = await AuthService.login({ email, password: newPassword });
 
@@ -1316,7 +1317,7 @@ describe('Authentication Flow Integration Tests', () => {
         });
 
         setupLoginMocks(mockUser);
-        mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
         const loginResult = await AuthService.login({ email, password: validPassword });
 
@@ -1330,10 +1331,10 @@ describe('Authentication Flow Integration Tests', () => {
           tokenId: 'token-123',
         };
 
-        mockUser.canLogin = jest.fn().mockReturnValue(true);
+        mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = jest.fn().mockReturnValue(mockPayload as never);
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
+        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         const refreshResult = await AuthService.refreshToken(refreshToken);
 
@@ -1349,7 +1350,7 @@ describe('Authentication Flow Integration Tests', () => {
 });
 
 // Helper function to create mock user
-function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
+function createMockUser(overrides: Partial<User> = {}): vi.Mocked<User> {
   const defaultUser = {
     userId: 'mock-user-123',
     email: 'mock@example.com',
@@ -1396,12 +1397,12 @@ function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
     profileCompletionStatus: {},
     applicationTemplateVersion: 1,
     Roles: [],
-    isAccountLocked: jest.fn().mockReturnValue(false),
-    getFullName: jest.fn().mockReturnValue('Mock User'),
-    isEmailVerified: jest.fn().mockReturnValue(true),
-    comparePassword: jest.fn().mockResolvedValue(true),
-    canLogin: jest.fn().mockReturnValue(true),
-    toJSON: jest.fn().mockReturnValue({
+    isAccountLocked: vi.fn().mockReturnValue(false),
+    getFullName: vi.fn().mockReturnValue('Mock User'),
+    isEmailVerified: vi.fn().mockReturnValue(true),
+    comparePassword: vi.fn().mockResolvedValue(true),
+    canLogin: vi.fn().mockReturnValue(true),
+    toJSON: vi.fn().mockReturnValue({
       userId: overrides.userId ?? 'mock-user-123',
       email: overrides.email ?? 'mock@example.com',
       firstName: overrides.firstName ?? 'Mock',
@@ -1410,16 +1411,16 @@ function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
       status: overrides.status ?? UserStatus.ACTIVE,
       emailVerified: overrides.emailVerified ?? true,
     }),
-    save: jest.fn().mockResolvedValue(undefined),
+    save: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultUser as jest.Mocked<User>;
+  return defaultUser as vi.Mocked<User>;
 }
 
 // Helper function to setup login mocks
-function setupLoginMocks(mockUser: jest.Mocked<User>): void {
-  MockedUser.scope = jest.fn().mockReturnValue({
-    findOne: jest.fn().mockResolvedValue(mockUser),
+function setupLoginMocks(mockUser: vi.Mocked<User>): void {
+  MockedUser.scope = vi.fn().mockReturnValue({
+    findOne: vi.fn().mockResolvedValue(mockUser),
   } as never);
 }

@@ -1,15 +1,9 @@
+import { vi } from 'vitest';
 import { Op } from 'sequelize';
 // Mock sequelize functions that are used in the service
-const mockCol = jest.fn();
-const mockFn = jest.fn();
-const mockLiteral = jest.fn();
-
-jest.doMock('sequelize', () => ({
-  ...jest.requireActual('sequelize'),
-  col: mockCol,
-  fn: mockFn,
-  literal: mockLiteral,
-}));
+const mockCol = vi.fn();
+const mockFn = vi.fn();
+const mockLiteral = vi.fn();
 
 import { AuditLog } from '../../models/AuditLog';
 import Pet, {
@@ -34,40 +28,40 @@ import {
 } from '../../types/pet';
 
 // Mock dependencies
-jest.mock('../../models/Pet');
-jest.mock('../../models/Rescue');
-jest.mock('../../models/Report', () => ({
+vi.mock('../../models/Pet');
+vi.mock('../../models/Rescue');
+vi.mock('../../models/Report', () => ({
   default: {
-    create: jest.fn(),
+    create: vi.fn(),
   },
   ReportCategory: { INAPPROPRIATE_CONTENT: 'INAPPROPRIATE_CONTENT' },
   ReportStatus: { PENDING: 'PENDING' },
   ReportSeverity: { MEDIUM: 'MEDIUM' },
 }));
-jest.mock('../../services/auditLog.service');
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../services/auditLog.service');
+vi.mock('../../utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
-const MockedPet = Pet as jest.Mocked<typeof Pet>;
-const MockedRescue = Rescue as jest.Mocked<typeof Rescue>;
+const MockedPet = Pet as vi.Mocked<typeof Pet>;
+const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
 // Mock the static log method
-jest.mock('../../services/auditLog.service', () => ({
+vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
-    log: jest.fn().mockResolvedValue({}),
+    log: vi.fn().mockResolvedValue({}),
   },
 }));
 
 import { AuditLogService } from '../../services/auditLog.service';
-const mockAuditLog = AuditLogService.log as jest.MockedFunction<typeof AuditLogService.log>;
+const mockAuditLog = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
 
 describe('PetService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockAuditLog.mockResolvedValue({
       id: 1,
       service: 'test',
@@ -116,7 +110,7 @@ describe('PetService', () => {
         count: 2,
       };
 
-      (MockedPet.findAndCountAll as jest.Mock).mockResolvedValue(mockResult);
+      (MockedPet.findAndCountAll as vi.Mock).mockResolvedValue(mockResult);
 
       const filters: PetSearchFilters = {
         type: PetType.DOG,
@@ -148,7 +142,7 @@ describe('PetService', () => {
 
     it('should search pets with text search', async () => {
       const mockResult = { rows: mockPets, count: 2 };
-      (MockedPet.findAndCountAll as jest.Mock).mockResolvedValue(mockResult);
+      (MockedPet.findAndCountAll as vi.Mock).mockResolvedValue(mockResult);
 
       const filters: PetSearchFilters = {
         search: 'Golden',
@@ -174,7 +168,7 @@ describe('PetService', () => {
 
     it('should handle range filters', async () => {
       const mockResult = { rows: [], count: 0 };
-      (MockedPet.findAndCountAll as jest.Mock).mockResolvedValue(mockResult);
+      (MockedPet.findAndCountAll as vi.Mock).mockResolvedValue(mockResult);
 
       const filters: PetSearchFilters = {
         adoptionFeeMin: 100,
@@ -203,7 +197,7 @@ describe('PetService', () => {
 
     it('should handle pagination correctly', async () => {
       const mockResult = { rows: mockPets, count: 50 };
-      (MockedPet.findAndCountAll as jest.Mock).mockResolvedValue(mockResult);
+      (MockedPet.findAndCountAll as vi.Mock).mockResolvedValue(mockResult);
 
       const result = await PetService.searchPets({}, { page: 3, limit: 10 });
 
@@ -218,7 +212,7 @@ describe('PetService', () => {
     });
 
     it('should handle search errors', async () => {
-      (MockedPet.findAndCountAll as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (MockedPet.findAndCountAll as vi.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(PetService.searchPets({})).rejects.toThrow('Failed to search pets');
     });
@@ -229,11 +223,11 @@ describe('PetService', () => {
       pet_id: 'pet1',
       name: 'Buddy',
       type: PetType.DOG,
-      increment: jest.fn().mockResolvedValue(undefined),
+      increment: vi.fn().mockResolvedValue(undefined),
     };
 
     it('should get pet by ID and increment view count', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockPet);
 
       const result = await PetService.getPetById('pet1', 'user1');
 
@@ -250,7 +244,7 @@ describe('PetService', () => {
     });
 
     it('should return null for non-existent pet', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(null);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(null);
 
       const result = await PetService.getPetById('nonexistent');
 
@@ -259,7 +253,7 @@ describe('PetService', () => {
     });
 
     it('should handle errors', async () => {
-      (MockedPet.findByPk as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (MockedPet.findByPk as vi.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(PetService.getPetById('pet1')).rejects.toThrow('Failed to retrieve pet');
     });
@@ -288,7 +282,7 @@ describe('PetService', () => {
     };
 
     it('should create a new pet successfully', async () => {
-      (MockedPet.create as jest.Mock).mockResolvedValue(mockCreatedPet);
+      (MockedPet.create as vi.Mock).mockResolvedValue(mockCreatedPet);
 
       const result = await PetService.createPet(mockPetData, 'rescue1', 'user1');
 
@@ -310,7 +304,7 @@ describe('PetService', () => {
 
     it('should handle validation errors', async () => {
       const invalidData = { ...mockPetData, name: '' };
-      (MockedPet.create as jest.Mock).mockResolvedValue(mockCreatedPet);
+      (MockedPet.create as vi.Mock).mockResolvedValue(mockCreatedPet);
 
       // The service doesn't validate empty names, so we expect it to succeed
       const result = await PetService.createPet(invalidData, 'rescue1', 'user1');
@@ -318,7 +312,7 @@ describe('PetService', () => {
     });
 
     it('should handle database errors', async () => {
-      (MockedPet.create as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (MockedPet.create as vi.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(PetService.createPet(mockPetData, 'rescue1', 'user1')).rejects.toThrow(
         'Database error'
@@ -331,9 +325,9 @@ describe('PetService', () => {
       pet_id: 'pet1',
       name: 'Original Name',
       status: PetStatus.AVAILABLE,
-      update: jest.fn().mockResolvedValue(undefined),
-      reload: jest.fn().mockResolvedValue(undefined),
-      toJSON: jest.fn().mockReturnValue({
+      update: vi.fn().mockResolvedValue(undefined),
+      reload: vi.fn().mockResolvedValue(undefined),
+      toJSON: vi.fn().mockReturnValue({
         pet_id: 'pet1',
         name: 'Original Name',
         status: PetStatus.AVAILABLE,
@@ -348,7 +342,7 @@ describe('PetService', () => {
     it('should update pet successfully', async () => {
       const updatedPet = { ...mockPet, name: 'Updated Name' };
       mockPet.reload.mockReturnValue(updatedPet);
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockPet);
 
       const result = await PetService.updatePet('pet1', updateData, 'user1');
 
@@ -376,7 +370,7 @@ describe('PetService', () => {
     });
 
     it('should throw error for non-existent pet', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(null);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(PetService.updatePet('nonexistent', updateData, 'user1')).rejects.toThrow(
         'Pet not found'
@@ -387,14 +381,14 @@ describe('PetService', () => {
       const adoptedPet = {
         ...mockPet,
         status: PetStatus.ADOPTED,
-        reload: jest.fn().mockReturnValue(mockPet),
-        toJSON: jest.fn().mockReturnValue({
+        reload: vi.fn().mockReturnValue(mockPet),
+        toJSON: vi.fn().mockReturnValue({
           pet_id: 'pet1',
           name: 'Original Name',
           status: PetStatus.ADOPTED,
         }),
       };
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(adoptedPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(adoptedPet);
 
       const result = await PetService.updatePet('pet1', updateData, 'user1');
       expect(result).toBeDefined();
@@ -405,8 +399,8 @@ describe('PetService', () => {
     const mockPet = {
       pet_id: 'pet1',
       status: PetStatus.AVAILABLE,
-      update: jest.fn().mockResolvedValue(undefined),
-      reload: jest.fn(),
+      update: vi.fn().mockResolvedValue(undefined),
+      reload: vi.fn(),
     };
     mockPet.reload.mockReturnValue(mockPet);
 
@@ -417,7 +411,7 @@ describe('PetService', () => {
     };
 
     it('should update pet status successfully', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockPet);
 
       const result = await PetService.updatePetStatus('pet1', statusUpdate, 'user1');
 
@@ -442,7 +436,7 @@ describe('PetService', () => {
     });
 
     it('should throw error for non-existent pet', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(null);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(
         PetService.updatePetStatus('nonexistent', statusUpdate, 'user1')
@@ -454,16 +448,16 @@ describe('PetService', () => {
     const mockPet = {
       pet_id: 'pet1',
       status: PetStatus.AVAILABLE,
-      update: jest.fn().mockResolvedValue(undefined),
-      destroy: jest.fn().mockResolvedValue(undefined),
-      toJSON: jest.fn().mockReturnValue({
+      update: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      toJSON: vi.fn().mockReturnValue({
         pet_id: 'pet1',
         status: PetStatus.AVAILABLE,
       }),
     };
 
     it('should soft delete pet successfully', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockPet);
 
       const result = await PetService.deletePet('pet1', 'user1', 'No longer available');
 
@@ -483,7 +477,7 @@ describe('PetService', () => {
     });
 
     it('should throw error for non-existent pet', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(null);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(PetService.deletePet('nonexistent', 'user1')).rejects.toThrow('Pet not found');
     });
@@ -492,13 +486,13 @@ describe('PetService', () => {
       const adoptedPet = {
         ...mockPet,
         status: PetStatus.ADOPTED,
-        destroy: jest.fn().mockResolvedValue(undefined),
-        toJSON: jest.fn().mockReturnValue({
+        destroy: vi.fn().mockResolvedValue(undefined),
+        toJSON: vi.fn().mockReturnValue({
           pet_id: 'pet1',
           status: PetStatus.ADOPTED,
         }),
       };
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(adoptedPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(adoptedPet);
 
       const result = await PetService.deletePet('pet1', 'user1');
       expect(result.message).toBe('Pet deleted successfully');
@@ -509,8 +503,8 @@ describe('PetService', () => {
     const mockPet = {
       pet_id: 'pet1',
       images: [],
-      update: jest.fn().mockResolvedValue(undefined),
-      reload: jest.fn().mockReturnValue({
+      update: vi.fn().mockResolvedValue(undefined),
+      reload: vi.fn().mockReturnValue({
         pet_id: 'pet1',
         images: [],
       }),
@@ -527,7 +521,7 @@ describe('PetService', () => {
     ];
 
     it('should add images to pet successfully', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockPet);
 
       const result = await PetService.addPetImages('pet1', newImages, 'user1');
 
@@ -552,7 +546,7 @@ describe('PetService', () => {
     });
 
     it('should throw error for non-existent pet', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(null);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(PetService.addPetImages('nonexistent', newImages, 'user1')).rejects.toThrow(
         'Pet not found'
@@ -563,9 +557,9 @@ describe('PetService', () => {
       const invalidImages = [{ url: '', isPrimary: false, orderIndex: 0 }];
       const mockPetWithImages = {
         ...mockPet,
-        reload: jest.fn().mockReturnValue(mockPet),
+        reload: vi.fn().mockReturnValue(mockPet),
       };
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPetWithImages);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockPetWithImages);
 
       const result = await PetService.addPetImages('pet1', invalidImages, 'user1');
       expect(result).toBeDefined();
@@ -580,7 +574,7 @@ describe('PetService', () => {
 
     it('should get pets by rescue with pagination', async () => {
       const mockResult = { rows: mockPets, count: 2 };
-      (MockedPet.findAndCountAll as jest.Mock).mockResolvedValue(mockResult);
+      (MockedPet.findAndCountAll as vi.Mock).mockResolvedValue(mockResult);
 
       const result = await PetService.getPetsByRescue('rescue1', 1, 20);
 
@@ -609,7 +603,7 @@ describe('PetService', () => {
     ];
 
     it('should get featured pets', async () => {
-      (MockedPet.findAll as jest.Mock).mockResolvedValue(mockFeaturedPets);
+      (MockedPet.findAll as vi.Mock).mockResolvedValue(mockFeaturedPets);
 
       const result = await PetService.getFeaturedPets(5);
 
@@ -631,12 +625,12 @@ describe('PetService', () => {
 
   describe('getPetStatistics', () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('should get pet statistics', async () => {
       // Mock the count queries for basic statistics
-      (MockedPet.count as jest.Mock)
+      (MockedPet.count as vi.Mock)
         .mockResolvedValueOnce(100) // total pets
         .mockResolvedValueOnce(50) // available pets
         .mockResolvedValueOnce(30) // adopted pets
@@ -757,15 +751,15 @@ describe('PetService', () => {
 
   describe('bulkUpdatePets', () => {
     const mockPets = [
-      { pet_id: 'pet1', update: jest.fn().mockResolvedValue(undefined) },
-      { pet_id: 'pet2', update: jest.fn().mockResolvedValue(undefined) },
+      { pet_id: 'pet1', update: vi.fn().mockResolvedValue(undefined) },
+      { pet_id: 'pet2', update: vi.fn().mockResolvedValue(undefined) },
     ];
 
     it('should perform bulk status update successfully', async () => {
-      const pet1 = { ...mockPets[0], reload: jest.fn().mockReturnValue(mockPets[0]) };
-      const pet2 = { ...mockPets[1], reload: jest.fn().mockReturnValue(mockPets[1]) };
+      const pet1 = { ...mockPets[0], reload: vi.fn().mockReturnValue(mockPets[0]) };
+      const pet2 = { ...mockPets[1], reload: vi.fn().mockReturnValue(mockPets[1]) };
 
-      (MockedPet.findByPk as jest.Mock).mockResolvedValueOnce(pet1).mockResolvedValueOnce(pet2);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValueOnce(pet1).mockResolvedValueOnce(pet2);
 
       const operation: BulkPetOperation = {
         petIds: ['pet1', 'pet2'],
@@ -783,7 +777,7 @@ describe('PetService', () => {
 
     it('should handle partial failures in bulk operation', async () => {
       // Mock Pet.update to succeed for first pet, fail for second
-      (MockedPet.update as jest.Mock)
+      (MockedPet.update as vi.Mock)
         .mockResolvedValueOnce([1]) // First update succeeds
         .mockRejectedValueOnce(new Error('Database error')); // Second update fails
 
@@ -828,7 +822,7 @@ describe('PetService', () => {
     };
 
     it('should get pet activity statistics', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockPet);
 
       const result = await PetService.getPetActivity('pet1');
 
@@ -845,7 +839,7 @@ describe('PetService', () => {
     });
 
     it('should throw error for non-existent pet', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(null);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(PetService.getPetActivity('nonexistent')).rejects.toThrow(
         'Failed to retrieve pet activity'
@@ -855,7 +849,7 @@ describe('PetService', () => {
 
   describe('getRecentPets', () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('should return recent pets with default limit', async () => {
@@ -864,7 +858,7 @@ describe('PetService', () => {
         { pet_id: 'pet2', name: 'Whiskers', type: 'cat', created_at: '2025-07-08T09:00:00Z' },
       ];
 
-      (MockedPet.findAll as jest.Mock).mockResolvedValueOnce(mockPets);
+      (MockedPet.findAll as vi.Mock).mockResolvedValueOnce(mockPets);
 
       const result = await PetService.getRecentPets();
 
@@ -891,7 +885,7 @@ describe('PetService', () => {
         { pet_id: 'pet1', name: 'Buddy', type: 'dog', created_at: '2025-07-08T10:00:00Z' },
       ];
 
-      (MockedPet.findAll as jest.Mock).mockResolvedValueOnce(mockPets);
+      (MockedPet.findAll as vi.Mock).mockResolvedValueOnce(mockPets);
 
       const result = await PetService.getRecentPets(5);
 
@@ -904,7 +898,7 @@ describe('PetService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      (MockedPet.findAll as jest.Mock).mockRejectedValueOnce(new Error('Database error'));
+      (MockedPet.findAll as vi.Mock).mockRejectedValueOnce(new Error('Database error'));
 
       await expect(PetService.getRecentPets()).rejects.toThrow('Failed to retrieve recent pets');
     });
@@ -912,7 +906,7 @@ describe('PetService', () => {
 
   describe('getPetBreedsByType', () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('should return breeds for valid pet type', async () => {
@@ -922,7 +916,7 @@ describe('PetService', () => {
         { breed: 'German Shepherd' },
       ];
 
-      (MockedPet.findAll as jest.Mock).mockResolvedValueOnce(mockBreeds);
+      (MockedPet.findAll as vi.Mock).mockResolvedValueOnce(mockBreeds);
 
       const result = await PetService.getPetBreedsByType('dog');
 
@@ -947,7 +941,7 @@ describe('PetService', () => {
         { breed: 'Poodle' },
       ];
 
-      (MockedPet.findAll as jest.Mock).mockResolvedValueOnce(mockBreeds);
+      (MockedPet.findAll as vi.Mock).mockResolvedValueOnce(mockBreeds);
 
       const result = await PetService.getPetBreedsByType('dog');
 
@@ -961,7 +955,7 @@ describe('PetService', () => {
     });
 
     it('should handle database errors', async () => {
-      (MockedPet.findAll as jest.Mock).mockRejectedValueOnce(new Error('Database error'));
+      (MockedPet.findAll as vi.Mock).mockRejectedValueOnce(new Error('Database error'));
 
       await expect(PetService.getPetBreedsByType('dog')).rejects.toThrow(
         'Failed to retrieve breeds for pet type: dog'
@@ -988,7 +982,7 @@ describe('PetService', () => {
 
   describe('getSimilarPets', () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     const mockReferencePet = {
@@ -1005,8 +999,8 @@ describe('PetService', () => {
         { pet_id: 'similar-2', breed: 'Labrador Retriever', type: 'dog' },
       ];
 
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockReferencePet);
-      (MockedPet.findAll as jest.Mock).mockResolvedValue(mockSimilarPets);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockReferencePet);
+      (MockedPet.findAll as vi.Mock).mockResolvedValue(mockSimilarPets);
 
       const result = await PetService.getSimilarPets('ref-pet-1', 6);
 
@@ -1025,14 +1019,14 @@ describe('PetService', () => {
     });
 
     it('should throw error for non-existent pet', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(null);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(PetService.getSimilarPets('nonexistent')).rejects.toThrow('Pet not found');
     });
 
     it('should handle database errors', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockReferencePet);
-      (MockedPet.findAll as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockReferencePet);
+      (MockedPet.findAll as vi.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(PetService.getSimilarPets('ref-pet-1')).rejects.toThrow(
         'Failed to retrieve similar pets'
@@ -1042,7 +1036,7 @@ describe('PetService', () => {
 
   describe('reportPet', () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('should create a pet report successfully', async () => {
@@ -1055,10 +1049,10 @@ describe('PetService', () => {
         category: 'INAPPROPRIATE_CONTENT',
       };
 
-      (MockedPet.findByPk as jest.Mock).mockResolvedValueOnce(mockPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValueOnce(mockPet);
 
       // Mock Report.create using the mocked module
-      const { default: Report } = jest.requireMock('../../models/Report');
+      const { default: Report } = vi.importMock('../../models/Report');
       Report.create.mockResolvedValue(mockReport);
 
       const result = await PetService.reportPet(
@@ -1086,7 +1080,7 @@ describe('PetService', () => {
     });
 
     it('should throw error for non-existent pet', async () => {
-      (MockedPet.findByPk as jest.Mock).mockResolvedValueOnce(null);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValueOnce(null);
 
       await expect(PetService.reportPet('nonexistent', 'user-456', 'spam')).rejects.toThrow(
         'Pet not found'
@@ -1095,10 +1089,10 @@ describe('PetService', () => {
 
     it('should handle report creation errors', async () => {
       const mockPet = { pet_id: 'pet-123', name: 'Buddy' };
-      (MockedPet.findByPk as jest.Mock).mockResolvedValue(mockPet);
+      (MockedPet.findByPk as vi.Mock).mockResolvedValue(mockPet);
 
       // Mock Report.create to throw an error using the mocked module
-      const { default: Report } = jest.requireMock('../../models/Report');
+      const { default: Report } = vi.importMock('../../models/Report');
       Report.create.mockRejectedValue(new Error('Report creation failed'));
 
       await expect(PetService.reportPet('pet-123', 'user-456', 'spam')).rejects.toThrow(

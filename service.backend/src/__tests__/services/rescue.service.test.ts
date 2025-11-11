@@ -1,6 +1,7 @@
+import { vi } from 'vitest';
 // Mock the static log method first (before imports to avoid hoisting issues)
-const mockAuditLogAction = jest.fn().mockResolvedValue(undefined);
-jest.mock('../../services/auditLog.service', () => ({
+const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
+vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: mockAuditLogAction,
   },
@@ -17,13 +18,13 @@ import {
 } from '../../services/rescue.service';
 
 // Mock dependencies
-jest.mock('../../utils/logger');
+vi.mock('../../utils/logger');
 
-const mockRescue = Rescue as jest.Mocked<typeof Rescue>;
-const mockStaffMember = StaffMember as jest.Mocked<typeof StaffMember>;
-const mockUser = User as jest.Mocked<typeof User>;
-const mockPet = Pet as jest.Mocked<typeof Pet>;
-const mockApplication = Application as jest.Mocked<typeof Application>;
+const mockRescue = Rescue as vi.Mocked<typeof Rescue>;
+const mockStaffMember = StaffMember as vi.Mocked<typeof StaffMember>;
+const mockUser = User as vi.Mocked<typeof User>;
+const mockPet = Pet as vi.Mocked<typeof Pet>;
+const mockApplication = Application as vi.Mocked<typeof Application>;
 
 // Mock data
 const mockRescueData = {
@@ -54,8 +55,8 @@ const mockRescueData = {
   deletedBy: null,
   createdAt: new Date(),
   updatedAt: new Date(),
-  toJSON: jest.fn(),
-  update: jest.fn(),
+  toJSON: vi.fn(),
+  update: vi.fn(),
 };
 
 const mockUserData = {
@@ -77,15 +78,15 @@ const mockStaffMemberData = {
   isDeleted: false,
   createdAt: new Date(),
   updatedAt: new Date(),
-  toJSON: jest.fn(),
-  destroy: jest.fn(),
-  update: jest.fn().mockResolvedValue(undefined),
+  toJSON: vi.fn(),
+  destroy: vi.fn(),
+  update: vi.fn().mockResolvedValue(undefined),
   user: mockUserData,
 };
 
 describe('RescueService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default mock implementations
     mockRescueData.toJSON.mockReturnValue(mockRescueData);
@@ -96,7 +97,7 @@ describe('RescueService', () => {
   describe('searchRescues', () => {
     it('should search rescues with default options', async () => {
       const mockRescues = [mockRescueData];
-      (mockRescue.findAndCountAll as jest.Mock).mockResolvedValue({
+      (mockRescue.findAndCountAll as vi.Mock).mockResolvedValue({
         count: 1,
         rows: mockRescues,
       });
@@ -142,7 +143,7 @@ describe('RescueService', () => {
         limit: 10,
       };
 
-      (mockRescue.findAndCountAll as jest.Mock).mockResolvedValue({
+      (mockRescue.findAndCountAll as vi.Mock).mockResolvedValue({
         count: 1,
         rows: [mockRescueData],
       });
@@ -169,7 +170,7 @@ describe('RescueService', () => {
         status: 'verified',
       };
 
-      (mockRescue.findAndCountAll as jest.Mock).mockResolvedValue({
+      (mockRescue.findAndCountAll as vi.Mock).mockResolvedValue({
         count: 0,
         rows: [],
       });
@@ -190,7 +191,7 @@ describe('RescueService', () => {
         location: 'New York',
       };
 
-      (mockRescue.findAndCountAll as jest.Mock).mockResolvedValue({
+      (mockRescue.findAndCountAll as vi.Mock).mockResolvedValue({
         count: 0,
         rows: [],
       });
@@ -219,7 +220,7 @@ describe('RescueService', () => {
         sortOrder: 'ASC',
       };
 
-      (mockRescue.findAndCountAll as jest.Mock).mockResolvedValue({
+      (mockRescue.findAndCountAll as vi.Mock).mockResolvedValue({
         count: 0,
         rows: [],
       });
@@ -236,7 +237,7 @@ describe('RescueService', () => {
     });
 
     it('should handle database errors', async () => {
-      (mockRescue.findAndCountAll as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (mockRescue.findAndCountAll as vi.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(RescueService.searchRescues()).rejects.toThrow('Failed to search rescues');
     });
@@ -245,11 +246,11 @@ describe('RescueService', () => {
   describe('getRescueById', () => {
     beforeEach(() => {
       // Clear all mocks before each test in this describe block
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('should get rescue without statistics', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(mockRescueData);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(mockRescueData);
 
       const result = await RescueService.getRescueById('rescue-123');
 
@@ -275,30 +276,30 @@ describe('RescueService', () => {
 
     it('should get rescue with statistics when requested', async () => {
       // Clear all mocks to ensure clean state
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(mockRescueData);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(mockRescueData);
 
       // Reset all count mocks to ensure clean state
-      (mockPet.count as jest.Mock).mockReset();
-      (mockApplication.count as jest.Mock).mockReset();
-      (mockStaffMember.count as jest.Mock).mockReset();
-      (mockPet.findAll as jest.Mock).mockReset();
+      (mockPet.count as vi.Mock).mockReset();
+      (mockApplication.count as vi.Mock).mockReset();
+      (mockStaffMember.count as vi.Mock).mockReset();
+      (mockPet.findAll as vi.Mock).mockReset();
 
       // Mock the statistics method calls in the exact order they are called
-      (mockPet.count as jest.Mock)
+      (mockPet.count as vi.Mock)
         .mockResolvedValueOnce(10) // totalPets
         .mockResolvedValueOnce(5) // availablePets
         .mockResolvedValueOnce(3) // adoptedPets
         .mockResolvedValueOnce(2); // monthlyAdoptions
 
-      (mockApplication.count as jest.Mock)
+      (mockApplication.count as vi.Mock)
         .mockResolvedValueOnce(4) // totalApplications
         .mockResolvedValueOnce(1); // pendingApplications
 
-      (mockStaffMember.count as jest.Mock).mockResolvedValue(8); // staffCount
+      (mockStaffMember.count as vi.Mock).mockResolvedValue(8); // staffCount
 
-      (mockPet.findAll as jest.Mock).mockResolvedValue([]); // recentAdoptions (empty = 0 average)
+      (mockPet.findAll as vi.Mock).mockResolvedValue([]); // recentAdoptions (empty = 0 average)
 
       const result = await RescueService.getRescueById('rescue-123', true);
 
@@ -322,13 +323,13 @@ describe('RescueService', () => {
     });
 
     it('should throw error when rescue not found', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(null);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(RescueService.getRescueById('nonexistent')).rejects.toThrow('Rescue not found');
     });
 
     it('should handle database errors', async () => {
-      (mockRescue.findByPk as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (mockRescue.findByPk as vi.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(RescueService.getRescueById('rescue-123')).rejects.toThrow(
         'Failed to retrieve rescue'
@@ -351,18 +352,18 @@ describe('RescueService', () => {
     beforeEach(() => {
       // Mock transaction
       const mockTransaction = {
-        commit: jest.fn(),
-        rollback: jest.fn(),
+        commit: vi.fn(),
+        rollback: vi.fn(),
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
-        transaction: jest.fn().mockResolvedValue(mockTransaction),
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
       };
     });
 
     it('should create rescue successfully', async () => {
-      (mockRescue.findOne as jest.Mock).mockResolvedValue(null); // No existing rescue
-      (mockRescue.create as jest.Mock).mockResolvedValue(mockRescueData);
+      (mockRescue.findOne as vi.Mock).mockResolvedValue(null); // No existing rescue
+      (mockRescue.create as vi.Mock).mockResolvedValue(mockRescueData);
 
       const result = await RescueService.createRescue(createData, 'admin-123');
 
@@ -385,7 +386,7 @@ describe('RescueService', () => {
     });
 
     it('should throw error when rescue email already exists', async () => {
-      (mockRescue.findOne as jest.Mock).mockResolvedValue(mockRescueData);
+      (mockRescue.findOne as vi.Mock).mockResolvedValue(mockRescueData);
 
       await expect(RescueService.createRescue(createData, 'admin-123')).rejects.toThrow(
         'A rescue organization with this email already exists'
@@ -393,7 +394,7 @@ describe('RescueService', () => {
     });
 
     it('should handle database errors', async () => {
-      (mockRescue.findOne as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (mockRescue.findOne as vi.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(RescueService.createRescue(createData, 'admin-123')).rejects.toThrow(
         'Database error'
@@ -409,19 +410,19 @@ describe('RescueService', () => {
 
     beforeEach(() => {
       const mockTransaction = {
-        commit: jest.fn(),
-        rollback: jest.fn(),
+        commit: vi.fn(),
+        rollback: vi.fn(),
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
-        transaction: jest.fn().mockResolvedValue(mockTransaction),
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
       };
 
       mockRescueData.update.mockResolvedValue(mockRescueData);
     });
 
     it('should update rescue successfully', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(mockRescueData);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(mockRescueData);
 
       const result = await RescueService.updateRescue('rescue-123', updateData, 'admin-123');
 
@@ -440,8 +441,8 @@ describe('RescueService', () => {
     it('should check for email conflicts when updating email', async () => {
       const updateWithEmail = { ...updateData, email: 'newemail@rescue.org' };
 
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(mockRescueData);
-      (mockRescue.findOne as jest.Mock).mockResolvedValue(null); // No conflict
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(mockRescueData);
+      (mockRescue.findOne as vi.Mock).mockResolvedValue(null); // No conflict
 
       await RescueService.updateRescue('rescue-123', updateWithEmail, 'admin-123');
 
@@ -455,7 +456,7 @@ describe('RescueService', () => {
     });
 
     it('should throw error when rescue not found', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(null);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(
         RescueService.updateRescue('nonexistent', updateData, 'admin-123')
@@ -465,8 +466,8 @@ describe('RescueService', () => {
     it('should throw error when email already exists', async () => {
       const updateWithEmail = { email: 'existing@rescue.org' };
 
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(mockRescueData);
-      (mockRescue.findOne as jest.Mock).mockResolvedValue(mockRescueData); // Email exists
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(mockRescueData);
+      (mockRescue.findOne as vi.Mock).mockResolvedValue(mockRescueData); // Email exists
 
       await expect(
         RescueService.updateRescue('rescue-123', updateWithEmail, 'admin-123')
@@ -477,12 +478,12 @@ describe('RescueService', () => {
   describe('verifyRescue', () => {
     beforeEach(() => {
       const mockTransaction = {
-        commit: jest.fn(),
-        rollback: jest.fn(),
+        commit: vi.fn(),
+        rollback: vi.fn(),
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
-        transaction: jest.fn().mockResolvedValue(mockTransaction),
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
       };
     });
 
@@ -490,10 +491,10 @@ describe('RescueService', () => {
       const unverifiedRescue = {
         ...mockRescueData,
         status: 'pending',
-        update: jest.fn().mockResolvedValue(mockRescueData),
-        toJSON: jest.fn().mockReturnValue(mockRescueData),
+        update: vi.fn().mockResolvedValue(mockRescueData),
+        toJSON: vi.fn().mockReturnValue(mockRescueData),
       };
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(unverifiedRescue);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(unverifiedRescue);
 
       const result = await RescueService.verifyRescue(
         'rescue-123',
@@ -515,7 +516,7 @@ describe('RescueService', () => {
     });
 
     it('should throw error when rescue not found', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(null);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(RescueService.verifyRescue('nonexistent', 'admin-123')).rejects.toThrow(
         'Rescue not found'
@@ -524,7 +525,7 @@ describe('RescueService', () => {
 
     it('should throw error when rescue already verified', async () => {
       const verifiedRescue = { ...mockRescueData, status: 'verified' };
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(verifiedRescue);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(verifiedRescue);
 
       await expect(RescueService.verifyRescue('rescue-123', 'admin-123')).rejects.toThrow(
         'Rescue is already verified'
@@ -535,23 +536,23 @@ describe('RescueService', () => {
   describe('addStaffMember', () => {
     beforeEach(() => {
       // Clear all mocks and ensure proper transaction setup
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
       const mockTransaction = {
-        commit: jest.fn(),
-        rollback: jest.fn(),
+        commit: vi.fn(),
+        rollback: vi.fn(),
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
-        transaction: jest.fn().mockResolvedValue(mockTransaction),
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
       };
     });
 
     it('should add staff member successfully', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(mockRescueData);
-      (mockUser.findByPk as jest.Mock).mockResolvedValue(mockUserData);
-      (mockStaffMember.findOne as jest.Mock).mockResolvedValue(null); // Not already a staff member
-      (mockStaffMember.create as jest.Mock).mockResolvedValue(mockStaffMemberData);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(mockRescueData);
+      (mockUser.findByPk as vi.Mock).mockResolvedValue(mockUserData);
+      (mockStaffMember.findOne as vi.Mock).mockResolvedValue(null); // Not already a staff member
+      (mockStaffMember.create as vi.Mock).mockResolvedValue(mockStaffMemberData);
 
       const result = await RescueService.addStaffMember(
         'rescue-123',
@@ -583,7 +584,7 @@ describe('RescueService', () => {
     });
 
     it('should throw error when rescue not found', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(null);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(
         RescueService.addStaffMember('nonexistent', 'user-123', 'Manager', 'admin-123')
@@ -591,7 +592,7 @@ describe('RescueService', () => {
     });
 
     it('should throw error when user not found', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(null); // Rescue not found first
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(null); // Rescue not found first
 
       await expect(
         RescueService.addStaffMember('rescue-123', 'nonexistent', 'Manager', 'admin-123')
@@ -600,9 +601,9 @@ describe('RescueService', () => {
 
     it('should throw error when rescue exists but user not found', async () => {
       // First, ensure rescue exists
-      (mockRescue.findByPk as jest.Mock).mockResolvedValueOnce(mockRescueData);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValueOnce(mockRescueData);
       // Then, user doesn't exist
-      (mockUser.findByPk as jest.Mock).mockResolvedValueOnce(null);
+      (mockUser.findByPk as vi.Mock).mockResolvedValueOnce(null);
 
       await expect(
         RescueService.addStaffMember('rescue-123', 'nonexistent', 'Manager', 'admin-123')
@@ -610,9 +611,9 @@ describe('RescueService', () => {
     });
 
     it('should throw error when user is already a staff member', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(mockRescueData);
-      (mockUser.findByPk as jest.Mock).mockResolvedValue(mockUserData);
-      (mockStaffMember.findOne as jest.Mock).mockResolvedValue(mockStaffMemberData);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(mockRescueData);
+      (mockUser.findByPk as vi.Mock).mockResolvedValue(mockUserData);
+      (mockStaffMember.findOne as vi.Mock).mockResolvedValue(mockStaffMemberData);
 
       await expect(
         RescueService.addStaffMember('rescue-123', 'user-123', 'Manager', 'admin-123')
@@ -623,17 +624,17 @@ describe('RescueService', () => {
   describe('removeStaffMember', () => {
     beforeEach(() => {
       const mockTransaction = {
-        commit: jest.fn(),
-        rollback: jest.fn(),
+        commit: vi.fn(),
+        rollback: vi.fn(),
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
-        transaction: jest.fn().mockResolvedValue(mockTransaction),
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
       };
     });
 
     it('should remove staff member successfully', async () => {
-      (mockStaffMember.findOne as jest.Mock).mockResolvedValue(mockStaffMemberData);
+      (mockStaffMember.findOne as vi.Mock).mockResolvedValue(mockStaffMemberData);
 
       const result = await RescueService.removeStaffMember('rescue-123', 'user-123', 'admin-123');
 
@@ -666,7 +667,7 @@ describe('RescueService', () => {
     });
 
     it('should throw error when staff member not found', async () => {
-      (mockStaffMember.findOne as jest.Mock).mockResolvedValue(null);
+      (mockStaffMember.findOne as vi.Mock).mockResolvedValue(null);
 
       await expect(
         RescueService.removeStaffMember('rescue-123', 'user-123', 'admin-123')
@@ -677,22 +678,22 @@ describe('RescueService', () => {
   describe('getRescueStatistics', () => {
     it('should get rescue statistics successfully', async () => {
       // Mock pet counts
-      (mockPet.count as jest.Mock)
+      (mockPet.count as vi.Mock)
         .mockResolvedValueOnce(10) // totalPets
         .mockResolvedValueOnce(5) // availablePets
         .mockResolvedValueOnce(3) // adoptedPets
         .mockResolvedValueOnce(2); // monthlyAdoptions
 
       // Mock application counts
-      (mockApplication.count as jest.Mock)
+      (mockApplication.count as vi.Mock)
         .mockResolvedValueOnce(4) // totalApplications
         .mockResolvedValueOnce(1); // pendingApplications
 
       // Mock staff count
-      (mockStaffMember.count as jest.Mock).mockResolvedValue(8);
+      (mockStaffMember.count as vi.Mock).mockResolvedValue(8);
 
       // Mock recent adoptions for average calculation
-      (mockPet.findAll as jest.Mock).mockResolvedValue([
+      (mockPet.findAll as vi.Mock).mockResolvedValue([
         {
           created_at: new Date('2024-01-01'),
           adopted_date: new Date('2024-01-31'),
@@ -719,10 +720,10 @@ describe('RescueService', () => {
     });
 
     it('should handle zero adoptions for average calculation', async () => {
-      (mockPet.count as jest.Mock).mockResolvedValue(0);
-      (mockApplication.count as jest.Mock).mockResolvedValue(0);
-      (mockStaffMember.count as jest.Mock).mockResolvedValue(0);
-      (mockPet.findAll as jest.Mock).mockResolvedValue([]);
+      (mockPet.count as vi.Mock).mockResolvedValue(0);
+      (mockApplication.count as vi.Mock).mockResolvedValue(0);
+      (mockStaffMember.count as vi.Mock).mockResolvedValue(0);
+      (mockPet.findAll as vi.Mock).mockResolvedValue([]);
 
       const result = await RescueService.getRescueStatistics('rescue-123');
 
@@ -730,7 +731,7 @@ describe('RescueService', () => {
     });
 
     it('should handle database errors', async () => {
-      (mockPet.count as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (mockPet.count as vi.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(RescueService.getRescueStatistics('rescue-123')).rejects.toThrow(
         'Failed to retrieve rescue statistics'
@@ -743,7 +744,7 @@ describe('RescueService', () => {
       const mockPets = [
         { petId: 'pet-123', name: 'Buddy', toJSON: () => ({ petId: 'pet-123', name: 'Buddy' }) },
       ];
-      (mockPet.findAndCountAll as jest.Mock).mockResolvedValue({
+      (mockPet.findAndCountAll as vi.Mock).mockResolvedValue({
         count: 1,
         rows: mockPets,
       });
@@ -769,7 +770,7 @@ describe('RescueService', () => {
     });
 
     it('should filter pets by status', async () => {
-      (mockPet.findAndCountAll as jest.Mock).mockResolvedValue({
+      (mockPet.findAndCountAll as vi.Mock).mockResolvedValue({
         count: 0,
         rows: [],
       });
@@ -789,7 +790,7 @@ describe('RescueService', () => {
     });
 
     it('should handle database errors', async () => {
-      (mockPet.findAndCountAll as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (mockPet.findAndCountAll as vi.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(RescueService.getRescuePets('rescue-123')).rejects.toThrow(
         'Failed to retrieve rescue pets'
@@ -800,19 +801,19 @@ describe('RescueService', () => {
   describe('deleteRescue', () => {
     beforeEach(() => {
       const mockTransaction = {
-        commit: jest.fn(),
-        rollback: jest.fn(),
+        commit: vi.fn(),
+        rollback: vi.fn(),
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (mockRescue as any).sequelize = {
-        transaction: jest.fn().mockResolvedValue(mockTransaction),
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
       };
 
       mockRescueData.update.mockResolvedValue(mockRescueData);
     });
 
     it('should soft delete rescue successfully', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(mockRescueData);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(mockRescueData);
 
       const result = await RescueService.deleteRescue(
         'rescue-123',
@@ -837,7 +838,7 @@ describe('RescueService', () => {
     });
 
     it('should throw error when rescue not found', async () => {
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(null);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(null);
 
       await expect(RescueService.deleteRescue('nonexistent', 'admin-123')).rejects.toThrow(
         'Rescue not found'
@@ -846,7 +847,7 @@ describe('RescueService', () => {
 
     it('should throw error when rescue already deleted', async () => {
       const deletedRescue = { ...mockRescueData, isDeleted: true };
-      (mockRescue.findByPk as jest.Mock).mockResolvedValue(deletedRescue);
+      (mockRescue.findByPk as vi.Mock).mockResolvedValue(deletedRescue);
 
       await expect(RescueService.deleteRescue('rescue-123', 'admin-123')).rejects.toThrow(
         'Rescue organization is already deleted'

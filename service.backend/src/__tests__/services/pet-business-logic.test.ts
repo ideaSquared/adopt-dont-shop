@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Pet Service - Business Logic Tests
  *
@@ -24,8 +25,8 @@ import { PetService } from '../../services/pet.service';
 import { PetCreateData, PetStatusUpdate, PetUpdateData } from '../../types/pet';
 
 // Mocked dependencies
-const MockedPet = Pet as jest.Mocked<typeof Pet>;
-const MockedApplication = Application as jest.Mocked<typeof Application>;
+const MockedPet = Pet as vi.Mocked<typeof Pet>;
+const MockedApplication = Application as vi.Mocked<typeof Application>;
 
 // Test constants
 const mockRescueId = 'rescue-123';
@@ -63,13 +64,13 @@ const createMockPet = (overrides = {}) => ({
   application_count: 0,
   created_at: new Date(),
   updated_at: new Date(),
-  update: jest.fn().mockResolvedValue(undefined),
-  reload: jest.fn(),
-  destroy: jest.fn().mockResolvedValue(undefined),
-  increment: jest.fn().mockResolvedValue(undefined),
-  toJSON: jest.fn().mockReturnThis(),
-  isAvailable: jest.fn().mockReturnValue(true),
-  canBeAdopted: jest.fn().mockReturnValue(true),
+  update: vi.fn().mockResolvedValue(undefined),
+  reload: vi.fn(),
+  destroy: vi.fn().mockResolvedValue(undefined),
+  increment: vi.fn().mockResolvedValue(undefined),
+  toJSON: vi.fn().mockReturnThis(),
+  isAvailable: vi.fn().mockReturnValue(true),
+  canBeAdopted: vi.fn().mockReturnValue(true),
   ...overrides,
 });
 
@@ -92,7 +93,7 @@ const createValidPetData = (overrides = {}): PetCreateData => ({
 
 describe('PetService - Business Logic', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // ==========================================================================
@@ -104,7 +105,7 @@ describe('PetService - Business Logic', () => {
       // Given: An available pet
       const mockPet = createMockPet({ status: PetStatus.AVAILABLE });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const statusUpdate: PetStatusUpdate = {
         status: PetStatus.PENDING,
@@ -127,7 +128,7 @@ describe('PetService - Business Logic', () => {
       // Given: A pet in pending status
       const mockPet = createMockPet({ status: PetStatus.PENDING });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const statusUpdate: PetStatusUpdate = {
         status: PetStatus.ADOPTED,
@@ -150,7 +151,7 @@ describe('PetService - Business Logic', () => {
       // Given: An available pet
       const mockPet = createMockPet({ status: PetStatus.AVAILABLE });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const statusUpdate: PetStatusUpdate = {
         status: PetStatus.FOSTER,
@@ -173,7 +174,7 @@ describe('PetService - Business Logic', () => {
       // Given: An available pet
       const mockPet = createMockPet({ status: PetStatus.AVAILABLE });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const statusUpdate: PetStatusUpdate = {
         status: PetStatus.MEDICAL_HOLD,
@@ -196,7 +197,7 @@ describe('PetService - Business Logic', () => {
       // Given: A pet on medical hold
       const mockPet = createMockPet({ status: PetStatus.MEDICAL_HOLD });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const statusUpdate: PetStatusUpdate = {
         status: PetStatus.AVAILABLE,
@@ -220,7 +221,7 @@ describe('PetService - Business Logic', () => {
       // Given: A pet currently in foster care
       const mockPet = createMockPet({ status: PetStatus.FOSTER });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const statusUpdate: PetStatusUpdate = {
         status: PetStatus.ADOPTED,
@@ -281,7 +282,7 @@ describe('PetService - Business Logic', () => {
       const adoptedPet = createMockPet({
         status: PetStatus.ADOPTED,
         archived: false,
-        isAdopted: jest.fn().mockReturnValue(true),
+        isAdopted: vi.fn().mockReturnValue(true),
       });
       adoptedPet.canBeAdopted.mockReturnValue(false);
 
@@ -348,7 +349,7 @@ describe('PetService - Business Logic', () => {
       const petData = createValidPetData();
       const mockCreatedPet = createMockPet({ pet_id: 'new-pet-123' });
 
-      MockedPet.create = jest.fn().mockResolvedValue(mockCreatedPet);
+      MockedPet.create = vi.fn().mockResolvedValue(mockCreatedPet);
 
       // When: Creating a new pet
       const result = await PetService.createPet(petData, mockRescueId, mockUserId);
@@ -385,7 +386,7 @@ describe('PetService - Business Logic', () => {
       });
       const mockCreatedPet = createMockPet();
 
-      MockedPet.create = jest.fn().mockResolvedValue(mockCreatedPet);
+      MockedPet.create = vi.fn().mockResolvedValue(mockCreatedPet);
 
       // When: Creating pet with images
       await PetService.createPet(petData, mockRescueId, mockUserId);
@@ -421,7 +422,7 @@ describe('PetService - Business Logic', () => {
       });
       const mockCreatedPet = createMockPet();
 
-      MockedPet.create = jest.fn().mockResolvedValue(mockCreatedPet);
+      MockedPet.create = vi.fn().mockResolvedValue(mockCreatedPet);
 
       // When: Creating pet with videos
       await PetService.createPet(petData, mockRescueId, mockUserId);
@@ -447,7 +448,7 @@ describe('PetService - Business Logic', () => {
       delete petData.status;
       const mockCreatedPet = createMockPet();
 
-      MockedPet.create = jest.fn().mockResolvedValue(mockCreatedPet);
+      MockedPet.create = vi.fn().mockResolvedValue(mockCreatedPet);
 
       // When: Creating pet
       await PetService.createPet(petData as PetCreateData, mockRescueId, mockUserId);
@@ -466,7 +467,7 @@ describe('PetService - Business Logic', () => {
       // Given: An existing pet
       const mockPet = createMockPet();
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const updateData: PetUpdateData = {
         name: 'Max',
@@ -489,7 +490,7 @@ describe('PetService - Business Logic', () => {
       // Given: An existing pet
       const mockPet = createMockPet();
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const updateData: PetUpdateData = {
         vaccinationStatus: VaccinationStatus.UP_TO_DATE,
@@ -518,7 +519,7 @@ describe('PetService - Business Logic', () => {
       // Given: An existing pet
       const mockPet = createMockPet();
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const updateData: PetUpdateData = {
         goodWithChildren: true,
@@ -549,7 +550,7 @@ describe('PetService - Business Logic', () => {
 
     it('should throw error when updating non-existent pet', async () => {
       // Given: Non-existent pet ID
-      MockedPet.findByPk = jest.fn().mockResolvedValue(null);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
       const updateData: PetUpdateData = { name: 'Updated Name' };
 
@@ -563,7 +564,7 @@ describe('PetService - Business Logic', () => {
       // Given: An archived pet
       const mockPet = createMockPet({ archived: true });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const updateData: PetUpdateData = { name: 'Updated Name' };
 
@@ -579,7 +580,7 @@ describe('PetService - Business Logic', () => {
       // Given: An adopted pet
       const mockPet = createMockPet({ status: PetStatus.ADOPTED });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const updateData: PetUpdateData = { name: 'Updated Name' };
 
@@ -600,7 +601,7 @@ describe('PetService - Business Logic', () => {
     it('should soft delete pet successfully', async () => {
       // Given: An existing pet
       const mockPet = createMockPet();
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When: Deleting pet
       const result = await PetService.deletePet(mockPetId, mockUserId, 'No longer available');
@@ -613,7 +614,7 @@ describe('PetService - Business Logic', () => {
     it('should allow deletion of adopted pets', async () => {
       // Given: An adopted pet
       const mockPet = createMockPet({ status: PetStatus.ADOPTED });
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When: Deleting adopted pet
       const result = await PetService.deletePet(mockPetId, mockUserId, 'Data cleanup');
@@ -625,7 +626,7 @@ describe('PetService - Business Logic', () => {
 
     it('should throw error when deleting non-existent pet', async () => {
       // Given: Non-existent pet
-      MockedPet.findByPk = jest.fn().mockResolvedValue(null);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
       // When & Then: Deletion fails
       await expect(PetService.deletePet('nonexistent', mockUserId)).rejects.toThrow(
@@ -653,7 +654,7 @@ describe('PetService - Business Logic', () => {
         ],
       });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const newImages = [
         {
@@ -686,7 +687,7 @@ describe('PetService - Business Logic', () => {
         images: [{ image_id: 'old_img', url: 'old.jpg', is_primary: true, order_index: 0, uploaded_at: new Date() }],
       });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const newImages = [
         {
@@ -724,7 +725,7 @@ describe('PetService - Business Logic', () => {
         ],
       });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When: Removing specific image
       await PetService.removePetImage(mockPetId, 'img2', mockUserId);
@@ -746,7 +747,7 @@ describe('PetService - Business Logic', () => {
       const mockPet = createMockPet({
         images: [{ image_id: 'img1', url: 'photo1.jpg', is_primary: true, order_index: 0, uploaded_at: new Date() }],
       });
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When & Then: Removing non-existent image fails
       await expect(
@@ -763,7 +764,7 @@ describe('PetService - Business Logic', () => {
     it('should increment view count when pet is viewed', async () => {
       // Given: A pet
       const mockPet = createMockPet({ view_count: 10 });
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When: Getting pet by ID
       await PetService.getPetById(mockPetId, mockUserId);
@@ -775,7 +776,7 @@ describe('PetService - Business Logic', () => {
     it('should increment view count even for anonymous users', async () => {
       // Given: A pet viewed by anonymous user
       const mockPet = createMockPet({ view_count: 5 });
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When: Getting pet without user ID
       await PetService.getPetById(mockPetId);
@@ -794,7 +795,7 @@ describe('PetService - Business Logic', () => {
       // Given: Pet data with rescue_id
       const petData = createValidPetData();
       const mockCreatedPet = createMockPet();
-      MockedPet.create = jest.fn().mockResolvedValue(mockCreatedPet);
+      MockedPet.create = vi.fn().mockResolvedValue(mockCreatedPet);
 
       // When: Creating pet
       await PetService.createPet(petData, mockRescueId, mockUserId);
@@ -811,7 +812,7 @@ describe('PetService - Business Logic', () => {
       // Given: Existing pet
       const mockPet = createMockPet({ rescue_id: mockRescueId });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // Note: rescue_id is not in PetUpdateData type, so it cannot be updated
       const updateData: PetUpdateData = { name: 'Updated Name' };
@@ -832,7 +833,7 @@ describe('PetService - Business Logic', () => {
         ],
       });
       mockPet.reload.mockResolvedValue(mockPet);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const newImages = [
         {
@@ -864,7 +865,7 @@ describe('PetService - Business Logic', () => {
     it('should handle database errors during pet creation', async () => {
       // Given: Database error occurs
       const petData = createValidPetData();
-      MockedPet.create = jest.fn().mockRejectedValue(new Error('Database connection failed'));
+      MockedPet.create = vi.fn().mockRejectedValue(new Error('Database connection failed'));
 
       // When & Then: Error is propagated
       await expect(PetService.createPet(petData, mockRescueId, mockUserId)).rejects.toThrow(
@@ -876,7 +877,7 @@ describe('PetService - Business Logic', () => {
       // Given: Pet exists but update fails
       const mockPet = createMockPet();
       mockPet.update.mockRejectedValue(new Error('Database error'));
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const updateData: PetUpdateData = { name: 'Updated Name' };
 
@@ -890,7 +891,7 @@ describe('PetService - Business Logic', () => {
       // Given: Pet exists but status update fails
       const mockPet = createMockPet();
       mockPet.update.mockRejectedValue(new Error('Status update failed'));
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const statusUpdate: PetStatusUpdate = {
         status: PetStatus.ADOPTED,
@@ -905,7 +906,7 @@ describe('PetService - Business Logic', () => {
 
     it('should return null for non-existent pet in getPetById', async () => {
       // Given: Non-existent pet
-      MockedPet.findByPk = jest.fn().mockResolvedValue(null);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
       // When: Getting pet by ID
       const result = await PetService.getPetById('nonexistent');

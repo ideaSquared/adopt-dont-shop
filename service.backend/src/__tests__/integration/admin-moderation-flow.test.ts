@@ -1,5 +1,6 @@
+import { vi } from 'vitest';
 // Mock env config FIRST before any imports
-jest.mock('../../config/env', () => ({
+vi.mock('../../config/env', () => ({
   env: {
     JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',
@@ -8,10 +9,10 @@ jest.mock('../../config/env', () => ({
   },
 }));
 
-jest.mock('../../sequelize', () => ({
-  transaction: jest.fn().mockResolvedValue({
-    commit: jest.fn().mockResolvedValue(undefined),
-    rollback: jest.fn().mockResolvedValue(undefined),
+vi.mock('../../sequelize', () => ({
+  transaction: vi.fn().mockResolvedValue({
+    commit: vi.fn().mockResolvedValue(undefined),
+    rollback: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
@@ -24,18 +25,18 @@ import ModerationService from '../../services/moderation.service';
 import { AuditLogService } from '../../services/auditLog.service';
 
 // Mock dependencies
-jest.mock('../../models/Report');
-jest.mock('../../models/ModeratorAction');
-jest.mock('../../models/User');
-jest.mock('../../models/Rescue');
-jest.mock('../../services/auditLog.service');
-jest.mock('../../utils/logger');
+vi.mock('../../models/Report');
+vi.mock('../../models/ModeratorAction');
+vi.mock('../../models/User');
+vi.mock('../../models/Rescue');
+vi.mock('../../services/auditLog.service');
+vi.mock('../../utils/logger');
 
-const MockedReport = Report as jest.Mocked<typeof Report>;
-const MockedModeratorAction = ModeratorAction as jest.Mocked<typeof ModeratorAction>;
-const MockedUser = User as jest.Mocked<typeof User>;
-const MockedRescue = Rescue as jest.Mocked<typeof Rescue>;
-const MockedAuditLogService = AuditLogService as jest.Mocked<typeof AuditLogService>;
+const MockedReport = Report as vi.Mocked<typeof Report>;
+const MockedModeratorAction = ModeratorAction as vi.Mocked<typeof ModeratorAction>;
+const MockedUser = User as vi.Mocked<typeof User>;
+const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
+const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
 
 describe('Admin Moderation Workflow Integration Tests', () => {
   const reporterId = 'reporter-user-123';
@@ -46,8 +47,8 @@ describe('Admin Moderation Workflow Integration Tests', () => {
   const rescueId = 'rescue-303';
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    MockedAuditLogService.log = jest.fn().mockResolvedValue(undefined as never);
+    vi.clearAllMocks();
+    MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined as never);
   });
 
   describe('Report Submission Workflow', () => {
@@ -78,8 +79,8 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           ...reportData,
         });
 
-        MockedReport.findOne = jest.fn().mockResolvedValue(null);
-        MockedReport.create = jest.fn().mockResolvedValue(mockReport as never);
+        MockedReport.findOne = vi.fn().mockResolvedValue(null);
+        MockedReport.create = vi.fn().mockResolvedValue(mockReport as never);
 
         const result = await ModerationService.submitReport(reporterId, reportData, {
           ip: '192.168.1.1',
@@ -111,7 +112,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           status: ReportStatus.PENDING,
         });
 
-        MockedReport.findOne = jest.fn().mockResolvedValue(existingReport as never);
+        MockedReport.findOne = vi.fn().mockResolvedValue(existingReport as never);
 
         await expect(ModerationService.submitReport(reporterId, reportData)).rejects.toThrow(
           'You have already submitted a report for this content'
@@ -139,9 +140,9 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           description: 'Reported user is mistreating animals',
         });
 
-        MockedReport.findOne = jest.fn().mockResolvedValue(null);
-        MockedReport.create = jest.fn().mockResolvedValue(mockReport as never);
-        MockedUser.findAll = jest.fn().mockResolvedValue([] as never);
+        MockedReport.findOne = vi.fn().mockResolvedValue(null);
+        MockedReport.create = vi.fn().mockResolvedValue(mockReport as never);
+        MockedUser.findAll = vi.fn().mockResolvedValue([] as never);
 
         const result = await ModerationService.submitReport(reporterId, reportData);
 
@@ -181,8 +182,8 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           ...reportData,
         });
 
-        MockedReport.findOne = jest.fn().mockResolvedValue(null);
-        MockedReport.create = jest.fn().mockResolvedValue(mockReport as never);
+        MockedReport.findOne = vi.fn().mockResolvedValue(null);
+        MockedReport.create = vi.fn().mockResolvedValue(mockReport as never);
 
         const result = await ModerationService.submitReport(reporterId, reportData);
 
@@ -211,8 +212,8 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           },
         });
 
-        MockedReport.findOne = jest.fn().mockResolvedValue(null);
-        MockedReport.create = jest.fn().mockResolvedValue(mockReport as never);
+        MockedReport.findOne = vi.fn().mockResolvedValue(null);
+        MockedReport.create = vi.fn().mockResolvedValue(mockReport as never);
 
         const result = await ModerationService.submitReport(reporterId, reportData, {
           ip: '192.168.1.100',
@@ -240,7 +241,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           }),
         ];
 
-        MockedReport.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedReport.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockReports,
           count: 2,
         } as never);
@@ -264,7 +265,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           }),
         ];
 
-        MockedReport.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedReport.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockReports,
           count: 1,
         } as never);
@@ -285,7 +286,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           assignedModerator: moderatorId as string | undefined,
         });
 
-        MockedReport.findByPk = jest.fn().mockResolvedValue(mockReport as never);
+        MockedReport.findByPk = vi.fn().mockResolvedValue(mockReport as never);
 
         const result = await ModerationService.getReportById('report-detail-123');
 
@@ -308,12 +309,12 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           assignedAt: new Date() as Date | undefined,
         });
 
-        mockReport.update = jest.fn().mockImplementation(async (values) => {
+        mockReport.update = vi.fn().mockImplementation(async (values) => {
           Object.assign(mockReport, values);
           return mockReport;
         });
 
-        MockedReport.findByPk = jest.fn().mockResolvedValue(mockReport as never);
+        MockedReport.findByPk = vi.fn().mockResolvedValue(mockReport as never);
 
         const result = await ModerationService.assignReport('report-assign', moderatorId, adminId);
 
@@ -351,8 +352,8 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           isActive: true,
         });
 
-        MockedModeratorAction.create = jest.fn().mockResolvedValue(mockAction as never);
-        MockedReport.findByPk = jest.fn().mockResolvedValue(null);
+        MockedModeratorAction.create = vi.fn().mockResolvedValue(mockAction as never);
+        MockedReport.findByPk = vi.fn().mockResolvedValue(null);
 
         const result = await ModerationService.takeModerationAction(moderatorId, actionData);
 
@@ -382,8 +383,8 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           expiresAt: new Date(Date.now() + suspensionDuration * 60 * 60 * 1000),
         });
 
-        MockedModeratorAction.create = jest.fn().mockResolvedValue(mockAction as never);
-        MockedReport.findByPk = jest.fn().mockResolvedValue(null);
+        MockedModeratorAction.create = vi.fn().mockResolvedValue(mockAction as never);
+        MockedReport.findByPk = vi.fn().mockResolvedValue(null);
 
         const result = await ModerationService.takeModerationAction(moderatorId, actionData);
 
@@ -417,9 +418,9 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           expiresAt: undefined,
         });
 
-        mockAction.isPermanent = jest.fn().mockReturnValue(true);
-        MockedModeratorAction.create = jest.fn().mockResolvedValue(mockAction as never);
-        MockedReport.findByPk = jest.fn().mockResolvedValue(null);
+        mockAction.isPermanent = vi.fn().mockReturnValue(true);
+        MockedModeratorAction.create = vi.fn().mockResolvedValue(mockAction as never);
+        MockedReport.findByPk = vi.fn().mockResolvedValue(null);
 
         const result = await ModerationService.takeModerationAction(moderatorId, actionData);
 
@@ -445,8 +446,8 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           isActive: true,
         });
 
-        MockedModeratorAction.create = jest.fn().mockResolvedValue(mockAction as never);
-        MockedReport.findByPk = jest.fn().mockResolvedValue(null);
+        MockedModeratorAction.create = vi.fn().mockResolvedValue(mockAction as never);
+        MockedReport.findByPk = vi.fn().mockResolvedValue(null);
 
         const result = await ModerationService.takeModerationAction(moderatorId, actionData);
 
@@ -470,7 +471,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           description: 'Warning issued',
         };
 
-        report.update = jest.fn().mockResolvedValue(
+        report.update = vi.fn().mockResolvedValue(
           createMockReport({
             ...report,
             status: ReportStatus.RESOLVED,
@@ -479,13 +480,13 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           }) as never
         );
 
-        MockedModeratorAction.create = jest.fn().mockResolvedValue(
+        MockedModeratorAction.create = vi.fn().mockResolvedValue(
           createMockModeratorAction({
             actionId: 'action-123',
             ...actionData,
           }) as never
         );
-        MockedReport.findByPk = jest.fn().mockResolvedValue(report as never);
+        MockedReport.findByPk = vi.fn().mockResolvedValue(report as never);
 
         const result = await ModerationService.takeModerationAction(moderatorId, actionData);
 
@@ -505,13 +506,13 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           reversedAt: undefined,
         });
 
-        mockAction.canBeReversed = jest.fn().mockReturnValue(true);
-        mockAction.update = jest.fn().mockImplementation(async (values) => {
+        mockAction.canBeReversed = vi.fn().mockReturnValue(true);
+        mockAction.update = vi.fn().mockImplementation(async (values) => {
           Object.assign(mockAction, values);
           return mockAction;
         });
 
-        MockedModeratorAction.findByPk = jest.fn().mockResolvedValue(mockAction as never);
+        MockedModeratorAction.findByPk = vi.fn().mockResolvedValue(mockAction as never);
 
         const result = await ModerationService.reverseAction(
           'action-reverse-1',
@@ -539,12 +540,12 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           assignedModerator: moderatorId as string | undefined,
         });
 
-        report.update = jest.fn().mockImplementation(async (values) => {
+        report.update = vi.fn().mockImplementation(async (values) => {
           Object.assign(report, values);
           return report;
         });
 
-        MockedReport.findByPk = jest.fn().mockResolvedValue(report as never);
+        MockedReport.findByPk = vi.fn().mockResolvedValue(report as never);
 
         const result = await ModerationService.escalateReport(
           'report-escalate-1',
@@ -568,7 +569,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           status: ReportStatus.RESOLVED,
         });
 
-        MockedReport.findByPk = jest.fn().mockResolvedValue(report as never);
+        MockedReport.findByPk = vi.fn().mockResolvedValue(report as never);
 
         await expect(
           ModerationService.escalateReport('report-resolved-1', adminId, moderatorId, 'Appeal')
@@ -588,12 +589,12 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           })
         );
 
-        MockedReport.findByPk = jest.fn((id) =>
+        MockedReport.findByPk = vi.fn((id) =>
           Promise.resolve(reports.find((r) => r.reportId === id) as never)
         );
 
         reports.forEach((report) => {
-          report.update = jest.fn().mockResolvedValue(
+          report.update = vi.fn().mockResolvedValue(
             createMockReport({
               ...report,
               status: ReportStatus.UNDER_REVIEW,
@@ -622,12 +623,12 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           })
         );
 
-        MockedReport.findByPk = jest.fn((id) =>
+        MockedReport.findByPk = vi.fn((id) =>
           Promise.resolve(reports.find((r) => r.reportId === id) as never)
         );
 
         reports.forEach((report) => {
-          report.update = jest.fn().mockResolvedValue(
+          report.update = vi.fn().mockResolvedValue(
             createMockReport({
               ...report,
               status: ReportStatus.DISMISSED,
@@ -656,12 +657,12 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           })
         );
 
-        MockedReport.findByPk = jest.fn((id) =>
+        MockedReport.findByPk = vi.fn((id) =>
           Promise.resolve(reports.find((r) => r.reportId === id) as never)
         );
 
         reports.forEach((report) => {
-          report.update = jest.fn().mockResolvedValue(
+          report.update = vi.fn().mockResolvedValue(
             createMockReport({
               ...report,
               status: ReportStatus.ESCALATED,
@@ -869,7 +870,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           }),
         ];
 
-        MockedReport.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedReport.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockReports,
           count: 2,
         } as never);
@@ -933,13 +934,13 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           expiresAt: new Date(Date.now() - 1000), // Already expired
         });
 
-        mockAction.isExpired = jest.fn().mockReturnValue(true);
+        mockAction.isExpired = vi.fn().mockReturnValue(true);
 
         expect(mockAction.isExpired()).toBe(true);
       });
 
       it('should expire temporary actions automatically', async () => {
-        MockedModeratorAction.update = jest.fn().mockResolvedValue([2] as never);
+        MockedModeratorAction.update = vi.fn().mockResolvedValue([2] as never);
 
         const result = await ModerationService.expireActions();
 
@@ -964,7 +965,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           email: 'john@example.com',
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         const enrichedReports = await ModerationService.enrichReportsWithEntityContext([
           mockReport,
@@ -981,7 +982,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           reportedEntityId: petId,
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
         const enrichedReports = await ModerationService.enrichReportsWithEntityContext([
           mockReport,
@@ -997,7 +998,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           reportedEntityId: 'deleted-user-id',
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
         const enrichedReports = await ModerationService.enrichReportsWithEntityContext([
           mockReport,
@@ -1011,7 +1012,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
 });
 
 // Helper functions to create mock objects
-function createMockReport(overrides: Partial<Report> = {}): jest.Mocked<Report> {
+function createMockReport(overrides: Partial<Report> = {}): vi.Mocked<Report> {
   const defaultReport = {
     reportId: 'mock-report-123',
     reporterId: 'reporter-123',
@@ -1036,21 +1037,21 @@ function createMockReport(overrides: Partial<Report> = {}): jest.Mocked<Report> 
     escalationReason: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
-    isAssigned: jest.fn().mockReturnValue(false),
-    isResolved: jest.fn().mockReturnValue(false),
-    isDismissed: jest.fn().mockReturnValue(false),
-    isEscalated: jest.fn().mockReturnValue(false),
-    canBeAssigned: jest.fn().mockReturnValue(true),
-    canBeResolved: jest.fn().mockReturnValue(false),
-    save: jest.fn().mockResolvedValue(undefined),
-    update: jest.fn().mockResolvedValue(undefined),
+    isAssigned: vi.fn().mockReturnValue(false),
+    isResolved: vi.fn().mockReturnValue(false),
+    isDismissed: vi.fn().mockReturnValue(false),
+    isEscalated: vi.fn().mockReturnValue(false),
+    canBeAssigned: vi.fn().mockReturnValue(true),
+    canBeResolved: vi.fn().mockReturnValue(false),
+    save: vi.fn().mockResolvedValue(undefined),
+    update: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultReport as jest.Mocked<Report>;
+  return defaultReport as vi.Mocked<Report>;
 }
 
-function createMockModeratorAction(overrides: Partial<ModeratorAction> = {}): jest.Mocked<ModeratorAction> {
+function createMockModeratorAction(overrides: Partial<ModeratorAction> = {}): vi.Mocked<ModeratorAction> {
   const defaultAction = {
     actionId: 'mock-action-123',
     moderatorId: 'moderator-123',
@@ -1074,20 +1075,20 @@ function createMockModeratorAction(overrides: Partial<ModeratorAction> = {}): je
     internalNotes: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
-    isTemporary: jest.fn().mockReturnValue(false),
-    isExpired: jest.fn().mockReturnValue(false),
-    canBeReversed: jest.fn().mockReturnValue(true),
-    isPermanent: jest.fn().mockReturnValue(false),
-    getRemainingDuration: jest.fn().mockReturnValue(null),
-    save: jest.fn().mockResolvedValue(undefined),
-    update: jest.fn().mockResolvedValue(undefined),
+    isTemporary: vi.fn().mockReturnValue(false),
+    isExpired: vi.fn().mockReturnValue(false),
+    canBeReversed: vi.fn().mockReturnValue(true),
+    isPermanent: vi.fn().mockReturnValue(false),
+    getRemainingDuration: vi.fn().mockReturnValue(null),
+    save: vi.fn().mockResolvedValue(undefined),
+    update: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultAction as jest.Mocked<ModeratorAction>;
+  return defaultAction as vi.Mocked<ModeratorAction>;
 }
 
-function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
+function createMockUser(overrides: Partial<User> = {}): vi.Mocked<User> {
   const defaultUser = {
     userId: 'mock-user-123',
     email: 'mock@example.com',
@@ -1102,5 +1103,5 @@ function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
     ...overrides,
   };
 
-  return defaultUser as jest.Mocked<User>;
+  return defaultUser as vi.Mocked<User>;
 }

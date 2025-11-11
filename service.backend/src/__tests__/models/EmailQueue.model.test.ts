@@ -1,5 +1,6 @@
+import { vi } from 'vitest';
 // Mock sequelize before importing the model
-jest.mock('../../sequelize', () => {
+vi.mock('../../sequelize', () => {
   const { Sequelize } = require('sequelize');
   return new Sequelize('sqlite::memory:', {
     logging: false,

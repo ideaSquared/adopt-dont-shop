@@ -1,5 +1,6 @@
+import { vi } from 'vitest';
 // Mock env config FIRST before any imports
-jest.mock('../../config/env', () => ({
+vi.mock('../../config/env', () => ({
   env: {
     JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',
@@ -25,27 +26,27 @@ import {
 import { JsonObject } from '../../types/common';
 
 // Mock dependencies
-jest.mock('../../models/Application');
-jest.mock('../../models/Pet');
-jest.mock('../../models/User');
-jest.mock('../../models/ApplicationQuestion');
-jest.mock('../../services/auditLog.service');
-jest.mock('../../services/applicationTimeline.service');
-jest.mock('../../utils/logger');
+vi.mock('../../models/Application');
+vi.mock('../../models/Pet');
+vi.mock('../../models/User');
+vi.mock('../../models/ApplicationQuestion');
+vi.mock('../../services/auditLog.service');
+vi.mock('../../services/applicationTimeline.service');
+vi.mock('../../utils/logger');
 
 // Mock email service
-jest.mock('../../services/email.service', () => ({
+vi.mock('../../services/email.service', () => ({
   default: {
-    sendEmail: jest.fn().mockResolvedValue(undefined),
+    sendEmail: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-const MockedApplication = Application as jest.Mocked<typeof Application>;
-const MockedPet = Pet as jest.Mocked<typeof Pet>;
-const MockedUser = User as jest.Mocked<typeof User>;
-const MockedAuditLogService = AuditLogService as jest.Mocked<typeof AuditLogService>;
+const MockedApplication = Application as vi.Mocked<typeof Application>;
+const MockedPet = Pet as vi.Mocked<typeof Pet>;
+const MockedUser = User as vi.Mocked<typeof User>;
+const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
 const MockedApplicationTimelineService =
-  ApplicationTimelineService as jest.Mocked<typeof ApplicationTimelineService>;
+  ApplicationTimelineService as vi.Mocked<typeof ApplicationTimelineService>;
 
 describe('Application Submission Workflow Integration Tests', () => {
   const adopterId = 'adopter-123';
@@ -55,13 +56,13 @@ describe('Application Submission Workflow Integration Tests', () => {
   const applicationId = 'application-xyz';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default audit log mocks
-    MockedAuditLogService.log = jest.fn().mockResolvedValue(undefined as never);
+    MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined as never);
 
     // Setup default timeline mocks
-    MockedApplicationTimelineService.createEvent = jest.fn().mockResolvedValue(undefined as never);
+    MockedApplicationTimelineService.createEvent = vi.fn().mockResolvedValue(undefined as never);
   });
 
   describe('Browse and View Pets', () => {
@@ -73,7 +74,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           createMockPet({ pet_id: 'pet-3', name: 'Luna', status: PetStatus.AVAILABLE }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 3,
         } as never);
@@ -94,7 +95,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           createMockPet({ pet_id: 'dog-2', name: 'Max', type: PetType.DOG }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockDogs,
           count: 2,
         } as never);
@@ -114,7 +115,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           createMockPet({ pet_id: 'pet-2', rescue_id: rescueId }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 2,
         } as never);
@@ -130,7 +131,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           createMockPet({ pet_id: 'pet-1', status: PetStatus.AVAILABLE }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockAvailablePets,
           count: 1,
         } as never);
@@ -155,7 +156,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           long_description: 'A very friendly and energetic dog',
         });
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
 
         const result = await PetService.getPetById(petId);
 
@@ -172,7 +173,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: PetStatus.AVAILABLE,
         });
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
 
         const result = await PetService.getPetById(petId);
 
@@ -186,7 +187,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: PetStatus.ADOPTED,
         });
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
 
         const result = await PetService.getPetById(petId);
 
@@ -217,10 +218,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           pet_id: petId,
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-        MockedApplication.create = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+        MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -244,10 +245,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           priority: ApplicationPriority.NORMAL,
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-        MockedApplication.create = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+        MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -267,10 +268,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           references: validReferences.map(ref => ({ ...ref, status: 'pending' as const })),
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-        MockedApplication.create = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+        MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -291,10 +292,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           application_id: applicationId,
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-        MockedApplication.create = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+        MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -318,10 +319,10 @@ describe('Application Submission Workflow Integration Tests', () => {
         const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
         const mockApplication = createMockApplication({ application_id: applicationId });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-        MockedApplication.create = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+        MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -342,7 +343,7 @@ describe('Application Submission Workflow Integration Tests', () => {
       });
 
       it('should reject application for non-existent user', async () => {
-        MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -358,8 +359,8 @@ describe('Application Submission Workflow Integration Tests', () => {
       it('should reject application for non-existent pet', async () => {
         const mockUser = createMockUser({ userId: adopterId });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(null);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -376,8 +377,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         const mockUser = createMockUser({ userId: adopterId });
         const mockPet = createMockPet({ pet_id: petId, status: PetStatus.ADOPTED });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -399,9 +400,9 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(existingApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(existingApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -432,7 +433,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           }),
         ];
 
-        MockedApplication.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedApplication.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockApplications,
           count: 2,
         } as never);
@@ -454,7 +455,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           user_id: adopterId,
         });
 
-        MockedApplication.findOne = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication as never);
 
         const result = await ApplicationService.getApplicationById(
           applicationId,
@@ -472,7 +473,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           user_id: 'other-adopter-999',
         });
 
-        MockedApplication.findOne = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication as never);
 
         await expect(
           ApplicationService.getApplicationById(applicationId, adopterId, UserType.ADOPTER)
@@ -485,7 +486,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           user_id: adopterId,
         });
 
-        MockedApplication.findOne = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication as never);
 
         const result = await ApplicationService.getApplicationById(
           applicationId,
@@ -505,11 +506,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
@@ -536,11 +537,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
@@ -568,11 +569,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
@@ -598,11 +599,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
@@ -630,9 +631,9 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.APPROVED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(false);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(false);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.SUBMITTED,
@@ -662,10 +663,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           ],
         });
 
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -695,10 +696,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           ],
         });
 
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -725,10 +726,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           ],
         });
 
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -755,10 +756,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           ],
         });
 
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -785,10 +786,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           ],
         });
 
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -812,10 +813,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await ApplicationService.updateApplication(
           applicationId,
@@ -837,10 +838,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await ApplicationService.updateApplication(
           applicationId,
@@ -865,10 +866,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await ApplicationService.updateApplication(
           applicationId,
@@ -895,11 +896,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
@@ -926,11 +927,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
@@ -956,11 +957,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
@@ -986,11 +987,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
@@ -1018,11 +1019,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
@@ -1049,11 +1050,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
@@ -1080,11 +1081,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
@@ -1111,11 +1112,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
@@ -1142,11 +1143,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
@@ -1179,11 +1180,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.isInProgress = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.isInProgress = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const result = await ApplicationService.withdrawApplication(applicationId, adopterId);
 
@@ -1201,7 +1202,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await expect(
           ApplicationService.withdrawApplication(applicationId, 'other-user-999')
@@ -1215,9 +1216,9 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.APPROVED,
         });
 
-        mockApplication.isInProgress = jest.fn().mockReturnValue(false);
+        mockApplication.isInProgress = vi.fn().mockReturnValue(false);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await expect(
           ApplicationService.withdrawApplication(applicationId, adopterId)
@@ -1231,9 +1232,9 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.REJECTED,
         });
 
-        mockApplication.isInProgress = jest.fn().mockReturnValue(false);
+        mockApplication.isInProgress = vi.fn().mockReturnValue(false);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await expect(
           ApplicationService.withdrawApplication(applicationId, adopterId)
@@ -1247,11 +1248,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.isInProgress = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.isInProgress = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await ApplicationService.withdrawApplication(applicationId, adopterId);
 
@@ -1269,11 +1270,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.isInProgress = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.isInProgress = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await ApplicationService.withdrawApplication(applicationId, adopterId);
 
@@ -1292,11 +1293,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        mockApplication.isInProgress = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.isInProgress = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await ApplicationService.withdrawApplication(applicationId, adopterId);
 
@@ -1317,7 +1318,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         // Step 1: Browse pets
         const mockPets = [createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -1339,10 +1340,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-        MockedApplication.create = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+        MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -1360,11 +1361,11 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(createResult.status).toBe(ApplicationStatus.SUBMITTED);
 
         // Step 3: Approve application
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
@@ -1400,10 +1401,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           ],
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-        MockedApplication.create = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+        MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -1416,10 +1417,10 @@ describe('Application Submission Workflow Integration Tests', () => {
         await ApplicationService.createApplication(applicationData, adopterId);
 
         // Step 2: Check references
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -1436,7 +1437,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         );
 
         // Step 4: Approve
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
@@ -1465,10 +1466,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-        MockedApplication.create = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+        MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -1481,11 +1482,11 @@ describe('Application Submission Workflow Integration Tests', () => {
         await ApplicationService.createApplication(applicationData, adopterId);
 
         // Step 2: Reject application
-        mockApplication.canTransitionTo = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.canTransitionTo = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
@@ -1520,10 +1521,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: ApplicationStatus.SUBMITTED,
         });
 
-        MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser as never);
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet as never);
-        MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-        MockedApplication.create = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+        MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+        MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
           pet_id: petId,
@@ -1536,11 +1537,11 @@ describe('Application Submission Workflow Integration Tests', () => {
         await ApplicationService.createApplication(applicationData, adopterId);
 
         // Step 2: Withdraw application
-        mockApplication.isInProgress = jest.fn().mockReturnValue(true);
-        mockApplication.update = jest.fn().mockResolvedValue(mockApplication);
-        mockApplication.reload = jest.fn().mockResolvedValue(mockApplication);
+        mockApplication.isInProgress = vi.fn().mockReturnValue(true);
+        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
-        MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication as never);
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
         await ApplicationService.withdrawApplication(applicationId, adopterId);
 
@@ -1555,7 +1556,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 });
 
 // Helper function to create mock user
-function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
+function createMockUser(overrides: Partial<User> = {}): vi.Mocked<User> {
   const defaultUser = {
     userId: 'mock-user-123',
     email: 'mock@example.com',
@@ -1569,7 +1570,7 @@ function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
-    toJSON: jest.fn().mockReturnValue({
+    toJSON: vi.fn().mockReturnValue({
       userId: overrides.userId ?? 'mock-user-123',
       email: overrides.email ?? 'mock@example.com',
       firstName: overrides.firstName ?? 'Mock',
@@ -1577,15 +1578,15 @@ function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
       userType: overrides.userType ?? UserType.ADOPTER,
       status: overrides.status ?? UserStatus.ACTIVE,
     }),
-    save: jest.fn().mockResolvedValue(undefined),
+    save: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultUser as jest.Mocked<User>;
+  return defaultUser as vi.Mocked<User>;
 }
 
 // Helper function to create mock pet
-function createMockPet(overrides: Partial<Pet> = {}): jest.Mocked<Pet> {
+function createMockPet(overrides: Partial<Pet> = {}): vi.Mocked<Pet> {
   const defaultPet = {
     pet_id: 'mock-pet-123',
     name: 'Mock Pet',
@@ -1600,11 +1601,11 @@ function createMockPet(overrides: Partial<Pet> = {}): jest.Mocked<Pet> {
     size: 'medium',
     createdAt: new Date(),
     updatedAt: new Date(),
-    isAvailable: jest.fn().mockReturnValue(true),
-    isAdopted: jest.fn().mockReturnValue(false),
-    isPending: jest.fn().mockReturnValue(false),
-    increment: jest.fn().mockResolvedValue(undefined),
-    toJSON: jest.fn().mockReturnValue({
+    isAvailable: vi.fn().mockReturnValue(true),
+    isAdopted: vi.fn().mockReturnValue(false),
+    isPending: vi.fn().mockReturnValue(false),
+    increment: vi.fn().mockResolvedValue(undefined),
+    toJSON: vi.fn().mockReturnValue({
       pet_id: overrides.pet_id ?? 'mock-pet-123',
       name: overrides.name ?? 'Mock Pet',
       rescue_id: overrides.rescue_id ?? 'rescue-123',
@@ -1613,15 +1614,15 @@ function createMockPet(overrides: Partial<Pet> = {}): jest.Mocked<Pet> {
       age_group: overrides.age_group ?? AgeGroup.ADULT,
       gender: overrides.gender ?? Gender.MALE,
     }),
-    save: jest.fn().mockResolvedValue(undefined),
+    save: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultPet as unknown as jest.Mocked<Pet>;
+  return defaultPet as unknown as vi.Mocked<Pet>;
 }
 
 // Helper function to create mock application
-function createMockApplication(overrides: Partial<Application> = {}): jest.Mocked<Application> {
+function createMockApplication(overrides: Partial<Application> = {}): vi.Mocked<Application> {
   const defaultApplication = {
     application_id: 'mock-app-123',
     user_id: 'user-123',
@@ -1648,12 +1649,12 @@ function createMockApplication(overrides: Partial<Application> = {}): jest.Mocke
     created_at: new Date(),
     updated_at: new Date(),
     deleted_at: null,
-    canTransitionTo: jest.fn().mockReturnValue(true),
-    isInProgress: jest.fn().mockReturnValue(true),
-    isPending: jest.fn().mockReturnValue(true),
-    requiresAction: jest.fn().mockReturnValue(true),
-    getCompletionPercentage: jest.fn().mockReturnValue(25),
-    toJSON: jest.fn().mockReturnValue({
+    canTransitionTo: vi.fn().mockReturnValue(true),
+    isInProgress: vi.fn().mockReturnValue(true),
+    isPending: vi.fn().mockReturnValue(true),
+    requiresAction: vi.fn().mockReturnValue(true),
+    getCompletionPercentage: vi.fn().mockReturnValue(25),
+    toJSON: vi.fn().mockReturnValue({
       application_id: overrides.application_id ?? 'mock-app-123',
       user_id: overrides.user_id ?? 'user-123',
       pet_id: overrides.pet_id ?? 'pet-123',
@@ -1664,11 +1665,11 @@ function createMockApplication(overrides: Partial<Application> = {}): jest.Mocke
       references: overrides.references ?? [],
       documents: overrides.documents ?? [],
     }),
-    update: jest.fn().mockResolvedValue(undefined),
-    reload: jest.fn().mockResolvedValue(undefined),
-    save: jest.fn().mockResolvedValue(undefined),
+    update: vi.fn().mockResolvedValue(undefined),
+    reload: vi.fn().mockResolvedValue(undefined),
+    save: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultApplication as jest.Mocked<Application>;
+  return defaultApplication as vi.Mocked<Application>;
 }

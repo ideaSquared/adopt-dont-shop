@@ -1,5 +1,6 @@
+import { vi } from 'vitest';
 // Mock env config FIRST before any imports
-jest.mock('../../config/env', () => ({
+vi.mock('../../config/env', () => ({
   env: {
     JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',
@@ -29,24 +30,24 @@ import { SwipeService } from '../../services/swipe.service';
 import { AuditLogService } from '../../services/auditLog.service';
 
 // Mock dependencies
-jest.mock('../../models/Pet');
-jest.mock('../../models/Rescue');
-jest.mock('../../models/User');
-jest.mock('../../models/UserFavorite');
-jest.mock('../../models/SwipeAction', () => ({
-  SwipeAction: jest.fn(),
+vi.mock('../../models/Pet');
+vi.mock('../../models/Rescue');
+vi.mock('../../models/User');
+vi.mock('../../models/UserFavorite');
+vi.mock('../../models/SwipeAction', () => ({
+  SwipeAction: vi.fn(),
   SwipeActionType: {
     LIKE: 'like',
     PASS: 'pass',
     SUPER_LIKE: 'super_like',
     INFO: 'info',
   },
-  default: jest.fn(),
+  default: vi.fn(),
 }));
-jest.mock('../../models/SwipeSession');
-jest.mock('../../models/Report', () => ({
+vi.mock('../../models/SwipeSession');
+vi.mock('../../models/Report', () => ({
   default: {
-    create: jest.fn().mockResolvedValue({
+    create: vi.fn().mockResolvedValue({
       reportId: 'report-123',
     }),
   },
@@ -60,25 +61,25 @@ jest.mock('../../models/Report', () => ({
     MEDIUM: 'medium',
   },
 }));
-jest.mock('../../services/auditLog.service');
-jest.mock('../../utils/logger');
-jest.mock('../../sequelize', () => ({
+vi.mock('../../services/auditLog.service');
+vi.mock('../../utils/logger');
+vi.mock('../../sequelize', () => ({
   default: {
-    query: jest.fn().mockResolvedValue([[], []]),
-    literal: jest.fn((val: string) => val),
-    fn: jest.fn((name: string) => `${name}()`),
-    col: jest.fn((name: string) => name),
+    query: vi.fn().mockResolvedValue([[], []]),
+    literal: vi.fn((val: string) => val),
+    fn: vi.fn((name: string) => `${name}()`),
+    col: vi.fn((name: string) => name),
   },
   QueryTypes: {
     SELECT: 'SELECT',
   },
 }));
 
-const MockedPet = Pet as jest.Mocked<typeof Pet>;
-const MockedRescue = Rescue as jest.Mocked<typeof Rescue>;
-const MockedUser = User as jest.Mocked<typeof User>;
-const MockedUserFavorite = UserFavorite as jest.Mocked<typeof UserFavorite>;
-const MockedAuditLogService = AuditLogService as jest.Mocked<typeof AuditLogService>;
+const MockedPet = Pet as vi.Mocked<typeof Pet>;
+const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
+const MockedUser = User as vi.Mocked<typeof User>;
+const MockedUserFavorite = UserFavorite as vi.Mocked<typeof UserFavorite>;
+const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
 
 // Helper function to create mock pet
 const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
@@ -155,19 +156,19 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
 
   return {
     ...petData,
-    isAvailable: jest.fn().mockReturnValue(petData.status === PetStatus.AVAILABLE && !petData.archived),
-    isAdopted: jest.fn().mockReturnValue(petData.status === PetStatus.ADOPTED),
-    getPrimaryImage: jest.fn().mockReturnValue(petData.images[0]?.url || null),
-    getAgeInMonths: jest.fn().mockReturnValue((petData.age_years || 0) * 12 + (petData.age_months || 0)),
-    getAgeDisplay: jest.fn().mockReturnValue(`${petData.age_years} years, ${petData.age_months} months`),
-    incrementViewCount: jest.fn(),
+    isAvailable: vi.fn().mockReturnValue(petData.status === PetStatus.AVAILABLE && !petData.archived),
+    isAdopted: vi.fn().mockReturnValue(petData.status === PetStatus.ADOPTED),
+    getPrimaryImage: vi.fn().mockReturnValue(petData.images[0]?.url || null),
+    getAgeInMonths: vi.fn().mockReturnValue((petData.age_years || 0) * 12 + (petData.age_months || 0)),
+    getAgeDisplay: vi.fn().mockReturnValue(`${petData.age_years} years, ${petData.age_months} months`),
+    incrementViewCount: vi.fn(),
     canBeAdopted: jest
       .fn()
       .mockReturnValue(
         [PetStatus.AVAILABLE, PetStatus.FOSTER].includes(petData.status) && !petData.archived
       ),
-    increment: jest.fn().mockResolvedValue(undefined),
-    toJSON: jest.fn().mockReturnValue(petData),
+    increment: vi.fn().mockResolvedValue(undefined),
+    toJSON: vi.fn().mockReturnValue(petData),
   } as unknown as Pet;
 };
 
@@ -184,7 +185,7 @@ const createMockRescue = (overrides = {}): Rescue => {
 
   return {
     ...rescueData,
-    toJSON: jest.fn().mockReturnValue(rescueData),
+    toJSON: vi.fn().mockReturnValue(rescueData),
   } as unknown as Rescue;
 };
 
@@ -193,8 +194,8 @@ describe('Pet Discovery & Matching Integration Tests', () => {
   const rescueId = 'rescue-123';
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    MockedAuditLogService.log = jest.fn().mockResolvedValue(undefined as never);
+    vi.clearAllMocks();
+    MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined as never);
   });
 
   describe('Browse and Search Pets', () => {
@@ -206,7 +207,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-3', name: 'Luna' }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 3,
         } as never);
@@ -227,7 +228,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should exclude archived pets from browse results', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', archived: false })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -245,7 +246,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should exclude adopted pets from browse results by default', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', status: PetStatus.AVAILABLE })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -253,7 +254,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         const result = await PetService.searchPets({}, { page: 1, limit: 20 });
 
         expect(result.pets).toHaveLength(1);
-        const callArgs = (MockedPet.findAndCountAll as jest.Mock).mock.calls[0][0];
+        const callArgs = (MockedPet.findAndCountAll as vi.Mock).mock.calls[0][0];
         expect(callArgs.where.archived).toBe(false);
         expect(callArgs.where.status).toBeTruthy(); // Has a status filter
       });
@@ -264,7 +265,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-regular', name: 'Regular Pet', featured: false }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 2,
         } as never);
@@ -286,7 +287,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'dog-2', name: 'Max', type: PetType.DOG }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockDogs,
           count: 2,
         } as never);
@@ -304,7 +305,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets by size', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', size: Size.SMALL })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -322,7 +323,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets by age group', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', age_group: AgeGroup.BABY })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -340,7 +341,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets by gender', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', gender: Gender.FEMALE })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -358,7 +359,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets by breed', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', breed: 'Golden Retriever' })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -366,14 +367,14 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         const result = await PetService.searchPets({ breed: 'Golden' }, { page: 1, limit: 20 });
 
         expect(result.pets).toHaveLength(1);
-        const callArgs = (MockedPet.findAndCountAll as jest.Mock).mock.calls[0][0];
+        const callArgs = (MockedPet.findAndCountAll as vi.Mock).mock.calls[0][0];
         expect(callArgs.where.breed).toBeTruthy(); // Has a breed filter
       });
 
       it('should filter pets good with children', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', good_with_children: true })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -391,7 +392,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets good with dogs', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', good_with_dogs: true })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -409,7 +410,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets good with cats', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', good_with_cats: true })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -427,7 +428,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets by energy level', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', energy_level: EnergyLevel.HIGH })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -445,7 +446,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets by house trained status', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', house_trained: true })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -463,7 +464,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets by special needs', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', special_needs: true })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -481,7 +482,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should filter pets by adoption fee range', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', adoption_fee: 100 })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -492,14 +493,14 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         );
 
         expect(result.pets).toHaveLength(1);
-        const callArgs = (MockedPet.findAndCountAll as jest.Mock).mock.calls[0][0];
+        const callArgs = (MockedPet.findAndCountAll as vi.Mock).mock.calls[0][0];
         expect(callArgs.where.adoption_fee).toBeTruthy(); // Has an adoption fee filter
       });
 
       it('should filter pets by weight range', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', weight_kg: 20 })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -507,14 +508,14 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         const result = await PetService.searchPets({ weightMin: 10, weightMax: 30 }, { page: 1, limit: 20 });
 
         expect(result.pets).toHaveLength(1);
-        const callArgs = (MockedPet.findAndCountAll as jest.Mock).mock.calls[0][0];
+        const callArgs = (MockedPet.findAndCountAll as vi.Mock).mock.calls[0][0];
         expect(callArgs.where.weight_kg).toBeTruthy(); // Has a weight filter
       });
 
       it('should search pets by text across multiple fields', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', name: 'Golden Buddy' })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -522,7 +523,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         const result = await PetService.searchPets({ search: 'Golden' }, { page: 1, limit: 20 });
 
         expect(result.pets).toHaveLength(1);
-        const callArgs = (MockedPet.findAndCountAll as jest.Mock).mock.calls[0][0];
+        const callArgs = (MockedPet.findAndCountAll as vi.Mock).mock.calls[0][0];
         expect(callArgs.where).toBeTruthy(); // Has search filters
       });
 
@@ -536,7 +537,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -567,7 +568,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should sort pets by creation date descending', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1' })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -584,7 +585,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should sort pets by name ascending', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1' })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -611,7 +612,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           long_description: 'Very friendly and loves children',
         });
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
         const result = await PetService.getPetById('pet-1', userId);
 
@@ -624,7 +625,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should increment view count when pet is viewed', async () => {
         const mockPet = createMockPet({ pet_id: 'pet-1' });
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
         await PetService.getPetById('pet-1', userId);
 
@@ -634,7 +635,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should log pet view in audit log', async () => {
         const mockPet = createMockPet({ pet_id: 'pet-1' });
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
         await PetService.getPetById('pet-1', userId);
 
@@ -648,7 +649,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should return null when pet not found', async () => {
-        MockedPet.findByPk = jest.fn().mockResolvedValue(null);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
         const result = await PetService.getPetById('non-existent-pet', userId);
 
@@ -680,7 +681,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           ],
         });
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
         const result = await PetService.getPetById('pet-1', userId);
 
@@ -702,9 +703,9 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           deleted_at: null,
         };
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue(null);
-        MockedUserFavorite.create = jest.fn().mockResolvedValue(mockFavorite as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue(null);
+        MockedUserFavorite.create = vi.fn().mockResolvedValue(mockFavorite as never);
 
         await PetService.addToFavorites(userId, 'pet-1');
 
@@ -718,7 +719,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should throw error when pet does not exist', async () => {
-        MockedPet.findByPk = jest.fn().mockResolvedValue(null);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
         await expect(PetService.addToFavorites(userId, 'non-existent-pet')).rejects.toThrow(
           'Pet not found'
@@ -734,8 +735,8 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           deleted_at: null,
         };
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue(mockFavorite as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue(mockFavorite as never);
 
         await expect(PetService.addToFavorites(userId, 'pet-1')).rejects.toThrow(
           'Pet is already in favorites'
@@ -749,11 +750,11 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           user_id: userId,
           pet_id: 'pet-1',
           deleted_at: new Date(),
-          restore: jest.fn().mockResolvedValue(undefined),
+          restore: vi.fn().mockResolvedValue(undefined),
         };
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue(mockFavorite as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue(mockFavorite as never);
 
         await PetService.addToFavorites(userId, 'pet-1');
 
@@ -768,10 +769,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           id: 'fav-1',
           user_id: userId,
           pet_id: 'pet-1',
-          destroy: jest.fn().mockResolvedValue(undefined),
+          destroy: vi.fn().mockResolvedValue(undefined),
         };
 
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue(mockFavorite as never);
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue(mockFavorite as never);
 
         await PetService.removeFromFavorites(userId, 'pet-1');
 
@@ -782,7 +783,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should throw error when pet is not in favorites', async () => {
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue(null);
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue(null);
 
         await expect(PetService.removeFromFavorites(userId, 'pet-1')).rejects.toThrow(
           'Pet is not in favorites'
@@ -804,7 +805,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           Pet: pet,
         }));
 
-        MockedUserFavorite.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedUserFavorite.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockFavorites,
           count: 2,
         } as never);
@@ -817,7 +818,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should return empty list when user has no favorites', async () => {
-        MockedUserFavorite.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedUserFavorite.findAndCountAll = vi.fn().mockResolvedValue({
           rows: [],
           count: 0,
         } as never);
@@ -838,7 +839,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           },
         ];
 
-        MockedUserFavorite.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedUserFavorite.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockFavorites,
           count: 10,
         } as never);
@@ -862,7 +863,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           pet_id: 'pet-1',
         };
 
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue(mockFavorite as never);
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue(mockFavorite as never);
 
         const result = await PetService.checkFavoriteStatus(userId, 'pet-1');
 
@@ -870,7 +871,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should return false when pet is not favorited', async () => {
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue(null);
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue(null);
 
         const result = await PetService.checkFavoriteStatus(userId, 'pet-1');
 
@@ -887,7 +888,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-2', name: 'Max', type: PetType.DOG }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 2,
         } as never);
@@ -904,7 +905,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         // Test that multiple searches can be performed independently
         const mockPets = [createMockPet({ pet_id: 'pet-1' })];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -923,7 +924,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-2', featured: false, age_group: AgeGroup.ADULT }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 2,
         } as never);
@@ -933,7 +934,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(MockedPet.findAndCountAll).toHaveBeenCalled();
         expect(result.pets).toHaveLength(2);
         // Verify that featured and priority are used in ordering
-        const callArgs = (MockedPet.findAndCountAll as jest.Mock).mock.calls[0][0];
+        const callArgs = (MockedPet.findAndCountAll as vi.Mock).mock.calls[0][0];
         expect(callArgs.order).toContainEqual(['featured', 'DESC']);
         expect(callArgs.order).toContainEqual(['priority_listing', 'DESC']);
       });
@@ -943,7 +944,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-2', images: [{ image_id: 'img_1', url: 'test.jpg' } as never] }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 1,
         } as never);
@@ -968,13 +969,13 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-2', breed: 'Labrador Retriever', type: PetType.DOG }),
         ];
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(referencePet);
-        MockedPet.findAll = jest.fn().mockResolvedValue(similarPets as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(referencePet);
+        MockedPet.findAll = vi.fn().mockResolvedValue(similarPets as never);
 
         const result = await PetService.getSimilarPets('pet-reference', 6);
 
         expect(result).toHaveLength(2);
-        const callArgs = (MockedPet.findAll as jest.Mock).mock.calls[0][0];
+        const callArgs = (MockedPet.findAll as vi.Mock).mock.calls[0][0];
         expect(callArgs.where.pet_id).toBeTruthy(); // Has a pet_id filter to exclude reference pet
       });
 
@@ -982,8 +983,8 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         const referencePet = createMockPet({ pet_id: 'pet-reference', type: PetType.CAT });
         const similarPets = [createMockPet({ pet_id: 'pet-1', type: PetType.CAT })];
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(referencePet);
-        MockedPet.findAll = jest.fn().mockResolvedValue(similarPets as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(referencePet);
+        MockedPet.findAll = vi.fn().mockResolvedValue(similarPets as never);
 
         const result = await PetService.getSimilarPets('pet-reference', 6);
 
@@ -991,7 +992,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should throw error when reference pet not found', async () => {
-        MockedPet.findByPk = jest.fn().mockResolvedValue(null);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
         await expect(PetService.getSimilarPets('non-existent-pet', 6)).rejects.toThrow('Pet not found');
       });
@@ -1000,8 +1001,8 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         const referencePet = createMockPet({ pet_id: 'pet-reference' });
         const similarPets = [createMockPet({ pet_id: 'pet-1' })];
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(referencePet);
-        MockedPet.findAll = jest.fn().mockResolvedValue(similarPets as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(referencePet);
+        MockedPet.findAll = vi.fn().mockResolvedValue(similarPets as never);
 
         const result = await PetService.getSimilarPets('pet-reference', 6);
 
@@ -1016,8 +1017,8 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-3' }),
         ];
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(referencePet);
-        MockedPet.findAll = jest.fn().mockResolvedValue(similarPets as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(referencePet);
+        MockedPet.findAll = vi.fn().mockResolvedValue(similarPets as never);
 
         await PetService.getSimilarPets('pet-reference', 3);
 
@@ -1032,7 +1033,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-2', featured: true }),
         ];
 
-        MockedPet.findAll = jest.fn().mockResolvedValue(mockPets as never);
+        MockedPet.findAll = vi.fn().mockResolvedValue(mockPets as never);
 
         const result = await PetService.getFeaturedPets(10);
 
@@ -1047,11 +1048,11 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should only return available or foster pets', async () => {
         const mockPets = [createMockPet({ pet_id: 'pet-1', status: PetStatus.AVAILABLE })];
 
-        MockedPet.findAll = jest.fn().mockResolvedValue(mockPets as never);
+        MockedPet.findAll = vi.fn().mockResolvedValue(mockPets as never);
 
         await PetService.getFeaturedPets(10);
 
-        const callArgs = (MockedPet.findAll as jest.Mock).mock.calls[0][0];
+        const callArgs = (MockedPet.findAll as vi.Mock).mock.calls[0][0];
         expect(callArgs.where.status).toBeTruthy(); // Has a status filter
         expect(callArgs.where.featured).toBe(true);
       });
@@ -1064,7 +1065,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-2', created_at: new Date('2024-01-09') }),
         ];
 
-        MockedPet.findAll = jest.fn().mockResolvedValue(mockPets as never);
+        MockedPet.findAll = vi.fn().mockResolvedValue(mockPets as never);
 
         const result = await PetService.getRecentPets(12);
 
@@ -1207,7 +1208,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           short_description: 'Friendly dog looking for a home',
         });
 
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
         const pet = await PetService.getPetById('pet-1');
 
@@ -1228,7 +1229,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-2', name: 'Max', type: PetType.DOG }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 2,
         } as never);
@@ -1238,7 +1239,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(searchResults.pets).toHaveLength(2);
 
         // Step 2: View pet details
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPets[0]);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPets[0]);
 
         const petDetails = await PetService.getPetById('pet-1', userId);
 
@@ -1246,8 +1247,8 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(mockPets[0].increment).toHaveBeenCalledWith('view_count');
 
         // Step 3: Add to favorites
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue(null);
-        MockedUserFavorite.create = jest.fn().mockResolvedValue({
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue(null);
+        MockedUserFavorite.create = vi.fn().mockResolvedValue({
           id: 'fav-1',
           user_id: userId,
           pet_id: 'pet-1',
@@ -1258,7 +1259,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(MockedUserFavorite.create).toHaveBeenCalled();
 
         // Step 4: Check favorite status
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue({
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue({
           id: 'fav-1',
           user_id: userId,
           pet_id: 'pet-1',
@@ -1276,7 +1277,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           createMockPet({ pet_id: 'pet-2', name: 'Max' }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 2,
         } as never);
@@ -1325,7 +1326,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           }),
         ];
 
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockFilteredPets,
           count: 2,
         } as never);
@@ -1355,8 +1356,8 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(pet1?.good_with_children).toBe(pet2?.good_with_children);
 
         // Step 3: Get similar pets to first pet
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockFilteredPets[0]);
-        MockedPet.findAll = jest.fn().mockResolvedValue([mockFilteredPets[1]] as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockFilteredPets[0]);
+        MockedPet.findAll = vi.fn().mockResolvedValue([mockFilteredPets[1]] as never);
 
         const similar = await PetService.getSimilarPets('pet-1', 6);
 
@@ -1369,9 +1370,9 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         const mockPet = createMockPet({ pet_id: 'pet-1', name: 'Buddy' });
 
         // Step 1: Add to favorites
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue(null);
-        MockedUserFavorite.create = jest.fn().mockResolvedValue({
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue(null);
+        MockedUserFavorite.create = vi.fn().mockResolvedValue({
           id: 'fav-1',
           user_id: userId,
           pet_id: 'pet-1',
@@ -1380,7 +1381,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         await PetService.addToFavorites(userId, 'pet-1');
 
         // Step 2: View favorites list
-        MockedUserFavorite.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedUserFavorite.findAndCountAll = vi.fn().mockResolvedValue({
           rows: [{ id: 'fav-1', user_id: userId, pet_id: 'pet-1', Pet: mockPet }],
           count: 1,
         } as never);
@@ -1391,17 +1392,17 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(favorites.pets[0].name).toBe('Buddy');
 
         // Step 3: Remove from favorites
-        MockedUserFavorite.findOne = jest.fn().mockResolvedValue({
+        MockedUserFavorite.findOne = vi.fn().mockResolvedValue({
           id: 'fav-1',
           user_id: userId,
           pet_id: 'pet-1',
-          destroy: jest.fn().mockResolvedValue(undefined),
+          destroy: vi.fn().mockResolvedValue(undefined),
         } as never);
 
         await PetService.removeFromFavorites(userId, 'pet-1');
 
         // Step 4: Verify removal
-        MockedUserFavorite.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedUserFavorite.findAndCountAll = vi.fn().mockResolvedValue({
           rows: [],
           count: 0,
         } as never);
@@ -1430,7 +1431,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         ];
 
         // Step 1: Search for pets with filters
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
           count: 2,
         } as never);
@@ -1452,8 +1453,8 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         });
 
         // Step 3: Get similar pets based on interactions
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPets[0]);
-        MockedPet.findAll = jest.fn().mockResolvedValue([mockPets[1]] as never);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPets[0]);
+        MockedPet.findAll = vi.fn().mockResolvedValue([mockPets[1]] as never);
 
         const similar = await PetService.getSimilarPets('pet-1', 6);
 
@@ -1467,7 +1468,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         const mockPet = createMockPet({ pet_id: 'pet-1', name: 'Buddy' });
 
         // Step 1: Search and find pet
-        MockedPet.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: [mockPet],
           count: 1,
         } as never);
@@ -1477,7 +1478,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(searchResults.pets).toHaveLength(1);
 
         // Step 2: View pet details
-        MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+        MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
         const petDetails = await PetService.getPetById('pet-1', userId);
 

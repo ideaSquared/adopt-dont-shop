@@ -1,5 +1,6 @@
+import { vi } from 'vitest';
 // Mock env config FIRST before any imports
-jest.mock('../../config/env', () => ({
+vi.mock('../../config/env', () => ({
   env: {
     JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',
@@ -9,25 +10,25 @@ jest.mock('../../config/env', () => ({
 }));
 
 // Mock sequelize before model imports
-jest.mock('../../sequelize', () => ({
+vi.mock('../../sequelize', () => ({
   __esModule: true,
   default: {
-    transaction: jest.fn().mockResolvedValue({
-      commit: jest.fn().mockResolvedValue(undefined),
-      rollback: jest.fn().mockResolvedValue(undefined),
+    transaction: vi.fn().mockResolvedValue({
+      commit: vi.fn().mockResolvedValue(undefined),
+      rollback: vi.fn().mockResolvedValue(undefined),
     }),
-    query: jest.fn(),
-    literal: jest.fn(val => val),
-    fn: jest.fn(),
-    col: jest.fn(),
+    query: vi.fn(),
+    literal: vi.fn(val => val),
+    fn: vi.fn(),
+    col: vi.fn(),
   },
 }));
 
 // Mock email service
-jest.mock('../../services/email.service', () => ({
+vi.mock('../../services/email.service', () => ({
   default: {
-    sendEmail: jest.fn().mockResolvedValue(undefined),
-    queueEmail: jest.fn().mockResolvedValue(undefined),
+    sendEmail: vi.fn().mockResolvedValue(undefined),
+    queueEmail: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -47,40 +48,40 @@ enum UserType {
 }
 
 // Mock the models - we need to mock the module that chat.service actually imports from
-jest.mock('../../models', () => {
+vi.mock('../../models', () => {
   return {
     Chat: {
-      create: jest.fn(),
-      findByPk: jest.fn(),
-      findOne: jest.fn(),
-      findAll: jest.fn(),
-      findAndCountAll: jest.fn(),
-      update: jest.fn(),
-      destroy: jest.fn(),
-      count: jest.fn(),
+      create: vi.fn(),
+      findByPk: vi.fn(),
+      findOne: vi.fn(),
+      findAll: vi.fn(),
+      findAndCountAll: vi.fn(),
+      update: vi.fn(),
+      destroy: vi.fn(),
+      count: vi.fn(),
     },
     ChatParticipant: {
-      create: jest.fn(),
-      findOne: jest.fn(),
-      findAll: jest.fn(),
-      destroy: jest.fn(),
+      create: vi.fn(),
+      findOne: vi.fn(),
+      findAll: vi.fn(),
+      destroy: vi.fn(),
     },
     Message: {
-      create: jest.fn(),
-      findByPk: jest.fn(),
-      findOne: jest.fn(),
-      findAll: jest.fn(),
-      findAndCountAll: jest.fn(),
-      count: jest.fn(),
-      update: jest.fn(),
+      create: vi.fn(),
+      findByPk: vi.fn(),
+      findOne: vi.fn(),
+      findAll: vi.fn(),
+      findAndCountAll: vi.fn(),
+      count: vi.fn(),
+      update: vi.fn(),
     },
     User: {
-      findByPk: jest.fn(),
-      findOne: jest.fn(),
+      findByPk: vi.fn(),
+      findOne: vi.fn(),
     },
     Rescue: {
-      findByPk: jest.fn(),
-      findOne: jest.fn(),
+      findByPk: vi.fn(),
+      findOne: vi.fn(),
     },
   };
 });
@@ -99,20 +100,19 @@ import {
   ParticipantRole,
 } from '../../types/chat';
 
-jest.mock('../../services/auditLog.service');
-jest.mock('../../services/notification.service');
-jest.mock('../../utils/logger');
+vi.mock('../../services/auditLog.service');
+vi.mock('../../services/notification.service');
+vi.mock('../../utils/logger');
 
-// Now get references to the mocked models
-const models = jest.requireMock('../../models');
-const MockedChat = models.Chat as jest.Mocked<typeof Chat>;
-const MockedChatParticipant = models.ChatParticipant as jest.Mocked<typeof ChatParticipant>;
-const MockedMessage = models.Message as jest.Mocked<typeof Message>;
-const MockedUser = models.User as jest.Mocked<typeof User>;
-const MockedRescue = models.Rescue as jest.Mocked<typeof Rescue>;
+// Use the imported mocked models directly
+const MockedChat = Chat as any;
+const MockedChatParticipant = ChatParticipant as any;
+const MockedMessage = Message as any;
+const MockedUser = User as any;
+const MockedRescue = Rescue as any;
 
-const MockedAuditLogService = AuditLogService as jest.Mocked<typeof AuditLogService>;
-const MockedNotificationService = NotificationService as jest.Mocked<typeof NotificationService>;
+const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
+const MockedNotificationService = NotificationService as vi.Mocked<typeof NotificationService>;
 
 describe('Chat Messaging Flow Integration Tests', () => {
   const adopterId = 'adopter-123';
@@ -123,13 +123,13 @@ describe('Chat Messaging Flow Integration Tests', () => {
   const otherUserId = 'user-789';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default audit log mocks
-    MockedAuditLogService.log = jest.fn().mockResolvedValue(undefined as never);
+    MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined as never);
 
     // Setup default notification service mocks
-    MockedNotificationService.createNotification = jest.fn().mockResolvedValue(undefined as never);
+    MockedNotificationService.createNotification = vi.fn().mockResolvedValue(undefined as never);
   });
 
   describe('Chat Creation', () => {
@@ -153,8 +153,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
           role: ParticipantRole.RESCUE,
         });
 
-        MockedChat.create = jest.fn().mockResolvedValue(mockChat as never);
-        MockedChatParticipant.create = jest
+        MockedChat.create = vi.fn().mockResolvedValue(mockChat as never);
+        MockedChatParticipant.create = vi
           .fn()
           .mockResolvedValueOnce(mockParticipant1 as never)
           .mockResolvedValueOnce(mockParticipant2 as never);
@@ -186,9 +186,9 @@ describe('Chat Messaging Flow Integration Tests', () => {
           content: 'Hello! I am interested in adopting.',
         });
 
-        MockedChat.create = jest.fn().mockResolvedValue(mockChat as never);
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.create = vi.fn().mockResolvedValue(mockChat as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
 
         const chatData = {
           rescueId,
@@ -216,8 +216,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
           application_id: applicationId,
         });
 
-        MockedChat.create = jest.fn().mockResolvedValue(mockChat as never);
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
+        MockedChat.create = vi.fn().mockResolvedValue(mockChat as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
 
         const chatData = {
           rescueId,
@@ -242,8 +242,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
           pet_id: petId,
         });
 
-        MockedChat.create = jest.fn().mockResolvedValue(mockChat as never);
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
+        MockedChat.create = vi.fn().mockResolvedValue(mockChat as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
 
         const chatData = {
           rescueId,
@@ -263,8 +263,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
       it('should log chat creation in audit trail', async () => {
         const mockChat = createMockChat({ chat_id: chatId, rescue_id: rescueId });
 
-        MockedChat.create = jest.fn().mockResolvedValue(mockChat as never);
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
+        MockedChat.create = vi.fn().mockResolvedValue(mockChat as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
 
         const chatData = {
           rescueId,
@@ -286,8 +286,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
       it('should filter out empty participant IDs', async () => {
         const mockChat = createMockChat({ chat_id: chatId, rescue_id: rescueId });
 
-        MockedChat.create = jest.fn().mockResolvedValue(mockChat as never);
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
+        MockedChat.create = vi.fn().mockResolvedValue(mockChat as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
 
         const chatData = {
           rescueId,
@@ -321,12 +321,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([mockParticipant] as never);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([mockParticipant] as never);
 
         const messageData = {
           chatId,
@@ -351,7 +351,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
       });
 
       it('should reject message from non-participant', async () => {
-        MockedChat.findByPk = jest.fn().mockResolvedValue(null);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(null);
 
         const messageData = {
           chatId,
@@ -373,8 +373,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
         mockChat.Participants = [mockParticipant];
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(10); // Already sent 10 messages
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(10); // Already sent 10 messages
 
         const messageData = {
           chatId,
@@ -396,8 +396,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
         mockChat.Participants = [mockParticipant];
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
 
         const messageData = {
           chatId,
@@ -406,7 +406,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
         };
 
         // The Message.create will be called and Sequelize validation should catch this
-        MockedMessage.create = jest.fn().mockRejectedValue(new Error('Validation error'));
+        MockedMessage.create = vi.fn().mockRejectedValue(new Error('Validation error'));
 
         await expect(ChatService.sendMessage(messageData)).rejects.toThrow();
       });
@@ -423,12 +423,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]);
 
         const messageData = {
           chatId,
@@ -456,12 +456,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]);
 
         const messageData = {
           chatId,
@@ -490,7 +490,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
           createMockMessage({ message_id: 'msg-3', chat_id: chatId, content: 'Message 3' }),
         ];
 
-        MockedMessage.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedMessage.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockMessages,
           count: 3,
         } as never);
@@ -517,7 +517,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
           }),
         ];
 
-        MockedMessage.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedMessage.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockMessages,
           count: 2,
         } as never);
@@ -535,7 +535,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
         const before = new Date('2024-01-31');
         const after = new Date('2024-01-01');
 
-        MockedMessage.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedMessage.findAndCountAll = vi.fn().mockResolvedValue({
           rows: [],
           count: 0,
         } as never);
@@ -564,7 +564,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
         });
         mockMessage.Sender = mockUser;
 
-        MockedMessage.findAndCountAll = jest.fn().mockResolvedValue({
+        MockedMessage.findAndCountAll = vi.fn().mockResolvedValue({
           rows: [mockMessage],
           count: 1,
         } as never);
@@ -628,12 +628,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockSenderParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi
           .fn()
           .mockResolvedValue([mockRecipientParticipant] as never);
 
@@ -670,12 +670,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]); // No other participants
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]); // No other participants
 
         const messageData = {
           chatId,
@@ -714,12 +714,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockSenderParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi
           .fn()
           .mockResolvedValue([mockRecipientParticipant] as never);
 
@@ -755,13 +755,13 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([mockParticipant] as never);
-        MockedNotificationService.createNotification = jest
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([mockParticipant] as never);
+        MockedNotificationService.createNotification = vi
           .fn()
           .mockRejectedValue(new Error('Notification service unavailable'));
 
@@ -786,11 +786,11 @@ describe('Chat Messaging Flow Integration Tests', () => {
           sender_id: rescueStaffId,
         });
 
-        mockMessage.isReadBy = jest.fn().mockReturnValue(false);
-        mockMessage.markAsRead = jest.fn();
-        mockMessage.save = jest.fn().mockResolvedValue(mockMessage);
+        mockMessage.isReadBy = vi.fn().mockReturnValue(false);
+        mockMessage.markAsRead = vi.fn();
+        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
 
-        MockedMessage.findAll = jest.fn().mockResolvedValue([mockMessage] as never);
+        MockedMessage.findAll = vi.fn().mockResolvedValue([mockMessage] as never);
 
         await ChatService.markMessagesAsRead(chatId, adopterId);
 
@@ -805,11 +805,11 @@ describe('Chat Messaging Flow Integration Tests', () => {
           sender_id: rescueStaffId,
         });
 
-        mockMessage.isReadBy = jest.fn().mockReturnValue(true);
-        mockMessage.markAsRead = jest.fn();
-        mockMessage.save = jest.fn().mockResolvedValue(mockMessage);
+        mockMessage.isReadBy = vi.fn().mockReturnValue(true);
+        mockMessage.markAsRead = vi.fn();
+        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
 
-        MockedMessage.findAll = jest.fn().mockResolvedValue([mockMessage] as never);
+        MockedMessage.findAll = vi.fn().mockResolvedValue([mockMessage] as never);
 
         await ChatService.markMessagesAsRead(chatId, adopterId);
 
@@ -824,9 +824,9 @@ describe('Chat Messaging Flow Integration Tests', () => {
           sender_id: adopterId, // Same as the user marking as read
         });
 
-        mockMessage.markAsRead = jest.fn();
+        mockMessage.markAsRead = vi.fn();
 
-        MockedMessage.findAll = jest.fn().mockResolvedValue([mockMessage] as never);
+        MockedMessage.findAll = vi.fn().mockResolvedValue([mockMessage] as never);
 
         await ChatService.markMessagesAsRead(chatId, adopterId);
 
@@ -848,10 +848,10 @@ describe('Chat Messaging Flow Integration Tests', () => {
           createMockMessage({ message_id: 'msg-2', chat_id: chatId, sender_id: rescueStaffId }),
         ];
 
-        mockMessages[0].isReadBy = jest.fn().mockReturnValue(false);
-        mockMessages[1].isReadBy = jest.fn().mockReturnValue(true);
+        mockMessages[0].isReadBy = vi.fn().mockReturnValue(false);
+        mockMessages[1].isReadBy = vi.fn().mockReturnValue(true);
 
-        MockedMessage.findAll = jest.fn().mockResolvedValue(mockMessages as never);
+        MockedMessage.findAll = vi.fn().mockResolvedValue(mockMessages as never);
 
         const count = await ChatService.getUnreadMessageCount(chatId, adopterId);
 
@@ -863,9 +863,9 @@ describe('Chat Messaging Flow Integration Tests', () => {
           createMockMessage({ message_id: 'msg-1', chat_id: chatId, sender_id: rescueStaffId }),
         ];
 
-        mockMessages[0].isReadBy = jest.fn().mockReturnValue(true);
+        mockMessages[0].isReadBy = vi.fn().mockReturnValue(true);
 
-        MockedMessage.findAll = jest.fn().mockResolvedValue(mockMessages as never);
+        MockedMessage.findAll = vi.fn().mockResolvedValue(mockMessages as never);
 
         const count = await ChatService.getUnreadMessageCount(chatId, adopterId);
 
@@ -873,7 +873,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
       });
 
       it('should return 0 if there are no messages', async () => {
-        MockedMessage.findAll = jest.fn().mockResolvedValue([] as never);
+        MockedMessage.findAll = vi.fn().mockResolvedValue([] as never);
 
         const count = await ChatService.getUnreadMessageCount(chatId, adopterId);
 
@@ -893,12 +893,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
         const mockExistingCheck = null; // User not already in chat
 
-        MockedChatParticipant.findOne = jest
+        MockedChatParticipant.findOne = vi
           .fn()
           .mockResolvedValueOnce(mockRescueParticipant as never) // For permission check
           .mockResolvedValueOnce(mockExistingCheck); // For duplicate check
 
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
 
         const result = await ChatService.addParticipant(
           chatId,
@@ -918,7 +918,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
       });
 
       it('should prevent non-rescue staff from adding participants', async () => {
-        MockedChatParticipant.findOne = jest.fn().mockResolvedValue(null); // Not a rescue staff
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(null); // Not a rescue staff
 
         await expect(
           ChatService.addParticipant(chatId, otherUserId, adopterId, 'member')
@@ -937,7 +937,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
           participant_id: otherUserId,
         });
 
-        MockedChatParticipant.findOne = jest
+        MockedChatParticipant.findOne = vi
           .fn()
           .mockResolvedValueOnce(mockRescueParticipant as never) // For permission check
           .mockResolvedValueOnce(mockExistingParticipant as never); // For duplicate check
@@ -954,12 +954,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
           role: ParticipantRole.RESCUE,
         });
 
-        MockedChatParticipant.findOne = jest
+        MockedChatParticipant.findOne = vi
           .fn()
           .mockResolvedValueOnce(mockRescueParticipant as never)
           .mockResolvedValueOnce(null);
 
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
 
         await ChatService.addParticipant(chatId, otherUserId, rescueStaffId, 'member');
 
@@ -982,8 +982,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
           role: ParticipantRole.RESCUE,
         });
 
-        MockedChatParticipant.findOne = jest.fn().mockResolvedValue(mockRescueParticipant as never);
-        MockedChatParticipant.destroy = jest.fn().mockResolvedValue(1);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockRescueParticipant as never);
+        MockedChatParticipant.destroy = vi.fn().mockResolvedValue(1);
 
         const result = await ChatService.removeParticipant(chatId, otherUserId, rescueStaffId);
 
@@ -996,7 +996,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
       });
 
       it('should allow users to remove themselves', async () => {
-        MockedChatParticipant.destroy = jest.fn().mockResolvedValue(1);
+        MockedChatParticipant.destroy = vi.fn().mockResolvedValue(1);
 
         const result = await ChatService.removeParticipant(chatId, adopterId, adopterId);
 
@@ -1005,7 +1005,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
       });
 
       it('should prevent non-rescue staff from removing other participants', async () => {
-        MockedChatParticipant.findOne = jest.fn().mockResolvedValue(null);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(null);
 
         await expect(
           ChatService.removeParticipant(chatId, otherUserId, adopterId)
@@ -1019,8 +1019,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
           role: ParticipantRole.RESCUE,
         });
 
-        MockedChatParticipant.findOne = jest.fn().mockResolvedValue(mockRescueParticipant as never);
-        MockedChatParticipant.destroy = jest.fn().mockResolvedValue(1);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockRescueParticipant as never);
+        MockedChatParticipant.destroy = vi.fn().mockResolvedValue(1);
 
         await ChatService.removeParticipant(chatId, otherUserId, rescueStaffId);
 
@@ -1045,11 +1045,11 @@ describe('Chat Messaging Flow Integration Tests', () => {
           participant_id: adopterId,
         });
 
-        mockMessage.addReaction = jest.fn();
-        mockMessage.save = jest.fn().mockResolvedValue(mockMessage);
+        mockMessage.addReaction = vi.fn();
+        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
 
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChatParticipant.findOne = jest.fn().mockResolvedValue(mockParticipant as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockParticipant as never);
 
         const result = await ChatService.addMessageReaction(messageId, adopterId, '👍');
 
@@ -1060,8 +1060,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
       it('should prevent non-participants from reacting to messages', async () => {
         const mockMessage = createMockMessage({ message_id: messageId, chat_id: chatId });
 
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChatParticipant.findOne = jest.fn().mockResolvedValue(null);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(null);
 
         await expect(
           ChatService.addMessageReaction(messageId, 'non-participant-999', '👍')
@@ -1075,11 +1075,11 @@ describe('Chat Messaging Flow Integration Tests', () => {
           participant_id: adopterId,
         });
 
-        mockMessage.addReaction = jest.fn();
-        mockMessage.save = jest.fn().mockResolvedValue(mockMessage);
+        mockMessage.addReaction = vi.fn();
+        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
 
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChatParticipant.findOne = jest.fn().mockResolvedValue(mockParticipant as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockParticipant as never);
 
         await ChatService.addMessageReaction(messageId, adopterId, '👍');
         await ChatService.addMessageReaction(messageId, adopterId, '❤️');
@@ -1089,7 +1089,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
       });
 
       it('should reject reaction for non-existent message', async () => {
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(null);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(null);
 
         await expect(
           ChatService.addMessageReaction('non-existent-message', adopterId, '👍')
@@ -1101,10 +1101,10 @@ describe('Chat Messaging Flow Integration Tests', () => {
       it('should successfully remove a reaction from a message', async () => {
         const mockMessage = createMockMessage({ message_id: messageId, chat_id: chatId });
 
-        mockMessage.removeReaction = jest.fn();
-        mockMessage.save = jest.fn().mockResolvedValue(mockMessage);
+        mockMessage.removeReaction = vi.fn();
+        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
 
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
 
         const result = await ChatService.removeMessageReaction(messageId, adopterId, '👍');
 
@@ -1115,10 +1115,10 @@ describe('Chat Messaging Flow Integration Tests', () => {
       it('should handle removing non-existent reaction gracefully', async () => {
         const mockMessage = createMockMessage({ message_id: messageId, chat_id: chatId });
 
-        mockMessage.removeReaction = jest.fn();
-        mockMessage.save = jest.fn().mockResolvedValue(mockMessage);
+        mockMessage.removeReaction = vi.fn();
+        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
 
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
 
         await expect(
           ChatService.removeMessageReaction(messageId, adopterId, '👍')
@@ -1126,7 +1126,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
       });
 
       it('should reject removal for non-existent message', async () => {
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(null);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(null);
 
         await expect(
           ChatService.removeMessageReaction('non-existent-message', adopterId, '👍')
@@ -1162,12 +1162,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]);
 
         const messageData = {
           chatId,
@@ -1227,12 +1227,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]);
 
         const messageData = {
           chatId,
@@ -1289,12 +1289,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]);
 
         const messageData = {
           chatId,
@@ -1359,12 +1359,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]);
 
         const messageData = {
           chatId,
@@ -1403,12 +1403,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
           participant_id: rescueStaffId,
         });
 
-        MockedChat.create = jest.fn().mockResolvedValue(mockChat as never);
-        MockedChatParticipant.create = jest
+        MockedChat.create = vi.fn().mockResolvedValue(mockChat as never);
+        MockedChatParticipant.create = vi
           .fn()
           .mockResolvedValueOnce(mockParticipant1 as never)
           .mockResolvedValueOnce(mockParticipant2 as never);
-        MockedMessage.create = jest.fn().mockResolvedValue({} as never);
+        MockedMessage.create = vi.fn().mockResolvedValue({} as never);
 
         const chatData = {
           rescueId,
@@ -1431,12 +1431,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant2];
         mockMessage1.Sender = mockUser1;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage1 as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage1 as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([mockParticipant1] as never);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage1 as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage1 as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([mockParticipant1] as never);
 
         const message1 = await ChatService.sendMessage({
           chatId,
@@ -1447,21 +1447,21 @@ describe('Chat Messaging Flow Integration Tests', () => {
         expect(message1).toBeDefined();
 
         // Step 3: Mark message as read
-        mockMessage1.isReadBy = jest.fn().mockReturnValue(false);
-        mockMessage1.markAsRead = jest.fn();
-        mockMessage1.save = jest.fn().mockResolvedValue(mockMessage1);
+        mockMessage1.isReadBy = vi.fn().mockReturnValue(false);
+        mockMessage1.markAsRead = vi.fn();
+        mockMessage1.save = vi.fn().mockResolvedValue(mockMessage1);
 
-        MockedMessage.findAll = jest.fn().mockResolvedValue([mockMessage1] as never);
+        MockedMessage.findAll = vi.fn().mockResolvedValue([mockMessage1] as never);
 
         await ChatService.markMessagesAsRead(chatId, adopterId);
         expect(mockMessage1.markAsRead).toHaveBeenCalledWith(adopterId);
 
         // Step 4: React to message
-        mockMessage1.addReaction = jest.fn();
-        mockMessage1.save = jest.fn().mockResolvedValue(mockMessage1);
+        mockMessage1.addReaction = vi.fn();
+        mockMessage1.save = vi.fn().mockResolvedValue(mockMessage1);
 
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage1 as never);
-        MockedChatParticipant.findOne = jest.fn().mockResolvedValue(mockParticipant1 as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage1 as never);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockParticipant1 as never);
 
         await ChatService.addMessageReaction('msg-1', adopterId, '👍');
         expect(mockMessage1.addReaction).toHaveBeenCalledWith(adopterId, '👍');
@@ -1473,11 +1473,11 @@ describe('Chat Messaging Flow Integration Tests', () => {
           role: ParticipantRole.RESCUE,
         });
 
-        MockedChatParticipant.findOne = jest
+        MockedChatParticipant.findOne = vi
           .fn()
           .mockResolvedValueOnce(mockRescueParticipant as never)
           .mockResolvedValueOnce(null);
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
 
         await ChatService.addParticipant(chatId, otherUserId, rescueStaffId, 'member');
         expect(MockedChatParticipant.create).toHaveBeenCalled();
@@ -1493,8 +1493,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
         const mockChat = createMockChat({ chat_id: chatId, rescue_id: rescueId });
         const participants = [adopterId, rescueStaffId, otherUserId];
 
-        MockedChat.create = jest.fn().mockResolvedValue(mockChat as never);
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
+        MockedChat.create = vi.fn().mockResolvedValue(mockChat as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
 
         const chatData = {
           rescueId,
@@ -1529,18 +1529,18 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
         mockChat.Participants = [mockParticipant];
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi
           .fn()
           .mockResolvedValueOnce(mockMessage1 as never)
           .mockResolvedValueOnce(mockMessage2 as never);
-        MockedMessage.findByPk = jest
+        MockedMessage.findByPk = vi
           .fn()
           .mockResolvedValueOnce(mockMessage1 as never)
           .mockResolvedValueOnce(mockMessage2 as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]);
 
         await ChatService.sendMessage({
           chatId,
@@ -1555,7 +1555,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
         });
 
         // Step 3: One participant leaves
-        MockedChatParticipant.destroy = jest.fn().mockResolvedValue(1);
+        MockedChatParticipant.destroy = vi.fn().mockResolvedValue(1);
 
         await ChatService.removeParticipant(chatId, otherUserId, otherUserId);
 
@@ -1586,12 +1586,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]);
 
         await ChatService.sendMessage({
           chatId,
@@ -1611,9 +1611,9 @@ describe('Chat Messaging Flow Integration Tests', () => {
         );
 
         // Step 3: Moderate message
-        mockMessage.update = jest.fn().mockResolvedValue(mockMessage);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChatParticipant.findOne = jest.fn().mockResolvedValue(mockParticipant as never);
+        mockMessage.update = vi.fn().mockResolvedValue(mockMessage);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockParticipant as never);
 
         await ChatService.moderateMessage(rescueStaffId, messageId, 'Inappropriate content');
 
@@ -1624,8 +1624,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
         );
 
         // Step 4: Delete message
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        mockMessage.update = jest.fn().mockResolvedValue(mockMessage);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        mockMessage.update = vi.fn().mockResolvedValue(mockMessage);
 
         await ChatService.deleteMessage(messageId, rescueStaffId, 'Policy violation');
 
@@ -1642,8 +1642,8 @@ describe('Chat Messaging Flow Integration Tests', () => {
         // Step 1: Create chat
         const mockChat = createMockChat({ chat_id: chatId, rescue_id: rescueId });
 
-        MockedChat.create = jest.fn().mockResolvedValue(mockChat as never);
-        MockedChatParticipant.create = jest.fn().mockResolvedValue({} as never);
+        MockedChat.create = vi.fn().mockResolvedValue(mockChat as never);
+        MockedChatParticipant.create = vi.fn().mockResolvedValue({} as never);
 
         await ChatService.createChat(
           {
@@ -1664,12 +1664,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
         mockChat.Participants = [mockParticipant];
         mockMessage.Sender = mockUser;
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
-        MockedMessage.count = jest.fn().mockResolvedValue(0);
-        MockedMessage.create = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedMessage.findByPk = jest.fn().mockResolvedValue(mockMessage as never);
-        MockedChat.update = jest.fn().mockResolvedValue([1] as never);
-        MockedChatParticipant.findAll = jest.fn().mockResolvedValue([]);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
+        MockedMessage.create = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChat.update = vi.fn().mockResolvedValue([1] as never);
+        MockedChatParticipant.findAll = vi.fn().mockResolvedValue([]);
 
         await ChatService.sendMessage({
           chatId,
@@ -1678,10 +1678,10 @@ describe('Chat Messaging Flow Integration Tests', () => {
         });
 
         // Step 3: Update chat to archived status
-        mockChat.update = jest.fn().mockResolvedValue(mockChat);
-        mockChat.reload = jest.fn().mockResolvedValue(mockChat);
+        mockChat.update = vi.fn().mockResolvedValue(mockChat);
+        mockChat.reload = vi.fn().mockResolvedValue(mockChat);
 
-        MockedChat.findByPk = jest.fn().mockResolvedValue(mockChat as never);
+        MockedChat.findByPk = vi.fn().mockResolvedValue(mockChat as never);
 
         const updatedChat = await ChatService.updateChat(
           chatId,
@@ -1708,7 +1708,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
 });
 
 // Helper function to create mock user
-function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
+function createMockUser(overrides: Partial<User> = {}): vi.Mocked<User> {
   const defaultUser = {
     userId: 'mock-user-123',
     email: 'mock@example.com',
@@ -1722,7 +1722,7 @@ function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
-    toJSON: jest.fn().mockReturnValue({
+    toJSON: vi.fn().mockReturnValue({
       userId: overrides.userId ?? 'mock-user-123',
       email: overrides.email ?? 'mock@example.com',
       firstName: overrides.firstName ?? 'Mock',
@@ -1730,15 +1730,15 @@ function createMockUser(overrides: Partial<User> = {}): jest.Mocked<User> {
       userType: overrides.userType ?? UserType.ADOPTER,
       status: overrides.status ?? UserStatus.ACTIVE,
     }),
-    save: jest.fn().mockResolvedValue(undefined),
+    save: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultUser as jest.Mocked<User>;
+  return defaultUser as vi.Mocked<User>;
 }
 
 // Helper function to create mock chat
-function createMockChat(overrides: Partial<Chat> = {}): jest.Mocked<Chat> {
+function createMockChat(overrides: Partial<Chat> = {}): vi.Mocked<Chat> {
   const defaultChat = {
     chat_id: 'mock-chat-123',
     rescue_id: 'rescue-123',
@@ -1750,25 +1750,25 @@ function createMockChat(overrides: Partial<Chat> = {}): jest.Mocked<Chat> {
     Messages: [],
     Participants: [],
     rescue: null,
-    toJSON: jest.fn().mockReturnValue({
+    toJSON: vi.fn().mockReturnValue({
       chat_id: overrides.chat_id ?? 'mock-chat-123',
       rescue_id: overrides.rescue_id ?? 'rescue-123',
       status: overrides.status ?? ChatStatus.ACTIVE,
     }),
-    update: jest.fn().mockResolvedValue(undefined),
-    reload: jest.fn().mockResolvedValue(undefined),
-    save: jest.fn().mockResolvedValue(undefined),
-    destroy: jest.fn().mockResolvedValue(undefined),
+    update: vi.fn().mockResolvedValue(undefined),
+    reload: vi.fn().mockResolvedValue(undefined),
+    save: vi.fn().mockResolvedValue(undefined),
+    destroy: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultChat as jest.Mocked<Chat>;
+  return defaultChat as vi.Mocked<Chat>;
 }
 
 // Helper function to create mock chat participant
 function createMockChatParticipant(
   overrides: Partial<ChatParticipant> = {}
-): jest.Mocked<ChatParticipant> {
+): vi.Mocked<ChatParticipant> {
   const defaultParticipant = {
     chat_participant_id: 'mock-participant-123',
     chat_id: 'chat-123',
@@ -1777,22 +1777,22 @@ function createMockChatParticipant(
     last_read_at: new Date(),
     created_at: new Date(),
     updated_at: new Date(),
-    toJSON: jest.fn().mockReturnValue({
+    toJSON: vi.fn().mockReturnValue({
       chat_participant_id: overrides.chat_participant_id ?? 'mock-participant-123',
       chat_id: overrides.chat_id ?? 'chat-123',
       participant_id: overrides.participant_id ?? 'user-123',
       role: overrides.role ?? ParticipantRole.USER,
     }),
-    update: jest.fn().mockResolvedValue(undefined),
-    save: jest.fn().mockResolvedValue(undefined),
+    update: vi.fn().mockResolvedValue(undefined),
+    save: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultParticipant as jest.Mocked<ChatParticipant>;
+  return defaultParticipant as vi.Mocked<ChatParticipant>;
 }
 
 // Helper function to create mock message
-function createMockMessage(overrides: Partial<Message> = {}): jest.Mocked<Message> {
+function createMockMessage(overrides: Partial<Message> = {}): vi.Mocked<Message> {
   const defaultMessage = {
     message_id: 'mock-message-123',
     chat_id: 'chat-123',
@@ -1807,26 +1807,26 @@ function createMockMessage(overrides: Partial<Message> = {}): jest.Mocked<Messag
     updated_at: new Date(),
     Chat: undefined,
     Sender: undefined,
-    addReaction: jest.fn(),
-    removeReaction: jest.fn(),
-    getReactionCount: jest.fn().mockReturnValue(0),
-    hasUserReacted: jest.fn().mockReturnValue(false),
-    markAsRead: jest.fn(),
-    isReadBy: jest.fn().mockReturnValue(false),
-    getReadCount: jest.fn().mockReturnValue(0),
-    getUnreadUsers: jest.fn().mockReturnValue([]),
-    toJSON: jest.fn().mockReturnValue({
+    addReaction: vi.fn(),
+    removeReaction: vi.fn(),
+    getReactionCount: vi.fn().mockReturnValue(0),
+    hasUserReacted: vi.fn().mockReturnValue(false),
+    markAsRead: vi.fn(),
+    isReadBy: vi.fn().mockReturnValue(false),
+    getReadCount: vi.fn().mockReturnValue(0),
+    getUnreadUsers: vi.fn().mockReturnValue([]),
+    toJSON: vi.fn().mockReturnValue({
       message_id: overrides.message_id ?? 'mock-message-123',
       chat_id: overrides.chat_id ?? 'chat-123',
       sender_id: overrides.sender_id ?? 'user-123',
       content: overrides.content ?? 'Mock message content',
       content_format: MessageContentFormat.PLAIN,
     }),
-    update: jest.fn().mockResolvedValue(undefined),
-    save: jest.fn().mockResolvedValue(undefined),
-    reload: jest.fn().mockResolvedValue(undefined),
+    update: vi.fn().mockResolvedValue(undefined),
+    save: vi.fn().mockResolvedValue(undefined),
+    reload: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
-  return defaultMessage as unknown as jest.Mocked<Message>;
+  return defaultMessage as unknown as vi.Mocked<Message>;
 }

@@ -1,15 +1,16 @@
+import { vi } from 'vitest';
 import { AuditLog } from '../../models/AuditLog';
 import { AuditLogService } from '../../services/auditLog.service';
 
 // Mock the models and dependencies
-jest.mock('../../models/AuditLog');
-jest.mock('../../utils/logger');
+vi.mock('../../models/AuditLog');
+vi.mock('../../utils/logger');
 
-const MockedAuditLog = AuditLog as jest.Mocked<typeof AuditLog>;
+const MockedAuditLog = AuditLog as vi.Mocked<typeof AuditLog>;
 
 describe('AuditLogService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('log', () => {
@@ -43,7 +44,7 @@ describe('AuditLogService', () => {
         user_agent: mockAuditData.userAgent,
       };
 
-      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
+      MockedAuditLog.create = vi.fn().mockResolvedValue(mockLog as unknown as AuditLog);
 
       const result = await AuditLogService.log(mockAuditData);
 
@@ -96,7 +97,7 @@ describe('AuditLogService', () => {
         user_agent: undefined,
       };
 
-      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
+      MockedAuditLog.create = vi.fn().mockResolvedValue(mockLog as unknown as AuditLog);
 
       const result = await AuditLogService.log(minimalData);
 
@@ -123,7 +124,7 @@ describe('AuditLogService', () => {
     });
 
     it('should handle error when audit log creation fails', async () => {
-      MockedAuditLog.create = jest.fn().mockRejectedValue(new Error('Database error'));
+      MockedAuditLog.create = vi.fn().mockRejectedValue(new Error('Database error'));
 
       await expect(AuditLogService.log(mockAuditData)).rejects.toThrow('Database error');
     });
@@ -154,7 +155,7 @@ describe('AuditLogService', () => {
         user_agent: dataWithStatus.userAgent,
       };
 
-      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
+      MockedAuditLog.create = vi.fn().mockResolvedValue(mockLog as unknown as AuditLog);
 
       const result = await AuditLogService.log(dataWithStatus);
 
@@ -192,7 +193,7 @@ describe('AuditLogService', () => {
         user_agent: dataWithFailure.userAgent,
       };
 
-      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
+      MockedAuditLog.create = vi.fn().mockResolvedValue(mockLog as unknown as AuditLog);
 
       const result = await AuditLogService.log(dataWithFailure);
 
@@ -225,7 +226,7 @@ describe('AuditLogService', () => {
         user_agent: mockAuditData.userAgent,
       };
 
-      MockedAuditLog.create = jest.fn().mockResolvedValue(mockLog as unknown as AuditLog);
+      MockedAuditLog.create = vi.fn().mockResolvedValue(mockLog as unknown as AuditLog);
 
       const result = await AuditLogService.log(mockAuditData);
 
@@ -245,7 +246,7 @@ describe('AuditLogService', () => {
         { id: 'log-2', action: 'UPDATE', entity: 'Pet' },
       ];
 
-      MockedAuditLog.findAndCountAll = jest.fn().mockResolvedValue({
+      MockedAuditLog.findAndCountAll = vi.fn().mockResolvedValue({
         rows: mockLogs,
         count: 2,
       });
@@ -270,7 +271,7 @@ describe('AuditLogService', () => {
       const userId = 'user-123';
       const mockLogs = [{ id: 'log-1', userId, action: 'LOGIN' }];
 
-      MockedAuditLog.findAndCountAll = jest.fn().mockResolvedValue({
+      MockedAuditLog.findAndCountAll = vi.fn().mockResolvedValue({
         rows: mockLogs,
         count: 1,
       });

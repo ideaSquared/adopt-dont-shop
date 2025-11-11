@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import Application from '../../models/Application';
 import ChatParticipant from '../../models/ChatParticipant';
 import User, { UserStatus, UserType } from '../../models/User';
@@ -7,23 +8,23 @@ import { UserService } from '../../services/user.service';
 import { UserUpdateData } from '../../types/user';
 
 // Mock dependencies
-jest.mock('../../models/User');
-jest.mock('../../models/Application');
-jest.mock('../../models/UserFavorite');
-jest.mock('../../models/ChatParticipant');
-jest.mock('../../models/AuditLog');
-jest.mock('../../services/auditLog.service');
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../models/User');
+vi.mock('../../models/Application');
+vi.mock('../../models/UserFavorite');
+vi.mock('../../models/ChatParticipant');
+vi.mock('../../models/AuditLog');
+vi.mock('../../services/auditLog.service');
+vi.mock('../../utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
 // Mock Sequelize and Op
-jest.mock('sequelize', () => {
-  const actualSequelize = jest.requireActual('sequelize');
+vi.mock('sequelize', () => {
+  const actualSequelize = vi.importActual('sequelize');
   return {
     ...actualSequelize,
     Op: {
@@ -37,15 +38,15 @@ jest.mock('sequelize', () => {
 });
 
 // Create proper mock for User model
-const MockedUser = User as jest.Mocked<typeof User>;
-const MockedApplication = Application as jest.Mocked<typeof Application>;
-const MockedUserFavorite = UserFavorite as jest.Mocked<typeof UserFavorite>;
-const MockedChatParticipant = ChatParticipant as jest.Mocked<typeof ChatParticipant>;
-const MockedAuditLogService = AuditLogService as jest.Mocked<typeof AuditLogService>;
+const MockedUser = User as vi.Mocked<typeof User>;
+const MockedApplication = Application as vi.Mocked<typeof Application>;
+const MockedUserFavorite = UserFavorite as vi.Mocked<typeof UserFavorite>;
+const MockedChatParticipant = ChatParticipant as vi.Mocked<typeof ChatParticipant>;
+const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
 
 describe('UserService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getUserById', () => {
@@ -60,8 +61,8 @@ describe('UserService', () => {
         status: UserStatus.ACTIVE,
       };
 
-      MockedUser.scope = jest.fn().mockReturnValue({
-        findByPk: jest.fn().mockResolvedValue(mockUser),
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findByPk: vi.fn().mockResolvedValue(mockUser),
       });
 
       const result = await UserService.getUserById(userId, true);
@@ -72,8 +73,8 @@ describe('UserService', () => {
 
     it('should return null for non-existent user', async () => {
       const userId = 'non-existent';
-      MockedUser.scope = jest.fn().mockReturnValue({
-        findByPk: jest.fn().mockResolvedValue(null),
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findByPk: vi.fn().mockResolvedValue(null),
       });
 
       const result = await UserService.getUserById(userId);
@@ -83,8 +84,8 @@ describe('UserService', () => {
 
     it('should throw error on database failure', async () => {
       const userId = 'user-123';
-      MockedUser.scope = jest.fn().mockReturnValue({
-        findByPk: jest.fn().mockRejectedValue(new Error('Database error')),
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findByPk: vi.fn().mockRejectedValue(new Error('Database error')),
       });
 
       await expect(UserService.getUserById(userId)).rejects.toThrow('Failed to retrieve user');
@@ -104,14 +105,14 @@ describe('UserService', () => {
         email: 'test@example.com',
         firstName: 'John',
         lastName: 'Doe',
-        update: jest.fn().mockResolvedValue(true),
-        reload: jest.fn().mockResolvedValue({
+        update: vi.fn().mockResolvedValue(true),
+        reload: vi.fn().mockResolvedValue({
           userId,
           email: 'test@example.com',
           firstName: 'Jane',
           lastName: 'Smith',
         }),
-        toJSON: jest.fn().mockReturnValue({
+        toJSON: vi.fn().mockReturnValue({
           userId,
           email: 'test@example.com',
           firstName: 'John',
@@ -119,7 +120,7 @@ describe('UserService', () => {
         }),
       };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
 
       const result = await UserService.updateUserProfile(userId, updateData);
 
@@ -132,7 +133,7 @@ describe('UserService', () => {
       const userId = 'non-existent';
       const updateData: UserUpdateData = { firstName: 'Jane' };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
       await expect(UserService.updateUserProfile(userId, updateData)).rejects.toThrow(
         'User not found'
@@ -164,7 +165,7 @@ describe('UserService', () => {
         },
       ];
 
-      MockedUser.findAndCountAll = jest.fn().mockResolvedValue({
+      MockedUser.findAndCountAll = vi.fn().mockResolvedValue({
         count: 1,
         rows: mockUsers,
       });
@@ -201,8 +202,8 @@ describe('UserService', () => {
         privacySettings: {
           profileVisibility: 'public',
         },
-        update: jest.fn().mockResolvedValue(true),
-        reload: jest.fn().mockResolvedValue({
+        update: vi.fn().mockResolvedValue(true),
+        reload: vi.fn().mockResolvedValue({
           userId,
           notificationPreferences: {
             emailNotifications: false,
@@ -211,7 +212,7 @@ describe('UserService', () => {
         }),
       };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
 
       const result = await UserService.updateUserPreferences(userId, preferences);
 
@@ -230,7 +231,7 @@ describe('UserService', () => {
         createdAt: new Date(),
       };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
 
       const result = await UserService.getUserActivity(userId);
 
@@ -242,7 +243,7 @@ describe('UserService', () => {
 
     it('should throw error for non-existent user', async () => {
       const userId = 'non-existent';
-      MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
       await expect(UserService.getUserActivity(userId)).rejects.toThrow('User not found');
     });
@@ -291,14 +292,14 @@ describe('UserService', () => {
       const mockUser = {
         userId,
         userType: UserType.ADOPTER,
-        update: jest.fn().mockResolvedValue(true),
-        reload: jest.fn().mockResolvedValue({
+        update: vi.fn().mockResolvedValue(true),
+        reload: vi.fn().mockResolvedValue({
           userId,
           userType: newUserType,
         }),
       };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
 
       const result = await UserService.updateUserRole(userId, newUserType, adminUserId);
 
@@ -314,14 +315,14 @@ describe('UserService', () => {
       const mockUser = {
         userId,
         status: UserStatus.ACTIVE,
-        save: jest.fn().mockResolvedValue(true),
-        reload: jest.fn().mockResolvedValue({
+        save: vi.fn().mockResolvedValue(true),
+        reload: vi.fn().mockResolvedValue({
           userId,
           status: UserStatus.INACTIVE,
         }),
       };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
 
       const result = await UserService.deactivateUser(userId, adminUserId);
 
@@ -333,7 +334,7 @@ describe('UserService', () => {
       const userId = 'non-existent';
       const adminUserId = 'admin-456';
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
       await expect(UserService.deactivateUser(userId, adminUserId)).rejects.toThrow(
         'User not found'
@@ -348,14 +349,14 @@ describe('UserService', () => {
       const mockUser = {
         userId,
         status: UserStatus.INACTIVE,
-        save: jest.fn().mockResolvedValue(true),
-        reload: jest.fn().mockResolvedValue({
+        save: vi.fn().mockResolvedValue(true),
+        reload: vi.fn().mockResolvedValue({
           userId,
           status: UserStatus.ACTIVE,
         }),
       };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
 
       const result = await UserService.reactivateUser(userId, adminUserId);
 
@@ -384,7 +385,7 @@ describe('UserService', () => {
       ];
       const adminUserId = 'admin-456';
 
-      MockedUser.update = jest.fn().mockResolvedValue([3]);
+      MockedUser.update = vi.fn().mockResolvedValue([3]);
 
       const result = await UserService.bulkUpdateUsers(updates, adminUserId);
 
@@ -485,15 +486,15 @@ describe('UserService', () => {
         lastName: 'Doe',
         userType: UserType.ADOPTER,
         status: UserStatus.ACTIVE,
-        destroy: jest.fn().mockResolvedValue(undefined),
+        destroy: vi.fn().mockResolvedValue(undefined),
       };
 
       // Mock dependencies
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedApplication.update = jest.fn().mockResolvedValue([1]);
-      MockedUserFavorite.destroy = jest.fn().mockResolvedValue(5);
-      MockedChatParticipant.destroy = jest.fn().mockResolvedValue(3);
-      MockedAuditLogService.log = jest.fn().mockResolvedValue(undefined);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedApplication.update = vi.fn().mockResolvedValue([1]);
+      MockedUserFavorite.destroy = vi.fn().mockResolvedValue(5);
+      MockedChatParticipant.destroy = vi.fn().mockResolvedValue(3);
+      MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined);
 
       await UserService.deleteAccount(userId, reason);
 
@@ -538,14 +539,14 @@ describe('UserService', () => {
         email: 'test@example.com',
         firstName: 'John',
         lastName: 'Doe',
-        destroy: jest.fn().mockResolvedValue(undefined),
+        destroy: vi.fn().mockResolvedValue(undefined),
       };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedApplication.update = jest.fn().mockResolvedValue([1]);
-      MockedUserFavorite.destroy = jest.fn().mockResolvedValue(0);
-      MockedChatParticipant.destroy = jest.fn().mockResolvedValue(0);
-      MockedAuditLogService.log = jest.fn().mockResolvedValue(undefined);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedApplication.update = vi.fn().mockResolvedValue([1]);
+      MockedUserFavorite.destroy = vi.fn().mockResolvedValue(0);
+      MockedChatParticipant.destroy = vi.fn().mockResolvedValue(0);
+      MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined);
 
       await UserService.deleteAccount(userId);
 
@@ -565,7 +566,7 @@ describe('UserService', () => {
       const userId = 'non-existent';
       const reason = 'Test deletion';
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
       await expect(UserService.deleteAccount(userId, reason)).rejects.toThrow('User not found');
 
@@ -578,13 +579,13 @@ describe('UserService', () => {
 
       const mockUser = {
         userId,
-        destroy: jest.fn().mockRejectedValue(new Error('Database error')),
+        destroy: vi.fn().mockRejectedValue(new Error('Database error')),
       };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedApplication.update = jest.fn().mockResolvedValue([1]);
-      MockedUserFavorite.destroy = jest.fn().mockResolvedValue(0);
-      MockedChatParticipant.destroy = jest.fn().mockResolvedValue(0);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedApplication.update = vi.fn().mockResolvedValue([1]);
+      MockedUserFavorite.destroy = vi.fn().mockResolvedValue(0);
+      MockedChatParticipant.destroy = vi.fn().mockResolvedValue(0);
 
       await expect(UserService.deleteAccount(userId, reason)).rejects.toThrow('Database error');
     });
@@ -595,14 +596,14 @@ describe('UserService', () => {
 
       const mockUser = {
         userId,
-        destroy: jest.fn().mockResolvedValue(undefined),
+        destroy: vi.fn().mockResolvedValue(undefined),
       };
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedApplication.update = jest.fn().mockResolvedValue([1]);
-      MockedUserFavorite.destroy = jest.fn().mockResolvedValue(0);
-      MockedChatParticipant.destroy = jest.fn().mockResolvedValue(0);
-      MockedAuditLogService.log = jest.fn().mockRejectedValue(new Error('Audit log error'));
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedApplication.update = vi.fn().mockResolvedValue([1]);
+      MockedUserFavorite.destroy = vi.fn().mockResolvedValue(0);
+      MockedChatParticipant.destroy = vi.fn().mockResolvedValue(0);
+      MockedAuditLogService.log = vi.fn().mockRejectedValue(new Error('Audit log error'));
 
       // Should throw if audit logging fails (current implementation)
       await expect(UserService.deleteAccount(userId, reason)).rejects.toThrow('Audit log error');

@@ -1,22 +1,23 @@
+import { vi } from 'vitest';
 // Mock sequelize first
-jest.mock('../../sequelize', () => ({
+vi.mock('../../sequelize', () => ({
   __esModule: true,
   default: {
-    define: jest.fn(),
-    transaction: jest.fn(),
+    define: vi.fn(),
+    transaction: vi.fn(),
   },
 }));
 
 // Mock models
-jest.mock('../../models/EmailTemplate', () => {
+vi.mock('../../models/EmailTemplate', () => {
   const mockEmailTemplate = {
-    create: jest.fn(),
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAndCountAll: jest.fn(),
-    count: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
+    create: vi.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAndCountAll: vi.fn(),
+    count: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
   };
   return {
     __esModule: true,
@@ -51,15 +52,15 @@ jest.mock('../../models/EmailTemplate', () => {
   };
 });
 
-jest.mock('../../models/EmailQueue', () => {
+vi.mock('../../models/EmailQueue', () => {
   const mockEmailQueue = {
-    create: jest.fn(),
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    findAndCountAll: jest.fn(),
-    count: jest.fn(),
-    update: jest.fn(),
+    create: vi.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    findAndCountAll: vi.fn(),
+    count: vi.fn(),
+    update: vi.fn(),
   };
   return {
     __esModule: true,
@@ -87,11 +88,11 @@ jest.mock('../../models/EmailQueue', () => {
   };
 });
 
-jest.mock('../../models/EmailPreference', () => {
+vi.mock('../../models/EmailPreference', () => {
   const mockEmailPreference = {
-    findOne: jest.fn(),
-    create: jest.fn(),
-    findAll: jest.fn(),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    findAll: vi.fn(),
   };
   return {
     __esModule: true,
@@ -100,7 +101,7 @@ jest.mock('../../models/EmailPreference', () => {
 });
 
 // Mock config
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     email: {
       provider: 'console',
@@ -113,8 +114,8 @@ jest.mock('../../config', () => ({
 }));
 
 // Mock audit log service
-const mockAuditLogAction = jest.fn().mockResolvedValue(undefined);
-jest.mock('../../services/auditLog.service', () => ({
+const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
+vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: mockAuditLogAction,
   },
@@ -122,40 +123,40 @@ jest.mock('../../services/auditLog.service', () => ({
 
 // Mock logger
 const mockLogger = {
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
 };
 
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../utils/logger', () => ({
   __esModule: true,
   default: mockLogger,
   logger: mockLogger,
   loggerHelpers: {
-    logBusiness: jest.fn(),
-    logDatabase: jest.fn(),
-    logPerformance: jest.fn(),
-    logExternalService: jest.fn(),
+    logBusiness: vi.fn(),
+    logDatabase: vi.fn(),
+    logPerformance: vi.fn(),
+    logExternalService: vi.fn(),
   },
 }));
 
 // Mock email providers
-jest.mock('../../services/email-providers/console-provider');
-jest.mock('../../services/email-providers/ethereal-provider');
+vi.mock('../../services/email-providers/console-provider');
+vi.mock('../../services/email-providers/ethereal-provider');
 
 import EmailTemplate, { TemplateType, TemplateCategory, TemplateStatus } from '../../models/EmailTemplate';
 import EmailQueue, { EmailType, EmailPriority, EmailStatus } from '../../models/EmailQueue';
 import EmailPreference from '../../models/EmailPreference';
 import emailService from '../../services/email.service';
 
-const MockedEmailTemplate = EmailTemplate as jest.Mocked<typeof EmailTemplate>;
-const MockedEmailQueue = EmailQueue as jest.Mocked<typeof EmailQueue>;
-const MockedEmailPreference = EmailPreference as jest.Mocked<typeof EmailPreference>;
+const MockedEmailTemplate = EmailTemplate as vi.Mocked<typeof EmailTemplate>;
+const MockedEmailQueue = EmailQueue as vi.Mocked<typeof EmailQueue>;
+const MockedEmailPreference = EmailPreference as vi.Mocked<typeof EmailPreference>;
 
 describe('EmailService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Template management', () => {
@@ -180,7 +181,7 @@ describe('EmailService', () => {
           createdAt: new Date(),
         };
 
-        (MockedEmailTemplate.create as jest.Mock).mockResolvedValue(mockTemplate);
+        (MockedEmailTemplate.create as vi.Mock).mockResolvedValue(mockTemplate);
 
         const result = await emailService.createTemplate(templateData);
 
@@ -220,7 +221,7 @@ describe('EmailService', () => {
           createdAt: new Date(),
         };
 
-        (MockedEmailTemplate.create as jest.Mock).mockResolvedValue(mockTemplate);
+        (MockedEmailTemplate.create as vi.Mock).mockResolvedValue(mockTemplate);
 
         const result = await emailService.createTemplate(templateData);
 
@@ -252,7 +253,7 @@ describe('EmailService', () => {
           },
         ];
 
-        (MockedEmailTemplate.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedEmailTemplate.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: mockTemplates,
           count: 2,
         });
@@ -296,8 +297,8 @@ describe('EmailService', () => {
           maxRetries: 3,
         };
 
-        (MockedEmailQueue.create as jest.Mock).mockResolvedValue(mockEmail);
-        (MockedEmailPreference.findOne as jest.Mock).mockResolvedValue(null); // No preferences = allowed
+        (MockedEmailQueue.create as vi.Mock).mockResolvedValue(mockEmail);
+        (MockedEmailPreference.findOne as vi.Mock).mockResolvedValue(null); // No preferences = allowed
 
         const emailId = await emailService.sendEmail(options);
 
@@ -327,18 +328,18 @@ describe('EmailService', () => {
           subject: 'Welcome {{firstName}}!',
           htmlContent: '<h1>Welcome {{firstName}}!</h1>',
           textContent: 'Welcome {{firstName}}!',
-          isActive: jest.fn().mockReturnValue(true),
-          validateVariables: jest.fn().mockReturnValue({ valid: true, errors: [] }),
-          incrementUsage: jest.fn(),
-          save: jest.fn().mockResolvedValue(undefined),
+          isActive: vi.fn().mockReturnValue(true),
+          validateVariables: vi.fn().mockReturnValue({ valid: true, errors: [] }),
+          incrementUsage: vi.fn(),
+          save: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedEmailTemplate.findByPk as jest.Mock).mockResolvedValue(mockTemplate);
-        (MockedEmailQueue.create as jest.Mock).mockResolvedValue({
+        (MockedEmailTemplate.findByPk as vi.Mock).mockResolvedValue(mockTemplate);
+        (MockedEmailQueue.create as vi.Mock).mockResolvedValue({
           emailId: 'email-123',
           status: EmailStatus.QUEUED,
         });
-        (MockedEmailPreference.findOne as jest.Mock).mockResolvedValue(null);
+        (MockedEmailPreference.findOne as vi.Mock).mockResolvedValue(null);
 
         await emailService.sendEmail({
           toEmail: 'user@example.com',
@@ -355,10 +356,10 @@ describe('EmailService', () => {
       it('should throw error when template is inactive', async () => {
         const mockTemplate = {
           templateId: 'template-123',
-          isActive: jest.fn().mockReturnValue(false),
+          isActive: vi.fn().mockReturnValue(false),
         };
 
-        (MockedEmailTemplate.findByPk as jest.Mock).mockResolvedValue(mockTemplate);
+        (MockedEmailTemplate.findByPk as vi.Mock).mockResolvedValue(mockTemplate);
 
         await expect(
           emailService.sendEmail({
@@ -378,11 +379,11 @@ describe('EmailService', () => {
           userId: 'user-123',
           emailEnabled: false,
           marketingEnabled: false,
-          canReceiveEmails: jest.fn().mockReturnValue(false),
-          canReceiveType: jest.fn().mockReturnValue(false),
+          canReceiveEmails: vi.fn().mockReturnValue(false),
+          canReceiveType: vi.fn().mockReturnValue(false),
         };
 
-        (MockedEmailPreference.findOne as jest.Mock).mockResolvedValue(mockPreference);
+        (MockedEmailPreference.findOne as vi.Mock).mockResolvedValue(mockPreference);
 
         await expect(
           emailService.sendEmail({
@@ -400,8 +401,8 @@ describe('EmailService', () => {
 
     describe('when user has no preferences set', () => {
       it('should allow email to be sent', async () => {
-        (MockedEmailPreference.findOne as jest.Mock).mockResolvedValue(null);
-        (MockedEmailQueue.create as jest.Mock).mockResolvedValue({
+        (MockedEmailPreference.findOne as vi.Mock).mockResolvedValue(null);
+        (MockedEmailQueue.create as vi.Mock).mockResolvedValue({
           emailId: 'email-123',
           status: EmailStatus.QUEUED,
         });
@@ -429,11 +430,11 @@ describe('EmailService', () => {
           { toEmail: 'user3@example.com', toName: 'User 3', userId: 'user-3' },
         ];
 
-        (MockedEmailQueue.create as jest.Mock).mockResolvedValue({
+        (MockedEmailQueue.create as vi.Mock).mockResolvedValue({
           emailId: 'email-123',
           status: EmailStatus.QUEUED,
         });
-        (MockedEmailPreference.findOne as jest.Mock).mockResolvedValue(null);
+        (MockedEmailPreference.findOne as vi.Mock).mockResolvedValue(null);
 
         const emailIds = await emailService.sendBulkEmail({
           recipients,
@@ -454,10 +455,10 @@ describe('EmailService', () => {
           { toEmail: 'user2@example.com', toName: 'User 2' },
         ];
 
-        (MockedEmailQueue.create as jest.Mock)
+        (MockedEmailQueue.create as vi.Mock)
           .mockResolvedValueOnce({ emailId: 'email-1', status: EmailStatus.QUEUED })
           .mockRejectedValueOnce(new Error('Queue full'));
-        (MockedEmailPreference.findOne as jest.Mock).mockResolvedValue(null);
+        (MockedEmailPreference.findOne as vi.Mock).mockResolvedValue(null);
 
         const emailIds = await emailService.sendBulkEmail({
           recipients,
