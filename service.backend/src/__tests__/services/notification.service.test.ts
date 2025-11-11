@@ -127,10 +127,12 @@ import Notification, {
 import DeviceToken from '../../models/DeviceToken';
 import User from '../../models/User';
 import { NotificationService } from '../../services/notification.service';
+import { AuditLogService } from '../../services/auditLog.service';
 
 const MockedNotification = Notification as vi.Mocked<typeof Notification>;
 const MockedDeviceToken = DeviceToken as vi.Mocked<typeof DeviceToken>;
 const MockedUser = User as vi.Mocked<typeof User>;
+const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
 
 describe('NotificationService', () => {
   beforeEach(() => {
