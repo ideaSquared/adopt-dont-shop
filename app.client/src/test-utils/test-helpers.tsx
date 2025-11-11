@@ -2,11 +2,13 @@ import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { PermissionsProvider } from '@/contexts/PermissionsContext';
-import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
-import { NotificationsProvider } from '@/contexts/NotificationsContext';
-import { ChatProvider } from '@/contexts/ChatContext';
-import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import {
+  PermissionsProvider,
+  AnalyticsProvider,
+  NotificationsProvider,
+  ChatProvider,
+  FavoritesProvider,
+} from './mock-providers';
 
 /**
  * Custom render function that wraps components with all necessary providers

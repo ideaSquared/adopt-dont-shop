@@ -6,6 +6,10 @@ module.exports = {
   setupFiles: ['<rootDir>/app.client/src/test-utils/polyfills.ts'],
   setupFilesAfterEnv: ['<rootDir>/app.client/src/setup-tests.ts'],
   moduleNameMapper: {
+    // Mock workspace packages to avoid import.meta issues
+    '^@adopt-dont-shop/lib-auth$': '<rootDir>/app.client/src/__mocks__/@adopt-dont-shop/lib-auth.tsx',
+    '^@adopt-dont-shop/lib-api$': '<rootDir>/app.client/src/__mocks__/@adopt-dont-shop/lib-api.ts',
+    '^@adopt-dont-shop/lib-analytics$': '<rootDir>/app.client/src/__mocks__/@adopt-dont-shop/lib-analytics.ts',
     // Map workspace packages to their source directories
     '^@adopt-dont-shop/lib-(.*)$': '<rootDir>/lib.$1/src',
     '^@adopt-dont-shop/components$': '<rootDir>/lib.components/src',
@@ -34,6 +38,7 @@ module.exports = {
           jsx: 'react-jsx',
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
+          skipLibCheck: true,
           baseUrl: 'app.client/src',
           paths: {
             '@/*': ['*'],
@@ -45,6 +50,7 @@ module.exports = {
           },
         },
         babelConfig: true,
+        isolatedModules: true,
       },
     ],
   },
