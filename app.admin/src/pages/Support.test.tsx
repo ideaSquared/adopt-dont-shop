@@ -3,8 +3,19 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { ThemeProvider } from 'styled-components';
 import Support from './Support';
 import type { SupportTicket, TicketStatus, TicketPriority, TicketCategory } from '@adopt-dont-shop/lib-support-tickets';
+
+// Mock theme for styled-components
+const mockTheme = {
+  colors: {
+    primary: {
+      100: '#e0e7ff',
+      500: '#667eea',
+    },
+  },
+};
 
 // Mock support ticket data
 const mockTickets: SupportTicket[] = [
@@ -213,9 +224,11 @@ const queryClient = new QueryClient({
 
 const renderSupport = () => {
   return render(
-    <QueryClientProvider client={queryClient}>
-      <Support />
-    </QueryClientProvider>
+    <ThemeProvider theme={mockTheme}>
+      <QueryClientProvider client={queryClient}>
+        <Support />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 };
 

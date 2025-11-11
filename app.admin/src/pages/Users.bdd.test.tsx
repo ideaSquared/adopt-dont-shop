@@ -4,8 +4,19 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { ThemeProvider } from 'styled-components';
 import Users from './Users';
 import type { AdminUser } from '../services/libraryServices';
+
+// Mock theme for styled-components
+const mockTheme = {
+  colors: {
+    primary: {
+      100: '#e0e7ff',
+      500: '#667eea',
+    },
+  },
+};
 
 // Mock user data
 const mockUsers: AdminUser[] = [
@@ -80,16 +91,17 @@ jest.mock('../hooks', () => ({
 }));
 
 // Mock the API service
-const mockApiService = {
-  get: jest.fn(),
-  post: jest.fn(),
-  patch: jest.fn(),
-  delete: jest.fn(),
-};
-
 jest.mock('../services/libraryServices', () => ({
-  apiService: mockApiService,
+  apiService: {
+    get: jest.fn(),
+    post: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
+  },
 }));
+
+// Access the mocked apiService after jest.mock
+const { apiService: mockApiService } = jest.requireMock<{ apiService: typeof import('../services/libraryServices').apiService }>('../services/libraryServices');
 
 // Mock the components library
 jest.mock('@adopt-dont-shop/components', () => ({
@@ -261,14 +273,16 @@ const queryClient = new QueryClient({
 
 const renderUsers = (initialPath = '/users') => {
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[initialPath]}>
-        <Routes>
-          <Route path="/users" element={<Users />} />
-          <Route path="/users/:userId" element={<Users />} />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>
+    <ThemeProvider theme={mockTheme}>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <Routes>
+            <Route path="/users" element={<Users />} />
+            <Route path="/users/:userId" element={<Users />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 };
 

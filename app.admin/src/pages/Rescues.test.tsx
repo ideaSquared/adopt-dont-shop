@@ -3,8 +3,19 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ThemeProvider } from 'styled-components';
 import Rescues from './Rescues';
 import type { AdminRescue } from '@/types/rescue';
+
+// Mock theme for styled-components
+const mockTheme = {
+  colors: {
+    primary: {
+      100: '#e0e7ff',
+      500: '#667eea',
+    },
+  },
+};
 
 // Mock rescue data
 const mockRescues: AdminRescue[] = [
@@ -226,12 +237,14 @@ jest.mock('react-icons/fi', () => ({
 
 const renderRescues = (initialPath = '/rescues') => {
   return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <Routes>
-        <Route path="/rescues" element={<Rescues />} />
-        <Route path="/rescues/:rescueId" element={<Rescues />} />
-      </Routes>
-    </MemoryRouter>
+    <ThemeProvider theme={mockTheme}>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route path="/rescues" element={<Rescues />} />
+          <Route path="/rescues/:rescueId" element={<Rescues />} />
+        </Routes>
+      </MemoryRouter>
+    </ThemeProvider>
   );
 };
 
