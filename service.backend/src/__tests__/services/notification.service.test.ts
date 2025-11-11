@@ -60,16 +60,16 @@ vi.mock('../../models/DeviceToken', () => {
 });
 
 // Mock User model with sequelize transaction support
-const mockTransaction = {
-  commit: vi.fn().mockResolvedValue(undefined),
-  rollback: vi.fn().mockResolvedValue(undefined),
-};
-
-const mockSequelize = {
-  transaction: vi.fn().mockResolvedValue(mockTransaction),
-};
-
 vi.mock('../../models/User', () => {
+  const mockTransaction = {
+    commit: vi.fn().mockResolvedValue(undefined),
+    rollback: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const mockSequelize = {
+    transaction: vi.fn().mockResolvedValue(mockTransaction),
+  };
+
   const mockUser = {
     findByPk: vi.fn(),
     findOne: vi.fn(),
@@ -91,32 +91,33 @@ vi.mock('../../config', () => ({
 }));
 
 // Mock audit log service
-const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
-    log: mockAuditLogAction,
+    log: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
 // Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
-};
+vi.mock('../../utils/logger', () => {
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  };
 
-vi.mock('../../utils/logger', () => ({
-  __esModule: true,
-  default: mockLogger,
-  logger: mockLogger,
-  loggerHelpers: {
-    logBusiness: vi.fn(),
-    logDatabase: vi.fn(),
-    logPerformance: vi.fn(),
-    logExternalService: vi.fn(),
-  },
-}));
+  return {
+    __esModule: true,
+    default: mockLogger,
+    logger: mockLogger,
+    loggerHelpers: {
+      logBusiness: vi.fn(),
+      logDatabase: vi.fn(),
+      logPerformance: vi.fn(),
+      logExternalService: vi.fn(),
+    },
+  };
+});
 
 import Notification, {
   NotificationType,
