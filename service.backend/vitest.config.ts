@@ -46,6 +46,14 @@ export default defineConfig({
       'src/**/*.{test,spec}.{ts,js}',
     ],
 
+    // Exclude helper files
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/__tests__/helpers/**',
+      '**/__tests__/fixtures/**',
+    ],
+
     // Globals (enable Jest-compatible globals like describe, it, expect)
     globals: true,
   },
