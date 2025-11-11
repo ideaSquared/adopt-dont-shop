@@ -32,6 +32,7 @@ vi.mock('../../services/auditLog.service', () => ({
 
 // Import Report model for real database operations
 import Report from '../../models/Report';
+import User, { UserStatus, UserType } from '../../models/User';
 
 import { AuditLogService } from '../../services/auditLog.service';
 const mockAuditLog = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
@@ -1238,8 +1239,25 @@ describe('PetService', () => {
   describe('reportPet', () => {
     let testPet: Pet;
     let petId: string;
+    let testUser: User;
+    let userId: string;
 
     beforeEach(async () => {
+      userId = uniqueId('user');
+
+      // Create a test user for reporting
+      testUser = await User.create({
+        userId,
+        email: `reporter-${Date.now()}-${testCounter}@test.com`,
+        password: 'hashedpassword',
+        firstName: 'Test',
+        lastName: 'Reporter',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+        emailVerified: true,
+        rescueId: null,
+      });
+
       petId = uniqueId('report-pet');
       testPet = await Pet.create({
         pet_id: petId,
@@ -1263,7 +1281,7 @@ describe('PetService', () => {
     it('should create a pet report successfully', async () => {
       const result = await PetService.reportPet(
         petId,
-        'user-456',
+        userId,
         'inappropriate_content',
         'This pet listing contains inappropriate images'
       );
@@ -1275,14 +1293,14 @@ describe('PetService', () => {
       const reports = await Report.findAll({ where: { reportedEntityId: petId } });
       expect(reports).toHaveLength(1);
       expect(reports[0].reportedEntityType).toBe('pet');
-      expect(reports[0].reporterId).toBe('user-456');
-      expect(reports[0].category).toBe('INAPPROPRIATE_CONTENT');
+      expect(reports[0].reporterId).toBe(userId);
+      expect(reports[0].category).toBe('inappropriate_content');
     });
 
     it('should throw error for non-existent pet', async () => {
-      await expect(
-        PetService.reportPet('nonexistent', 'user-456', 'spam')
-      ).rejects.toThrow('Pet not found');
+      await expect(PetService.reportPet('nonexistent', userId, 'spam')).rejects.toThrow(
+        'Pet not found'
+      );
     });
 
     it('should handle report creation errors', async () => {

@@ -1597,7 +1597,7 @@ export class PetService {
         description: description || 'No description provided',
         status: ReportStatus.PENDING,
         severity: ReportSeverity.MEDIUM, // Default severity
-        evidence: {}, // Required field, empty object for now
+        evidence: [], // Required field, empty array for now
       });
 
       logger.info(`Pet ${petId} reported by user ${reportedBy} for reason: ${reason}`);
