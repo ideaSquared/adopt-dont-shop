@@ -12,13 +12,21 @@ vi.mock('../../config', () => ({
 }));
 
 // Mock fs to prevent actual file system operations
-vi.mock('fs', () => ({
-  existsSync: vi.fn().mockReturnValue(true),
-  mkdirSync: vi.fn(),
-  readFileSync: vi.fn(),
-  writeFileSync: vi.fn(),
-  unlinkSync: vi.fn(),
-}));
+vi.mock('fs', () => {
+  const mockFs = {
+    existsSync: vi.fn().mockReturnValue(true),
+    mkdirSync: vi.fn(),
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn(),
+    unlinkSync: vi.fn(),
+  };
+
+  return {
+    __esModule: true,
+    default: mockFs,
+    ...mockFs,
+  };
+});
 
 // Mock dependencies before imports
 vi.mock('../../services/chat.service');
