@@ -104,13 +104,16 @@ describe('AuthService', () => {
       expect(auditLog).toBeDefined();
     });
 
-    // Skip temporarily - may be database cleanup timing issue
-    it.skip('should throw error if user already exists', async () => {
+    it('should throw error if user already exists', async () => {
+      // Use unique email for this test
+      const uniqueEmail = `existing-${Date.now()}@example.com`;
+      const testData = { ...userData, email: uniqueEmail };
+
       // First register a user
-      await AuthService.register(userData);
+      await AuthService.register(testData);
 
       // Try to register again with the same email
-      await expect(AuthService.register(userData)).rejects.toThrow(
+      await expect(AuthService.register(testData)).rejects.toThrow(
         'User already exists with this email'
       );
     });

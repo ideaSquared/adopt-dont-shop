@@ -139,9 +139,7 @@ describe('PetService', () => {
       expect(result.totalPages).toBe(1);
     });
 
-    it.skip('should search pets with text search', async () => {
-      // SKIP: Op.iLike is PostgreSQL-specific and doesn't work in SQLite
-      // This test needs the service to be updated to use dialect-aware operators
+    it('should search pets with text search', async () => {
       const filters: PetSearchFilters = {
         search: 'Golden',
       };
@@ -1022,7 +1020,7 @@ describe('PetService', () => {
           videos: [],
         },
         {
-          pet_id: 'pet3',
+          pet_id: uniqueId('breeds-pet3'),
           name: 'Dog 3',
           type: PetType.DOG,
           breed: 'German Shepherd',
@@ -1262,9 +1260,7 @@ describe('PetService', () => {
       });
     });
 
-    it.skip('should create a pet report successfully', async () => {
-      // SKIP: Dynamic import of Report model has issues with test environment
-      // This needs the service to be updated to handle Report imports better
+    it('should create a pet report successfully', async () => {
       const result = await PetService.reportPet(
         petId,
         'user-456',

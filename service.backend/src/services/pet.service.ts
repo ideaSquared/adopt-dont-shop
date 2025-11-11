@@ -2,6 +2,7 @@ import { col, fn, literal, Op, WhereOptions } from 'sequelize';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
 import Rescue from '../models/Rescue';
 import UserFavorite from '../models/UserFavorite';
+import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../models/Report';
 import sequelize from '../sequelize';
 import { SequelizeOperatorFilter } from '../types/database';
 import {
@@ -20,6 +21,14 @@ import {
 } from '../types/pet';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+
+/**
+ * Helper to get the appropriate LIKE operator based on database dialect
+ * PostgreSQL supports case-insensitive iLike, SQLite needs uppercase conversion
+ */
+const getLikeOp = () => {
+  return sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
+};
 
 export class PetService {
   /**
@@ -88,7 +97,7 @@ export class PetService {
         whereConditions.size = size;
       }
       if (breed) {
-        whereConditions.breed = { [Op.iLike]: `%${breed}%` };
+        whereConditions.breed = { [getLikeOp()]: `%${breed}%` };
       }
       if (ageGroup) {
         whereConditions.age_group = ageGroup;
@@ -183,11 +192,11 @@ export class PetService {
         whereConditions = {
           ...whereConditions,
           [Op.or]: [
-            { name: { [Op.iLike]: `%${search}%` } },
-            { breed: { [Op.iLike]: `%${search}%` } },
-            { secondary_breed: { [Op.iLike]: `%${search}%` } },
-            { short_description: { [Op.iLike]: `%${search}%` } },
-            { long_description: { [Op.iLike]: `%${search}%` } },
+            { name: { [getLikeOp()]: `%${search}%` } },
+            { breed: { [getLikeOp()]: `%${search}%` } },
+            { secondary_breed: { [getLikeOp()]: `%${search}%` } },
+            { short_description: { [getLikeOp()]: `%${search}%` } },
+            { long_description: { [getLikeOp()]: `%${search}%` } },
             { tags: { [Op.overlap]: [search] } },
           ],
         };
@@ -1202,7 +1211,7 @@ export class PetService {
         whereClause.status = status;
       }
       if (breed) {
-        whereClause.breed = { [Op.iLike]: `%${breed}%` };
+        whereClause.breed = { [getLikeOp()]: `%${breed}%` };
       }
       if (size) {
         whereClause.size = size;
@@ -1223,7 +1232,7 @@ export class PetService {
         whereClause.energy_level = energyLevel;
       }
       if (location) {
-        whereClause.location = { [Op.iLike]: `%${location}%` };
+        whereClause.location = { [getLikeOp()]: `%${location}%` };
       }
 
       // Numeric range filters
@@ -1264,10 +1273,10 @@ export class PetService {
       // Search functionality
       if (search) {
         (whereClause as Record<symbol, unknown>)[Op.or] = [
-          { name: { [Op.iLike]: `%${search}%` } },
-          { breed: { [Op.iLike]: `%${search}%` } },
-          { short_description: { [Op.iLike]: `%${search}%` } },
-          { long_description: { [Op.iLike]: `%${search}%` } },
+          { name: { [getLikeOp()]: `%${search}%` } },
+          { breed: { [getLikeOp()]: `%${search}%` } },
+          { short_description: { [getLikeOp()]: `%${search}%` } },
+          { long_description: { [getLikeOp()]: `%${search}%` } },
         ];
       }
 
@@ -1571,13 +1580,6 @@ export class PetService {
       if (!pet) {
         throw new Error('Pet not found');
       }
-
-      // Import Report model dynamically to avoid circular dependencies
-      const reportModule = await import('../models/Report');
-      // Handle the mocked structure for tests
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const Report = (reportModule.default as any).default || reportModule.default;
-      const { ReportCategory, ReportStatus, ReportSeverity } = reportModule;
 
       // Create the report
       const report = await Report.create({

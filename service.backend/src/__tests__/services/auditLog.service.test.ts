@@ -120,9 +120,76 @@ describe('AuditLogService', () => {
     });
   });
 
-  // Note: getLogs and getLogsByUser methods require User model association
-  // which is not configured in the test environment, so we skip testing them
-  // and focus on the main functionality
+  describe('getAuditLogs (instance method)', () => {
+    beforeEach(async () => {
+      await AuditLog.create({
+        service: 'adopt-dont-shop-backend',
+        user: 'user-1',
+        action: 'CREATE_PET',
+        level: 'INFO',
+        timestamp: new Date('2024-01-01'),
+        metadata: {},
+        category: 'Pet',
+      });
+
+      await AuditLog.create({
+        service: 'adopt-dont-shop-backend',
+        user: 'user-2',
+        action: 'UPDATE_USER',
+        level: 'INFO',
+        timestamp: new Date('2024-01-02'),
+        metadata: {},
+        category: 'User',
+      });
+
+      await AuditLog.create({
+        service: 'adopt-dont-shop-backend',
+        user: 'user-1',
+        action: 'DELETE_APPLICATION',
+        level: 'WARNING',
+        timestamp: new Date('2024-01-03'),
+        metadata: {},
+        category: 'Application',
+      });
+    });
+
+    it('should filter by userId', async () => {
+      const service = new AuditLogService();
+      const result = await service.getAuditLogs({ userId: 'user-1' });
+
+      expect(result.logs).toHaveLength(2);
+      expect(result.logs.every((log) => log.user === 'user-1')).toBe(true);
+    });
+
+    it('should filter by action', async () => {
+      const service = new AuditLogService();
+      const result = await service.getAuditLogs({ action: 'CREATE_PET' });
+
+      expect(result.logs).toHaveLength(1);
+      expect(result.logs[0].action).toBe('CREATE_PET');
+    });
+
+    it('should handle pagination', async () => {
+      const service = new AuditLogService();
+      const page1 = await service.getAuditLogs({ page: 1, limit: 2 });
+      const page2 = await service.getAuditLogs({ page: 2, limit: 2 });
+
+      expect(page1.logs).toHaveLength(2);
+      expect(page2.logs).toHaveLength(1);
+      expect(page1.pagination.currentPage).toBe(1);
+      expect(page2.pagination.currentPage).toBe(2);
+    });
+
+    it('should sort by timestamp descending', async () => {
+      const service = new AuditLogService();
+      const result = await service.getAuditLogs({});
+
+      expect(result.logs).toHaveLength(3);
+      expect(new Date(result.logs[0].timestamp).getTime()).toBeGreaterThan(
+        new Date(result.logs[1].timestamp).getTime()
+      );
+    });
+  });
 
   describe('cleanupOldLogs', () => {
     beforeEach(async () => {
@@ -203,8 +270,7 @@ describe('AuditLogService', () => {
       });
     });
 
-    // Note: getAuditLogs has a bug - uses 'userId' field name but model uses 'user'
-    it.skip('should filter by userId', async () => {
+    it('should filter by userId', async () => {
       const service = new AuditLogService();
       const result = await service.getAuditLogs({ userId: 'user-1' });
 

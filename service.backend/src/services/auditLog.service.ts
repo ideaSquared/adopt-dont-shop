@@ -166,13 +166,14 @@ export class AuditLogService {
       const whereClause: WhereOptions = {};
 
       if (userId) {
-        whereClause.userId = userId;
+        whereClause.user = userId; // Model uses 'user' field, not 'userId'
       }
       if (entity) {
-        whereClause.entity = entity;
+        whereClause.category = entity; // Model uses 'category' field for entity
       }
       if (entityId) {
-        whereClause.entityId = entityId;
+        // entityId is stored in metadata, needs special handling
+        whereClause['metadata.entityId'] = entityId;
       }
       if (action) {
         whereClause.action = action;
@@ -180,13 +181,13 @@ export class AuditLogService {
 
       if (startDate && endDate) {
         whereClause.timestamp = {
-          gte: startDate,
-          lte: endDate,
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
         };
       } else if (startDate) {
-        whereClause.timestamp = { gte: startDate };
+        whereClause.timestamp = { [Op.gte]: startDate };
       } else if (endDate) {
-        whereClause.timestamp = { lte: endDate };
+        whereClause.timestamp = { [Op.lte]: endDate };
       }
 
       const offset = (page - 1) * limit;

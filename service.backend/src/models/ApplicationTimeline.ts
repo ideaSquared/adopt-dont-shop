@@ -80,10 +80,7 @@ ApplicationTimeline.init(
     application_id: {
       type: DataTypes.STRING,
       allowNull: false,
-      references: {
-        model: 'applications',
-        key: 'application_id',
-      },
+      // Note: Foreign key constraint managed by associations, not model definition
     },
     event_type: {
       type: DataTypes.ENUM(...Object.values(TimelineEventType)),
@@ -104,10 +101,7 @@ ApplicationTimeline.init(
     created_by: {
       type: DataTypes.STRING,
       allowNull: true,
-      references: {
-        model: 'users',
-        key: 'user_id',
-      },
+      // Note: Foreign key constraint managed by associations, not model definition
     },
     created_by_system: {
       type: DataTypes.BOOLEAN,
