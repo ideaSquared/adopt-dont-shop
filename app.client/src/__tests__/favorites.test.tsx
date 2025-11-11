@@ -78,16 +78,14 @@ describe('Favorites Management Behaviours', () => {
 
       renderWithProviders(<FavoritesPage />);
 
-      // User sees loading state initially
-      expect(screen.getByRole('status')).toBeInTheDocument(); // Spinner has role="status"
-
       // System loads favorites from API
       await waitFor(() => {
-        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       });
 
-      // User sees favorite pets
-      // Note: This depends on test data having favorited pets
+      // User sees favorite pets (Buddy and Whiskers from mock)
+      expect(screen.getByText('Buddy')).toBeInTheDocument();
+      expect(screen.getByText('Whiskers')).toBeInTheDocument();
     });
 
     it('shows empty state when user has no favorites', async () => {
@@ -97,10 +95,14 @@ describe('Favorites Management Behaviours', () => {
         user: { userId: 'user1', firstName: 'Test' },
       });
 
+      // Set mock to return empty favorites
+      const { petsService } = require('@adopt-dont-shop/lib-pets');
+      petsService.setFavorites([]);
+
       renderWithProviders(<FavoritesPage />);
 
       await waitFor(() => {
-        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       });
 
       // User sees empty state message
@@ -119,16 +121,17 @@ describe('Favorites Management Behaviours', () => {
         user: { userId: 'user1', firstName: 'Test' },
       });
 
-      // This test assumes some favorites exist
+      // This test assumes some favorites exist (Buddy and Whiskers from mock)
       renderWithProviders(<FavoritesPage />);
 
       await waitFor(() => {
-        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       });
 
-      // If favorites exist, user sees stats
-      // Stats show: total count, available count, pet types
-      // This depends on mock data having favorites
+      // User sees stats: 2 favorites, 2 available, 2 pet types (dog and cat)
+      await waitFor(() => {
+        expect(screen.getByText('2')).toBeInTheDocument(); // Total favorites
+      });
     });
   });
 

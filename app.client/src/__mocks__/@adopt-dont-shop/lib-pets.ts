@@ -40,6 +40,7 @@ const mockPets = [
 
 export class PetsService {
   private favoritePets = mockPets;
+  private favoritePetIds: Set<string> = new Set(mockPets.map(p => p.pet_id));
 
   getPets = jest.fn(() => Promise.resolve([]));
   getPet = jest.fn((petId: string) => {
@@ -49,9 +50,22 @@ export class PetsService {
   searchPets = jest.fn(() => Promise.resolve([]));
   getFavorites = jest.fn(() => Promise.resolve(this.favoritePets));
 
+  addToFavorites = jest.fn((petId: string) => {
+    this.favoritePetIds.add(petId);
+    return Promise.resolve();
+  });
+
+  removeFromFavorites = jest.fn((petId: string) => {
+    this.favoritePetIds.delete(petId);
+    // Update favoritePets array to match
+    this.favoritePets = this.favoritePets.filter(p => p.pet_id !== petId);
+    return Promise.resolve();
+  });
+
   // Helper for tests to set favorites
   setFavorites = (pets: typeof mockPets) => {
     this.favoritePets = pets;
+    this.favoritePetIds = new Set(pets.map(p => p.pet_id));
   };
 }
 

@@ -2,7 +2,7 @@ import { petService } from '@/services';
 import { Pet } from '@/services';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib-auth';
-import { createAppContext } from './base/BaseContext';
+import { createAppContext, handleAsyncAction } from './base/BaseContext';
 
 interface FavoritesContextType {
   favoritePetIds: Set<string>;
