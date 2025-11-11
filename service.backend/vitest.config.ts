@@ -6,6 +6,16 @@ export default defineConfig({
     // Test environment
     environment: 'node',
 
+    // Environment variables for tests
+    env: {
+      NODE_ENV: 'test',
+      JWT_SECRET: 'test-jwt-secret-min-32-characters-long',
+      JWT_REFRESH_SECRET: 'test-jwt-refresh-secret-min-32-characters-long',
+      SESSION_SECRET: 'test-session-secret-min-32-characters-long',
+      CSRF_SECRET: 'test-csrf-secret-min-32-characters-long',
+      TEST_DB_NAME: 'test_db',
+    },
+
     // Setup files
     setupFiles: ['./src/setup-tests.ts'],
 

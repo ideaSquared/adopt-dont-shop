@@ -41,28 +41,46 @@ const getDatabaseUrl = (): string => {
 
 const databaseUrl = getDatabaseUrl();
 
-const sequelize = new Sequelize(databaseUrl, {
-  dialect: 'postgres',
-  define: {
-    // Convert camelCase to snake_case for database columns
-    underscored: true,
-    // Use camelCase for model attributes
-    freezeTableName: false,
-    // Enable timestamps with camelCase names
-    timestamps: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
-    deletedAt: 'deletedAt',
-    // Enable paranoid (soft delete) by default
-    paranoid: true,
-  },
-  logging:
-    process.env.NODE_ENV === 'development' && process.env.DB_LOGGING === 'true'
-      ? (sql: string) => {
-          // eslint-disable-next-line no-console
-          console.log(sql);
-        }
-      : false,
-});
+// Use SQLite in-memory for tests (industry standard approach)
+const isTestEnvironment = process.env.NODE_ENV === 'test';
+
+const sequelize = isTestEnvironment
+  ? new Sequelize('sqlite::memory:', {
+      dialect: 'sqlite',
+      storage: ':memory:',
+      logging: false,
+      define: {
+        underscored: true,
+        freezeTableName: false,
+        timestamps: true,
+        createdAt: 'createdAt',
+        updatedAt: 'updatedAt',
+        deletedAt: 'deletedAt',
+        paranoid: true,
+      },
+    })
+  : new Sequelize(databaseUrl, {
+      dialect: 'postgres',
+      define: {
+        // Convert camelCase to snake_case for database columns
+        underscored: true,
+        // Use camelCase for model attributes
+        freezeTableName: false,
+        // Enable timestamps with camelCase names
+        timestamps: true,
+        createdAt: 'createdAt',
+        updatedAt: 'updatedAt',
+        deletedAt: 'deletedAt',
+        // Enable paranoid (soft delete) by default
+        paranoid: true,
+      },
+      logging:
+        process.env.NODE_ENV === 'development' && process.env.DB_LOGGING === 'true'
+          ? (sql: string) => {
+              // eslint-disable-next-line no-console
+              console.log(sql);
+            }
+          : false,
+    });
 
 export default sequelize;
