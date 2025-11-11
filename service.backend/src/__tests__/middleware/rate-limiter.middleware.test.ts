@@ -1,14 +1,24 @@
 import { vi } from 'vitest';
-// Store rate limit configurations for inspection
-const rateLimitConfigs: Array<Record<string, unknown>> = [];
 
-// Mock express-rate-limit
-vi.mock('express-rate-limit', () => {
-  return vi.fn((options) => {
-    rateLimitConfigs.push(options as Record<string, unknown>);
+// Use vi.hoisted() to create variables that can be accessed in mocks
+const { mockConfigs } = vi.hoisted(() => {
+  return {
+    mockConfigs: [] as Array<Record<string, unknown>>,
+  };
+});
+
+// Mock express-rate-limit with a shared configs array
+vi.mock('express-rate-limit', async () => {
+  const mockRateLimit = vi.fn((options) => {
+    mockConfigs.push(options as Record<string, unknown>);
     // Return a mock middleware function
     return vi.fn((req, res, next) => next());
   });
+
+  return {
+    __esModule: true,
+    default: mockRateLimit,
+  };
 });
 
 // Mock config
@@ -32,6 +42,9 @@ import {
   passwordResetLimiter,
   uploadLimiter,
 } from '../../middleware/rate-limiter';
+
+// Alias for the tests to use
+const rateLimitConfigs = mockConfigs;
 
 describe('Rate Limiter Middleware', () => {
   let mockRequest: Partial<Request>;
