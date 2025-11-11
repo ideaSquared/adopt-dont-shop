@@ -3,7 +3,7 @@
  * Handles offline message queuing, connection monitoring, and sync capabilities
  */
 
-import { api } from '@/services/api';
+import { api } from '@/services';
 
 export interface QueuedMessage {
   id: string;

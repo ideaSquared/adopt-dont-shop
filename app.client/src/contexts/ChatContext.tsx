@@ -215,21 +215,21 @@ export function ChatProvider({ children }: ChatProviderProps) {
         setLoading: setIsLoading,
         onError: error => console.error('Failed to load messages:', error),
       }
+    );
 
-      if (!messageData.data) {
-        console.warn('No data array in response, using empty array');
-        setMessages([]);
-        return;
-      }
+    if (!messageData?.data) {
+      console.warn('No data array in response, using empty array');
+      setMessages([]);
+      return;
+    }
 
-      // Ensure messageData.data is an array
-      const messagesArray = Array.isArray(messageData.data) ? messageData.data : [];
-      setMessages(messagesArray);
+    // Ensure messageData.data is an array
+    const messagesArray = Array.isArray(messageData.data) ? messageData.data : [];
+    setMessages(messagesArray);
 
-      // Check if there are more messages to load
-      if (messageData.data.length < 50) {
-        setHasMoreMessages(false);
-      }
+    // Check if there are more messages to load
+    if (messageData.data.length < 50) {
+      setHasMoreMessages(false);
     }
   };
 
@@ -354,8 +354,13 @@ export function ChatProvider({ children }: ChatProviderProps) {
         petId,
       });
 
-    setConversations(prev => [conversation, ...(prev || [])]);
-    return conversation;
+      setConversations(prev => [conversation, ...(prev || [])]);
+      return conversation;
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      setError('Failed to start conversation');
+      throw error;
+    }
   };
 
   const startTyping = useCallback((conversationId: string) => {

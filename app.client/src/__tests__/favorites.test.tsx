@@ -19,12 +19,16 @@ import { PetDetailsPage } from '../pages/PetDetailsPage';
 import { SearchPage } from '../pages/SearchPage';
 
 // Mock auth hook to control authentication state
-jest.mock('@adopt-dont-shop/lib-auth', () => ({
-  useAuth: jest.fn(() => ({
-    isAuthenticated: true,
-    user: { userId: 'user1', firstName: 'Test', lastName: 'User' },
-  })),
-}));
+jest.mock('@adopt-dont-shop/lib-auth', () => {
+  const actualMock = jest.requireActual<typeof import('../__mocks__/@adopt-dont-shop/lib-auth')>('../__mocks__/@adopt-dont-shop/lib-auth');
+  return {
+    ...actualMock,
+    useAuth: jest.fn(() => ({
+      isAuthenticated: true,
+      user: { userId: 'user1', firstName: 'Test', lastName: 'User' },
+    })),
+  };
+});
 
 describe('Favorites Management Behaviours', () => {
   beforeEach(() => {

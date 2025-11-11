@@ -34,17 +34,55 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
 
 // Mock ChatProvider
 const ChatContext = createContext({
+  conversations: [],
+  activeConversation: null,
   messages: [],
-  sendMessage: jest.fn(),
   isConnected: true,
+  isLoading: false,
+  error: null,
+  typingUsers: [],
+  hasMoreMessages: false,
+  isLoadingMoreMessages: false,
+  isOnline: true,
+  connectionQuality: 'good' as 'excellent' | 'good' | 'poor' | 'offline',
+  pendingMessageCount: 0,
+  setActiveConversation: jest.fn(),
+  sendMessage: jest.fn(() => Promise.resolve()),
+  markAsRead: jest.fn(() => Promise.resolve()),
+  loadConversations: jest.fn(() => Promise.resolve()),
+  loadMessages: jest.fn(() => Promise.resolve()),
+  loadMoreMessages: jest.fn(() => Promise.resolve()),
+  startConversation: jest.fn(() => Promise.resolve({} as any)),
+  startTyping: jest.fn(),
+  stopTyping: jest.fn(),
+  forceSyncOfflineData: jest.fn(() => Promise.resolve()),
 });
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => (
   <ChatContext.Provider
     value={{
+      conversations: [],
+      activeConversation: null,
       messages: [],
-      sendMessage: jest.fn(),
       isConnected: true,
+      isLoading: false,
+      error: null,
+      typingUsers: [],
+      hasMoreMessages: false,
+      isLoadingMoreMessages: false,
+      isOnline: true,
+      connectionQuality: 'good' as 'excellent' | 'good' | 'poor' | 'offline',
+      pendingMessageCount: 0,
+      setActiveConversation: jest.fn(),
+      sendMessage: jest.fn(() => Promise.resolve()),
+      markAsRead: jest.fn(() => Promise.resolve()),
+      loadConversations: jest.fn(() => Promise.resolve()),
+      loadMessages: jest.fn(() => Promise.resolve()),
+      loadMoreMessages: jest.fn(() => Promise.resolve()),
+      startConversation: jest.fn(() => Promise.resolve({} as any)),
+      startTyping: jest.fn(),
+      stopTyping: jest.fn(),
+      forceSyncOfflineData: jest.fn(() => Promise.resolve()),
     }}
   >
     {children}
@@ -93,17 +131,23 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => (
 
 // Mock AnalyticsProvider
 const AnalyticsContext = createContext({
-  track: jest.fn(),
-  page: jest.fn(),
-  identify: jest.fn(),
+  analyticsService: {
+    trackEvent: jest.fn(),
+    trackPageView: jest.fn(),
+  } as any,
+  trackEvent: jest.fn(),
+  trackPageView: jest.fn(),
 });
 
 export const AnalyticsProvider = ({ children }: { children: ReactNode }) => (
   <AnalyticsContext.Provider
     value={{
-      track: jest.fn(),
-      page: jest.fn(),
-      identify: jest.fn(),
+      analyticsService: {
+        trackEvent: jest.fn(),
+        trackPageView: jest.fn(),
+      } as any,
+      trackEvent: jest.fn(),
+      trackPageView: jest.fn(),
     }}
   >
     {children}
