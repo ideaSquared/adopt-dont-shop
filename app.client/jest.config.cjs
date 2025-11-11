@@ -2,37 +2,79 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/src/setup-tests.ts'],
+  rootDir: '../',
+  setupFiles: ['<rootDir>/app.client/src/test-utils/polyfills.ts'],
+  setupFilesAfterEnv: ['<rootDir>/app.client/src/setup-tests.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^@/components/(.*)$': '<rootDir>/src/components/$1',
-    '^@/hooks/(.*)$': '<rootDir>/src/hooks/$1',
-    '^@/utils/(.*)$': '<rootDir>/src/utils/$1',
-    '^@/types/(.*)$': '<rootDir>/src/types/$1',
-    '^@/services/(.*)$': '<rootDir>/src/services/$1',
+    // Map workspace packages to their source directories
+    '^@adopt-dont-shop/lib-(.*)$': '<rootDir>/lib.$1/src',
+    '^@adopt-dont-shop/components$': '<rootDir>/lib.components/src',
+    '^@/(.*)$': '<rootDir>/app.client/src/$1',
+    '^@/components/(.*)$': '<rootDir>/app.client/src/components/$1',
+    '^@/hooks/(.*)$': '<rootDir>/app.client/src/hooks/$1',
+    '^@/utils/(.*)$': '<rootDir>/app.client/src/utils/$1',
+    '^@/types/(.*)$': '<rootDir>/app.client/src/types/$1',
+    '^@/services/(.*)$': '<rootDir>/app.client/src/services/$1',
+    // Map MSW subpath exports for Jest
+    '^msw/node$': '<rootDir>/node_modules/msw/lib/node/index.js',
+    '^msw$': '<rootDir>/node_modules/msw/lib/core/index.js',
+    // Map @mswjs/interceptors subpath exports - specific mappings
+    '^@mswjs/interceptors/ClientRequest$': '<rootDir>/node_modules/@mswjs/interceptors/lib/node/interceptors/ClientRequest/index.js',
+    '^@mswjs/interceptors/WebSocket$': '<rootDir>/node_modules/@mswjs/interceptors/lib/browser/interceptors/WebSocket/index.js',
+    '^@mswjs/interceptors/XMLHttpRequest$': '<rootDir>/node_modules/@mswjs/interceptors/lib/node/interceptors/XMLHttpRequest/index.js',
+    '^@mswjs/interceptors/fetch$': '<rootDir>/node_modules/@mswjs/interceptors/lib/node/interceptors/fetch/index.js',
+    '^@mswjs/interceptors$': '<rootDir>/node_modules/@mswjs/interceptors/lib/node/index.js',
   },
   transform: {
+    // Transform all TS/TSX files including workspace packages
     '^.+\\.(ts|tsx)$': [
       'ts-jest',
       {
-        useESM: true,
+        tsconfig: {
+          jsx: 'react-jsx',
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+          baseUrl: 'app.client/src',
+          paths: {
+            '@/*': ['*'],
+            '@/components/*': ['components/*'],
+            '@/hooks/*': ['hooks/*'],
+            '@/utils/*': ['utils/*'],
+            '@/types/*': ['types/*'],
+            '@/services/*': ['services/*'],
+          },
+        },
+        babelConfig: true,
       },
     ],
   },
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/main.tsx',
-    '!src/vite-env.d.ts',
+    'app.client/src/**/*.{ts,tsx}',
+    '!app.client/src/**/*.d.ts',
+    '!app.client/src/main.tsx',
+    '!app.client/src/vite-env.d.ts',
   ],
-  coverageDirectory: 'coverage',
+  coverageDirectory: 'app.client/coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.{ts,tsx}',
-    '<rootDir>/src/**/*.{test,spec}.{ts,tsx}',
+    '<rootDir>/app.client/src/**/__tests__/**/*.{ts,tsx}',
+    '<rootDir>/app.client/src/**/*.{test,spec}.{ts,tsx}',
   ],
   clearMocks: true,
   restoreMocks: true,
+  // Transform MSW from node_modules, ignore everything else in node_modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(msw|@bundled-es-modules|@mswjs)/)',
+  ],
+  // Mock import.meta for Vite environment
+  globals: {
+    'import.meta': {
+      env: {
+        VITE_API_BASE_URL: 'http://localhost:5000',
+        NODE_ENV: 'test',
+        MODE: 'test',
+      },
+    },
+  },
 };
