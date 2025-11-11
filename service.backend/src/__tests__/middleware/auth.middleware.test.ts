@@ -1,28 +1,31 @@
 import { vi } from 'vitest';
+
 // Mock jsonwebtoken with error classes
-class JsonWebTokenError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'JsonWebTokenError';
+vi.mock('jsonwebtoken', () => {
+  class JsonWebTokenError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'JsonWebTokenError';
+    }
   }
-}
 
-class TokenExpiredError extends Error {
-  expiredAt: Date;
-  constructor(message: string, expiredAt: Date) {
-    super(message);
-    this.name = 'TokenExpiredError';
-    this.expiredAt = expiredAt;
+  class TokenExpiredError extends Error {
+    expiredAt: Date;
+    constructor(message: string, expiredAt: Date) {
+      super(message);
+      this.name = 'TokenExpiredError';
+      this.expiredAt = expiredAt;
+    }
   }
-}
 
-vi.mock('jsonwebtoken', () => ({
-  sign: vi.fn(),
-  verify: vi.fn(),
-  decode: vi.fn(),
-  JsonWebTokenError,
-  TokenExpiredError,
-}));
+  return {
+    sign: vi.fn(),
+    verify: vi.fn(),
+    decode: vi.fn(),
+    JsonWebTokenError,
+    TokenExpiredError,
+  };
+});
 
 // Mock env config before it's imported
 vi.mock('../../config/env', () => ({
