@@ -71,7 +71,7 @@ describe('SwipeService', () => {
     });
 
     it('should update user preferences for like action', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([]) // First call for inserting swipe action
         .mockResolvedValueOnce([
@@ -117,7 +117,7 @@ describe('SwipeService', () => {
 
     it('should update user preferences for super_like action with higher weight', async () => {
       const superLikeAction = { ...mockSwipeAction, action: 'super_like' as const };
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
@@ -164,7 +164,7 @@ describe('SwipeService', () => {
     });
 
     it('should continue if preference update fails', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([]) // Insert swipe action succeeds
         .mockResolvedValueOnce([[{ type: 'dog', breed: 'Golden Retriever' }]]) // Get pet details succeeds
@@ -200,7 +200,7 @@ describe('SwipeService', () => {
     const mockSessionData = [{ avg_session_length: 15.5 }];
 
     it('should get user swipe stats successfully', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([mockStatsData])
         .mockResolvedValueOnce([mockBreedData])
@@ -240,7 +240,7 @@ describe('SwipeService', () => {
         },
       ];
 
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([emptyStats])
         .mockResolvedValueOnce([[]])
@@ -267,7 +267,7 @@ describe('SwipeService', () => {
         },
       ];
 
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([nullStats])
         .mockResolvedValueOnce([[]])
@@ -427,7 +427,7 @@ describe('SwipeService', () => {
     ];
 
     it('should update user preferences for like action', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([mockPetData])
@@ -460,7 +460,7 @@ describe('SwipeService', () => {
     });
 
     it('should handle pet not found gracefully', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([]) // Insert swipe action
         .mockResolvedValueOnce([[]]); // No pet found
@@ -485,7 +485,7 @@ describe('SwipeService', () => {
         },
       ];
 
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([petWithoutBreed])
