@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DataTable } from './DataTable';
 import type { Column } from './DataTable';
@@ -150,9 +150,8 @@ describe('DataTable - Display and Interaction Behaviours', () => {
         />
       );
 
-      // Should show some kind of empty state
-      const emptyState = screen.queryByText(/no.*found/i) || screen.queryByText(/empty/i);
-      expect(emptyState).toBeInTheDocument();
+      // The DataTable shows a default "No data available" message when empty
+      expect(screen.getByText('No data available')).toBeInTheDocument();
     });
   });
 
@@ -280,10 +279,12 @@ describe('DataTable - Display and Interaction Behaviours', () => {
       );
 
       const thead = container.querySelector('thead');
+      expect(thead).toBeInTheDocument();
+
+      // Verify all column headers are present in the thead
       mockColumns.forEach((column) => {
-        const header = thead?.querySelector(`th:contains("${column.header}")`);
-        // At least verify thead exists
-        expect(thead).toBeInTheDocument();
+        const headerText = within(thead as HTMLElement).getByText(column.header);
+        expect(headerText).toBeInTheDocument();
       });
     });
   });
