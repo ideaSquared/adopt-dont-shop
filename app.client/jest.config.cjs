@@ -10,9 +10,14 @@ module.exports = {
     '^@adopt-dont-shop/lib-auth$': '<rootDir>/app.client/src/__mocks__/@adopt-dont-shop/lib-auth.tsx',
     '^@adopt-dont-shop/lib-api$': '<rootDir>/app.client/src/__mocks__/@adopt-dont-shop/lib-api.ts',
     '^@adopt-dont-shop/lib-analytics$': '<rootDir>/app.client/src/__mocks__/@adopt-dont-shop/lib-analytics.ts',
+    '^@adopt-dont-shop/lib-notifications$': '<rootDir>/app.client/src/__mocks__/@adopt-dont-shop/lib-notifications.ts',
+    '^@adopt-dont-shop/lib-applications$': '<rootDir>/app.client/src/__mocks__/@adopt-dont-shop/lib-applications.ts',
+    '^@adopt-dont-shop/lib-pets$': '<rootDir>/app.client/src/__mocks__/@adopt-dont-shop/lib-pets.ts',
     // Map workspace packages to their source directories
     '^@adopt-dont-shop/lib-(.*)$': '<rootDir>/lib.$1/src',
     '^@adopt-dont-shop/components$': '<rootDir>/lib.components/src',
+    // Mock specific contexts before general @/ pattern
+    '^@/contexts/NotificationsContext$': '<rootDir>/app.client/src/__mocks__/contexts/NotificationsContext.tsx',
     '^@/(.*)$': '<rootDir>/app.client/src/$1',
     '^@/components/(.*)$': '<rootDir>/app.client/src/components/$1',
     '^@/hooks/(.*)$': '<rootDir>/app.client/src/hooks/$1',
