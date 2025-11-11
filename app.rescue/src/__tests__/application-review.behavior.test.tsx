@@ -107,6 +107,27 @@ const mockTimeline = [
 ];
 
 const server = setupServer(
+  // Get application statistics (must come before :applicationId to avoid matching "stats" as an ID)
+  http.get('/api/v1/applications/stats', () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        total: 125,
+        pending: 15,
+        under_review: 25,
+        approved: 75,
+        rejected: 10,
+        by_stage: {
+          initial_review: 20,
+          reference_check: 8,
+          home_visit: 5,
+          final_decision: 12,
+          completed: 80,
+        },
+      },
+    });
+  }),
+
   // Get applications for rescue
   http.get('/api/v1/applications', ({ request }) => {
     const url = new URL(request.url);
@@ -299,27 +320,6 @@ const server = setupServer(
         applicationId: params.applicationId,
         ...body,
         createdAt: new Date().toISOString(),
-      },
-    });
-  }),
-
-  // Get application statistics
-  http.get('/api/v1/applications/stats', () => {
-    return HttpResponse.json({
-      success: true,
-      data: {
-        total: 125,
-        pending: 15,
-        under_review: 25,
-        approved: 75,
-        rejected: 10,
-        by_stage: {
-          initial_review: 20,
-          reference_check: 8,
-          home_visit: 5,
-          final_decision: 12,
-          completed: 80,
-        },
       },
     });
   })

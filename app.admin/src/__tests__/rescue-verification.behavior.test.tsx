@@ -51,6 +51,19 @@ const mockRescues = [
 ];
 
 const server = setupServer(
+  // Get rescue statistics (must come before :rescueId to avoid matching "stats" as an ID)
+  http.get('/api/v1/admin/rescues/stats', () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        total: 45,
+        pending: 8,
+        verified: 35,
+        rejected: 2,
+      },
+    });
+  }),
+
   // Get all rescues
   http.get('/api/v1/admin/rescues', ({ request }) => {
     const url = new URL(request.url);
@@ -145,19 +158,6 @@ const server = setupServer(
         status: 'rejected',
         rejectionReason: body.reason,
         rejectedAt: new Date().toISOString(),
-      },
-    });
-  }),
-
-  // Get rescue statistics
-  http.get('/api/v1/admin/rescues/stats', () => {
-    return HttpResponse.json({
-      success: true,
-      data: {
-        total: 45,
-        pending: 8,
-        verified: 35,
-        rejected: 2,
       },
     });
   })

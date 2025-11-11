@@ -1,56 +1,36 @@
 import '@testing-library/jest-dom';
-import { TextEncoder, TextDecoder } from 'util';
-import 'whatwg-fetch';
+import { expect, afterEach } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import * as matchers from '@testing-library/jest-dom/matchers';
 
-// Polyfill TextEncoder/TextDecoder for MSW
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder as typeof global.TextDecoder;
+// Extend Vitest's expect with @testing-library/jest-dom matchers
+expect.extend(matchers);
 
-// Polyfill Response for MSW
-global.Response = Response;
-global.Request = Request;
-global.Headers = Headers;
+// Cleanup after each test
+afterEach(() => {
+  cleanup();
+});
 
-// Polyfill BroadcastChannel for MSW
-global.BroadcastChannel = class BroadcastChannel {
-  constructor() {}
-  postMessage() {}
-  close() {}
-  addEventListener() {}
-  removeEventListener() {}
-} as any;
-
-// MSW setup for API mocking (requires additional Jest ESM configuration)
-// TODO: Configure Jest to properly handle MSW ESM exports
-// import { setupServer } from 'msw/node';
-// import { mswHandlers } from './test-utils/msw-handlers';
-//
-// const server = setupServer(...mswHandlers);
-// beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
-// afterEach(() => server.resetHandlers());
-// afterAll(() => server.close());
-
-// Mock import.meta for Jest
-Object.defineProperty(globalThis, 'import', {
+// Mock import.meta.env for Vite
+Object.defineProperty(import.meta, 'env', {
   value: {
-    meta: {
-      env: {
-        VITE_API_BASE_URL: 'http://localhost:5000',
-        NODE_ENV: 'test',
-      },
-    },
+    VITE_API_BASE_URL: 'http://localhost:5000',
+    NODE_ENV: 'test',
+    DEV: false,
+    PROD: false,
+    SSR: false,
   },
+  configurable: true,
 });
 
 // Mock Image constructor for preloading tests
-Object.defineProperty(global, 'Image', {
-  value: class MockImage {
-    constructor() {
-      setTimeout(() => {
-        if (this.onload) this.onload();
-      }, 100);
-    }
-    onload: (() => void) | null = null;
-    src: string = '';
-  },
-});
+global.Image = class MockImage {
+  constructor() {
+    setTimeout(() => {
+      if (this.onload) this.onload(new Event('load'));
+    }, 100);
+  }
+  onload: ((ev: Event) => void) | null = null;
+  onerror: ((ev: Event) => void) | null = null;
+  src: string = '';
+} as any;
