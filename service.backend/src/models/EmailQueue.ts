@@ -93,7 +93,22 @@ interface EmailQueueAttributes {
 }
 
 interface EmailQueueCreationAttributes
-  extends Optional<EmailQueueAttributes, 'emailId' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<
+    EmailQueueAttributes,
+    | 'emailId'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'status'
+    | 'priority'
+    | 'maxRetries'
+    | 'currentRetries'
+    | 'ccEmails'
+    | 'bccEmails'
+    | 'tags'
+    | 'attachments'
+    | 'templateData'
+    | 'metadata'
+  > {}
 
 class EmailQueue
   extends Model<EmailQueueAttributes, EmailQueueCreationAttributes>

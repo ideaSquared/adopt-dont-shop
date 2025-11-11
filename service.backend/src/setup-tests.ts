@@ -43,31 +43,41 @@ jest.mock('sequelize', () => {
 });
 
 // Mock the sequelize instance file specifically
-jest.mock('./sequelize', () => ({
-  __esModule: true,
-  default: {
-    query: jest.fn(() => Promise.resolve([[]])),
-    transaction: jest.fn(() =>
-      Promise.resolve({
-        commit: jest.fn(),
-        rollback: jest.fn(),
-      })
-    ),
-    authenticate: jest.fn(() => Promise.resolve()),
-    define: jest.fn(() => ({})),
-    models: {},
-    DataTypes,
-    literal: jest.fn((sql: string) => ({ val: sql })), // Mock literal function
-    fn: jest.fn((func: string, ...args: Array<string | number | object>) => ({ fn: func, args })),
-    col: jest.fn((column: string) => ({ col: column })),
-    where: jest.fn(
-      (left: string | number | object, operator: string, right: string | number | object) => ({
-        where: { left, operator, right },
-      })
-    ),
-    Op,
-  },
-}));
+jest.mock('./sequelize', () => {
+  const { DataTypes, Op } = require('sequelize');
+
+  return {
+    __esModule: true,
+    default: {
+      query: jest.fn(() => Promise.resolve([[]])),
+      transaction: jest.fn(() =>
+        Promise.resolve({
+          commit: jest.fn(),
+          rollback: jest.fn(),
+        })
+      ),
+      authenticate: jest.fn(() => Promise.resolve()),
+      define: jest.fn((name: string, attributes: unknown, options: unknown) => {
+        // Return a mock model class
+        return class MockModel {
+          static init() {
+            return this;
+          }
+          static build(values: Record<string, unknown>) {
+            return Object.assign(new this(), values);
+          }
+        };
+      }),
+      models: {},
+      DataTypes,
+      literal: jest.fn((sql: string) => ({ val: sql })),
+      fn: jest.fn((func: string, ...args: Array<string | number | object>) => ({ fn: func, args })),
+      col: jest.fn((column: string) => ({ col: column })),
+      where: jest.fn((left: string | number | object, operator: string, right: string | number | object) => ({ where: { left, operator, right } })),
+      Op,
+    },
+  };
+});
 
 // Mock loggerHelpers to prevent undefined errors in tests
 jest.mock('./utils/logger', () => ({
