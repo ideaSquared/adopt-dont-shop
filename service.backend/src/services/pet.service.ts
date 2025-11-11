@@ -182,23 +182,29 @@ export class PetService {
         whereConditions.available_since = dateFilter;
       }
 
-      // Tags filter
-      if (tags && tags.length > 0) {
+      // Tags filter (PostgreSQL only - SQLite doesn't support overlap)
+      if (tags && tags.length > 0 && sequelize.getDialect() === 'postgres') {
         whereConditions.tags = { [Op.overlap]: tags };
       }
 
       // Text search (applied last as it changes the structure)
       if (search) {
+        const searchConditions: WhereOptions[] = [
+          { name: { [getLikeOp()]: `%${search}%` } },
+          { breed: { [getLikeOp()]: `%${search}%` } },
+          { secondary_breed: { [getLikeOp()]: `%${search}%` } },
+          { short_description: { [getLikeOp()]: `%${search}%` } },
+          { long_description: { [getLikeOp()]: `%${search}%` } },
+        ];
+
+        // Only add tags search for PostgreSQL (SQLite doesn't support overlap operator)
+        if (sequelize.getDialect() === 'postgres') {
+          searchConditions.push({ tags: { [Op.overlap]: [search] } });
+        }
+
         whereConditions = {
           ...whereConditions,
-          [Op.or]: [
-            { name: { [getLikeOp()]: `%${search}%` } },
-            { breed: { [getLikeOp()]: `%${search}%` } },
-            { secondary_breed: { [getLikeOp()]: `%${search}%` } },
-            { short_description: { [getLikeOp()]: `%${search}%` } },
-            { long_description: { [getLikeOp()]: `%${search}%` } },
-            { tags: { [Op.overlap]: [search] } },
-          ],
+          [Op.or]: searchConditions,
         };
       }
 
@@ -1588,9 +1594,10 @@ export class PetService {
         reporterId: reportedBy,
         category: ReportCategory.INAPPROPRIATE_CONTENT, // Default category for pet reports
         title: reason,
-        description: description || '',
+        description: description || 'No description provided',
         status: ReportStatus.PENDING,
         severity: ReportSeverity.MEDIUM, // Default severity
+        evidence: {}, // Required field, empty object for now
       });
 
       logger.info(`Pet ${petId} reported by user ${reportedBy} for reason: ${reason}`);
