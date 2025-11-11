@@ -18,10 +18,21 @@ vi.mock('jsonwebtoken', () => {
     }
   }
 
+  const sign = vi.fn();
+  const verify = vi.fn();
+  const decode = vi.fn();
+
   return {
-    sign: vi.fn(),
-    verify: vi.fn(),
-    decode: vi.fn(),
+    default: {
+      sign,
+      verify,
+      decode,
+      JsonWebTokenError,
+      TokenExpiredError,
+    },
+    sign,
+    verify,
+    decode,
     JsonWebTokenError,
     TokenExpiredError,
   };
@@ -44,6 +55,24 @@ vi.mock('../../config/env', () => ({
     POSTGRES_USER: 'test',
     POSTGRES_PASSWORD: 'test',
     POSTGRES_DB: 'test',
+  },
+}));
+
+// Mock User model before it is imported
+vi.mock('../../models/User', () => ({
+  __esModule: true,
+  default: {
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    belongsToMany: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
@@ -84,6 +113,9 @@ vi.mock('../../models/Permission', () => ({
 
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+// Import error classes from mocked jwt
+const { JsonWebTokenError, TokenExpiredError } = jwt;
+
 import {
   authenticateToken,
   optionalAuth,
