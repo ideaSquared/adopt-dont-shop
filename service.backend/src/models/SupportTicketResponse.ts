@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType } from '../sequelize';
 
 export enum ResponderType {
   STAFF = 'staff',
@@ -104,7 +104,7 @@ SupportTicketResponse.init(
       },
     },
     attachments: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       defaultValue: [],
     },

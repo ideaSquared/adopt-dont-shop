@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional, WhereOptions } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 
 export enum RatingType {
   PET = 'pet',
@@ -250,7 +250,7 @@ Rating.init(
       },
     },
     rescue_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'rescues',
@@ -302,7 +302,7 @@ Rating.init(
       },
     },
     pros: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       defaultValue: [],
       validate: {
@@ -317,7 +317,7 @@ Rating.init(
       },
     },
     cons: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       defaultValue: [],
       validate: {

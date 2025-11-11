@@ -1,5 +1,5 @@
 import { DataTypes, Model, Op, Optional, WhereOptions } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject, JsonValue } from '../types/common';
 
 export enum QuestionCategory {
@@ -214,7 +214,7 @@ ApplicationQuestion.init(
       defaultValue: sequelize.literal(`'question_' || left(md5(random()::text), 12)`),
     },
     rescue_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'rescues',
@@ -262,7 +262,7 @@ ApplicationQuestion.init(
       allowNull: true,
     },
     options: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: true,
       validate: {
         isValidOptions(value: string[] | null) {
@@ -281,7 +281,7 @@ ApplicationQuestion.init(
       },
     },
     validation_rules: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       defaultValue: null,
     },
@@ -305,7 +305,7 @@ ApplicationQuestion.init(
       defaultValue: false,
     },
     conditional_logic: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       defaultValue: null,
     },

@@ -1,5 +1,5 @@
 import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import bcrypt from 'bcrypt';
 import { JsonObject } from '../types/common';
 
@@ -345,7 +345,7 @@ User.init(
       field: 'two_factor_secret',
     },
     backupCodes: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: true,
       field: 'backup_codes',
     },
@@ -383,11 +383,11 @@ User.init(
       field: 'postal_code',
     },
     location: {
-      type: DataTypes.GEOMETRY('POINT'),
+      type: getGeometryType('POINT'),
       allowNull: true,
     },
     rescueId: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: true,
       field: 'rescue_id',
       references: {
@@ -396,7 +396,7 @@ User.init(
       },
     },
     privacySettings: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       field: 'privacy_settings',
       defaultValue: {
@@ -407,7 +407,7 @@ User.init(
       },
     },
     notificationPreferences: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       field: 'notification_preferences',
       defaultValue: {
@@ -430,13 +430,13 @@ User.init(
       field: 'privacy_policy_accepted_at',
     },
     applicationDefaults: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       field: 'application_defaults',
       defaultValue: null,
     },
     applicationPreferences: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       field: 'application_preferences',
       defaultValue: {
@@ -446,7 +446,7 @@ User.init(
       },
     },
     profileCompletionStatus: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       field: 'profile_completion_status',
       defaultValue: {

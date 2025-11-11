@@ -1,5 +1,5 @@
 import * as dotenv from 'dotenv';
-import { Sequelize } from 'sequelize';
+import { Sequelize, DataTypes } from 'sequelize';
 import { env, getDatabaseName } from './config/env';
 
 dotenv.config();
@@ -82,5 +82,45 @@ const sequelize = isTestEnvironment
             }
           : false,
     });
+
+/**
+ * Get the appropriate JSON data type based on the database dialect
+ * PostgreSQL supports JSONB (binary JSON with indexing)
+ * SQLite only supports JSON (stored as text)
+ */
+export const getJsonType = () => {
+  return isTestEnvironment ? DataTypes.JSON : DataTypes.JSONB;
+};
+
+/**
+ * Get the appropriate UUID data type based on the database dialect
+ * PostgreSQL has native UUID type
+ * SQLite stores UUIDs as strings
+ */
+export const getUuidType = () => {
+  return isTestEnvironment ? DataTypes.STRING : DataTypes.UUID;
+};
+
+/**
+ * Get the appropriate ARRAY data type based on the database dialect
+ * PostgreSQL has native ARRAY types
+ * SQLite stores arrays as JSON strings
+ */
+export const getArrayType = (itemType: typeof DataTypes.STRING) => {
+  return isTestEnvironment ? DataTypes.TEXT : DataTypes.ARRAY(itemType);
+};
+
+/**
+ * Get the appropriate GEOMETRY data type based on the database dialect
+ * PostgreSQL has PostGIS GEOMETRY types
+ * SQLite stores geometry as TEXT (WKT or JSON format)
+ */
+export const getGeometryType = (geometryType?: string) => {
+  return isTestEnvironment
+    ? DataTypes.TEXT
+    : geometryType
+      ? DataTypes.GEOMETRY(geometryType)
+      : DataTypes.GEOMETRY;
+};
 
 export default sequelize;

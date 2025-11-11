@@ -1,5 +1,5 @@
 import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType } from '../sequelize';
 import { MessageContentFormat } from '../types/chat';
 import Chat from './Chat';
 
@@ -213,7 +213,7 @@ Message.init(
       },
     },
     attachments: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
       validate: {
@@ -230,7 +230,7 @@ Message.init(
       },
     },
     reactions: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
       validate: {
@@ -247,7 +247,7 @@ Message.init(
       },
     },
     read_status: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
       validate: {

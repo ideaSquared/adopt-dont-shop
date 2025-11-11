@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { User } from '.';
-import sequelize from '../sequelize';
+import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 
 interface InvitationAttributes {
   invitation_id: number;
@@ -57,7 +57,7 @@ Invitation.init(
       allowNull: false,
     },
     rescue_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'rescues',

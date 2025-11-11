@@ -9,7 +9,7 @@ import {
   Model,
   NonAttribute,
 } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import Pet from './Pet';
 import User from './User';
 
@@ -40,7 +40,7 @@ class UserFavorite extends Model<
 UserFavorite.init(
   {
     id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },

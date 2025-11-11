@@ -1,5 +1,5 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 // Notification type enum
@@ -219,7 +219,7 @@ Notification.init(
       },
     },
     data: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
     },
@@ -228,7 +228,7 @@ Notification.init(
       allowNull: true,
     },
     template_variables: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
     },

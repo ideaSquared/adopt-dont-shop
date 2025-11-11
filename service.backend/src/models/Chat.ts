@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { ChatStatus } from '../types/chat';
 
 import { ChatParticipant } from './ChatParticipant';
@@ -75,7 +75,7 @@ Chat.init(
     },
     rescue_id: {
       // Add rescue_id field
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'rescues',

@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 
 // Timeline Event Types
 export enum TimelineEventType {
@@ -73,7 +73,7 @@ class ApplicationTimeline
 ApplicationTimeline.init(
   {
     timeline_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
@@ -98,7 +98,7 @@ ApplicationTimeline.init(
       allowNull: true,
     },
     metadata: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
     },
     created_by: {

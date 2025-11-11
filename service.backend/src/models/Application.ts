@@ -1,5 +1,5 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 // Simple application status enum for small charities
@@ -233,7 +233,7 @@ Application.init(
       onDelete: 'CASCADE',
     },
     rescue_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'rescues',
@@ -304,7 +304,7 @@ Application.init(
       allowNull: true,
     },
     answers: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
       validate: {
@@ -312,7 +312,7 @@ Application.init(
       },
     },
     references: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
       validate: {
@@ -341,7 +341,7 @@ Application.init(
       },
     },
     documents: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
       validate: {
@@ -383,7 +383,7 @@ Application.init(
       },
     },
     tags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: true,
       defaultValue: [],
     },

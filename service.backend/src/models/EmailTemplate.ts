@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 export enum TemplateType {
@@ -323,7 +323,7 @@ EmailTemplate.init(
       field: 'text_content',
     },
     variables: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
       validate: {
@@ -340,7 +340,7 @@ EmailTemplate.init(
       },
     },
     metadata: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
     },
@@ -362,7 +362,7 @@ EmailTemplate.init(
       },
     },
     versions: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
     },
@@ -391,7 +391,7 @@ EmailTemplate.init(
       },
     },
     tags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: false,
       defaultValue: [],
     },

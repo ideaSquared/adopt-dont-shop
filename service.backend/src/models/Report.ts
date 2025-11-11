@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 export enum ReportCategory {
@@ -191,12 +191,12 @@ Report.init(
       },
     },
     evidence: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
     },
     metadata: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
     },

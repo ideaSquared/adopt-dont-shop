@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 export enum EmailStatus {
@@ -320,13 +320,13 @@ EmailQueue.init(
       field: 'to_name',
     },
     ccEmails: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: false,
       defaultValue: [],
       field: 'cc_emails',
     },
     bccEmails: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: false,
       defaultValue: [],
       field: 'bcc_emails',
@@ -361,13 +361,13 @@ EmailQueue.init(
       field: 'text_content',
     },
     templateData: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
       field: 'template_data',
     },
     attachments: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
     },
@@ -435,11 +435,11 @@ EmailQueue.init(
       field: 'provider_message_id',
     },
     tracking: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
     },
     metadata: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
     },
@@ -467,7 +467,7 @@ EmailQueue.init(
       },
     },
     tags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: false,
       defaultValue: [],
     },

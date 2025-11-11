@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 // Swipe session attributes
@@ -123,7 +123,7 @@ export class SwipeSession
 SwipeSession.init(
   {
     sessionId: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
       allowNull: false,
@@ -185,7 +185,7 @@ SwipeSession.init(
       comment: 'Number of super like actions',
     },
     filters: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
       comment: 'Applied filters as JSON object',

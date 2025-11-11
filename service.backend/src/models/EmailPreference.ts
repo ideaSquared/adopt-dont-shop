@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 export enum EmailFrequency {
@@ -349,7 +349,7 @@ EmailPreference.init(
       field: 'global_unsubscribe',
     },
     preferences: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: () => EmailPreference.getDefaultPreferences(),
     },
@@ -430,7 +430,7 @@ EmailPreference.init(
       field: 'blacklisted_at',
     },
     metadata: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
     },

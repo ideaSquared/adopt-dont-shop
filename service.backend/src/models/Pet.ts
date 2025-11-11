@@ -1,6 +1,6 @@
 // src/models/Pet.ts
 import { DataTypes, Model, Op, Optional, QueryTypes, WhereOptions } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 // Pet status enum
@@ -357,7 +357,7 @@ Pet.init(
       },
     },
     rescue_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'rescues',
@@ -519,7 +519,7 @@ Pet.init(
       allowNull: true,
     },
     temperament: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: true,
       defaultValue: [],
     },
@@ -562,7 +562,7 @@ Pet.init(
       allowNull: true,
     },
     images: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
       validate: {
@@ -579,12 +579,12 @@ Pet.init(
       },
     },
     videos: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: [],
     },
     location: {
-      type: DataTypes.GEOMETRY('POINT'),
+      type: getGeometryType('POINT'),
       allowNull: true,
     },
     available_since: {
@@ -632,7 +632,7 @@ Pet.init(
       allowNull: true,
     },
     tags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: true,
       defaultValue: [],
     },
