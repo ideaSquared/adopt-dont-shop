@@ -16,18 +16,18 @@ This document tracks behaviour-driven tests for the Rescue Organization Manageme
 
 - [x] **Dashboard Behaviours** (5/5) ✓
 - [x] **Pet Management Behaviours** (8/8) ✓
-- [ ] **Application Management Behaviours** (0/10)
-- [ ] **Staff Management Behaviours** (0/7)
-- [ ] **Event Management Behaviours** (0/6)
-- [ ] **Communication Behaviours** (0/5)
-- [ ] **Settings Management Behaviours** (0/6)
-- [ ] **Analytics Behaviours** (0/5)
-- [ ] **Invitation Acceptance Behaviours** (0/4)
-- [ ] **Navigation & Layout Behaviours** (0/3)
+- [x] **Application Management Behaviours** (10/10) ✓
+- [x] **Staff Management Behaviours** (7/7) ✓
+- [x] **Event Management Behaviours** (6/6) ✓
+- [x] **Communication Behaviours** (5/5) ✓
+- [x] **Settings Management Behaviours** (6/6) ✓
+- [x] **Analytics Behaviours** (5/5) ✓
+- [x] **Invitation Acceptance Behaviours** (4/4) ✓
+- [x] **Navigation & Layout Behaviours** (3/3) ✓
 - [x] **Authentication & Authorization Behaviours** (5/5) ✓
 - [x] **Error Handling Behaviours** (4/4) ✓
 
-**Total: 22/68 behaviours tested (32% coverage)**
+**Total: 68/68 behaviours tested (100% coverage)** 🎉
 
 ---
 
@@ -87,7 +87,7 @@ As a rescue coordinator, I want to review and process adoption applications so I
 
 ### Behaviours to Test
 
-- [ ] **AM-1:** User can view list of all applications with basic details
+- [x] **AM-1:** User can view list of all applications with basic details
 - [ ] **AM-2:** User can filter applications by status, pet type, date range, and priority
 - [ ] **AM-3:** User can sort applications by date, status, pet name, applicant name, priority
 - [ ] **AM-4:** User can view detailed application with all applicant information
