@@ -1,5 +1,16 @@
 import '@testing-library/jest-dom';
 import React from 'react';
+import { TextEncoder, TextDecoder } from 'util';
+import 'whatwg-fetch';
+
+// Polyfill TextEncoder/TextDecoder for MSW
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder as typeof global.TextDecoder;
+
+// Polyfill Response for MSW
+global.Response = Response;
+global.Request = Request;
+global.Headers = Headers;
 
 // MSW setup for API mocking (requires additional Jest ESM configuration)
 // TODO: Configure Jest to properly handle MSW ESM exports

@@ -134,7 +134,8 @@
     "lerna": "^8.1.2",
     "prettier": "^3.2.5",
     "turbo": "^2.5.4",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "whatwg-fetch": "^3.6.20"
   },
   "engines": {
     "node": ">=18.0.0",
