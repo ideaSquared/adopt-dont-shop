@@ -4,6 +4,8 @@ module.exports = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/setup-tests.ts'],
   moduleNameMapper: {
+    '^msw/node$': '<rootDir>/../node_modules/msw/lib/node/index.js',
+    '^msw$': '<rootDir>/../node_modules/msw/lib/core/index.js',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/components/(.*)$': '<rootDir>/src/components/$1',
     '^@/hooks/(.*)$': '<rootDir>/src/hooks/$1',
@@ -24,6 +26,9 @@ module.exports = {
   },
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(msw|@mswjs)/)',
+  ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',

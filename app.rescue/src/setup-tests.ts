@@ -12,6 +12,15 @@ global.Response = Response;
 global.Request = Request;
 global.Headers = Headers;
 
+// Polyfill BroadcastChannel for MSW
+global.BroadcastChannel = class BroadcastChannel {
+  constructor() {}
+  postMessage() {}
+  close() {}
+  addEventListener() {}
+  removeEventListener() {}
+} as any;
+
 // MSW setup for API mocking (requires additional Jest ESM configuration)
 // TODO: Configure Jest to properly handle MSW ESM exports
 // import { setupServer } from 'msw/node';
