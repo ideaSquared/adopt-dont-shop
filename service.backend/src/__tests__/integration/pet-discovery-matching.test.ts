@@ -63,17 +63,24 @@ vi.mock('../../models/Report', () => ({
 }));
 vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
-vi.mock('../../sequelize', () => ({
-  default: {
-    query: vi.fn().mockResolvedValue([[], []]),
-    literal: vi.fn((val: string) => val),
-    fn: vi.fn((name: string) => `${name}()`),
-    col: vi.fn((name: string) => name),
-  },
-  QueryTypes: {
-    SELECT: 'SELECT',
-  },
-}));
+vi.mock('../../sequelize', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../sequelize')>();
+  const originalSequelize = actual.default;
+
+  // Mock query methods but keep everything else
+  originalSequelize.query = vi.fn().mockResolvedValue([[], []]);
+  originalSequelize.literal = vi.fn((val: string) => val);
+  originalSequelize.fn = vi.fn((name: string) => `${name}()`);
+  originalSequelize.col = vi.fn((name: string) => name);
+
+  return {
+    ...actual,
+    default: originalSequelize,
+    QueryTypes: {
+      SELECT: 'SELECT',
+    },
+  };
+});
 
 const MockedPet = Pet as vi.Mocked<typeof Pet>;
 const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
@@ -162,7 +169,7 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     getAgeInMonths: vi.fn().mockReturnValue((petData.age_years || 0) * 12 + (petData.age_months || 0)),
     getAgeDisplay: vi.fn().mockReturnValue(`${petData.age_years} years, ${petData.age_months} months`),
     incrementViewCount: vi.fn(),
-    canBeAdopted: jest
+    canBeAdopted: vi
       .fn()
       .mockReturnValue(
         [PetStatus.AVAILABLE, PetStatus.FOSTER].includes(petData.status) && !petData.archived
@@ -1162,7 +1169,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           }),
         ];
 
-        MockedPet.findByPk = jest
+        MockedPet.findByPk = vi
           .fn()
           .mockResolvedValueOnce(mockPets[0])
           .mockResolvedValueOnce(mockPets[1]);
@@ -1343,7 +1350,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(filtered.pets).toHaveLength(2);
 
         // Step 2: View both pets for comparison
-        MockedPet.findByPk = jest
+        MockedPet.findByPk = vi
           .fn()
           .mockResolvedValueOnce(mockFilteredPets[0])
           .mockResolvedValueOnce(mockFilteredPets[1]);
