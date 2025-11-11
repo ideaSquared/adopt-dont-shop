@@ -33,6 +33,47 @@ jest.mock('@adopt-dont-shop/lib-auth', () => {
 describe('Favorites Management Behaviours', () => {
   beforeEach(() => {
     resetMockData();
+    // Reset petsService mock to default state with 2 pets
+    const { petsService } = require('@adopt-dont-shop/lib-pets');
+    const mockPets = [
+      {
+        pet_id: 'pet-1',
+        name: 'Buddy',
+        type: 'dog',
+        breed: 'Golden Retriever',
+        age: 3,
+        gender: 'male',
+        size: 'large',
+        status: 'available',
+        images: ['https://example.com/buddy.jpg'],
+        description: 'Friendly golden retriever',
+        location: {
+          city: 'Seattle',
+          state: 'WA',
+          coordinates: [-122.3321, 47.6062]
+        },
+        rescue_id: 'rescue-1',
+      },
+      {
+        pet_id: 'pet-2',
+        name: 'Whiskers',
+        type: 'cat',
+        breed: 'Domestic Shorthair',
+        age: 12,
+        gender: 'female',
+        size: 'small',
+        status: 'available',
+        images: ['https://example.com/whiskers.jpg'],
+        description: 'Sweet senior cat',
+        location: {
+          city: 'Seattle',
+          state: 'WA',
+          coordinates: [-122.3321, 47.6062]
+        },
+        rescue_id: 'rescue-2',
+      },
+    ];
+    petsService.setFavorites(mockPets);
   });
 
   describe('Authentication Requirements', () => {
