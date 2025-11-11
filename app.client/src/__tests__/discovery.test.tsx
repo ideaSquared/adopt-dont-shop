@@ -34,9 +34,9 @@ describe('Pet Discovery Behaviours', () => {
       });
 
       // User sees pet information
-      // Pet cards are rendered by SwipeStack component
+      // Pet cards are rendered by SwipeStack component (shows 3 stacked)
       await waitFor(() => {
-        expect(screen.getByText('Buddy')).toBeInTheDocument();
+        expect(screen.getAllByText('Buddy')[0]).toBeInTheDocument();
       });
     });
 
@@ -47,11 +47,11 @@ describe('Pet Discovery Behaviours', () => {
         expect(screen.queryByText(/loading pets/i)).not.toBeInTheDocument();
       });
 
-      // User sees pet name
-      expect(screen.getByText('Buddy')).toBeInTheDocument();
+      // User sees pet name (SwipeStack shows multiple stacked cards)
+      expect(screen.getAllByText('Buddy')[0]).toBeInTheDocument();
 
       // User sees pet breed
-      expect(screen.getByText(/golden retriever/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/golden retriever/i)[0]).toBeInTheDocument();
     });
 
     it('shows message when no pets are available', async () => {
@@ -77,11 +77,11 @@ describe('Pet Discovery Behaviours', () => {
         expect(screen.queryByText(/loading pets/i)).not.toBeInTheDocument();
       });
 
-      // Initial session stats show 0 likes
-      expect(screen.getByText('0', { selector: '.number' })).toBeInTheDocument();
+      // Initial session stats show 0 likes (multiple .number elements show 0)
+      expect(screen.getAllByText('0', { selector: '.number' }).length).toBeGreaterThan(0);
 
-      // User clicks like button
-      const likeButton = screen.getByRole('button', { name: /like|heart/i });
+      // User clicks like button (multiple like buttons exist in stacked cards)
+      const likeButton = screen.getAllByRole('button', { name: /like|heart/i })[0];
       await user.click(likeButton);
 
       // System records like action
@@ -94,7 +94,7 @@ describe('Pet Discovery Behaviours', () => {
 
       // Next pet appears
       await waitFor(() => {
-        expect(screen.getByText('Whiskers')).toBeInTheDocument();
+        expect(screen.getAllByText('Whiskers')[0]).toBeInTheDocument();
       });
     });
 
@@ -107,17 +107,17 @@ describe('Pet Discovery Behaviours', () => {
         expect(screen.queryByText(/loading pets/i)).not.toBeInTheDocument();
       });
 
-      const firstPetName = screen.getByText('Buddy');
+      const firstPetName = screen.getAllByText('Buddy')[0];
       expect(firstPetName).toBeInTheDocument();
 
       // User clicks pass button
-      const passButton = screen.getByRole('button', { name: /pass|skip|next/i });
+      const passButton = screen.getAllByRole('button', { name: /pass|skip|next/i })[0];
       await user.click(passButton);
 
       // System records pass action
       // Next pet appears
       await waitFor(() => {
-        expect(screen.getByText('Whiskers')).toBeInTheDocument();
+        expect(screen.getAllByText('Whiskers')[0]).toBeInTheDocument();
       });
 
       // Session stats update
@@ -152,7 +152,7 @@ describe('Pet Discovery Behaviours', () => {
       // Pet is added to favorites with special indicator
       // Next pet appears
       await waitFor(() => {
-        expect(screen.getByText('Whiskers')).toBeInTheDocument();
+        expect(screen.getAllByText('Whiskers')[0]).toBeInTheDocument();
       });
     });
 
@@ -166,14 +166,14 @@ describe('Pet Discovery Behaviours', () => {
       });
 
       // User performs multiple swipe actions
-      const likeButton = screen.getByRole('button', { name: /like|heart/i });
+      const likeButton = screen.getAllByRole('button', { name: /like|heart/i })[0];
       await user.click(likeButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Whiskers')).toBeInTheDocument();
+        expect(screen.getAllByText('Whiskers')[0]).toBeInTheDocument();
       });
 
-      const passButton = screen.getByRole('button', { name: /pass|skip|next/i });
+      const passButton = screen.getAllByRole('button', { name: /pass|skip|next/i })[0];
       await user.click(passButton);
 
       // Session stats reflect all actions
@@ -264,7 +264,7 @@ describe('Pet Discovery Behaviours', () => {
       });
 
       // Only dogs appear in queue
-      expect(screen.getByText('Buddy')).toBeInTheDocument();
+      expect(screen.getAllByText('Buddy')[0]).toBeInTheDocument();
       // Whiskers (cat) should not be in the filtered results
     });
 
@@ -293,7 +293,7 @@ describe('Pet Discovery Behaviours', () => {
       });
 
       // Filtered pets appear
-      expect(screen.getByText('Buddy')).toBeInTheDocument(); // Buddy is large
+      expect(screen.getAllByText('Buddy')[0]).toBeInTheDocument(); // Buddy is large
     });
 
     it('filters pets by age group', async () => {
@@ -319,7 +319,7 @@ describe('Pet Discovery Behaviours', () => {
       });
 
       // Senior pets appear
-      expect(screen.getByText('Whiskers')).toBeInTheDocument(); // Whiskers is senior
+      expect(screen.getAllByText('Whiskers')[0]).toBeInTheDocument(); // Whiskers is senior
     });
 
     it('filters pets by gender', async () => {
@@ -345,7 +345,7 @@ describe('Pet Discovery Behaviours', () => {
       });
 
       // Female pets appear
-      expect(screen.getByText('Whiskers')).toBeInTheDocument(); // Whiskers is female
+      expect(screen.getAllByText('Whiskers')[0]).toBeInTheDocument(); // Whiskers is female
     });
 
     it('allows user to clear filters by selecting "Any"', async () => {
@@ -378,7 +378,7 @@ describe('Pet Discovery Behaviours', () => {
       });
 
       // All pets appear again
-      expect(screen.getByText('Buddy')).toBeInTheDocument();
+      expect(screen.getAllByText('Buddy')[0]).toBeInTheDocument();
     });
   });
 
@@ -393,13 +393,13 @@ describe('Pet Discovery Behaviours', () => {
       });
 
       // User swipes through pets
-      const likeButton = screen.getByRole('button', { name: /like|heart/i });
+      const likeButton = screen.getAllByRole('button', { name: /like|heart/i })[0];
 
       // Swipe first pet
       await user.click(likeButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Whiskers')).toBeInTheDocument();
+        expect(screen.getAllByText('Whiskers')[0]).toBeInTheDocument();
       });
 
       // Swipe second pet
@@ -408,7 +408,7 @@ describe('Pet Discovery Behaviours', () => {
       // System should load more pets automatically
       await waitFor(
         () => {
-          expect(screen.getByText('Max')).toBeInTheDocument();
+          expect(screen.getAllByText('Max')[0]).toBeInTheDocument();
         },
         { timeout: 3000 }
       );
