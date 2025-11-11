@@ -90,8 +90,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
           setUser(freshUser);
 
-          // Initialize notifications for existing authenticated user
-          await notificationService.initializeForUser();
+          // TODO: Initialize notifications for existing authenticated user
+          // Notifications should be initialized by the consuming app if needed
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
@@ -310,7 +310,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const setDevUser = (devUser: User) => {
     if (import.meta.env?.DEV) {
       setUser(devUser);
-      devAuthUtils.setDevUser(devUser);
+      // Store dev user in localStorage for persistence across refreshes
+      localStorage.setItem('dev_user', JSON.stringify(devUser));
+      const mockToken = `dev-token-${devUser.userId}-${Date.now()}`;
+      localStorage.setItem('accessToken', mockToken);
+      localStorage.setItem('authToken', mockToken);
     }
   };
 
