@@ -301,13 +301,14 @@ export class UserService {
       }
 
       // Apply search last to avoid structure conflicts
+      // Use Op.like for SQLite compatibility (iLike is PostgreSQL-specific)
       if (search) {
         whereConditions = {
           ...whereConditions,
           [Op.or]: [
-            { firstName: { [Op.iLike]: `%${search}%` } },
-            { lastName: { [Op.iLike]: `%${search}%` } },
-            { email: { [Op.iLike]: `%${search}%` } },
+            { firstName: { [Op.like]: `%${search}%` } },
+            { lastName: { [Op.like]: `%${search}%` } },
+            { email: { [Op.like]: `%${search}%` } },
           ],
         };
       }
@@ -539,7 +540,7 @@ export class UserService {
       const activeChatsCount = await Chat.count({
         include: [
           {
-            model: ChatParticipant,
+            association: 'Participants',
             where: { participant_id: userId },
             required: true,
           },
@@ -569,18 +570,32 @@ export class UserService {
       });
 
       // Calculate average session duration from audit logs
+      // Database-agnostic SQL query
+      const isPostgres = sequelize.getDialect() === 'postgres';
       const sessionData = (await sequelize.query(
+        isPostgres
+          ? `
+          SELECT
+            DATE_TRUNC('day', timestamp) as session_date,
+            MIN(timestamp) as first_action,
+            MAX(timestamp) as last_action
+          FROM audit_logs
+          WHERE "user" = :userId
+            AND timestamp >= NOW() - INTERVAL '30 days'
+          GROUP BY DATE_TRUNC('day', timestamp)
+          HAVING COUNT(*) > 1
         `
-        SELECT 
-          DATE_TRUNC('day', timestamp) as session_date,
-          MIN(timestamp) as first_action,
-          MAX(timestamp) as last_action
-        FROM audit_logs 
-        WHERE "user" = :userId
-          AND timestamp >= NOW() - INTERVAL '30 days'
-        GROUP BY DATE_TRUNC('day', timestamp)
-        HAVING COUNT(*) > 1
-      `,
+          : `
+          SELECT
+            strftime('%Y-%m-%d', timestamp) as session_date,
+            MIN(timestamp) as first_action,
+            MAX(timestamp) as last_action
+          FROM audit_logs
+          WHERE "user" = :userId
+            AND timestamp >= datetime('now', '-30 days')
+          GROUP BY strftime('%Y-%m-%d', timestamp)
+          HAVING COUNT(*) > 1
+        `,
         {
           replacements: { userId },
           type: QueryTypes.SELECT,
@@ -658,7 +673,7 @@ export class UserService {
       const activeChatsCount = await Chat.count({
         include: [
           {
-            model: ChatParticipant,
+            association: 'Participants',
             where: { participant_id: userId },
             required: true,
           },
@@ -688,18 +703,32 @@ export class UserService {
       });
 
       // Calculate average session duration from audit logs
+      // Database-agnostic SQL query
+      const isPostgres = sequelize.getDialect() === 'postgres';
       const sessionData = (await sequelize.query(
+        isPostgres
+          ? `
+          SELECT
+            DATE_TRUNC('day', timestamp) as session_date,
+            MIN(timestamp) as first_action,
+            MAX(timestamp) as last_action
+          FROM audit_logs
+          WHERE "user" = :userId
+            AND timestamp >= NOW() - INTERVAL '30 days'
+          GROUP BY DATE_TRUNC('day', timestamp)
+          HAVING COUNT(*) > 1
         `
-        SELECT 
-          DATE_TRUNC('day', timestamp) as session_date,
-          MIN(timestamp) as first_action,
-          MAX(timestamp) as last_action
-        FROM audit_logs 
-        WHERE "user" = :userId
-          AND timestamp >= NOW() - INTERVAL '30 days'
-        GROUP BY DATE_TRUNC('day', timestamp)
-        HAVING COUNT(*) > 1
-      `,
+          : `
+          SELECT
+            strftime('%Y-%m-%d', timestamp) as session_date,
+            MIN(timestamp) as first_action,
+            MAX(timestamp) as last_action
+          FROM audit_logs
+          WHERE "user" = :userId
+            AND timestamp >= datetime('now', '-30 days')
+          GROUP BY strftime('%Y-%m-%d', timestamp)
+          HAVING COUNT(*) > 1
+        `,
         {
           replacements: { userId },
           type: QueryTypes.SELECT,
@@ -841,7 +870,7 @@ export class UserService {
         User.count({
           include: [
             {
-              model: AuditLog,
+              association: 'AuditLogs',
               where: { timestamp: { [Op.gte]: thirtyDaysAgo } },
               required: true,
             },
@@ -861,16 +890,28 @@ export class UserService {
       ]);
 
       // Calculate monthly growth
+      // Database-agnostic SQL query
+      const isPostgres = sequelize.getDialect() === 'postgres';
       const monthlyGrowth = (await sequelize.query(
+        isPostgres
+          ? `
+          SELECT
+            DATE_TRUNC('month', created_at) as month,
+            COUNT(*) as count
+          FROM users
+          WHERE created_at >= :oneYearAgo
+          GROUP BY DATE_TRUNC('month', created_at)
+          ORDER BY month ASC
         `
-        SELECT 
-          DATE_TRUNC('month', created_at) as month,
-          COUNT(*) as count
-        FROM users 
-        WHERE created_at >= :oneYearAgo
-        GROUP BY DATE_TRUNC('month', created_at)
-        ORDER BY month ASC
-      `,
+          : `
+          SELECT
+            strftime('%Y-%m-01', created_at) as month,
+            COUNT(*) as count
+          FROM users
+          WHERE created_at >= :oneYearAgo
+          GROUP BY strftime('%Y-%m', created_at)
+          ORDER BY month ASC
+        `,
         {
           replacements: { oneYearAgo },
           type: QueryTypes.SELECT,

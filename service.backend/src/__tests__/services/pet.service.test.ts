@@ -1,10 +1,4 @@
 import { vi } from 'vitest';
-import { Op } from 'sequelize';
-// Mock sequelize functions that are used in the service
-const mockCol = vi.fn();
-const mockFn = vi.fn();
-const mockLiteral = vi.fn();
-
 import { AuditLog } from '../../models/AuditLog';
 import Pet, {
   AgeGroup,
@@ -27,29 +21,8 @@ import {
   PetUpdateData,
 } from '../../types/pet';
 
-// Mock dependencies
-vi.mock('../../models/Pet');
-vi.mock('../../models/Rescue');
-vi.mock('../../models/Report', () => ({
-  default: {
-    create: vi.fn(),
-  },
-  ReportCategory: { INAPPROPRIATE_CONTENT: 'INAPPROPRIATE_CONTENT' },
-  ReportStatus: { PENDING: 'PENDING' },
-  ReportSeverity: { MEDIUM: 'MEDIUM' },
-}));
-vi.mock('../../services/auditLog.service');
-vi.mock('../../utils/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
-
-const MockedPet = Pet as vi.Mocked<typeof Pet>;
-const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
-// Mock the static log method
+// Mock only non-database dependencies
+// Logger is already mocked in setup-tests.ts
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: vi.fn().mockResolvedValue({}),
