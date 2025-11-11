@@ -8,8 +8,8 @@ import {
   AnalyticsProvider,
   NotificationsProvider,
   ChatProvider,
-  FavoritesProvider,
 } from './mock-providers';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
 
 /**
  * Custom render function that wraps components with all necessary providers
