@@ -1,9 +1,9 @@
 import { vi } from 'vitest';
-// Mock the static log method first (before imports to avoid hoisting issues)
-const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
+
+// Mock the static log method
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
-    log: mockAuditLogAction,
+    log: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -16,9 +16,13 @@ import {
   RescueService,
   UpdateRescueRequest,
 } from '../../services/rescue.service';
+import { AuditLogService } from '../../services/auditLog.service';
 
 // Mock dependencies
 vi.mock('../../utils/logger');
+
+// Get reference to mocked function
+const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
 
 const mockRescue = Rescue as vi.Mocked<typeof Rescue>;
 const mockStaffMember = StaffMember as vi.Mocked<typeof StaffMember>;
