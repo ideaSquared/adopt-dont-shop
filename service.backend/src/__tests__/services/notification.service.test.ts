@@ -194,16 +194,18 @@ describe('NotificationService', () => {
 
         expect(result.notifications).toHaveLength(2);
         expect(result.pagination.total).toBe(2);
-        expect(MockedNotification.findAndCountAll).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where: expect.objectContaining({
-              userId: 'user-123',
-              read_at: null,
-            }),
-            limit: 10,
-            offset: 0,
-          })
-        );
+
+        // Check that the method was called
+        expect(MockedNotification.findAndCountAll).toHaveBeenCalled();
+
+        // Check the call arguments
+        const callArgs = (MockedNotification.findAndCountAll as vi.Mock).mock.calls[0][0];
+        expect(callArgs.where).toMatchObject({
+          user_id: 'user-123', // Database field name is snake_case
+          read_at: null,
+        });
+        expect(callArgs.limit).toBe(10);
+        expect(callArgs.offset).toBe(0);
       });
 
       it('should filter by notification type', async () => {
