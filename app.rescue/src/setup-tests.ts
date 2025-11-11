@@ -1,6 +1,16 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 
+// MSW setup for API mocking (requires additional Jest ESM configuration)
+// TODO: Configure Jest to properly handle MSW ESM exports
+// import { setupServer } from 'msw/node';
+// import { mswHandlers } from './test-utils/msw-handlers';
+//
+// const server = setupServer(...mswHandlers);
+// beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+// afterEach(() => server.resetHandlers());
+// afterAll(() => server.close());
+
 // Mock IntersectionObserver
 const mockIntersectionObserver = jest.fn();
 mockIntersectionObserver.mockReturnValue({
