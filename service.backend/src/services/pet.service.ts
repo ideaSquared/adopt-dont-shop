@@ -1107,14 +1107,18 @@ export class PetService {
         ? { rescue_id: rescueId, status: PetStatus.ADOPTED }
         : { status: PetStatus.ADOPTED };
 
+      // Database-agnostic date difference calculation
+      // SQLite: julianday() returns days
+      // PostgreSQL: EXTRACT(epoch FROM ...) / 86400 returns days
+      const dialect = sequelize.getDialect();
+      const dateDiffExpression =
+        dialect === 'sqlite'
+          ? literal("julianday(adopted_date) - julianday(available_since)")
+          : literal('EXTRACT(epoch FROM (adopted_date - available_since)) / 86400');
+
       const result = await Pet.findOne({
         where: whereClause,
-        attributes: [
-          [
-            fn('AVG', literal('EXTRACT(epoch FROM (adopted_date - available_since)) / 86400')),
-            'avg_days',
-          ],
-        ],
+        attributes: [[fn('AVG', dateDiffExpression), 'avg_days']],
         raw: true,
       });
 
@@ -1274,8 +1278,8 @@ export class PetService {
         include: [
           {
             model: Rescue,
-            as: 'rescue',
-            attributes: ['id', 'name', 'city', 'state'],
+            as: 'Rescue',
+            attributes: ['rescueId', 'name', 'city', 'state'],
           },
         ],
         limit,

@@ -732,12 +732,15 @@ Pet.init(
         }
       },
       beforeSave: async (pet: Pet) => {
-        // Update search vector
+        // Update search vector (PostgreSQL only)
+        const dialect = sequelize.getDialect();
+
         if (
-          pet.changed('name') ||
-          pet.changed('breed') ||
-          pet.changed('short_description') ||
-          pet.changed('long_description')
+          dialect === 'postgres' &&
+          (pet.changed('name') ||
+            pet.changed('breed') ||
+            pet.changed('short_description') ||
+            pet.changed('long_description'))
         ) {
           const searchText = [
             pet.name,
@@ -751,10 +754,13 @@ Pet.init(
             .join(' ');
 
           if (searchText.trim()) {
-            const [results] = await sequelize.query<{ vector: TSVector }>("SELECT to_tsvector('english', ?) as vector", {
-              replacements: [searchText],
-              type: QueryTypes.SELECT,
-            });
+            const [results] = await sequelize.query<{ vector: TSVector }>(
+              "SELECT to_tsvector('english', ?) as vector",
+              {
+                replacements: [searchText],
+                type: QueryTypes.SELECT,
+              }
+            );
             pet.search_vector = results.vector;
           }
         }
