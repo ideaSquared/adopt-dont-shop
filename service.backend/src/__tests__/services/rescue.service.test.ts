@@ -7,9 +7,62 @@ vi.mock('../../services/auditLog.service', () => ({
   },
 }));
 
+// Mock models
+vi.mock('../../models/Rescue', () => ({
+  __esModule: true,
+  default: {
+    findAndCountAll: vi.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+  },
+}));
+
+vi.mock('../../models/StaffMember', () => ({
+  __esModule: true,
+  default: {
+    findOne: vi.fn(),
+    findByPk: vi.fn(),
+    create: vi.fn(),
+    destroy: vi.fn(),
+  },
+}));
+
+vi.mock('../../models/User', () => ({
+  __esModule: true,
+  default: {
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+  },
+}));
+
+vi.mock('../../models/Pet', () => ({
+  __esModule: true,
+  default: {
+    findAll: vi.fn(),
+    findAndCountAll: vi.fn(),
+  },
+}));
+
+vi.mock('../../models/Application', () => ({
+  __esModule: true,
+  default: {
+    count: vi.fn(),
+  },
+}));
+
+// Mock dependencies
+vi.mock('../../utils/logger');
+
 import { Op } from 'sequelize';
-// Import models from the index to use the mocked versions
-import { Application, Pet, Rescue, StaffMember, User } from '../../models';
+// Import models directly to use mocked versions
+import Rescue from '../../models/Rescue';
+import StaffMember from '../../models/StaffMember';
+import User from '../../models/User';
+import Pet from '../../models/Pet';
+import Application from '../../models/Application';
 import {
   CreateRescueRequest,
   RescueSearchOptions,
@@ -17,9 +70,6 @@ import {
   UpdateRescueRequest,
 } from '../../services/rescue.service';
 import { AuditLogService } from '../../services/auditLog.service';
-
-// Mock dependencies
-vi.mock('../../utils/logger');
 
 // Get reference to mocked function
 const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
