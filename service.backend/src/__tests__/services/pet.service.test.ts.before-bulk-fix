@@ -139,9 +139,7 @@ describe('PetService', () => {
       expect(result.totalPages).toBe(1);
     });
 
-    it.skip('should search pets with text search', async () => {
-      // SKIP: Op.iLike is PostgreSQL-specific and doesn't work in SQLite
-      // This test needs the service to be updated to use dialect-aware operators
+    it('should search pets with text search', async () => {
       const filters: PetSearchFilters = {
         search: 'Golden',
       };
@@ -361,12 +359,10 @@ describe('PetService', () => {
 
   describe('updatePet', () => {
     let testPet: Pet;
-    let petId: string;
 
     beforeEach(async () => {
-      petId = uniqueId('update-pet');
       testPet = await Pet.create({
-        pet_id: petId,
+        pet_id: 'pet1',
         name: 'Original Name',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
@@ -390,7 +386,7 @@ describe('PetService', () => {
     };
 
     it('should update pet successfully', async () => {
-      const result = await PetService.updatePet(petId, updateData, 'user1');
+      const result = await PetService.updatePet('pet1', updateData, 'user1');
 
       expect(result.name).toBe('Updated Name');
       expect(result.short_description).toBe('Updated description');
@@ -399,7 +395,7 @@ describe('PetService', () => {
         expect.objectContaining({
           action: 'UPDATE',
           entity: 'Pet',
-          entityId: petId,
+          entityId: 'pet1',
           userId: 'user1',
         })
       );
@@ -414,7 +410,7 @@ describe('PetService', () => {
     it('should allow updates to adopted pets (service permits it)', async () => {
       await testPet.update({ status: PetStatus.ADOPTED });
 
-      const result = await PetService.updatePet(petId, updateData, 'user1');
+      const result = await PetService.updatePet('pet1', updateData, 'user1');
       expect(result).toBeDefined();
       expect(result.name).toBe('Updated Name');
     });
@@ -422,12 +418,10 @@ describe('PetService', () => {
 
   describe('updatePetStatus', () => {
     let testPet: Pet;
-    let petId: string;
 
     beforeEach(async () => {
-      petId = uniqueId('updateStatus-pet');
       testPet = await Pet.create({
-        pet_id: petId,
+        pet_id: 'pet1',
         name: 'Buddy',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
@@ -452,7 +446,7 @@ describe('PetService', () => {
     };
 
     it('should update pet status successfully', async () => {
-      const result = await PetService.updatePetStatus(petId, statusUpdate, 'user1');
+      const result = await PetService.updatePetStatus('pet1', statusUpdate, 'user1');
 
       expect(result.status).toBe(PetStatus.ADOPTED);
       expect(result.adopted_date).toBeDefined();
@@ -461,7 +455,7 @@ describe('PetService', () => {
         expect.objectContaining({
           action: 'UPDATE_STATUS',
           entity: 'Pet',
-          entityId: petId,
+          entityId: 'pet1',
           details: expect.objectContaining({
             originalStatus: PetStatus.AVAILABLE,
             newStatus: PetStatus.ADOPTED,
@@ -482,12 +476,10 @@ describe('PetService', () => {
 
   describe('deletePet', () => {
     let testPet: Pet;
-    let petId: string;
 
     beforeEach(async () => {
-      petId = uniqueId('delete-pet');
       testPet = await Pet.create({
-        pet_id: petId,
+        pet_id: 'pet1',
         name: 'Buddy',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
@@ -506,19 +498,19 @@ describe('PetService', () => {
     });
 
     it('should soft delete pet successfully', async () => {
-      const result = await PetService.deletePet(petId, 'user1', 'No longer available');
+      const result = await PetService.deletePet('pet1', 'user1', 'No longer available');
 
       expect(result.message).toBe('Pet deleted successfully');
 
       // Verify soft delete
-      const deletedPet = await Pet.findByPk(petId);
+      const deletedPet = await Pet.findByPk('pet1');
       expect(deletedPet).toBeNull();
 
       expect(mockAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'DELETE',
           entity: 'Pet',
-          entityId: petId,
+          entityId: 'pet1',
           details: expect.objectContaining({
             reason: 'No longer available',
             deletedBy: 'user1',
@@ -535,19 +527,17 @@ describe('PetService', () => {
     it('should delete adopted pets (service allows it)', async () => {
       await testPet.update({ status: PetStatus.ADOPTED });
 
-      const result = await PetService.deletePet(petId, 'user1');
+      const result = await PetService.deletePet('pet1', 'user1');
       expect(result.message).toBe('Pet deleted successfully');
     });
   });
 
   describe('addPetImages', () => {
     let testPet: Pet;
-    let petId: string;
 
     beforeEach(async () => {
-      petId = uniqueId('addImages-pet');
       testPet = await Pet.create({
-        pet_id: petId,
+        pet_id: 'pet1',
         name: 'Buddy',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
@@ -576,7 +566,7 @@ describe('PetService', () => {
     ];
 
     it('should add images to pet successfully', async () => {
-      const result = await PetService.addPetImages(petId, newImages, 'user1');
+      const result = await PetService.addPetImages('pet1', newImages, 'user1');
 
       expect(result.images).toHaveLength(1);
       expect(result.images[0].url).toBe('https://example.com/image1.jpg');
@@ -594,7 +584,7 @@ describe('PetService', () => {
     it('should handle empty URL (service does not validate)', async () => {
       const invalidImages = [{ url: '', isPrimary: false, orderIndex: 0 }];
 
-      const result = await PetService.addPetImages(petId, invalidImages, 'user1');
+      const result = await PetService.addPetImages('pet1', invalidImages, 'user1');
       expect(result).toBeDefined();
     });
   });
@@ -602,7 +592,7 @@ describe('PetService', () => {
   describe('getPetsByRescue', () => {
     beforeEach(async () => {
       await Pet.create({
-        pet_id: uniqueId('byRescue-pet1'),
+        pet_id: 'pet1',
         name: 'Pet 1',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
@@ -651,7 +641,7 @@ describe('PetService', () => {
   describe('getFeaturedPets', () => {
     beforeEach(async () => {
       await Pet.create({
-        pet_id: uniqueId('featured-pet1'),
+        pet_id: 'pet1',
         name: 'Featured Pet 1',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
@@ -670,7 +660,7 @@ describe('PetService', () => {
       });
 
       await Pet.create({
-        pet_id: uniqueId('featured-pet2'),
+        pet_id: 'pet2',
         name: 'Featured Pet 2',
         type: PetType.CAT,
         status: PetStatus.AVAILABLE,
@@ -702,7 +692,7 @@ describe('PetService', () => {
       // Create a variety of pets for statistics
       await Pet.bulkCreate([
         {
-          pet_id: uniqueId('stats-pet1'),
+          pet_id: 'pet1',
           name: 'Dog 1',
           type: PetType.DOG,
           status: PetStatus.AVAILABLE,
@@ -721,7 +711,7 @@ describe('PetService', () => {
           videos: [],
         },
         {
-          pet_id: uniqueId('stats-pet2'),
+          pet_id: 'pet2',
           name: 'Cat 1',
           type: PetType.CAT,
           status: PetStatus.ADOPTED,
@@ -739,7 +729,7 @@ describe('PetService', () => {
           videos: [],
         },
         {
-          pet_id: uniqueId('stats-pet3'),
+          pet_id: 'pet3',
           name: 'Dog 2',
           type: PetType.DOG,
           status: PetStatus.FOSTER,
@@ -777,14 +767,10 @@ describe('PetService', () => {
   describe('bulkUpdatePets', () => {
     let pet1: Pet;
     let pet2: Pet;
-    let pet1Id: string;
-    let pet2Id: string;
 
     beforeEach(async () => {
-      pet1Id = uniqueId('bulk-pet1');
-      pet2Id = uniqueId('bulk-pet2');
       pet1 = await Pet.create({
-        pet_id: pet1Id,
+        pet_id: 'pet1',
         name: 'Pet 1',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
@@ -802,7 +788,7 @@ describe('PetService', () => {
       });
 
       pet2 = await Pet.create({
-        pet_id: pet2Id,
+        pet_id: 'pet2',
         name: 'Pet 2',
         type: PetType.CAT,
         status: PetStatus.AVAILABLE,
@@ -822,7 +808,7 @@ describe('PetService', () => {
 
     it('should perform bulk status update successfully', async () => {
       const operation: BulkPetOperation = {
-        petIds: [pet1Id, pet2Id],
+        petIds: ['pet1', 'pet2'],
         operation: 'update_status',
         data: { status: PetStatus.ADOPTED, reason: 'Bulk adoption' },
         reason: 'Bulk adoption',
@@ -843,16 +829,15 @@ describe('PetService', () => {
 
     it('should handle partial failures in bulk operation', async () => {
       const operation: BulkPetOperation = {
-        petIds: [pet1Id, 'nonexistent'],
+        petIds: ['pet1', 'nonexistent'],
         operation: 'archive',
         reason: 'Bulk archive',
       };
 
       const result = await PetService.bulkUpdatePets(operation, 'user1');
 
-      // Service archives both successfully (nonexistent just doesn't do anything)
-      expect(result.successCount).toBe(2);
-      expect(result.failedCount).toBe(0);
+      expect(result.successCount).toBe(1);
+      expect(result.failedCount).toBe(0); // nonexistent will succeed (no error thrown)
     });
 
     it('should handle unsupported operation by returning error result', async () => {
@@ -871,14 +856,12 @@ describe('PetService', () => {
 
   describe('getPetActivity', () => {
     let testPet: Pet;
-    let petId: string;
 
     beforeEach(async () => {
-      petId = uniqueId('activity-pet');
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
       testPet = await Pet.create({
-        pet_id: petId,
+        pet_id: 'pet1',
         name: 'Buddy',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
@@ -901,9 +884,9 @@ describe('PetService', () => {
     });
 
     it('should get pet activity statistics', async () => {
-      const result = await PetService.getPetActivity(petId);
+      const result = await PetService.getPetActivity('pet1');
 
-      expect(result.petId).toBe(petId);
+      expect(result.petId).toBe('pet1');
       expect(result.viewCount).toBe(50);
       expect(result.favoriteCount).toBe(10);
       expect(result.applicationCount).toBe(3);
@@ -922,7 +905,7 @@ describe('PetService', () => {
     beforeEach(async () => {
       await Pet.bulkCreate([
         {
-          pet_id: uniqueId('recent-pet1'),
+          pet_id: 'pet1',
           name: 'Buddy',
           type: PetType.DOG,
           status: PetStatus.AVAILABLE,
@@ -940,7 +923,7 @@ describe('PetService', () => {
           created_at: new Date('2025-07-08T10:00:00Z'),
         },
         {
-          pet_id: uniqueId('recent-pet2'),
+          pet_id: 'pet2',
           name: 'Whiskers',
           type: PetType.CAT,
           status: PetStatus.AVAILABLE,
@@ -988,7 +971,7 @@ describe('PetService', () => {
     beforeEach(async () => {
       await Pet.bulkCreate([
         {
-          pet_id: uniqueId('breeds-pet1'),
+          pet_id: 'pet1',
           name: 'Dog 1',
           type: PetType.DOG,
           breed: 'Golden Retriever',
@@ -1005,7 +988,7 @@ describe('PetService', () => {
           videos: [],
         },
         {
-          pet_id: uniqueId('breeds-pet2'),
+          pet_id: 'pet2',
           name: 'Dog 2',
           type: PetType.DOG,
           breed: 'Labrador Retriever',
@@ -1053,7 +1036,7 @@ describe('PetService', () => {
     it('should filter out null and empty breeds', async () => {
       await Pet.bulkCreate([
         {
-          pet_id: uniqueId('breeds-pet4'),
+          pet_id: 'pet4',
           name: 'Dog 4',
           type: PetType.DOG,
           breed: null as unknown as string,
@@ -1070,7 +1053,7 @@ describe('PetService', () => {
           videos: [],
         },
         {
-          pet_id: uniqueId('breeds-pet5'),
+          pet_id: 'pet5',
           name: 'Dog 5',
           type: PetType.DOG,
           breed: '  ',
@@ -1087,7 +1070,7 @@ describe('PetService', () => {
           videos: [],
         },
         {
-          pet_id: uniqueId('breeds-pet6'),
+          pet_id: 'pet6',
           name: 'Dog 6',
           type: PetType.DOG,
           breed: 'Poodle',
@@ -1149,12 +1132,10 @@ describe('PetService', () => {
 
   describe('getSimilarPets', () => {
     let referencePet: Pet;
-    let refPetId: string;
 
     beforeEach(async () => {
-      refPetId = uniqueId('similar-ref');
       referencePet = await Pet.create({
-        pet_id: refPetId,
+        pet_id: 'ref-pet-1',
         name: 'Reference Dog',
         type: PetType.DOG,
         breed: 'Golden Retriever',
@@ -1173,7 +1154,7 @@ describe('PetService', () => {
 
       await Pet.bulkCreate([
         {
-          pet_id: uniqueId('similar-1'),
+          pet_id: 'similar-1',
           name: 'Similar Dog 1',
           type: PetType.DOG,
           breed: 'Golden Retriever',
@@ -1190,7 +1171,7 @@ describe('PetService', () => {
           videos: [],
         },
         {
-          pet_id: uniqueId('similar-2'),
+          pet_id: 'similar-2',
           name: 'Similar Dog 2',
           type: PetType.DOG,
           breed: 'Labrador Retriever',
@@ -1210,11 +1191,11 @@ describe('PetService', () => {
     });
 
     it('should return similar pets based on breed, type, size, and age', async () => {
-      const result = await PetService.getSimilarPets(refPetId, 6);
+      const result = await PetService.getSimilarPets('ref-pet-1', 6);
 
       expect(result.length).toBeGreaterThan(0);
       expect(result.length).toBeLessThanOrEqual(6);
-      expect(result.every(pet => pet.pet_id !== refPetId)).toBe(true);
+      expect(result.every(pet => pet.pet_id !== 'ref-pet-1')).toBe(true);
     });
 
     it('should throw error for non-existent pet', async () => {
@@ -1228,7 +1209,7 @@ describe('PetService', () => {
       Pet.findByPk = vi.fn().mockResolvedValue(referencePet);
       Pet.findAll = vi.fn().mockRejectedValue(new Error('Database error'));
 
-      await expect(PetService.getSimilarPets(refPetId)).rejects.toThrow(
+      await expect(PetService.getSimilarPets('ref-pet-1')).rejects.toThrow(
         'Failed to retrieve similar pets'
       );
 
@@ -1239,12 +1220,10 @@ describe('PetService', () => {
 
   describe('reportPet', () => {
     let testPet: Pet;
-    let petId: string;
 
     beforeEach(async () => {
-      petId = uniqueId('report-pet');
       testPet = await Pet.create({
-        pet_id: petId,
+        pet_id: 'pet-123',
         name: 'Buddy',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
@@ -1262,25 +1241,42 @@ describe('PetService', () => {
       });
     });
 
-    it.skip('should create a pet report successfully', async () => {
-      // SKIP: Dynamic import of Report model has issues with test environment
-      // This needs the service to be updated to handle Report imports better
+    it('should create a pet report successfully', async () => {
+      const mockReport = {
+        reportId: 'report-123',
+        reportedEntityType: 'pet',
+        reportedEntityId: 'pet-123',
+        reporterId: 'user-456',
+        category: 'INAPPROPRIATE_CONTENT',
+      };
+
+      const { default: Report } = await vi.importMock('../../models/Report');
+      (Report.create as vi.Mock).mockResolvedValue(mockReport);
+
       const result = await PetService.reportPet(
-        petId,
+        'pet-123',
         'user-456',
         'inappropriate_content',
         'This pet listing contains inappropriate images'
       );
 
-      expect(result).toHaveProperty('reportId');
-      expect(result).toHaveProperty('message', 'Report submitted successfully');
+      expect(Report.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reportedEntityType: 'pet',
+          reportedEntityId: 'pet-123',
+          reporterId: 'user-456',
+          category: 'INAPPROPRIATE_CONTENT',
+          title: 'inappropriate_content',
+          description: 'This pet listing contains inappropriate images',
+          status: 'PENDING',
+          severity: 'MEDIUM',
+        })
+      );
 
-      // Verify the report was created
-      const reports = await Report.findAll({ where: { reportedEntityId: petId } });
-      expect(reports).toHaveLength(1);
-      expect(reports[0].reportedEntityType).toBe('pet');
-      expect(reports[0].reporterId).toBe('user-456');
-      expect(reports[0].category).toBe('INAPPROPRIATE_CONTENT');
+      expect(result).toEqual({
+        reportId: 'report-123',
+        message: 'Report submitted successfully',
+      });
     });
 
     it('should throw error for non-existent pet', async () => {
@@ -1290,16 +1286,12 @@ describe('PetService', () => {
     });
 
     it('should handle report creation errors', async () => {
-      // Force an error by temporarily breaking the create method
-      const originalCreate = Report.create;
-      Report.create = vi.fn().mockRejectedValue(new Error('Report creation failed'));
+      const { default: Report } = await vi.importMock('../../models/Report');
+      (Report.create as vi.Mock).mockRejectedValue(new Error('Report creation failed'));
 
       await expect(
-        PetService.reportPet(petId, 'user-456', 'spam')
+        PetService.reportPet('pet-123', 'user-456', 'spam')
       ).rejects.toThrow('Failed to submit pet report');
-
-      // Restore
-      Report.create = originalCreate;
     });
   });
 });
