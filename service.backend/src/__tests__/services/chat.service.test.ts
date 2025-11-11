@@ -39,19 +39,17 @@ vi.mock('../../models/Notification', () => ({
   },
 }));
 
-// Mock the static log method first (before imports to avoid hoisting issues)
-const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
+// Mock the static log method
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
-    log: mockAuditLogAction,
+    log: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
 // Mock notification service
-const mockCreateNotification = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../services/notification.service', () => ({
   NotificationService: {
-    createNotification: mockCreateNotification,
+    createNotification: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -70,26 +68,35 @@ vi.mock('../../utils/logger', () => ({
 }));
 
 // Mock sequelize
-const mockTransaction = {
-  commit: vi.fn(),
-  rollback: vi.fn(),
-};
-vi.mock('../../sequelize', () => ({
-  __esModule: true,
-  default: {
-    transaction: vi.fn().mockResolvedValue(mockTransaction),
-  },
-}));
+vi.mock('../../sequelize', () => {
+  const mockTransaction = {
+    commit: vi.fn(),
+    rollback: vi.fn(),
+  };
+
+  return {
+    __esModule: true,
+    default: {
+      transaction: vi.fn().mockResolvedValue(mockTransaction),
+    },
+  };
+});
 
 import { Op } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../../models';
 import { ChatService } from '../../services/chat.service';
 import { ChatStatus, ParticipantRole, MessageContentFormat } from '../../types/chat';
+import { AuditLogService } from '../../services/auditLog.service';
+import { NotificationService } from '../../services/notification.service';
 
 const MockedChat = Chat as vi.Mocked<typeof Chat>;
 const MockedChatParticipant = ChatParticipant as vi.Mocked<typeof ChatParticipant>;
 const MockedMessage = Message as vi.Mocked<typeof Message>;
 const MockedUser = User as vi.Mocked<typeof User>;
+const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
+const mockCreateNotification = NotificationService.createNotification as vi.MockedFunction<
+  typeof NotificationService.createNotification
+>;
 
 describe('ChatService', () => {
   beforeEach(() => {
