@@ -25,13 +25,15 @@ const {
 // Mock sequelize first - use importOriginal to get helper functions
 vi.mock('../../sequelize', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../sequelize')>();
+  const originalSequelize = actual.default;
+
+  // Mock query method but keep everything else
+  originalSequelize.query = mockSequelizeQuery;
+
   return {
     ...actual,
-    default: {
-      ...actual.default,
-      query: mockSequelizeQuery,
-      QueryTypes: { SELECT: 'SELECT' },
-    },
+    default: originalSequelize,
+    QueryTypes: { SELECT: 'SELECT' },
   };
 });
 
