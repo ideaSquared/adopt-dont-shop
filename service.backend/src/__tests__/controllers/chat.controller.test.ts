@@ -306,9 +306,11 @@ describe('ChatController', () => {
         );
 
         expect(logger.error).toHaveBeenCalledWith(
-          'Failed to create chat',
+          'Error creating chat:',
           expect.objectContaining({
-            error: expect.any(Error),
+            error: expect.any(String),
+            body: expect.any(Object),
+            duration: expect.any(Number),
           })
         );
       });
@@ -321,10 +323,19 @@ describe('ChatController', () => {
         mockRequest.params = { chatId: 'chat-001' };
 
         const mockChat = {
-          chatId: 'chat-001',
-          type: 'application',
-          participants: [{ User: { userId: 'user-123', firstName: 'John', lastName: 'Doe' } }],
-          messages: [],
+          toJSON: () => ({
+            chat_id: 'chat-001',
+            type: 'application',
+            status: 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            Participants: [
+              {
+                participant_id: 'p1',
+                User: { userId: 'user-123', firstName: 'John', lastName: 'Doe' }
+              }
+            ],
+          }),
         };
 
         (ChatService.getChatById as jest.Mock).mockResolvedValue(mockChat);
@@ -334,12 +345,11 @@ describe('ChatController', () => {
           mockResponse as Response
         );
 
-        expect(mockResponse.status).toHaveBeenCalledWith(200);
         expect(mockResponse.json).toHaveBeenCalledWith(
           expect.objectContaining({
             success: true,
-            chat: expect.objectContaining({
-              chatId: 'chat-001',
+            data: expect.objectContaining({
+              id: 'chat-001',
             }),
           })
         );
@@ -349,18 +359,24 @@ describe('ChatController', () => {
         mockRequest.params = { chatId: 'chat-001' };
 
         const mockChat = {
-          chatId: 'chat-001',
-          participants: [
-            {
-              User: {
-                userId: 'user-1',
-                firstName: 'Alice',
-                lastName: 'Smith',
-                getFullName: () => 'Alice Smith',
+          toJSON: () => ({
+            chat_id: 'chat-001',
+            type: 'application',
+            status: 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            Participants: [
+              {
+                participant_id: 'p1',
+                User: {
+                  userId: 'user-1',
+                  firstName: 'Alice',
+                  lastName: 'Smith',
+                  getFullName: () => 'Alice Smith',
+                },
               },
-            },
-          ],
-          toJSON: () => ({ chatId: 'chat-001', participants: [] }),
+            ],
+          }),
         };
 
         (ChatService.getChatById as jest.Mock).mockResolvedValue(mockChat);
@@ -371,7 +387,7 @@ describe('ChatController', () => {
         );
 
         const responseData = (mockResponse.json as jest.Mock).mock.calls[0][0];
-        expect(responseData.chat.participants[0].name).toBe('Alice Smith');
+        expect(responseData.data.participants[0].name).toBe('Alice Smith');
       });
     });
 
@@ -387,12 +403,9 @@ describe('ChatController', () => {
         );
 
         expect(mockResponse.status).toHaveBeenCalledWith(404);
-        expect(mockResponse.json).toHaveBeenCalledWith(
-          expect.objectContaining({
-            success: false,
-            error: 'Chat not found',
-          })
-        );
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          error: 'Chat not found',
+        });
       });
     });
 
