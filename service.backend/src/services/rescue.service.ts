@@ -330,7 +330,7 @@ export class RescueService {
     rescueId: string,
     updateData: UpdateRescueRequest,
     updatedBy: string
-  ): Promise<any> {
+  ): Promise<ReturnType<typeof Rescue.prototype.toJSON>> {
     const startTime = Date.now();
 
     const transaction = await Rescue.sequelize!.transaction();
@@ -564,7 +564,7 @@ export class RescueService {
     userId: string,
     title: string | undefined,
     addedBy: string
-  ): Promise<any> {
+  ): Promise<ReturnType<typeof StaffMember.prototype.toJSON>> {
     logger.info(
       `addStaffMember called with: rescueId=${rescueId}, userId=${userId}, title=${title}, addedBy=${addedBy}`
     );
@@ -777,7 +777,7 @@ export class RescueService {
     userId: string,
     updates: { title?: string },
     updatedBy: string
-  ): Promise<any> {
+  ): Promise<ReturnType<typeof StaffMember.prototype.toJSON>> {
     const transaction = await sequelize.transaction();
 
     try {
