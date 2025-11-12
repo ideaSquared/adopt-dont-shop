@@ -84,21 +84,6 @@ const Label = styled.label`
   margin-bottom: 0.5rem;
 `;
 
-const Select = styled.select`
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  background: white;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
 const TextArea = styled.textarea`
   width: 100%;
   padding: 0.5rem;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Card } from '@adopt-dont-shop/components';
-import { FiCalendar, FiPlus, FiList, FiGrid } from 'react-icons/fi';
+import { FiCalendar, FiPlus } from 'react-icons/fi';
 
 // Event Components
 import EventList from '../components/events/EventList';
@@ -125,9 +125,9 @@ const ContentArea = styled.div`
 const ErrorState = styled.div`
   text-align: center;
   padding: 2rem;
-  color: ${props => props.theme.colors.error[600]};
-  background: ${props => props.theme.colors.error[50]};
-  border: 1px solid ${props => props.theme.colors.error[200]};
+  color: ${props => props.theme.colors.semantic.error[600]};
+  background: ${props => props.theme.colors.semantic.error[50]};
+  border: 1px solid ${props => props.theme.colors.semantic.error[200]};
   border-radius: 8px;
   margin-bottom: 1.5rem;
 
@@ -248,7 +248,6 @@ const Events: React.FC = () => {
   // State for loading and errors
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
 
   // Fetch events on mount and when filters change
   useEffect(() => {
@@ -329,7 +328,6 @@ const Events: React.FC = () => {
    * Handle event creation
    */
   const handleCreateEvent = async (eventData: CreateEventInput) => {
-    setActionLoading(true);
     try {
       const newEvent = await eventsService.createEvent(eventData);
       setEvents(prev => [newEvent, ...prev]);
@@ -339,8 +337,6 @@ const Events: React.FC = () => {
     } catch (err) {
       console.error('Failed to create event:', err);
       alert('Failed to create event. Please try again.');
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -350,7 +346,6 @@ const Events: React.FC = () => {
   const handleUpdateEvent = async (eventData: CreateEventInput) => {
     if (!eventToEdit) return;
 
-    setActionLoading(true);
     try {
       const updates: UpdateEventInput = {
         ...eventData,
@@ -369,8 +364,6 @@ const Events: React.FC = () => {
     } catch (err) {
       console.error('Failed to update event:', err);
       alert('Failed to update event. Please try again.');
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -382,7 +375,6 @@ const Events: React.FC = () => {
       return;
     }
 
-    setActionLoading(true);
     try {
       await eventsService.deleteEvent(eventId);
       setEvents(prev => prev.filter(event => event.id !== eventId));
@@ -392,8 +384,6 @@ const Events: React.FC = () => {
     } catch (err) {
       console.error('Failed to delete event:', err);
       alert('Failed to delete event. Please try again.');
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -401,7 +391,6 @@ const Events: React.FC = () => {
    * Handle event status update
    */
   const handleUpdateEventStatus = async (eventId: string, status: string) => {
-    setActionLoading(true);
     try {
       const updatedEvent = await eventsService.updateEventStatus(eventId, status);
       setEvents(prev => prev.map(event => (event.id === updatedEvent.id ? updatedEvent : event)));
@@ -415,8 +404,6 @@ const Events: React.FC = () => {
     } catch (err) {
       console.error('Failed to update event status:', err);
       alert('Failed to update event status. Please try again.');
-    } finally {
-      setActionLoading(false);
     }
   };
 

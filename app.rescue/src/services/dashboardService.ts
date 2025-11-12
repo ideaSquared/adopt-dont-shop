@@ -152,16 +152,18 @@ export class DashboardService {
       const response = await notificationsService.getUserNotifications(userId, {
         page: 1,
         limit,
-        isRead: false,
+        unreadOnly: true,
       });
 
       // Transform notifications to DashboardNotification format
-      return response.notifications.map((notification: any) => ({
+      return response.data.map((notification: any) => ({
         id: notification.id,
-        message: notification.message,
+        title: notification.title || 'Notification',
+        message: notification.message || notification.body || '',
         timestamp: new Date(notification.createdAt),
-        type: notification.type as DashboardNotification['type'],
-        isRead: notification.isRead,
+        type: (notification.category || 'info') as DashboardNotification['type'],
+        read: notification.status === 'read',
+        actionUrl: notification.actionUrl,
       }));
     } catch (error) {
       console.error('Failed to fetch dashboard notifications:', error);

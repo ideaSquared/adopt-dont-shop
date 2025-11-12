@@ -224,7 +224,7 @@ const StaffManagement: React.FC = () => {
 
     try {
       const rescueId = getRescueId();
-      const result = await invitationService.sendInvitation(rescueId, invitation);
+      await invitationService.sendInvitation(rescueId, invitation);
 
       setActionSuccess(`Invitation sent to ${invitation.email}!`);
       setShowInviteModal(false);

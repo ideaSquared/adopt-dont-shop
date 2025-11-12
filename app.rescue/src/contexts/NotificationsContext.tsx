@@ -51,7 +51,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
         const response = await notificationsService.getUserNotifications(userId, {
           page: 1,
           limit: 50,
-          isRead: false,
+          unreadOnly: true,
         });
         setNotifications(response.data || []);
       } catch (error) {
@@ -87,7 +87,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     }
   };
 
-  const clearAll = async (currentUserId: string) => {
+  const clearAll = async () => {
     try {
       // Delete all notifications for the user
       const deletePromises = notifications.map(n => notificationsService.deleteNotification(n.id));

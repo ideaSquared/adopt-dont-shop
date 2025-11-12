@@ -50,9 +50,9 @@ const StageStats = styled.div`
 const ConversionRate = styled.span<{ $rate: number }>`
   font-weight: 600;
   color: ${props => {
-    if (props.$rate >= 80) return props.theme.colors.success[600];
-    if (props.$rate >= 60) return props.theme.colors.warning[600];
-    return props.theme.colors.error[600];
+    if (props.$rate >= 80) return props.theme.colors.semantic.success[600];
+    if (props.$rate >= 60) return props.theme.colors.semantic.warning[600];
+    return props.theme.colors.semantic.error[600];
   }};
 `;
 
@@ -122,7 +122,7 @@ const DropOffIndicator = styled.div<{ $dropOff: number }>`
   align-items: center;
   gap: 0.5rem;
   font-size: 0.75rem;
-  color: ${props => props.theme.colors.error[600]};
+  color: ${props => props.theme.colors.semantic.error[600]};
   margin: 0.25rem 0 0.5rem 0;
   padding-left: 0.5rem;
 `;

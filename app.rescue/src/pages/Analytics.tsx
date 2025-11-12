@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Card, Heading, Text } from '@adopt-dont-shop/components';
+import { Card, Heading } from '@adopt-dont-shop/components';
 import {
   FiTrendingUp,
   FiUsers,
@@ -191,9 +191,9 @@ const EmptyState = styled.div`
 const ErrorState = styled.div`
   text-align: center;
   padding: 2rem;
-  color: ${props => props.theme.colors.error[600]};
-  background: ${props => props.theme.colors.error[50]};
-  border: 1px solid ${props => props.theme.colors.error[200]};
+  color: ${props => props.theme.colors.semantic.error[600]};
+  background: ${props => props.theme.colors.semantic.error[50]};
+  border: 1px solid ${props => props.theme.colors.semantic.error[200]};
   border-radius: 8px;
 
   p {

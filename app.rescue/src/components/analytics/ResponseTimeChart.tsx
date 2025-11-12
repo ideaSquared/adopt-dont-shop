@@ -44,7 +44,7 @@ const TimeValue = styled.div<{ $isCompliant: boolean }>`
   font-size: 0.875rem;
   font-weight: 600;
   color: ${props =>
-    props.$isCompliant ? props.theme.colors.success[600] : props.theme.colors.error[600]};
+    props.$isCompliant ? props.theme.colors.semantic.success[600] : props.theme.colors.semantic.error[600]};
 `;
 
 const BarsContainer = styled.div`
@@ -77,8 +77,8 @@ const TargetBar = styled(Bar)`
 const ActualBar = styled(Bar)<{ $isCompliant: boolean }>`
   background: ${props =>
     props.$isCompliant
-      ? `linear-gradient(135deg, ${props.theme.colors.success[500]}, ${props.theme.colors.success[600]})`
-      : `linear-gradient(135deg, ${props.theme.colors.error[500]}, ${props.theme.colors.error[600]})`};
+      ? `linear-gradient(135deg, ${props.theme.colors.semantic.success[500]}, ${props.theme.colors.semantic.success[600]})`
+      : `linear-gradient(135deg, ${props.theme.colors.semantic.error[500]}, ${props.theme.colors.semantic.error[600]})`};
   display: flex;
   align-items: center;
   padding: 0 0.75rem;
@@ -98,7 +98,7 @@ const ComplianceIndicator = styled.div<{ $isCompliant: boolean }>`
   gap: 0.375rem;
   font-size: 0.75rem;
   color: ${props =>
-    props.$isCompliant ? props.theme.colors.success[600] : props.theme.colors.error[600]};
+    props.$isCompliant ? props.theme.colors.semantic.success[600] : props.theme.colors.semantic.error[600]};
   margin-top: 0.375rem;
 `;
 

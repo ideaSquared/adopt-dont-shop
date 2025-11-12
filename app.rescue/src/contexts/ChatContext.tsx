@@ -87,7 +87,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
 
       try {
         const conversationMessages = await chatService.getMessages(activeConversation.id);
-        setMessages(conversationMessages);
+        setMessages(conversationMessages.data);
       } catch (error) {
         console.error('Failed to load messages:', error);
         setError(error instanceof Error ? error.message : 'Failed to load messages');

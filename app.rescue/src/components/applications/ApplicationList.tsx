@@ -445,10 +445,7 @@ const getStepLabel = (stepIndex: number, stage: string, finalOutcome?: string): 
   return labels[stepIndex] || '';
 };
 
-const getActionButtons = (
-  application: ApplicationListItem,
-  onStatusUpdate: (id: string, status: string) => void
-) => {
+const getActionButtons = (application: ApplicationListItem) => {
   const actions = [];
   const stage = application.stage || 'PENDING';
 
@@ -489,7 +486,6 @@ interface ApplicationListProps {
   onFilterChange: (filter: ApplicationFilter) => void;
   onSortChange: (sort: ApplicationSort) => void;
   onApplicationSelect: (application: ApplicationListItem) => void;
-  onStatusUpdate: (id: string, status: string, notes?: string) => void;
   selectedApplications: string[];
   onSelectionChange: (selected: string[]) => void;
 }
@@ -504,7 +500,6 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
   onFilterChange,
   onSortChange,
   onApplicationSelect,
-  onStatusUpdate,
   selectedApplications,
   onSelectionChange,
 }) => {
@@ -768,7 +763,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                     </TableCell>
                     <TableCell onClick={e => e.stopPropagation()}>
                       <ActionsContainer>
-                        {getActionButtons(application, onStatusUpdate).map((action, index) => (
+                        {getActionButtons(application).map((action, index) => (
                           <ActionButton
                             key={index}
                             $variant={action.variant}

@@ -10,7 +10,6 @@ import {
   type SelectOption,
 } from '@adopt-dont-shop/components';
 import type { RescueProfile, RescueAddress } from '../../types/rescue';
-import { getPhonePlaceholder, getPostcodePlaceholder } from '@adopt-dont-shop/lib-utils';
 
 const FormContainer = styled(Card)`
   padding: 2rem;

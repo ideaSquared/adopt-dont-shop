@@ -150,7 +150,7 @@ export const mswHandlers = [
       );
     }
 
-    const updates = await request.json();
+    const updates = (await request.json()) as Record<string, unknown>;
 
     return HttpResponse.json({
       success: true,

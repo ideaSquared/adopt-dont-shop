@@ -9,7 +9,6 @@ import {
   CheckboxInput,
 } from '@adopt-dont-shop/components';
 import type { AdoptionPolicy } from '../../types/rescue';
-import { formatCurrency } from '@adopt-dont-shop/lib-utils';
 
 const FormContainer = styled(Card)`
   padding: 2rem;

@@ -82,7 +82,7 @@ const TrendContainer = styled.div<{ $positive: boolean }>`
   gap: 0.375rem;
   font-size: 0.875rem;
   color: ${props =>
-    props.$positive ? props.theme.colors.success[600] : props.theme.colors.error[600]};
+    props.$positive ? props.theme.colors.semantic.success[600] : props.theme.colors.semantic.error[600]};
   font-weight: 500;
 `;
 

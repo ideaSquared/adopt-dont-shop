@@ -1,4 +1,3 @@
-import { AcceptInvitationPayload, InvitationDetails } from '@adopt-dont-shop/lib-invitations';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';

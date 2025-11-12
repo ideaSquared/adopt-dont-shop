@@ -46,14 +46,6 @@ const Applications: React.FC = () => {
     setSelectedApplication(null);
   };
 
-  const handleStatusUpdate = async (id: string, status: string, notes?: string) => {
-    await updateApplicationStatus(id, status, notes);
-    // If we're viewing this application in detail, close the review
-    if (selectedApplication?.id === id) {
-      setSelectedApplication(null);
-    }
-  };
-
   const handleDetailStatusUpdate = async (status: string, notes?: string) => {
     if (selectedApplication) {
       await updateApplicationStatus(selectedApplication.id, status, notes);
@@ -90,7 +82,6 @@ const Applications: React.FC = () => {
         onFilterChange={updateFilter}
         onSortChange={updateSort}
         onApplicationSelect={handleApplicationSelect}
-        onStatusUpdate={handleStatusUpdate}
         selectedApplications={selectedApplications}
         onSelectionChange={setSelectedApplications}
       />

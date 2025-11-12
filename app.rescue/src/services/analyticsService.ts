@@ -215,16 +215,10 @@ export class AnalyticsService {
    */
   async exportToCSV(reportType: string, filters: ReportFilters): Promise<Blob> {
     try {
-      const response = await apiService.post<Blob>(
-        '/api/v1/analytics/export/csv',
-        {
-          reportType,
-          filters,
-        },
-        {
-          responseType: 'blob',
-        }
-      );
+      const response = await apiService.post<Blob>('/api/v1/analytics/export/csv', {
+        reportType,
+        filters,
+      });
 
       return response;
     } catch (error) {
@@ -238,16 +232,10 @@ export class AnalyticsService {
    */
   async exportToPDF(reportType: string, filters: ReportFilters): Promise<Blob> {
     try {
-      const response = await apiService.post<Blob>(
-        '/api/v1/analytics/export/pdf',
-        {
-          reportType,
-          filters,
-        },
-        {
-          responseType: 'blob',
-        }
-      );
+      const response = await apiService.post<Blob>('/api/v1/analytics/export/pdf', {
+        reportType,
+        filters,
+      });
 
       return response;
     } catch (error) {
