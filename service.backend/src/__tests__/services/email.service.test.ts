@@ -4,7 +4,7 @@ import EmailTemplate, { TemplateType, TemplateCategory, TemplateStatus } from '.
 import EmailQueue, { EmailType, EmailPriority, EmailStatus } from '../../models/EmailQueue';
 import EmailPreference from '../../models/EmailPreference';
 import User, { UserType, UserStatus } from '../../models/User';
-import emailService from '../../services/email.service';
+import { EmailService } from '../../services/email.service';
 
 // Mock only external services - use real database for models
 vi.mock('../../services/auditLog.service', () => ({
@@ -35,24 +35,42 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
-// Mock email providers to prevent actual email sending
-vi.mock('../../services/email-providers/console-provider', () => ({
-  ConsoleEmailProvider: vi.fn().mockImplementation(() => ({
-    send: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
-
-vi.mock('../../services/email-providers/ethereal-provider', () => ({
-  EtherealProvider: vi.fn().mockImplementation(() => ({
-    send: vi.fn().mockResolvedValue(undefined),
-    initialize: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
+// Explicitly unmock the email service - we want to use the real implementation
+vi.unmock('../../services/email.service');
 
 describe('EmailService - Real Database Testing', () => {
+  let emailService: EmailService;
+
   beforeEach(async () => {
     // Sync database schema before each test
     await sequelize.sync({ force: true });
+
+    // Create admin user for createdBy foreign key
+    await User.create({
+      userId: 'admin',
+      email: 'admin@test.com',
+      password: 'hashedpassword',
+      firstName: 'Admin',
+      lastName: 'User',
+      userType: UserType.ADMIN,
+      status: UserStatus.ACTIVE,
+      emailVerified: true,
+    });
+
+    // Create test user for userId foreign key in email tests
+    await User.create({
+      userId: 'user-123',
+      email: 'testuser@example.com',
+      password: 'hashedpassword',
+      firstName: 'Test',
+      lastName: 'User',
+      userType: UserType.ADOPTER,
+      status: UserStatus.ACTIVE,
+      emailVerified: true,
+    });
+
+    // Create fresh instance of service for each test
+    emailService = new EmailService();
 
     vi.clearAllMocks();
   });
@@ -82,7 +100,7 @@ describe('EmailService - Real Database Testing', () => {
             required: true,
             description: 'User first name'
           }],
-          createdBy: 'admin-123',
+          createdBy: 'admin',
         };
 
         const result = await emailService.createTemplate(templateData);
@@ -109,7 +127,7 @@ describe('EmailService - Real Database Testing', () => {
           category: TemplateCategory.WELCOME,
           subject: 'Test',
           htmlContent: '<p>Test</p>',
-          createdBy: 'admin-123',
+          createdBy: 'admin',
         };
 
         const result = await emailService.createTemplate(templateData);
@@ -282,26 +300,21 @@ describe('EmailService - Real Database Testing', () => {
   describe('User email preferences', () => {
     describe('when user has disabled email type', () => {
       it('should block email and throw error', async () => {
-        // Create user first (foreign key requirement)
-        await User.create({
-          userId: 'user-123',
-          email: 'user@example.com',
-          password: 'hashedpassword',
-          firstName: 'Test',
-          lastName: 'User',
-          userType: UserType.ADOPTER,
-          status: UserStatus.ACTIVE,
-          emailVerified: true,
-        });
+        // user-123 already exists from beforeEach, just create preference
 
         // Create user preference that blocks marketing emails
         await EmailPreference.create({
           userId: 'user-123',
-          emailEnabled: true,
-          marketingEnabled: false,
-          notificationEnabled: true,
-          frequency: 'immediate',
-          preferences: {},
+          isEmailEnabled: true,
+          globalUnsubscribe: false,
+          preferences: [
+            {
+              type: 'marketing' as const,
+              enabled: false,
+              frequency: 'never' as const,
+              channels: ['email'],
+            },
+          ],
         });
 
         await expect(
@@ -343,9 +356,9 @@ describe('EmailService - Real Database Testing', () => {
     describe('when sending to multiple recipients', () => {
       it('should batch emails and add delays', async () => {
         const recipients = [
-          { toEmail: 'user1@example.com', toName: 'User 1', userId: 'user-1' },
-          { toEmail: 'user2@example.com', toName: 'User 2', userId: 'user-2' },
-          { toEmail: 'user3@example.com', toName: 'User 3', userId: 'user-3' },
+          { toEmail: 'user1@example.com', toName: 'User 1' },
+          { toEmail: 'user2@example.com', toName: 'User 2' },
+          { toEmail: 'user3@example.com', toName: 'User 3' },
         ];
 
         const emailIds = await emailService.sendBulkEmail({

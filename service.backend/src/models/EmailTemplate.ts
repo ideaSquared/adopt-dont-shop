@@ -391,6 +391,27 @@ EmailTemplate.init(
     tags: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
+      defaultValue: process.env.NODE_ENV === 'test' ? '[]' : [],
+      get() {
+        const rawValue = this.getDataValue('tags');
+        // In SQLite, arrays are stored as JSON strings
+        if (typeof rawValue === 'string') {
+          try {
+            return JSON.parse(rawValue);
+          } catch {
+            return [];
+          }
+        }
+        return rawValue || [];
+      },
+      set(value: string[]) {
+        // In SQLite, store as JSON string
+        if (process.env.NODE_ENV === 'test') {
+          this.setDataValue('tags', JSON.stringify(value || []) as any);
+        } else {
+          this.setDataValue('tags', value || [] as any);
+        }
+      },
     },
     createdBy: {
       type: DataTypes.STRING,

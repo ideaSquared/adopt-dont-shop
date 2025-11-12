@@ -322,12 +322,50 @@ EmailQueue.init(
     ccEmails: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
+      defaultValue: process.env.NODE_ENV === 'test' ? '[]' : [],
       field: 'cc_emails',
+      get() {
+        const rawValue = this.getDataValue('ccEmails');
+        if (typeof rawValue === 'string') {
+          try {
+            return JSON.parse(rawValue);
+          } catch {
+            return [];
+          }
+        }
+        return rawValue || [];
+      },
+      set(value: string[]) {
+        if (process.env.NODE_ENV === 'test') {
+          this.setDataValue('ccEmails', JSON.stringify(value || []) as any);
+        } else {
+          this.setDataValue('ccEmails', value || [] as any);
+        }
+      },
     },
     bccEmails: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
+      defaultValue: process.env.NODE_ENV === 'test' ? '[]' : [],
       field: 'bcc_emails',
+      get() {
+        const rawValue = this.getDataValue('bccEmails');
+        if (typeof rawValue === 'string') {
+          try {
+            return JSON.parse(rawValue);
+          } catch {
+            return [];
+          }
+        }
+        return rawValue || [];
+      },
+      set(value: string[]) {
+        if (process.env.NODE_ENV === 'test') {
+          this.setDataValue('bccEmails', JSON.stringify(value || []) as any);
+        } else {
+          this.setDataValue('bccEmails', value || [] as any);
+        }
+      },
     },
     replyToEmail: {
       type: DataTypes.STRING,
@@ -466,6 +504,25 @@ EmailQueue.init(
     tags: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
+      defaultValue: process.env.NODE_ENV === 'test' ? '[]' : [],
+      get() {
+        const rawValue = this.getDataValue('tags');
+        if (typeof rawValue === 'string') {
+          try {
+            return JSON.parse(rawValue);
+          } catch {
+            return [];
+          }
+        }
+        return rawValue || [];
+      },
+      set(value: string[]) {
+        if (process.env.NODE_ENV === 'test') {
+          this.setDataValue('tags', JSON.stringify(value || []) as any);
+        } else {
+          this.setDataValue('tags', value || [] as any);
+        }
+      },
     },
     createdAt: {
       type: DataTypes.DATE,
