@@ -1,10 +1,8 @@
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import sequelize from '../../sequelize';
-import Rescue from '../../models/Rescue';
-import StaffMember from '../../models/StaffMember';
-import User, { UserType, UserStatus } from '../../models/User';
-import Pet, { PetStatus } from '../../models/Pet';
-import Application from '../../models/Application';
+import { Rescue, StaffMember, User, Pet, Application } from '../../models';
+import { UserType, UserStatus } from '../../models/User';
+import { PetStatus } from '../../models/Pet';
 import { RescueService } from '../../services/rescue.service';
 
 // Mock only external services
@@ -27,6 +25,12 @@ vi.mock('../../utils/logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
+  },
+  loggerHelpers: {
+    logBusiness: vi.fn(),
+    logDatabase: vi.fn(),
+    logPerformance: vi.fn(),
+    logExternalService: vi.fn(),
   },
 }));
 
@@ -266,6 +270,8 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
+        images: [],
+        videos: [],
       });
 
       const result = await RescueService.getRescueById(rescue.rescueId, true);
@@ -584,16 +590,18 @@ describe('RescueService - Behavioral Testing', () => {
         status: 'verified',
       });
 
-      const staffMember = await StaffMember.create({
+      await StaffMember.create({
         rescueId: rescue.rescueId,
         userId: 'user-123',
         title: 'Volunteer',
         addedBy: 'admin-123',
       });
 
-      await RescueService.removeStaffMember(staffMember.staffMemberId, 'admin-123');
+      await RescueService.removeStaffMember(rescue.rescueId, 'user-123', 'admin-123');
 
-      const found = await StaffMember.findByPk(staffMember.staffMemberId);
+      const found = await StaffMember.findOne({
+        where: { rescueId: rescue.rescueId, userId: 'user-123' }
+      });
       expect(found).toBeNull();
     });
 
@@ -628,6 +636,8 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
+        images: [],
+        videos: [],
       });
 
       await Pet.create({
@@ -639,6 +649,8 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.ADOPTED,
+        images: [],
+        videos: [],
       });
 
       const result = await RescueService.getRescueStatistics(rescue.rescueId);
@@ -697,6 +709,8 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
+        images: [],
+        videos: [],
       });
 
       const result = await RescueService.getRescuePets(rescue.rescueId);
@@ -727,6 +741,8 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
+        images: [],
+        videos: [],
       });
 
       await Pet.create({
@@ -738,6 +754,8 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.ADOPTED,
+        images: [],
+        videos: [],
       });
 
       const result = await RescueService.getRescuePets(rescue.rescueId, { status: PetStatus.AVAILABLE });
