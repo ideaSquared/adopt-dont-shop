@@ -27,9 +27,11 @@ export class SupportTicketService {
    */
   async getTickets(filters?: TicketFilters): Promise<TicketsResponse> {
     const queryString = filters ? buildQueryString(filters as Record<string, unknown>) : '';
-    const response = await apiService.get<{ success: boolean; data: unknown[]; pagination: unknown }>(
-      `${this.baseUrl}/tickets${queryString}`
-    );
+    const response = await apiService.get<{
+      success: boolean;
+      data: unknown[];
+      pagination: unknown;
+    }>(`${this.baseUrl}/tickets${queryString}`);
     return TicketsResponseSchema.parse({ data: response.data, pagination: response.pagination });
   }
 
@@ -45,7 +47,9 @@ export class SupportTicketService {
    * Get support ticket statistics
    */
   async getTicketStats(): Promise<TicketStats> {
-    const response = await apiService.get<{ success: boolean; data: unknown }>(`${this.baseUrl}/stats`);
+    const response = await apiService.get<{ success: boolean; data: unknown }>(
+      `${this.baseUrl}/stats`
+    );
     return TicketStatsSchema.parse(response.data);
   }
 
@@ -54,7 +58,9 @@ export class SupportTicketService {
    */
   async getMyTickets(status?: string): Promise<SupportTicket[]> {
     const queryString = status ? `?status=${status}` : '';
-    const response = await apiService.get<{ data: unknown[] }>(`${this.baseUrl}/my-tickets${queryString}`);
+    const response = await apiService.get<{ data: unknown[] }>(
+      `${this.baseUrl}/my-tickets${queryString}`
+    );
     return response.data.map((ticket: unknown) => SupportTicketSchema.parse(ticket));
   }
 
@@ -70,7 +76,10 @@ export class SupportTicketService {
    * Update an existing ticket
    */
   async updateTicket(ticketId: string, data: UpdateTicketRequest): Promise<SupportTicket> {
-    const response = await apiService.patch<{ data: unknown }>(`${this.baseUrl}/tickets/${ticketId}`, data);
+    const response = await apiService.patch<{ data: unknown }>(
+      `${this.baseUrl}/tickets/${ticketId}`,
+      data
+    );
     return SupportTicketSchema.parse(response.data);
   }
 
@@ -78,7 +87,10 @@ export class SupportTicketService {
    * Assign ticket to a staff member
    */
   async assignTicket(ticketId: string, data: AssignTicketRequest): Promise<SupportTicket> {
-    const response = await apiService.post<{ data: unknown }>(`${this.baseUrl}/tickets/${ticketId}/assign`, data);
+    const response = await apiService.post<{ data: unknown }>(
+      `${this.baseUrl}/tickets/${ticketId}/assign`,
+      data
+    );
     return SupportTicketSchema.parse(response.data);
   }
 
@@ -86,7 +98,10 @@ export class SupportTicketService {
    * Add a response to a ticket
    */
   async addResponse(ticketId: string, data: AddResponseRequest): Promise<SupportTicket> {
-    const response = await apiService.post<{ data: unknown }>(`${this.baseUrl}/tickets/${ticketId}/reply`, data);
+    const response = await apiService.post<{ data: unknown }>(
+      `${this.baseUrl}/tickets/${ticketId}/reply`,
+      data
+    );
     return SupportTicketSchema.parse(response.data);
   }
 
@@ -94,7 +109,10 @@ export class SupportTicketService {
    * Escalate a ticket
    */
   async escalateTicket(ticketId: string, data: EscalateTicketRequest): Promise<SupportTicket> {
-    const response = await apiService.post<{ data: unknown }>(`${this.baseUrl}/tickets/${ticketId}/escalate`, data);
+    const response = await apiService.post<{ data: unknown }>(
+      `${this.baseUrl}/tickets/${ticketId}/escalate`,
+      data
+    );
     return SupportTicketSchema.parse(response.data);
   }
 
@@ -102,7 +120,9 @@ export class SupportTicketService {
    * Get all messages/responses for a ticket
    */
   async getTicketMessages(ticketId: string): Promise<SupportTicket> {
-    const response = await apiService.get<{ data: unknown }>(`${this.baseUrl}/tickets/${ticketId}/messages`);
+    const response = await apiService.get<{ data: unknown }>(
+      `${this.baseUrl}/tickets/${ticketId}/messages`
+    );
     return SupportTicketSchema.parse(response.data);
   }
 
@@ -139,7 +159,10 @@ export class SupportTicketService {
   /**
    * Set ticket priority (helper method)
    */
-  async setPriority(ticketId: string, priority: 'low' | 'normal' | 'high' | 'urgent' | 'critical'): Promise<SupportTicket> {
+  async setPriority(
+    ticketId: string,
+    priority: 'low' | 'normal' | 'high' | 'urgent' | 'critical'
+  ): Promise<SupportTicket> {
     return this.updateTicket(ticketId, { priority });
   }
 

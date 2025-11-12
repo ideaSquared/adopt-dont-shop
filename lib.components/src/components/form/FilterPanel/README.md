@@ -8,13 +8,13 @@ A flexible filter panel component for creating advanced filtering interfaces wit
 import { FilterPanel } from '@/components/form/FilterPanel'
 
 // Basic usage
-<FilterPanel 
+<FilterPanel
   filters={filters}
   onApplyFilters={handleApplyFilters}
 />
 
 // With custom configuration
-<FilterPanel 
+<FilterPanel
   filters={filters}
   onApplyFilters={handleApplyFilters}
   onClearFilters={handleClearFilters}
@@ -36,4 +36,4 @@ import { FilterPanel } from '@/components/form/FilterPanel'
 - Collapsible sections
 - Clear all functionality
 - Accessible markup
-- TypeScript support 
+- TypeScript support

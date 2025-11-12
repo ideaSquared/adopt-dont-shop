@@ -571,7 +571,12 @@ Pet.init(
             throw new Error('Images must be an array');
           }
           value.forEach((img, index) => {
-            if (typeof img !== 'object' || img === null || !('image_id' in img) || !('url' in img)) {
+            if (
+              typeof img !== 'object' ||
+              img === null ||
+              !('image_id' in img) ||
+              !('url' in img)
+            ) {
               throw new Error(`Image at index ${index} must have image_id and url`);
             }
           });
@@ -756,10 +761,13 @@ Pet.init(
             .join(' ');
 
           if (searchText.trim()) {
-            const [results] = await sequelize.query<{ vector: TSVector }>("SELECT to_tsvector('english', ?) as vector", {
-              replacements: [searchText],
-              type: QueryTypes.SELECT,
-            });
+            const [results] = await sequelize.query<{ vector: TSVector }>(
+              "SELECT to_tsvector('english', ?) as vector",
+              {
+                replacements: [searchText],
+                type: QueryTypes.SELECT,
+              }
+            );
             pet.search_vector = results.vector;
           }
         }

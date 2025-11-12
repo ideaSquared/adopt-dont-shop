@@ -12,10 +12,20 @@ router.post(
   '/accept',
   [
     body('token').notEmpty().withMessage('Invitation token is required'),
-    body('firstName').trim().isLength({ min: 1, max: 50 }).withMessage('First name is required (1-50 characters)'),
-    body('lastName').trim().isLength({ min: 1, max: 50 }).withMessage('Last name is required (1-50 characters)'),
+    body('firstName')
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('First name is required (1-50 characters)'),
+    body('lastName')
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Last name is required (1-50 characters)'),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
-    body('title').optional().trim().isLength({ max: 100 }).withMessage('Title must be max 100 characters'),
+    body('title')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Title must be max 100 characters'),
   ],
   async (req: Request, res: Response) => {
     try {
@@ -30,15 +40,12 @@ router.post(
 
       const { token, firstName, lastName, password, title } = req.body;
 
-      const result = await InvitationService.acceptInvitation(
-        token,
-        {
-          firstName,
-          lastName,
-          password,
-          title
-        }
-      );
+      const result = await InvitationService.acceptInvitation(token, {
+        firstName,
+        lastName,
+        password,
+        title,
+      });
 
       res.status(201).json(result);
     } catch (error) {
@@ -71,9 +78,7 @@ router.post(
 // Get invitation details (public route for form pre-population)
 router.get(
   '/details/:token',
-  [
-    param('token').notEmpty().withMessage('Invitation token is required'),
-  ],
+  [param('token').notEmpty().withMessage('Invitation token is required')],
   async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
@@ -101,12 +106,15 @@ router.get(
         success: true,
         invitation: {
           email: invitation.email,
-          expiresAt: invitation.expiration
-        }
+          expiresAt: invitation.expiration,
+        },
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error getting invitation details:', { error: errorMessage, token: req.params.token });
+      logger.error('Error getting invitation details:', {
+        error: errorMessage,
+        token: req.params.token,
+      });
 
       res.status(500).json({
         success: false,

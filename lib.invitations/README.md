@@ -42,11 +42,11 @@ const customResult = await customService.exampleMethod({ custom: 'data' });
 
 ### InvitationsServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Base API URL |
-| `debug` | `boolean` | `process.env.NODE_ENV === 'development'` | Enable debug logging |
-| `headers` | `Record<string, string>` | `{}` | Custom headers for requests |
+| Property  | Type                     | Default                                  | Description                 |
+| --------- | ------------------------ | ---------------------------------------- | --------------------------- |
+| `apiUrl`  | `string`                 | `process.env.VITE_API_URL`               | Base API URL                |
+| `debug`   | `boolean`                | `process.env.NODE_ENV === 'development'` | Enable debug logging        |
+| `headers` | `Record<string, string>` | `{}`                                     | Custom headers for requests |
 
 ### Environment Variables
 
@@ -78,15 +78,16 @@ Example method that demonstrates the library's capabilities.
 ```typescript
 await service.exampleMethod(
   { key: 'value' },
-  { 
+  {
     timeout: 5000,
     useCache: true,
-    metadata: { requestId: 'abc123' }
+    metadata: { requestId: 'abc123' },
   }
 );
 ```
 
 **Parameters:**
+
 - `data` (Record<string, unknown>): Input data
 - `options` (InvitationsServiceOptions): Operation options
 
@@ -129,6 +130,7 @@ const isHealthy = await service.healthCheck();
 ### React/Vite Apps (app.client, app.admin, app.rescue)
 
 1. **Add to package.json:**
+
 ```json
 {
   "dependencies": {
@@ -138,6 +140,7 @@ const isHealthy = await service.healthCheck();
 ```
 
 2. **Import and use:**
+
 ```typescript
 // src/services/index.ts
 export { invitationsService } from '@adopt-dont-shop/lib-invitations';
@@ -151,8 +154,8 @@ function MyComponent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await invitationsService.exampleMethod({ 
-          component: 'MyComponent' 
+        const result = await invitationsService.exampleMethod({
+          component: 'MyComponent'
         });
         setData(result.data);
       } catch (error) {
@@ -170,6 +173,7 @@ function MyComponent() {
 ### Node.js Backend (service.backend)
 
 1. **Add to package.json:**
+
 ```json
 {
   "dependencies": {
@@ -179,6 +183,7 @@ function MyComponent() {
 ```
 
 2. **Import and use:**
+
 ```typescript
 // src/services/invitations.service.ts
 import { InvitationsService } from '@adopt-dont-shop/lib-invitations';
@@ -310,7 +315,7 @@ import { invitationsService } from '@adopt-dont-shop/lib-invitations';
 invitationsService.updateConfig({
   apiUrl: apiService.getConfig().baseUrl,
   headers: {
-    'Authorization': `Bearer ${authService.getToken()}`,
+    Authorization: `Bearer ${authService.getToken()}`,
   },
 });
 ```
@@ -393,6 +398,7 @@ invitationsService.updateConfig({ debug: true });
 ```
 
 Or set environment variable:
+
 ```bash
 NODE_ENV=development
 ```

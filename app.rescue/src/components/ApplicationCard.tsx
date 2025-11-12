@@ -25,7 +25,7 @@ const CardContainer = styled.div`
   padding: 1.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease-in-out;
-  
+
   &:hover {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     border-color: #d1d5db;
@@ -66,7 +66,7 @@ const StatusBadge = styled.div<{ status: string; priority: string }>`
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  
+
   ${props => {
     switch (props.status.toLowerCase()) {
       case 'pending':
@@ -85,8 +85,10 @@ const StatusBadge = styled.div<{ status: string; priority: string }>`
         return 'background: #f3f4f6; color: #374151; border: 1px solid #d1d5db;';
     }
   }}
-  
-  ${props => props.priority === 'high' && `
+
+  ${props =>
+    props.priority === 'high' &&
+    `
     box-shadow: 0 0 0 2px #ef4444;
   `}
 `;
@@ -96,7 +98,7 @@ const PriorityIndicator = styled.div<{ priority: string }>`
   height: 0.5rem;
   border-radius: 50%;
   flex-shrink: 0;
-  
+
   ${props => {
     switch (props.priority) {
       case 'high':
@@ -135,10 +137,12 @@ const ActivityIcon = styled.div<{ hasRecent: boolean }>`
   width: 0.75rem;
   height: 0.75rem;
   border-radius: 50%;
-  background: ${props => props.hasRecent ? '#10b981' : '#6b7280'};
+  background: ${props => (props.hasRecent ? '#10b981' : '#6b7280')};
   position: relative;
-  
-  ${props => props.hasRecent && `
+
+  ${props =>
+    props.hasRecent &&
+    `
     &::after {
       content: '';
       position: absolute;
@@ -172,8 +176,10 @@ const ActionButton = styled.button<{ variant: 'primary' | 'secondary' }>`
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   border: 1px solid;
-  
-  ${props => props.variant === 'primary' ? `
+
+  ${props =>
+    props.variant === 'primary'
+      ? `
     background: #3b82f6;
     color: white;
     border-color: #3b82f6;
@@ -182,7 +188,8 @@ const ActionButton = styled.button<{ variant: 'primary' | 'secondary' }>`
       background: #2563eb;
       border-color: #2563eb;
     }
-  ` : `
+  `
+      : `
     background: white;
     color: #374151;
     border-color: #d1d5db;
@@ -192,7 +199,7 @@ const ActionButton = styled.button<{ variant: 'primary' | 'secondary' }>`
       border-color: #9ca3af;
     }
   `}
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -203,9 +210,10 @@ const SkeletonBox = styled.div`
   background: #f3f4f6;
   border-radius: 0.25rem;
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  
+
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
@@ -231,10 +239,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
     refreshInterval: 30000, // 30 seconds
   });
 
-  const {
-    summary,
-    loading: summaryLoading,
-  } = useTimelineSummary({
+  const { summary, loading: summaryLoading } = useTimelineSummary({
     applicationId: application.application_id,
     recentThresholdHours: 24,
   });
@@ -250,16 +255,14 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
   const getActivitySummaryText = () => {
     if (summaryLoading) return 'Loading activity...';
     if (!summary) return 'No activity data';
-    
+
     const { totalEvents, lastActivity, hasRecentActivity } = summary;
-    
+
     if (totalEvents === 0) return 'No activity yet';
-    
-    const lastActivityText = lastActivity 
-      ? formatDateTime(lastActivity)
-      : 'Unknown';
-    
-    return hasRecentActivity 
+
+    const lastActivityText = lastActivity ? formatDateTime(lastActivity) : 'Unknown';
+
+    return hasRecentActivity
       ? `${totalEvents} events • Last: ${lastActivityText} • Recent activity`
       : `${totalEvents} events • Last: ${lastActivityText}`;
   };
@@ -298,15 +301,17 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
           onViewAll={handleViewTimeline}
         />
       ) : (
-        <div style={{ 
-          padding: '1rem', 
-          textAlign: 'center', 
-          color: '#6b7280', 
-          fontSize: '0.875rem',
-          border: '1px dashed #d1d5db',
-          borderRadius: '0.375rem',
-          marginBottom: '1rem'
-        }}>
+        <div
+          style={{
+            padding: '1rem',
+            textAlign: 'center',
+            color: '#6b7280',
+            fontSize: '0.875rem',
+            border: '1px dashed #d1d5db',
+            borderRadius: '0.375rem',
+            marginBottom: '1rem',
+          }}
+        >
           No recent activity
         </div>
       )}

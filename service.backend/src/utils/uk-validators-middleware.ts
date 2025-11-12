@@ -7,7 +7,7 @@ import { validateUKPostcode, validateUKPhoneNumber } from './uk-validators';
 /**
  * Custom validator for UK postcodes
  */
-export const isUKPostcode: CustomValidator = (value) => {
+export const isUKPostcode: CustomValidator = value => {
   if (!value) {
     return true; // Allow optional, use .notEmpty() for required
   }
@@ -17,7 +17,7 @@ export const isUKPostcode: CustomValidator = (value) => {
 /**
  * Custom validator for UK phone numbers
  */
-export const isUKPhoneNumber: CustomValidator = (value) => {
+export const isUKPhoneNumber: CustomValidator = value => {
   if (!value) {
     return true; // Allow optional, use .notEmpty() for required
   }

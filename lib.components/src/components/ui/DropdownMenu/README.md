@@ -8,13 +8,13 @@ A dropdown menu component with support for menu items, separators, and nested me
 import { DropdownMenu } from '@/components/ui/DropdownMenu'
 
 // Basic usage
-<DropdownMenu 
+<DropdownMenu
   trigger={<button>Menu</button>}
   items={menuItems}
 />
 
 // With custom configuration
-<DropdownMenu 
+<DropdownMenu
   trigger={triggerElement}
   items={menuItems}
   position="bottom-start"
@@ -38,4 +38,4 @@ import { DropdownMenu } from '@/components/ui/DropdownMenu'
 - Menu item icons and shortcuts
 - Separators and groups
 - Accessible markup
-- TypeScript support 
+- TypeScript support

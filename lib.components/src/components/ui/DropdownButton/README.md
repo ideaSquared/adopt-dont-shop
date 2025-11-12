@@ -13,7 +13,7 @@ import { DropdownButton } from '@/components/ui/DropdownButton'
 </DropdownButton>
 
 // With custom configuration
-<DropdownButton 
+<DropdownButton
   label="More Options"
   variant="secondary"
   position="bottom-end"
@@ -38,4 +38,4 @@ import { DropdownButton } from '@/components/ui/DropdownButton'
 - Keyboard navigation
 - Click outside to close
 - Accessible markup
-- TypeScript support 
+- TypeScript support

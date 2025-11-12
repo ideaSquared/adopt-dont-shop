@@ -480,7 +480,12 @@ export class RescueService {
   /**
    * Reject a rescue organization
    */
-  static async rejectRescue(rescueId: string, rejectedBy: string, reason?: string, notes?: string): Promise<Rescue> {
+  static async rejectRescue(
+    rescueId: string,
+    rejectedBy: string,
+    reason?: string,
+    notes?: string
+  ): Promise<Rescue> {
     const startTime = Date.now();
 
     const transaction = await Rescue.sequelize!.transaction();
@@ -560,8 +565,10 @@ export class RescueService {
     title: string | undefined,
     addedBy: string
   ): Promise<any> {
-    logger.info(`addStaffMember called with: rescueId=${rescueId}, userId=${userId}, title=${title}, addedBy=${addedBy}`);
-    
+    logger.info(
+      `addStaffMember called with: rescueId=${rescueId}, userId=${userId}, title=${title}, addedBy=${addedBy}`
+    );
+
     const transaction = await Rescue.sequelize!.transaction();
 
     try {
@@ -598,19 +605,24 @@ export class RescueService {
         // Restore the soft-deleted staff member
         // Preserve verification status if they were previously verified
         const wasVerified = existingSoftDeletedStaff.isVerified;
-        
-        await existingSoftDeletedStaff.update({
-          title,
-          isDeleted: false,
-          deletedAt: undefined,
-          deletedBy: undefined,
-          addedBy,
-          addedAt: new Date(),
-          isVerified: wasVerified, // Keep previous verification status
-        }, { transaction });
-        
+
+        await existingSoftDeletedStaff.update(
+          {
+            title,
+            isDeleted: false,
+            deletedAt: undefined,
+            deletedBy: undefined,
+            addedBy,
+            addedAt: new Date(),
+            isVerified: wasVerified, // Keep previous verification status
+          },
+          { transaction }
+        );
+
         staffMember = existingSoftDeletedStaff;
-        logger.info(`Restored soft-deleted staff member ${userId} in rescue ${rescueId} (verified: ${wasVerified})`);
+        logger.info(
+          `Restored soft-deleted staff member ${userId} in rescue ${rescueId} (verified: ${wasVerified})`
+        );
       } else {
         // Create new staff member
         staffMember = await StaffMember.create(
@@ -625,30 +637,33 @@ export class RescueService {
           },
           { transaction }
         );
-        
+
         logger.info(`Created new staff member ${userId} in rescue ${rescueId}`);
       }
 
       // Ensure user has rescue_staff role (only assign if they don't have it)
-      const rescueStaffRole = await Role.findOne({ 
+      const rescueStaffRole = await Role.findOne({
         where: { name: 'rescue_staff' },
-        transaction 
+        transaction,
       });
 
       if (rescueStaffRole) {
         const existingUserRole = await UserRole.findOne({
-          where: { 
-            userId: userId, 
-            roleId: rescueStaffRole.roleId 
+          where: {
+            userId: userId,
+            roleId: rescueStaffRole.roleId,
           },
-          transaction
+          transaction,
         });
 
         if (!existingUserRole) {
-          await UserRole.create({
-            userId: userId,
-            roleId: rescueStaffRole.roleId
-          }, { transaction });
+          await UserRole.create(
+            {
+              userId: userId,
+              roleId: rescueStaffRole.roleId,
+            },
+            { transaction }
+          );
 
           logger.info(`Assigned rescue_staff role to user ${userId}`);
         } else {
@@ -711,13 +726,16 @@ export class RescueService {
       }
 
       const user = staffMember.user!;
-      
+
       // Soft delete the staff member instead of hard delete
-      await staffMember.update({
-        isDeleted: true,
-        deletedAt: new Date(),
-        deletedBy: removedBy
-      }, { transaction });
+      await staffMember.update(
+        {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: removedBy,
+        },
+        { transaction }
+      );
 
       // Keep the user's rescue_staff role intact
       // This allows them to be re-added easily and maintains their capability level
@@ -755,9 +773,9 @@ export class RescueService {
    * Update staff member in rescue
    */
   static async updateStaffMember(
-    rescueId: string, 
-    userId: string, 
-    updates: { title?: string }, 
+    rescueId: string,
+    userId: string,
+    updates: { title?: string },
     updatedBy: string
   ): Promise<any> {
     const transaction = await sequelize.transaction();
@@ -1026,7 +1044,7 @@ export class RescueService {
 
       const whereConditions: WhereOptions = {
         rescueId,
-        isDeleted: false // Only get active staff members
+        isDeleted: false, // Only get active staff members
       };
 
       // Build user search conditions for the included User model
@@ -1050,7 +1068,7 @@ export class RescueService {
             as: 'user',
             where: Object.keys(userWhereConditions).length > 0 ? userWhereConditions : undefined,
             attributes: ['userId', 'firstName', 'lastName', 'email', 'userType'],
-          }
+          },
         ],
         order: [['addedAt', 'DESC']],
         limit,

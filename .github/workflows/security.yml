@@ -6,17 +6,17 @@ on:
   pull_request:
     branches: [main, develop]
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: '0 6 * * 1'
 
 jobs:
   dependency-audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         project: [service.backend, app.client, app.admin, app.rescue, lib.components]
-        
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
 
       - name: Install dependencies
         run: npm install

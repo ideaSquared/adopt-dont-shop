@@ -300,13 +300,16 @@ describe('Authentication Middleware', () => {
           mockNext
         );
 
-        expect(User.findByPk).toHaveBeenCalledWith('user-123', expect.objectContaining({
-          include: expect.arrayContaining([
-            expect.objectContaining({
-              as: 'Roles',
-            }),
-          ]),
-        }));
+        expect(User.findByPk).toHaveBeenCalledWith(
+          'user-123',
+          expect.objectContaining({
+            include: expect.arrayContaining([
+              expect.objectContaining({
+                as: 'Roles',
+              }),
+            ]),
+          })
+        );
       });
     });
 
@@ -522,11 +525,7 @@ describe('Authentication Middleware', () => {
       it('should continue without authentication', async () => {
         mockRequest.headers = {};
 
-        await optionalAuth(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        await optionalAuth(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockRequest.user).toBeUndefined();
         expect(mockNext).toHaveBeenCalled();
@@ -541,11 +540,7 @@ describe('Authentication Middleware', () => {
           throw new JsonWebTokenError('invalid token');
         });
 
-        await optionalAuth(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        await optionalAuth(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockRequest.user).toBeUndefined();
         expect(mockNext).toHaveBeenCalled();
@@ -570,11 +565,7 @@ describe('Authentication Middleware', () => {
         (jwt.verify as vi.Mock).mockReturnValue(payload);
         (User.findByPk as vi.Mock).mockResolvedValue(null);
 
-        await optionalAuth(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        await optionalAuth(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockRequest.user).toBeUndefined();
         expect(mockNext).toHaveBeenCalled();
@@ -599,11 +590,7 @@ describe('Authentication Middleware', () => {
         (jwt.verify as vi.Mock).mockReturnValue(payload);
         (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
-        await optionalAuth(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        await optionalAuth(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockRequest.user).toBeUndefined();
         expect(mockNext).toHaveBeenCalled();
@@ -628,11 +615,7 @@ describe('Authentication Middleware', () => {
         (jwt.verify as vi.Mock).mockReturnValue(payload);
         (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
-        await optionalAuth(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        await optionalAuth(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockRequest.user).toBe(mockUser);
         expect(mockNext).toHaveBeenCalled();
@@ -753,11 +736,7 @@ describe('Authentication Middleware', () => {
         mockRequest.user = undefined;
 
         const middleware = requireRole('admin');
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockResponse.status).toHaveBeenCalledWith(401);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -783,11 +762,7 @@ describe('Authentication Middleware', () => {
         } as User;
 
         const middleware = requireRole('admin');
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -813,11 +788,7 @@ describe('Authentication Middleware', () => {
         } as User;
 
         const middleware = requireRole('admin');
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -833,11 +804,7 @@ describe('Authentication Middleware', () => {
         } as User;
 
         const middleware = requireRole(['admin', 'moderator']);
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -855,11 +822,7 @@ describe('Authentication Middleware', () => {
         } as User;
 
         const middleware = requireRole('admin');
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockNext).toHaveBeenCalled();
         expect(mockResponse.status).not.toHaveBeenCalled();
@@ -881,11 +844,7 @@ describe('Authentication Middleware', () => {
         } as User;
 
         const middleware = requireRole(['admin', 'moderator']);
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockNext).toHaveBeenCalled();
         expect(mockResponse.status).not.toHaveBeenCalled();
@@ -895,19 +854,11 @@ describe('Authentication Middleware', () => {
         mockRequest.user = {
           userId: 'user-123',
           email: 'test@example.com',
-          Roles: [
-            { name: 'admin' },
-            { name: 'moderator' },
-            { name: 'user' },
-          ],
+          Roles: [{ name: 'admin' }, { name: 'moderator' }, { name: 'user' }],
         } as User;
 
         const middleware = requireRole('admin');
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockNext).toHaveBeenCalled();
       });
@@ -922,11 +873,7 @@ describe('Authentication Middleware', () => {
         } as User;
 
         const middleware = requireRole('admin');
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockNext).toHaveBeenCalled();
       });
@@ -939,11 +886,7 @@ describe('Authentication Middleware', () => {
         } as User;
 
         const middleware = requireRole(['admin', 'moderator', 'support']);
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockNext).toHaveBeenCalled();
       });
@@ -961,11 +904,7 @@ describe('Authentication Middleware', () => {
         } as User;
 
         const middleware = requireRole('admin');
-        middleware(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response,
-          mockNext
-        );
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockResponse.status).toHaveBeenCalledWith(500);
         expect(mockResponse.json).toHaveBeenCalledWith({

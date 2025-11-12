@@ -58,6 +58,70 @@ jobs:
         run: npm run build
         working-directory: service.backend
 
+  test-frontend-libraries:
+    name: Frontend Library Tests (Jest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build libraries
+        run: npm run build:libs
+
+      - name: Run library tests (Jest)
+        run: npm run test:libs
+
+      - name: Run component tests
+        run: npm run test:components
+
+  test-frontend-apps:
+    name: Frontend App Tests (Vitest)
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        app: [app.client, app.admin, app.rescue]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build libraries (required for apps)
+        run: npm run build:libs
+
+      - name: Lint code
+        run: npm run lint
+        working-directory: ${{ matrix.app }}
+
+      - name: Run Vitest tests
+        run: npm test
+        working-directory: ${{ matrix.app }}
+
+      - name: Build application
+        run: npm run build
+        working-directory: ${{ matrix.app }}
+        env:
+          CI: true
+
   # Temporarily disabled frontend tests
   # test-frontend:
   #   name: Frontend Tests

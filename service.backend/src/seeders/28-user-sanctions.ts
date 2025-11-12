@@ -76,7 +76,8 @@ export async function seedUserSanctions() {
           applicationsCount: 12,
         },
         notificationSent: true,
-        internalNotes: 'User applying to 12+ pets simultaneously, violating terms. Reviewing for bot activity.',
+        internalNotes:
+          'User applying to 12+ pets simultaneously, violating terms. Reviewing for bot activity.',
       },
 
       // Active temporary ban
@@ -84,7 +85,8 @@ export async function seedUserSanctions() {
         userId: users[4]?.userId,
         sanctionType: SanctionType.TEMPORARY_BAN,
         reason: SanctionReason.HARASSMENT,
-        description: 'User temporarily banned for 14 days due to harassing other users and rescue staff.',
+        description:
+          'User temporarily banned for 14 days due to harassing other users and rescue staff.',
         isActive: true,
         startDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
         endDate: new Date(Date.now() + 11 * 24 * 60 * 60 * 1000), // 11 days from now
@@ -99,7 +101,8 @@ export async function seedUserSanctions() {
           severity: 'high',
         },
         notificationSent: true,
-        internalNotes: 'Multiple users reported harassment. User has history of warnings. Will be permanently banned if behavior continues.',
+        internalNotes:
+          'Multiple users reported harassment. User has history of warnings. Will be permanently banned if behavior continues.',
         warningCount: 3,
       },
 
@@ -108,7 +111,8 @@ export async function seedUserSanctions() {
         userId: users[5]?.userId,
         sanctionType: SanctionType.PERMANENT_BAN,
         reason: SanctionReason.SCAM_ATTEMPT,
-        description: 'User permanently banned for attempting to scam other users and conduct fraudulent transactions.',
+        description:
+          'User permanently banned for attempting to scam other users and conduct fraudulent transactions.',
         isActive: true,
         startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
         issuedBy: users[0]?.userId,
@@ -130,7 +134,8 @@ export async function seedUserSanctions() {
         userId: users[6]?.userId,
         sanctionType: SanctionType.PERMANENT_BAN,
         reason: SanctionReason.REPEATED_VIOLATIONS,
-        description: 'User permanently banned after multiple violations and failed attempts at rehabilitation.',
+        description:
+          'User permanently banned after multiple violations and failed attempts at rehabilitation.',
         isActive: true,
         startDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
         issuedBy: users[0]?.userId,
@@ -141,7 +146,8 @@ export async function seedUserSanctions() {
           violationTypes: ['spam', 'harassment', 'inappropriate_content'],
         },
         notificationSent: true,
-        internalNotes: 'User exhausted all chances. Pattern of repeated policy violations despite multiple warnings and suspensions.',
+        internalNotes:
+          'User exhausted all chances. Pattern of repeated policy violations despite multiple warnings and suspensions.',
         warningCount: 5,
       },
 
@@ -150,7 +156,8 @@ export async function seedUserSanctions() {
         userId: users[7]?.userId,
         sanctionType: SanctionType.POSTING_RESTRICTION,
         reason: SanctionReason.SPAM,
-        description: 'User was restricted from posting for 3 days. Restriction has now been lifted.',
+        description:
+          'User was restricted from posting for 3 days. Restriction has now been lifted.',
         isActive: false,
         startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
         endDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Ended 7 days ago
@@ -176,7 +183,8 @@ export async function seedUserSanctions() {
         issuedBy: users[0]?.userId,
         issuedByRole: 'MODERATOR' as const,
         appealedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        appealReason: 'I believe this was a misunderstanding. The content was meant to be educational about animal care, not inappropriate.',
+        appealReason:
+          'I believe this was a misunderstanding. The content was meant to be educational about animal care, not inappropriate.',
         appealStatus: 'pending' as const,
         metadata: {},
         notificationSent: true,
@@ -189,7 +197,8 @@ export async function seedUserSanctions() {
         userId: users[9]?.userId,
         sanctionType: SanctionType.TEMPORARY_BAN,
         reason: SanctionReason.FALSE_INFORMATION,
-        description: 'User was banned for posting false information. Ban revoked after successful appeal.',
+        description:
+          'User was banned for posting false information. Ban revoked after successful appeal.',
         isActive: false,
         startDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
         endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
@@ -197,17 +206,21 @@ export async function seedUserSanctions() {
         issuedBy: users[0]?.userId,
         issuedByRole: 'MODERATOR' as const,
         appealedAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000),
-        appealReason: 'The information I posted was based on outdated rescue guidelines. I have since corrected it and apologize for the confusion.',
+        appealReason:
+          'The information I posted was based on outdated rescue guidelines. I have since corrected it and apologize for the confusion.',
         appealStatus: 'approved' as const,
         appealResolvedBy: users[0]?.userId,
         appealResolvedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-        appealResolution: 'After review, we determined the user acted in good faith with outdated information. Appeal approved and ban lifted.',
+        appealResolution:
+          'After review, we determined the user acted in good faith with outdated information. Appeal approved and ban lifted.',
         revokedBy: users[0]?.userId,
         revokedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-        revocationReason: 'Appeal approved - user provided proof of good faith and corrected information.',
+        revocationReason:
+          'Appeal approved - user provided proof of good faith and corrected information.',
         metadata: {},
         notificationSent: true,
-        internalNotes: 'User was cooperative and corrected the information promptly. No malicious intent found.',
+        internalNotes:
+          'User was cooperative and corrected the information promptly. No malicious intent found.',
       },
 
       // Sanction with rejected appeal
@@ -215,7 +228,8 @@ export async function seedUserSanctions() {
         userId: users[1]?.userId,
         sanctionType: SanctionType.APPLICATION_RESTRICTION,
         reason: SanctionReason.TERMS_VIOLATION,
-        description: 'User restricted from submitting applications for 30 days due to repeated terms violations.',
+        description:
+          'User restricted from submitting applications for 30 days due to repeated terms violations.',
         isActive: true,
         startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
         endDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
@@ -227,13 +241,15 @@ export async function seedUserSanctions() {
         appealStatus: 'rejected' as const,
         appealResolvedBy: users[0]?.userId,
         appealResolvedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        appealResolution: 'After thorough review, the original decision stands. The violations were clear and documented.',
+        appealResolution:
+          'After thorough review, the original decision stands. The violations were clear and documented.',
         metadata: {
           violationsCount: 4,
           documentedEvidence: true,
         },
         notificationSent: true,
-        internalNotes: 'User has pattern of violations. Appeal rejected. Restriction remains in place.',
+        internalNotes:
+          'User has pattern of violations. Appeal rejected. Restriction remains in place.',
         warningCount: 2,
       },
     ];

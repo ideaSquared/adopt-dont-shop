@@ -13,7 +13,15 @@ import {
   formatDate,
   formatTicketId,
 } from '@adopt-dont-shop/lib-support-tickets';
-import { FiUser, FiClock, FiTag, FiAlertCircle, FiCheckCircle, FiMessageSquare, FiSend } from 'react-icons/fi';
+import {
+  FiUser,
+  FiClock,
+  FiTag,
+  FiAlertCircle,
+  FiCheckCircle,
+  FiMessageSquare,
+  FiSend,
+} from 'react-icons/fi';
 
 type TicketDetailModalProps = {
   isOpen: boolean;
@@ -158,8 +166,8 @@ const ResponsesHeader = styled.div`
 
 const ResponseCard = styled.div<{ $isInternal?: boolean }>`
   padding: 1rem;
-  background: ${props => props.$isInternal ? '#fef3c7' : '#ffffff'};
-  border: 1px solid ${props => props.$isInternal ? '#fbbf24' : '#e5e7eb'};
+  background: ${props => (props.$isInternal ? '#fef3c7' : '#ffffff')};
+  border: 1px solid ${props => (props.$isInternal ? '#fbbf24' : '#e5e7eb')};
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -295,7 +303,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   // Use responses length as key to force re-render when responses change
   const responsesKey = ticket.responses?.length || 0;
 
-  const statusColorMap = {
+  const statusColorMap: Record<string, { bg: string; color: string }> = {
     open: { bg: '#dbeafe', color: '#1e40af' },
     in_progress: { bg: '#fef3c7', color: '#92400e' },
     waiting_for_user: { bg: '#e0e7ff', color: '#4338ca' },
@@ -304,7 +312,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     escalated: { bg: '#fee2e2', color: '#991b1b' },
   };
 
-  const priorityColorMap = {
+  const priorityColorMap: Record<string, { bg: string; color: string }> = {
     low: { bg: '#f3f4f6', color: '#374151' },
     normal: { bg: '#dbeafe', color: '#1e40af' },
     high: { bg: '#fef3c7', color: '#92400e' },
@@ -319,8 +327,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Support Ticket Details"
-      size="xl"
+      title='Support Ticket Details'
+      size='xl'
       centered
       closeOnOverlayClick={!isSubmitting}
       closeOnEscape={!isSubmitting}
@@ -353,9 +361,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               <FiUser />
               Customer
             </DetailLabel>
-            <DetailValue>
-              {ticket.userName || <EmptyValue>Not provided</EmptyValue>}
-            </DetailValue>
+            <DetailValue>{ticket.userName || <EmptyValue>Not provided</EmptyValue>}</DetailValue>
             <DetailValue style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
               {ticket.userEmail}
             </DetailValue>
@@ -366,9 +372,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               <FiUser />
               Assigned To
             </DetailLabel>
-            <DetailValue>
-              {ticket.assignedTo || <EmptyValue>Unassigned</EmptyValue>}
-            </DetailValue>
+            <DetailValue>{ticket.assignedTo || <EmptyValue>Unassigned</EmptyValue>}</DetailValue>
           </DetailItem>
 
           <DetailItem>
@@ -444,7 +448,11 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                     <ResponderInfo>
                       {response.responderType === 'staff' ? 'Staff' : 'Customer'} Response
                       {response.isInternal && (
-                        <InternalBadge $bgColor="#92400e" $color="#ffffff" style={{ marginLeft: '0.5rem' }}>
+                        <InternalBadge
+                          $bgColor='#92400e'
+                          $color='#ffffff'
+                          style={{ marginLeft: '0.5rem' }}
+                        >
                           Internal
                         </InternalBadge>
                       )}
@@ -467,8 +475,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           </DetailLabel>
           <TextArea
             value={replyContent}
-            onChange={(e) => setReplyContent(e.target.value)}
-            placeholder="Type your response here..."
+            onChange={e => setReplyContent(e.target.value)}
+            placeholder='Type your response here...'
             disabled={isSubmitting}
             required
             minLength={1}
@@ -476,27 +484,27 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           />
           <CheckboxLabel>
             <input
-              type="checkbox"
+              type='checkbox'
               checked={isInternal}
-              onChange={(e) => setIsInternal(e.target.checked)}
+              onChange={e => setIsInternal(e.target.checked)}
               disabled={isSubmitting}
             />
             Internal note (not visible to customer)
           </CheckboxLabel>
           <ButtonGroup>
             <Button
-              type="button"
-              variant="outline"
-              size="md"
+              type='button'
+              variant='outline'
+              size='md'
               onClick={onClose}
               disabled={isSubmitting}
             >
               Close
             </Button>
             <Button
-              type="submit"
-              variant="primary"
-              size="md"
+              type='submit'
+              variant='primary'
+              size='md'
               disabled={isSubmitting || !replyContent.trim()}
             >
               {isSubmitting ? 'Sending...' : 'Send Response'}

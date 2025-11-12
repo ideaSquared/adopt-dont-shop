@@ -19,7 +19,7 @@ const CardContainer = styled.div`
   padding: 1rem;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     border-color: #3b82f6;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
@@ -58,7 +58,7 @@ const Priority = styled.div<{ priority: string }>`
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.025em;
-  
+
   ${props => {
     switch (props.priority) {
       case 'urgent':
@@ -114,7 +114,7 @@ const StatusBadge = styled.div<{ status: 'pending' | 'in_progress' | 'completed'
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  
+
   ${props => {
     switch (props.status) {
       case 'completed':
@@ -135,7 +135,7 @@ const OutcomeBadge = styled.div<{ outcome: string }>`
   font-size: 0.75rem;
   font-weight: 500;
   margin-top: 0.5rem;
-  
+
   ${props => {
     const config = OUTCOME_CONFIG[props.outcome as keyof typeof OUTCOME_CONFIG];
     return `background: ${config?.color}20; color: ${config?.color};`;
@@ -159,7 +159,7 @@ const ActionButton = styled.button<{ variant: 'primary' | 'secondary' | 'danger'
   cursor: pointer;
   transition: all 0.2s;
   flex: 1;
-  
+
   ${props => {
     switch (props.variant) {
       case 'primary':
@@ -188,7 +188,7 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
   application,
   availableActions,
   onClick,
-  onAction
+  onAction,
 }) => {
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't trigger card click if clicking on an action button
@@ -207,7 +207,11 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
     if (actionType.includes('REJECT') || actionType.includes('WITHDRAW')) {
       return 'danger';
     }
-    if (actionType === 'START_REVIEW' || actionType === 'SCHEDULE_VISIT' || actionType === 'MAKE_DECISION') {
+    if (
+      actionType === 'START_REVIEW' ||
+      actionType === 'SCHEDULE_VISIT' ||
+      actionType === 'MAKE_DECISION'
+    ) {
       return 'primary';
     }
     return 'secondary';
@@ -250,9 +254,7 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
           <PetName>{application.petName}</PetName>
           <ApplicantName>by {application.applicantName}</ApplicantName>
         </PetInfo>
-        <Priority priority={application.priority}>
-          {application.priority}
-        </Priority>
+        <Priority priority={application.priority}>{application.priority}</Priority>
       </CardHeader>
 
       <ProgressBar>
@@ -262,10 +264,10 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
       <CardBody>
         <MetaInfo>
           <span>
-            Submitted {application.submittedAt 
+            Submitted{' '}
+            {application.submittedAt
               ? formatRelativeDate(new Date(application.submittedAt))
-              : 'recently'
-            }
+              : 'recently'}
           </span>
           {application.assignedStaff && <span>Assigned to {application.assignedStaff}</span>}
         </MetaInfo>
@@ -275,7 +277,9 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
             References: {application.referencesStatus}
           </StatusBadge>
           {application.homeVisitStatus !== 'not_scheduled' && (
-            <StatusBadge status={application.homeVisitStatus === 'completed' ? 'completed' : 'in_progress'}>
+            <StatusBadge
+              status={application.homeVisitStatus === 'completed' ? 'completed' : 'in_progress'}
+            >
               Visit: {application.homeVisitStatus}
             </StatusBadge>
           )}
@@ -293,14 +297,13 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
 
         {application.finalOutcome && (
           <OutcomeBadge outcome={application.finalOutcome}>
-            {OUTCOME_CONFIG[application.finalOutcome]?.emoji} {OUTCOME_CONFIG[application.finalOutcome]?.label}
+            {OUTCOME_CONFIG[application.finalOutcome]?.emoji}{' '}
+            {OUTCOME_CONFIG[application.finalOutcome]?.label}
           </OutcomeBadge>
         )}
 
         {isTerminalStatus() && (
-          <OutcomeBadge outcome="APPROVED">
-            🔒 Application Closed
-          </OutcomeBadge>
+          <OutcomeBadge outcome="APPROVED">🔒 Application Closed</OutcomeBadge>
         )}
       </CardBody>
 
@@ -310,7 +313,7 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
             <ActionButton
               key={action.type}
               variant={getActionVariant(action.type)}
-              onClick={(e) => handleActionClick(action, e)}
+              onClick={e => handleActionClick(action, e)}
             >
               {formatActionLabel(action.type)}
             </ActionButton>

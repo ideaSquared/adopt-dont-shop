@@ -8,14 +8,14 @@ A text input component with validation, icons, and various input types support.
 import { TextInput } from '@/components/form/TextInput'
 
 // Basic usage
-<TextInput 
+<TextInput
   value={inputValue}
   onChange={handleChange}
   placeholder="Enter text..."
 />
 
 // With advanced features
-<TextInput 
+<TextInput
   value={inputValue}
   onChange={handleChange}
   type="email"
@@ -51,4 +51,4 @@ import { TextInput } from '@/components/form/TextInput'
 - Label and placeholder text
 - Accessible markup
 - TypeScript support
-- Consistent form styling 
+- Consistent form styling

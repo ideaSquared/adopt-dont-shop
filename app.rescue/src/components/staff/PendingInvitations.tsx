@@ -41,10 +41,10 @@ const InvitationsList = styled.div`
 
 const InvitationCard = styled.div<{ isExpiring?: boolean }>`
   padding: 1.25rem;
-  border: 2px solid ${props => props.isExpiring ? '#ffc107' : '#e9ecef'};
+  border: 2px solid ${props => (props.isExpiring ? '#ffc107' : '#e9ecef')};
   border-radius: 8px;
   margin-bottom: 1rem;
-  background: ${props => props.isExpiring ? '#fff3cd' : 'white'};
+  background: ${props => (props.isExpiring ? '#fff3cd' : 'white')};
   transition: all 0.2s ease;
 
   &:last-child {
@@ -113,12 +113,16 @@ const StatusBadge = styled.span<{ status: 'active' | 'expiring' }>`
   font-weight: 600;
   text-transform: uppercase;
 
-  ${props => props.status === 'active' && `
+  ${props =>
+    props.status === 'active' &&
+    `
     background: #d1f4e0;
     color: #0a7b3e;
   `}
 
-  ${props => props.status === 'expiring' && `
+  ${props =>
+    props.status === 'expiring' &&
+    `
     background: #fff3cd;
     color: #856404;
   `}
@@ -145,14 +149,17 @@ const ActionButton = styled.button<{ variant?: 'danger' }>`
   transition: all 0.2s ease;
   white-space: nowrap;
 
-  ${props => props.variant === 'danger' ? `
+  ${props =>
+    props.variant === 'danger'
+      ? `
     background: #dc3545;
     color: white;
 
     &:hover:not(:disabled) {
       background: #c82333;
     }
-  ` : `
+  `
+      : `
     background: #f8f9fa;
     color: #495057;
     border: 1px solid #dee2e6;
@@ -204,8 +211,12 @@ const LoadingSpinner = styled.div`
   margin: 0 auto 1rem;
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -215,7 +226,9 @@ const PendingInvitations: React.FC<PendingInvitationsProps> = ({
   onCancel,
   canCancel = false,
 }) => {
-  const getExpirationStatus = (expirationDate: string): {
+  const getExpirationStatus = (
+    expirationDate: string
+  ): {
     isExpiring: boolean;
     daysRemaining: number;
   } => {
@@ -269,13 +282,15 @@ const PendingInvitations: React.FC<PendingInvitationsProps> = ({
         <EmptyState>
           <EmptyIcon>📧</EmptyIcon>
           <EmptyText>
-            <p><strong>No Pending Invitations</strong></p>
+            <p>
+              <strong>No Pending Invitations</strong>
+            </p>
             <p>Invite staff members to join your rescue team!</p>
           </EmptyText>
         </EmptyState>
       ) : (
         <InvitationsList>
-          {invitations.map((invitation) => {
+          {invitations.map(invitation => {
             const { isExpiring, daysRemaining } = getExpirationStatus(invitation.expiration);
 
             return (

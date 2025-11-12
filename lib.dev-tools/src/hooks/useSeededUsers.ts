@@ -46,10 +46,10 @@ export const useSeededUsers = (options: UseSeededUsersOptions = {}): UseSeededUs
       if (response.ok) {
         const data = await response.json();
         let filteredUsers = data.users || [];
-        
+
         // Filter by user types if specified
         if (userTypes && userTypes.length > 0) {
-          filteredUsers = filteredUsers.filter((user: DevUser) => 
+          filteredUsers = filteredUsers.filter((user: DevUser) =>
             userTypes.includes(user.userType)
           );
         }
@@ -60,14 +60,13 @@ export const useSeededUsers = (options: UseSeededUsersOptions = {}): UseSeededUs
       }
     } catch (err) {
       console.warn('Failed to fetch seeded users from API:', err);
-      
+
       if (fallbackToLocal) {
         // Fallback to local data
         const { getDevUsersByType, seededDevUsers } = await import('../data/seededUsers');
-        const fallbackUsers = userTypes && userTypes.length > 0 
-          ? getDevUsersByType(userTypes)
-          : seededDevUsers;
-        
+        const fallbackUsers =
+          userTypes && userTypes.length > 0 ? getDevUsersByType(userTypes) : seededDevUsers;
+
         setUsers(fallbackUsers);
         setError('Using local data - API unavailable');
       } else {

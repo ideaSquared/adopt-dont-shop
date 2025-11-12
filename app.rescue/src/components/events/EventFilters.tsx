@@ -94,7 +94,8 @@ const ViewButton = styled.button<{ $active: boolean }>`
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  background: ${props => (props.$active ? props.theme.colors.primary?.[500] || '#3b82f6' : 'white')};
+  background: ${props =>
+    props.$active ? props.theme.colors.primary?.[500] || '#3b82f6' : 'white'};
   color: ${props => (props.$active ? 'white' : props.theme.text?.primary || '#111827')};
   cursor: pointer;
   transition: all 0.2s ease;

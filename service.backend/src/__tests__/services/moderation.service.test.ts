@@ -148,9 +148,9 @@ describe('ModerationService', () => {
 
         (MockedReport.findOne as vi.Mock).mockResolvedValue(existingReport);
 
-        await expect(
-          moderationService.submitReport(reporterId, reportData)
-        ).rejects.toThrow('You have already submitted a report for this content');
+        await expect(moderationService.submitReport(reporterId, reportData)).rejects.toThrow(
+          'You have already submitted a report for this content'
+        );
 
         expect(MockedReport.create).not.toHaveBeenCalled();
       });
@@ -660,7 +660,12 @@ describe('ModerationService', () => {
 
         (MockedReport.findByPk as vi.Mock).mockResolvedValue(mockReport);
 
-        const result = await moderationService.escalateReport(reportId, escalatedTo, escalatedBy, reason);
+        const result = await moderationService.escalateReport(
+          reportId,
+          escalatedTo,
+          escalatedBy,
+          reason
+        );
 
         expect(mockReport.update).toHaveBeenCalledWith(
           {

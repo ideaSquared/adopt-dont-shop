@@ -422,7 +422,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
             has_images: !!(petData.images && petData.images.length > 0),
             image_count: petData.images?.length || 0,
             user_authenticated: isAuthenticated,
-          }
+          },
         });
 
         // Log pet details view (existing Statsig tracking)
@@ -594,7 +594,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
           pet_status: pet.status || 'unknown',
           source_page: 'pet_details',
           user_authenticated: isAuthenticated,
-        }
+        },
       });
 
       // Existing Statsig tracking

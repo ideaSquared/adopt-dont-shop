@@ -1,7 +1,7 @@
-import { petService } from '@/services';
-import { Pet } from '@/services';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { petService, Pet } from '@/services';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { createAppContext, handleAsyncAction } from './base/BaseContext';
 
 interface FavoritesContextType {
   favoritePetIds: Set<string>;
@@ -50,7 +50,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
     });
 
     if (result) {
-      const petIds = new Set(result.map(pet => pet.pet_id));
+      const petIds = new Set(result.map((pet: Pet) => pet.pet_id));
       setFavoritePetIds(petIds);
     }
   }, [isAuthenticated]);

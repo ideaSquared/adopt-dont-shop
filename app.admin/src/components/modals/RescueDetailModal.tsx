@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Button, Heading, Text, DateTime } from '@adopt-dont-shop/components';
-import { FiX, FiMail, FiPhone, FiMapPin, FiGlobe, FiUsers, FiPackage, FiUserPlus, FiUserMinus, FiCheck, FiClock } from 'react-icons/fi';
-import type { AdminRescue, RescueStatistics, StaffMember, StaffInvitation, InviteStaffPayload } from '@/types/rescue';
+import {
+  FiX,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiGlobe,
+  FiUsers,
+  FiPackage,
+  FiUserPlus,
+  FiUserMinus,
+  FiCheck,
+  FiClock,
+} from 'react-icons/fi';
+import type {
+  AdminRescue,
+  RescueStatistics,
+  StaffMember,
+  StaffInvitation,
+  InviteStaffPayload,
+} from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 
 type RescueDetailModalProps = {
@@ -33,7 +51,9 @@ const ModalContainer = styled.div`
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 `;
 
 const ModalHeader = styled.div`
@@ -84,11 +104,12 @@ const Tab = styled.button<{ $active: boolean }>`
   padding: 0.75rem 1.25rem;
   border: none;
   background: none;
-  color: ${props => props.$active ? props.theme.colors.primary[600] : '#6b7280'};
-  font-weight: ${props => props.$active ? '600' : '500'};
+  color: ${props => (props.$active ? props.theme.colors.primary[600] : '#6b7280')};
+  font-weight: ${props => (props.$active ? '600' : '500')};
   font-size: 0.875rem;
   cursor: pointer;
-  border-bottom: 2px solid ${props => props.$active ? props.theme.colors.primary[600] : 'transparent'};
+  border-bottom: 2px solid
+    ${props => (props.$active ? props.theme.colors.primary[600] : 'transparent')};
   margin-bottom: -2px;
   transition: all 0.2s ease;
 
@@ -152,16 +173,22 @@ const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' }>`
   font-weight: 600;
   background: ${props => {
     switch (props.$variant) {
-      case 'success': return '#d1fae5';
-      case 'warning': return '#fef3c7';
-      case 'danger': return '#fee2e2';
+      case 'success':
+        return '#d1fae5';
+      case 'warning':
+        return '#fef3c7';
+      case 'danger':
+        return '#fee2e2';
     }
   }};
   color: ${props => {
     switch (props.$variant) {
-      case 'success': return '#065f46';
-      case 'warning': return '#92400e';
-      case 'danger': return '#991b1b';
+      case 'success':
+        return '#065f46';
+      case 'warning':
+        return '#92400e';
+      case 'danger':
+        return '#991b1b';
     }
   }};
 `;
@@ -301,7 +328,7 @@ const InviteForm = styled.div`
 const FormRow = styled.div`
   display: flex;
   gap: 1rem;
-  
+
   @media (max-width: 640px) {
     flex-direction: column;
   }
@@ -364,10 +391,9 @@ const InvitationBadge = styled.span<{ $status: string }>`
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: ${props => props.$status === 'pending' ? '#fef3c7' : '#e5e7eb'};
-  color: ${props => props.$status === 'pending' ? '#92400e' : '#374151'};
+  background: ${props => (props.$status === 'pending' ? '#fef3c7' : '#e5e7eb')};
+  color: ${props => (props.$status === 'pending' ? '#92400e' : '#374151')};
 `;
-
 
 export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   rescueId,
@@ -378,7 +404,9 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   const [statistics, setStatistics] = useState<RescueStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'contact' | 'policies' | 'staff' | 'listings'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'contact' | 'policies' | 'staff' | 'listings'
+  >('overview');
 
   // Staff management state
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -422,7 +450,7 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
 
   const fetchStaff = async (showLoading = true) => {
     if (!rescueId) return;
-    
+
     try {
       if (showLoading) {
         setLoadingStaff(true);
@@ -464,7 +492,7 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
 
       const newInvitation = await rescueService.inviteStaff(rescueId, payload);
       console.log('Invitation sent:', newInvitation);
-      
+
       // Reset form
       setInviteEmail('');
       setInviteTitle('');
@@ -518,14 +546,14 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
     }
   }, [activeTab, rescueId]);
 
-    const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'verified':
-        return <Badge $variant="success">Verified</Badge>;
+        return <Badge $variant='success'>Verified</Badge>;
       case 'pending':
-        return <Badge $variant="warning">Pending</Badge>;
+        return <Badge $variant='warning'>Pending</Badge>;
       default:
-        return <Badge $variant="danger">{status}</Badge>;
+        return <Badge $variant='danger'>{status}</Badge>;
     }
   };
 
@@ -540,7 +568,7 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
       <ModalContainer>
         <ModalHeader>
           <HeaderContent>
-            <Heading level="h2">{rescue?.name || 'Rescue Details'}</Heading>
+            <Heading level='h2'>{rescue?.name || 'Rescue Details'}</Heading>
             {rescue && (
               <Text style={{ marginTop: '0.5rem' }}>
                 {getStatusBadge(rescue.status)} • Registered {formatDate(rescue.createdAt)}
@@ -605,7 +633,9 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                     <SectionTitle>Location</SectionTitle>
                     <InfoGrid>
                       <InfoItem>
-                        <InfoLabel><FiMapPin /> Address</InfoLabel>
+                        <InfoLabel>
+                          <FiMapPin /> Address
+                        </InfoLabel>
                         <InfoValue>{rescue.address}</InfoValue>
                       </InfoItem>
                       <InfoItem>
@@ -644,21 +674,29 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                   <SectionTitle>Contact Details</SectionTitle>
                   <InfoGrid>
                     <InfoItem>
-                      <InfoLabel><FiMail /> Email</InfoLabel>
+                      <InfoLabel>
+                        <FiMail /> Email
+                      </InfoLabel>
                       <InfoValue>{rescue.email}</InfoValue>
                     </InfoItem>
                     <InfoItem>
-                      <InfoLabel><FiPhone /> Phone</InfoLabel>
+                      <InfoLabel>
+                        <FiPhone /> Phone
+                      </InfoLabel>
                       <InfoValue>{rescue.phone || 'N/A'}</InfoValue>
                     </InfoItem>
                     <InfoItem>
-                      <InfoLabel><FiGlobe /> Website</InfoLabel>
+                      <InfoLabel>
+                        <FiGlobe /> Website
+                      </InfoLabel>
                       <InfoValue>
                         {rescue.website ? (
-                          <a href={rescue.website} target="_blank" rel="noopener noreferrer">
+                          <a href={rescue.website} target='_blank' rel='noopener noreferrer'>
                             {rescue.website}
                           </a>
-                        ) : 'N/A'}
+                        ) : (
+                          'N/A'
+                        )}
                       </InfoValue>
                     </InfoItem>
                     <InfoItem>
@@ -676,11 +714,15 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                     <InfoGrid>
                       <InfoItem>
                         <InfoLabel>Home Visit Required</InfoLabel>
-                        <InfoValue>{rescue.adoptionPolicies.requireHomeVisit ? 'Yes' : 'No'}</InfoValue>
+                        <InfoValue>
+                          {rescue.adoptionPolicies.requireHomeVisit ? 'Yes' : 'No'}
+                        </InfoValue>
                       </InfoItem>
                       <InfoItem>
                         <InfoLabel>References Required</InfoLabel>
-                        <InfoValue>{rescue.adoptionPolicies.requireReferences ? 'Yes' : 'No'}</InfoValue>
+                        <InfoValue>
+                          {rescue.adoptionPolicies.requireReferences ? 'Yes' : 'No'}
+                        </InfoValue>
                       </InfoItem>
                       <InfoItem>
                         <InfoLabel>Minimum References</InfoLabel>
@@ -689,7 +731,8 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                       <InfoItem>
                         <InfoLabel>Adoption Fee Range</InfoLabel>
                         <InfoValue>
-                          £{rescue.adoptionPolicies.adoptionFeeRange.min} - £{rescue.adoptionPolicies.adoptionFeeRange.max}
+                          £{rescue.adoptionPolicies.adoptionFeeRange.min} - £
+                          {rescue.adoptionPolicies.adoptionFeeRange.max}
                         </InfoValue>
                       </InfoItem>
                     </InfoGrid>
@@ -703,11 +746,17 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                 <>
                   <Section>
                     <SectionTitle>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
                         <span>Staff Members ({staff?.length || 0})</span>
                         <Button
-                          variant="primary"
-                          size="sm"
+                          variant='primary'
+                          size='sm'
                           onClick={() => setShowInviteForm(!showInviteForm)}
                         >
                           <FiUserPlus style={{ marginRight: '0.5rem' }} />
@@ -725,32 +774,32 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                         </h4>
                         <FormRow>
                           <FormGroup>
-                            <Label htmlFor="invite-email">Email Address *</Label>
+                            <Label htmlFor='invite-email'>Email Address *</Label>
                             <Input
-                              id="invite-email"
-                              type="email"
-                              placeholder="staffmember@example.com"
+                              id='invite-email'
+                              type='email'
+                              placeholder='staffmember@example.com'
                               value={inviteEmail}
-                              onChange={(e) => setInviteEmail(e.target.value)}
+                              onChange={e => setInviteEmail(e.target.value)}
                               disabled={loadingStaff}
                             />
                           </FormGroup>
                           <FormGroup>
-                            <Label htmlFor="invite-title">Job Title (Optional)</Label>
+                            <Label htmlFor='invite-title'>Job Title (Optional)</Label>
                             <Input
-                              id="invite-title"
-                              type="text"
-                              placeholder="e.g., Veterinarian, Coordinator"
+                              id='invite-title'
+                              type='text'
+                              placeholder='e.g., Veterinarian, Coordinator'
                               value={inviteTitle}
-                              onChange={(e) => setInviteTitle(e.target.value)}
+                              onChange={e => setInviteTitle(e.target.value)}
                               disabled={loadingStaff}
                             />
                           </FormGroup>
                         </FormRow>
                         <FormActions>
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant='outline'
+                            size='sm'
                             onClick={() => {
                               setShowInviteForm(false);
                               setInviteEmail('');
@@ -762,8 +811,8 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                             Cancel
                           </Button>
                           <Button
-                            variant="primary"
-                            size="sm"
+                            variant='primary'
+                            size='sm'
                             onClick={handleInviteStaff}
                             disabled={loadingStaff || !inviteEmail.trim()}
                           >
@@ -775,13 +824,15 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
 
                     {loadingStaff && <LoadingSpinner>Loading staff...</LoadingSpinner>}
 
-                    {!loadingStaff && (staff?.length || 0) === 0 && (invitations?.length || 0) === 0 && (
-                      <InfoValue>No staff members yet. Invite your first team member!</InfoValue>
-                    )}
+                    {!loadingStaff &&
+                      (staff?.length || 0) === 0 &&
+                      (invitations?.length || 0) === 0 && (
+                        <InfoValue>No staff members yet. Invite your first team member!</InfoValue>
+                      )}
 
                     {!loadingStaff && (staff?.length || 0) > 0 && (
                       <StaffList>
-                        {staff?.map((member) => (
+                        {staff?.map(member => (
                           <StaffCard key={member.staffMemberId}>
                             <StaffInfo>
                               <StaffName>
@@ -791,7 +842,7 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                                     style={{
                                       display: 'inline-block',
                                       marginLeft: '0.5rem',
-                                      color: '#10b981'
+                                      color: '#10b981',
                                     }}
                                     size={16}
                                   />
@@ -805,11 +856,11 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                             </StaffInfo>
                             <StaffActions>
                               <IconButton
-                                title="Remove staff member"
+                                title='Remove staff member'
                                 onClick={() => handleRemoveStaff(member.userId)}
                                 disabled={loadingStaff}
                               >
-                                <FiUserMinus color="#ef4444" />
+                                <FiUserMinus color='#ef4444' />
                               </IconButton>
                             </StaffActions>
                           </StaffCard>
@@ -821,15 +872,19 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                   {(invitations?.length || 0) > 0 && (
                     <InvitationsList>
                       <Section>
-                        <SectionTitle>Pending Invitations ({invitations?.length || 0})</SectionTitle>
-                        {invitations?.map((invitation) => (
+                        <SectionTitle>
+                          Pending Invitations ({invitations?.length || 0})
+                        </SectionTitle>
+                        {invitations?.map(invitation => (
                           <InvitationCard key={invitation.invitationId}>
                             <StaffInfo>
                               <StaffName>{invitation.email}</StaffName>
                               <StaffMeta>
                                 {invitation.title && <span>{invitation.title} •</span>}
                                 <span>Invited {<DateTime timestamp={invitation.createdAt} />}</span>
-                                <span>• Expires {<DateTime timestamp={invitation.expiresAt} />}</span>
+                                <span>
+                                  • Expires {<DateTime timestamp={invitation.expiresAt} />}
+                                </span>
                               </StaffMeta>
                             </StaffInfo>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -838,11 +893,11 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                                 {invitation.status}
                               </InvitationBadge>
                               <IconButton
-                                title="Cancel invitation"
+                                title='Cancel invitation'
                                 onClick={() => handleCancelInvitation(invitation.invitationId)}
                                 disabled={loadingStaff}
                               >
-                                <FiX color="#ef4444" />
+                                <FiX color='#ef4444' />
                               </IconButton>
                             </div>
                           </InvitationCard>

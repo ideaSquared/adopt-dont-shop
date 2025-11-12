@@ -17,11 +17,11 @@ const Card = styled.div<{ $clickable?: boolean }>`
   border-radius: 12px;
   padding: 1.5rem;
   transition: all 0.2s ease;
-  cursor: ${props => props.$clickable ? 'pointer' : 'default'};
+  cursor: ${props => (props.$clickable ? 'pointer' : 'default')};
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transform: ${props => props.$clickable ? 'translateY(-2px)' : 'none'};
+    transform: ${props => (props.$clickable ? 'translateY(-2px)' : 'none')};
   }
 `;
 
@@ -56,7 +56,7 @@ const Value = styled.div`
 
 const Change = styled.div<{ $positive?: boolean }>`
   font-size: 0.875rem;
-  color: ${props => props.$positive ? '#10b981' : '#ef4444'};
+  color: ${props => (props.$positive ? '#10b981' : '#ef4444')};
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -88,7 +88,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   change,
   changePositive = true,
   loading = false,
-  onClick
+  onClick,
 }) => {
   if (loading) {
     return (

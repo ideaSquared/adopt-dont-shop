@@ -20,7 +20,9 @@ export const useFeatureGate = (gateName: KnownGate | string): { value: boolean }
   const { client } = useContext(StatsigContext);
 
   if (!client) {
-    console.warn(`[useFeatureGate] Statsig client not initialized, returning false for gate: ${gateName}`);
+    console.warn(
+      `[useFeatureGate] Statsig client not initialized, returning false for gate: ${gateName}`
+    );
     return { value: false };
   }
 

@@ -63,20 +63,30 @@ const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 'info' 
   font-weight: 600;
   background: ${props => {
     switch (props.$variant) {
-      case 'success': return '#d1fae5';
-      case 'warning': return '#fef3c7';
-      case 'danger': return '#fee2e2';
-      case 'info': return '#dbeafe';
-      default: return '#f3f4f6';
+      case 'success':
+        return '#d1fae5';
+      case 'warning':
+        return '#fef3c7';
+      case 'danger':
+        return '#fee2e2';
+      case 'info':
+        return '#dbeafe';
+      default:
+        return '#f3f4f6';
     }
   }};
   color: ${props => {
     switch (props.$variant) {
-      case 'success': return '#065f46';
-      case 'warning': return '#92400e';
-      case 'danger': return '#991b1b';
-      case 'info': return '#1e40af';
-      default: return '#374151';
+      case 'success':
+        return '#065f46';
+      case 'warning':
+        return '#92400e';
+      case 'danger':
+        return '#991b1b';
+      case 'info':
+        return '#1e40af';
+      default:
+        return '#374151';
     }
   }};
 `;
@@ -123,41 +133,37 @@ const EmptyValue = styled.span`
   font-style: italic;
 `;
 
-export const UserDetailModal: React.FC<UserDetailModalProps> = ({
-  isOpen,
-  onClose,
-  user,
-}) => {
+export const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, user }) => {
   if (!user) return null;
 
   const getUserInitials = (firstName: string | null, lastName: string | null) => {
-    return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase() || "??";
+    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase() || '??';
   };
 
   const getUserTypeBadge = (userType: string) => {
     switch (userType) {
       case 'admin':
       case 'super_admin':
-        return <Badge $variant="danger">Admin</Badge>;
+        return <Badge $variant='danger'>Admin</Badge>;
       case 'moderator':
-        return <Badge $variant="warning">Moderator</Badge>;
+        return <Badge $variant='warning'>Moderator</Badge>;
       case 'rescue_staff':
-        return <Badge $variant="info">Rescue Staff</Badge>;
+        return <Badge $variant='info'>Rescue Staff</Badge>;
       case 'adopter':
-        return <Badge $variant="neutral">Adopter</Badge>;
+        return <Badge $variant='neutral'>Adopter</Badge>;
       default:
-        return <Badge $variant="neutral">{userType}</Badge>;
+        return <Badge $variant='neutral'>{userType}</Badge>;
     }
   };
 
   const getStatusBadge = (status: string, emailVerified: boolean) => {
     if (status === 'suspended') {
-      return <Badge $variant="danger">Suspended</Badge>;
+      return <Badge $variant='danger'>Suspended</Badge>;
     }
     if (status === 'pending' || !emailVerified) {
-      return <Badge $variant="warning">Pending</Badge>;
+      return <Badge $variant='warning'>Pending</Badge>;
     }
-    return <Badge $variant="success">Active</Badge>;
+    return <Badge $variant='success'>Active</Badge>;
   };
 
   const formatDate = (dateString: string) => {
@@ -167,28 +173,31 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="User Details"
-      size="lg"
-      centered
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title='User Details' size='lg' centered>
       <DetailSection>
         <UserHeader>
           <UserAvatar>{getUserInitials(user.firstName, user.lastName)}</UserAvatar>
           <UserInfo>
-            <UserName>{user.firstName} {user.lastName}</UserName>
+            <UserName>
+              {user.firstName} {user.lastName}
+            </UserName>
             <UserEmail>{user.email}</UserEmail>
           </UserInfo>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              alignItems: 'flex-end',
+            }}
+          >
             {getUserTypeBadge(user.userType)}
-            {getStatusBadge(user.status, (user.emailVerified ?? false))}
+            {getStatusBadge(user.status, user.emailVerified ?? false)}
           </div>
         </UserHeader>
 
@@ -207,7 +216,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               Phone Number
             </DetailLabel>
             <DetailValue>
-              {(user.phoneNumber ?? "") || <EmptyValue>Not provided</EmptyValue>}
+              {(user.phoneNumber ?? '') || <EmptyValue>Not provided</EmptyValue>}
             </DetailValue>
           </DetailItem>
 
@@ -235,13 +244,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
             <DetailValue>{(user.emailVerified ?? false) ? 'Yes' : 'No'}</DetailValue>
           </DetailItem>
 
-          {(user.rescueName ?? "") && (
+          {(user.rescueName ?? '') && (
             <DetailItem>
               <DetailLabel>
                 <FiUser />
                 Rescue Organization
               </DetailLabel>
-              <DetailValue>{(user.rescueName ?? "")}</DetailValue>
+              <DetailValue>{user.rescueName ?? ''}</DetailValue>
             </DetailItem>
           )}
 
@@ -259,7 +268,11 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               Last Login
             </DetailLabel>
             <DetailValue>
-              {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : <EmptyValue>Never</EmptyValue>}
+              {user.lastLogin ? (
+                new Date(user.lastLogin).toLocaleDateString()
+              ) : (
+                <EmptyValue>Never</EmptyValue>
+              )}
             </DetailValue>
           </DetailItem>
 

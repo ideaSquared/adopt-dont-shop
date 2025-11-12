@@ -4,13 +4,13 @@
 
 ### Data Formats
 
-| Type | Format | Example |
-|------|--------|---------|
-| **Date** | DD/MM/YYYY | 19/01/2025 |
-| **Time** | HH:mm (24-hour) | 14:30 |
-| **Phone** | 0XXX XXX XXXX | 020 1234 5678 |
-| **Postcode** | AA9A 9AA | SW1A 1AA |
-| **Currency** | £X,XXX.XX | £150.00 |
+| Type         | Format          | Example       |
+| ------------ | --------------- | ------------- |
+| **Date**     | DD/MM/YYYY      | 19/01/2025    |
+| **Time**     | HH:mm (24-hour) | 14:30         |
+| **Phone**    | 0XXX XXX XXXX   | 020 1234 5678 |
+| **Postcode** | AA9A 9AA        | SW1A 1AA      |
+| **Currency** | £X,XXX.XX       | £150.00       |
 
 ---
 
@@ -18,16 +18,30 @@
 
 ```typescript
 // Date formatting
-import { formatDate, formatDateTime, formatTime, formatRelativeDate } from '@adopt-dont-shop/lib-utils';
+import {
+  formatDate,
+  formatDateTime,
+  formatTime,
+  formatRelativeDate,
+} from '@adopt-dont-shop/lib-utils';
 
 // Currency formatting
 import { formatCurrency, formatCurrencyWhole, formatNumber } from '@adopt-dont-shop/lib-utils';
 
 // Phone formatting
-import { formatPhoneNumber, validatePhoneNumber, getPhonePlaceholder } from '@adopt-dont-shop/lib-utils';
+import {
+  formatPhoneNumber,
+  validatePhoneNumber,
+  getPhonePlaceholder,
+} from '@adopt-dont-shop/lib-utils';
 
 // Address formatting
-import { validatePostcode, formatPostcode, getPostcodePlaceholder, UK_COUNTIES } from '@adopt-dont-shop/lib-utils';
+import {
+  validatePostcode,
+  formatPostcode,
+  getPostcodePlaceholder,
+  UK_COUNTIES,
+} from '@adopt-dont-shop/lib-utils';
 
 // Configuration
 import { LOCALE_CONFIG } from '@adopt-dont-shop/lib-utils';
@@ -38,28 +52,33 @@ import { LOCALE_CONFIG } from '@adopt-dont-shop/lib-utils';
 ## Common Usage Patterns
 
 ### Format a Date
+
 ```typescript
-const display = formatDate(application.createdAt);  // "19/01/2025"
+const display = formatDate(application.createdAt); // "19/01/2025"
 ```
 
 ### Format Currency
+
 ```typescript
-const feeDisplay = formatCurrency(adoptionFee);  // "£150.00"
+const feeDisplay = formatCurrency(adoptionFee); // "£150.00"
 ```
 
 ### Format Phone Number
+
 ```typescript
-const phoneDisplay = formatPhoneNumber(rescue.phone);  // "020 1234 5678"
+const phoneDisplay = formatPhoneNumber(rescue.phone); // "020 1234 5678"
 ```
 
 ### Validate Postcode
+
 ```typescript
-const isValid = validatePostcode(userInput);  // true/false
+const isValid = validatePostcode(userInput); // true/false
 ```
 
 ### Format Postcode
+
 ```typescript
-const formatted = formatPostcode('sw1a1aa');  // "SW1A 1AA"
+const formatted = formatPostcode('sw1a1aa'); // "SW1A 1AA"
 ```
 
 ---
@@ -67,24 +86,27 @@ const formatted = formatPostcode('sw1a1aa');  // "SW1A 1AA"
 ## Address Fields
 
 ### Field Names (NEW)
+
 ```typescript
 interface RescueAddress {
   street: string;
   city: string;
-  county?: string;   // Optional, was: state
-  postcode: string;  // Was: zipCode
+  county?: string; // Optional, was: state
+  postcode: string; // Was: zipCode
   country: string;
 }
 ```
 
 ### Form Labels
-- **Street:** "Street Address *"
-- **City:** "Town/City *"
+
+- **Street:** "Street Address \*"
+- **City:** "Town/City \*"
 - **County:** "County" (optional)
-- **Postcode:** "Postcode *"
-- **Country:** "Country *"
+- **Postcode:** "Postcode \*"
+- **Country:** "Country \*"
 
 ### Placeholders
+
 - **Street:** "123 High Street"
 - **City:** "London"
 - **County:** "Greater London"
@@ -96,6 +118,7 @@ interface RescueAddress {
 ## Form Component Updates
 
 ### Text Input with Postcode
+
 ```typescript
 <TextInput
   label="Postcode *"
@@ -109,6 +132,7 @@ interface RescueAddress {
 ```
 
 ### Text Input with Phone
+
 ```typescript
 <TextInput
   label="Phone Number *"
@@ -123,6 +147,7 @@ interface RescueAddress {
 ```
 
 ### Currency Input
+
 ```typescript
 <TextInput
   label="Adoption Fee (£)"
@@ -140,6 +165,7 @@ interface RescueAddress {
 ## Display Components
 
 ### Display Date
+
 ```typescript
 function DateDisplay({ date }: { date: string | Date }) {
   return <time>{formatDate(date)}</time>;
@@ -147,6 +173,7 @@ function DateDisplay({ date }: { date: string | Date }) {
 ```
 
 ### Display Currency
+
 ```typescript
 function PriceDisplay({ amount }: { amount: number }) {
   return <span className="price">{formatCurrency(amount)}</span>;
@@ -154,6 +181,7 @@ function PriceDisplay({ amount }: { amount: number }) {
 ```
 
 ### Display Phone
+
 ```typescript
 function PhoneLink({ phone }: { phone: string }) {
   return (
@@ -165,6 +193,7 @@ function PhoneLink({ phone }: { phone: string }) {
 ```
 
 ### Display Address
+
 ```typescript
 function AddressBlock({ address }: { address: RescueAddress }) {
   return (
@@ -183,20 +212,21 @@ function AddressBlock({ address }: { address: RescueAddress }) {
 
 ## UK Spelling Conventions
 
-| US | UK |
-|----|-----|
+| US           | UK           |
+| ------------ | ------------ |
 | organization | organisation |
-| inquiries | enquiries |
-| ZIP Code | Postcode |
-| State | County |
-| $ | £ |
-| .org | .org.uk |
+| inquiries    | enquiries    |
+| ZIP Code     | Postcode     |
+| State        | County       |
+| $            | £            |
+| .org         | .org.uk      |
 
 ---
 
 ## Validation
 
 ### Postcode Validation
+
 ```typescript
 if (!validatePostcode(postcode)) {
   setError('Please enter a valid UK postcode (e.g., SW1A 1AA)');
@@ -204,6 +234,7 @@ if (!validatePostcode(postcode)) {
 ```
 
 ### Phone Validation
+
 ```typescript
 if (!validatePhoneNumber(phone)) {
   setError('Please enter a valid UK phone number');
@@ -215,6 +246,7 @@ if (!validatePhoneNumber(phone)) {
 ## Test Data
 
 ### Sample UK Addresses
+
 ```typescript
 {
   street: "10 Downing Street",
@@ -234,11 +266,13 @@ if (!validatePhoneNumber(phone)) {
 ```
 
 ### Sample Phone Numbers
+
 - Landline: `020 7946 0958`
 - Mobile: `07700 900123`
 - International: `+44 20 7946 0958`
 
 ### Sample Postcodes
+
 - `SW1A 1AA` (Westminster)
 - `M1 1AA` (Manchester)
 - `B33 8TH` (Birmingham)
@@ -250,23 +284,26 @@ if (!validatePhoneNumber(phone)) {
 ## Debugging Tips
 
 ### Check Current Locale
+
 ```typescript
-console.log(LOCALE_CONFIG.locale);  // "en-GB"
-console.log(LOCALE_CONFIG.currency);  // "GBP"
+console.log(LOCALE_CONFIG.locale); // "en-GB"
+console.log(LOCALE_CONFIG.currency); // "GBP"
 ```
 
 ### Verify Field Names
+
 ```typescript
 // If you see errors about 'state' or 'zipCode', update to:
-address.county  // instead of address.state
-address.postcode  // instead of address.zipCode
+address.county; // instead of address.state
+address.postcode; // instead of address.zipCode
 ```
 
 ### Check Imports
+
 ```typescript
 // Make sure you're importing from lib-utils, not using direct date-fns
-import { formatDate } from '@adopt-dont-shop/lib-utils';  // ✅ Correct
-import { format } from 'date-fns';  // ❌ Wrong (will use default formatting)
+import { formatDate } from '@adopt-dont-shop/lib-utils'; // ✅ Correct
+import { format } from 'date-fns'; // ❌ Wrong (will use default formatting)
 ```
 
 ---

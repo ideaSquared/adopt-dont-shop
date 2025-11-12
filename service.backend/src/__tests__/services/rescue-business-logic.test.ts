@@ -204,9 +204,9 @@ describe('RescueService - Business Logic Tests', () => {
       };
 
       // When & Then: Duplicate email is rejected
-      await expect(
-        RescueService.createRescue(rescueData, mockUserId)
-      ).rejects.toThrow('A rescue organization with this email already exists');
+      await expect(RescueService.createRescue(rescueData, mockUserId)).rejects.toThrow(
+        'A rescue organization with this email already exists'
+      );
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
 
@@ -231,11 +231,7 @@ describe('RescueService - Business Logic Tests', () => {
 
       // When & Then: Email conflict is rejected
       await expect(
-        RescueService.updateRescue(
-          mockRescueId,
-          { email: 'taken@example.com' },
-          mockUserId
-        )
+        RescueService.updateRescue(mockRescueId, { email: 'taken@example.com' }, mockUserId)
       ).rejects.toThrow('A rescue organization with this email already exists');
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
@@ -257,7 +253,11 @@ describe('RescueService - Business Logic Tests', () => {
       };
 
       // When: Verifying the rescue
-      const result = await RescueService.verifyRescue(mockRescueId, mockUserId, 'Verified successfully');
+      const result = await RescueService.verifyRescue(
+        mockRescueId,
+        mockUserId,
+        'Verified successfully'
+      );
 
       // Then: Status is updated to verified
       expect(mockRescue.update).toHaveBeenCalledWith(
@@ -291,9 +291,9 @@ describe('RescueService - Business Logic Tests', () => {
       };
 
       // When & Then: Re-verification is rejected
-      await expect(
-        RescueService.verifyRescue(mockRescueId, mockUserId)
-      ).rejects.toThrow('Rescue is already verified');
+      await expect(RescueService.verifyRescue(mockRescueId, mockUserId)).rejects.toThrow(
+        'Rescue is already verified'
+      );
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
 
@@ -360,9 +360,9 @@ describe('RescueService - Business Logic Tests', () => {
       };
 
       // When & Then: Rejection of inactive rescue is rejected
-      await expect(
-        RescueService.rejectRescue(mockRescueId, mockUserId)
-      ).rejects.toThrow('Rescue is already rejected');
+      await expect(RescueService.rejectRescue(mockRescueId, mockUserId)).rejects.toThrow(
+        'Rescue is already rejected'
+      );
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
   });
@@ -595,9 +595,7 @@ describe('RescueService - Business Logic Tests', () => {
 
     it('should filter rescues by location', async () => {
       // Given: Rescues in different locations
-      const londonRescues = [
-        createMockRescue({ city: 'London' }),
-      ];
+      const londonRescues = [createMockRescue({ city: 'London' })];
 
       MockedRescue.findAndCountAll = vi.fn().mockResolvedValue({
         count: 1,
@@ -621,7 +619,9 @@ describe('RescueService - Business Logic Tests', () => {
 
     it('should paginate rescue search results', async () => {
       // Given: Many rescues
-      const mockRescues = Array(5).fill(null).map(() => createMockRescue());
+      const mockRescues = Array(5)
+        .fill(null)
+        .map(() => createMockRescue());
 
       MockedRescue.findAndCountAll = vi.fn().mockResolvedValue({
         count: 50,
@@ -692,9 +692,9 @@ describe('RescueService - Business Logic Tests', () => {
       };
 
       // When & Then: Re-deletion is rejected
-      await expect(
-        RescueService.deleteRescue(mockRescueId, mockUserId)
-      ).rejects.toThrow('Rescue organization is already deleted');
+      await expect(RescueService.deleteRescue(mockRescueId, mockUserId)).rejects.toThrow(
+        'Rescue organization is already deleted'
+      );
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
   });
@@ -789,8 +789,8 @@ describe('RescueService - Business Logic Tests', () => {
       // Given: A rescue with pets and applications
       MockedPet.count = vi.fn()
         .mockResolvedValueOnce(10) // totalPets
-        .mockResolvedValueOnce(6)  // availablePets
-        .mockResolvedValueOnce(3)  // adoptedPets
+        .mockResolvedValueOnce(6) // availablePets
+        .mockResolvedValueOnce(3) // adoptedPets
         .mockResolvedValueOnce(1); // monthlyAdoptions
 
       MockedApplication.count = vi.fn()
@@ -814,17 +814,19 @@ describe('RescueService - Business Logic Tests', () => {
       const stats = await RescueService.getRescueStatistics(mockRescueId);
 
       // Then: Statistics are calculated correctly
-      expect(stats).toEqual(expect.objectContaining({
-        totalPets: 10,
-        availablePets: 6,
-        adoptedPets: 3,
-        pendingApplications: 5,
-        totalApplications: 15,
-        staffCount: 4,
-        activeListings: 6,
-        monthlyAdoptions: 1,
-        averageTimeToAdoption: expect.any(Number),
-      }));
+      expect(stats).toEqual(
+        expect.objectContaining({
+          totalPets: 10,
+          availablePets: 6,
+          adoptedPets: 3,
+          pendingApplications: 5,
+          totalApplications: 15,
+          staffCount: 4,
+          activeListings: 6,
+          monthlyAdoptions: 1,
+          averageTimeToAdoption: expect.any(Number),
+        })
+      );
     });
   });
 
@@ -834,9 +836,7 @@ describe('RescueService - Business Logic Tests', () => {
       MockedRescue.findByPk = vi.fn().mockResolvedValue(null);
 
       // When & Then: Error is thrown
-      await expect(
-        RescueService.getRescueById(mockRescueId)
-      ).rejects.toThrow('Rescue not found');
+      await expect(RescueService.getRescueById(mockRescueId)).rejects.toThrow('Rescue not found');
     });
 
     it('should throw error when user not found when adding staff', async () => {
@@ -907,9 +907,9 @@ describe('RescueService - Business Logic Tests', () => {
       await RescueService.createRescue(rescueData1, mockUserId);
 
       // Then: Second rescue with same email is rejected
-      await expect(
-        RescueService.createRescue(rescueData2, mockUserId)
-      ).rejects.toThrow('A rescue organization with this email already exists');
+      await expect(RescueService.createRescue(rescueData2, mockUserId)).rejects.toThrow(
+        'A rescue organization with this email already exists'
+      );
     });
 
     it('should log all rescue operations for audit trail', async () => {

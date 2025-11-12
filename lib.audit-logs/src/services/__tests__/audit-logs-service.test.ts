@@ -71,27 +71,13 @@ describe('AuditLogsService', () => {
         limit: 25,
       });
 
-      expect(mockApi.get).toHaveBeenCalledWith(
-        expect.stringContaining('action=LOGIN')
-      );
-      expect(mockApi.get).toHaveBeenCalledWith(
-        expect.stringContaining('userId=user-123')
-      );
-      expect(mockApi.get).toHaveBeenCalledWith(
-        expect.stringContaining('entity=user')
-      );
-      expect(mockApi.get).toHaveBeenCalledWith(
-        expect.stringContaining('level=INFO')
-      );
-      expect(mockApi.get).toHaveBeenCalledWith(
-        expect.stringContaining('status=success')
-      );
-      expect(mockApi.get).toHaveBeenCalledWith(
-        expect.stringContaining('page=2')
-      );
-      expect(mockApi.get).toHaveBeenCalledWith(
-        expect.stringContaining('limit=25')
-      );
+      expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining('action=LOGIN'));
+      expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining('userId=user-123'));
+      expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining('entity=user'));
+      expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining('level=INFO'));
+      expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining('status=success'));
+      expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining('page=2'));
+      expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining('limit=25'));
     });
 
     it('should use custom date range when provided', async () => {
@@ -118,12 +104,8 @@ describe('AuditLogsService', () => {
         limit: 100,
       });
 
-      expect(mockApi.get).toHaveBeenCalledWith(
-        expect.stringContaining('page=3')
-      );
-      expect(mockApi.get).toHaveBeenCalledWith(
-        expect.stringContaining('limit=100')
-      );
+      expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining('page=3'));
+      expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining('limit=100'));
       expect(result.pagination).toBeDefined();
       expect(result.pagination.page).toBe(1);
       expect(result.pagination.limit).toBe(50);
@@ -133,9 +115,7 @@ describe('AuditLogsService', () => {
       const error = new Error('API request failed');
       mockApi.get.mockRejectedValue(error);
 
-      await expect(AuditLogsService.getAuditLogs()).rejects.toThrow(
-        'API request failed'
-      );
+      await expect(AuditLogsService.getAuditLogs()).rejects.toThrow('API request failed');
     });
 
     it('should format dates correctly in query parameters', async () => {

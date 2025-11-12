@@ -8,6 +8,51 @@ vi.mock('../../sequelize', () => ({
   },
 }));
 
+// Mock EmailQueue to prevent initialization errors
+jest.mock('../../models/EmailQueue', () => ({
+  __esModule: true,
+  default: {
+    create: jest.fn(),
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    build: jest.fn(),
+  },
+  EmailStatus: {
+    QUEUED: 'queued',
+    SENDING: 'sending',
+    SENT: 'sent',
+    FAILED: 'failed',
+  },
+  EmailPriority: {
+    NORMAL: 'normal',
+    HIGH: 'high',
+  },
+  EmailType: {
+    TRANSACTIONAL: 'transactional',
+    NOTIFICATION: 'notification',
+  },
+}));
+
+// Mock EmailTemplate to prevent initialization errors
+jest.mock('../../models/EmailTemplate', () => ({
+  __esModule: true,
+  default: {
+    create: jest.fn(),
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+  },
+  TemplateType: {
+    TRANSACTIONAL: 'transactional',
+    NOTIFICATION: 'notification',
+  },
+  TemplateStatus: {
+    ACTIVE: 'active',
+    DRAFT: 'draft',
+  },
+}));
+
 // Mock models
 vi.mock('../../models/Notification', () => {
   const mockNotification = {
@@ -194,7 +239,7 @@ describe('NotificationService', () => {
         expect(MockedNotification.findAndCountAll).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              userId: 'user-123',
+              user_id: 'user-123',
               read_at: null,
             }),
             limit: 10,
@@ -232,8 +277,8 @@ describe('NotificationService', () => {
 
         const callArgs = (MockedNotification.findAndCountAll as vi.Mock).mock.calls[0][0];
         // Service uses Op.or which becomes a Symbol property
-        const hasOrClause = Object.getOwnPropertySymbols(callArgs.where).some(
-          sym => sym.toString().includes('or')
+        const hasOrClause = Object.getOwnPropertySymbols(callArgs.where).some(sym =>
+          sym.toString().includes('or')
         );
         expect(hasOrClause).toBe(true);
       });
@@ -455,9 +500,9 @@ describe('NotificationService', () => {
       it('should throw error if notification not found', async () => {
         (MockedNotification.update as vi.Mock).mockResolvedValue([0]); // 0 rows affected
 
-        await expect(
-          NotificationService.markAsRead('notif-999', 'user-123')
-        ).rejects.toThrow('Notification not found or access denied');
+        await expect(NotificationService.markAsRead('notif-999', 'user-123')).rejects.toThrow(
+          'Notification not found or access denied'
+        );
       });
     });
 

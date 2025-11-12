@@ -44,7 +44,8 @@ const FilterGroup = styled.div`
     color: ${props => props.theme.text.primary};
   }
 
-  select, input {
+  select,
+  input {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid ${props => props.theme.colors.neutral[300]};
@@ -103,22 +104,26 @@ const PetFilters: React.FC<PetFiltersProps> = ({
 
       <FiltersGrid>
         <FilterGroup>
-          <label className="label" htmlFor="search">Search</label>
+          <label className="label" htmlFor="search">
+            Search
+          </label>
           <input
             id="search"
             type="text"
             placeholder="Pet name, breed, or ID..."
             value={filters.search}
-            onChange={(e) => onFilterChange('search', e.target.value)}
+            onChange={e => onFilterChange('search', e.target.value)}
           />
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="type">Pet Type</label>
+          <label className="label" htmlFor="type">
+            Pet Type
+          </label>
           <select
             id="type"
             value={filters.type}
-            onChange={(e) => onFilterChange('type', e.target.value)}
+            onChange={e => onFilterChange('type', e.target.value)}
           >
             <option value="">All Types</option>
             <option value="dog">Dogs</option>
@@ -130,11 +135,13 @@ const PetFilters: React.FC<PetFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="status">Status</label>
+          <label className="label" htmlFor="status">
+            Status
+          </label>
           <select
             id="status"
             value={filters.status}
-            onChange={(e) => onFilterChange('status', e.target.value)}
+            onChange={e => onFilterChange('status', e.target.value)}
           >
             <option value="">All Statuses</option>
             <option value="available">Available</option>
@@ -148,11 +155,13 @@ const PetFilters: React.FC<PetFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="size">Size</label>
+          <label className="label" htmlFor="size">
+            Size
+          </label>
           <select
             id="size"
             value={filters.size}
-            onChange={(e) => onFilterChange('size', e.target.value)}
+            onChange={e => onFilterChange('size', e.target.value)}
           >
             <option value="">All Sizes</option>
             <option value="small">Small</option>
@@ -163,22 +172,26 @@ const PetFilters: React.FC<PetFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="breed">Breed</label>
+          <label className="label" htmlFor="breed">
+            Breed
+          </label>
           <input
             id="breed"
             type="text"
             placeholder="Enter breed..."
             value={filters.breed}
-            onChange={(e) => onFilterChange('breed', e.target.value)}
+            onChange={e => onFilterChange('breed', e.target.value)}
           />
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="ageGroup">Age Group</label>
+          <label className="label" htmlFor="ageGroup">
+            Age Group
+          </label>
           <select
             id="ageGroup"
             value={filters.ageGroup}
-            onChange={(e) => onFilterChange('ageGroup', e.target.value)}
+            onChange={e => onFilterChange('ageGroup', e.target.value)}
           >
             <option value="">All Ages</option>
             <option value="young">Young</option>
@@ -188,11 +201,13 @@ const PetFilters: React.FC<PetFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="gender">Gender</label>
+          <label className="label" htmlFor="gender">
+            Gender
+          </label>
           <select
             id="gender"
             value={filters.gender}
-            onChange={(e) => onFilterChange('gender', e.target.value)}
+            onChange={e => onFilterChange('gender', e.target.value)}
           >
             <option value="">All Genders</option>
             <option value="male">Male</option>

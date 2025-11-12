@@ -181,4 +181,3 @@ export interface AuditLogsResponse {
 export interface SystemPermissionsResponse {
   permissions: Permission[];
 }
-

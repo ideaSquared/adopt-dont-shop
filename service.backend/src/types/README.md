@@ -236,9 +236,9 @@ All types are designed for strict TypeScript compilation:
 ```typescript
 // Strict null checks
 interface UserProfile {
-  user_id: string;        // Required
-  phone_number?: string;  // Optional
-  bio?: string | null;    // Explicitly nullable
+  user_id: string; // Required
+  phone_number?: string; // Optional
+  bio?: string | null; // Explicitly nullable
 }
 ```
 
@@ -345,4 +345,4 @@ interface AdoptionApplication {
   submitted_at: Date;
   // ... additional fields
 }
-``` 
+```

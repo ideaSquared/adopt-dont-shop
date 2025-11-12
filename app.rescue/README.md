@@ -22,11 +22,13 @@ A React TypeScript application for the Adopt Don't Shop platform.
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -74,6 +76,7 @@ This application uses Jest with Testing Library for comprehensive testing:
 ### Test Setup
 
 The test environment includes:
+
 - Global fetch mocking
 - localStorage mocking
 - React Router mocking

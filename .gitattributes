@@ -3,21 +3,21 @@
 * text=auto
 
 # Explicitly declare text files you want to always be normalized and converted
-# to native line endings on checkout.
-*.js text eol=crlf
-*.jsx text eol=crlf
-*.ts text eol=crlf
-*.tsx text eol=crlf
-*.json text eol=crlf
-*.css text eol=crlf
-*.scss text eol=crlf
-*.md text eol=crlf
-*.html text eol=crlf
-*.xml text eol=crlf
-*.yml text eol=crlf
-*.yaml text eol=crlf
+# to LF line endings on checkout (Unix-style, cross-platform compatible).
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
 
-# Declare files that will always have CRLF line endings on checkout.
+# Declare files that will always have CRLF line endings on checkout (Windows scripts).
 *.bat text eol=crlf
 *.cmd text eol=crlf
 

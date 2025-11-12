@@ -60,7 +60,7 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  display: ${props => props.$isOpen ? 'block' : 'none'};
+  display: ${props => (props.$isOpen ? 'block' : 'none')};
   z-index: 1000;
   overflow: hidden;
 `;
@@ -80,9 +80,9 @@ const MenuItem = styled.button<{ $danger?: boolean; $disabled?: boolean }>`
     if (props.$danger) return '#ef4444';
     return '#111827';
   }};
-  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+  cursor: ${props => (props.$disabled ? 'not-allowed' : 'pointer')};
   transition: all 0.2s ease;
-  opacity: ${props => props.$disabled ? 0.5 : 1};
+  opacity: ${props => (props.$disabled ? 0.5 : 1)};
 
   &:hover {
     background: ${props => {
@@ -104,10 +104,7 @@ const Divider = styled.div`
   margin: 0.25rem 0;
 `;
 
-export const ActionMenu: React.FC<ActionMenuProps> = ({
-  items,
-  trigger
-}) => {
+export const ActionMenu: React.FC<ActionMenuProps> = ({ items, trigger }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -136,12 +133,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
 
   return (
     <MenuContainer ref={menuRef}>
-      <TriggerButton onClick={() => setIsOpen(!isOpen)} aria-label="Actions menu">
+      <TriggerButton onClick={() => setIsOpen(!isOpen)} aria-label='Actions menu'>
         {trigger || <FiMoreVertical />}
       </TriggerButton>
 
       <Dropdown $isOpen={isOpen}>
-        {items.map((item) => (
+        {items.map(item => (
           <React.Fragment key={item.id}>
             {item.id === 'divider' ? (
               <Divider />

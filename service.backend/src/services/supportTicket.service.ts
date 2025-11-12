@@ -1,4 +1,8 @@
-import SupportTicket, { TicketStatus, TicketPriority, TicketCategory } from '../models/SupportTicket';
+import SupportTicket, {
+  TicketStatus,
+  TicketPriority,
+  TicketCategory,
+} from '../models/SupportTicket';
 import SupportTicketResponse, { ResponderType } from '../models/SupportTicketResponse';
 import User from '../models/User';
 import { Op, Transaction, WhereOptions } from 'sequelize';
@@ -30,12 +34,7 @@ class SupportTicketService {
    */
   async getTickets(filters: TicketFilters = {}, pagination: PaginationOptions = {}) {
     try {
-      const {
-        page = 1,
-        limit = 20,
-        sortBy = 'createdAt',
-        sortOrder = 'DESC',
-      } = pagination;
+      const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
 
       const offset = (page - 1) * limit;
 
@@ -318,20 +317,25 @@ class SupportTicketService {
             throw new Error(`Attachment ${attachment.filename} exceeds maximum size of 10MB`);
           }
           if (!ALLOWED_MIME_TYPES.includes(attachment.mimeType)) {
-            throw new Error(`Attachment ${attachment.filename} has unsupported file type: ${attachment.mimeType}`);
+            throw new Error(
+              `Attachment ${attachment.filename} has unsupported file type: ${attachment.mimeType}`
+            );
           }
         }
       }
 
       // Create the response in the separate table
-      await SupportTicketResponse.create({
-        ticketId,
-        responderId: response.responderId,
-        responderType: response.responderType as ResponderType,
-        content: response.content,
-        attachments: response.attachments || [],
-        isInternal: response.isInternal || false,
-      }, { transaction });
+      await SupportTicketResponse.create(
+        {
+          ticketId,
+          responderId: response.responderId,
+          responderType: response.responderType as ResponderType,
+          content: response.content,
+          attachments: response.attachments || [],
+          isInternal: response.isInternal || false,
+        },
+        { transaction }
+      );
 
       // Update ticket timestamps
       const updateData: Partial<{
@@ -460,7 +464,10 @@ class SupportTicketService {
 
       const tickets = await SupportTicket.findAll({
         where,
-        order: [['priority', 'DESC'], ['createdAt', 'ASC']],
+        order: [
+          ['priority', 'DESC'],
+          ['createdAt', 'ASC'],
+        ],
       });
 
       return tickets;
@@ -470,18 +477,16 @@ class SupportTicketService {
     }
   }
 
-
   /**
    * Get all tickets for a specific user
    */
-  async getUserTickets(userId: string, filters: TicketFilters = {}, pagination: PaginationOptions = {}) {
+  async getUserTickets(
+    userId: string,
+    filters: TicketFilters = {},
+    pagination: PaginationOptions = {}
+  ) {
     try {
-      const {
-        page = 1,
-        limit = 20,
-        sortBy = 'createdAt',
-        sortOrder = 'DESC',
-      } = pagination;
+      const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
 
       const offset = (page - 1) * limit;
 

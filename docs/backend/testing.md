@@ -38,6 +38,7 @@ npm run test:e2e
 ```
 
 ### Coverage Requirements
+
 - Overall: 80%+ coverage
 - Services: 90%+ coverage
 - Controllers: 85%+ coverage
@@ -60,11 +61,11 @@ module.exports = {
       branches: 80,
       functions: 80,
       lines: 80,
-      statements: 80
-    }
+      statements: 80,
+    },
   },
   testTimeout: 10000,
-  maxWorkers: 1
+  maxWorkers: 1,
 };
 ```
 
@@ -92,6 +93,7 @@ afterAll(async () => {
 ### Service Layer
 
 **Example: User Service**
+
 ```typescript
 describe('UserService', () => {
   describe('createUser', () => {
@@ -124,6 +126,7 @@ describe('UserService', () => {
 ### Controller Layer
 
 **Example: Pet Controller**
+
 ```typescript
 describe('PetController', () => {
   describe('POST /api/v1/pets', () => {
@@ -138,9 +141,7 @@ describe('PetController', () => {
     });
 
     it('should reject unauthorized users', async () => {
-      const response = await request(app)
-        .post('/api/v1/pets')
-        .send(validPetData);
+      const response = await request(app).post('/api/v1/pets').send(validPetData);
 
       expect(response.status).toBe(401);
     });
@@ -279,7 +280,7 @@ export const createTestUser = async (overrides = {}) => {
     lastName: 'User',
     userType: 'ADOPTER',
     emailVerified: true,
-    ...overrides
+    ...overrides,
   });
 };
 
@@ -291,7 +292,7 @@ export const createTestPet = async (rescueId: string, overrides = {}) => {
     breed: 'Mixed',
     age: 24,
     status: 'AVAILABLE',
-    ...overrides
+    ...overrides,
   });
 };
 ```
@@ -302,36 +303,40 @@ export const createTestPet = async (rescueId: string, overrides = {}) => {
 // test-helpers/mocks.ts
 export const mockEmailService = {
   sendEmail: jest.fn().mockResolvedValue({ success: true }),
-  sendTemplate: jest.fn().mockResolvedValue({ success: true })
+  sendTemplate: jest.fn().mockResolvedValue({ success: true }),
 };
 
 export const mockStorageService = {
   uploadFile: jest.fn().mockResolvedValue({ url: 'https://cdn.example.com/file.jpg' }),
-  deleteFile: jest.fn().mockResolvedValue({ success: true })
+  deleteFile: jest.fn().mockResolvedValue({ success: true }),
 };
 ```
 
 ## Best Practices
 
 ### Test Organization
+
 - One test file per service/controller
 - Group related tests with `describe` blocks
 - Use clear, descriptive test names
 - Follow AAA pattern: Arrange, Act, Assert
 
 ### Test Independence
+
 - Each test should be independent
 - Use `beforeEach` to set up clean state
 - Don't rely on test execution order
 - Clean up resources in `afterEach`
 
 ### Test Coverage
+
 - Test happy paths and edge cases
 - Test error conditions and validation
 - Test boundary conditions
 - Mock external dependencies
 
 ### Performance
+
 - Keep tests fast (< 100ms per unit test)
 - Use database transactions when possible
 - Mock external services
@@ -355,6 +360,7 @@ node --inspect-brk node_modules/.bin/jest --runInBand
 ### Common Issues
 
 **Database Connection Issues**
+
 ```bash
 # Check test database exists
 npm run db:create:test
@@ -364,6 +370,7 @@ npm run db:reset:test
 ```
 
 **Timeout Errors**
+
 ```typescript
 // Increase timeout for specific test
 it('slow operation', async () => {
@@ -372,6 +379,7 @@ it('slow operation', async () => {
 ```
 
 **Flaky Tests**
+
 - Ensure proper cleanup in `afterEach`
 - Check for race conditions
 - Avoid timing-dependent assertions

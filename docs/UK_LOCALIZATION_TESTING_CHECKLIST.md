@@ -4,15 +4,16 @@
 
 Use this checklist to verify the UK localization implementation before deploying to production.
 
-**Tester:** _______________
-**Date:** _______________
-**Environment:** _______________
+**Tester:** **\*\***\_\_\_**\*\***
+**Date:** **\*\***\_\_\_**\*\***
+**Environment:** **\*\***\_\_\_**\*\***
 
 ---
 
 ## 1. RescueProfileForm - Basic Information
 
 ### Organization Details
+
 - [ ] "Rescue Name" field accepts text input
 - [ ] "Rescue Type" dropdown includes "Rescue Organisation" (UK spelling)
 - [ ] Email placeholder shows "contact@rescue.org.uk"
@@ -23,6 +24,7 @@ Use this checklist to verify the UK localization implementation before deploying
 - [ ] Helper text says "enquiries" not "inquiries"
 
 **Test Data:**
+
 ```
 Name: Happy Paws Rescue
 Type: Rescue Organisation
@@ -36,25 +38,29 @@ Website: https://www.happypaws.org.uk
 ## 2. RescueProfileForm - Address Section
 
 ### Street Address
-- [ ] Label reads "Street Address *"
+
+- [ ] Label reads "Street Address \*"
 - [ ] Placeholder shows "123 High Street"
 - [ ] Field is required
 - [ ] Accepts text input
 
 ### Town/City
-- [ ] Label reads "Town/City *"
+
+- [ ] Label reads "Town/City \*"
 - [ ] Placeholder shows "London"
 - [ ] Field is required
 - [ ] Accepts text input
 
 ### County
+
 - [ ] Label reads "County" (not "State")
 - [ ] Field is **NOT** required (can be left blank)
 - [ ] Placeholder shows "Greater London"
 - [ ] Accepts text input
 
 ### Postcode
-- [ ] Label reads "Postcode *" (not "ZIP Code")
+
+- [ ] Label reads "Postcode \*" (not "ZIP Code")
 - [ ] Placeholder shows "SW1A 1AA"
 - [ ] Field is required
 - [ ] Helper text shows "UK postcode format"
@@ -62,6 +68,7 @@ Website: https://www.happypaws.org.uk
 - [ ] Accepts valid UK postcode formats
 
 **Test Postcodes:**
+
 - [ ] `SW1A 1AA` (should accept)
 - [ ] `M1 1AA` (should accept)
 - [ ] `sw1a1aa` (should auto-convert to `SW1A 1AA`)
@@ -69,13 +76,15 @@ Website: https://www.happypaws.org.uk
 - [ ] `12345` (should reject - US format)
 
 ### Country
-- [ ] Label reads "Country *"
+
+- [ ] Label reads "Country \*"
 - [ ] Default value is "United Kingdom"
 - [ ] **United Kingdom appears first** in dropdown
 - [ ] Dropdown includes: UK, Ireland, US, Canada, Australia, Other
 - [ ] Field is required
 
 **Test Data:**
+
 ```
 Street: 10 Downing Street
 City: London
@@ -89,18 +98,21 @@ Country: United Kingdom
 ## 3. RescueProfileForm - Form Behavior
 
 ### Form Validation
+
 - [ ] Cannot submit without required fields
-- [ ] Required fields marked with *
+- [ ] Required fields marked with \*
 - [ ] County can be left blank
 - [ ] Form shows validation errors
 
 ### Form Submission
+
 - [ ] "Save Changes" button works
 - [ ] Loading state shows "Saving..."
 - [ ] Success message appears after save
 - [ ] Error message shows if save fails
 
 ### Reset Functionality
+
 - [ ] "Reset" button restores original values
 - [ ] "Reset" button disabled when no changes
 - [ ] "Reset" button enabled after making changes
@@ -110,6 +122,7 @@ Country: United Kingdom
 ## 4. AdoptionPolicyForm - Currency Display
 
 ### Fee Fields
+
 - [ ] "Minimum Fee" label shows (£) symbol
 - [ ] "Maximum Fee" label shows (£) symbol
 - [ ] Both fields accept decimal numbers
@@ -117,6 +130,7 @@ Country: United Kingdom
 - [ ] Helper text mentions "adoption fees"
 
 **Test Data:**
+
 ```
 Minimum Fee: 50.00 (should save as £50.00)
 Maximum Fee: 200.00 (should save as £200.00)
@@ -127,6 +141,7 @@ Maximum Fee: 200.00 (should save as £200.00)
 ## 5. Data Persistence
 
 ### Save and Reload
+
 - [ ] Save a rescue profile with UK address
 - [ ] Refresh the page
 - [ ] **All UK address fields load correctly**
@@ -135,6 +150,7 @@ Maximum Fee: 200.00 (should save as £200.00)
 - [ ] Country shows "United Kingdom"
 
 ### API Integration
+
 - [ ] Check network tab - POST/PUT requests send correct data
 - [ ] Verify response includes `postcode` and `county` fields
 - [ ] Check backend logs - data saved to database correctly
@@ -144,7 +160,9 @@ Maximum Fee: 200.00 (should save as £200.00)
 ## 6. Phone Number Testing
 
 ### Valid UK Numbers
+
 Test these should be accepted:
+
 - [ ] `020 7946 0958` (London landline)
 - [ ] `07700 900123` (Mobile)
 - [ ] `01234 567890` (Other landline)
@@ -152,7 +170,9 @@ Test these should be accepted:
 - [ ] `02079460958` (No spaces - should format on display)
 
 ### Invalid Numbers
+
 These should be rejected or flagged:
+
 - [ ] `(555) 123-4567` (US format)
 - [ ] `123` (Too short)
 
@@ -161,7 +181,9 @@ These should be rejected or flagged:
 ## 7. Postcode Testing
 
 ### Valid UK Postcodes
+
 Test these should be accepted:
+
 - [ ] `SW1A 1AA` (Westminster)
 - [ ] `M1 1AA` (Manchester)
 - [ ] `B33 8TH` (Birmingham)
@@ -171,12 +193,15 @@ Test these should be accepted:
 - [ ] `EC1A 1BB` (City of London)
 
 ### Auto-Formatting
+
 - [ ] Enter `sw1a1aa` → Should display as `SW1A 1AA`
 - [ ] Enter `m1 1aa` → Should display as `M1 1AA`
 - [ ] Enter `SW1A1AA` → Should display as `SW1A 1AA` (add space)
 
 ### Invalid Postcodes
+
 These should be rejected:
+
 - [ ] `12345` (US ZIP)
 - [ ] `ABC` (Too short)
 - [ ] `AAAA AAAA` (Invalid format)
@@ -186,6 +211,7 @@ These should be rejected:
 ## 8. UK English Spelling
 
 ### Check These Terms
+
 - [ ] "Organisation" not "Organization"
 - [ ] "Enquiries" not "Inquiries"
 - [ ] "Postcode" not "ZIP Code"
@@ -197,6 +223,7 @@ These should be rejected:
 ## 9. Country Dropdown Order
 
 ### Verify Order
+
 1. [ ] United Kingdom (first)
 2. [ ] Ireland
 3. [ ] United States
@@ -209,17 +236,20 @@ These should be rejected:
 ## 10. Edge Cases
 
 ### Empty County Field
+
 - [ ] Leave county blank
 - [ ] Save form
 - [ ] **Form saves successfully** (county is optional)
 - [ ] Reload page - county remains empty (not showing error)
 
 ### Special Characters in Address
+
 - [ ] Enter address with apostrophe: "St. Mary's Road"
 - [ ] Enter address with hyphen: "Stoke-on-Trent"
 - [ ] **Should save correctly**
 
 ### Long Address Values
+
 - [ ] Enter very long street name (100+ chars)
 - [ ] Enter very long city name (50+ chars)
 - [ ] Check field truncation/scrolling works
@@ -229,11 +259,13 @@ These should be rejected:
 ## 11. Backend Compatibility
 
 ### Database Field Mapping
+
 - [ ] Check database - verify `county` value stored in `state` column
 - [ ] Check database - verify `postcode` value stored in `zip_code` column
 - [ ] Verify existing data still loads (backward compatibility)
 
 ### API Responses
+
 - [ ] GET /api/rescues/:id returns `postcode` field
 - [ ] GET /api/rescues/:id returns `county` field
 - [ ] POST/PUT accepts new field names
@@ -244,10 +276,12 @@ These should be rejected:
 ## 12. TypeScript Compilation
 
 ### Build Check
+
 ```bash
 cd app.rescue
 npm run type-check
 ```
+
 - [ ] No TypeScript errors
 - [ ] No warnings about `state` or `zipCode`
 - [ ] All imports resolve correctly
@@ -257,12 +291,14 @@ npm run type-check
 ## 13. Cross-Browser Testing
 
 Test in:
+
 - [ ] Chrome
 - [ ] Firefox
 - [ ] Safari
 - [ ] Edge
 
 Verify:
+
 - [ ] Forms display correctly
 - [ ] Postcode auto-uppercase works
 - [ ] Dropdowns function properly
@@ -273,6 +309,7 @@ Verify:
 ## 14. Mobile Testing
 
 ### Responsive Design
+
 - [ ] Forms are usable on mobile (iPhone/Android)
 - [ ] Input fields don't cause horizontal scroll
 - [ ] Dropdown menus work on touch devices
@@ -283,11 +320,13 @@ Verify:
 ## 15. Accessibility
 
 ### Keyboard Navigation
+
 - [ ] Can tab through all form fields
 - [ ] Required fields indicated for screen readers
 - [ ] Error messages announced properly
 
 ### Screen Reader
+
 - [ ] Field labels read correctly
 - [ ] Helper text is associated with inputs
 - [ ] Error messages read aloud
@@ -297,6 +336,7 @@ Verify:
 ## 16. Performance
 
 ### Load Time
+
 - [ ] Form loads quickly (<2 seconds)
 - [ ] No lag when typing in postcode field
 - [ ] Dropdown opens immediately
@@ -307,6 +347,7 @@ Verify:
 ## Common Issues to Watch For
 
 ### ❌ Known Issues to Check
+
 - [ ] Postcode doesn't auto-uppercase → Check onChange handler
 - [ ] County field required → Should be optional
 - [ ] "State" or "ZIP Code" still visible → Check labels
@@ -318,21 +359,24 @@ Verify:
 ## Sign-Off
 
 ### Testing Complete
+
 - [ ] All critical tests passed
 - [ ] No blocking issues found
 - [ ] Ready for production deployment
 
-**Tester Signature:** _______________
-**Date:** _______________
+**Tester Signature:** **\*\***\_\_\_**\*\***
+**Date:** **\*\***\_\_\_**\*\***
 
 ### Issues Found
+
 | Issue | Severity | Status |
-|-------|----------|--------|
+| ----- | -------- | ------ |
 |       |          |        |
 |       |          |        |
 |       |          |        |
 
 **Notes:**
+
 ```
 [Add any additional notes here]
 ```
@@ -362,6 +406,7 @@ For rapid testing, use this complete rescue profile:
 ```
 
 **Expected behavior:**
+
 1. All fields populate correctly
 2. Postcode displays in uppercase: `SW1A 2AA`
 3. County field is optional and shows "Greater London"

@@ -48,3 +48,7 @@ docker-compose.yml
 
 # Markdown files (optional)
 *.md
+
+# Problematic files with syntax errors
+scripts/
+docs/

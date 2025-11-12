@@ -101,14 +101,11 @@ describe('DiscoveryService', () => {
 
       const result = await service.getDiscoveryQueue();
 
-      expect(mockApiService.post).toHaveBeenCalledWith(
-        '/api/v1/discovery/queue',
-        {
-          filters: {},
-          userId: undefined,
-          limit: 20,
-        }
-      );
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/discovery/queue', {
+        filters: {},
+        userId: undefined,
+        limit: 20,
+      });
       expect(result).toEqual(mockResponse);
     });
 
@@ -124,19 +121,16 @@ describe('DiscoveryService', () => {
 
       await service.getDiscoveryQueue(filters, 'user-123');
 
-      expect(mockApiService.post).toHaveBeenCalledWith(
-        '/api/v1/discovery/queue',
-        {
-          filters: {
-            type: 'dog',
-            breed: 'Golden Retriever',
-            size: 'large',
-            maxDistance: '10',
-          },
-          userId: 'user-123',
-          limit: 20,
-        }
-      );
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/discovery/queue', {
+        filters: {
+          type: 'dog',
+          breed: 'Golden Retriever',
+          size: 'large',
+          maxDistance: '10',
+        },
+        userId: 'user-123',
+        limit: 20,
+      });
     });
 
     it('should return empty queue on API failure', async () => {
@@ -247,14 +241,11 @@ describe('DiscoveryService', () => {
 
       const result = await service.loadMorePets('session-123', 'pet-456');
 
-      expect(mockApiService.post).toHaveBeenCalledWith(
-        '/api/v1/discovery/pets/more',
-        {
-          sessionId: 'session-123',
-          lastPetId: 'pet-456',
-          limit: 10,
-        }
-      );
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/discovery/pets/more', {
+        sessionId: 'session-123',
+        lastPetId: 'pet-456',
+        limit: 10,
+      });
       expect(result).toEqual(mockMorePets);
     });
 
@@ -328,13 +319,10 @@ describe('DiscoveryService', () => {
 
         await service.endSwipeSession('session-123');
 
-        expect(mockApiService.post).toHaveBeenCalledWith(
-          '/api/v1/discovery/swipe/session/end',
-          {
-            sessionId: 'session-123',
-            endTime: expect.any(String),
-          }
-        );
+        expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/discovery/swipe/session/end', {
+          sessionId: 'session-123',
+          endTime: expect.any(String),
+        });
       });
 
       it('should handle API failure gracefully', async () => {
@@ -359,7 +347,9 @@ describe('DiscoveryService', () => {
 
         const result = await service.getSessionStats('session-123');
 
-        expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/discovery/swipe/session/session-123');
+        expect(mockApiService.get).toHaveBeenCalledWith(
+          '/api/v1/discovery/swipe/session/session-123'
+        );
         expect(result).toEqual(mockSessionStats);
       });
 
@@ -390,23 +380,20 @@ describe('DiscoveryService', () => {
 
       await service.getDiscoveryQueue(filters);
 
-      expect(mockApiService.post).toHaveBeenCalledWith(
-        '/api/v1/discovery/queue',
-        {
-          filters: {
-            type: 'cat',
-            breed: 'Persian',
-            ageGroup: 'adult',
-            size: 'medium',
-            gender: 'female',
-            location: 'New York, NY',
-            maxDistance: '25',
-            search: 'fluffy',
-          },
-          userId: undefined,
-          limit: 20,
-        }
-      );
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/discovery/queue', {
+        filters: {
+          type: 'cat',
+          breed: 'Persian',
+          ageGroup: 'adult',
+          size: 'medium',
+          gender: 'female',
+          location: 'New York, NY',
+          maxDistance: '25',
+          search: 'fluffy',
+        },
+        userId: undefined,
+        limit: 20,
+      });
     });
   });
 

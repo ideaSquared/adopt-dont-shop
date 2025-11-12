@@ -11,10 +11,7 @@ import { LOCALE_CONFIG } from './config';
  * @param options - Intl.NumberFormatOptions for customization
  * @returns Formatted currency string (e.g., "£1,234.56")
  */
-export function formatCurrency(
-  amount: number,
-  options?: Intl.NumberFormatOptions
-): string {
+export function formatCurrency(amount: number, options?: Intl.NumberFormatOptions): string {
   try {
     const formatter = new Intl.NumberFormat(LOCALE_CONFIG.locale, {
       style: 'currency',

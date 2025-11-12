@@ -36,7 +36,6 @@ const Label = styled.label`
   color: #374151;
 `;
 
-
 const Select = styled.select`
   padding: 0.625rem 0.875rem;
   border: 1px solid #d1d5db;
@@ -228,20 +227,23 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Create Support Ticket"
-      size="lg"
+      title='Create Support Ticket'
+      size='lg'
       centered
       closeOnOverlayClick={!isSubmitting}
       closeOnEscape={!isSubmitting}
     >
       <Form onSubmit={handleSubmit}>
         <InfoBox>
-          This will create a support ticket on behalf of the user. They will receive email notifications about ticket updates.
+          This will create a support ticket on behalf of the user. They will receive email
+          notifications about ticket updates.
         </InfoBox>
 
         <RecipientInfo>
           <RecipientLabel>For User</RecipientLabel>
-          <RecipientName>{user.firstName} {user.lastName}</RecipientName>
+          <RecipientName>
+            {user.firstName} {user.lastName}
+          </RecipientName>
           <RecipientEmail>{user.email}</RecipientEmail>
         </RecipientInfo>
 
@@ -249,27 +251,27 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
         {success && <SuccessMessage>Support ticket created successfully!</SuccessMessage>}
 
         <FormGroup>
-          <Label htmlFor="ticket-subject">Subject</Label>
+          <Label htmlFor='ticket-subject'>Subject</Label>
           <Input
-            key="subject-input"
-            id="ticket-subject"
-            type="text"
+            key='subject-input'
+            id='ticket-subject'
+            type='text'
             value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Enter ticket subject"
+            onChange={e => setSubject(e.target.value)}
+            placeholder='Enter ticket subject'
             required
             disabled={isSubmitting}
           />
         </FormGroup>
 
         <FormGroup>
-          <Label htmlFor="ticket-description">Description</Label>
+          <Label htmlFor='ticket-description'>Description</Label>
           <TextArea
-            key="description-textarea"
-            id="ticket-description"
+            key='description-textarea'
+            id='ticket-description'
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe the issue or request..."
+            onChange={e => setDescription(e.target.value)}
+            placeholder='Describe the issue or request...'
             required
             disabled={isSubmitting}
             minLength={10}
@@ -279,57 +281,57 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
 
         <FormRow>
           <FormGroup>
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor='category'>Category</Label>
             <Select
-              id="category"
+              id='category'
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={e => setCategory(e.target.value)}
               disabled={isSubmitting}
             >
-              <option value="general_question">General Question</option>
-              <option value="technical_issue">Technical Issue</option>
-              <option value="account_problem">Account Problem</option>
-              <option value="adoption_inquiry">Adoption Inquiry</option>
-              <option value="payment_issue">Payment Issue</option>
-              <option value="feature_request">Feature Request</option>
-              <option value="report_bug">Report Bug</option>
-              <option value="compliance_concern">Compliance Concern</option>
-              <option value="data_request">Data Request</option>
-              <option value="other">Other</option>
+              <option value='general_question'>General Question</option>
+              <option value='technical_issue'>Technical Issue</option>
+              <option value='account_problem'>Account Problem</option>
+              <option value='adoption_inquiry'>Adoption Inquiry</option>
+              <option value='payment_issue'>Payment Issue</option>
+              <option value='feature_request'>Feature Request</option>
+              <option value='report_bug'>Report Bug</option>
+              <option value='compliance_concern'>Compliance Concern</option>
+              <option value='data_request'>Data Request</option>
+              <option value='other'>Other</option>
             </Select>
           </FormGroup>
 
           <FormGroup>
-            <Label htmlFor="priority">Priority</Label>
+            <Label htmlFor='priority'>Priority</Label>
             <Select
-              id="priority"
+              id='priority'
               value={priority}
-              onChange={(e) => setPriority(e.target.value)}
+              onChange={e => setPriority(e.target.value)}
               disabled={isSubmitting}
             >
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-              <option value="critical">Critical</option>
+              <option value='low'>Low</option>
+              <option value='normal'>Normal</option>
+              <option value='high'>High</option>
+              <option value='urgent'>Urgent</option>
+              <option value='critical'>Critical</option>
             </Select>
           </FormGroup>
         </FormRow>
 
         <ButtonGroup>
           <Button
-            type="button"
-            variant="outline"
-            size="md"
+            type='button'
+            variant='outline'
+            size='md'
             onClick={handleClose}
             disabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button
-            type="submit"
-            variant="primary"
-            size="md"
+            type='submit'
+            variant='primary'
+            size='md'
             disabled={isSubmitting || !subject || !description}
           >
             {isSubmitting ? 'Creating...' : 'Create Ticket'}

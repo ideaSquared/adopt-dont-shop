@@ -70,14 +70,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={title || variantStyles.title}
-      size="sm"
+      size='sm'
       closeOnOverlayClick={false}
       showCloseButton={false}
       data-testid={dataTestId}
     >
       <MessageText>{message}</MessageText>
       <ButtonGroup>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant='secondary' onClick={onClose}>
           {cancelText}
         </Button>
         <Button variant={variantStyles.confirmVariant} onClick={handleConfirm}>

@@ -29,11 +29,11 @@ interface NotificationsProviderProps {
 export const NotificationsProvider = ({ children, userId }: NotificationsProviderProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const notificationsService = useMemo(() => {
     return new NotificationsService({
       apiUrl: import.meta.env.VITE_API_BASE_URL,
-      debug: import.meta.env.NODE_ENV === 'development'
+      debug: import.meta.env.NODE_ENV === 'development',
     });
   }, []);
 
@@ -65,9 +65,9 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   const markAsRead = async (id: string): Promise<void> => {
     try {
       await notificationsService.markAsRead([id]);
-      setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === id 
+      setNotifications(prev =>
+        prev.map(notification =>
+          notification.id === id
             ? { ...notification, readAt: new Date().toISOString() }
             : notification
         )
@@ -80,10 +80,10 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   const markAllAsRead = async (currentUserId: string): Promise<void> => {
     try {
       await notificationsService.markAllAsRead(currentUserId);
-      setNotifications(prev => 
-        prev.map(notification => ({ 
-          ...notification, 
-          readAt: notification.readAt || new Date().toISOString() 
+      setNotifications(prev =>
+        prev.map(notification => ({
+          ...notification,
+          readAt: notification.readAt || new Date().toISOString(),
         }))
       );
     } catch (error) {
@@ -102,19 +102,18 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     }
   };
 
-  const value = useMemo(() => ({
-    notificationsService,
-    notifications,
-    unreadCount,
-    markAsRead,
-    markAllAsRead,
-    clearAll,
-    isLoading,
-  }), [notificationsService, notifications, unreadCount, isLoading]);
-
-  return (
-    <NotificationsContext.Provider value={value}>
-      {children}
-    </NotificationsContext.Provider>
+  const value = useMemo(
+    () => ({
+      notificationsService,
+      notifications,
+      unreadCount,
+      markAsRead,
+      markAllAsRead,
+      clearAll,
+      isLoading,
+    }),
+    [notificationsService, notifications, unreadCount, isLoading]
   );
+
+  return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 };

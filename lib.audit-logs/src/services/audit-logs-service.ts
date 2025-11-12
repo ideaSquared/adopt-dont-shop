@@ -1,8 +1,5 @@
 import { api } from '@adopt-dont-shop/lib-api';
-import type {
-  AuditLogFilters,
-  PaginatedAuditLogsResponse,
-} from '../types';
+import type { AuditLogFilters, PaginatedAuditLogsResponse } from '../types';
 
 export class AuditLogsService {
   private static getDefaultDateRange(): { startDate: string; endDate: string } {
@@ -19,9 +16,10 @@ export class AuditLogsService {
   private static buildQueryString(filters: AuditLogFilters): string {
     const params = new URLSearchParams();
 
-    const { startDate, endDate } = filters.startDate && filters.endDate
-      ? { startDate: filters.startDate, endDate: filters.endDate }
-      : this.getDefaultDateRange();
+    const { startDate, endDate } =
+      filters.startDate && filters.endDate
+        ? { startDate: filters.startDate, endDate: filters.endDate }
+        : this.getDefaultDateRange();
 
     params.append('startDate', startDate);
     params.append('endDate', endDate);
@@ -57,9 +55,7 @@ export class AuditLogsService {
     return params.toString();
   }
 
-  static async getAuditLogs(
-    filters: AuditLogFilters = {}
-  ): Promise<PaginatedAuditLogsResponse> {
+  static async getAuditLogs(filters: AuditLogFilters = {}): Promise<PaginatedAuditLogsResponse> {
     const queryString = this.buildQueryString(filters);
     const url = `/api/v1/admin/audit-logs?${queryString}`;
 

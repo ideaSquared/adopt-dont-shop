@@ -21,13 +21,15 @@ node scripts/generate-test-attachments.js
 The script generates 9 test files for Emily's attachment test conversation:
 
 ### Images (JPEG format, ~25-55KB each)
+
 - `emily-attachment-test-living-room.jpg` - Living room setup
-- `emily-attachment-test-backyard.jpg` - Secure backyard with fence  
+- `emily-attachment-test-backyard.jpg` - Secure backyard with fence
 - `emily-attachment-test-buddy-playing.jpg` - Dog playing in yard
 - `emily-attachment-test-buddy-sleeping.jpg` - Dog taking a nap
 - `emily-attachment-test-dog-bed.jpg` - Prepared dog bed area
 
 ### Documents (PDF format, ~800-900 bytes each)
+
 - `emily-attachment-test-contract.pdf` - Adoption contract
 - `emily-attachment-test-signed-contract.pdf` - Signed adoption contract
 - `emily-attachment-test-vet-records.pdf` - Veterinary medical records
@@ -43,8 +45,9 @@ The script generates 9 test files for Emily's attachment test conversation:
 ## Integration
 
 These files work with the seeder `20-emily-attachment-test.ts` which creates:
+
 - Chat conversation records
-- Message records with attachment references  
+- Message records with attachment references
 - File upload records with correct file sizes and metadata
 
 The generated files have realistic file sizes that match the database records, making the test data more authentic for development and testing.

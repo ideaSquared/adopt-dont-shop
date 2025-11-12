@@ -145,7 +145,11 @@ vi.mock('../../utils/logger', () => ({
 vi.mock('../../services/email-providers/console-provider');
 vi.mock('../../services/email-providers/ethereal-provider');
 
-import EmailTemplate, { TemplateType, TemplateCategory, TemplateStatus } from '../../models/EmailTemplate';
+import EmailTemplate, {
+  TemplateType,
+  TemplateCategory,
+  TemplateStatus,
+} from '../../models/EmailTemplate';
 import EmailQueue, { EmailType, EmailPriority, EmailStatus } from '../../models/EmailQueue';
 import EmailPreference from '../../models/EmailPreference';
 import emailService from '../../services/email.service';
@@ -167,10 +171,17 @@ describe('EmailService', () => {
           description: 'Welcome new users',
           type: TemplateType.TRANSACTIONAL,
           category: TemplateCategory.WELCOME,
-          subject: 'Welcome to Adopt Don\'t Shop!',
+          subject: "Welcome to Adopt Don't Shop!",
           htmlContent: '<h1>Welcome {{firstName}}!</h1>',
           textContent: 'Welcome {{firstName}}!',
-          variables: [{ name: 'firstName', type: 'string' as const, required: true, description: 'User first name' }],
+          variables: [
+            {
+              name: 'firstName',
+              type: 'string' as const,
+              required: true,
+              description: 'User first name',
+            },
+          ],
           createdBy: 'admin-123',
         };
 

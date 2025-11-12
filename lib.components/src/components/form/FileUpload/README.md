@@ -20,13 +20,13 @@ function MyComponent() {
 
   return (
     <FileUpload
-      accept=".pdf,.doc,.docx"
+      accept='.pdf,.doc,.docx'
       multiple
       maxSize={5242880} // 5MB
       files={files}
       onFilesSelect={handleFilesSelect}
       onFileRemove={handleFileRemove}
-      label="Upload documents"
+      label='Upload documents'
     />
   );
 }
@@ -34,25 +34,25 @@ function MyComponent() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `accept` | `string` | - | Accepted file types (MIME types or extensions) |
-| `multiple` | `boolean` | `false` | Allow multiple file selection |
-| `maxSize` | `number` | - | Maximum file size in bytes |
-| `maxFiles` | `number` | - | Maximum number of files allowed |
-| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Size of the upload area |
-| `state` | `'default' \| 'error' \| 'success' \| 'warning'` | `'default'` | Visual state |
-| `disabled` | `boolean` | `false` | Disable file upload |
-| `required` | `boolean` | `false` | Mark as required field |
-| `label` | `string` | - | Label for the upload area |
-| `error` | `string` | - | Error message to display |
-| `helperText` | `string` | - | Helper text to display |
-| `placeholder` | `string` | Auto-generated | Placeholder text in upload area |
-| `fullWidth` | `boolean` | `false` | Take full width of container |
-| `files` | `File[]` | `[]` | Currently selected files |
-| `onFilesSelect` | `(files: File[]) => void` | - | Callback when files are selected |
-| `onFileRemove` | `(index: number) => void` | - | Callback when a file is removed |
-| `onError` | `(error: string) => void` | - | Callback when validation errors occur |
+| Prop            | Type                                             | Default        | Description                                    |
+| --------------- | ------------------------------------------------ | -------------- | ---------------------------------------------- |
+| `accept`        | `string`                                         | -              | Accepted file types (MIME types or extensions) |
+| `multiple`      | `boolean`                                        | `false`        | Allow multiple file selection                  |
+| `maxSize`       | `number`                                         | -              | Maximum file size in bytes                     |
+| `maxFiles`      | `number`                                         | -              | Maximum number of files allowed                |
+| `size`          | `'sm' \| 'md' \| 'lg'`                           | `'md'`         | Size of the upload area                        |
+| `state`         | `'default' \| 'error' \| 'success' \| 'warning'` | `'default'`    | Visual state                                   |
+| `disabled`      | `boolean`                                        | `false`        | Disable file upload                            |
+| `required`      | `boolean`                                        | `false`        | Mark as required field                         |
+| `label`         | `string`                                         | -              | Label for the upload area                      |
+| `error`         | `string`                                         | -              | Error message to display                       |
+| `helperText`    | `string`                                         | -              | Helper text to display                         |
+| `placeholder`   | `string`                                         | Auto-generated | Placeholder text in upload area                |
+| `fullWidth`     | `boolean`                                        | `false`        | Take full width of container                   |
+| `files`         | `File[]`                                         | `[]`           | Currently selected files                       |
+| `onFilesSelect` | `(files: File[]) => void`                        | -              | Callback when files are selected               |
+| `onFileRemove`  | `(index: number) => void`                        | -              | Callback when a file is removed                |
+| `onError`       | `(error: string) => void`                        | -              | Callback when validation errors occur          |
 
 ## Features
 
@@ -66,24 +66,24 @@ function MyComponent() {
 ## Examples
 
 ### Basic Usage
+
 ```tsx
-<FileUpload
-  onFilesSelect={(files) => console.log(files)}
-  label="Upload file"
-/>
+<FileUpload onFilesSelect={files => console.log(files)} label='Upload file' />
 ```
 
 ### With File Type Restrictions
+
 ```tsx
 <FileUpload
-  accept="image/*"
+  accept='image/*'
   onFilesSelect={handleFiles}
-  label="Upload images"
-  helperText="JPG, PNG, GIF up to 10MB"
+  label='Upload images'
+  helperText='JPG, PNG, GIF up to 10MB'
 />
 ```
 
 ### Multiple Files with Size Limit
+
 ```tsx
 <FileUpload
   multiple
@@ -92,24 +92,26 @@ function MyComponent() {
   onFilesSelect={handleFiles}
   onFileRemove={handleRemove}
   files={selectedFiles}
-  label="Upload documents"
+  label='Upload documents'
 />
 ```
 
 ### With Error Handling
+
 ```tsx
 <FileUpload
-  accept=".pdf,.doc,.docx"
+  accept='.pdf,.doc,.docx'
   maxSize={5242880}
   onFilesSelect={handleFiles}
-  onError={(error) => setErrorMessage(error)}
+  onError={error => setErrorMessage(error)}
   error={errorMessage}
-  label="Required documents"
+  label='Required documents'
   required
 />
 ```
 
 ### Different Sizes
+
 ```tsx
 <FileUpload size="sm" label="Small upload" />
 <FileUpload size="md" label="Medium upload" />
@@ -131,4 +133,4 @@ When validation fails, the `onError` callback is called with a descriptive error
 - Full keyboard navigation support
 - Screen reader accessible
 - ARIA labels for all interactive elements
-- Focus management for file removal buttons 
+- Focus management for file removal buttons

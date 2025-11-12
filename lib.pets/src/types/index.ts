@@ -287,4 +287,3 @@ export interface PetsServiceConfig {
    */
   headers?: Record<string, string>;
 }
-

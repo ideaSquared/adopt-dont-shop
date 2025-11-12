@@ -5,11 +5,13 @@ A comprehensive pet adoption platform connecting rescue organizations with poten
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - [Node.js](https://nodejs.org/) (v20+)
 - [Docker](https://www.docker.com/) & Docker Compose
 - [Git](https://git-scm.com/)
 
 ### 1. Clone & Setup
+
 ```bash
 git clone <repository-url>
 cd adopt-dont-shop
@@ -17,18 +19,20 @@ npm install
 ```
 
 ### 2. Start Development Environment
+
 ```bash
 # Start all services with Docker
 docker-compose up -d
 
 # Or start individual services locally
 npm run dev:client    # Port 3000
-npm run dev:admin     # Port 3001  
+npm run dev:admin     # Port 3001
 npm run dev:rescue    # Port 3002
 npm run dev:backend   # Port 5000
 ```
 
 ### 3. Access Applications
+
 - **🌐 Client App**: http://localhost:3000 - Public adoption portal
 - **👨‍💼 Admin App**: http://localhost:3001 - Platform management
 - **🏥 Rescue App**: http://localhost:3002 - Rescue organizations
@@ -40,12 +44,14 @@ npm run dev:backend   # Port 5000
 Complete documentation is available in the [`docs/`](./docs/) folder:
 
 ### 🚀 **Quick Links**
+
 - **[📋 Documentation Index](./docs/README.md)** - Start here for complete documentation
 - **[🏗️ Setup Guide](./docs/infrastructure/docker-setup.md)** - Get development environment running
 - **[📚 Libraries](./docs/libraries/README.md)** - Shared packages and utilities
 - **[🎯 Architecture](./docs/infrastructure/INFRASTRUCTURE.md)** - System design overview
 
 ### 👥 **Role-Based Entry Points**
+
 - **New Developer** → [Docker Setup Guide](./docs/infrastructure/docker-setup.md)
 - **Frontend Developer** → [Frontend Apps](./docs/frontend/)
 - **Backend Developer** → [Backend Services](./docs/backend/)
@@ -54,13 +60,14 @@ Complete documentation is available in the [`docs/`](./docs/) folder:
 ## 🏗️ **Optimized Architecture**
 
 ### **Monorepo Workspace Structure**
+
 ```
 adopt-dont-shop/
 ├── 📱 Frontend Apps
 │   ├── app.client/         # Public adoption portal
 │   ├── app.admin/          # Internal management
 │   └── app.rescue/         # Rescue organizations
-├── 🔧 Backend Services  
+├── 🔧 Backend Services
 │   └── service.backend/    # Main API server
 ├── 📚 Shared Libraries
 │   ├── lib.api/           # API client utilities
@@ -74,7 +81,8 @@ adopt-dont-shop/
 │   └── scripts/           # Development utilities
 └── 📖 Documentation
     └── docs/              # All project documentation
-```  
+```
+
 - **🏠 Rescue App** - Rescue organization management portal
 - **🔧 Backend Service** - Main API and business logic
 - **📦 Component Library** - Shared UI components across apps
@@ -93,6 +101,7 @@ adopt-dont-shop/
 ## 🛠️ Tech Stack
 
 ### Frontend Applications
+
 - **React 18** with TypeScript
 - **Vite** for fast development and building
 - **Styled Components** for styling
@@ -101,6 +110,7 @@ adopt-dont-shop/
 - **Socket.io** for real-time features
 
 ### Backend Service
+
 - **Node.js** with Express
 - **TypeScript** for type safety
 - **PostgreSQL** with Sequelize ORM
@@ -109,6 +119,7 @@ adopt-dont-shop/
 - **Socket.io** for WebSocket connections
 
 ### Infrastructure
+
 - **Docker** containerization
 - **Nginx** reverse proxy
 - **Multi-stage builds** for optimization
@@ -116,36 +127,40 @@ adopt-dont-shop/
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
 - Git
 
 ### 🐋 Docker Setup (Recommended)
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/ideaSquared/adopt-dont-shop.git
    cd adopt-dont-shop
    ```
 
 2. **Start development environment**
-   
+
    **Option A: Turborepo-optimized (Recommended)**
+
    ```bash
    # Copy environment configuration
    cp .env.example .env
-   
+
    # Start with Turborepo caching and hot reload
    docker-compose -f docker-compose.turbo.yml up --build
-   
+
    # Or start specific apps
    docker-compose -f docker-compose.turbo.yml up app-admin app-client
    ```
-   
+
    **Option B: Traditional setup**
+
    ```bash
    # Copy environment configuration
    cp .env.example .env
-   
+
    # Start all services with one command
    ./scripts/docker-dev.sh
    ```
@@ -159,6 +174,7 @@ adopt-dont-shop/
 ### Manual Setup (Alternative)
 
 If you prefer to run services individually, see the individual README files:
+
 - [Backend Service](./service.backend/README.md)
 - [Component Library](./lib.components/README.md)
 
@@ -210,31 +226,36 @@ CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,ht
 ```
 
 **Supported Access Methods:**
+
 - **Nginx Proxy Access** (Recommended): `http://localhost`, `http://admin.localhost`, `http://rescue.localhost`
 - **Direct Container Access**: `http://localhost:3000`, `http://localhost:3001`, `http://localhost:3002`
 - **API Access**: `http://api.localhost:5000`
 
 **Important Notes:**
+
 - **Single Source of Truth**: CORS origins are defined once in the root `.env` file
 - **All Apps Included**: Configuration covers both nginx-proxied and direct container access
 - **Docker Integration**: The `docker-compose.yml` automatically uses the centralized CORS configuration
 - **No Individual App Configuration**: Do not modify CORS settings in individual app `.env` files
 
 **Troubleshooting CORS Issues:**
+
 1. Ensure all your app URLs are included in the root `.env` CORS_ORIGIN setting
 2. Restart Docker services after changing CORS configuration: `docker-compose restart service-backend`
 3. Use browser dev tools to verify Access-Control-Allow-Origin headers are present
 4. Check if you're accessing via nginx proxy (`rescue.localhost`) or direct container (`localhost:3002`)
 
 **⚠️ Important API Endpoint Notes:**
+
 - **All API endpoints use `/api/v1/` prefix** (e.g., `/api/v1/auth/login`, not `/api/auth/login`)
-- **Backend API Base URL**: `http://api.localhost:5000` for local development  
+- **Backend API Base URL**: `http://api.localhost:5000` for local development
 - **API Documentation**: Available at `http://api.localhost:5000/api/docs` (Swagger UI)
 - Always check the backend routes in `service.backend/src/index.ts` for the correct endpoint structure
 
 ### Common Commands
 
 #### **Development with Turborepo (Recommended)**
+
 ```bash
 # Start development environment with Turborepo
 docker-compose -f docker-compose.turbo.yml up --build
@@ -262,6 +283,7 @@ docker-compose -f docker-compose.turbo.yml exec app-admin turbo run test
 ```
 
 #### **Traditional Docker Commands**
+
 ```bash
 # Start development environment
 ./scripts/docker-dev.sh
@@ -287,6 +309,7 @@ docker-compose exec app-client sh
 The backend uses **smart development mode** for optimal developer experience:
 
 #### **Normal Development (Fast - Recommended)**
+
 ```bash
 # Start backend with hot reload and data preservation
 docker-compose up service-backend
@@ -296,6 +319,7 @@ npm run dev
 ```
 
 **Features:**
+
 - ⚡ **1-2 second startup** - No database seeding on every reload
 - 💾 **Data preservation** - Test data survives file saves
 - 🔄 **Auto schema updates** - Database schema updates automatically
@@ -318,12 +342,14 @@ docker-compose exec service-backend npm run seed:dev
 ```
 
 **When to use fresh start:**
+
 - Starting a new feature that needs clean data
 - Testing database migrations
 - Data becomes corrupted or inconsistent
 - Setting up the project for the first time
 
 **Performance:**
+
 - Normal mode: ~1-2 seconds per reload
 - Fresh mode: ~10-30 seconds (drops tables and runs 28 seeders)
 
@@ -332,6 +358,7 @@ docker-compose exec service-backend npm run seed:dev
 ### Database Management
 
 #### **With Turborepo Setup**
+
 ```bash
 # Run migrations
 docker-compose -f docker-compose.turbo.yml exec service-backend npm run migrate
@@ -348,6 +375,7 @@ docker-compose -f docker-compose.turbo.yml up --build -d
 ```
 
 #### **With Traditional Setup**
+
 ```bash
 # Run migrations
 docker-compose exec service-backend npm run migrate
@@ -366,6 +394,7 @@ docker-compose up --build -d
 ## 🧪 Testing
 
 #### **With Turborepo Setup**
+
 ```bash
 # Test all services using Turborepo
 docker-compose -f docker-compose.turbo.yml exec app-admin turbo run test
@@ -378,6 +407,7 @@ docker-compose -f docker-compose.turbo.yml exec app-admin turbo run test:coverag
 ```
 
 #### **With Traditional Setup**
+
 ```bash
 # Test all services
 docker-compose exec service-backend npm test
@@ -393,6 +423,7 @@ docker-compose exec service-backend npm run test:coverage
 ## 🚀 Production Deployment
 
 #### **With Turborepo (Recommended)**
+
 ```bash
 # Configure production environment
 cp .env.example .env
@@ -409,6 +440,7 @@ docker run -p 3001:80 adopt-dont-shop-prod
 ```
 
 #### **Traditional Production Setup**
+
 ```bash
 # Configure production environment
 cp .env.example .env
@@ -419,6 +451,7 @@ cp .env.example .env
 ```
 
 Access via:
+
 - **Main Site**: http://localhost
 - **Admin Portal**: http://admin.localhost
 - **Rescue Portal**: http://rescue.localhost
@@ -447,7 +480,7 @@ The project uses GitHub Actions for continuous integration:
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)  
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes in the appropriate service directory
 4. Run tests: `npm test` in the relevant service
 5. Commit your changes (`git commit -m 'Add amazing feature'`)
@@ -492,6 +525,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🚀 Get Started Now!
 
 ### **Quick Start (Turborepo + Docker)**
+
 ```bash
 git clone https://github.com/ideaSquared/adopt-dont-shop.git
 cd adopt-dont-shop
@@ -500,6 +534,7 @@ docker-compose -f docker-compose.turbo.yml up --build
 ```
 
 ### **Traditional Setup**
+
 ```bash
 git clone https://github.com/ideaSquared/adopt-dont-shop.git
 cd adopt-dont-shop
@@ -525,26 +560,28 @@ This project now features **Turborepo integration** for enhanced development per
 
 ### **Performance Comparison**
 
-| Feature | Traditional Docker | Turborepo + Docker |
-|---------|-------------------|-------------------|
-| Build time (clean) | ~5-10 minutes | ~3-5 minutes |
-| Rebuild time | ~3-5 minutes | ~30 seconds |
-| Component changes | Manual restart needed | Instant hot reload |
-| Cache sharing | No | Yes, across containers |
-| Dependency management | Manual | Automatic |
+| Feature               | Traditional Docker    | Turborepo + Docker     |
+| --------------------- | --------------------- | ---------------------- |
+| Build time (clean)    | ~5-10 minutes         | ~3-5 minutes           |
+| Rebuild time          | ~3-5 minutes          | ~30 seconds            |
+| Component changes     | Manual restart needed | Instant hot reload     |
+| Cache sharing         | No                    | Yes, across containers |
+| Dependency management | Manual                | Automatic              |
 
 ### **Development Workflows**
 
 #### **Component Library Development**
+
 ```bash
 # Start all apps with hot reload for components
 docker-compose -f docker-compose.turbo.yml up app-admin app-client app-rescue
 
-# Edit components in lib.components/src/ 
+# Edit components in lib.components/src/
 # → See instant changes in all running apps! 🔥
 ```
 
 #### **Full Stack Development**
+
 ```bash
 # Start everything (backend + apps + database)
 docker-compose -f docker-compose.turbo.yml up

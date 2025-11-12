@@ -5,6 +5,14 @@ vi.mock('../../sequelize', () => {
   return new Sequelize('sqlite::memory:', {
     logging: false,
   });
+
+  return {
+    __esModule: true,
+    default: { build: createMockInstance },
+    EmailStatus,
+    EmailPriority,
+    EmailType,
+  };
 });
 
 import EmailQueue, { EmailStatus, EmailPriority, EmailType } from '../../models/EmailQueue';
@@ -244,7 +252,7 @@ describe('EmailQueue Model', () => {
 
   describe('isScheduled - Check if email is scheduled for future', () => {
     it('should return true when scheduled for future', () => {
-      const futureDate = new Date(Date.now() + 3600000); // 1 hour from now
+      const futureDate = new Date(Date.now() + 3600000);
 
       const email = EmailQueue.build({
         status: EmailStatus.QUEUED,
@@ -263,7 +271,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false when scheduled for past', () => {
-      const pastDate = new Date(Date.now() - 3600000); // 1 hour ago
+      const pastDate = new Date(Date.now() - 3600000);
 
       const email = EmailQueue.build({
         status: EmailStatus.QUEUED,
@@ -316,7 +324,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return true when pending and scheduled time has passed', () => {
-      const pastDate = new Date(Date.now() - 1000); // 1 second ago
+      const pastDate = new Date(Date.now() - 1000);
 
       const email = EmailQueue.build({
         status: EmailStatus.QUEUED,
@@ -335,7 +343,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false when scheduled for future', () => {
-      const futureDate = new Date(Date.now() + 3600000); // 1 hour from now
+      const futureDate = new Date(Date.now() + 3600000);
 
       const email = EmailQueue.build({
         status: EmailStatus.QUEUED,
@@ -878,7 +886,7 @@ describe('EmailQueue Model', () => {
 
       email.recordClick('https://example.com/page1');
       email.recordClick('https://example.com/page2');
-      email.recordClick('https://example.com/page1'); // Duplicate URL
+      email.recordClick('https://example.com/page1');
 
       expect(email.getClickCount()).toBe(3);
     });
@@ -916,7 +924,7 @@ describe('EmailQueue Model', () => {
 
       email.recordClick('https://example.com/page1');
       email.recordClick('https://example.com/page2');
-      email.recordClick('https://example.com/page1'); // Duplicate
+      email.recordClick('https://example.com/page1');
 
       expect(email.getUniqueClickCount()).toBe(2);
     });
@@ -996,7 +1004,7 @@ describe('EmailQueue Model', () => {
 
   describe('getAge - Get email age in milliseconds', () => {
     it('should return age in milliseconds', () => {
-      const createdDate = new Date(Date.now() - 5000); // 5 seconds ago
+      const createdDate = new Date(Date.now() - 5000);
 
       const email = EmailQueue.build({
         status: EmailStatus.QUEUED,
@@ -1012,14 +1020,14 @@ describe('EmailQueue Model', () => {
       });
 
       const age = email.getAge();
-      expect(age).toBeGreaterThanOrEqual(4900); // Allow for slight timing variance
+      expect(age).toBeGreaterThanOrEqual(4900);
       expect(age).toBeLessThan(6000);
     });
   });
 
   describe('getAgeInHours - Get email age in hours', () => {
     it('should return age in hours', () => {
-      const createdDate = new Date(Date.now() - 7200000); // 2 hours ago
+      const createdDate = new Date(Date.now() - 7200000);
 
       const email = EmailQueue.build({
         status: EmailStatus.QUEUED,
@@ -1038,7 +1046,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should round down partial hours', () => {
-      const createdDate = new Date(Date.now() - 5400000); // 1.5 hours ago
+      const createdDate = new Date(Date.now() - 5400000);
 
       const email = EmailQueue.build({
         status: EmailStatus.QUEUED,

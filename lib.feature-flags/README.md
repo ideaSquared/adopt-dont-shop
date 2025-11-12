@@ -5,8 +5,9 @@ Simplified feature flag library providing type definitions and constants for Sta
 ## Overview
 
 This library has been refactored to support Statsig-only feature flag management. It provides:
+
 - TypeScript type definitions for gates and dynamic configs
-- Constants for known feature gates  
+- Constants for known feature gates
 - Type-safe config shapes for admin settings
 
 ## Migration

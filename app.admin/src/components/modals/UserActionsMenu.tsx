@@ -10,7 +10,7 @@ import {
   FiUnlock,
   FiTrash2,
   FiMail,
-  FiShield
+  FiShield,
 } from 'react-icons/fi';
 import { Modal, Button } from '@adopt-dont-shop/components';
 
@@ -119,7 +119,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   userName,
   isDanger = false,
   requiresReason = false,
-  confirmButtonText = 'Confirm'
+  confirmButtonText = 'Confirm',
 }) => {
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -147,7 +147,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       isOpen={isOpen}
       onClose={handleClose}
       title={title}
-      size="md"
+      size='md'
       centered
       closeOnOverlayClick={!isSubmitting}
       closeOnEscape={!isSubmitting}
@@ -165,20 +165,23 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
         {requiresReason && (
           <div>
-            <label htmlFor="reason" style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              color: '#374151'
-            }}>
+            <label
+              htmlFor='reason'
+              style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: '#374151',
+              }}
+            >
               Reason {!isDanger && '(Optional)'}
             </label>
             <ReasonTextArea
-              id="reason"
+              id='reason'
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Provide a reason for this action..."
+              onChange={e => setReason(e.target.value)}
+              placeholder='Provide a reason for this action...'
               disabled={isSubmitting}
             />
           </div>
@@ -186,18 +189,18 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
         <ButtonGroup>
           <Button
-            type="button"
-            variant="outline"
-            size="md"
+            type='button'
+            variant='outline'
+            size='md'
             onClick={handleClose}
             disabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button
-            type="button"
+            type='button'
             variant={isDanger ? 'danger' : 'primary'}
-            size="md"
+            size='md'
             onClick={handleConfirm}
             disabled={isSubmitting}
           >
@@ -290,44 +293,44 @@ export const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
         isOpen={confirmationModal.type === 'verify'}
         onClose={() => setConfirmationModal({ type: null })}
         onConfirm={handleVerify}
-        title="Verify User Email"
+        title='Verify User Email'
         message="Are you sure you want to manually verify this user's email address?"
         userName={`${user.firstName} ${user.lastName} (${user.email})`}
-        confirmButtonText="Verify Email"
+        confirmButtonText='Verify Email'
       />
 
       <ConfirmationModal
         isOpen={confirmationModal.type === 'suspend'}
         onClose={() => setConfirmationModal({ type: null })}
         onConfirm={handleSuspend}
-        title="Suspend User"
-        message="Are you sure you want to suspend this user? They will not be able to access their account."
+        title='Suspend User'
+        message='Are you sure you want to suspend this user? They will not be able to access their account.'
         userName={`${user.firstName} ${user.lastName} (${user.email})`}
         isDanger
         requiresReason
-        confirmButtonText="Suspend User"
+        confirmButtonText='Suspend User'
       />
 
       <ConfirmationModal
         isOpen={confirmationModal.type === 'unsuspend'}
         onClose={() => setConfirmationModal({ type: null })}
         onConfirm={handleUnsuspend}
-        title="Unsuspend User"
-        message="Are you sure you want to unsuspend this user? They will regain access to their account."
+        title='Unsuspend User'
+        message='Are you sure you want to unsuspend this user? They will regain access to their account.'
         userName={`${user.firstName} ${user.lastName} (${user.email})`}
-        confirmButtonText="Unsuspend User"
+        confirmButtonText='Unsuspend User'
       />
 
       <ConfirmationModal
         isOpen={confirmationModal.type === 'delete'}
         onClose={() => setConfirmationModal({ type: null })}
         onConfirm={handleDelete}
-        title="Delete User"
-        message="Are you sure you want to delete this user? This action cannot be undone and will permanently remove all user data."
+        title='Delete User'
+        message='Are you sure you want to delete this user? This action cannot be undone and will permanently remove all user data.'
         userName={`${user.firstName} ${user.lastName} (${user.email})`}
         isDanger
         requiresReason
-        confirmButtonText="Delete User"
+        confirmButtonText='Delete User'
       />
     </>
   );

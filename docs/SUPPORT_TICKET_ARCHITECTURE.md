@@ -10,6 +10,7 @@
 ## Proposed Architecture
 
 ### User-Facing Endpoints (New)
+
 **Mount**: `/api/v1/support`
 **Auth**: Any authenticated user
 **Purpose**: Users manage their own support tickets
@@ -23,11 +24,13 @@ POST   /api/v1/support/tickets/:ticketId/reply    // Reply to my ticket
 ```
 
 **Key Differences from Admin:**
+
 - User can ONLY see/manage their own tickets
 - User provides their own userId (from auth token)
 - User cannot assign, escalate, or see all tickets
 
 ### Admin Endpoints (Existing - Fix Mount)
+
 **Mount**: `/api/v1/admin/support` ← **CHANGE FROM `/api/v1/support`**
 **Auth**: ADMIN, STAFF, MODERATOR
 **Purpose**: Staff manage ALL support tickets
@@ -46,6 +49,7 @@ GET    /api/v1/admin/support/my-tickets           // Tickets assigned to me
 ```
 
 **Key Differences from User:**
+
 - Can see ALL tickets (not just own)
 - Can create tickets on behalf of users (requires userId, userEmail, userName)
 - Can assign, escalate, update status, priority, etc.
@@ -53,22 +57,25 @@ GET    /api/v1/admin/support/my-tickets           // Tickets assigned to me
 ## Implementation Plan
 
 ### Step 1: Create User Support Routes
+
 ```bash
 service.backend/src/routes/userSupport.routes.ts
 service.backend/src/controllers/userSupport.controller.ts (or reuse existing with filtering)
 ```
 
 ### Step 2: Fix Admin Route Mount Point
+
 ```typescript
 // service.backend/src/index.ts
 // CHANGE:
 app.use('/api/v1/support', supportTicketRoutes);
 // TO:
-app.use('/api/v1/admin/support', supportTicketRoutes);  // Admin routes
-app.use('/api/v1/support', userSupportRoutes);         // User routes
+app.use('/api/v1/admin/support', supportTicketRoutes); // Admin routes
+app.use('/api/v1/support', userSupportRoutes); // User routes
 ```
 
 ### Step 3: Update Frontend
+
 ```typescript
 // For admin creating ticket on behalf of user:
 await apiService.post('/api/v1/admin/support/tickets', {
@@ -94,6 +101,7 @@ await apiService.post('/api/v1/support/tickets', {
 ## Controller Logic
 
 ### UserSupportController (New)
+
 ```typescript
 static async createTicket(req: AuthenticatedRequest, res: Response) {
   // Get userId from authenticated user
@@ -124,6 +132,7 @@ static async getMyTickets(req: AuthenticatedRequest, res: Response) {
 ```
 
 ### SupportTicketController (Existing - Admin)
+
 ```typescript
 static async createTicket(req: Request, res: Response) {
   // Admin can specify any user

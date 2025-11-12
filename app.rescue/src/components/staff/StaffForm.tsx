@@ -91,14 +91,14 @@ const RequiredIndicator = styled.span`
 const FormInput = styled.input<{ hasError?: boolean }>`
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 2px solid ${props => props.hasError ? '#dc3545' : '#e9ecef'};
+  border: 2px solid ${props => (props.hasError ? '#dc3545' : '#e9ecef')};
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.2s ease;
 
   &:focus {
     outline: none;
-    border-color: ${props => props.hasError ? '#dc3545' : '#1976d2'};
+    border-color: ${props => (props.hasError ? '#dc3545' : '#1976d2')};
   }
 
   &:disabled {
@@ -146,7 +146,9 @@ const ActionButton = styled.button<{ variant: 'primary' | 'secondary' }>`
   align-items: center;
   gap: 0.5rem;
 
-  ${props => props.variant === 'primary' && `
+  ${props =>
+    props.variant === 'primary' &&
+    `
     background: #1976d2;
     color: white;
 
@@ -155,7 +157,9 @@ const ActionButton = styled.button<{ variant: 'primary' | 'secondary' }>`
     }
   `}
 
-  ${props => props.variant === 'secondary' && `
+  ${props =>
+    props.variant === 'secondary' &&
+    `
     background: #f8f9fa;
     color: #495057;
     border: 1px solid #dee2e6;
@@ -207,8 +211,12 @@ const LoadingSpinner = styled.span`
   animation: spin 1s linear infinite;
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -223,7 +231,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
     userId: initialStaff?.userId || '',
     title: initialStaff?.title || '',
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (field: keyof NewStaffMember, value: string) => {
@@ -231,7 +239,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
       ...prev,
       [field]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
@@ -260,7 +268,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -277,10 +285,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
       <FormModal>
         <ModalHeader>
           <ModalTitle>{isEditing ? 'Edit Staff Member' : 'Add New Staff Member'}</ModalTitle>
-          <CloseButton 
-            onClick={onCancel}
-            disabled={loading}
-          >
+          <CloseButton onClick={onCancel} disabled={loading}>
             ✕
           </CloseButton>
         </ModalHeader>
@@ -295,61 +300,42 @@ const StaffForm: React.FC<StaffFormProps> = ({
               type="text"
               hasError={!!errors.userId}
               value={formData.userId}
-              onChange={(e) => handleInputChange('userId', e.target.value)}
+              onChange={e => handleInputChange('userId', e.target.value)}
               placeholder="Enter the user ID of the user to add as staff (e.g., user_rescue_staff_001)"
               disabled={isEditing || loading}
               required
             />
-            {errors.userId && (
-              <FormError>{errors.userId}</FormError>
-            )}
-            <FormHelp>
-              This should be the user ID of an existing user in the system
-            </FormHelp>
+            {errors.userId && <FormError>{errors.userId}</FormError>}
+            <FormHelp>This should be the user ID of an existing user in the system</FormHelp>
           </FormGroup>
 
           <FormGroup>
-            <FormLabel htmlFor="title">
-              Title
-            </FormLabel>
+            <FormLabel htmlFor="title">Title</FormLabel>
             <FormInput
               id="title"
               type="text"
               hasError={!!errors.title}
               value={formData.title || ''}
-              onChange={(e) => handleInputChange('title', e.target.value)}
+              onChange={e => handleInputChange('title', e.target.value)}
               placeholder="e.g., Volunteer, Coordinator, Manager"
               disabled={loading}
               maxLength={100}
             />
-            {errors.title && (
-              <FormError>{errors.title}</FormError>
-            )}
+            {errors.title && <FormError>{errors.title}</FormError>}
           </FormGroup>
 
           <FormActions>
-            <ActionButton
-              type="button"
-              variant="secondary"
-              onClick={onCancel}
-              disabled={loading}
-            >
+            <ActionButton type="button" variant="secondary" onClick={onCancel} disabled={loading}>
               Cancel
             </ActionButton>
-            <ActionButton
-              type="submit"
-              variant="primary"
-              disabled={loading}
-            >
+            <ActionButton type="submit" variant="primary" disabled={loading}>
               {loading ? (
                 <>
                   <LoadingSpinner />
                   {isEditing ? 'Updating...' : 'Adding...'}
                 </>
               ) : (
-                <>
-                  {isEditing ? 'Update Staff Member' : 'Add Staff Member'}
-                </>
+                <>{isEditing ? 'Update Staff Member' : 'Add Staff Member'}</>
               )}
             </ActionButton>
           </FormActions>

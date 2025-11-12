@@ -13,7 +13,7 @@ import { Container } from '@/components/layout/Container'
 </Container>
 
 // With custom configuration
-<Container 
+<Container
   maxWidth="lg"
   padding="md"
   centered={true}
@@ -38,4 +38,4 @@ import { Container } from '@/components/layout/Container'
 - Flexible padding options
 - Centering functionality
 - Accessible markup
-- TypeScript support 
+- TypeScript support

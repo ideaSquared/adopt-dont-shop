@@ -22,13 +22,15 @@ const Card = styled.div<{ $clickable?: boolean }>`
   border-radius: 12px;
   padding: 1.5rem;
   transition: all 0.2s ease;
-  cursor: ${props => props.$clickable ? 'pointer' : 'default'};
+  cursor: ${props => (props.$clickable ? 'pointer' : 'default')};
   height: 100%;
   display: flex;
   flex-direction: column;
 
   &:hover {
-    ${props => props.$clickable && `
+    ${props =>
+      props.$clickable &&
+      `
       border-color: ${props.theme.colors.primary[300]};
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       transform: translateY(-2px);
@@ -79,7 +81,10 @@ const TrendContainer = styled.div<{ $positive: boolean }>`
   align-items: center;
   gap: 0.375rem;
   font-size: 0.875rem;
-  color: ${props => props.$positive ? props.theme.colors.success[600] : props.theme.colors.error[600]};
+  color: ${props =>
+    props.$positive
+      ? props.theme.colors.semantic.success[600]
+      : props.theme.colors.semantic.error[600]};
   font-weight: 500;
 `;
 
@@ -141,11 +146,10 @@ const MetricCard: React.FC<MetricCardProps> = ({
 
       {trend && !loading && (
         <TrendContainer $positive={trend.isPositive}>
-          <TrendIcon>
-            {trend.isPositive ? <FiTrendingUp /> : <FiTrendingDown />}
-          </TrendIcon>
+          <TrendIcon>{trend.isPositive ? <FiTrendingUp /> : <FiTrendingDown />}</TrendIcon>
           <span>
-            {trend.isPositive ? '+' : ''}{trend.value}%
+            {trend.isPositive ? '+' : ''}
+            {trend.value}%
           </span>
           {trend.label && <span>{trend.label}</span>}
         </TrendContainer>

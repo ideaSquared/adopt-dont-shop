@@ -71,7 +71,7 @@ const Applications: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">Application Management</Heading>
+          <Heading level='h1'>Application Management</Heading>
           <Text>
             {applicationId
               ? `Viewing details for application: ${applicationId}`
@@ -86,8 +86,8 @@ const Applications: React.FC = () => {
           <div>
             <strong>Direct Link Navigation</strong>
             <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-              You've navigated to this application via a direct link (e.g., from a moderation report).
-              The full application management interface is under development.
+              You've navigated to this application via a direct link (e.g., from a moderation
+              report). The full application management interface is under development.
             </p>
           </div>
         </InfoBanner>
@@ -98,12 +98,17 @@ const Applications: React.FC = () => {
           <>
             <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Application Details</h2>
             <p style={{ color: '#6b7280', margin: 0 }}>
-              Application ID: <code style={{
-                background: '#f3f4f6',
-                padding: '0.25rem 0.5rem',
-                borderRadius: '4px',
-                fontFamily: 'monospace'
-              }}>{applicationId}</code>
+              Application ID:{' '}
+              <code
+                style={{
+                  background: '#f3f4f6',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {applicationId}
+              </code>
             </p>
             <p style={{ color: '#6b7280', marginTop: '1rem' }}>
               Full application details view will be implemented here. This will include:
@@ -120,7 +125,8 @@ const Applications: React.FC = () => {
           <>
             <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>All Applications</h2>
             <p style={{ color: '#6b7280', margin: 0 }}>
-              Application listing and management interface will be implemented here. This will include:
+              Application listing and management interface will be implemented here. This will
+              include:
             </p>
             <ul style={{ color: '#6b7280', marginTop: '0.5rem' }}>
               <li>Searchable application listings</li>

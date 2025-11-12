@@ -1,4 +1,8 @@
-import { AnalyticsService, UserEngagementEvent, PageViewEvent } from '@adopt-dont-shop/lib-analytics';
+import {
+  AnalyticsService,
+  UserEngagementEvent,
+  PageViewEvent,
+} from '@adopt-dont-shop/lib-analytics';
 import { createContext, useContext, ReactNode, useMemo } from 'react';
 
 interface AnalyticsContextType {
@@ -27,7 +31,7 @@ export const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
       apiUrl: import.meta.env.VITE_API_BASE_URL,
       provider: 'internal',
       autoTrackPageViews: true,
-      debug: import.meta.env.NODE_ENV === 'development'
+      debug: import.meta.env.NODE_ENV === 'development',
     });
   }, []);
 
@@ -43,15 +47,14 @@ export const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
     analyticsService.trackPageView(pageViewEvent);
   };
 
-  const value = useMemo(() => ({
-    analyticsService,
-    trackEvent,
-    trackPageView,
-  }), [analyticsService]);
-
-  return (
-    <AnalyticsContext.Provider value={value}>
-      {children}
-    </AnalyticsContext.Provider>
+  const value = useMemo(
+    () => ({
+      analyticsService,
+      trackEvent,
+      trackPageView,
+    }),
+    [analyticsService]
   );
+
+  return <AnalyticsContext.Provider value={value}>{children}</AnalyticsContext.Provider>;
 };

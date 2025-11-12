@@ -22,12 +22,15 @@ Implemented: January 2025
 ## 1. Locale Utilities Library
 
 ### Location
+
 `lib.utils/src/locale/`
 
 ### Modules
 
 #### `config.ts`
+
 Centralized locale configuration:
+
 ```typescript
 export const LOCALE_CONFIG = {
   locale: 'en-GB',
@@ -42,7 +45,9 @@ export const LOCALE_CONFIG = {
 ```
 
 #### `date.ts`
+
 Date and time formatting utilities:
+
 - `formatDate(date)` - Returns DD/MM/YYYY format
 - `formatDateTime(date)` - Returns DD/MM/YYYY HH:mm format
 - `formatTime(date)` - Returns HH:mm format (24-hour)
@@ -50,6 +55,7 @@ Date and time formatting utilities:
 - `formatCustomDate(date, format)` - Custom date formatting
 
 **Example Usage:**
+
 ```typescript
 import { formatDate, formatDateTime } from '@adopt-dont-shop/lib-utils';
 
@@ -61,27 +67,33 @@ const displayDateTime = formatDateTime(application.createdAt); // "19/01/2025 14
 ```
 
 #### `currency.ts`
+
 GBP currency formatting utilities:
+
 - `formatCurrency(amount)` - Returns £1,234.56 format
 - `formatCurrencyWhole(amount)` - Returns £1,235 format (no decimals)
 - `formatNumber(amount, decimals)` - Returns 1,234.56 format (no symbol)
 - `parseCurrency(string)` - Parses currency string to number
 
 **Example Usage:**
+
 ```typescript
 import { formatCurrency } from '@adopt-dont-shop/lib-utils';
 
 // Format adoption fee
-const feeDisplay = formatCurrency(150.00); // "£150.00"
+const feeDisplay = formatCurrency(150.0); // "£150.00"
 ```
 
 #### `phone.ts`
+
 UK phone number formatting and validation:
+
 - `formatPhoneNumber(phone, international)` - Formats UK phone numbers
 - `validatePhoneNumber(phone)` - Validates UK phone format
 - `getPhonePlaceholder(type)` - Returns placeholder text
 
 **Example Usage:**
+
 ```typescript
 import { formatPhoneNumber, getPhonePlaceholder } from '@adopt-dont-shop/lib-utils';
 
@@ -93,7 +105,9 @@ const placeholder = getPhonePlaceholder('mobile'); // "07123 456 789"
 ```
 
 #### `address.ts`
+
 UK address formatting and validation:
+
 - `validatePostcode(postcode)` - Validates UK postcode format
 - `formatPostcode(postcode)` - Formats to standard UK postcode
 - `getPostcodePlaceholder()` - Returns "SW1A 1AA"
@@ -101,6 +115,7 @@ UK address formatting and validation:
 - `UK_COUNTIES` - List of UK counties
 
 **Example Usage:**
+
 ```typescript
 import { validatePostcode, formatPostcode, UK_COUNTIES } from '@adopt-dont-shop/lib-utils';
 
@@ -113,7 +128,7 @@ const formatted = formatPostcode('sw1a1aa'); // "SW1A 1AA"
 // Get county list
 const countyOptions = UK_COUNTIES.map(county => ({
   value: county,
-  label: county
+  label: county,
 }));
 ```
 
@@ -126,23 +141,25 @@ const countyOptions = UK_COUNTIES.map(county => ({
 **Location:** `app.rescue/src/types/rescue.ts`
 
 **Before (US Format):**
+
 ```typescript
 export interface RescueAddress {
   street: string;
   city: string;
-  state: string;      // US: State
-  zipCode: string;    // US: ZIP Code
+  state: string; // US: State
+  zipCode: string; // US: ZIP Code
   country: string;
 }
 ```
 
 **After (UK Format):**
+
 ```typescript
 export interface RescueAddress {
   street: string;
   city: string;
-  county?: string;    // UK: County (optional)
-  postcode: string;   // UK: Postcode
+  county?: string; // UK: County (optional)
+  postcode: string; // UK: Postcode
   country: string;
 }
 ```
@@ -152,6 +169,7 @@ export interface RescueAddress {
 **Location:** `service.backend/src/models/Rescue.ts`
 
 **Key Changes:**
+
 - `state` field → `county` (maps to existing `state` column)
 - `zipCode` field → `postcode` (maps to existing `zip_code` column)
 - Default country: `'United Kingdom'` (was `'US'`)
@@ -159,6 +177,7 @@ export interface RescueAddress {
 
 **Database Compatibility:**
 No database migration required - the model uses field mapping:
+
 ```typescript
 county: {
   type: DataTypes.STRING,
@@ -182,27 +201,30 @@ postcode: {
 
 **UK-Specific Changes:**
 
-| Field | Label | Placeholder | Notes |
-|-------|-------|-------------|-------|
-| Rescue Type | - | - | "Rescue Organisation" (UK spelling) |
-| Email | Email Address * | contact@rescue.org.uk | .uk domain |
-| Phone | Phone Number * | 020 1234 5678 | UK format |
-| Website | Website | https://www.rescue.org.uk | .uk domain |
-| Street | Street Address * | 123 High Street | UK street name |
-| City | Town/City * | London | UK terminology |
-| County | County | Greater London | Optional field |
-| Postcode | Postcode * | SW1A 1AA | Auto-uppercase |
-| Country | Country * | United Kingdom | UK first in list |
+| Field       | Label             | Placeholder               | Notes                               |
+| ----------- | ----------------- | ------------------------- | ----------------------------------- |
+| Rescue Type | -                 | -                         | "Rescue Organisation" (UK spelling) |
+| Email       | Email Address \*  | contact@rescue.org.uk     | .uk domain                          |
+| Phone       | Phone Number \*   | 020 1234 5678             | UK format                           |
+| Website     | Website           | https://www.rescue.org.uk | .uk domain                          |
+| Street      | Street Address \* | 123 High Street           | UK street name                      |
+| City        | Town/City \*      | London                    | UK terminology                      |
+| County      | County            | Greater London            | Optional field                      |
+| Postcode    | Postcode \*       | SW1A 1AA                  | Auto-uppercase                      |
+| Country     | Country \*        | United Kingdom            | UK first in list                    |
 
 **Helper Text Updates:**
+
 - "Main phone number for enquiries" (UK spelling: enquiries)
 
 **Imports:**
+
 ```typescript
 import { getPhonePlaceholder, getPostcodePlaceholder } from '@adopt-dont-shop/lib-utils';
 ```
 
 **Postcode Auto-Uppercase:**
+
 ```typescript
 onChange={(e) => handleChange('address.postcode', e.target.value.toUpperCase())}
 ```
@@ -212,10 +234,12 @@ onChange={(e) => handleChange('address.postcode', e.target.value.toUpperCase())}
 **Location:** `app.rescue/src/components/rescue/AdoptionPolicyForm.tsx`
 
 **Currency Changes:**
+
 - Labels: "Minimum Fee (£)" and "Maximum Fee (£)"
 - Currency symbol: £ (GBP)
 
 **Imports:**
+
 ```typescript
 import { formatCurrency } from '@adopt-dont-shop/lib-utils';
 ```
@@ -225,6 +249,7 @@ import { formatCurrency } from '@adopt-dont-shop/lib-utils';
 ## 4. Country Dropdown
 
 **Order of Countries:**
+
 1. United Kingdom (default)
 2. Ireland
 3. United States
@@ -259,6 +284,7 @@ When sending rescue profile data to the API:
 ### Backend Field Mapping
 
 The Sequelize model automatically handles the mapping:
+
 - `county` (code) ↔ `state` (database)
 - `postcode` (code) ↔ `zip_code` (database)
 
@@ -342,24 +368,29 @@ function ApplicationDate({ application }: { application: Application }) {
 To add US format switching in the future:
 
 1. **Extend locale configuration:**
+
 ```typescript
 export const LOCALE_CONFIGS = {
-  'en-GB': { /* UK config */ },
+  'en-GB': {
+    /* UK config */
+  },
   'en-US': {
     locale: 'en-US',
     currency: 'USD',
     dateFormat: 'MM/dd/yyyy',
     // ...
-  }
+  },
 } as const;
 ```
 
 2. **Create locale context:**
+
 ```typescript
 const LocaleContext = createContext<'en-GB' | 'en-US'>('en-GB');
 ```
 
 3. **Update components:**
+
 - Use locale from context
 - Conditionally render field labels
 - Apply appropriate formatting
@@ -369,11 +400,13 @@ const LocaleContext = createContext<'en-GB' | 'en-US'>('en-GB');
 To update existing date displays throughout the app:
 
 1. Import utilities:
+
 ```typescript
 import { formatDate, formatDateTime } from '@adopt-dont-shop/lib-utils';
 ```
 
 2. Replace date-fns calls:
+
 ```typescript
 // Before
 import { format } from 'date-fns';
@@ -385,6 +418,7 @@ const display = formatDate(date); // Uses DD/MM/YYYY
 ```
 
 3. Components to update:
+
 - ApplicationCard.tsx
 - ApplicationTimeline.tsx
 - PetCard.tsx
@@ -399,6 +433,7 @@ const display = formatDate(date); // Uses DD/MM/YYYY
 ### Manual Testing Checklist
 
 **RescueProfileForm:**
+
 - [ ] Postcode auto-converts to uppercase
 - [ ] Postcode validation accepts UK formats (SW1A 1AA, M1 1AA, etc.)
 - [ ] County field is optional (can be left blank)
@@ -407,10 +442,12 @@ const display = formatDate(date); // Uses DD/MM/YYYY
 - [ ] All placeholders show UK examples
 
 **AdoptionPolicyForm:**
+
 - [ ] Currency displays with £ symbol
 - [ ] Fee values format correctly (£150.00)
 
 **Data Persistence:**
+
 - [ ] Rescue profiles save with UK addresses
 - [ ] Existing data remains accessible (backward compatible)
 - [ ] API returns postcode/county fields correctly
@@ -418,6 +455,7 @@ const display = formatDate(date); // Uses DD/MM/YYYY
 ### Test Data
 
 **Valid UK Postcodes:**
+
 - SW1A 1AA (Westminster)
 - M1 1AA (Manchester)
 - B33 8TH (Birmingham)
@@ -426,6 +464,7 @@ const display = formatDate(date); // Uses DD/MM/YYYY
 - GIR 0AA (Special postcode)
 
 **Valid UK Phone Numbers:**
+
 - 020 1234 5678 (London landline)
 - 07123 456 789 (Mobile)
 - 01234 567890 (Other landline)
@@ -456,6 +495,7 @@ UPDATE rescues
 ```
 
 Then update the Sequelize model to remove field mappings:
+
 ```typescript
 county: {
   type: DataTypes.STRING,
@@ -501,6 +541,7 @@ postcode: {
 ## Support
 
 For questions or issues related to UK localization:
+
 1. Check this documentation
 2. Review the locale utilities source code in `lib.utils/src/locale/`
 3. Test with the examples provided above

@@ -25,7 +25,7 @@ describe('ValidationService', () => {
         debug: true,
         apiUrl: 'https://test.example.com',
       });
-      
+
       const config = customService.getConfig();
       expect(config.debug).toBe(true);
       expect(config.apiUrl).toBe('https://test.example.com');
@@ -57,7 +57,7 @@ describe('ValidationService', () => {
     it('should return success response', async () => {
       const testData = { test: 'data' };
       const result = await service.exampleMethod(testData);
-      
+
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
       expect(result.timestamp).toBeDefined();
@@ -65,13 +65,13 @@ describe('ValidationService', () => {
 
     it('should use cache when enabled', async () => {
       const testData = { test: 'cached' };
-      
+
       // First call
       const result1 = await service.exampleMethod(testData, { useCache: true });
-      
+
       // Second call should use cache
       const result2 = await service.exampleMethod(testData, { useCache: true });
-      
+
       expect(result1).toEqual(result2);
     });
   });

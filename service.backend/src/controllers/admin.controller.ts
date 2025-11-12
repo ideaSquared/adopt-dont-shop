@@ -897,9 +897,9 @@ export class AdminController {
         action: 'UPDATE',
         entity: 'User',
         entityId: userId,
-        details: { 
-          old: oldData, 
-          new: { firstName, lastName, email, phoneNumber, userType } 
+        details: {
+          old: oldData,
+          new: { firstName, lastName, email, phoneNumber, userType },
         },
         ipAddress: req.ip,
         userAgent: req.get('user-agent') || '',

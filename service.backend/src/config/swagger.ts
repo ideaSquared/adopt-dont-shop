@@ -190,7 +190,9 @@ export function setupSwagger(app: Express) {
     // Also try to merge with existing OpenAPI YAML if it exists
     let finalSpec: SwaggerSpec = swaggerSpec;
     try {
-      const existingSpec = YAML.load(path.join(__dirname, '../../docs/openapi.yaml')) as SwaggerSpec | undefined;
+      const existingSpec = YAML.load(path.join(__dirname, '../../docs/openapi.yaml')) as
+        | SwaggerSpec
+        | undefined;
       if (existingSpec) {
         // Merge the specs - JSDoc takes precedence for paths, existing spec for schemas
         finalSpec = {

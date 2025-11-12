@@ -245,7 +245,7 @@ export const seededDevUsers: DevUser[] = [
 
 // Utility functions to get users by type
 export const getDevUsersByType = (userTypes: string[]): DevUser[] => {
-  return seededDevUsers.filter(user => userTypes.includes(user.userType));
+  return seededDevUsers.filter((user) => userTypes.includes(user.userType));
 };
 
 export const getAdminUsers = (): DevUser[] => {

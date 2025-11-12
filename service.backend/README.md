@@ -75,6 +75,7 @@ service.backend/
 ## 🛡️ Security Features
 
 ### Implemented
+
 - ✅ Rate limiting (API, auth, password reset)
 - ✅ Environment validation
 - ✅ Secure JWT configuration
@@ -85,6 +86,7 @@ service.backend/
 - ✅ Graceful shutdown
 
 ### Production Requirements
+
 - 🔑 JWT_SECRET (32+ characters)
 - 🌐 CORS_ORIGIN (your domain)
 - 🔐 SESSION_SECRET (32+ characters)
@@ -95,6 +97,7 @@ service.backend/
 All endpoints are prefixed with `/api/v1` and follow RESTful conventions.
 
 ### Authentication (Rate Limited: 5 requests/15 min)
+
 - POST `/api/v1/auth/register` - Register new user
 - POST `/api/v1/auth/login` - User login
 - POST `/api/v1/auth/refresh-token` - Refresh access token
@@ -102,23 +105,27 @@ All endpoints are prefixed with `/api/v1` and follow RESTful conventions.
 - POST `/api/v1/auth/reset-password` - Reset password (3 requests/hour)
 
 ### Users
+
 - GET `/api/v1/users` - List users (admin)
 - GET `/api/v1/users/:id` - Get user
 - PATCH `/api/v1/users/:id` - Update user
 
 ### Pets
+
 - GET `/api/v1/pets` - List pets with filtering
 - POST `/api/v1/pets` - Create pet (rescue)
 - GET `/api/v1/pets/:id` - Get pet
 - PATCH `/api/v1/pets/:id` - Update pet (rescue)
 
 ### Applications
+
 - GET `/api/v1/applications` - List applications (filtered by role)
 - POST `/api/v1/applications` - Submit application
 - GET `/api/v1/applications/:id` - Get application
 - PATCH `/api/v1/applications/:id` - Update application
 
 ### Health Check
+
 - GET `/health` - Server health status
 
 ## ⚡ Rate Limiting
@@ -126,23 +133,25 @@ All endpoints are prefixed with `/api/v1` and follow RESTful conventions.
 ### Development vs Production
 
 **Development Mode:**
+
 - Rate limits are **BYPASSED** to allow rapid testing
 - Console warnings are logged when limits would be hit
 - Perfect for testing without 429 errors blocking development
 
 **Production Mode:**
+
 - Rate limits are **ACTIVE** and enforced
 - Exceeding limits returns 429 status codes
 - Protects against abuse and ensures service stability
 
 ### Rate Limits by Endpoint Type
 
-| Endpoint Type | Limit | Window | Notes |
-|---------------|-------|--------|-------|
-| General API | 100 requests | 15 minutes | Most endpoints |
-| Authentication | 5 requests | 15 minutes | Login, register |
-| Password Reset | 3 requests | 1 hour | Forgot/reset password |
-| File Upload | 20 requests | 15 minutes | Image/document uploads |
+| Endpoint Type  | Limit        | Window     | Notes                  |
+| -------------- | ------------ | ---------- | ---------------------- |
+| General API    | 100 requests | 15 minutes | Most endpoints         |
+| Authentication | 5 requests   | 15 minutes | Login, register        |
+| Password Reset | 3 requests   | 1 hour     | Forgot/reset password  |
+| File Upload    | 20 requests  | 15 minutes | Image/document uploads |
 
 ### Testing Rate Limits (Development)
 
@@ -155,7 +164,7 @@ curl http://localhost:5000/monitoring/test-rate-limit
 # Test auth rate limiter (5 requests/15min)
 curl http://localhost:5000/monitoring/test-auth-rate-limit
 
-# Test upload rate limiter (20 requests/15min) 
+# Test upload rate limiter (20 requests/15min)
 curl http://localhost:5000/monitoring/test-upload-rate-limit
 
 # Check current rate limit status
@@ -167,6 +176,7 @@ curl http://localhost:5000/monitoring/rate-limit-status
 ### Console Warning Example
 
 In development, when you would hit a rate limit, you'll see warnings like:
+
 ```
 🚨 RATE LIMIT WARNING (AUTH): Would have been blocked in production! IP: ::1, Path: /api/v1/auth/login, Limit: 5 per 900s
 ```
@@ -302,6 +312,7 @@ server {
 This service uses PostgreSQL with Sequelize ORM.
 
 ### Models
+
 - Users (with roles and permissions)
 - Pets (with images and status tracking)
 - Applications (dynamic forms with questions)
@@ -321,16 +332,19 @@ npx sequelize-cli migration:generate --name your-migration-name
 ## Monitoring
 
 ### Health Checks
+
 - `GET /health` - Basic health status
 - Database connection verification
 - Uptime and timestamp
 
 ### Logs
+
 - Structured logging with Winston
 - Different log levels (error, warn, info, debug)
 - Audit trail for all operations
 
 ### Metrics to Monitor
+
 - Response times
 - Error rates
 - Database connection pool
@@ -340,6 +354,7 @@ npx sequelize-cli migration:generate --name your-migration-name
 ## Security
 
 See [SECURITY.md](./SECURITY.md) for:
+
 - Security checklist
 - Environment validation
 - Rate limiting configuration

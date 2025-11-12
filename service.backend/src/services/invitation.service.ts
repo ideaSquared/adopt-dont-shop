@@ -19,8 +19,8 @@ export class InvitationService {
         where: {
           token,
           used: false,
-          expiration: { [Op.gt]: new Date() }
-        }
+          expiration: { [Op.gt]: new Date() },
+        },
       });
 
       return invitation;
@@ -55,10 +55,10 @@ export class InvitationService {
           {
             model: User,
             as: 'user',
-            where: { email }
-          }
+            where: { email },
+          },
         ],
-        transaction
+        transaction,
       });
 
       if (existingStaff) {
@@ -71,9 +71,9 @@ export class InvitationService {
           email,
           rescue_id: rescueId,
           used: false,
-          expiration: { [Op.gt]: new Date() }
+          expiration: { [Op.gt]: new Date() },
         },
-        transaction
+        transaction,
       });
 
       if (existingInvitation) {
@@ -86,30 +86,35 @@ export class InvitationService {
       expirationDate.setDate(expirationDate.getDate() + 7); // 7 days from now
 
       // Create invitation
-      const invitation = await Invitation.create({
-        email,
-        rescue_id: rescueId,
-        token,
-        expiration: expirationDate,
-        title,
-        invited_by: invitedBy,
-        used: false
-      }, { transaction });
+      const invitation = await Invitation.create(
+        {
+          email,
+          rescue_id: rescueId,
+          token,
+          expiration: expirationDate,
+          title,
+          invited_by: invitedBy,
+          used: false,
+        },
+        { transaction }
+      );
 
       // Send invitation email
       try {
         const invitationUrl = `${process.env.RESCUE_FRONTEND_URL || 'http://localhost:3002'}/accept-invitation?token=${token}`;
-        
+
         await EmailTemplateService.sendStaffInvitation({
           recipientEmail: email,
           rescueName: rescue.name,
           inviterName: invitedBy,
           invitationUrl,
           title,
-          expirationDays: 7
+          expirationDays: 7,
         });
 
-        logger.info(`Staff invitation email sent for ${email} for rescue ${rescueId}. URL: ${invitationUrl}`);
+        logger.info(
+          `Staff invitation email sent for ${email} for rescue ${rescueId}. URL: ${invitationUrl}`
+        );
       } catch (emailError) {
         logger.error('Failed to send invitation email:', emailError);
         // Continue with the process - invitation is created even if email fails
@@ -120,13 +125,12 @@ export class InvitationService {
       return {
         success: true,
         message: 'Invitation sent successfully',
-        invitationId: invitation.invitation_id
+        invitationId: invitation.invitation_id,
       };
-
     } catch (error) {
       await transaction.rollback();
       logger.error('Error inviting staff member:', error);
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(errorMessage);
     }
@@ -154,16 +158,16 @@ export class InvitationService {
         where: {
           token,
           used: false,
-          expiration: { [Op.gt]: new Date() }
+          expiration: { [Op.gt]: new Date() },
         },
         include: [
           {
             model: Rescue,
             as: 'rescue',
-            attributes: ['rescueId', 'name']
-          }
+            attributes: ['rescueId', 'name'],
+          },
         ],
-        transaction
+        transaction,
       });
 
       if (!invitation) {
@@ -177,7 +181,7 @@ export class InvitationService {
       // Check if user with this email already exists
       const existingUser = await User.findOne({
         where: { email: invitation.email },
-        transaction
+        transaction,
       });
 
       if (existingUser) {
@@ -187,68 +191,83 @@ export class InvitationService {
       // Generate unique user ID
       const userIdPrefix = 'user_rescue_staff_';
       const timestamp = Date.now().toString().slice(-6);
-      const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const randomSuffix = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, '0');
       const userId = `${userIdPrefix}${timestamp}${randomSuffix}`;
 
       // Create user account
-      const user = await User.create({
-        userId,
-        email: invitation.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        phoneNumber: userData.phone,
-        password: userData.password, // Will be hashed by User model
-        userType: UserType.RESCUE_STAFF,
-        status: UserStatus.ACTIVE,
-        emailVerified: true // Email is verified since they received the invitation
-      }, { transaction });
+      const user = await User.create(
+        {
+          userId,
+          email: invitation.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phoneNumber: userData.phone,
+          password: userData.password, // Will be hashed by User model
+          userType: UserType.RESCUE_STAFF,
+          status: UserStatus.ACTIVE,
+          emailVerified: true, // Email is verified since they received the invitation
+        },
+        { transaction }
+      );
 
       // Create staff member record
-      await StaffMember.create({
-        userId: user.userId,
-        rescueId: invitation.rescue_id,
-        title: userData.title || invitation.title || '',
-        isVerified: true, // Auto-verified since invited by admin
-        verifiedBy: invitation.invited_by || user.userId,
-        verifiedAt: new Date(),
-        addedBy: invitation.invited_by || user.userId,
-        addedAt: new Date(),
-        isDeleted: false
-      }, { transaction });
+      await StaffMember.create(
+        {
+          userId: user.userId,
+          rescueId: invitation.rescue_id,
+          title: userData.title || invitation.title || '',
+          isVerified: true, // Auto-verified since invited by admin
+          verifiedBy: invitation.invited_by || user.userId,
+          verifiedAt: new Date(),
+          addedBy: invitation.invited_by || user.userId,
+          addedAt: new Date(),
+          isDeleted: false,
+        },
+        { transaction }
+      );
 
       // Assign rescue_staff role
       const rescueStaffRole = await Role.findOne({
         where: { name: 'rescue_staff' },
-        transaction
+        transaction,
       });
 
       if (rescueStaffRole) {
-        await UserRole.create({
-          userId: user.userId,
-          roleId: rescueStaffRole.roleId
-        }, { transaction });
+        await UserRole.create(
+          {
+            userId: user.userId,
+            roleId: rescueStaffRole.roleId,
+          },
+          { transaction }
+        );
       }
 
       // Mark invitation as used
-      await invitation.update({
-        used: true,
-        user_id: user.userId
-      }, { transaction });
+      await invitation.update(
+        {
+          used: true,
+          user_id: user.userId,
+        },
+        { transaction }
+      );
 
       await transaction.commit();
 
-      logger.info(`Staff invitation accepted: ${invitation.email} created account ${user.userId} for rescue ${invitation.rescue_id}`);
+      logger.info(
+        `Staff invitation accepted: ${invitation.email} created account ${user.userId} for rescue ${invitation.rescue_id}`
+      );
 
       return {
         success: true,
         message: 'Account created successfully',
-        userId: user.userId
+        userId: user.userId,
       };
-
     } catch (error) {
       await transaction.rollback();
       logger.error('Error accepting invitation:', error);
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(errorMessage);
     }
@@ -263,10 +282,10 @@ export class InvitationService {
         where: {
           rescue_id: rescueId,
           used: false,
-          expiration: { [Op.gt]: new Date() }
+          expiration: { [Op.gt]: new Date() },
         },
         attributes: ['invitation_id', 'email', 'title', 'invited_by', 'created_at', 'expiration'],
-        order: [['created_at', 'DESC']]
+        order: [['created_at', 'DESC']],
       });
 
       // Transform to camelCase for frontend
@@ -287,9 +306,8 @@ export class InvitationService {
 
       return {
         success: true,
-        data: transformedInvitations
+        data: transformedInvitations,
       };
-
     } catch (error) {
       logger.error('Error getting pending invitations:', error);
       throw new Error('Failed to get pending invitations');
@@ -310,9 +328,9 @@ export class InvitationService {
         where: {
           invitation_id: invitationId,
           used: false,
-          expiration: { [Op.gt]: new Date() }
+          expiration: { [Op.gt]: new Date() },
         },
-        transaction
+        transaction,
       });
 
       if (!invitation) {
@@ -320,21 +338,23 @@ export class InvitationService {
       }
 
       // Mark as expired to effectively cancel it
-      await invitation.update({
-        expiration: new Date() // Set to past date
-      }, { transaction });
+      await invitation.update(
+        {
+          expiration: new Date(), // Set to past date
+        },
+        { transaction }
+      );
 
       await transaction.commit();
 
       return {
         success: true,
-        message: 'Invitation cancelled successfully'
+        message: 'Invitation cancelled successfully',
       };
-
     } catch (error) {
       await transaction.rollback();
       logger.error('Error cancelling invitation:', error);
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(errorMessage);
     }

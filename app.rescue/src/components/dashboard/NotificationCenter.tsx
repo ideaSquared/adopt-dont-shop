@@ -49,11 +49,16 @@ const NotificationCenter: React.FC = () => {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'info': return 'ℹ️';
-      case 'warning': return '⚠️';
-      case 'success': return '✅';
-      case 'error': return '❌';
-      default: return 'ℹ️';
+      case 'info':
+        return 'ℹ️';
+      case 'warning':
+        return '⚠️';
+      case 'success':
+        return '✅';
+      case 'error':
+        return '❌';
+      default:
+        return 'ℹ️';
     }
   };
 
@@ -77,35 +82,27 @@ const NotificationCenter: React.FC = () => {
       <div className="notification-header">
         <h3>
           Recent Notifications
-          {unreadCount > 0 && (
-            <span className="unread-badge">{unreadCount}</span>
-          )}
+          {unreadCount > 0 && <span className="unread-badge">{unreadCount}</span>}
         </h3>
       </div>
-      
+
       <div className="notification-list">
-        {notifications.slice(0, 4).map((notification) => (
-          <div 
-            key={notification.id} 
+        {notifications.slice(0, 4).map(notification => (
+          <div
+            key={notification.id}
             className={`notification-item ${notification.read ? 'read' : 'unread'}`}
           >
-            <div className="notification-icon">
-              {getNotificationIcon(notification.type)}
-            </div>
+            <div className="notification-icon">{getNotificationIcon(notification.type)}</div>
             <div className="notification-content">
               <div className="notification-title">{notification.title}</div>
               <div className="notification-message">{notification.message}</div>
-              <div className="notification-time">
-                {formatTimestamp(notification.timestamp)}
-              </div>
+              <div className="notification-time">{formatTimestamp(notification.timestamp)}</div>
             </div>
-            {!notification.read && (
-              <div className="unread-indicator" />
-            )}
+            {!notification.read && <div className="unread-indicator" />}
           </div>
         ))}
       </div>
-      
+
       <div className="notification-footer">
         <button className="view-all-btn">View All Notifications</button>
       </div>

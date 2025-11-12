@@ -11,7 +11,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 <ThemeToggle />
 
 // With custom configuration
-<ThemeToggle 
+<ThemeToggle
   currentTheme={theme}
   onThemeChange={handleThemeChange}
   showLabel={true}
@@ -34,4 +34,4 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 - Keyboard accessible
 - Persistent theme storage
 - Accessible markup
-- TypeScript support 
+- TypeScript support

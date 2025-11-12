@@ -270,7 +270,10 @@ describe('AuthService', () => {
 
       const result = await AuthService.refreshToken(refreshToken);
 
-      expect(mockedJwt.verify).toHaveBeenCalledWith(refreshToken, 'test-refresh-secret-min-32-characters-long-12345');
+      expect(mockedJwt.verify).toHaveBeenCalledWith(
+        refreshToken,
+        'test-refresh-secret-min-32-characters-long-12345'
+      );
       expect(MockedUser.findByPk).toHaveBeenCalledWith(mockPayload.userId, expect.any(Object));
       expect(result.user).toBeDefined();
       expect(result.token).toBe('mocked-access-token');

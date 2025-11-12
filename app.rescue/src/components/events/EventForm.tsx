@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { CreateEventInput, EventType, EventLocation } from '../../types/events';
+import { CreateEventInput } from '../../types/events';
 
 interface EventFormProps {
   initialData?: Partial<CreateEventInput>;

@@ -187,34 +187,34 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 
 ```typescript
 interface AdminUserAttributes {
-	admin_id: string;
-	user_id: string;
-	role: 'super_admin' | 'admin' | 'moderator' | 'support' | 'analytics';
-	permissions: string[];
-	last_login?: Date;
-	created_at?: Date;
-	updated_at?: Date;
+  admin_id: string;
+  user_id: string;
+  role: 'super_admin' | 'admin' | 'moderator' | 'support' | 'analytics';
+  permissions: string[];
+  last_login?: Date;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 interface AdminActionAttributes {
-	action_id: string;
-	admin_id: string;
-	action_type: string;
-	target_type: string;
-	target_id: string;
-	details: object;
-	ip_address?: string;
-	created_at?: Date;
+  action_id: string;
+  admin_id: string;
+  action_type: string;
+  target_type: string;
+  target_id: string;
+  details: object;
+  ip_address?: string;
+  created_at?: Date;
 }
 
 interface SystemMetricAttributes {
-	metric_id: string;
-	metric_name: string;
-	metric_value: number;
-	metric_unit: string;
-	timestamp: Date;
-	details?: object;
-	created_at?: Date;
+  metric_id: string;
+  metric_name: string;
+  metric_value: number;
+  metric_unit: string;
+  timestamp: Date;
+  details?: object;
+  created_at?: Date;
 }
 ```
 
@@ -222,18 +222,18 @@ interface SystemMetricAttributes {
 
 ```typescript
 interface SupportTicketAttributes {
-	ticket_id: string;
-	user_id?: string;
-	subject: string;
-	description: string;
-	status: 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed';
-	priority: 'low' | 'medium' | 'high' | 'urgent';
-	category: string;
-	assigned_to?: string;
-	resolution?: string;
-	created_at?: Date;
-	updated_at?: Date;
-	resolved_at?: Date;
+  ticket_id: string;
+  user_id?: string;
+  subject: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  category: string;
+  assigned_to?: string;
+  resolution?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  resolved_at?: Date;
 }
 ```
 
@@ -241,58 +241,52 @@ interface SupportTicketAttributes {
 
 ```typescript
 interface ContentFlagAttributes {
-	flag_id: string;
-	content_type:
-		| 'pet'
-		| 'user'
-		| 'rescue'
-		| 'message'
-		| 'review'
-		| 'application';
-	content_id: string;
-	reporter_id?: string;
-	reason: string;
-	status: 'pending' | 'reviewed' | 'actioned' | 'dismissed';
-	reviewer_id?: string;
-	action_taken?: string;
-	created_at?: Date;
-	updated_at?: Date;
-	reviewed_at?: Date;
+  flag_id: string;
+  content_type: 'pet' | 'user' | 'rescue' | 'message' | 'review' | 'application';
+  content_id: string;
+  reporter_id?: string;
+  reason: string;
+  status: 'pending' | 'reviewed' | 'actioned' | 'dismissed';
+  reviewer_id?: string;
+  action_taken?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  reviewed_at?: Date;
 }
 
 interface ReportAttributes {
-	report_id: string;
-	reporter_id: string;
-	reported_content_id: string;
-	content_type: 'message' | 'comment' | 'profile' | 'listing';
-	reason_category:
-		| 'harassment'
-		| 'inappropriate'
-		| 'spam'
-		| 'scam'
-		| 'harmful'
-		| 'illegal'
-		| 'other';
-	description: string;
-	status: 'pending' | 'under_review' | 'resolved' | 'dismissed';
-	resolution_notes?: string;
-	moderator_id?: string;
-	created_at: Date;
-	updated_at: Date;
-	resolved_at?: Date;
+  report_id: string;
+  reporter_id: string;
+  reported_content_id: string;
+  content_type: 'message' | 'comment' | 'profile' | 'listing';
+  reason_category:
+    | 'harassment'
+    | 'inappropriate'
+    | 'spam'
+    | 'scam'
+    | 'harmful'
+    | 'illegal'
+    | 'other';
+  description: string;
+  status: 'pending' | 'under_review' | 'resolved' | 'dismissed';
+  resolution_notes?: string;
+  moderator_id?: string;
+  created_at: Date;
+  updated_at: Date;
+  resolved_at?: Date;
 }
 
 interface UserSanctionAttributes {
-	sanction_id: string;
-	user_id: string;
-	sanction_type: 'warning' | 'restriction' | 'ban';
-	reason: string;
-	is_active: boolean;
-	start_date: Date;
-	end_date?: Date;
-	created_by: string;
-	created_at: Date;
-	updated_at: Date;
+  sanction_id: string;
+  user_id: string;
+  sanction_type: 'warning' | 'restriction' | 'ban';
+  reason: string;
+  is_active: boolean;
+  start_date: Date;
+  end_date?: Date;
+  created_by: string;
+  created_at: Date;
+  updated_at: Date;
 }
 ```
 

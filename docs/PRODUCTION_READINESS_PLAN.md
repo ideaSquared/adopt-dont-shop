@@ -12,12 +12,14 @@
 This document outlines the comprehensive plan to bring the Adopt Don't Shop platform to production-ready status. The platform has **63 identified issues** across 4 applications, 1 backend service, and 20 shared libraries.
 
 **Current Status:**
+
 - 🔴 10 Critical Issues (deployment blockers) - 8 completed ✅ **MILESTONE: 80%!**
 - 🟠 18 High Priority Issues (security & reliability risks) - 1 completed ✅
 - 🟡 24 Medium Priority Issues (quality & maintainability)
 - ⚪ 9 Low Priority Issues (enhancements)
 
 **Key Metrics:**
+
 - Backend Test Coverage: ~6% (12 tests / 184 files) - **PRIORITY**
 - Frontend Test Coverage: Near zero (8 tests total across 3 apps)
 - TypeScript Violations: ✅ **RESOLVED** - Zero `any` types, 9 justified assertions only
@@ -26,6 +28,7 @@ This document outlines the comprehensive plan to bring the Adopt Don't Shop plat
 - CI/CD Status: Frontend tests disabled, security audit on continue-on-error
 
 **Recent Progress (2025-11-09):**
+
 - ✅ DB-1: All TypeScript strict mode violations fixed (100+ `any` types eliminated)
 - ✅ DB-2: Type assertions reduced from 110+ to 9 (all documented)
 - ✅ DB-5: CSRF protection implemented (csrf-csrf library, double-submit cookie pattern)
@@ -58,12 +61,14 @@ This document outlines the comprehensive plan to bring the Adopt Don't Shop plat
 These **MUST** be resolved before any production deployment:
 
 ### ✅ DB-1: TypeScript Strict Mode Violations (Backend) - COMPLETED
+
 **Severity:** Critical
 **Affected:** 74+ backend files
 **Issue:** Extensive use of `any` type violates TypeScript strict mode guidelines
 **Status:** ✅ COMPLETED (2025-11-09)
 
 **Completed Work:**
+
 - ✅ All 100+ `any` types eliminated
 - ✅ 50+ files modified with proper typing
 - ✅ Created `service.backend/src/config/env.ts` for environment validation
@@ -81,18 +86,21 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ### ✅ DB-2: Type Assertions Throughout Codebase - SUBSTANTIALLY COMPLETED
+
 **Severity:** Critical
 **Affected:** 110+ files
 **Issue:** Type assertions (`as SomeType`) bypass TypeScript compiler checks
 **Status:** ✅ SUBSTANTIALLY COMPLETED (2025-11-09)
 
 **Completed Work:**
+
 - ✅ Reduced from 110+ to only 9 type assertions
 - ✅ All remaining assertions documented with clear justification
 - ✅ Replaced with proper type guards and type narrowing where possible
 - ✅ Documented Sequelize-specific limitations requiring assertions
 
 **Remaining Work:**
+
 - [ ] Add ESLint rule to prevent new unjustified type assertions
 - [ ] Add pre-commit hook to flag type assertions
 
@@ -105,11 +113,13 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ### 🔴 DB-3: Backend Test Coverage Critical Gap
+
 **Severity:** Critical
 **Current:** 12 test files / 184 source files (~6%)
 **Target:** Minimum 70% coverage
 
 **Missing Tests:**
+
 - [ ] Controllers: Only `user.controller.test.ts` exists
 - [ ] Services: Only 6 service tests exist
 - [ ] Routes: Only 2 route tests exist
@@ -117,6 +127,7 @@ These **MUST** be resolved before any production deployment:
 - [ ] Models: Zero tests
 
 **Action Items:**
+
 1. Set up coverage tracking: `npm install --save-dev @jest/coverage`
 2. Add coverage threshold to `jest.config.js`:
    ```javascript
@@ -141,11 +152,13 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ### 🔴 DB-4: Frontend Test Coverage Critical Gap
+
 **Severity:** Critical
 **Current:** app.admin (5), app.client (2), app.rescue (1) = 8 total
 **Target:** Minimum 70% coverage per app
 
 **Action Items:**
+
 1. **app.admin** - Add tests for:
    - [ ] All pages: Users, Pets, Applications, Moderation, Configuration, etc.
    - [ ] All components in `src/components/`
@@ -170,23 +183,26 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ### ✅ DB-5: CSRF Protection Not Implemented - COMPLETED
+
 **Severity:** Critical (Security)
 **Affected:** Entire backend
 **Issue:** No Cross-Site Request Forgery protection
 **Status:** ✅ COMPLETED (2025-11-09)
 
 **Completed Work:**
+
 - ✅ Installed csrf-csrf library (modern replacement for deprecated csurf)
 - ✅ Created CSRF middleware with double-submit cookie pattern
 - ✅ Integrated CSRF protection for POST, PUT, PATCH, DELETE requests
 - ✅ GET requests exempt from CSRF validation
 - ✅ CSRF token endpoint at `/api/v1/csrf-token`
-- ✅ Cookie security: HttpOnly, SameSite=Strict, __Host- prefix (production)
+- ✅ Cookie security: HttpOnly, SameSite=Strict, \_\_Host- prefix (production)
 - ✅ Error handling with 403 responses for invalid tokens
 - ✅ Security logging for CSRF validation failures
 - ✅ Build passing with zero errors
 
 **Implementation Details:**
+
 - Library: csrf-csrf v4.0.3
 - Pattern: Double-submit cookie
 - Cookie: `psifi.x-csrf-token` (dev), `__Host-psifi.x-csrf-token` (prod)
@@ -202,12 +218,14 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ### ✅ DB-6: JWT_SECRET Not Validated at Startup - COMPLETED
+
 **Severity:** Critical (Security)
 **Location:** `service.backend/src/middleware/auth.ts:40`
 **Issue:** Uses `process.env.JWT_SECRET!` without validation
 **Status:** ✅ COMPLETED (2025-11-09)
 
 **Completed Work:**
+
 - ✅ Created `service.backend/src/config/env.ts` with comprehensive validation
 - ✅ Validates JWT_SECRET and JWT_REFRESH_SECRET at startup
 - ✅ Enforces minimum 32 character requirement
@@ -224,12 +242,14 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ### ✅ DB-7: Console.log in Production Code - COMPLETED
+
 **Severity:** High (Security/Quality)
 **Affected:** 15 files
 **Issue:** Sensitive data may leak to logs, unprofessional
 **Status:** ✅ COMPLETED (2025-11-09)
 
 **Completed Work:**
+
 - ✅ Replaced 17 console statements with proper Winston logger calls
 - ✅ Updated 6 production files:
   - routes/monitoring.routes.ts (2 conversions)
@@ -245,6 +265,7 @@ These **MUST** be resolved before any production deployment:
 - ✅ Build passing with zero errors
 
 **Preserved Console Usage (Intentional):**
+
 - Seeders (development CLI feedback)
 - console-provider.ts (intentional for dev email testing)
 - Files with ESLint inline overrides (fallback error handling)
@@ -256,11 +277,13 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ### 🔴 DB-8: Frontend CI/CD Disabled
+
 **Severity:** Critical (Infrastructure)
 **Location:** `.github/workflows/ci.yml:61-141`
 **Issue:** All frontend test jobs are disabled/commented out
 
 **Action Items:**
+
 1. Re-enable frontend test jobs in CI/CD:
    ```yaml
    test-admin:
@@ -281,11 +304,13 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ### ✅ DB-9: APM (Sentry) Not Configured - COMPLETED
+
 **Severity:** Critical (Monitoring)
 **Issue:** Sentry DSN in config but not implemented
 **Status:** ✅ COMPLETED (2025-11-09)
 
 **Completed Work:**
+
 - ✅ Installed @sentry/node v8+ and @sentry/profiling-node
 - ✅ Created Sentry configuration module with environment-based settings
 - ✅ Integrated Sentry initialization (first import in application)
@@ -297,6 +322,7 @@ These **MUST** be resolved before any production deployment:
 - ✅ Build passing with zero errors
 
 **Implementation Details:**
+
 - SDK: @sentry/node v8+
 - Features: Error tracking, performance monitoring, CPU profiling
 - Integration: Automatic Express instrumentation
@@ -313,12 +339,14 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ### ✅ DB-10: Security Headers Not Fully Configured - COMPLETED
+
 **Severity:** Critical (Security)
 **Location:** `service.backend/src/index.ts:76-126`
 **Issue:** Helmet configured but missing key security headers verification
 **Status:** ✅ COMPLETED (2025-11-09)
 
 **Completed Work:**
+
 - ✅ Enhanced Helmet configuration with 10 additional security headers
 - ✅ Added Content Security Policy with 13 directives:
   - default-src, style-src, script-src, img-src, connect-src
@@ -333,6 +361,7 @@ These **MUST** be resolved before any production deployment:
 - ✅ Build passing with zero errors
 
 **Security Improvements:**
+
 - Prevents clickjacking (X-Frame-Options, frame-ancestors)
 - Prevents XSS attacks (Content-Security-Policy, X-XSS-Protection)
 - Prevents MIME sniffing (X-Content-Type-Options)
@@ -348,16 +377,19 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ## Phase 1: Critical Security & Infrastructure
+
 **Timeline:** Week 1-2
 **Goal:** Address immediate security vulnerabilities and infrastructure gaps
 
 ### Security Issues
 
 #### 🔴 SEC-1: No Secrets Management
+
 **Severity:** Critical
 **Issue:** All secrets stored in environment variables
 
 **Action Items:**
+
 1. Evaluate secrets management solutions:
    - HashiCorp Vault
    - AWS Secrets Manager
@@ -373,12 +405,14 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### ✅ SEC-2: Session Secret Has Weak Default - COMPLETED
+
 **Severity:** High
 **Location:** `service.backend/src/config/index.ts:133-141`
 **Issue:** Defaults to `'dev-session-secret'` in non-production
 **Status:** ✅ COMPLETED (2025-11-09)
 
 **Completed Work:**
+
 - ✅ Removed weak default value ('dev-session-secret') entirely
 - ✅ Required SESSION_SECRET in all environments (fail-fast at startup)
 - ✅ Added validation: minimum 32 characters enforced
@@ -390,6 +424,7 @@ These **MUST** be resolved before any production deployment:
 - ✅ Build passing with zero errors
 
 **Implementation Details:**
+
 - Validation Type: Build-time (fail-fast)
 - Secrets Validated: JWT_SECRET, JWT_REFRESH_SECRET, SESSION_SECRET, CSRF_SECRET
 - Minimum Length: 32 characters for all secrets
@@ -397,6 +432,7 @@ These **MUST** be resolved before any production deployment:
 - Type Safety: Validated secrets exported as typed object
 
 **Security Benefits:**
+
 - No weak defaults possible in any environment
 - Application refuses to start with invalid configuration
 - Cryptographically strong secrets enforced (256 bits entropy)
@@ -411,18 +447,22 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟠 SEC-3: File Upload Security Incomplete
+
 **Severity:** High
 **Location:** `service.backend/src/config/index.ts:71-93`
 
 **Missing Protections:**
+
 - [ ] File content validation (magic number checking)
 - [ ] Antivirus scanning
 - [ ] Per-user storage quotas
 - [ ] Secure file naming (prevent path traversal)
 
 **Action Items:**
+
 1. Install file-type validation: `npm install file-type`
 2. Implement magic number checking:
+
    ```typescript
    import { fileTypeFromBuffer } from 'file-type';
 
@@ -433,6 +473,7 @@ These **MUST** be resolved before any production deployment:
      }
    };
    ```
+
 3. Add ClamAV or similar antivirus scanning
 4. Implement user storage quotas in database
 5. Sanitize filenames to prevent path traversal
@@ -443,13 +484,16 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟠 SEC-4: No Input Sanitization for XSS
+
 **Severity:** High
 **Location:** `service.backend/src/middleware/validation.ts`
 **Issue:** Only validates format, doesn't sanitize HTML/scripts
 
 **Action Items:**
+
 1. Install DOMPurify: `npm install isomorphic-dompurify`
 2. Create sanitization middleware:
+
    ```typescript
    import DOMPurify from 'isomorphic-dompurify';
 
@@ -462,6 +506,7 @@ These **MUST** be resolved before any production deployment:
      next();
    };
    ```
+
 3. Apply to all routes that accept user input
 4. Add XSS tests to security suite
 5. Implement Content Security Policy
@@ -472,11 +517,14 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟠 SEC-5: CORS Origin May Accept All in Production
+
 **Severity:** High
 **Location:** `service.backend/src/config/index.ts:44-68`
 
 **Action Items:**
+
 1. Add strict CORS validation:
+
    ```typescript
    const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [];
 
@@ -484,6 +532,7 @@ These **MUST** be resolved before any production deployment:
      throw new Error('CORS_ORIGIN must be set in production');
    }
    ```
+
 2. Remove any wildcard origins in production
 3. Add origin validation tests
 4. Document required CORS_ORIGIN format in deployment docs
@@ -494,20 +543,26 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🔴 SEC-6: No Rate Limiting for WebSocket
+
 **Severity:** Critical
 **Issue:** Socket.io endpoints can be abused
 
 **Action Items:**
+
 1. Install rate limiting for Socket.io: `npm install socket.io-rate-limit`
 2. Implement connection limits:
+
    ```typescript
    import rateLimit from 'socket.io-rate-limit';
 
-   io.use(rateLimit({
-     interval: 10000, // 10 seconds
-     max: 100, // max 100 messages per interval
-   }));
+   io.use(
+     rateLimit({
+       interval: 10000, // 10 seconds
+       max: 100, // max 100 messages per interval
+     })
+   );
    ```
+
 3. Add per-user connection limits
 4. Implement message throttling
 5. Add WebSocket abuse tests
@@ -518,12 +573,15 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟠 SEC-7: SQL Injection Risk in Raw Queries
+
 **Severity:** High
 **Affected:** 15 files with raw SQL queries
 
 **Action Items:**
+
 1. Audit all files using `sequelize.query()`, `QueryInterface.sequelize.query()`, etc.
 2. Ensure all use parameterized queries:
+
    ```typescript
    // Bad
    sequelize.query(`SELECT * FROM users WHERE id = ${userId}`);
@@ -531,9 +589,10 @@ These **MUST** be resolved before any production deployment:
    // Good
    sequelize.query('SELECT * FROM users WHERE id = ?', {
      replacements: [userId],
-     type: QueryTypes.SELECT
+     type: QueryTypes.SELECT,
    });
    ```
+
 3. Add SQL injection tests
 4. Add ESLint rule to flag string interpolation in queries
 
@@ -543,10 +602,12 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟠 SEC-8: Password Validation Requirements Unknown
+
 **Severity:** High
 **Location:** `service.backend/src/services/auth.service.ts:32`
 
 **Action Items:**
+
 1. Locate `validatePassword()` implementation
 2. Ensure requirements meet best practices:
    - Minimum 12 characters
@@ -564,10 +625,12 @@ These **MUST** be resolved before any production deployment:
 ### Infrastructure Issues
 
 #### 🟠 INF-1: Missing Production Environment Variables
+
 **Severity:** High
 **Location:** `service.backend/.env.example`
 
 **Missing Variables:**
+
 - [ ] `SENTRY_DSN` (error tracking)
 - [ ] APM configuration
 - [ ] Backup database credentials
@@ -578,6 +641,7 @@ These **MUST** be resolved before any production deployment:
 - [ ] File storage bucket names
 
 **Action Items:**
+
 1. Create comprehensive `.env.production.example`
 2. Document all required vs optional variables
 3. Add validation for all required production variables
@@ -590,10 +654,12 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟠 INF-2: Database Migrations Not in CI/CD
+
 **Severity:** High
 **Location:** `.github/workflows/ci.yml`
 
 **Action Items:**
+
 1. Add migration test job:
    ```yaml
    test-migrations:
@@ -621,14 +687,16 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟡 INF-3: Docker Health Checks Missing
+
 **Severity:** Medium
 **Location:** `docker-compose.yml`
 
 **Action Items:**
+
 1. Add health check to service-backend:
    ```yaml
    healthcheck:
-     test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+     test: ['CMD', 'curl', '-f', 'http://localhost:5000/health']
      interval: 30s
      timeout: 10s
      retries: 3
@@ -644,10 +712,12 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟡 INF-4: Graceful Shutdown Throws Instead of Exiting
+
 **Severity:** Medium
 **Location:** `service.backend/src/index.ts:389-402`
 
 **Action Items:**
+
 1. Replace `throw error;` with proper exit:
    ```typescript
    process.on('SIGTERM', async () => {
@@ -671,10 +741,12 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟡 INF-5: Database Connection Retry Logic Insufficient
+
 **Severity:** Medium
 **Location:** `service.backend/src/index.ts:299-315`
 
 **Action Items:**
+
 1. Implement exponential backoff:
    ```typescript
    const connectWithRetry = async (maxRetries = 10) => {
@@ -701,10 +773,12 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟡 INF-6: No Database Connection Pooling Configuration
+
 **Severity:** Medium
 **Location:** `service.backend/src/sequelize.ts`
 
 **Action Items:**
+
 1. Configure connection pool:
    ```typescript
    new Sequelize(database, username, password, {
@@ -712,8 +786,8 @@ These **MUST** be resolved before any production deployment:
        max: 20,
        min: 5,
        acquire: 30000,
-       idle: 10000
-     }
+       idle: 10000,
+     },
    });
    ```
 2. Add pool monitoring
@@ -728,10 +802,12 @@ These **MUST** be resolved before any production deployment:
 ### Monitoring & Observability
 
 #### 🔴 MON-1: No Structured Logging
+
 **Severity:** Critical
 **Location:** `service.backend/src/utils/logger.ts`
 
 **Action Items:**
+
 1. Configure Winston for structured JSON logging:
    ```typescript
    const logger = winston.createLogger({
@@ -743,8 +819,8 @@ These **MUST** be resolved before any production deployment:
      transports: [
        new winston.transports.Console(),
        new winston.transports.File({ filename: 'error.log', level: 'error' }),
-       new winston.transports.File({ filename: 'combined.log' })
-     ]
+       new winston.transports.File({ filename: 'combined.log' }),
+     ],
    });
    ```
 2. Add correlation IDs to all requests
@@ -758,9 +834,11 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟠 MON-2: No Metrics Collection
+
 **Severity:** High
 
 **Action Items:**
+
 1. Install Prometheus client: `npm install prom-client`
 2. Implement key metrics:
    - Request rate, duration, errors
@@ -778,10 +856,12 @@ These **MUST** be resolved before any production deployment:
 ---
 
 #### 🟠 MON-3: Health Checks Incomplete
+
 **Severity:** High
 **Location:** `service.backend/src/index.ts:167-210`
 
 **Missing Checks:**
+
 - [ ] Redis connectivity
 - [ ] External API availability
 - [ ] Email service status
@@ -789,7 +869,9 @@ These **MUST** be resolved before any production deployment:
 - [ ] Socket.io status
 
 **Action Items:**
+
 1. Extend health check endpoint:
+
    ```typescript
    app.get('/health', async (req, res) => {
      const checks = {
@@ -803,6 +885,7 @@ These **MUST** be resolved before any production deployment:
      res.status(healthy ? 200 : 503).json(checks);
    });
    ```
+
 2. Add liveness and readiness endpoints
 3. Configure health check intervals
 4. Test failure scenarios
@@ -813,16 +896,19 @@ These **MUST** be resolved before any production deployment:
 ---
 
 ## Phase 2: Testing Foundation
+
 **Timeline:** Week 2-4
 **Goal:** Achieve minimum 70% test coverage across all apps
 
 ### Backend Testing
 
 #### 🔴 TEST-BE-1: Controller Tests Missing
+
 **Current:** Only `user.controller.test.ts`
 **Needed:** All controllers in `service.backend/src/controllers/`
 
 **Controllers to Test:**
+
 - [ ] admin.controller.ts
 - [ ] analytics.controller.ts
 - [ ] application.controller.ts
@@ -838,6 +924,7 @@ These **MUST** be resolved before any production deployment:
 - [ ] user.controller.ts (expand coverage)
 
 **Test Template:**
+
 ```typescript
 // __tests__/controllers/example.controller.test.ts
 describe('ExampleController', () => {
@@ -865,10 +952,12 @@ describe('ExampleController', () => {
 ---
 
 #### 🔴 TEST-BE-2: Service Tests Missing
+
 **Current:** 6 service test files
 **Needed:** All services in `service.backend/src/services/`
 
 **Services to Test:**
+
 - [ ] admin.service.ts
 - [ ] analytics.service.ts
 - [ ] application.service.ts
@@ -888,6 +977,7 @@ describe('ExampleController', () => {
 - [ ] user.service.ts (expand)
 
 **Test Template:**
+
 ```typescript
 // __tests__/services/example.service.test.ts
 describe('ExampleService', () => {
@@ -901,8 +991,7 @@ describe('ExampleService', () => {
     });
 
     it('should throw ValidationError with invalid data', async () => {
-      await expect(ExampleService.createExample({}))
-        .rejects.toThrow(ValidationError);
+      await expect(ExampleService.createExample({})).rejects.toThrow(ValidationError);
     });
   });
 });
@@ -914,10 +1003,12 @@ describe('ExampleService', () => {
 ---
 
 #### 🔴 TEST-BE-3: Middleware Tests Missing
+
 **Current:** Zero tests
 **Needed:** All middleware in `service.backend/src/middleware/`
 
 **Middleware to Test:**
+
 - [ ] auth.ts (authentication)
 - [ ] error-handler.ts
 - [ ] rate-limiter.ts
@@ -931,10 +1022,12 @@ describe('ExampleService', () => {
 ---
 
 #### 🔴 TEST-BE-4: Route Tests Missing
+
 **Current:** 2 route test files
 **Needed:** All routes in `service.backend/src/routes/`
 
 **Routes to Test:**
+
 - [ ] admin.routes.ts
 - [ ] analytics.routes.ts
 - [ ] application.routes.ts
@@ -956,10 +1049,12 @@ describe('ExampleService', () => {
 ### Frontend Testing
 
 #### 🔴 TEST-FE-1: App.Admin Test Coverage
+
 **Current:** 5 test files
 **Target:** 70% coverage
 
 **Pages to Test:**
+
 - [ ] Users.tsx
 - [ ] Pets.tsx
 - [ ] Applications.tsx
@@ -973,6 +1068,7 @@ describe('ExampleService', () => {
 - [ ] SupportTickets.tsx
 
 **Components to Test:**
+
 - [ ] All components in `src/components/`
 - [ ] DataTable with pagination, sorting, filtering
 - [ ] FilterPanel
@@ -980,6 +1076,7 @@ describe('ExampleService', () => {
 - [ ] Forms and inputs
 
 **Test Template:**
+
 ```typescript
 // pages/Users.test.tsx
 import { render, screen, waitFor } from '@testing-library/react';
@@ -1013,10 +1110,12 @@ describe('Users Page', () => {
 ---
 
 #### 🔴 TEST-FE-2: App.Client Test Coverage
+
 **Current:** 2 test files
 **Target:** 80% coverage (public-facing app requires higher coverage)
 
 **Critical User Flows to Test:**
+
 - [ ] Pet search and browsing
 - [ ] Pet detail view
 - [ ] Application submission
@@ -1026,6 +1125,7 @@ describe('Users Page', () => {
 - [ ] Application status tracking
 
 **Pages to Test:**
+
 - [ ] Home.tsx
 - [ ] PetSearch.tsx
 - [ ] PetDetail.tsx
@@ -1039,10 +1139,12 @@ describe('Users Page', () => {
 ---
 
 #### 🔴 TEST-FE-3: App.Rescue Test Coverage
+
 **Current:** 1 test file (App.test.tsx)
 **Target:** 75% coverage
 
 **Critical Flows to Test:**
+
 - [ ] Rescue registration/onboarding
 - [ ] Pet management (add, edit, delete)
 - [ ] Application review process
@@ -1050,6 +1152,7 @@ describe('Users Page', () => {
 - [ ] Dashboard and analytics
 
 **Pages to Test:**
+
 - [ ] Dashboard.tsx
 - [ ] Pets.tsx (rescue pet management)
 - [ ] Applications.tsx (review applications)
@@ -1062,10 +1165,12 @@ describe('Users Page', () => {
 ---
 
 #### 🟠 TEST-FE-4: Add Integration Tests (E2E)
+
 **Current:** None
 **Target:** Critical user flows covered
 
 **Action Items:**
+
 1. Install Playwright: `npm install -D @playwright/test`
 2. Create test scenarios:
    - [ ] User registration to pet adoption application
@@ -1075,6 +1180,7 @@ describe('Users Page', () => {
    - [ ] File uploads
 
 **Example Test:**
+
 ```typescript
 // e2e/adoption-flow.spec.ts
 test('user can submit adoption application', async ({ page }) => {
@@ -1100,13 +1206,17 @@ test('user can submit adoption application', async ({ page }) => {
 ### Test Infrastructure
 
 #### 🟠 TEST-INF-1: Set Up Coverage Tracking
+
 **Action Items:**
+
 1. Install coverage tools:
+
    ```bash
    npm install --save-dev @jest/coverage nyc
    ```
 
 2. Configure in each package's `jest.config.js`:
+
    ```javascript
    module.exports = {
      collectCoverage: true,
@@ -1135,24 +1245,29 @@ test('user can submit adoption application', async ({ page }) => {
 ---
 
 ## Phase 3: Production Hardening
+
 **Timeline:** Week 4-6
 **Goal:** Optimize for production performance and reliability
 
 ### Performance
 
 #### 🟡 PERF-1: No CDN Configuration
+
 **Severity:** Medium
 
 **Action Items:**
+
 1. Choose CDN provider (CloudFlare, AWS CloudFront, etc.)
 2. Configure CDN for static assets
 3. Update build process to include CDN URLs
 4. Configure cache headers:
    ```typescript
-   app.use(express.static('public', {
-     maxAge: '1y',
-     immutable: true,
-   }));
+   app.use(
+     express.static('public', {
+       maxAge: '1y',
+       immutable: true,
+     })
+   );
    ```
 5. Test asset delivery from CDN
 
@@ -1162,10 +1277,12 @@ test('user can submit adoption application', async ({ page }) => {
 ---
 
 #### 🟡 PERF-2: Database Indexing Not Verified
+
 **Severity:** Medium
 **Location:** `service.backend/src/models/`
 
 **Action Items:**
+
 1. Audit all models for missing indexes
 2. Add indexes for:
    - Foreign keys
@@ -1175,17 +1292,17 @@ test('user can submit adoption application', async ({ page }) => {
 4. Monitor slow query log
 
 **Common Missing Indexes:**
+
 ```typescript
 // Add indexes in model definition
-User.init({
-  // ...
-}, {
-  indexes: [
-    { fields: ['email'] },
-    { fields: ['status', 'createdAt'] },
-    { fields: ['rescueId'] },
-  ]
-});
+User.init(
+  {
+    // ...
+  },
+  {
+    indexes: [{ fields: ['email'] }, { fields: ['status', 'createdAt'] }, { fields: ['rescueId'] }],
+  }
+);
 ```
 
 **Estimated Effort:** 2-3 days
@@ -1194,10 +1311,12 @@ User.init({
 ---
 
 #### 🟡 PERF-3: No Caching Strategy
+
 **Severity:** Medium
 **Issue:** Redis configured but minimally used
 
 **Action Items:**
+
 1. Implement caching for:
    - User sessions
    - Frequent database queries
@@ -1209,6 +1328,7 @@ User.init({
 5. Monitor cache hit rates
 
 **Example:**
+
 ```typescript
 // services/cache.service.ts
 export class CacheService {
@@ -1229,16 +1349,17 @@ export class CacheService {
 ---
 
 #### 🟡 PERF-4: Rate Limiting Bypassed in Development
+
 **Severity:** Medium
 **Location:** `service.backend/src/middleware/rate-limiter.ts:17-43`
 
 **Action Items:**
+
 1. Add flag to enable rate limiting in development:
    ```typescript
    const rateLimiter = rateLimit({
-     skip: (req) => {
-       return process.env.NODE_ENV === 'development'
-         && process.env.ENABLE_RATE_LIMIT !== 'true';
+     skip: req => {
+       return process.env.NODE_ENV === 'development' && process.env.ENABLE_RATE_LIMIT !== 'true';
      },
    });
    ```
@@ -1253,10 +1374,12 @@ export class CacheService {
 ### Code Quality
 
 #### 🟠 QUAL-1: TypeScript Strict Mode Partially Disabled (Frontend)
+
 **Severity:** High
 **Location:** `app.admin/tsconfig.json:15-16`
 
 **Action Items:**
+
 1. Enable strict checks:
    ```json
    {
@@ -1276,12 +1399,15 @@ export class CacheService {
 ---
 
 #### 🟡 QUAL-2: Class Components Found (Should Be Functional)
+
 **Severity:** Medium
 **Affected:** 4 class components across frontend apps
 
 **Action Items:**
+
 1. Search for class components: `grep -r "extends Component" app.*/src`
 2. Migrate each to functional component with hooks:
+
    ```typescript
    // Before
    class MyComponent extends Component {
@@ -1295,6 +1421,7 @@ export class CacheService {
      return <div>{count}</div>;
    };
    ```
+
 3. Test thoroughly after migration
 
 **Estimated Effort:** 2-3 days
@@ -1303,12 +1430,15 @@ export class CacheService {
 ---
 
 #### 🟡 QUAL-3: Duplicate ErrorBoundary Components
+
 **Severity:** Medium
 **Locations:**
+
 - `app.client/src/components/ErrorBoundary.tsx`
 - `app.client/src/components/common/ErrorBoundary.tsx`
 
 **Action Items:**
+
 1. Consolidate to single implementation
 2. Move to shared library: `lib.components`
 3. Update all imports
@@ -1320,10 +1450,12 @@ export class CacheService {
 ---
 
 #### 🟡 QUAL-4: Dependency Cycles Possible
+
 **Severity:** Medium
 **Issue:** lib.auth depends on lib.components and lib.api
 
 **Action Items:**
+
 1. Install madge: `npm install -D madge`
 2. Check for circular dependencies:
    ```bash
@@ -1340,10 +1472,12 @@ export class CacheService {
 ### Documentation
 
 #### 🟡 DOC-1: API Documentation Incomplete
+
 **Severity:** Medium
 **Location:** `service.backend/src/config/swagger.ts`
 
 **Action Items:**
+
 1. Audit all endpoints for Swagger documentation
 2. Add missing endpoint documentation:
    ```typescript
@@ -1373,9 +1507,11 @@ export class CacheService {
 ---
 
 #### 🟡 DOC-2: Environment Variable Documentation Scattered
+
 **Severity:** Medium
 
 **Action Items:**
+
 1. Create comprehensive `docs/ENVIRONMENT_VARIABLES.md`
 2. Document each variable:
    - Purpose
@@ -1392,9 +1528,11 @@ export class CacheService {
 ---
 
 #### 🟡 DOC-3: Deployment Documentation Missing
+
 **Severity:** Medium
 
 **Action Items:**
+
 1. Create `docs/DEPLOYMENT.md` with:
    - Pre-deployment checklist
    - Environment setup
@@ -1413,9 +1551,11 @@ export class CacheService {
 ### Compliance & Legal
 
 #### ⚪ COMP-1: No Privacy Policy/Terms Implementation
+
 **Severity:** Low
 
 **Action Items:**
+
 1. Add legal compliance endpoints
 2. Implement consent management
 3. Add data export functionality (GDPR)
@@ -1428,9 +1568,11 @@ export class CacheService {
 ---
 
 #### ⚪ COMP-2: Data Retention Policy Missing
+
 **Severity:** Low
 
 **Action Items:**
+
 1. Define data retention requirements
 2. Implement automated data cleanup
 3. Add soft delete functionality
@@ -1445,6 +1587,7 @@ export class CacheService {
 ## Service.Backend Issues
 
 ### Summary
+
 - **Total Source Files:** 184
 - **Total Test Files:** 12 (~6% coverage)
 - **TypeScript `any` Files:** 74
@@ -1456,6 +1599,7 @@ export class CacheService {
 All service.backend issues are documented in the phase sections above. Key files requiring attention:
 
 **High Priority Files:**
+
 1. `service.backend/src/middleware/error-handler.ts` - Stack trace exposure, `any` usage
 2. `service.backend/src/middleware/auth.ts` - JWT_SECRET validation
 3. `service.backend/src/config/index.ts` - Environment variable validation
@@ -1467,6 +1611,7 @@ All service.backend issues are documented in the phase sections above. Key files
 ## App.Admin Issues
 
 ### Summary
+
 - **Test Files:** 5
 - **TypeScript Violations:** 10 files with `any`
 - **Strict Mode:** Partially disabled
@@ -1480,6 +1625,7 @@ All service.backend issues are documented in the phase sections above. Key files
 5. **Input sanitization** - XSS protection
 
 **Key Files:**
+
 - `src/pages/Users.tsx` - Needs tests, type safety
 - `src/pages/Moderation.tsx` - Needs tests, type safety
 - `src/components/DataTable.tsx` - Needs tests
@@ -1490,6 +1636,7 @@ All service.backend issues are documented in the phase sections above. Key files
 ## App.Client Issues
 
 ### Summary
+
 - **Test Files:** 2
 - **Coverage:** Near zero
 - **Security Risk:** High (public-facing)
@@ -1503,6 +1650,7 @@ All service.backend issues are documented in the phase sections above. Key files
 5. **Security hardening** - File upload validation
 
 **Key Flows to Test:**
+
 - Pet search and filtering
 - Application submission
 - User registration/login
@@ -1513,6 +1661,7 @@ All service.backend issues are documented in the phase sections above. Key files
 ## App.Rescue Issues
 
 ### Summary
+
 - **Test Files:** 1 (App.test.tsx only)
 - **Coverage:** <5%
 - **Class Components:** Some found (violates guidelines)
@@ -1525,6 +1674,7 @@ All service.backend issues are documented in the phase sections above. Key files
 4. **Test critical workflows** - Pet management, applications
 
 **Critical Features to Test:**
+
 - Rescue registration
 - Pet CRUD operations
 - Application review
@@ -1535,6 +1685,7 @@ All service.backend issues are documented in the phase sections above. Key files
 ## Shared Libraries Issues
 
 ### Summary
+
 - **Total Libraries:** 20
 - **Test Files:** 52
 - **Coverage:** Inconsistent across libraries
@@ -1542,18 +1693,21 @@ All service.backend issues are documented in the phase sections above. Key files
 ### Libraries Requiring Attention
 
 **High Priority:**
+
 - [ ] `lib.auth` - Core authentication logic needs thorough testing
 - [ ] `lib.api` - API client used by all apps
 - [ ] `lib.permissions` - Security-critical functionality
 - [ ] `lib.validation` - Input validation logic
 
 **Medium Priority:**
+
 - [ ] `lib.components` - Shared UI components
 - [ ] `lib.applications` - Application workflow logic
 - [ ] `lib.pets` - Pet management logic
 - [ ] `lib.chat` - Real-time messaging
 
 **Action Items:**
+
 1. Audit each library's test coverage
 2. Achieve minimum 80% coverage per library
 3. Check for circular dependencies
@@ -1567,12 +1721,14 @@ All service.backend issues are documented in the phase sections above. Key files
 ### CI/CD Pipeline
 
 **Current State:**
+
 - ✅ Backend tests enabled
 - ❌ Frontend tests disabled
 - ❌ Integration tests missing
 - ⚠️ Security audit on continue-on-error
 
 **Required Actions:**
+
 ```yaml
 # .github/workflows/ci.yml improvements needed
 
@@ -1590,6 +1746,7 @@ All service.backend issues are documented in the phase sections above. Key files
 ### Security Audit Findings
 
 **Critical Vulnerabilities:**
+
 1. No CSRF protection
 2. No WebSocket rate limiting
 3. Weak secret defaults
@@ -1597,6 +1754,7 @@ All service.backend issues are documented in the phase sections above. Key files
 5. SQL injection risk in raw queries
 
 **Security Checklist:**
+
 - [ ] CSRF tokens implemented
 - [ ] All secrets validated at startup
 - [ ] Input sanitization on all user input
@@ -1646,11 +1804,13 @@ All service.backend issues are documented in the phase sections above. Key files
 ## Progress Tracking
 
 ### Overall Progress
+
 - [ ] Phase 1: Critical Security & Infrastructure (0/20)
 - [ ] Phase 2: Testing Foundation (0/15)
 - [ ] Phase 3: Production Hardening (0/12)
 
 ### Deployment Blockers (10 items) - 8/10 Complete (80%) 🎉
+
 - [x] DB-1: TypeScript `any` violations fixed ✅ (2025-11-09)
 - [x] DB-2: Type assertions removed ✅ (2025-11-09)
 - [ ] DB-3: Backend test coverage ≥70%
@@ -1665,6 +1825,7 @@ All service.backend issues are documented in the phase sections above. Key files
 **Note:** SEC-2 (Session Secret Validation) was completed as part of the security improvements, strengthening the foundation for remaining deployment blockers.
 
 ### Security Issues (12 items) - 1/12 Complete (8%)
+
 - [ ] SEC-1: Secrets management implemented
 - [x] SEC-2: Session secret strengthened ✅ (2025-11-09)
 - [ ] SEC-3: File upload security hardened
@@ -1677,6 +1838,7 @@ All service.backend issues are documented in the phase sections above. Key files
 ### Testing Progress
 
 **Backend (Target: 70%)**
+
 - [ ] Controllers: 0/13 tested
 - [ ] Services: 6/17 tested
 - [ ] Middleware: 0/6 tested
@@ -1684,12 +1846,14 @@ All service.backend issues are documented in the phase sections above. Key files
 - [ ] Models: 0/20 tested
 
 **Frontend (Target: 70-80%)**
+
 - [ ] app.admin: 5 tests → need ~50
 - [ ] app.client: 2 tests → need ~60
 - [ ] app.rescue: 1 test → need ~40
 - [ ] E2E tests: 0 → need ~15
 
 ### Infrastructure (8 items)
+
 - [ ] INF-1: Production env vars documented
 - [ ] INF-2: Migration testing in CI/CD
 - [ ] INF-3: Docker health checks
@@ -1698,6 +1862,7 @@ All service.backend issues are documented in the phase sections above. Key files
 - [ ] INF-6: Connection pooling configured
 
 ### Monitoring (3 items)
+
 - [ ] MON-1: Structured logging
 - [ ] MON-2: Metrics collection
 - [ ] MON-3: Complete health checks
@@ -1709,6 +1874,7 @@ All service.backend issues are documented in the phase sections above. Key files
 ### Pre-Production Checklist
 
 **Code Quality:**
+
 - ✅ Zero TypeScript `any` usages
 - ✅ Zero unsafe type assertions
 - ✅ ESLint passes with no warnings
@@ -1716,6 +1882,7 @@ All service.backend issues are documented in the phase sections above. Key files
 - ✅ No console.log in production code
 
 **Testing:**
+
 - ✅ Backend coverage ≥70%
 - ✅ Admin app coverage ≥70%
 - ✅ Client app coverage ≥80%
@@ -1724,6 +1891,7 @@ All service.backend issues are documented in the phase sections above. Key files
 - ✅ All CI/CD jobs passing
 
 **Security:**
+
 - ✅ CSRF protection enabled
 - ✅ All secrets validated
 - ✅ Input sanitization implemented
@@ -1734,6 +1902,7 @@ All service.backend issues are documented in the phase sections above. Key files
 - ✅ Penetration test completed
 
 **Infrastructure:**
+
 - ✅ APM/error tracking configured
 - ✅ Structured logging implemented
 - ✅ Metrics collection active
@@ -1743,6 +1912,7 @@ All service.backend issues are documented in the phase sections above. Key files
 - ✅ Secrets management implemented
 
 **Documentation:**
+
 - ✅ API documentation complete
 - ✅ Environment variables documented
 - ✅ Deployment guide created
@@ -1750,6 +1920,7 @@ All service.backend issues are documented in the phase sections above. Key files
 - ✅ Architecture documentation updated
 
 **Performance:**
+
 - ✅ CDN configured
 - ✅ Database indexes optimized
 - ✅ Caching strategy implemented
@@ -1772,7 +1943,7 @@ All service.backend issues are documented in the phase sections above. Key files
    - JWT_SECRET not validated
    - No CSRF protection
    - Session secret weak default
-   - **Mitigation:** Address all SEC-* issues immediately
+   - **Mitigation:** Address all SEC-\* issues immediately
 
 3. **File Uploads**
    - Incomplete security
@@ -1796,7 +1967,7 @@ All service.backend issues are documented in the phase sections above. Key files
 2. **Testing Coverage**
    - Can't confidently deploy
    - Regression risk
-   - **Mitigation:** All TEST-* issues
+   - **Mitigation:** All TEST-\* issues
 
 3. **TypeScript Violations**
    - Type safety compromised
@@ -1808,17 +1979,20 @@ All service.backend issues are documented in the phase sections above. Key files
 ## Timeline Summary
 
 ### Week 1-2: Phase 1 (Critical Security)
+
 - Days 1-3: TypeScript violations (DB-1, DB-2)
 - Days 4-5: CSRF + JWT validation (DB-5, DB-6)
 - Days 6-7: Security headers + secrets (DB-10, SEC-1)
 - Days 8-10: Input sanitization + file upload (SEC-4, SEC-3)
 
 ### Week 2-4: Phase 2 (Testing)
+
 - Week 2: Backend controller + service tests
 - Week 3: Frontend app tests (admin, client, rescue)
 - Week 4: Integration tests + coverage verification
 
 ### Week 4-6: Phase 3 (Hardening)
+
 - Week 5: Monitoring, logging, metrics
 - Week 6: Performance optimization, documentation
 
@@ -1827,6 +2001,7 @@ All service.backend issues are documented in the phase sections above. Key files
 ## Resource Requirements
 
 ### Team Composition (Recommended)
+
 - 2 Backend Engineers (service.backend)
 - 2 Frontend Engineers (3 apps)
 - 1 DevOps Engineer (infrastructure, CI/CD)
@@ -1834,6 +2009,7 @@ All service.backend issues are documented in the phase sections above. Key files
 - 1 Security Engineer (security audit)
 
 ### Tools & Services Needed
+
 - Sentry (APM)
 - Prometheus + Grafana (metrics)
 - ELK Stack or similar (logging)
@@ -1849,6 +2025,7 @@ All service.backend issues are documented in the phase sections above. Key files
 ### A. File-Level Issue Map
 
 **Files with `any` type (Backend - 74 files):**
+
 ```
 service.backend/src/middleware/error-handler.ts:46
 service.backend/src/controllers/chat.controller.ts:153
@@ -1857,6 +2034,7 @@ service.backend/src/services/analytics.service.ts:49
 ```
 
 **Files with console.log (15 files):**
+
 ```
 service.backend/src/seeders/*.ts
 service.backend/src/routes/monitoring.routes.ts
@@ -1866,6 +2044,7 @@ service.backend/src/routes/dashboard.routes.ts
 ### B. Testing Templates
 
 See individual test sections for templates:
+
 - Controller tests: TEST-BE-1
 - Service tests: TEST-BE-2
 - Frontend component tests: TEST-FE-1
@@ -1874,6 +2053,7 @@ See individual test sections for templates:
 ### C. Configuration Examples
 
 See individual sections for configuration examples:
+
 - CSRF: DB-5
 - Security headers: DB-10
 - Structured logging: MON-1
@@ -1884,15 +2064,16 @@ See individual sections for configuration examples:
 
 ## Revision History
 
-| Version | Date | Changes | Author |
-|---------|------|---------|--------|
-| 1.0 | 2025-11-08 | Initial production readiness plan | Claude Code |
+| Version | Date       | Changes                           | Author      |
+| ------- | ---------- | --------------------------------- | ----------- |
+| 1.0     | 2025-11-08 | Initial production readiness plan | Claude Code |
 
 ---
 
 ## Questions & Feedback
 
 For questions about this plan or to report issues:
+
 1. Create an issue in the project repository
 2. Tag with `production-readiness` label
 3. Reference specific issue ID (e.g., DB-1, SEC-3)

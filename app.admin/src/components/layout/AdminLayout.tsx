@@ -15,7 +15,7 @@ const LayoutContainer = styled.div`
 
 const MainContent = styled.main<{ $sidebarCollapsed: boolean }>`
   flex: 1;
-  margin-left: ${props => props.$sidebarCollapsed ? '80px' : '280px'};
+  margin-left: ${props => (props.$sidebarCollapsed ? '80px' : '280px')};
   margin-top: 80px;
   transition: margin-left 0.3s ease;
   min-height: calc(100vh - 80px);
@@ -43,9 +43,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       <AdminSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
       <MainContent $sidebarCollapsed={sidebarCollapsed}>
         <AdminHeader sidebarCollapsed={sidebarCollapsed} />
-        <ContentWrapper>
-          {children}
-        </ContentWrapper>
+        <ContentWrapper>{children}</ContentWrapper>
       </MainContent>
     </LayoutContainer>
   );

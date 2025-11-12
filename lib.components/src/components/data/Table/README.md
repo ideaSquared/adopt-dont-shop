@@ -8,13 +8,13 @@ A flexible and feature-rich table component with sorting, filtering, and paginat
 import { Table } from '@/components/data/Table'
 
 // Basic usage
-<Table 
+<Table
   columns={columns}
   data={data}
 />
 
 // With advanced features
-<Table 
+<Table
   columns={columns}
   data={data}
   sortable={true}
@@ -46,4 +46,4 @@ import { Table } from '@/components/data/Table'
 - Row selection
 - Custom cell renderers
 - Accessible markup
-- TypeScript support 
+- TypeScript support

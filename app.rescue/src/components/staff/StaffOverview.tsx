@@ -30,7 +30,9 @@ const OverviewCard = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
     transform: translateY(-2px);
@@ -224,11 +226,14 @@ const StaffOverview: React.FC<StaffOverviewProps> = ({ staff, loading = false })
 
   const verificationRate = totalStaff > 0 ? Math.round((verifiedStaff / totalStaff) * 100) : 0;
 
-  const roleDistribution = staff.reduce((acc, member) => {
-    const role = member.title || 'No Title';
-    acc[role] = (acc[role] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const roleDistribution = staff.reduce(
+    (acc, member) => {
+      const role = member.title || 'No Title';
+      acc[role] = (acc[role] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const topRoles = Object.entries(roleDistribution)
     .sort(([, a], [, b]) => b - a)
@@ -276,9 +281,7 @@ const StaffOverview: React.FC<StaffOverviewProps> = ({ staff, loading = false })
           <ProgressBar>
             <ProgressFill width={verificationRate} />
           </ProgressBar>
-          <ProgressText>
-            {verificationRate}% of staff members are verified
-          </ProgressText>
+          <ProgressText>{verificationRate}% of staff members are verified</ProgressText>
         </DetailSection>
 
         {topRoles.length > 0 && (

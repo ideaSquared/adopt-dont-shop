@@ -277,7 +277,10 @@ export class RescueService {
   /**
    * Update adoption policies for a rescue
    */
-  async updateAdoptionPolicies(rescueId: string, adoptionPolicies: AdoptionPolicy): Promise<AdoptionPolicy> {
+  async updateAdoptionPolicies(
+    rescueId: string,
+    adoptionPolicies: AdoptionPolicy
+  ): Promise<AdoptionPolicy> {
     try {
       const response = (await this.apiService.put(
         `${this.baseUrl}/${rescueId}/adoption-policies`,
@@ -337,4 +340,3 @@ export class RescueService {
 
 // Create and export singleton instance
 export const rescueService = new RescueService();
-

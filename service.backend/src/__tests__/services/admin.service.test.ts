@@ -172,10 +172,7 @@ describe('AdminService', () => {
         const result = await AdminService.getUserById('user-123');
 
         expect(result).toEqual(mockUser);
-        expect(MockedUser.findByPk).toHaveBeenCalledWith(
-          'user-123',
-          expect.any(Object)
-        );
+        expect(MockedUser.findByPk).toHaveBeenCalledWith('user-123', expect.any(Object));
       });
 
       it('should return null when user not found', async () => {
@@ -198,11 +195,7 @@ describe('AdminService', () => {
 
         (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
-        await AdminService.updateUserStatus(
-          'user-123',
-          UserStatus.SUSPENDED,
-          'admin-456'
-        );
+        await AdminService.updateUserStatus('user-123', UserStatus.SUSPENDED, 'admin-456');
 
         expect(mockUser.save).toHaveBeenCalled();
         expect(mockUser.status).toBe(UserStatus.SUSPENDED);
@@ -236,11 +229,7 @@ describe('AdminService', () => {
 
         (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
-        const result = await AdminService.suspendUser(
-          'user-123',
-          'admin-456',
-          'Spam activity'
-        );
+        const result = await AdminService.suspendUser('user-123', 'admin-456', 'Spam activity');
 
         expect(mockUser.save).toHaveBeenCalled();
         expect(mockUser.status).toBe(UserStatus.SUSPENDED);
@@ -425,9 +414,9 @@ describe('AdminService', () => {
       it('should throw error when rescue not found', async () => {
         (MockedRescue.findByPk as vi.Mock).mockResolvedValue(null);
 
-        await expect(
-          AdminService.verifyRescue('nonexistent', 'admin-456')
-        ).rejects.toThrow('Rescue not found');
+        await expect(AdminService.verifyRescue('nonexistent', 'admin-456')).rejects.toThrow(
+          'Rescue not found'
+        );
       });
     });
 
@@ -658,9 +647,7 @@ describe('AdminService', () => {
         new Error('Connection error')
       );
 
-      await expect(
-        AdminService.verifyRescue('rescue-123', 'admin-456')
-      ).rejects.toThrow();
+      await expect(AdminService.verifyRescue('rescue-123', 'admin-456')).rejects.toThrow();
     });
 
     it('should handle errors in platform metrics gracefully', async () => {

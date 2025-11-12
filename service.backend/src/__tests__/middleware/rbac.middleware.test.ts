@@ -77,14 +77,11 @@ describe('RBAC Middleware', () => {
         const middleware = requireRole(UserType.ADMIN);
         middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
-        expect(logger.warn).toHaveBeenCalledWith(
-          'Access denied - insufficient permissions',
-          {
-            userId: 'user-123',
-            userType: UserType.ADOPTER,
-            requiredRoles: [UserType.ADMIN],
-          }
-        );
+        expect(logger.warn).toHaveBeenCalledWith('Access denied - insufficient permissions', {
+          userId: 'user-123',
+          userType: UserType.ADOPTER,
+          requiredRoles: [UserType.ADMIN],
+        });
       });
     });
 
@@ -249,9 +246,7 @@ describe('RBAC Middleware', () => {
           Roles: [
             {
               name: 'admin',
-              Permissions: [
-                { permissionName: 'pets:delete' },
-              ],
+              Permissions: [{ permissionName: 'pets:delete' }],
             },
           ],
         } as unknown as AuthenticatedRequest['user'];
@@ -274,9 +269,7 @@ describe('RBAC Middleware', () => {
             },
             {
               name: 'advanced',
-              Permissions: [
-                { permissionName: 'pets:create' },
-              ],
+              Permissions: [{ permissionName: 'pets:create' }],
             },
           ],
         } as unknown as AuthenticatedRequest['user'];
@@ -407,7 +400,9 @@ describe('RBAC Middleware', () => {
         const middleware = requireOwnership('petId');
         middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
-        expect((mockRequest as AuthenticatedRequest & { resourceId: string }).resourceId).toBe('pet-789');
+        expect((mockRequest as AuthenticatedRequest & { resourceId: string }).resourceId).toBe(
+          'pet-789'
+        );
         expect(mockNext).toHaveBeenCalled();
       });
     });
@@ -702,14 +697,11 @@ describe('RBAC Middleware', () => {
         const middleware = requireOwnershipOrAdmin(getResourceUserId);
         middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
-        expect(logger.warn).toHaveBeenCalledWith(
-          'Access denied - not owner or admin',
-          {
-            userId: 'user-123',
-            resourceUserId: 'user-456',
-            userType: UserType.ADOPTER,
-          }
-        );
+        expect(logger.warn).toHaveBeenCalledWith('Access denied - not owner or admin', {
+          userId: 'user-123',
+          resourceUserId: 'user-456',
+          userType: UserType.ADOPTER,
+        });
       });
     });
 

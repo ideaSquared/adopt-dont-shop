@@ -18,12 +18,13 @@ export const useEtherealCredentials = () => {
 
   useEffect(() => {
     // Only fetch in development mode
-    if (typeof window !== 'undefined' && 
-        (window as any).location && 
-        ((window as any).location.hostname === 'localhost' || 
-         (window as any).location.hostname === '127.0.0.1' ||
-         process.env.NODE_ENV === 'development')) {
-      
+    if (
+      typeof window !== 'undefined' &&
+      (window as any).location &&
+      ((window as any).location.hostname === 'localhost' ||
+        (window as any).location.hostname === '127.0.0.1' ||
+        process.env.NODE_ENV === 'development')
+    ) {
       const fetchCredentials = async () => {
         try {
           const response = await fetch('/api/dev/email/provider-info');
@@ -37,7 +38,7 @@ export const useEtherealCredentials = () => {
               user: 'dev@ethereal.email',
               pass: 'mock-password',
               loginUrl: 'https://ethereal.email/login',
-              messagesUrl: 'https://ethereal.email/messages'
+              messagesUrl: 'https://ethereal.email/messages',
             });
           }
         } catch (err) {
@@ -47,7 +48,7 @@ export const useEtherealCredentials = () => {
             user: 'dev@ethereal.email',
             pass: 'mock-password',
             loginUrl: 'https://ethereal.email/login',
-            messagesUrl: 'https://ethereal.email/messages'
+            messagesUrl: 'https://ethereal.email/messages',
           });
           console.warn('Ethereal credentials endpoint not available, using mock data:', err);
         } finally {

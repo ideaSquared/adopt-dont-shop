@@ -40,7 +40,9 @@ const DonutSegment = styled.circle<{ $active: boolean }>`
     filter: brightness(1.1);
   }
 
-  ${props => props.$active && `
+  ${props =>
+    props.$active &&
+    `
     filter: brightness(1.15);
   `}
 `;
@@ -81,7 +83,7 @@ const LegendItem = styled.div<{ $active: boolean }>`
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: ${props => props.$active ? props.theme.colors.neutral[50] : 'transparent'};
+  background: ${props => (props.$active ? props.theme.colors.neutral[50] : 'transparent')};
 
   &:hover {
     background: ${props => props.theme.colors.neutral[50]};
@@ -158,7 +160,10 @@ const LoadingSkeleton = styled.div`
   }
 `;
 
-const StageDistributionChart: React.FC<StageDistributionChartProps> = ({ data, loading = false }) => {
+const StageDistributionChart: React.FC<StageDistributionChartProps> = ({
+  data,
+  loading = false,
+}) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   if (loading) {
@@ -206,7 +211,7 @@ const StageDistributionChart: React.FC<StageDistributionChartProps> = ({ data, l
     <ChartContainer>
       <DonutContainer>
         <SVGContainer width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          {segments.map((segment) => (
+          {segments.map(segment => (
             <DonutSegment
               key={segment.stage}
               cx={size / 2}

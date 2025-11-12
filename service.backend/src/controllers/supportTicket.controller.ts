@@ -48,14 +48,34 @@ const serializeTicket = (ticket: SupportTicket): SerializedTicket => {
   const result: SerializedTicket = {
     ...(ticketData as unknown as SerializedTicket),
     // Convert Date objects to ISO strings
-    createdAt: ticketData.createdAt instanceof Date ? ticketData.createdAt.toISOString() : ticketData.createdAt,
-    updatedAt: ticketData.updatedAt instanceof Date ? ticketData.updatedAt.toISOString() : ticketData.updatedAt,
-    firstResponseAt: ticketData.firstResponseAt instanceof Date ? ticketData.firstResponseAt.toISOString() : ticketData.firstResponseAt,
-    lastResponseAt: ticketData.lastResponseAt instanceof Date ? ticketData.lastResponseAt.toISOString() : ticketData.lastResponseAt,
-    resolvedAt: ticketData.resolvedAt instanceof Date ? ticketData.resolvedAt.toISOString() : ticketData.resolvedAt,
-    closedAt: ticketData.closedAt instanceof Date ? ticketData.closedAt.toISOString() : ticketData.closedAt,
-    escalatedAt: ticketData.escalatedAt instanceof Date ? ticketData.escalatedAt.toISOString() : ticketData.escalatedAt,
-    dueDate: ticketData.dueDate instanceof Date ? ticketData.dueDate.toISOString() : ticketData.dueDate,
+    createdAt:
+      ticketData.createdAt instanceof Date
+        ? ticketData.createdAt.toISOString()
+        : ticketData.createdAt,
+    updatedAt:
+      ticketData.updatedAt instanceof Date
+        ? ticketData.updatedAt.toISOString()
+        : ticketData.updatedAt,
+    firstResponseAt:
+      ticketData.firstResponseAt instanceof Date
+        ? ticketData.firstResponseAt.toISOString()
+        : ticketData.firstResponseAt,
+    lastResponseAt:
+      ticketData.lastResponseAt instanceof Date
+        ? ticketData.lastResponseAt.toISOString()
+        : ticketData.lastResponseAt,
+    resolvedAt:
+      ticketData.resolvedAt instanceof Date
+        ? ticketData.resolvedAt.toISOString()
+        : ticketData.resolvedAt,
+    closedAt:
+      ticketData.closedAt instanceof Date ? ticketData.closedAt.toISOString() : ticketData.closedAt,
+    escalatedAt:
+      ticketData.escalatedAt instanceof Date
+        ? ticketData.escalatedAt.toISOString()
+        : ticketData.escalatedAt,
+    dueDate:
+      ticketData.dueDate instanceof Date ? ticketData.dueDate.toISOString() : ticketData.dueDate,
   };
 
   // Map Sequelize alias 'Responses' to lowercase 'responses' for frontend compatibility
@@ -111,21 +131,26 @@ export class SupportTicketController {
 
       if (status) {
         const statusArray = typeof status === 'string' ? status.split(',') : (status as string[]);
-        filters.status = statusArray.length === 1
-          ? statusArray[0] as TicketStatus
-          : statusArray as TicketStatus[];
+        filters.status =
+          statusArray.length === 1
+            ? (statusArray[0] as TicketStatus)
+            : (statusArray as TicketStatus[]);
       }
       if (priority) {
-        const priorityArray = typeof priority === 'string' ? priority.split(',') : (priority as string[]);
-        filters.priority = priorityArray.length === 1
-          ? priorityArray[0] as TicketPriority
-          : priorityArray as TicketPriority[];
+        const priorityArray =
+          typeof priority === 'string' ? priority.split(',') : (priority as string[]);
+        filters.priority =
+          priorityArray.length === 1
+            ? (priorityArray[0] as TicketPriority)
+            : (priorityArray as TicketPriority[]);
       }
       if (category) {
-        const categoryArray = typeof category === 'string' ? category.split(',') : (category as string[]);
-        filters.category = categoryArray.length === 1
-          ? categoryArray[0] as TicketCategory
-          : categoryArray as TicketCategory[];
+        const categoryArray =
+          typeof category === 'string' ? category.split(',') : (category as string[]);
+        filters.category =
+          categoryArray.length === 1
+            ? (categoryArray[0] as TicketCategory)
+            : (categoryArray as TicketCategory[]);
       }
       if (assignedTo) filters.assignedTo = assignedTo as string;
       if (userId) filters.userId = userId as string;
@@ -140,7 +165,7 @@ export class SupportTicketController {
       // Validate and cast sortOrder to ensure it's "ASC" | "DESC"
       if (sortOrder) {
         const upperOrder = (sortOrder as string).toUpperCase();
-        pagination.sortOrder = (upperOrder === 'ASC' || upperOrder === 'DESC') ? upperOrder : 'DESC';
+        pagination.sortOrder = upperOrder === 'ASC' || upperOrder === 'DESC' ? upperOrder : 'DESC';
       }
 
       const result = await SupportTicketService.getTickets(filters, pagination);

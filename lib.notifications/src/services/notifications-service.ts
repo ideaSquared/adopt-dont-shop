@@ -499,4 +499,3 @@ export class NotificationsService {
     }
   }
 }
-
