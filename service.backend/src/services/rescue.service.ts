@@ -229,12 +229,12 @@ export class RescueService {
         throw new Error('Rescue not found');
       }
 
-      const rescueData = rescue.toJSON();
-
       // Include statistics if requested
       if (includeStats) {
         const stats = await this.getRescueStatistics(rescueId);
-        return { ...rescue, statistics: stats } as Rescue;
+        // Attach statistics to the model instance
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (rescue as any).statistics = stats;
       }
 
       return rescue;
