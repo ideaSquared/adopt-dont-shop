@@ -67,7 +67,7 @@ class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implement
   public updatedAt!: Date;
 
   // Associations
-  public staff?: any[];
+  public staff?: unknown[];
 }
 
 // Initialize model

@@ -56,7 +56,7 @@ describe('AuthService', () => {
     });
 
     // Mock the generateTokens method to avoid JWT secret issues
-    jest.spyOn(AuthService as any, 'generateTokens').mockResolvedValue({
+    jest.spyOn(AuthService as unknown, 'generateTokens').mockResolvedValue({
       token: 'mocked-access-token',
       refreshToken: 'mocked-refresh-token',
       expiresIn: 900000, // 15 minutes in ms
@@ -100,9 +100,9 @@ describe('AuthService', () => {
       };
 
       MockedUser.findOne = jest.fn().mockResolvedValue(null);
-      MockedUser.create = jest.fn().mockResolvedValue(mockUser as any);
-      mockedJwt.sign = jest.fn().mockReturnValue('access-token' as any);
-      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
+      MockedUser.create = jest.fn().mockResolvedValue(mockUser as unknown);
+      mockedJwt.sign = jest.fn().mockReturnValue('access-token' as unknown);
+      MockedAuditLog.create = jest.fn().mockResolvedValue({} as unknown);
 
       const result = await AuthService.register(userData);
 
@@ -129,7 +129,7 @@ describe('AuthService', () => {
 
     it('should throw error if user already exists', async () => {
       const existingUser = { userId: 'existing-user' };
-      MockedUser.findOne = jest.fn().mockResolvedValue(existingUser as any);
+      MockedUser.findOne = jest.fn().mockResolvedValue(existingUser as unknown);
 
       await expect(AuthService.register(userData)).rejects.toThrow(
         'User already exists with this email'
@@ -176,10 +176,10 @@ describe('AuthService', () => {
 
       MockedUser.scope = jest.fn().mockReturnValue({
         findOne: jest.fn().mockResolvedValue(mockUser),
-      } as any);
+      } as unknown);
       mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
-      mockedJwt.sign = jest.fn().mockReturnValue('access-token' as any);
-      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
+      mockedJwt.sign = jest.fn().mockReturnValue('access-token' as unknown);
+      MockedAuditLog.create = jest.fn().mockResolvedValue({} as unknown);
 
       const result = await AuthService.login(credentials);
 
@@ -192,7 +192,7 @@ describe('AuthService', () => {
     it('should throw error for invalid credentials', async () => {
       MockedUser.scope = jest.fn().mockReturnValue({
         findOne: jest.fn().mockResolvedValue(null),
-      } as any);
+      } as unknown);
 
       await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
     });
@@ -212,7 +212,7 @@ describe('AuthService', () => {
 
       MockedUser.scope = jest.fn().mockReturnValue({
         findOne: jest.fn().mockResolvedValue(mockUser),
-      } as any);
+      } as unknown);
       mockedBcrypt.compare = jest.fn().mockResolvedValue(false as never);
 
       await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
@@ -233,9 +233,9 @@ describe('AuthService', () => {
 
       MockedUser.scope = jest.fn().mockReturnValue({
         findOne: jest.fn().mockResolvedValue(mockUser),
-      } as any);
+      } as unknown);
       mockedBcrypt.compare = jest.fn().mockResolvedValue(false as never);
-      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
+      MockedAuditLog.create = jest.fn().mockResolvedValue({} as unknown);
 
       await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
 
@@ -298,7 +298,7 @@ describe('AuthService', () => {
         save: jest.fn(),
       };
 
-      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as any);
+      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as unknown);
 
       const authService = new AuthService();
       await authService.requestPasswordReset({ email });
@@ -330,8 +330,8 @@ describe('AuthService', () => {
         save: jest.fn(),
       };
 
-      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as any);
-      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
+      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as unknown);
+      MockedAuditLog.create = jest.fn().mockResolvedValue({} as unknown);
 
       const authService = new AuthService();
       await authService.verifyEmail(token);

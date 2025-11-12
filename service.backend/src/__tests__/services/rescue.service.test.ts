@@ -344,7 +344,7 @@ describe('RescueService - Behavioral Testing', () => {
           name: 'Invalid Rescue',
           email: 'invalid@rescue.org',
           // Missing required fields
-        } as any)
+        } as unknown)
       ).rejects.toThrow();
     });
   });

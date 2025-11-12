@@ -37,7 +37,7 @@ interface TemplateVariable {
   type: 'string' | 'number' | 'boolean' | 'date' | 'object';
   description: string;
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   validation?: {
     pattern?: string;
     minLength?: number;
@@ -207,7 +207,7 @@ class EmailTemplate
     return { valid: errors.length === 0, errors };
   }
 
-  private validateVariableValue(variable: TemplateVariable, value: any): boolean {
+  private validateVariableValue(variable: TemplateVariable, value: unknown): boolean {
     // Type checking
     switch (variable.type) {
       case 'string':
@@ -407,9 +407,9 @@ EmailTemplate.init(
       set(value: string[]) {
         // In SQLite, store as JSON string
         if (process.env.NODE_ENV === 'test') {
-          this.setDataValue('tags', JSON.stringify(value || []) as any);
+          this.setDataValue('tags', JSON.stringify(value || []) as unknown as string[]);
         } else {
-          this.setDataValue('tags', value || ([] as any));
+          this.setDataValue('tags', value || ([] as unknown as string[]));
         }
       },
     },

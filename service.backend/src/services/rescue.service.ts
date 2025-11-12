@@ -152,7 +152,7 @@ export class RescueService {
 
       const { count, rows: rescues } = await Rescue.findAndCountAll({
         where: whereClause,
-        order: orderClause as any,
+        order: orderClause as unknown,
         limit,
         offset,
         include: [
@@ -234,10 +234,10 @@ export class RescueService {
       // Include statistics if requested
       if (includeStats) {
         const stats = await this.getRescueStatistics(rescueId);
-        return { ...rescueData, statistics: stats } as any;
+        return { ...rescueData, statistics: stats } as unknown;
       }
 
-      return rescueData as any;
+      return rescueData as unknown;
     } catch (error) {
       logger.error('Error getting rescue by ID:', {
         error: error instanceof Error ? error.message : String(error),
@@ -307,7 +307,7 @@ export class RescueService {
       await transaction.commit();
 
       logger.info(`Created new rescue: ${rescue.rescueId}`);
-      return rescue.toJSON() as any;
+      return rescue.toJSON() as unknown;
     } catch (error) {
       await transaction.rollback();
       logger.error('Error creating rescue:', {
@@ -461,7 +461,7 @@ export class RescueService {
       await transaction.commit();
 
       logger.info(`Verified rescue: ${rescueId}`);
-      return rescue.toJSON() as any;
+      return rescue.toJSON() as unknown;
     } catch (error) {
       await transaction.rollback();
       logger.error('Error verifying rescue:', {
@@ -540,7 +540,7 @@ export class RescueService {
       await transaction.commit();
 
       logger.info(`Rejected rescue: ${rescueId}`);
-      return rescue.toJSON() as any;
+      return rescue.toJSON() as unknown;
     } catch (error) {
       await transaction.rollback();
       logger.error('Error rejecting rescue:', {
@@ -947,7 +947,7 @@ export class RescueService {
 
       const { count, rows: pets } = await Pet.findAndCountAll({
         where: whereClause,
-        order: orderClause as any,
+        order: orderClause as unknown,
         limit,
         offset,
       });
@@ -1122,7 +1122,7 @@ export class RescueService {
       }
 
       // Get current settings or initialize empty object
-      const currentSettings = (rescue.settings as any) || {};
+      const currentSettings = (rescue.settings as unknown) || {};
 
       // Update settings with new adoption policies
       const updatedSettings = {
@@ -1187,7 +1187,7 @@ export class RescueService {
         throw new Error('Rescue not found');
       }
 
-      const settings = (rescue.settings as any) || {};
+      const settings = (rescue.settings as unknown) || {};
       const adoptionPolicies = settings.adoptionPolicies || null;
 
       loggerHelpers.logDatabase('READ', {

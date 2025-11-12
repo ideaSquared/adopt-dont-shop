@@ -11,7 +11,7 @@ const csrfConfig: DoubleCsrfConfigOptions = {
   getSessionIdentifier: req => {
     // Use user ID if authenticated, otherwise use IP address
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const user = (req as any).user;
+    const user = (req as unknown).user;
     return user?.userId || req.ip || 'anonymous';
   },
   // Use __Host- prefix only in production (requires secure context)

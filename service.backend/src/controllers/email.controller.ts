@@ -11,9 +11,9 @@ export const getTemplates = async (req: AuthenticatedRequest, res: Response): Pr
     const { type, category, status, locale, limit, offset } = req.query;
 
     const result = await emailService.getTemplates({
-      type: type as any,
-      category: category as any,
-      status: status as any,
+      type: type as unknown as string | undefined,
+      category: category as unknown as string | undefined,
+      status: status as unknown as string | undefined,
       locale: locale as string,
       limit: limit ? parseInt(limit as string) : undefined,
       offset: offset ? parseInt(offset as string) : undefined,
@@ -125,7 +125,7 @@ export const previewTemplate = async (req: AuthenticatedRequest, res: Response):
     }
 
     // Process template with provided data
-    const processedContent = await (emailService as any).processTemplate(
+    const processedContent = await (emailService as unknown as {processTemplate: (template: unknown, data: unknown) => Promise<unknown>}).processTemplate(
       template,
       templateData || {}
     );
@@ -227,7 +227,7 @@ export const getQueueStatus = async (req: AuthenticatedRequest, res: Response): 
 export const processQueue = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     // Start queue processing
-    (emailService as any).startQueueProcessor();
+    (emailService as unknown as {startQueueProcessor: () => void}).startQueueProcessor();
 
     res.json({
       message: 'Queue processing started successfully',
@@ -273,7 +273,7 @@ export const getEmailAnalytics = async (
       campaignId: campaignId as string,
       dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
       dateTo: dateTo ? new Date(dateTo as string) : undefined,
-      type: type as any,
+      type: type as unknown as string | undefined,
     });
 
     res.json({

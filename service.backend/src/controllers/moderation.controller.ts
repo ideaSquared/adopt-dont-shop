@@ -38,13 +38,13 @@ export class ModerationController {
   async getReports(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const filters: ReportFilters = {
-        status: req.query.status as any,
-        category: req.query.category as any,
-        severity: req.query.severity as any,
+        status: req.query.status as unknown as string | undefined,
+        category: req.query.category as unknown as string | undefined,
+        severity: req.query.severity as unknown as string | undefined,
         reporterId: req.query.reporterId as string,
         reportedUserId: req.query.reportedUserId as string,
         assignedModerator: req.query.assignedModerator as string,
-        reportedEntityType: req.query.reportedEntityType as any,
+        reportedEntityType: req.query.reportedEntityType as unknown as string | undefined,
         search: req.query.search as string,
       };
 

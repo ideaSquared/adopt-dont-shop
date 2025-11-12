@@ -108,11 +108,11 @@ vi.mock('../../services/notification.service');
 vi.mock('../../utils/logger');
 
 // Use the imported mocked models directly
-const MockedChat = Chat as any;
-const MockedChatParticipant = ChatParticipant as any;
-const MockedMessage = Message as any;
-const MockedUser = User as any;
-const MockedRescue = Rescue as any;
+const MockedChat = Chat as unknown;
+const MockedChatParticipant = ChatParticipant as unknown;
+const MockedMessage = Message as unknown;
+const MockedUser = User as unknown;
+const MockedRescue = Rescue as unknown;
 
 const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
 const MockedNotificationService = NotificationService as vi.Mocked<typeof NotificationService>;

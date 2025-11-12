@@ -890,7 +890,7 @@ class ModerationService {
         } else {
           try {
             switch (report.reportedEntityType) {
-              case 'user':
+              case 'user': {
                 const user = await User.findByPk(report.reportedEntityId);
                 entityContext = user
                   ? {
@@ -907,8 +907,9 @@ class ModerationService {
                       deleted: true,
                     };
                 break;
+              }
 
-              case 'pet':
+              case 'pet': {
                 const pet = await Pet.findByPk(report.reportedEntityId);
                 entityContext = pet
                   ? {
@@ -926,8 +927,9 @@ class ModerationService {
                       deleted: true,
                     };
                 break;
+              }
 
-              case 'rescue':
+              case 'rescue': {
                 const rescue = await Rescue.findByPk(report.reportedEntityId);
                 entityContext = rescue
                   ? {
@@ -944,6 +946,7 @@ class ModerationService {
                       deleted: true,
                     };
                 break;
+              }
 
               default:
                 entityContext = {

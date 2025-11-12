@@ -50,8 +50,8 @@ class StaffMember
   public updatedAt!: Date;
 
   // Associations
-  public user?: any;
-  public rescue?: any;
+  public user?: unknown;
+  public rescue?: unknown;
 }
 
 StaffMember.init(

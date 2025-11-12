@@ -82,7 +82,7 @@ class AdminService {
       }
 
       if (search) {
-        whereConditions[Op.or as any] = [
+        whereConditions[Op.or as unknown] = [
           { firstName: { [Op.iLike]: `%${search}%` } },
           { lastName: { [Op.iLike]: `%${search}%` } },
           { email: { [Op.iLike]: `%${search}%` } },
@@ -390,7 +390,7 @@ class AdminService {
       }
 
       if (search) {
-        whereConditions[Op.or as any] = [
+        whereConditions[Op.or as unknown] = [
           { name: { [Op.iLike]: `%${search}%` } },
           { description: { [Op.iLike]: `%${search}%` } },
           { email: { [Op.iLike]: `%${search}%` } },

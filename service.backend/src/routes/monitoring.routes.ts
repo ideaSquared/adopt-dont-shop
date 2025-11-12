@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Op } from 'sequelize';
 import { config } from '../config';
 import { authLimiter, uploadLimiter } from '../middleware/rate-limiter';
 import { HealthCheckService } from '../services/health-check.service';
@@ -1176,13 +1177,13 @@ if (process.env.NODE_ENV === 'development') {
       const seededUsers = await User.findAll({
         where: {
           email: {
-            [require('sequelize').Op.or]: [
-              { [require('sequelize').Op.like]: '%@adoptdontshop.dev' },
-              { [require('sequelize').Op.like]: '%@pawsrescue.dev' },
-              { [require('sequelize').Op.like]: '%@happytailsrescue.dev' },
-              { [require('sequelize').Op.like]: '%@happytails.org' },
+            [Op.or]: [
+              { [Op.like]: '%@adoptdontshop.dev' },
+              { [Op.like]: '%@pawsrescue.dev' },
+              { [Op.like]: '%@happytailsrescue.dev' },
+              { [Op.like]: '%@happytails.org' },
               {
-                [require('sequelize').Op.in]: [
+                [Op.in]: [
                   'john.smith@gmail.com',
                   'emily.davis@yahoo.com',
                   'michael.brown@outlook.com',

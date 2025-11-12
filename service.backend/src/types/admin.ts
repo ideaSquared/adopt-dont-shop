@@ -40,7 +40,7 @@ export interface SystemStatistics {
   verifiedRescues: number;
   availablePets: number;
   pendingApplications: number;
-  recentActivity: any[];
+  recentActivity: unknown[];
 }
 
 export interface AdminDashboardData {

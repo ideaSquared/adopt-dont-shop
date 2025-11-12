@@ -28,6 +28,7 @@ export async function initializeTestDatabase(): Promise<void> {
     // force: false means don't drop existing tables
     await testDb.sync({ force: true });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to initialize test database:', error);
     throw error;
   }
@@ -52,6 +53,7 @@ export async function cleanDatabase(): Promise<void> {
       });
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to clean database:', error);
     throw error;
   }

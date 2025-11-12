@@ -816,7 +816,7 @@ export async function seedApplications() {
         created_at: new Date(),
         updated_at: new Date(),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
+      } as unknown,
     });
   }
 

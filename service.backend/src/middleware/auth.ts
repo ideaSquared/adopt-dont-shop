@@ -205,7 +205,7 @@ export const requireRole = (requiredRoles: string | string[]) => {
 
       const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
 
-      // Check if user has any of the required roles
+      // Check if user has unknown of the required roles
       const userRoles = req.user.Roles?.map(role => role.name) || [];
       const hasRequiredRole = roles.some(role => userRoles.includes(role));
 
