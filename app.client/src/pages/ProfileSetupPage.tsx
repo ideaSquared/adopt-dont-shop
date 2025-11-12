@@ -2,9 +2,9 @@ import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAuth } from '../contexts/AuthContext';
-import { applicationProfileService } from '../services/applicationProfileService';
-import { ApplicationDefaults, ProfileCompletionResponse } from '../types';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { applicationProfileService } from '@/services/applicationProfileService';
+import { ApplicationDefaults, ProfileCompletionResponse } from '@/types';
 
 /**
  * Phase 1 - Profile Setup Page

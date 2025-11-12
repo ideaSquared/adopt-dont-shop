@@ -1,29 +1,21 @@
-import { ApplicationForm, ApplicationProgress, PetSummary } from '@/components/application';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
-import { useStatsig } from '@/hooks/useStatsig';
-import { applicationService, petService } from '@/services';
-import { Application, ApplicationData, Pet } from '@/services';
-import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
-import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import styled from 'styled-components';
 import {
   ApplicationForm,
   ApplicationProgress,
   ProfileCompletionPrompt,
   QuickApplicationPrompt,
-} from '../components/application';
-import { useAuth } from '../contexts/AuthContext';
-import { applicationProfileService } from '../services/applicationProfileService';
-import { applicationService } from '../services/applicationService';
-import { petService } from '../services/petService';
+} from '@/components/application';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { applicationService, petService, ApplicationData, Pet } from '@/services';
+import { applicationProfileService } from '@/services/applicationProfileService';
 import {
-  ApplicationData,
   ApplicationDefaults,
   ApplicationPrePopulationData,
-  Pet,
   QuickApplicationCapability,
-} from '../types';
+} from '@/types';
+import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import styled from 'styled-components';
 
 /**
  * Application Page
@@ -103,6 +95,8 @@ export const ApplicationPage: React.FC = () => {
           phone: data.defaults.personalInfo?.phone || user!.phoneNumber || '',
           address: data.defaults.personalInfo?.address || user!.addressLine1 || '',
           city: data.defaults.personalInfo?.city || user!.city || '',
+          state: data.defaults.personalInfo?.state || '',
+          zipCode: data.defaults.personalInfo?.zipCode || '',
           county: data.defaults.personalInfo?.county || '', // County is specific to the application, not stored in user profile
           postcode: data.defaults.personalInfo?.postcode || user!.postalCode || '',
           country: data.defaults.personalInfo?.country || user!.country || 'United Kingdom',
@@ -150,6 +144,8 @@ export const ApplicationPage: React.FC = () => {
           phone: defaults.personalInfo?.phone || user!.phoneNumber || '',
           address: defaults.personalInfo?.address || user!.addressLine1 || '',
           city: defaults.personalInfo?.city || user!.city || '',
+          state: defaults.personalInfo?.state || '',
+          zipCode: defaults.personalInfo?.zipCode || '',
           county: defaults.personalInfo?.county || '',
           postcode: defaults.personalInfo?.postcode || user!.postalCode || '',
           country: defaults.personalInfo?.country || user!.country || 'United Kingdom',
@@ -352,7 +348,8 @@ export const ApplicationPage: React.FC = () => {
         priority: 'normal' as const,
       };
 
-      const result = await applicationService.submitApplication(submissionData);
+      // Type assertion needed because backend expects different structure than ApplicationData type
+      const result = await applicationService.submitApplication(submissionData as unknown as ApplicationData);
 
       // Phase 1: Mark progress as completed
       // await applicationProgressService.completeProgress(petId!);

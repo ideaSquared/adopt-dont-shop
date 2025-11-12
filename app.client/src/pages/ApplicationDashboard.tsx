@@ -2,10 +2,8 @@ import { Button, Card } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAuth } from '../contexts/AuthContext';
-import { applicationService } from '../services/applicationService';
-import { petService } from '../services/petService';
-import { Application, Pet } from '../types';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { applicationService, petService, Application, Pet } from '@/services';
 
 interface ApplicationWithPet extends Application {
   pet?: Pet;
@@ -144,7 +142,7 @@ export const ApplicationDashboard: React.FC = () => {
       const applicationsWithPets = await Promise.all(
         userApplications.map(async app => {
           try {
-            const pet = await petService.getPet(app.petId);
+            const pet = await petService.getPetById(app.petId);
             return { ...app, pet };
           } catch (error) {
             console.error(`Failed to load pet for application ${app.id}:`, error);

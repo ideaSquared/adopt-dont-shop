@@ -23,6 +23,7 @@ import {
   useState,
 } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { handleAsyncAction } from './base/BaseContext';
 
 interface ChatContextType {
   conversations: Conversation[];
@@ -92,7 +93,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     if (result) {
       // Map chat_id to id for frontend compatibility
       const mappedConversations = (result || []).map(
-        (conv: BaseConversation & { chat_id?: string }) =>
+        (conv: ConversationApiResponse) =>
           ({
             ...conv,
             id: conv.id || conv.chat_id,
@@ -217,7 +218,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       }
     );
 
-    if (!messageData.data) {
+    if (!messageData || !messageData.data) {
       console.warn('No data array in response, using empty array');
       setMessages([]);
       return;
@@ -332,7 +333,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       setConversations(prev =>
         (prev || []).map(conv =>
           conv.id === activeConversation.id
-            ? { ...conv, lastMessage: sentMessage, updatedAt: sentMessage.timestamp }
+            ? { ...conv, lastMessage: result, updatedAt: result.timestamp }
             : conv
         )
       );
@@ -357,7 +358,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
       setConversations(prev => [conversation, ...(prev || [])]);
       return conversation;
     } catch (error) {
-      setError(error as Error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create conversation';
+      setError(errorMessage);
       throw error;
     }
   };
