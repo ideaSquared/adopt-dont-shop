@@ -17,10 +17,17 @@ const { mockTransaction, mockSequelize } = vi.hoisted(() => {
 });
 
 // Mock sequelize first
-vi.mock('../../sequelize', () => ({
-  __esModule: true,
-  default: mockSequelize,
-}));
+vi.mock('../../sequelize', async (importOriginal) => {
+  const actual = await importOriginal() as typeof import('../../sequelize');
+  return {
+    ...actual,
+    __esModule: true,
+    default: {
+      ...actual.default,
+      ...mockSequelize,
+    },
+  };
+});
 
 // Mock EmailQueue to prevent initialization errors
 vi.mock('../../models/EmailQueue', () => ({

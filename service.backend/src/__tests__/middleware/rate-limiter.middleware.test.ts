@@ -1,7 +1,11 @@
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 
-// Store rate limit configurations for inspection
-const rateLimitConfigs: Array<Record<string, unknown>> = [];
+// Store rate limit configurations for inspection - must use vi.hoisted() for use in vi.mock()
+const { rateLimitConfigs } = vi.hoisted(() => {
+  return {
+    rateLimitConfigs: [] as Array<Record<string, unknown>>,
+  };
+});
 
 // Mock express-rate-limit
 vi.mock('express-rate-limit', () => {

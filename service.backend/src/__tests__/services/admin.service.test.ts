@@ -16,13 +16,18 @@ const { mockSequelizeQuery, mockAuditLogFindAll, mockAuditLogAction, mockGetLogs
   }));
 
 // Mock sequelize first
-vi.mock('../../sequelize', () => ({
-  __esModule: true,
-  default: {
-    query: mockSequelizeQuery,
-    QueryTypes: { SELECT: 'SELECT' },
-  },
-}));
+vi.mock('../../sequelize', async (importOriginal) => {
+  const actual = await importOriginal() as typeof import('../../sequelize');
+  return {
+    ...actual,
+    __esModule: true,
+    default: {
+      ...actual.default,
+      query: mockSequelizeQuery,
+      QueryTypes: { SELECT: 'SELECT' },
+    },
+  };
+});
 
 // Mock models
 vi.mock('../../models/User');

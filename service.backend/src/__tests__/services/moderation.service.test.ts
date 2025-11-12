@@ -23,10 +23,17 @@ const { mockTransaction, mockSequelize, mockAuditLogAction, mockLogger } = vi.ho
 });
 
 // Mock sequelize first
-vi.mock('../../sequelize', () => ({
-  __esModule: true,
-  default: mockSequelize,
-}));
+vi.mock('../../sequelize', async (importOriginal) => {
+  const actual = await importOriginal() as typeof import('../../sequelize');
+  return {
+    ...actual,
+    __esModule: true,
+    default: {
+      ...actual.default,
+      ...mockSequelize,
+    },
+  };
+});
 
 // Mock models
 vi.mock('../../models/Report');
