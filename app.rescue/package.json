@@ -30,6 +30,7 @@
     "@adopt-dont-shop/lib-dev-tools": "*",
     "@adopt-dont-shop/lib-discovery": "*",
     "@adopt-dont-shop/lib-feature-flags": "*",
+    "@adopt-dont-shop/lib-invitations": "*",
     "@adopt-dont-shop/lib-notifications": "*",
     "@adopt-dont-shop/lib-permissions": "*",
     "@adopt-dont-shop/lib-pets": "*",
@@ -37,7 +38,6 @@
     "@adopt-dont-shop/lib-search": "*",
     "@adopt-dont-shop/lib-utils": "*",
     "@adopt-dont-shop/lib-validation": "*",
-    "@adopt-dont-shop/lib-invitations": "*",
     "@hookform/resolvers": "^3.3.4",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
     "@radix-ui/react-tooltip": "^1.0.7",
@@ -70,6 +70,7 @@
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^4.0.8",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jsx-a11y": "^6.8.0",
@@ -77,9 +78,12 @@
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
+    "happy-dom": "^20.0.10",
+    "jsdom": "^27.2.0",
     "msw": "^2.10.3",
     "prettier": "^3.2.5",
     "typescript": "^5.4.5",
-    "vite": "^5.3.5"
+    "vite": "^5.3.5",
+    "vitest": "^4.0.8"
   }
 }
