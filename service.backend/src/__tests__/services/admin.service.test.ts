@@ -171,8 +171,8 @@ describe('AdminService', () => {
       const result = await AdminService.getPlatformMetrics();
 
       expect(result).toBeDefined();
-      expect(result.totalUsers).toBeGreaterThanOrEqual(1);
-      expect(result.totalRescues).toBeGreaterThanOrEqual(1);
+      expect(result.users.total).toBeGreaterThanOrEqual(1);
+      expect(result.rescues.total).toBeGreaterThanOrEqual(1);
     });
   });
 
