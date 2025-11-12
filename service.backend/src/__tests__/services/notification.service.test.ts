@@ -238,7 +238,7 @@ describe('NotificationService', () => {
         expect(MockedNotification.findAndCountAll).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              userId: 'user-123',
+              user_id: 'user-123',
               read_at: null,
             }),
             limit: 10,

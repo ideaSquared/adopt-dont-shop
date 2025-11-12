@@ -209,7 +209,8 @@ describe('ChatController', () => {
         expect(ChatService.createChat).toHaveBeenCalledWith(
           expect.objectContaining({
             participantIds: expect.arrayContaining(['user-123', 'staff-1', 'staff-2']),
-          })
+          }),
+          'user-123'
         );
       });
 
