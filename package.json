@@ -19,11 +19,13 @@
     "lib.discovery",
     "lib.feature-flags",
     "lib.invitations",
+    "lib.moderation",
     "lib.notifications",
     "lib.permissions",
     "lib.pets",
     "lib.rescue",
     "lib.search",
+    "lib.support-tickets",
     "lib.utils",
     "lib.validation",
     "service.backend"
