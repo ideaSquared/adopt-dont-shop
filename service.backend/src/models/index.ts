@@ -95,227 +95,227 @@ try {
   Pet.hasMany(Application, { foreignKey: 'pet_id', as: 'PetApplications' });
   Application.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
 
-// Application Timeline associations
-Application.hasMany(ApplicationTimeline, {
-  foreignKey: 'application_id',
-  as: 'Timeline',
-  constraints: false,
-});
-ApplicationTimeline.belongsTo(Application, {
-  foreignKey: 'application_id',
-  as: 'Application',
-  constraints: false,
-});
+  // Application Timeline associations
+  Application.hasMany(ApplicationTimeline, {
+    foreignKey: 'application_id',
+    as: 'Timeline',
+    constraints: false,
+  });
+  ApplicationTimeline.belongsTo(Application, {
+    foreignKey: 'application_id',
+    as: 'Application',
+    constraints: false,
+  });
 
-// Note: constraints: false allows timeline events to be created in tests without requiring user existence
-User.hasMany(ApplicationTimeline, {
-  foreignKey: 'created_by',
-  as: 'CreatedTimelineEvents',
-  constraints: false,
-});
-ApplicationTimeline.belongsTo(User, {
-  foreignKey: 'created_by',
-  as: 'CreatedBy',
-  constraints: false,
-});
+  // Note: constraints: false allows timeline events to be created in tests without requiring user existence
+  User.hasMany(ApplicationTimeline, {
+    foreignKey: 'created_by',
+    as: 'CreatedTimelineEvents',
+    constraints: false,
+  });
+  ApplicationTimeline.belongsTo(User, {
+    foreignKey: 'created_by',
+    as: 'CreatedBy',
+    constraints: false,
+  });
 
-Rescue.hasMany(Application, { foreignKey: 'rescue_id', as: 'RescueApplications' });
-Application.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
+  Rescue.hasMany(Application, { foreignKey: 'rescue_id', as: 'RescueApplications' });
+  Application.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
 
-Rescue.hasMany(Pet, { foreignKey: 'rescue_id', as: 'Pets' });
-Pet.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
+  Rescue.hasMany(Pet, { foreignKey: 'rescue_id', as: 'Pets' });
+  Pet.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
 
-// Application Questions associations
-Rescue.hasMany(ApplicationQuestion, { foreignKey: 'rescue_id', as: 'Questions' });
-ApplicationQuestion.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
+  // Application Questions associations
+  Rescue.hasMany(ApplicationQuestion, { foreignKey: 'rescue_id', as: 'Questions' });
+  ApplicationQuestion.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
 
-// Chat and messaging associations
-Chat.hasMany(ChatParticipant, { foreignKey: 'chat_id', as: 'Participants' });
-ChatParticipant.belongsTo(Chat, { foreignKey: 'chat_id', as: 'Chat' });
+  // Chat and messaging associations
+  Chat.hasMany(ChatParticipant, { foreignKey: 'chat_id', as: 'Participants' });
+  ChatParticipant.belongsTo(Chat, { foreignKey: 'chat_id', as: 'Chat' });
 
-User.hasMany(ChatParticipant, { foreignKey: 'participant_id', as: 'ChatMemberships' });
-ChatParticipant.belongsTo(User, { foreignKey: 'participant_id', as: 'User' });
+  User.hasMany(ChatParticipant, { foreignKey: 'participant_id', as: 'ChatMemberships' });
+  ChatParticipant.belongsTo(User, { foreignKey: 'participant_id', as: 'User' });
 
-Chat.hasMany(Message, { foreignKey: 'chat_id', as: 'Messages' });
-Message.belongsTo(Chat, { foreignKey: 'chat_id', as: 'Chat' });
+  Chat.hasMany(Message, { foreignKey: 'chat_id', as: 'Messages' });
+  Message.belongsTo(Chat, { foreignKey: 'chat_id', as: 'Chat' });
 
-User.hasMany(Message, { foreignKey: 'sender_id', as: 'SentMessages' });
-Message.belongsTo(User, { foreignKey: 'sender_id', as: 'Sender' });
+  User.hasMany(Message, { foreignKey: 'sender_id', as: 'SentMessages' });
+  Message.belongsTo(User, { foreignKey: 'sender_id', as: 'Sender' });
 
-// Ensure Chat belongsTo Rescue with alias 'rescue'
-Chat.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' });
+  // Ensure Chat belongsTo Rescue with alias 'rescue'
+  Chat.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' });
 
-// Notification associations
-User.hasMany(Notification, { foreignKey: 'user_id', as: 'Notifications' });
-Notification.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+  // Notification associations
+  User.hasMany(Notification, { foreignKey: 'user_id', as: 'Notifications' });
+  Notification.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
-User.hasMany(DeviceToken, { foreignKey: 'user_id', as: 'DeviceTokens' });
-DeviceToken.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+  User.hasMany(DeviceToken, { foreignKey: 'user_id', as: 'DeviceTokens' });
+  DeviceToken.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
-// RBAC associations
-User.belongsToMany(Role, {
-  through: UserRole,
-  foreignKey: 'user_id',
-  otherKey: 'role_id',
-  as: 'Roles',
-});
-Role.belongsToMany(User, {
-  through: UserRole,
-  foreignKey: 'role_id',
-  otherKey: 'user_id',
-  as: 'Users',
-});
+  // RBAC associations
+  User.belongsToMany(Role, {
+    through: UserRole,
+    foreignKey: 'user_id',
+    otherKey: 'role_id',
+    as: 'Roles',
+  });
+  Role.belongsToMany(User, {
+    through: UserRole,
+    foreignKey: 'role_id',
+    otherKey: 'user_id',
+    as: 'Users',
+  });
 
-Role.belongsToMany(Permission, {
-  through: RolePermission,
-  foreignKey: 'role_id',
-  otherKey: 'permission_id',
-  as: 'Permissions',
-});
-Permission.belongsToMany(Role, {
-  through: RolePermission,
-  foreignKey: 'permission_id',
-  otherKey: 'role_id',
-  as: 'Roles',
-});
+  Role.belongsToMany(Permission, {
+    through: RolePermission,
+    foreignKey: 'role_id',
+    otherKey: 'permission_id',
+    as: 'Permissions',
+  });
+  Permission.belongsToMany(Role, {
+    through: RolePermission,
+    foreignKey: 'permission_id',
+    otherKey: 'role_id',
+    as: 'Roles',
+  });
 
-// Audit and tracking associations
-// Note: constraints: false allows audit logs to exist even if user is deleted (for historical auditing)
-User.hasMany(AuditLog, {
-  foreignKey: 'user',
-  sourceKey: 'userId',
-  as: 'AuditLogs',
-  constraints: false,
-});
-AuditLog.belongsTo(User, {
-  foreignKey: 'user',
-  targetKey: 'userId',
-  as: 'userDetails',
-  constraints: false,
-});
+  // Audit and tracking associations
+  // Note: constraints: false allows audit logs to exist even if user is deleted (for historical auditing)
+  User.hasMany(AuditLog, {
+    foreignKey: 'user',
+    sourceKey: 'userId',
+    as: 'AuditLogs',
+    constraints: false,
+  });
+  AuditLog.belongsTo(User, {
+    foreignKey: 'user',
+    targetKey: 'userId',
+    as: 'userDetails',
+    constraints: false,
+  });
 
-// Rating associations
-User.hasMany(Rating, { foreignKey: 'reviewer_id', as: 'GivenRatings' });
-Rating.belongsTo(User, { foreignKey: 'reviewer_id', as: 'Reviewer' });
+  // Rating associations
+  User.hasMany(Rating, { foreignKey: 'reviewer_id', as: 'GivenRatings' });
+  Rating.belongsTo(User, { foreignKey: 'reviewer_id', as: 'Reviewer' });
 
-User.hasMany(Rating, { foreignKey: 'reviewee_id', as: 'ReceivedRatings' });
-Rating.belongsTo(User, { foreignKey: 'reviewee_id', as: 'Reviewee' });
+  User.hasMany(Rating, { foreignKey: 'reviewee_id', as: 'ReceivedRatings' });
+  Rating.belongsTo(User, { foreignKey: 'reviewee_id', as: 'Reviewee' });
 
-Rescue.hasMany(Rating, { foreignKey: 'rescue_id', as: 'Ratings' });
-Rating.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
+  Rescue.hasMany(Rating, { foreignKey: 'rescue_id', as: 'Ratings' });
+  Rating.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
 
-// Staff associations
-Rescue.hasMany(StaffMember, { foreignKey: 'rescueId', as: 'staff' });
-StaffMember.belongsTo(Rescue, { foreignKey: 'rescueId', as: 'rescue' });
+  // Staff associations
+  Rescue.hasMany(StaffMember, { foreignKey: 'rescueId', as: 'staff' });
+  StaffMember.belongsTo(Rescue, { foreignKey: 'rescueId', as: 'rescue' });
 
-User.hasMany(StaffMember, { foreignKey: 'userId', as: 'staffMemberships' });
-StaffMember.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+  User.hasMany(StaffMember, { foreignKey: 'userId', as: 'staffMemberships' });
+  StaffMember.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-// Invitation associations
-Rescue.hasMany(Invitation, { foreignKey: 'rescue_id', as: 'invitations' });
-Invitation.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' });
+  // Invitation associations
+  Rescue.hasMany(Invitation, { foreignKey: 'rescue_id', as: 'invitations' });
+  Invitation.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' });
 
-User.hasMany(Invitation, { foreignKey: 'user_id', as: 'acceptedInvitations' });
-Invitation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+  User.hasMany(Invitation, { foreignKey: 'user_id', as: 'acceptedInvitations' });
+  Invitation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
-// Content Moderation associations
-User.hasMany(Report, { foreignKey: 'reporterId', as: 'SubmittedReports' });
-Report.belongsTo(User, { foreignKey: 'reporterId', as: 'Reporter' });
+  // Content Moderation associations
+  User.hasMany(Report, { foreignKey: 'reporterId', as: 'SubmittedReports' });
+  Report.belongsTo(User, { foreignKey: 'reporterId', as: 'Reporter' });
 
-User.hasMany(Report, { foreignKey: 'reportedUserId', as: 'ReceivedReports' });
-Report.belongsTo(User, { foreignKey: 'reportedUserId', as: 'ReportedUser' });
+  User.hasMany(Report, { foreignKey: 'reportedUserId', as: 'ReceivedReports' });
+  Report.belongsTo(User, { foreignKey: 'reportedUserId', as: 'ReportedUser' });
 
-User.hasMany(Report, { foreignKey: 'assignedModerator', as: 'AssignedReports' });
-Report.belongsTo(User, { foreignKey: 'assignedModerator', as: 'AssignedModerator' });
+  User.hasMany(Report, { foreignKey: 'assignedModerator', as: 'AssignedReports' });
+  Report.belongsTo(User, { foreignKey: 'assignedModerator', as: 'AssignedModerator' });
 
-User.hasMany(ModeratorAction, { foreignKey: 'moderatorId', as: 'ModeratorActions' });
-ModeratorAction.belongsTo(User, { foreignKey: 'moderatorId', as: 'Moderator' });
+  User.hasMany(ModeratorAction, { foreignKey: 'moderatorId', as: 'ModeratorActions' });
+  ModeratorAction.belongsTo(User, { foreignKey: 'moderatorId', as: 'Moderator' });
 
-User.hasMany(ModeratorAction, { foreignKey: 'targetUserId', as: 'ReceivedActions' });
-ModeratorAction.belongsTo(User, { foreignKey: 'targetUserId', as: 'TargetUser' });
+  User.hasMany(ModeratorAction, { foreignKey: 'targetUserId', as: 'ReceivedActions' });
+  ModeratorAction.belongsTo(User, { foreignKey: 'targetUserId', as: 'TargetUser' });
 
-Report.hasMany(ModeratorAction, { foreignKey: 'reportId', as: 'Actions' });
-ModeratorAction.belongsTo(Report, { foreignKey: 'reportId', as: 'Report' });
+  Report.hasMany(ModeratorAction, { foreignKey: 'reportId', as: 'Actions' });
+  ModeratorAction.belongsTo(Report, { foreignKey: 'reportId', as: 'Report' });
 
-// UserSanction associations
-User.hasMany(UserSanction, { foreignKey: 'userId', as: 'ReceivedSanctions' });
-UserSanction.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+  // UserSanction associations
+  User.hasMany(UserSanction, { foreignKey: 'userId', as: 'ReceivedSanctions' });
+  UserSanction.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
-User.hasMany(UserSanction, { foreignKey: 'issuedBy', as: 'IssuedSanctions' });
-UserSanction.belongsTo(User, { foreignKey: 'issuedBy', as: 'Issuer' });
+  User.hasMany(UserSanction, { foreignKey: 'issuedBy', as: 'IssuedSanctions' });
+  UserSanction.belongsTo(User, { foreignKey: 'issuedBy', as: 'Issuer' });
 
-Report.hasMany(UserSanction, { foreignKey: 'reportId', as: 'Sanctions' });
-UserSanction.belongsTo(Report, { foreignKey: 'reportId', as: 'Report' });
+  Report.hasMany(UserSanction, { foreignKey: 'reportId', as: 'Sanctions' });
+  UserSanction.belongsTo(Report, { foreignKey: 'reportId', as: 'Report' });
 
-ModeratorAction.hasMany(UserSanction, { foreignKey: 'moderatorActionId', as: 'Sanctions' });
-UserSanction.belongsTo(ModeratorAction, {
-  foreignKey: 'moderatorActionId',
-  as: 'ModeratorAction',
-});
+  ModeratorAction.hasMany(UserSanction, { foreignKey: 'moderatorActionId', as: 'Sanctions' });
+  UserSanction.belongsTo(ModeratorAction, {
+    foreignKey: 'moderatorActionId',
+    as: 'ModeratorAction',
+  });
 
-// SupportTicket associations
-User.hasMany(SupportTicket, { foreignKey: 'userId', as: 'SupportTickets' });
-SupportTicket.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+  // SupportTicket associations
+  User.hasMany(SupportTicket, { foreignKey: 'userId', as: 'SupportTickets' });
+  SupportTicket.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
-User.hasMany(SupportTicket, { foreignKey: 'assignedTo', as: 'AssignedTickets' });
-SupportTicket.belongsTo(User, { foreignKey: 'assignedTo', as: 'AssignedAgent' });
+  User.hasMany(SupportTicket, { foreignKey: 'assignedTo', as: 'AssignedTickets' });
+  SupportTicket.belongsTo(User, { foreignKey: 'assignedTo', as: 'AssignedAgent' });
 
-// SupportTicketResponse associations
-SupportTicket.hasMany(SupportTicketResponse, { foreignKey: 'ticketId', as: 'Responses' });
-SupportTicketResponse.belongsTo(SupportTicket, { foreignKey: 'ticketId', as: 'Ticket' });
+  // SupportTicketResponse associations
+  SupportTicket.hasMany(SupportTicketResponse, { foreignKey: 'ticketId', as: 'Responses' });
+  SupportTicketResponse.belongsTo(SupportTicket, { foreignKey: 'ticketId', as: 'Ticket' });
 
-User.hasMany(SupportTicketResponse, { foreignKey: 'responderId', as: 'TicketResponses' });
-SupportTicketResponse.belongsTo(User, { foreignKey: 'responderId', as: 'Responder' });
+  User.hasMany(SupportTicketResponse, { foreignKey: 'responderId', as: 'TicketResponses' });
+  SupportTicketResponse.belongsTo(User, { foreignKey: 'responderId', as: 'Responder' });
 
-// Email Service associations
-User.hasMany(EmailTemplate, { foreignKey: 'createdBy', as: 'CreatedEmailTemplates' });
-EmailTemplate.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
+  // Email Service associations
+  User.hasMany(EmailTemplate, { foreignKey: 'createdBy', as: 'CreatedEmailTemplates' });
+  EmailTemplate.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
 
-User.hasMany(EmailTemplate, { foreignKey: 'lastModifiedBy', as: 'ModifiedEmailTemplates' });
-EmailTemplate.belongsTo(User, { foreignKey: 'lastModifiedBy', as: 'LastModifier' });
+  User.hasMany(EmailTemplate, { foreignKey: 'lastModifiedBy', as: 'ModifiedEmailTemplates' });
+  EmailTemplate.belongsTo(User, { foreignKey: 'lastModifiedBy', as: 'LastModifier' });
 
-EmailTemplate.belongsTo(EmailTemplate, { foreignKey: 'parentTemplateId', as: 'ParentTemplate' });
-EmailTemplate.hasMany(EmailTemplate, { foreignKey: 'parentTemplateId', as: 'ChildTemplates' });
+  EmailTemplate.belongsTo(EmailTemplate, { foreignKey: 'parentTemplateId', as: 'ParentTemplate' });
+  EmailTemplate.hasMany(EmailTemplate, { foreignKey: 'parentTemplateId', as: 'ChildTemplates' });
 
-EmailTemplate.hasMany(EmailQueue, { foreignKey: 'templateId', as: 'EmailQueue' });
-EmailQueue.belongsTo(EmailTemplate, { foreignKey: 'templateId', as: 'Template' });
+  EmailTemplate.hasMany(EmailQueue, { foreignKey: 'templateId', as: 'EmailQueue' });
+  EmailQueue.belongsTo(EmailTemplate, { foreignKey: 'templateId', as: 'Template' });
 
-User.hasMany(EmailQueue, { foreignKey: 'userId', as: 'EmailQueue' });
-EmailQueue.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+  User.hasMany(EmailQueue, { foreignKey: 'userId', as: 'EmailQueue' });
+  EmailQueue.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
-User.hasMany(EmailQueue, { foreignKey: 'createdBy', as: 'CreatedEmails' });
-EmailQueue.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
+  User.hasMany(EmailQueue, { foreignKey: 'createdBy', as: 'CreatedEmails' });
+  EmailQueue.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
 
-// Swipe Interface associations
-User.hasMany(SwipeSession, { foreignKey: 'userId', as: 'SwipeSessions' });
-SwipeSession.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+  // Swipe Interface associations
+  User.hasMany(SwipeSession, { foreignKey: 'userId', as: 'SwipeSessions' });
+  SwipeSession.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
-SwipeSession.hasMany(SwipeAction, { foreignKey: 'sessionId', as: 'SwipeActions' });
-SwipeAction.belongsTo(SwipeSession, { foreignKey: 'sessionId', as: 'Session' });
+  SwipeSession.hasMany(SwipeAction, { foreignKey: 'sessionId', as: 'SwipeActions' });
+  SwipeAction.belongsTo(SwipeSession, { foreignKey: 'sessionId', as: 'Session' });
 
-User.hasMany(SwipeAction, { foreignKey: 'userId', as: 'SwipeActions' });
-SwipeAction.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+  User.hasMany(SwipeAction, { foreignKey: 'userId', as: 'SwipeActions' });
+  SwipeAction.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
-Pet.hasMany(SwipeAction, { foreignKey: 'petId', as: 'SwipeActions' });
-SwipeAction.belongsTo(Pet, { foreignKey: 'petId', as: 'Pet' });
+  Pet.hasMany(SwipeAction, { foreignKey: 'petId', as: 'SwipeActions' });
+  SwipeAction.belongsTo(Pet, { foreignKey: 'petId', as: 'Pet' });
 
-User.hasOne(EmailPreference, { foreignKey: 'userId', as: 'EmailPreferences' });
-EmailPreference.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+  User.hasOne(EmailPreference, { foreignKey: 'userId', as: 'EmailPreferences' });
+  EmailPreference.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
-// UserFavorite associations
-User.hasMany(UserFavorite, { foreignKey: 'user_id', as: 'Favorites' });
-UserFavorite.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+  // UserFavorite associations
+  User.hasMany(UserFavorite, { foreignKey: 'user_id', as: 'Favorites' });
+  UserFavorite.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
-Pet.hasMany(UserFavorite, { foreignKey: 'pet_id', as: 'Favorites' });
-UserFavorite.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
+  Pet.hasMany(UserFavorite, { foreignKey: 'pet_id', as: 'Favorites' });
+  UserFavorite.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
 
-// FileUpload associations
+  // FileUpload associations
 
-// HomeVisit associations
-Application.hasMany(HomeVisit, { foreignKey: 'application_id', as: 'HomeVisits' });
-HomeVisit.belongsTo(Application, { foreignKey: 'application_id', as: 'Application' });
-User.hasMany(FileUpload, { foreignKey: 'uploaded_by', as: 'UploadedFiles' });
-FileUpload.belongsTo(User, { foreignKey: 'uploaded_by', as: 'Uploader' });
+  // HomeVisit associations
+  Application.hasMany(HomeVisit, { foreignKey: 'application_id', as: 'HomeVisits' });
+  HomeVisit.belongsTo(Application, { foreignKey: 'application_id', as: 'Application' });
+  User.hasMany(FileUpload, { foreignKey: 'uploaded_by', as: 'UploadedFiles' });
+  FileUpload.belongsTo(User, { foreignKey: 'uploaded_by', as: 'Uploader' });
 } catch (error) {
   // Silently ignore association errors in test environments where models may be loaded multiple times
   if (process.env.NODE_ENV !== 'test') {
