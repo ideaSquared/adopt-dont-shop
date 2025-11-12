@@ -38,14 +38,14 @@ export class ModerationController {
   async getReports(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const filters: ReportFilters = {
-        status: req.query.status as unknown as string | undefined,
-        category: req.query.category as unknown as string | undefined,
-        severity: req.query.severity as unknown as string | undefined,
-        reporterId: req.query.reporterId as string,
-        reportedUserId: req.query.reportedUserId as string,
-        assignedModerator: req.query.assignedModerator as string,
-        reportedEntityType: req.query.reportedEntityType as unknown as string | undefined,
-        search: req.query.search as string,
+        status: typeof req.query.status === 'string' ? req.query.status : undefined,
+        category: typeof req.query.category === 'string' ? req.query.category : undefined,
+        severity: typeof req.query.severity === 'string' ? req.query.severity : undefined,
+        reporterId: typeof req.query.reporterId === 'string' ? req.query.reporterId : undefined,
+        reportedUserId: typeof req.query.reportedUserId === 'string' ? req.query.reportedUserId : undefined,
+        assignedModerator: typeof req.query.assignedModerator === 'string' ? req.query.assignedModerator : undefined,
+        reportedEntityType: typeof req.query.reportedEntityType === 'string' ? req.query.reportedEntityType : undefined,
+        search: typeof req.query.search === 'string' ? req.query.search : undefined,
       };
 
       // Date filters

@@ -407,9 +407,11 @@ EmailTemplate.init(
       set(value: string[]) {
         // In SQLite, store as JSON string
         if (process.env.NODE_ENV === 'test') {
-          this.setDataValue('tags', JSON.stringify(value || []) as unknown as string[]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.setDataValue('tags', JSON.stringify(value || []) as any);
         } else {
-          this.setDataValue('tags', value || ([] as unknown as string[]));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.setDataValue('tags', value || ([] as any));
         }
       },
     },

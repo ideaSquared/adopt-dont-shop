@@ -40,10 +40,13 @@ export const errorHandler = (
 
   // Handle Sequelize validation errors
   if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+    type SequelizeError = { path?: string; message: string };
+    const sequelizeErr = err as { errors?: SequelizeError[] };
+
     return res.status(400).json({
       status: 'error',
       message: 'Validation error',
-      errors: (err as unknown).errors?.map((e: unknown) => ({
+      errors: sequelizeErr.errors?.map((e) => ({
         field: e.path,
         message: e.message,
       })),

@@ -67,7 +67,8 @@ class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implement
   public updatedAt!: Date;
 
   // Associations
-  public staff?: unknown[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public staff?: any[]; // Sequelize association - will be StaffMember[] at runtime
 }
 
 // Initialize model

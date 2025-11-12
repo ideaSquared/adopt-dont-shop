@@ -50,8 +50,10 @@ class StaffMember
   public updatedAt!: Date;
 
   // Associations
-  public user?: unknown;
-  public rescue?: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public user?: any; // Sequelize association - will be User at runtime
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public rescue?: any; // Sequelize association - will be Rescue at runtime
 }
 
 StaffMember.init(

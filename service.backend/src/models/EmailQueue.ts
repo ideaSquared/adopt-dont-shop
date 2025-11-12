@@ -337,9 +337,13 @@ EmailQueue.init(
       },
       set(value: string[]) {
         if (process.env.NODE_ENV === 'test') {
-          this.setDataValue('ccEmails', JSON.stringify(value || []) as unknown as string[]);
+          // In test mode (SQLite), store as JSON string
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.setDataValue('ccEmails', JSON.stringify(value || []) as any);
         } else {
-          this.setDataValue('ccEmails', value || ([] as unknown as string[]));
+          // In production (PostgreSQL), store as native array
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.setDataValue('ccEmails', value || ([] as any));
         }
       },
     },
@@ -361,9 +365,13 @@ EmailQueue.init(
       },
       set(value: string[]) {
         if (process.env.NODE_ENV === 'test') {
-          this.setDataValue('bccEmails', JSON.stringify(value || []) as unknown as string[]);
+          // In test mode (SQLite), store as JSON string
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.setDataValue('bccEmails', JSON.stringify(value || []) as any);
         } else {
-          this.setDataValue('bccEmails', value || ([] as unknown as string[]));
+          // In production (PostgreSQL), store as native array
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.setDataValue('bccEmails', value || ([] as any));
         }
       },
     },
@@ -518,9 +526,13 @@ EmailQueue.init(
       },
       set(value: string[]) {
         if (process.env.NODE_ENV === 'test') {
-          this.setDataValue('tags', JSON.stringify(value || []) as unknown as string[]);
+          // In test mode (SQLite), store as JSON string
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.setDataValue('tags', JSON.stringify(value || []) as any);
         } else {
-          this.setDataValue('tags', value || ([] as unknown as string[]));
+          // In production (PostgreSQL), store as native array
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.setDataValue('tags', value || ([] as any));
         }
       },
     },
