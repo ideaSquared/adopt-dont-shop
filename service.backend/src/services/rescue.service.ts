@@ -1,4 +1,4 @@
-import { Op, WhereOptions } from 'sequelize';
+import { Op, Order, WhereOptions } from 'sequelize';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
@@ -152,7 +152,7 @@ export class RescueService {
 
       const { count, rows: rescues } = await Rescue.findAndCountAll({
         where: whereClause,
-        order: orderClause as unknown,
+        order: orderClause as Order,
         limit,
         offset,
         include: [
@@ -234,10 +234,10 @@ export class RescueService {
       // Include statistics if requested
       if (includeStats) {
         const stats = await this.getRescueStatistics(rescueId);
-        return { ...rescueData, statistics: stats } as unknown;
+        return { ...rescue, statistics: stats } as Rescue;
       }
 
-      return rescueData as unknown;
+      return rescue;
     } catch (error) {
       logger.error('Error getting rescue by ID:', {
         error: error instanceof Error ? error.message : String(error),
@@ -307,7 +307,7 @@ export class RescueService {
       await transaction.commit();
 
       logger.info(`Created new rescue: ${rescue.rescueId}`);
-      return rescue.toJSON() as unknown;
+      return rescue;
     } catch (error) {
       await transaction.rollback();
       logger.error('Error creating rescue:', {
@@ -461,7 +461,7 @@ export class RescueService {
       await transaction.commit();
 
       logger.info(`Verified rescue: ${rescueId}`);
-      return rescue.toJSON() as unknown;
+      return rescue;
     } catch (error) {
       await transaction.rollback();
       logger.error('Error verifying rescue:', {
@@ -540,7 +540,7 @@ export class RescueService {
       await transaction.commit();
 
       logger.info(`Rejected rescue: ${rescueId}`);
-      return rescue.toJSON() as unknown;
+      return rescue;
     } catch (error) {
       await transaction.rollback();
       logger.error('Error rejecting rescue:', {
@@ -947,7 +947,7 @@ export class RescueService {
 
       const { count, rows: pets } = await Pet.findAndCountAll({
         where: whereClause,
-        order: orderClause as unknown,
+        order: orderClause as Order,
         limit,
         offset,
       });
@@ -1187,7 +1187,8 @@ export class RescueService {
         throw new Error('Rescue not found');
       }
 
-      const settings = (rescue.settings as unknown) || {};
+      type RescueSettings = { adoptionPolicies?: AdoptionPolicy | null };
+      const settings = (rescue.settings as RescueSettings) || {};
       const adoptionPolicies = settings.adoptionPolicies || null;
 
       loggerHelpers.logDatabase('READ', {
