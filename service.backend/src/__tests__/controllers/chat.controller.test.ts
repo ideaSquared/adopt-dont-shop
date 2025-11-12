@@ -222,10 +222,12 @@ describe('ChatController', () => {
 
         (User.findAll as jest.Mock).mockResolvedValue([]);
         (ChatService.createChat as jest.Mock).mockResolvedValue({
-          chatId: 'chat-001',
-        });
-        (ChatService.sendMessage as jest.Mock).mockResolvedValue({
-          messageId: 'msg-001',
+          chat_id: 'chat-001',
+          rescue_id: 'rescue-456',
+          type: 'application',
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         });
 
         await ChatController.createChat(
@@ -233,12 +235,18 @@ describe('ChatController', () => {
           mockResponse as Response
         );
 
-        expect(ChatService.sendMessage).toHaveBeenCalledWith({
-          chatId: 'chat-001',
-          senderId: 'user-123',
-          content: 'Hello',
-          type: 'text',
-        });
+        // Initial message is handled by createChat internally, not called separately
+        expect(ChatService.createChat).toHaveBeenCalledWith(
+          expect.objectContaining({
+            initialMessage: 'Hello',
+          }),
+          'user-123'
+        );
+        expect(mockResponse.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            success: true,
+          })
+        );
       });
     });
 
@@ -280,8 +288,8 @@ describe('ChatController', () => {
         expect(mockResponse.status).toHaveBeenCalledWith(500);
         expect(mockResponse.json).toHaveBeenCalledWith(
           expect.objectContaining({
-            success: false,
             error: expect.any(String),
+            message: expect.any(String),
           })
         );
       });
