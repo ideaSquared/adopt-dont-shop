@@ -22,7 +22,7 @@ interface SidebarProps {
 }
 
 const SidebarContainer = styled.aside<{ $collapsed: boolean }>`
-  width: ${props => props.$collapsed ? '80px' : '280px'};
+  width: ${props => (props.$collapsed ? '80px' : '280px')};
   height: 100vh;
   background: #1f2937;
   color: #f9fafb;
@@ -54,7 +54,7 @@ const SidebarHeader = styled.div<{ $collapsed: boolean }>`
   padding: 1.5rem;
   display: flex;
   align-items: center;
-  justify-content: ${props => props.$collapsed ? 'center' : 'space-between'};
+  justify-content: ${props => (props.$collapsed ? 'center' : 'space-between')};
   border-bottom: 1px solid #374151;
   min-height: 80px;
 `;
@@ -64,7 +64,7 @@ const Logo = styled.div<{ $collapsed: boolean }>`
   align-items: center;
   gap: 0.75rem;
   font-weight: 700;
-  font-size: ${props => props.$collapsed ? '1.5rem' : '1.25rem'};
+  font-size: ${props => (props.$collapsed ? '1.5rem' : '1.25rem')};
   color: ${props => props.theme.colors.primary[400]};
 `;
 
@@ -95,8 +95,8 @@ const Nav = styled.nav`
 `;
 
 const NavSection = styled.div<{ $collapsed: boolean }>`
-  margin: ${props => props.$collapsed ? '1rem 0' : '1rem 0 0.5rem 0'};
-  padding: ${props => props.$collapsed ? '0' : '0 1rem'};
+  margin: ${props => (props.$collapsed ? '1rem 0' : '1rem 0 0.5rem 0')};
+  padding: ${props => (props.$collapsed ? '0' : '0 1rem')};
 `;
 
 const NavSectionTitle = styled.div<{ $collapsed: boolean }>`
@@ -106,29 +106,29 @@ const NavSectionTitle = styled.div<{ $collapsed: boolean }>`
   letter-spacing: 0.05em;
   color: #9ca3af;
   margin-bottom: 0.5rem;
-  display: ${props => props.$collapsed ? 'none' : 'block'};
+  display: ${props => (props.$collapsed ? 'none' : 'block')};
   padding-left: 0.5rem;
 `;
 
 const NavDivider = styled.div<{ $collapsed: boolean }>`
   height: 1px;
   background: #374151;
-  margin: ${props => props.$collapsed ? '1rem 0.75rem' : '1rem 1rem'};
+  margin: ${props => (props.$collapsed ? '1rem 0.75rem' : '1rem 1rem')};
 `;
 
 const StyledNavLink = styled(NavLink)<{ $collapsed: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: ${props => props.$collapsed ? '0.75rem' : '0.75rem 1rem'};
-  margin: ${props => props.$collapsed ? '0 0.5rem' : '0 0.5rem'};
+  padding: ${props => (props.$collapsed ? '0.75rem' : '0.75rem 1rem')};
+  margin: ${props => (props.$collapsed ? '0 0.5rem' : '0 0.5rem')};
   color: #d1d5db;
   text-decoration: none;
   border-radius: 8px;
   transition: all 0.2s ease;
   font-size: 0.875rem;
   font-weight: 500;
-  justify-content: ${props => props.$collapsed ? 'center' : 'flex-start'};
+  justify-content: ${props => (props.$collapsed ? 'center' : 'flex-start')};
   position: relative;
 
   &:hover {
@@ -159,7 +159,7 @@ const StyledNavLink = styled(NavLink)<{ $collapsed: boolean }>`
   }
 
   span {
-    display: ${props => props.$collapsed ? 'none' : 'block'};
+    display: ${props => (props.$collapsed ? 'none' : 'block')};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -172,14 +172,14 @@ const SidebarFooter = styled.div<{ $collapsed: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  align-items: ${props => props.$collapsed ? 'center' : 'stretch'};
+  align-items: ${props => (props.$collapsed ? 'center' : 'stretch')};
 `;
 
 const FooterText = styled.div<{ $collapsed: boolean }>`
   font-size: 0.75rem;
   color: #9ca3af;
-  text-align: ${props => props.$collapsed ? 'center' : 'left'};
-  display: ${props => props.$collapsed ? 'none' : 'block'};
+  text-align: ${props => (props.$collapsed ? 'center' : 'left')};
+  display: ${props => (props.$collapsed ? 'none' : 'block')};
 `;
 
 export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
@@ -191,7 +191,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           {!collapsed && <span>Admin</span>}
         </Logo>
         {!collapsed && (
-          <ToggleButton onClick={onToggle} aria-label="Toggle sidebar">
+          <ToggleButton onClick={onToggle} aria-label='Toggle sidebar'>
             <FiChevronLeft size={16} />
           </ToggleButton>
         )}
@@ -199,7 +199,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
 
       {collapsed && (
         <div style={{ padding: '1rem 0', display: 'flex', justifyContent: 'center' }}>
-          <ToggleButton onClick={onToggle} aria-label="Expand sidebar">
+          <ToggleButton onClick={onToggle} aria-label='Expand sidebar'>
             <FiChevronRight size={16} />
           </ToggleButton>
         </div>
@@ -209,11 +209,11 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
         {/* Main Section */}
         <NavSection $collapsed={collapsed}>
           <NavSectionTitle $collapsed={collapsed}>Main</NavSectionTitle>
-          <StyledNavLink to="/" $collapsed={collapsed} end>
+          <StyledNavLink to='/' $collapsed={collapsed} end>
             <FiHome />
             <span>Dashboard</span>
           </StyledNavLink>
-          <StyledNavLink to="/analytics" $collapsed={collapsed}>
+          <StyledNavLink to='/analytics' $collapsed={collapsed}>
             <FiBarChart2 />
             <span>Analytics</span>
           </StyledNavLink>
@@ -224,11 +224,11 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
         {/* Management Section */}
         <NavSection $collapsed={collapsed}>
           <NavSectionTitle $collapsed={collapsed}>Management</NavSectionTitle>
-          <StyledNavLink to="/users" $collapsed={collapsed}>
+          <StyledNavLink to='/users' $collapsed={collapsed}>
             <FiUsers />
             <span>Users</span>
           </StyledNavLink>
-          <StyledNavLink to="/rescues" $collapsed={collapsed}>
+          <StyledNavLink to='/rescues' $collapsed={collapsed}>
             <FiShield />
             <span>Rescues</span>
           </StyledNavLink>
@@ -239,15 +239,15 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
         {/* Safety & Support Section */}
         <NavSection $collapsed={collapsed}>
           <NavSectionTitle $collapsed={collapsed}>Safety & Support</NavSectionTitle>
-          <StyledNavLink to="/moderation" $collapsed={collapsed}>
+          <StyledNavLink to='/moderation' $collapsed={collapsed}>
             <FiAlertTriangle />
             <span>Moderation</span>
           </StyledNavLink>
-          <StyledNavLink to="/support" $collapsed={collapsed}>
+          <StyledNavLink to='/support' $collapsed={collapsed}>
             <FiHelpCircle />
             <span>Support Tickets</span>
           </StyledNavLink>
-          <StyledNavLink to="/messages" $collapsed={collapsed}>
+          <StyledNavLink to='/messages' $collapsed={collapsed}>
             <FiMessageSquare />
             <span>Messages</span>
           </StyledNavLink>
@@ -258,15 +258,15 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
         {/* System Section */}
         <NavSection $collapsed={collapsed}>
           <NavSectionTitle $collapsed={collapsed}>System</NavSectionTitle>
-          <StyledNavLink to="/configuration" $collapsed={collapsed}>
+          <StyledNavLink to='/configuration' $collapsed={collapsed}>
             <FiSettings />
             <span>Configuration</span>
           </StyledNavLink>
-          <StyledNavLink to="/audit" $collapsed={collapsed}>
+          <StyledNavLink to='/audit' $collapsed={collapsed}>
             <FiActivity />
             <span>Audit Logs</span>
           </StyledNavLink>
-          <StyledNavLink to="/reports" $collapsed={collapsed}>
+          <StyledNavLink to='/reports' $collapsed={collapsed}>
             <FiFileText />
             <span>Reports</span>
           </StyledNavLink>
@@ -274,12 +274,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
       </Nav>
 
       <SidebarFooter $collapsed={collapsed}>
-        <FooterText $collapsed={collapsed}>
-          Admin Panel v1.0.0
-        </FooterText>
-        <FooterText $collapsed={collapsed}>
-          Adopt Don't Shop
-        </FooterText>
+        <FooterText $collapsed={collapsed}>Admin Panel v1.0.0</FooterText>
+        <FooterText $collapsed={collapsed}>Adopt Don't Shop</FooterText>
       </SidebarFooter>
     </SidebarContainer>
   );

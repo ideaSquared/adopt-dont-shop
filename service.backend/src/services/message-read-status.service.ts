@@ -163,7 +163,7 @@ export class MessageReadStatusService {
       });
 
       const messagesToMark = unreadMessages.filter(
-        message => !message.read_status?.some((status) => status.user_id === userId)
+        message => !message.read_status?.some(status => status.user_id === userId)
       );
 
       if (messagesToMark.length > 0) {

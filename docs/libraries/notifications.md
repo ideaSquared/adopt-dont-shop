@@ -19,7 +19,10 @@ npm install @adopt-dont-shop/lib-notifications
 ## 🚀 Quick Start
 
 ```typescript
-import { NotificationsService, NotificationsServiceConfig } from '@adopt-dont-shop/lib-notifications';
+import {
+  NotificationsService,
+  NotificationsServiceConfig,
+} from '@adopt-dont-shop/lib-notifications';
 
 // Using the singleton instance
 import { notificationsService } from '@adopt-dont-shop/lib-notifications';
@@ -33,8 +36,8 @@ await notificationsService.sendNotification({
   channels: ['in_app', 'email', 'push'],
   metadata: {
     petId: 'pet_456',
-    applicationId: 'app_789'
-  }
+    applicationId: 'app_789',
+  },
 });
 
 // Send bulk notifications
@@ -44,7 +47,7 @@ await notificationsService.sendBulkNotifications([
     type: 'weekly_digest',
     title: 'New Pets This Week',
     message: 'Check out 5 new pets in your area!',
-    channels: ['email']
+    channels: ['email'],
   },
   // ... more notifications
 ]);
@@ -54,13 +57,13 @@ await notificationsService.sendBulkNotifications([
 
 ### NotificationsServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Base API URL |
-| `debug` | `boolean` | `process.env.NODE_ENV === 'development'` | Enable debug logging |
-| `defaultChannels` | `string[]` | `['in_app']` | Default delivery channels |
-| `retryAttempts` | `number` | `3` | Failed delivery retry attempts |
-| `batchSize` | `number` | `100` | Bulk notification batch size |
+| Property          | Type       | Default                                  | Description                    |
+| ----------------- | ---------- | ---------------------------------------- | ------------------------------ |
+| `apiUrl`          | `string`   | `process.env.VITE_API_URL`               | Base API URL                   |
+| `debug`           | `boolean`  | `process.env.NODE_ENV === 'development'` | Enable debug logging           |
+| `defaultChannels` | `string[]` | `['in_app']`                             | Default delivery channels      |
+| `retryAttempts`   | `number`   | `3`                                      | Failed delivery retry attempts |
+| `batchSize`       | `number`   | `100`                                    | Bulk notification batch size   |
 
 ### Environment Variables
 
@@ -100,10 +103,10 @@ await notificationsService.sendNotification({
     petId: 'pet_456',
     petName: 'Buddy',
     rescueId: 'rescue_789',
-    applicationId: 'app_101'
+    applicationId: 'app_101',
   },
   actionUrl: '/applications/app_101',
-  expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+  expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
 });
 ```
 
@@ -118,20 +121,20 @@ const notifications = [
     type: 'new_pets_weekly',
     title: 'New Pets This Week',
     message: '5 new dogs and 3 new cats are available for adoption!',
-    channels: ['email']
+    channels: ['email'],
   },
   {
     userId: 'user_456',
     type: 'application_reminder',
     title: 'Complete Your Application',
-    message: 'Don\'t forget to complete your adoption application for Luna.',
-    channels: ['in_app', 'push']
-  }
+    message: "Don't forget to complete your adoption application for Luna.",
+    channels: ['in_app', 'push'],
+  },
 ];
 
 await notificationsService.sendBulkNotifications(notifications, {
   batchSize: 50,
-  delayBetweenBatches: 1000 // 1 second delay
+  delayBetweenBatches: 1000, // 1 second delay
 });
 ```
 
@@ -140,13 +143,16 @@ await notificationsService.sendBulkNotifications(notifications, {
 Schedule notifications for future delivery.
 
 ```typescript
-await notificationsService.scheduleNotification({
-  userId: 'user_123',
-  type: 'appointment_reminder',
-  title: 'Meet & Greet Tomorrow',
-  message: 'Don\'t forget your meet & greet with Bella tomorrow at 2 PM!',
-  channels: ['in_app', 'push', 'sms']
-}, new Date(Date.now() + 24 * 60 * 60 * 1000)); // 24 hours from now
+await notificationsService.scheduleNotification(
+  {
+    userId: 'user_123',
+    type: 'appointment_reminder',
+    title: 'Meet & Greet Tomorrow',
+    message: "Don't forget your meet & greet with Bella tomorrow at 2 PM!",
+    channels: ['in_app', 'push', 'sms'],
+  },
+  new Date(Date.now() + 24 * 60 * 60 * 1000)
+); // 24 hours from now
 ```
 
 #### Notification Management
@@ -160,7 +166,7 @@ const notifications = await notificationsService.getUserNotifications('user_123'
   unreadOnly: true,
   type: 'adoption_update',
   limit: 20,
-  offset: 0
+  offset: 0,
 });
 ```
 
@@ -208,20 +214,20 @@ await notificationsService.updateUserPreferences('user_123', {
     email: true,
     push: true,
     sms: false,
-    in_app: true
+    in_app: true,
   },
   types: {
     adoption_updates: true,
     new_pets: false,
     weekly_digest: true,
-    marketing: false
+    marketing: false,
   },
   quiet_hours: {
     enabled: true,
     start: '22:00',
     end: '08:00',
-    timezone: 'America/New_York'
-  }
+    timezone: 'America/New_York',
+  },
 });
 ```
 
@@ -232,7 +238,7 @@ Set do not disturb period for a user.
 ```typescript
 await notificationsService.setDoNotDisturb('user_123', '22:00', '08:00', {
   timezone: 'America/New_York',
-  applyToChannels: ['push', 'sms']
+  applyToChannels: ['push', 'sms'],
 });
 ```
 
@@ -254,9 +260,9 @@ Get notification delivery statistics.
 const stats = await notificationsService.getDeliveryStats({
   dateRange: {
     start: '2024-01-01',
-    end: '2024-01-31'
+    end: '2024-01-31',
   },
-  type: 'adoption_update'
+  type: 'adoption_update',
 });
 ```
 
@@ -289,7 +295,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         limit: 50
       });
       setNotifications(userNotifications.data);
-      
+
       const count = await service.getUnreadCount(userId);
       setUnreadCount(count);
     };
@@ -349,8 +355,8 @@ app.post('/api/applications/:id/approve', async (req, res) => {
     metadata: {
       petId: pet.id,
       applicationId: application.id,
-      rescueId: rescue.id
-    }
+      rescueId: rescue.id,
+    },
   });
 
   res.json({ success: true });
@@ -372,6 +378,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ Error handling and retries
 
 Run tests:
+
 ```bash
 npm run test:lib-notifications
 ```
@@ -379,24 +386,28 @@ npm run test:lib-notifications
 ## 🚀 Key Features
 
 ### Multi-Channel Delivery
+
 - **In-App Notifications**: Real-time notifications within the application
 - **Email Notifications**: Rich HTML email templates with personalization
 - **Push Notifications**: Mobile and web push via Firebase/FCM
 - **SMS Notifications**: Text message delivery via Twilio
 
 ### Advanced Features
+
 - **Smart Batching**: Efficient bulk delivery with rate limiting
 - **Template Management**: Dynamic templates with variable substitution
 - **Delivery Optimization**: Channel-specific optimization and fallbacks
 - **Real-time Updates**: WebSocket integration for instant delivery
 
 ### User Experience
+
 - **Preference Management**: Granular user control over notifications
 - **Do Not Disturb**: Quiet hours and temporary muting
 - **Read Receipts**: Track notification engagement
 - **Action Buttons**: Interactive notifications with deep links
 
 ### Enterprise Features
+
 - **Analytics Dashboard**: Delivery metrics and engagement tracking
 - **A/B Testing**: Template and timing optimization
 - **Compliance**: GDPR, CAN-SPAM, and TCPA compliance
@@ -407,11 +418,13 @@ npm run test:lib-notifications
 ### Common Issues
 
 **Notifications not delivering**:
+
 - Check user preferences and do not disturb settings
 - Verify API keys and provider configuration
 - Check delivery logs for error details
 
 **High delivery latency**:
+
 - Review batch size and processing limits
 - Check provider rate limits
 - Monitor queue depth and processing times
@@ -420,7 +433,7 @@ npm run test:lib-notifications
 
 ```typescript
 const notifications = new NotificationsService({
-  debug: true // Enables detailed delivery logging
+  debug: true, // Enables detailed delivery logging
 });
 ```
 

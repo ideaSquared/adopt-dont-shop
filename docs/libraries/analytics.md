@@ -30,14 +30,14 @@ await analyticsService.trackEvent({
   action: 'favorite_added',
   label: 'Golden Retriever',
   value: 1,
-  metadata: { petId: 'pet_123', userId: 'user_456' }
+  metadata: { petId: 'pet_123', userId: 'user_456' },
 });
 
 // Track page views
 await analyticsService.trackPageView({
   page: '/pets/search',
   title: 'Pet Search',
-  metadata: { searchQuery: 'dogs near me' }
+  metadata: { searchQuery: 'dogs near me' },
 });
 ```
 
@@ -45,13 +45,13 @@ await analyticsService.trackPageView({
 
 ### AnalyticsServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `provider` | `'google-analytics' \| 'mixpanel' \| 'amplitude'` | `'google-analytics'` | Analytics provider |
-| `debug` | `boolean` | `process.env.NODE_ENV === 'development'` | Enable debug logging |
-| `autoTrackPageViews` | `boolean` | `true` | Automatically track page views |
-| `sessionTimeout` | `number` | `30` | Session timeout in minutes |
-| `sampleRate` | `number` | `100` | Sampling rate (0-100) |
+| Property             | Type                                              | Default                                  | Description                    |
+| -------------------- | ------------------------------------------------- | ---------------------------------------- | ------------------------------ |
+| `provider`           | `'google-analytics' \| 'mixpanel' \| 'amplitude'` | `'google-analytics'`                     | Analytics provider             |
+| `debug`              | `boolean`                                         | `process.env.NODE_ENV === 'development'` | Enable debug logging           |
+| `autoTrackPageViews` | `boolean`                                         | `true`                                   | Automatically track page views |
+| `sessionTimeout`     | `number`                                          | `30`                                     | Session timeout in minutes     |
+| `sampleRate`         | `number`                                          | `100`                                    | Sampling rate (0-100)          |
 
 ### Environment Variables
 
@@ -84,8 +84,8 @@ await analyticsService.trackEvent({
   metadata: {
     petId: 'pet_123',
     rescueId: 'rescue_456',
-    applicationId: 'app_789'
-  }
+    applicationId: 'app_789',
+  },
 });
 ```
 
@@ -100,8 +100,8 @@ await analyticsService.trackPageView({
   metadata: {
     petType: 'dog',
     breed: 'Golden Retriever',
-    rescueId: 'rescue_456'
-  }
+    rescueId: 'rescue_456',
+  },
 });
 ```
 
@@ -117,8 +117,8 @@ await analyticsService.trackUserJourney({
   metadata: {
     petId: 'pet_123',
     timeSpent: 1200,
-    previousStep: 'search_results'
-  }
+    previousStep: 'search_results',
+  },
 });
 ```
 
@@ -129,13 +129,13 @@ Track conversion events and success metrics.
 ```typescript
 await analyticsService.trackConversion({
   type: 'adoption_completed',
-  value: 350.00,
+  value: 350.0,
   currency: 'USD',
   metadata: {
     petId: 'pet_123',
     rescueId: 'rescue_456',
-    applicationId: 'app_789'
-  }
+    applicationId: 'app_789',
+  },
 });
 ```
 
@@ -148,7 +148,7 @@ Retrieve user engagement analytics.
 ```typescript
 const metrics = await analyticsService.getEngagementMetrics({
   startDate: '2024-01-01',
-  endDate: '2024-01-31'
+  endDate: '2024-01-31',
 });
 ```
 
@@ -159,7 +159,7 @@ Analyze conversion funnel performance.
 ```typescript
 const funnelData = await analyticsService.getConversionFunnel({
   steps: ['search', 'pet_view', 'application_start', 'application_submit'],
-  dateRange: { startDate: '2024-01-01', endDate: '2024-01-31' }
+  dateRange: { startDate: '2024-01-01', endDate: '2024-01-31' },
 });
 ```
 
@@ -241,8 +241,8 @@ app.post('/api/pets/:id/favorite', async (req, res) => {
     action: 'favorite_added',
     metadata: {
       petId: req.params.id,
-      userId: req.user.id
-    }
+      userId: req.user.id,
+    },
   });
 
   res.json({ success: true });
@@ -254,7 +254,7 @@ app.post('/api/pets/:id/favorite', async (req, res) => {
 The library includes comprehensive Jest tests covering:
 
 - ✅ Service initialization and configuration
-- ✅ Event tracking functionality  
+- ✅ Event tracking functionality
 - ✅ Page view tracking
 - ✅ User journey tracking
 - ✅ Conversion tracking
@@ -263,6 +263,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ Performance metrics
 
 Run tests:
+
 ```bash
 npm run test:lib-analytics
 ```
@@ -270,18 +271,21 @@ npm run test:lib-analytics
 ## 🚀 Key Features
 
 ### Comprehensive Event Tracking
+
 - **User Interactions**: Click tracking, form submissions, feature usage
 - **Pet-Specific Events**: Favorites, applications, adoptions, searches
 - **Conversion Tracking**: Applications submitted, adoptions completed
 - **Performance Monitoring**: Page load times, API response times
 
 ### Advanced Analytics
+
 - **Funnel Analysis**: Track user progression through adoption flow
-- **Cohort Analysis**: User retention and engagement over time  
+- **Cohort Analysis**: User retention and engagement over time
 - **A/B Testing**: Experiment tracking and variant performance
 - **Real-time Dashboards**: Live metrics and insights
 
 ### Privacy & Compliance
+
 - **GDPR Compliant**: User consent management and data controls
 - **Data Anonymization**: PII protection and user privacy
 - **Opt-out Support**: User preference management
@@ -292,11 +296,13 @@ npm run test:lib-analytics
 ### Common Issues
 
 **Events not tracking**:
+
 - Check provider configuration and API keys
 - Verify network connectivity
 - Enable debug mode for detailed logging
 
 **Performance issues**:
+
 - Implement event batching for high-volume tracking
 - Use sampling for non-critical events
 - Monitor API rate limits
@@ -305,7 +311,7 @@ npm run test:lib-analytics
 
 ```typescript
 const analytics = new AnalyticsService({
-  debug: true // Enables detailed logging
+  debug: true, // Enables detailed logging
 });
 ```
 

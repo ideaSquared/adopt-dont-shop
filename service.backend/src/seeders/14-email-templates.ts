@@ -399,7 +399,7 @@ Thank you for joining!`,
     templateId: 'tmpl_rescue_approved_001',
     name: 'Rescue Verification Approved',
     type: TemplateType.TRANSACTIONAL,
-    subject: "🎉 {{rescueName}} Has Been Verified!",
+    subject: '🎉 {{rescueName}} Has Been Verified!',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #4CAF50; color: white; padding: 30px; text-align: center;">
@@ -435,7 +435,7 @@ Thank you for joining!`,
     templateId: 'tmpl_rescue_reminder_001',
     name: 'Rescue Profile Reminder',
     type: TemplateType.NOTIFICATION,
-    subject: "Time to Update Your Profile 📋",
+    subject: 'Time to Update Your Profile 📋',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #2196F3; color: white; padding: 20px; text-align: center;">

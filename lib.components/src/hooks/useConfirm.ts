@@ -36,7 +36,7 @@ export const useConfirm = (): UseConfirmReturn => {
     setOptions(opts);
     setIsOpen(true);
 
-    return new Promise<boolean>((resolve) => {
+    return new Promise<boolean>(resolve => {
       setResolver({ resolve });
     });
   }, []);

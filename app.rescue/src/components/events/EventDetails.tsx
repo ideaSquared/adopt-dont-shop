@@ -201,7 +201,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({
   onUpdateStatus,
   onCheckInAttendee,
 }) => {
-  const [selectedStatus, setSelectedStatus] = useState(event.status);
+  const [selectedStatus, setSelectedStatus] = useState<string>(event.status);
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newStatus = e.target.value;

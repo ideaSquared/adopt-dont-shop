@@ -23,7 +23,7 @@ import { NotificationsService, NotificationRequest } from '@adopt-dont-shop/lib-
 
 // Initialize the service
 const notificationsService = new NotificationsService({
-  debug: true
+  debug: true,
 });
 
 // Send a notification
@@ -34,7 +34,7 @@ const notification: NotificationRequest = {
   category: 'adoption_update',
   priority: 'high',
   channels: ['in-app', 'email', 'push'],
-  actionUrl: '/applications/app123'
+  actionUrl: '/applications/app123',
 };
 
 const result = await notificationsService.sendNotification(notification);
@@ -44,24 +44,28 @@ console.log('Notification sent:', result.data.id);
 ## 🔔 Core Features
 
 ### Multi-Channel Delivery
+
 - **In-App**: Real-time notifications within the application
 - **Email**: Rich HTML email notifications with templates
 - **Push**: Mobile and web push notifications
 - **SMS**: Text message notifications for urgent alerts
 
 ### Notification Management
+
 - **Pagination**: Efficient loading of large notification lists
 - **Filtering**: Filter by category, status, priority, and date ranges
 - **Read Status**: Track and manage read/unread notifications
 - **Bulk Operations**: Mark multiple notifications as read or delete
 
 ### User Preferences
+
 - **Channel Control**: Users can enable/disable specific channels
 - **Category Filtering**: Granular control over notification types
 - **Quiet Hours**: Do Not Disturb periods for each channel
 - **Timezone Support**: Respect user timezone preferences
 
 ### Template System
+
 - **Dynamic Content**: Variable substitution in templates
 - **Multi-Channel**: Templates for email, SMS, and push notifications
 - **Preview**: Preview templates with sample data
@@ -72,6 +76,7 @@ console.log('Notification sent:', result.data.id);
 ### Notification Delivery
 
 #### `sendNotification(notification: NotificationRequest)`
+
 Send a single notification to a user.
 
 ```typescript
@@ -82,16 +87,17 @@ const notification: NotificationRequest = {
   category: 'message_received',
   priority: 'normal',
   channels: ['in-app', 'push'],
-  data: { 
+  data: {
     chatId: 'chat456',
-    senderId: 'rescue789' 
-  }
+    senderId: 'rescue789',
+  },
 };
 
 const response = await notificationsService.sendNotification(notification);
 ```
 
 #### `sendBulkNotifications(notification: BulkNotificationRequest)`
+
 Send notifications to multiple users.
 
 ```typescript
@@ -101,7 +107,7 @@ const bulkNotification: BulkNotificationRequest = {
   message: 'Platform will be offline for maintenance tonight',
   category: 'system_alert',
   priority: 'high',
-  channels: ['in-app', 'email']
+  channels: ['in-app', 'email'],
 };
 
 const response = await notificationsService.sendBulkNotifications(bulkNotification);
@@ -109,6 +115,7 @@ console.log(`Sent to ${response.data.successful} users`);
 ```
 
 #### `scheduleNotification(notification: NotificationRequest, scheduledFor: Date)`
+
 Schedule a notification for future delivery.
 
 ```typescript
@@ -117,7 +124,7 @@ const reminder: NotificationRequest = {
   title: 'Appointment Reminder',
   message: 'Your meet & greet with Bella is tomorrow at 2 PM',
   category: 'reminder',
-  priority: 'normal'
+  priority: 'normal',
 };
 
 const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -127,6 +134,7 @@ await notificationsService.scheduleNotification(reminder, tomorrow);
 ### Notification Management
 
 #### `getUserNotifications(userId: string, filters?: NotificationFilters)`
+
 Get paginated notifications for a user with optional filtering.
 
 ```typescript
@@ -136,7 +144,7 @@ const filters: NotificationFilters = {
   category: 'adoption_update',
   unreadOnly: true,
   sortBy: 'createdAt',
-  sortOrder: 'desc'
+  sortOrder: 'desc',
 };
 
 const response = await notificationsService.getUserNotifications('user123', filters);
@@ -145,6 +153,7 @@ const pagination = response.pagination;
 ```
 
 #### `markAsRead(notificationIds: string[])`
+
 Mark specific notifications as read.
 
 ```typescript
@@ -152,6 +161,7 @@ await notificationsService.markAsRead(['notif1', 'notif2', 'notif3']);
 ```
 
 #### `markAllAsRead(userId: string)`
+
 Mark all notifications as read for a user.
 
 ```typescript
@@ -160,6 +170,7 @@ console.log(`Marked ${result.data.updated} notifications as read`);
 ```
 
 #### `deleteNotification(notificationId: string)`
+
 Delete a notification.
 
 ```typescript
@@ -169,6 +180,7 @@ await notificationsService.deleteNotification('notif123');
 ### Preference Management
 
 #### `getUserPreferences(userId: string)`
+
 Get user notification preferences.
 
 ```typescript
@@ -177,6 +189,7 @@ console.log('Email enabled:', preferences.data.channels.email.enabled);
 ```
 
 #### `updatePreferences(userId: string, preferences: Partial<NotificationPreferences>)`
+
 Update user notification preferences.
 
 ```typescript
@@ -188,16 +201,17 @@ const updates = {
       quietHours: {
         startTime: '22:00',
         endTime: '08:00',
-        timezone: 'America/New_York'
-      }
-    }
-  }
+        timezone: 'America/New_York',
+      },
+    },
+  },
 };
 
 await notificationsService.updatePreferences('user123', updates);
 ```
 
 #### `setDoNotDisturb(userId: string, startTime: string, endTime: string)`
+
 Set do not disturb period for a user.
 
 ```typescript
@@ -208,14 +222,16 @@ await notificationsService.setDoNotDisturb('user123', '22:00', '08:00');
 ### Template Operations
 
 #### `getTemplates()`
+
 Get all available notification templates.
 
 ```typescript
 const templates = await notificationsService.getTemplates();
-const adoptionTemplate = templates.data.find(t => t.category === 'adoption_update');
+const adoptionTemplate = templates.data.find((t) => t.category === 'adoption_update');
 ```
 
 #### `processTemplate(templateId: string, variables: Record<string, unknown>)`
+
 Process a template with variables.
 
 ```typescript
@@ -223,7 +239,7 @@ const processed = await notificationsService.processTemplate('adoption_approved'
   userName: 'John',
   petName: 'Max',
   rescueName: 'Happy Paws Rescue',
-  meetDate: '2024-01-15'
+  meetDate: '2024-01-15',
 });
 
 console.log('Title:', processed.data.title);
@@ -231,12 +247,13 @@ console.log('Message:', processed.data.message);
 ```
 
 #### `previewTemplate(templateId: string, sampleData: Record<string, unknown>)`
+
 Preview a template with sample data.
 
 ```typescript
 const preview = await notificationsService.previewTemplate('welcome_email', {
   userName: 'Jane Doe',
-  platform: 'Adopt Don\'t Shop'
+  platform: "Adopt Don't Shop",
 });
 
 // Includes rendered HTML for email preview
@@ -246,6 +263,7 @@ console.log('HTML:', preview.data.html);
 ### Analytics
 
 #### `getStats(userId?: string)`
+
 Get notification statistics.
 
 ```typescript
@@ -258,6 +276,7 @@ console.log('Delivery rate:', userStats.data.deliveryRate);
 ```
 
 #### `getUnreadCount(userId: string)`
+
 Get unread notification count for a user.
 
 ```typescript
@@ -267,34 +286,34 @@ console.log(`${count.data.count} unread notifications`);
 
 ## 🎯 Notification Categories
 
-| Category | Description | Typical Channels |
-|----------|-------------|------------------|
-| `adoption_update` | Pet adoption status changes | in-app, email, push |
-| `message_received` | New chat messages | in-app, push |
-| `application_status` | Application processing updates | in-app, email |
-| `system_alert` | Platform announcements | in-app, email |
-| `reminder` | Upcoming appointments/deadlines | in-app, push, sms |
-| `welcome` | New user onboarding | email |
-| `security` | Account security alerts | email, sms |
+| Category             | Description                     | Typical Channels    |
+| -------------------- | ------------------------------- | ------------------- |
+| `adoption_update`    | Pet adoption status changes     | in-app, email, push |
+| `message_received`   | New chat messages               | in-app, push        |
+| `application_status` | Application processing updates  | in-app, email       |
+| `system_alert`       | Platform announcements          | in-app, email       |
+| `reminder`           | Upcoming appointments/deadlines | in-app, push, sms   |
+| `welcome`            | New user onboarding             | email               |
+| `security`           | Account security alerts         | email, sms          |
 
 ## 🎨 Priority Levels
 
-| Priority | Description | Behavior |
-|----------|-------------|----------|
-| `low` | Non-urgent information | Standard delivery, respects quiet hours |
-| `normal` | Regular updates | Standard delivery, respects quiet hours |
-| `high` | Important notifications | Faster delivery, may override some quiet hours |
-| `urgent` | Critical alerts | Immediate delivery, overrides all quiet hours |
+| Priority | Description             | Behavior                                       |
+| -------- | ----------------------- | ---------------------------------------------- |
+| `low`    | Non-urgent information  | Standard delivery, respects quiet hours        |
+| `normal` | Regular updates         | Standard delivery, respects quiet hours        |
+| `high`   | Important notifications | Faster delivery, may override some quiet hours |
+| `urgent` | Critical alerts         | Immediate delivery, overrides all quiet hours  |
 
 ## 🔧 Configuration
 
 ### NotificationsServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Base API URL |
-| `debug` | `boolean` | `process.env.NODE_ENV === 'development'` | Enable debug logging |
-| `headers` | `Record<string, string>` | `{}` | Custom headers for requests |
+| Property  | Type                     | Default                                  | Description                 |
+| --------- | ------------------------ | ---------------------------------------- | --------------------------- |
+| `apiUrl`  | `string`                 | `process.env.VITE_API_URL`               | Base API URL                |
+| `debug`   | `boolean`                | `process.env.NODE_ENV === 'development'` | Enable debug logging        |
+| `headers` | `Record<string, string>` | `{}`                                     | Custom headers for requests |
 
 ### Environment Variables
 
@@ -326,15 +345,16 @@ Example method that demonstrates the library's capabilities.
 ```typescript
 await service.exampleMethod(
   { key: 'value' },
-  { 
+  {
     timeout: 5000,
     useCache: true,
-    metadata: { requestId: 'abc123' }
+    metadata: { requestId: 'abc123' },
   }
 );
 ```
 
 **Parameters:**
+
 - `data` (Record<string, unknown>): Input data
 - `options` (NotificationsServiceOptions): Operation options
 
@@ -377,6 +397,7 @@ const isHealthy = await service.healthCheck();
 ### React/Vite Apps (app.client, app.admin, app.rescue)
 
 1. **Add to package.json:**
+
 ```json
 {
   "dependencies": {
@@ -386,6 +407,7 @@ const isHealthy = await service.healthCheck();
 ```
 
 2. **Import and use:**
+
 ```typescript
 // src/services/index.ts
 export { notificationsService } from '@adopt-dont-shop/lib-notifications';
@@ -399,8 +421,8 @@ function MyComponent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await notificationsService.exampleMethod({ 
-          component: 'MyComponent' 
+        const result = await notificationsService.exampleMethod({
+          component: 'MyComponent'
         });
         setData(result.data);
       } catch (error) {
@@ -418,6 +440,7 @@ function MyComponent() {
 ### Node.js Backend (service.backend)
 
 1. **Add to package.json:**
+
 ```json
 {
   "dependencies": {
@@ -427,6 +450,7 @@ function MyComponent() {
 ```
 
 2. **Import and use:**
+
 ```typescript
 // src/services/notifications.service.ts
 import { NotificationsService } from '@adopt-dont-shop/lib-notifications';
@@ -454,12 +478,14 @@ app.get('/api/notifications/example', async (req, res) => {
 ### Development with Docker Compose
 
 1. **Build the library:**
+
 ```bash
 # From workspace root
 docker-compose -f docker-compose.lib.yml up lib-notifications
 ```
 
 2. **Run tests:**
+
 ```bash
 docker-compose -f docker-compose.lib.yml run lib-notifications-test
 ```
@@ -599,7 +625,7 @@ import { notificationsService } from '@adopt-dont-shop/lib-notifications';
 notificationsService.updateConfig({
   apiUrl: apiService.getConfig().baseUrl,
   headers: {
-    'Authorization': `Bearer ${authService.getToken()}`,
+    Authorization: `Bearer ${authService.getToken()}`,
   },
 });
 ```
@@ -682,6 +708,7 @@ notificationsService.updateConfig({ debug: true });
 ```
 
 Or set environment variable:
+
 ```bash
 NODE_ENV=development
 ```

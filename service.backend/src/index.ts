@@ -148,17 +148,14 @@ app.use('/api', apiLimiter);
 app.get('/api/v1/csrf-token', getCsrfToken);
 
 // Apply CSRF protection to all API routes except token endpoint and health checks
-app.use(
-  '/api',
-  (req, res, next) => {
-    // Skip CSRF for health checks and read-only endpoints
-    const skipPaths = ['/api/v1/csrf-token', '/health', '/api/v1/health'];
-    if (skipPaths.some(path => req.path.startsWith(path)) || req.method === 'GET') {
-      return next();
-    }
-    return csrfProtection(req, res, next);
+app.use('/api', (req, res, next) => {
+  // Skip CSRF for health checks and read-only endpoints
+  const skipPaths = ['/api/v1/csrf-token', '/health', '/api/v1/health'];
+  if (skipPaths.some(path => req.path.startsWith(path)) || req.method === 'GET') {
+    return next();
   }
-);
+  return csrfProtection(req, res, next);
+});
 
 // Serve uploaded files in development
 if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
@@ -386,7 +383,9 @@ const startServer = async () => {
         const forceSeed = process.env.FORCE_SEED === 'true';
 
         if (forceSeed) {
-          logger.info('🔧 Development mode detected - preparing FRESH database (FORCE_SEED=true)...');
+          logger.info(
+            '🔧 Development mode detected - preparing FRESH database (FORCE_SEED=true)...'
+          );
         } else {
           logger.info('🔧 Development mode detected - preparing database (fast mode)...');
         }
@@ -425,8 +424,12 @@ const startServer = async () => {
             await runAllSeeders();
             logger.info('Database seeding completed.');
           } else {
-            logger.info(`Database already populated (${userCount} users found) - skipping seeders.`);
-            logger.info('💡 Tip: Use "npm run dev:fresh" to reset database or "npm run seed:dev" to re-seed.');
+            logger.info(
+              `Database already populated (${userCount} users found) - skipping seeders.`
+            );
+            logger.info(
+              '💡 Tip: Use "npm run dev:fresh" to reset database or "npm run seed:dev" to re-seed.'
+            );
           }
         }
       } catch (error) {

@@ -33,7 +33,8 @@ export async function seedReports() {
         severity: ReportSeverity.HIGH,
         status: ReportStatus.PENDING,
         title: 'Harassing messages from user',
-        description: 'This user has been sending me repeated unwanted messages despite me asking them to stop. The messages are becoming increasingly aggressive.',
+        description:
+          'This user has been sending me repeated unwanted messages despite me asking them to stop. The messages are becoming increasingly aggressive.',
         evidence: [
           {
             type: 'text' as const,
@@ -60,7 +61,8 @@ export async function seedReports() {
         severity: ReportSeverity.CRITICAL,
         status: ReportStatus.PENDING,
         title: 'Suspected animal abuse in listing photos',
-        description: 'The photos of this pet show signs of neglect and possible abuse. The animal appears malnourished and has visible injuries.',
+        description:
+          'The photos of this pet show signs of neglect and possible abuse. The animal appears malnourished and has visible injuries.',
         evidence: [
           {
             type: 'screenshot' as const,
@@ -87,7 +89,8 @@ export async function seedReports() {
         severity: ReportSeverity.MEDIUM,
         status: ReportStatus.PENDING,
         title: 'User posting spam in messages',
-        description: 'This user is sending the same promotional message to multiple people about their pet-sitting business.',
+        description:
+          'This user is sending the same promotional message to multiple people about their pet-sitting business.',
         evidence: [],
         metadata: {
           reportCount: 3,
@@ -107,7 +110,8 @@ export async function seedReports() {
         severity: ReportSeverity.MEDIUM,
         status: ReportStatus.UNDER_REVIEW,
         title: 'Misleading pet information',
-        description: 'The pet is listed as "good with kids" but has a bite history that was disclosed during the application process.',
+        description:
+          'The pet is listed as "good with kids" but has a bite history that was disclosed during the application process.',
         evidence: [
           {
             type: 'text' as const,
@@ -132,7 +136,8 @@ export async function seedReports() {
         severity: ReportSeverity.HIGH,
         status: ReportStatus.UNDER_REVIEW,
         title: 'Inappropriate content in chat',
-        description: 'User sent inappropriate images and made suggestive comments unrelated to pet adoption.',
+        description:
+          'User sent inappropriate images and made suggestive comments unrelated to pet adoption.',
         evidence: [
           {
             type: 'screenshot' as const,
@@ -160,7 +165,8 @@ export async function seedReports() {
         severity: ReportSeverity.HIGH,
         status: ReportStatus.RESOLVED,
         title: 'User requesting payment outside platform',
-        description: 'User asked me to send money via PayPal for "adoption fees" instead of going through the official process.',
+        description:
+          'User asked me to send money via PayPal for "adoption fees" instead of going through the official process.',
         evidence: [
           {
             type: 'screenshot' as const,
@@ -174,7 +180,8 @@ export async function seedReports() {
         resolvedBy: users[0].userId,
         resolvedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
         resolution: 'user_suspended',
-        resolutionNotes: 'User account suspended for attempting to conduct transactions outside platform. User has been permanently banned.',
+        resolutionNotes:
+          'User account suspended for attempting to conduct transactions outside platform. User has been permanently banned.',
         metadata: {
           userBanned: true,
         },
@@ -221,7 +228,8 @@ export async function seedReports() {
         resolvedBy: users[0].userId,
         resolvedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
         resolution: 'no_action',
-        resolutionNotes: 'After review, the message was professional and explained valid reasons for denial. No harassment occurred.',
+        resolutionNotes:
+          'After review, the message was professional and explained valid reasons for denial. No harassment occurred.',
         metadata: {},
       });
     }
@@ -237,7 +245,8 @@ export async function seedReports() {
         severity: ReportSeverity.CRITICAL,
         status: ReportStatus.ESCALATED,
         title: 'Fraudulent rescue organization',
-        description: 'This rescue is collecting "adoption fees" but never delivering animals. Multiple people have complained online.',
+        description:
+          'This rescue is collecting "adoption fees" but never delivering animals. Multiple people have complained online.',
         evidence: [
           {
             type: 'url' as const,
@@ -255,7 +264,8 @@ export async function seedReports() {
         assignedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
         escalatedTo: users[1].userId,
         escalatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-        escalationReason: 'Potential fraud ring affecting multiple users. Requires legal review and immediate investigation.',
+        escalationReason:
+          'Potential fraud ring affecting multiple users. Requires legal review and immediate investigation.',
         metadata: {
           affectedUserCount: 8,
           totalAmountScammed: 4000,

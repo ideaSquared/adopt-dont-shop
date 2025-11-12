@@ -231,8 +231,8 @@ describe('NotificationService', () => {
 
         const callArgs = (MockedNotification.findAndCountAll as jest.Mock).mock.calls[0][0];
         // Service uses Op.or which becomes a Symbol property
-        const hasOrClause = Object.getOwnPropertySymbols(callArgs.where).some(
-          sym => sym.toString().includes('or')
+        const hasOrClause = Object.getOwnPropertySymbols(callArgs.where).some(sym =>
+          sym.toString().includes('or')
         );
         expect(hasOrClause).toBe(true);
       });
@@ -381,7 +381,7 @@ describe('NotificationService', () => {
           message: 'Check out our new feature!',
         };
 
-        (MockedNotification.create as jest.Mock).mockImplementation((data) =>
+        (MockedNotification.create as jest.Mock).mockImplementation(data =>
           Promise.resolve({
             notificationId: `notif-${data.user_id}`,
             ...data,
@@ -454,9 +454,9 @@ describe('NotificationService', () => {
       it('should throw error if notification not found', async () => {
         (MockedNotification.update as jest.Mock).mockResolvedValue([0]); // 0 rows affected
 
-        await expect(
-          NotificationService.markAsRead('notif-999', 'user-123')
-        ).rejects.toThrow('Notification not found or access denied');
+        await expect(NotificationService.markAsRead('notif-999', 'user-123')).rejects.toThrow(
+          'Notification not found or access denied'
+        );
       });
     });
 

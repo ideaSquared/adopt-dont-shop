@@ -9,6 +9,7 @@
 ### Step 1: Identify the Source of API Calls
 
 The error shows the request is coming from `localhost:3000` (client app), so we need to trace:
+
 1. Where is the login request being made?
 2. Which service is being used?
 3. How is the URL being constructed?
@@ -16,15 +17,17 @@ The error shows the request is coming from `localhost:3000` (client app), so we 
 ### Step 2: Current Configuration Analysis
 
 #### App.Client Environment
+
 - **Local .env**: `VITE_API_URL=http://localhost:5000`
 - **Docker override**: `VITE_API_URL=http://service-backend:5000`
 - **Vite proxy**: DISABLED (removed)
 
 #### Library Service Configuration
+
 ```typescript
 // app.client/src/services/libraryServices.ts
 const apiService = new ApiService({
-  apiUrl: import.meta.env.VITE_API_URL || '',  // ← This should be the full URL
+  apiUrl: import.meta.env.VITE_API_URL || '', // ← This should be the full URL
   debug: import.meta.env.MODE === 'development',
 });
 ```
@@ -32,6 +35,7 @@ const apiService = new ApiService({
 ### Step 3: Trace the Login Flow
 
 #### 3.1 Find Login Component
+
 ```bash
 # Search for login form/component
 grep -r "login" app.client/src/pages/ | grep -i login
@@ -39,48 +43,57 @@ grep -r "authService\.login" app.client/src/
 ```
 
 #### 3.2 Check AuthService Implementation
+
 ```bash
 # Find auth service usage
 grep -r "authService" app.client/src/ | head -10
 ```
 
 #### 3.3 Verify AuthService Source
+
 The login call is likely coming from one of these:
+
 - `@adopt-dont-shop/lib-auth` (new library)
 - `app.client/src/services/api.ts` (legacy service)
 
 ### Step 4: URL Construction Analysis
 
 #### Expected URL Construction:
+
 ```
 baseURL + endpoint = final URL
 http://service-backend:5000 + /api/v1/auth/login = http://service-backend:5000/api/v1/auth/login ✅
 ```
 
 #### Current Problem:
+
 ```
 Something + /api/v1/auth/login = /api/api/v1/auth/login ❌
 ```
 
 This suggests:
+
 - `baseURL` = `/api` (wrong!)
 - `endpoint` = `/api/v1/auth/login`
 
 ### Step 5: Systematic Checks
 
 #### 5.1 Environment Variable Check
+
 ```bash
 # Check what VITE_API_URL is actually set to in the running container
 docker-compose exec app-client env | grep VITE_API_URL
 ```
 
 #### 5.2 Service Configuration Check
+
 ```bash
 # Check if libraries are using correct configuration
 # Add debug logging to see actual URLs being constructed
 ```
 
 #### 5.3 Network Tab Analysis
+
 ```
 # In browser dev tools:
 # 1. Open Network tab
@@ -135,12 +148,15 @@ const testDirectCall = async () => {
 ## 🎯 Hypothesis & Next Steps
 
 ### Primary Hypothesis
+
 The `@adopt-dont-shop/lib-auth` service is not receiving the correct `apiUrl` configuration and is falling back to a default that includes `/api`.
 
 ### Secondary Hypothesis
+
 There might be multiple auth services in use (legacy vs new library) causing confusion.
 
 ### Immediate Actions Needed:
+
 1. ✅ Add debug logging to identify which service is being used
 2. ✅ Verify the actual `VITE_API_URL` value in the running container
 3. ✅ Check the `lib-auth` service implementation for URL construction
@@ -160,6 +176,7 @@ export const apiService = new ApiService(); // ← No config, uses default baseU
 ```
 
 **URL Construction**:
+
 ```
 baseURL + endpoint = final URL
 /api + /api/v1/auth/login = /api/api/v1/auth/login ❌
@@ -179,6 +196,7 @@ globalApiService.updateConfig({
 ```
 
 **Now URL Construction**:
+
 ```
 baseURL + endpoint = final URL
 http://service-backend:5000 + /api/v1/auth/login = http://service-backend:5000/api/v1/auth/login ✅
@@ -187,7 +205,7 @@ http://service-backend:5000 + /api/v1/auth/login = http://service-backend:5000/a
 ## �📋 Investigation Checklist
 
 - [x] ✅ Confirm which auth service is being imported and used
-- [x] ✅ Verify VITE_API_URL value in running container  
+- [x] ✅ Verify VITE_API_URL value in running container
 - [x] ✅ Add debug logging to service initialization
 - [x] ✅ Check lib-auth service implementation
 - [x] ✅ Identify global apiService configuration issue

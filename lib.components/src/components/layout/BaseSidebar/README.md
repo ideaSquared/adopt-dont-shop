@@ -15,7 +15,7 @@ import { BaseSidebar } from '@/components/layout/BaseSidebar'
 </BaseSidebar>
 
 // With custom props
-<BaseSidebar 
+<BaseSidebar
   isOpen={isOpen}
   onToggle={handleToggle}
   className="custom-sidebar"
@@ -38,4 +38,4 @@ import { BaseSidebar } from '@/components/layout/BaseSidebar'
 - Responsive design
 - Accessible markup
 - TypeScript support
-- Flexible content area 
+- Flexible content area

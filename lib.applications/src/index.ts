@@ -11,4 +11,3 @@ export type {
   ApplicationsServiceConfig,
 } from './types';
 export * from './types';
-

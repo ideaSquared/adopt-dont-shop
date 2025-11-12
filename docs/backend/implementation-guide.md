@@ -3,6 +3,7 @@
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 18+ and npm
 - PostgreSQL 15+
 - Docker and Docker Compose (recommended)
@@ -10,18 +11,21 @@
 ### Development Setup
 
 1. **Clone and Install**
+
    ```bash
    cd service.backend
    npm install
    ```
 
 2. **Environment Configuration**
+
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
 3. **Database Setup**
+
    ```bash
    npm run db:create
    npm run db:migrate
@@ -29,6 +33,7 @@
    ```
 
 4. **Start Development Server**
+
    ```bash
    npm run dev
    ```
@@ -104,10 +109,11 @@ Ethereal creates test accounts automatically - no configuration needed!
 
 ```typescript
 // Automatically configured in development
-EMAIL_PROVIDER=ethereal
+EMAIL_PROVIDER = ethereal;
 ```
 
 Access preview emails at the URL logged in console:
+
 ```
 📧 Preview Email: https://ethereal.email/messages/xxxxx
 ```
@@ -135,6 +141,7 @@ UPLOAD_DIR=uploads
 ```
 
 Organized structure:
+
 ```
 uploads/
 ├── pets/       # Pet photos
@@ -239,11 +246,13 @@ GET http://localhost:5000/health/ready
 ### Development Dashboard
 
 View real-time service health at:
+
 ```
 http://localhost:5000/monitoring/dashboard
 ```
 
 Shows:
+
 - Service status (database, email, storage)
 - Response times
 - Memory usage
@@ -294,6 +303,7 @@ docker run -p 5000:5000 \
 ### Add Database Model
 
 1. **Create migration**
+
    ```bash
    npm run migration:create -- --name create-my-table
    ```

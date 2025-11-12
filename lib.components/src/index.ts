@@ -30,6 +30,7 @@ export { Card, CardContent, CardFooter, CardHeader } from './components/ui/Card'
 export { CheckboxInput } from './components/form/CheckboxInput';
 // export { default as CountrySelectInput } from './components/form/CountrySelectInput';
 export { SelectInput } from './components/form/SelectInput/';
+export type { SelectOption } from './components/form/SelectInput/';
 export { TextArea } from './components/form/TextArea';
 export { TextInput } from './components/form/TextInput';
 export { Input } from './components/ui/Input';

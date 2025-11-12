@@ -650,4 +650,3 @@ export interface PaginatedResponse<T> extends BaseResponse<T[]> {
     hasPrev: boolean;
   };
 }
-

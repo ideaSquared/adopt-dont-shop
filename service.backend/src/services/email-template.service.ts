@@ -554,7 +554,6 @@ The {{system.appName}} Team
     return this.defaultTemplates;
   }
 
-  
   // Helper method to send staff invitation emails
   public async sendStaffInvitation(params: {
     recipientEmail: string;

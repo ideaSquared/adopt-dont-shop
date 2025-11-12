@@ -13,43 +13,43 @@ const variantStyles = {
   success: {
     background: '#d1fae5',
     color: '#065f46',
-    border: '#6ee7b7'
+    border: '#6ee7b7',
   },
   warning: {
     background: '#fef3c7',
     color: '#92400e',
-    border: '#fcd34d'
+    border: '#fcd34d',
   },
   error: {
     background: '#fee2e2',
     color: '#991b1b',
-    border: '#fca5a5'
+    border: '#fca5a5',
   },
   info: {
     background: '#dbeafe',
     color: '#1e40af',
-    border: '#93c5fd'
+    border: '#93c5fd',
   },
   neutral: {
     background: '#f3f4f6',
     color: '#374151',
-    border: '#d1d5db'
-  }
+    border: '#d1d5db',
+  },
 };
 
 const sizeStyles = {
   small: {
     padding: '0.25rem 0.5rem',
-    fontSize: '0.75rem'
+    fontSize: '0.75rem',
   },
   medium: {
     padding: '0.375rem 0.75rem',
-    fontSize: '0.875rem'
+    fontSize: '0.875rem',
   },
   large: {
     padding: '0.5rem 1rem',
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 const Badge = styled.span<{ $variant: BadgeVariant; $size: 'small' | 'medium' | 'large' }>`
@@ -68,11 +68,7 @@ const Badge = styled.span<{ $variant: BadgeVariant; $size: 'small' | 'medium' | 
   font-size: ${props => sizeStyles[props.$size].fontSize};
 `;
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({
-  variant,
-  children,
-  size = 'medium'
-}) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ variant, children, size = 'medium' }) => {
   return (
     <Badge $variant={variant} $size={size}>
       {children}

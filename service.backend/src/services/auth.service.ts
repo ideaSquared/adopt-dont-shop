@@ -307,7 +307,7 @@ export class AuthService {
         await emailService.sendEmail({
           toEmail: user.email,
           toName: `${user.firstName} ${user.lastName}`,
-          subject: 'Password Reset Request - Adopt Don\'t Shop',
+          subject: "Password Reset Request - Adopt Don't Shop",
           htmlContent: `
             <!DOCTYPE html>
             <html>

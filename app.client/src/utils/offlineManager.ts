@@ -3,7 +3,7 @@
  * Handles offline message queuing, connection monitoring, and sync capabilities
  */
 
-import { api } from '@/services/api';
+import { api } from '@/services';
 
 export interface QueuedMessage {
   id: string;
@@ -96,9 +96,6 @@ class OfflineManager {
 
     try {
       const startTime = Date.now();
-      // Use the same API base URL as the rest of the app to avoid calling localhost:3000
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-      const healthUrl = `${apiBaseUrl}/api/v1/health/simple`;
 
       // Use the simple health endpoint for quick connection quality checks
       await api.fetch('/api/v1/health/simple', {

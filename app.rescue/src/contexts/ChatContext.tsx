@@ -47,8 +47,8 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         get Authorization() {
           const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
           return token ? `Bearer ${token}` : '';
-        }
-      }
+        },
+      },
     });
   }, []);
 
@@ -87,7 +87,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
 
       try {
         const conversationMessages = await chatService.getMessages(activeConversation.id);
-        setMessages(conversationMessages);
+        setMessages(conversationMessages.data);
       } catch (error) {
         console.error('Failed to load messages:', error);
         setError(error instanceof Error ? error.message : 'Failed to load messages');
@@ -138,23 +138,22 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     console.log('Stop typing in conversation:', conversationId);
   };
 
-  const value = useMemo(() => ({
-    chatService,
-    conversations,
-    activeConversation,
-    messages,
-    setActiveConversation,
-    sendMessage,
-    isLoading,
-    error,
-    typingUsers,
-    startTyping,
-    stopTyping,
-  }), [chatService, conversations, activeConversation, messages, isLoading, error, typingUsers]);
-
-  return (
-    <ChatContext.Provider value={value}>
-      {children}
-    </ChatContext.Provider>
+  const value = useMemo(
+    () => ({
+      chatService,
+      conversations,
+      activeConversation,
+      messages,
+      setActiveConversation,
+      sendMessage,
+      isLoading,
+      error,
+      typingUsers,
+      startTyping,
+      stopTyping,
+    }),
+    [chatService, conversations, activeConversation, messages, isLoading, error, typingUsers]
   );
+
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };

@@ -75,19 +75,27 @@ const validateEnv = (): ValidatedEnv => {
 
   // Validate secret lengths (only if they exist)
   if (jwtSecret && jwtSecret.length < MIN_SECRET_LENGTH) {
-    invalid.push(`JWT_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${jwtSecret.length})`);
+    invalid.push(
+      `JWT_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${jwtSecret.length})`
+    );
   }
 
   if (jwtRefreshSecret && jwtRefreshSecret.length < MIN_SECRET_LENGTH) {
-    invalid.push(`JWT_REFRESH_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${jwtRefreshSecret.length})`);
+    invalid.push(
+      `JWT_REFRESH_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${jwtRefreshSecret.length})`
+    );
   }
 
   if (sessionSecret && sessionSecret.length < MIN_SECRET_LENGTH) {
-    invalid.push(`SESSION_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${sessionSecret.length})`);
+    invalid.push(
+      `SESSION_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${sessionSecret.length})`
+    );
   }
 
   if (csrfSecret && csrfSecret.length < MIN_SECRET_LENGTH) {
-    invalid.push(`CSRF_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${csrfSecret.length})`);
+    invalid.push(
+      `CSRF_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${csrfSecret.length})`
+    );
   }
 
   // Report errors
@@ -102,9 +110,7 @@ const validateEnv = (): ValidatedEnv => {
   }
 
   if (errors.length > 0) {
-    throw new Error(
-      errors.join('. ') + '. Please check your .env file.'
-    );
+    throw new Error(errors.join('. ') + '. Please check your .env file.');
   }
 
   // After validation, we know all secrets are defined and valid

@@ -1,7 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { Heading, Text, Input, useConfirm, ConfirmDialog } from '@adopt-dont-shop/components';
-import { FiSearch, FiMessageSquare, FiAlertCircle, FiCheckCircle, FiEye, FiFlag, FiTrash } from 'react-icons/fi';
+import {
+  FiSearch,
+  FiMessageSquare,
+  FiAlertCircle,
+  FiCheckCircle,
+  FiEye,
+  FiFlag,
+  FiTrash,
+} from 'react-icons/fi';
 import {
   PageContainer,
   PageHeader,
@@ -17,7 +25,7 @@ import {
   StatIcon,
   StatDetails,
   StatLabel,
-  StatValue
+  StatValue,
 } from '../components/ui';
 import { DataTable } from '../components/data';
 import type { Column } from '../components/data';
@@ -117,10 +125,14 @@ const StatusDot = styled.div<{ $status: string }>`
   border-radius: 50%;
   background: ${props => {
     switch (props.$status) {
-      case 'active': return '#10b981';
-      case 'flagged': return '#f59e0b';
-      case 'archived': return '#9ca3af';
-      default: return '#6b7280';
+      case 'active':
+        return '#10b981';
+      case 'flagged':
+        return '#f59e0b';
+      case 'archived':
+        return '#9ca3af';
+      default:
+        return '#6b7280';
     }
   }};
 `;
@@ -179,7 +191,7 @@ const Messages: React.FC = () => {
     } else {
       return date.toLocaleDateString('en-GB', {
         day: '2-digit',
-        month: 'short'
+        month: 'short',
       });
     }
   };
@@ -187,15 +199,15 @@ const Messages: React.FC = () => {
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'active':
-        return <Badge $variant="success">Active</Badge>;
+        return <Badge $variant='success'>Active</Badge>;
       case 'blocked':
-        return <Badge $variant="danger">Blocked</Badge>;
+        return <Badge $variant='danger'>Blocked</Badge>;
       case 'closed':
-        return <Badge $variant="warning">Closed</Badge>;
+        return <Badge $variant='warning'>Closed</Badge>;
       case 'archived':
-        return <Badge $variant="neutral">Archived</Badge>;
+        return <Badge $variant='neutral'>Archived</Badge>;
       default:
-        return <Badge $variant="neutral">{status || 'active'}</Badge>;
+        return <Badge $variant='neutral'>{status || 'active'}</Badge>;
     }
   };
 
@@ -253,13 +265,13 @@ const Messages: React.FC = () => {
     {
       id: 'status',
       header: '',
-      accessor: (row) => <StatusDot $status={row.status || 'active'} />,
-      width: '40px'
+      accessor: row => <StatusDot $status={row.status || 'active'} />,
+      width: '40px',
     },
     {
       id: 'conversation',
       header: 'Conversation',
-      accessor: (row) => (
+      accessor: row => (
         <MessagePreview>
           <MessageParticipants>
             {row.participants.map((p, i) => (
@@ -281,24 +293,31 @@ const Messages: React.FC = () => {
           </MessageMeta>
         </MessagePreview>
       ),
-      width: '420px'
+      width: '420px',
     },
     {
       id: 'lastMessage',
       header: 'Last Message',
-      accessor: (row) => (
-        <div style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      accessor: row => (
+        <div
+          style={{
+            maxWidth: '250px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {row.lastMessage?.content || (
             <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No messages</span>
           )}
         </div>
       ),
-      width: '250px'
+      width: '250px',
     },
     {
       id: 'participants',
       header: 'Participants',
-      accessor: (row) => (
+      accessor: row => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {row.participants.slice(0, 2).map(p => (
             <ParticipantInfo key={p.id}>
@@ -313,60 +332,57 @@ const Messages: React.FC = () => {
           )}
         </div>
       ),
-      width: '180px'
+      width: '180px',
     },
     {
       id: 'status_badge',
       header: 'Status',
-      accessor: (row) => getStatusBadge(row.status),
+      accessor: row => getStatusBadge(row.status),
       width: '100px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'actions',
       header: 'Actions',
-      accessor: (row) => (
+      accessor: row => (
         <ActionButtons>
           <ActionButton
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               setSelectedChatId(row.id);
             }}
-            title="View chat"
+            title='View chat'
           >
             <FiEye />
           </ActionButton>
           <ActionButton
-            onClick={(e) => handleUpdateStatus(row.id, 'archived', e)}
-            title="Archive chat"
+            onClick={e => handleUpdateStatus(row.id, 'archived', e)}
+            title='Archive chat'
           >
             <FiFlag />
           </ActionButton>
-          <ActionButton
-            onClick={(e) => handleDeleteChat(row.id, e)}
-            title="Delete chat"
-          >
+          <ActionButton onClick={e => handleDeleteChat(row.id, e)} title='Delete chat'>
             <FiTrash />
           </ActionButton>
         </ActionButtons>
       ),
       width: '120px',
-      align: 'center'
-    }
+      align: 'center',
+    },
   ];
 
   return (
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">Message Monitoring</Heading>
+          <Heading level='h1'>Message Monitoring</Heading>
           <Text>Platform messaging activity and oversight</Text>
         </HeaderLeft>
       </PageHeader>
 
       <StatsBar>
         <StatCard>
-          <StatIcon $color="#3b82f6">
+          <StatIcon $color='#3b82f6'>
             <FiMessageSquare />
           </StatIcon>
           <StatDetails>
@@ -376,7 +392,7 @@ const Messages: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#10b981">
+          <StatIcon $color='#10b981'>
             <FiCheckCircle />
           </StatIcon>
           <StatDetails>
@@ -386,7 +402,7 @@ const Messages: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#8b5cf6">
+          <StatIcon $color='#8b5cf6'>
             <FiMessageSquare />
           </StatIcon>
           <StatDetails>
@@ -396,7 +412,7 @@ const Messages: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#f59e0b">
+          <StatIcon $color='#f59e0b'>
             <FiAlertCircle />
           </StatIcon>
           <StatDetails>
@@ -410,21 +426,21 @@ const Messages: React.FC = () => {
         <SearchInputWrapper>
           <FiSearch />
           <Input
-            type="text"
-            placeholder="Search conversations, participants, or messages..."
+            type='text'
+            placeholder='Search conversations, participants, or messages...'
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
           />
         </SearchInputWrapper>
 
         <FilterGroup>
           <FilterLabel>Status</FilterLabel>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="blocked">Blocked</option>
-            <option value="closed">Closed</option>
+          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value='all'>All Statuses</option>
+            <option value='active'>Active</option>
+            <option value='archived'>Archived</option>
+            <option value='blocked'>Blocked</option>
+            <option value='closed'>Closed</option>
           </Select>
         </FilterGroup>
       </FilterBar>
@@ -439,9 +455,9 @@ const Messages: React.FC = () => {
         columns={columns}
         data={chats}
         loading={loading}
-        emptyMessage="No conversations found matching your criteria"
-        onRowClick={(chat) => setSelectedChatId(chat.id)}
-        getRowId={(chat) => chat.id}
+        emptyMessage='No conversations found matching your criteria'
+        onRowClick={chat => setSelectedChatId(chat.id)}
+        getRowId={chat => chat.id}
       />
 
       <ChatDetailModal

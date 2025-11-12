@@ -17,11 +17,13 @@ The seeders create a complete development environment with:
 ## Quick Start
 
 ### Run All Seeders
+
 ```bash
 npm run seed:dev
 ```
 
 ### Clear All Seeded Data
+
 ```bash
 npm run seed:clear
 ```
@@ -48,6 +50,7 @@ The seeders run in this specific order to maintain referential integrity:
 ## Test Data Created
 
 ### Users
+
 - **Super Admin**: `superadmin@adoptdontshop.dev`
 - **Admin**: `admin@adoptdontshop.dev`
 - **Moderator**: `moderator@adoptdontshop.dev`
@@ -57,6 +60,7 @@ The seeders run in this specific order to maintain referential integrity:
 **Default Password**: `DevPassword123!`
 
 ### Pets
+
 - **Buddy** (Golden Retriever) - Available, high energy
 - **Whiskers** (Senior Cat) - Available, special needs
 - **Rocky** (Senior Pit Bull Mix) - Available, gentle
@@ -64,11 +68,13 @@ The seeders run in this specific order to maintain referential integrity:
 - **Max** (German Shepherd Mix) - Young, needs training
 
 ### Applications
+
 - Various application states (submitted, under review, approved, rejected)
 - Realistic application data with references, answers, and notes
 - Different adoption scenarios and outcomes
 
 ### Rescue Organizations
+
 - **Paws Rescue Austin** (Verified) - General rescue
 - **Happy Tails Senior Dog Rescue** (Verified) - Senior dog specialist
 - **Furry Friends Portland** (Pending) - Multi-species rescue
@@ -102,6 +108,7 @@ await seedPets();
 ## Data Relationships
 
 The seeded data maintains realistic relationships:
+
 - Users have appropriate roles and permissions
 - Pets belong to rescue organizations
 - Applications connect users, pets, and rescues
@@ -112,17 +119,22 @@ The seeded data maintains realistic relationships:
 ## Development Tips
 
 ### Testing Different Scenarios
+
 The seeders create data for testing various scenarios:
+
 - **Approved applications** (Whiskers → Emily)
 - **Pending applications** (Buddy → John)
 - **Interview scheduled** (Rocky → Michael)
 - **Rejected applications** (Luna → Jessica)
 
 ### User Login Testing
+
 Use any of the seeded user emails with the password `DevPassword123!` to test different user types and permission levels.
 
 ### API Testing
+
 The seeded data provides realistic test cases for:
+
 - Pet search and filtering
 - Application workflows
 - Chat functionality
@@ -141,14 +153,17 @@ To add a new seeder:
 ## Troubleshooting
 
 ### Foreign Key Errors
+
 If you get foreign key constraint errors:
+
 1. Run `npm run seed:clear` first
 2. Ensure database migrations are up to date
 3. Run `npm run seed:dev` again
 
 ### Performance
+
 The seeders use `findOrCreate` to avoid duplicates, so they're safe to run multiple times. Initial seeding typically takes 10-30 seconds depending on your database.
 
 ## Production Safety
 
-⚠️ **Important**: These seeders are designed for development only. Do not run in production environments. The clear function truncates tables and should never be used with production data. 
+⚠️ **Important**: These seeders are designed for development only. Do not run in production environments. The clear function truncates tables and should never be used with production data.

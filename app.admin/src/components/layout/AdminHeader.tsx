@@ -17,7 +17,7 @@ const HeaderContainer = styled.header<{ $sidebarCollapsed: boolean }>`
   padding: 0 2rem;
   position: fixed;
   top: 0;
-  left: ${props => props.$sidebarCollapsed ? '80px' : '280px'};
+  left: ${props => (props.$sidebarCollapsed ? '80px' : '280px')};
   right: 0;
   z-index: 90;
   transition: left 0.3s ease;
@@ -88,7 +88,9 @@ const IconButton = styled.button<{ $hasNotification?: boolean }>`
     font-size: 1.25rem;
   }
 
-  ${props => props.$hasNotification && `
+  ${props =>
+    props.$hasNotification &&
+    `
     &::after {
       content: '';
       position: absolute;
@@ -165,7 +167,7 @@ const DropdownMenu = styled.div<{ $isOpen: boolean }>`
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  display: ${props => props.$isOpen ? 'block' : 'none'};
+  display: ${props => (props.$isOpen ? 'block' : 'none')};
   z-index: 1000;
   overflow: hidden;
 `;
@@ -180,12 +182,12 @@ const DropdownItem = styled.button<{ $danger?: boolean }>`
   border: none;
   cursor: pointer;
   font-size: 0.875rem;
-  color: ${props => props.$danger ? '#ef4444' : '#111827'};
+  color: ${props => (props.$danger ? '#ef4444' : '#111827')};
   text-align: left;
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${props => props.$danger ? '#fef2f2' : '#f9fafb'};
+    background: ${props => (props.$danger ? '#fef2f2' : '#f9fafb')};
   }
 
   svg {
@@ -224,23 +226,21 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed }) =>
       <SearchContainer>
         <SearchIcon />
         <SearchInput
-          type="text"
-          placeholder="Search users, rescues, or content..."
+          type='text'
+          placeholder='Search users, rescues, or content...'
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
         />
       </SearchContainer>
 
       <HeaderActions>
-        <IconButton $hasNotification={true} aria-label="Notifications">
+        <IconButton $hasNotification={true} aria-label='Notifications'>
           <FiBell />
         </IconButton>
 
         <UserMenu>
           <UserButton onClick={() => setUserMenuOpen(!userMenuOpen)}>
-            <UserAvatar>
-              {getInitials(user?.firstName, user?.lastName)}
-            </UserAvatar>
+            <UserAvatar>{getInitials(user?.firstName, user?.lastName)}</UserAvatar>
             <UserInfo>
               <UserName>
                 {user?.firstName} {user?.lastName}

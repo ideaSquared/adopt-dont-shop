@@ -471,7 +471,7 @@ export class PetService {
         'location',
       ] as const;
 
-      type SimpleFieldKey = typeof simpleFields[number];
+      type SimpleFieldKey = (typeof simpleFields)[number];
 
       simpleFields.forEach(field => {
         const value = updateData[field as keyof PetUpdateData];

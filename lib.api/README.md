@@ -60,7 +60,7 @@ import { apiService, authService } from '@adopt-dont-shop/lib-api';
 apiService.updateConfig({
   apiUrl: 'https://api.adopt-dont-shop.com',
   debug: true,
-  timeout: 15000
+  timeout: 15000,
 });
 
 // Make authenticated requests
@@ -76,7 +76,7 @@ import { authService } from '@adopt-dont-shop/lib-api';
 // Login
 const authResponse = await authService.login({
   email: 'user@example.com',
-  password: 'password123'
+  password: 'password123',
 });
 
 // Check authentication status
@@ -92,7 +92,7 @@ const newUser = await authService.register({
   firstName: 'John',
   lastName: 'Doe',
   agreeToTerms: true,
-  agreeToPrivacyPolicy: true
+  agreeToPrivacyPolicy: true,
 });
 ```
 
@@ -103,7 +103,7 @@ const newUser = await authService.register({
 const petsResponse = await apiService.get('/api/v1/pets', {
   page: 1,
   limit: 20,
-  species: 'dog'
+  species: 'dog',
 });
 
 // Data is automatically transformed from snake_case to camelCase
@@ -114,7 +114,7 @@ const petsResponse = await apiService.get('/api/v1/pets', {
 const file = new File(['...'], 'pet-photo.jpg', { type: 'image/jpeg' });
 const uploadResponse = await apiService.uploadFile('/api/v1/pets/123/photos', file, {
   caption: 'Cute photo of Max',
-  isPrimary: true
+  isPrimary: true,
 });
 ```
 
@@ -138,9 +138,9 @@ The main API client for making HTTP requests.
 
 ```typescript
 interface ApiServiceConfig {
-  apiUrl?: string;          // Base API URL
-  debug?: boolean;          // Enable debug logging
-  timeout?: number;         // Request timeout in milliseconds
+  apiUrl?: string; // Base API URL
+  debug?: boolean; // Enable debug logging
+  timeout?: number; // Request timeout in milliseconds
   headers?: Record<string, string>; // Default headers
 }
 ```
@@ -248,12 +248,7 @@ try {
 The library is written in TypeScript and provides full type safety:
 
 ```typescript
-import type { 
-  User, 
-  Pet, 
-  AuthResponse, 
-  PaginatedResponse 
-} from '@adopt-dont-shop/lib-api';
+import type { User, Pet, AuthResponse, PaginatedResponse } from '@adopt-dont-shop/lib-api';
 
 // Fully typed responses
 const user: User = await authService.getCurrentUser();

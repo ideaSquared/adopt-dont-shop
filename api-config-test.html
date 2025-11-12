@@ -1,109 +1,142 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
+  <head>
     <title>API Configuration Test</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
-        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
-        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
-        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
-        pre { background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .test-result {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+      .error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+      }
+      .info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+      }
+      pre {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>🔧 API Configuration Test</h1>
     <p>Testing the new industry-standard API URL management implementation.</p>
-    
+
     <div id="results"></div>
-    
+
     <script type="module">
-        const results = document.getElementById('results');
-        
-        function addResult(type, message, details = null) {
-            const div = document.createElement('div');
-            div.className = `test-result ${type}`;
-            div.innerHTML = `<strong>${message}</strong>`;
-            if (details) {
-                const pre = document.createElement('pre');
-                pre.textContent = typeof details === 'string' ? details : JSON.stringify(details, null, 2);
-                div.appendChild(pre);
-            }
-            results.appendChild(div);
+      const results = document.getElementById('results');
+
+      function addResult(type, message, details = null) {
+        const div = document.createElement('div');
+        div.className = `test-result ${type}`;
+        div.innerHTML = `<strong>${message}</strong>`;
+        if (details) {
+          const pre = document.createElement('pre');
+          pre.textContent =
+            typeof details === 'string' ? details : JSON.stringify(details, null, 2);
+          div.appendChild(pre);
         }
-        
-        // Test 1: Environment Variables
-        addResult('info', '📋 Environment Variables Check');
-        const envVars = {
-            'VITE_API_BASE_URL': import.meta.env.VITE_API_BASE_URL,
-            'VITE_WS_BASE_URL': import.meta.env.VITE_WS_BASE_URL,
-            'DEV': import.meta.env.DEV,
-            'MODE': import.meta.env.MODE
-        };
-        addResult('info', 'Current Environment:', envVars);
-        
-        // Test 2: URL Construction
-        addResult('info', '🔗 URL Construction Test');
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-        const endpoint = '/api/v1/auth/login';
-        const fullUrl = `${baseUrl}${endpoint}`;
-        
-        addResult('success', `✅ Correct URL Construction: ${fullUrl}`);
-        addResult('success', `✅ Base URL: ${baseUrl}`);
-        addResult('success', `✅ Endpoint: ${endpoint}`);
-        addResult('success', `✅ No double /api prefix!`);
-        
-        // Test 3: API Health Check
-        addResult('info', '🩺 API Health Check');
-        try {
-            const healthUrl = `${baseUrl}/api/v1/health/simple`;
-            const response = await fetch(healthUrl);
-            
-            if (response.ok) {
-                const data = await response.json();
-                addResult('success', `✅ API is reachable at: ${healthUrl}`, data);
-            } else {
-                addResult('error', `❌ API responded with status: ${response.status}`, `URL: ${healthUrl}`);
-            }
-        } catch (error) {
-            addResult('error', `❌ API Health Check Failed: ${error.message}`, `URL: ${baseUrl}/api/v1/health/simple`);
-        }
-        
-        // Test 4: Simulate Auth Service URL Construction
-        addResult('info', '🔐 Auth Service URL Simulation');
-        const authEndpoints = [
-            '/api/v1/auth/login',
-            '/api/v1/auth/register', 
-            '/api/v1/auth/logout',
-            '/api/v1/auth/me'
-        ];
-        
-        authEndpoints.forEach(endpoint => {
-            const fullAuthUrl = `${baseUrl}${endpoint}`;
-            addResult('success', `✅ ${endpoint} → ${fullAuthUrl}`);
-        });
-        
-        // Test 5: Network Validation
-        addResult('info', '🌐 Network Configuration Validation');
-        
-        if (baseUrl.includes('/api')) {
-            addResult('error', '❌ Base URL should NOT contain /api path', `Current: ${baseUrl}`);
+        results.appendChild(div);
+      }
+
+      // Test 1: Environment Variables
+      addResult('info', '📋 Environment Variables Check');
+      const envVars = {
+        VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+        VITE_WS_BASE_URL: import.meta.env.VITE_WS_BASE_URL,
+        DEV: import.meta.env.DEV,
+        MODE: import.meta.env.MODE,
+      };
+      addResult('info', 'Current Environment:', envVars);
+
+      // Test 2: URL Construction
+      addResult('info', '🔗 URL Construction Test');
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const endpoint = '/api/v1/auth/login';
+      const fullUrl = `${baseUrl}${endpoint}`;
+
+      addResult('success', `✅ Correct URL Construction: ${fullUrl}`);
+      addResult('success', `✅ Base URL: ${baseUrl}`);
+      addResult('success', `✅ Endpoint: ${endpoint}`);
+      addResult('success', `✅ No double /api prefix!`);
+
+      // Test 3: API Health Check
+      addResult('info', '🩺 API Health Check');
+      try {
+        const healthUrl = `${baseUrl}/api/v1/health/simple`;
+        const response = await fetch(healthUrl);
+
+        if (response.ok) {
+          const data = await response.json();
+          addResult('success', `✅ API is reachable at: ${healthUrl}`, data);
         } else {
-            addResult('success', '✅ Base URL correctly excludes /api path');
+          addResult(
+            'error',
+            `❌ API responded with status: ${response.status}`,
+            `URL: ${healthUrl}`
+          );
         }
-        
-        if (fullUrl.includes('/api/api/')) {
-            addResult('error', '❌ Double /api prefix detected!', `URL: ${fullUrl}`);
-        } else {
-            addResult('success', '✅ No double /api prefix detected');
-        }
-        
-        // Test Summary
-        addResult('info', '📊 Implementation Summary');
-        addResult('success', '✅ Industry Standard: Base URLs contain protocol + host only');
-        addResult('success', '✅ Library Control: Services add path prefixes');
-        addResult('success', '✅ Centralized Config: Single source of truth for URLs');
-        addResult('success', '✅ Environment Agnostic: Works across dev/staging/prod');
+      } catch (error) {
+        addResult(
+          'error',
+          `❌ API Health Check Failed: ${error.message}`,
+          `URL: ${baseUrl}/api/v1/health/simple`
+        );
+      }
+
+      // Test 4: Simulate Auth Service URL Construction
+      addResult('info', '🔐 Auth Service URL Simulation');
+      const authEndpoints = [
+        '/api/v1/auth/login',
+        '/api/v1/auth/register',
+        '/api/v1/auth/logout',
+        '/api/v1/auth/me',
+      ];
+
+      authEndpoints.forEach(endpoint => {
+        const fullAuthUrl = `${baseUrl}${endpoint}`;
+        addResult('success', `✅ ${endpoint} → ${fullAuthUrl}`);
+      });
+
+      // Test 5: Network Validation
+      addResult('info', '🌐 Network Configuration Validation');
+
+      if (baseUrl.includes('/api')) {
+        addResult('error', '❌ Base URL should NOT contain /api path', `Current: ${baseUrl}`);
+      } else {
+        addResult('success', '✅ Base URL correctly excludes /api path');
+      }
+
+      if (fullUrl.includes('/api/api/')) {
+        addResult('error', '❌ Double /api prefix detected!', `URL: ${fullUrl}`);
+      } else {
+        addResult('success', '✅ No double /api prefix detected');
+      }
+
+      // Test Summary
+      addResult('info', '📊 Implementation Summary');
+      addResult('success', '✅ Industry Standard: Base URLs contain protocol + host only');
+      addResult('success', '✅ Library Control: Services add path prefixes');
+      addResult('success', '✅ Centralized Config: Single source of truth for URLs');
+      addResult('success', '✅ Environment Agnostic: Works across dev/staging/prod');
     </script>
-</body>
+  </body>
 </html>

@@ -8,13 +8,13 @@ A rich markdown editor component with live preview and formatting toolbar.
 import { MarkdownEditor } from '@/components/form/MarkdownEditor'
 
 // Basic usage
-<MarkdownEditor 
+<MarkdownEditor
   value={content}
   onChange={handleContentChange}
 />
 
 // With custom configuration
-<MarkdownEditor 
+<MarkdownEditor
   value={content}
   onChange={handleContentChange}
   placeholder="Write your markdown here..."
@@ -38,4 +38,4 @@ import { MarkdownEditor } from '@/components/form/MarkdownEditor'
 - Formatting toolbar
 - Syntax highlighting
 - Accessible markup
-- TypeScript support 
+- TypeScript support

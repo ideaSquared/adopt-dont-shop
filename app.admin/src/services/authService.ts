@@ -88,7 +88,10 @@ class AuthService {
 
   // Check if admin is authenticated
   isAuthenticated(): boolean {
-    return !!(localStorage.getItem('authToken') || localStorage.getItem('accessToken')) && !!this.getCurrentUser();
+    return (
+      !!(localStorage.getItem('authToken') || localStorage.getItem('accessToken')) &&
+      !!this.getCurrentUser()
+    );
   }
 
   // Check if current user has specific admin role
@@ -168,9 +171,7 @@ class AuthService {
   }
 
   // Development helper for admin
-  async loginWithDevToken(
-    userType: UserType = 'admin'
-  ): Promise<void> {
+  async loginWithDevToken(userType: UserType = 'admin'): Promise<void> {
     if (!import.meta.env.DEV) {
       throw new Error('Dev token login is only available in development mode');
     }
@@ -184,7 +185,7 @@ class AuthService {
       emailVerified: true,
       phoneNumber: null,
       phoneVerified: false,
-      status: "active",
+      status: 'active',
       userType: userType,
       profileImageUrl: null,
       bio: null,

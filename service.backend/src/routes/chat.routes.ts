@@ -442,7 +442,6 @@ router.patch(
   ChatController.updateChat
 );
 
-
 /**
  * @swagger
  * /api/v1/chats/{chatId}:

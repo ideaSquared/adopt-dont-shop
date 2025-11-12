@@ -9,10 +9,10 @@ const isDevelopment = () => {
 
 const DevLoginPanel: React.FC = () => {
   const authContext = useAuth();
-  
+
   return (
     <DevPanelComponent
-      title="Client Dev Login Panel"
+      title='Client Dev Login Panel'
       authContext={authContext}
       isDevelopment={isDevelopment}
       userTypes={['adopter']}

@@ -55,7 +55,7 @@ export const KNOWN_GATES = {
   FEATURE_RATING_SYSTEM: 'feature_rating_system',
 } as const;
 
-export type KnownGate = typeof KNOWN_GATES[keyof typeof KNOWN_GATES];
+export type KnownGate = (typeof KNOWN_GATES)[keyof typeof KNOWN_GATES];
 
 // Known dynamic configs (for type safety and documentation)
 export const KNOWN_CONFIGS = {
@@ -64,7 +64,7 @@ export const KNOWN_CONFIGS = {
   MODERATION_SETTINGS: 'moderation_settings',
 } as const;
 
-export type KnownConfig = typeof KNOWN_CONFIGS[keyof typeof KNOWN_CONFIGS];
+export type KnownConfig = (typeof KNOWN_CONFIGS)[keyof typeof KNOWN_CONFIGS];
 
 // Application settings config shape
 export interface ApplicationSettingsConfig {
@@ -90,4 +90,3 @@ export interface ModerationSettingsConfig {
   require_manual_review_threshold: number;
   max_warnings_before_suspension: number;
 }
-

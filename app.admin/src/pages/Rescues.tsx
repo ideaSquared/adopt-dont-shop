@@ -2,16 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
-import { FiSearch, FiCheckCircle, FiXCircle, FiEye, FiMail, FiMapPin, FiAlertCircle } from 'react-icons/fi';
+import {
+  FiSearch,
+  FiCheckCircle,
+  FiXCircle,
+  FiEye,
+  FiMail,
+  FiMapPin,
+  FiAlertCircle,
+} from 'react-icons/fi';
 import { DataTable } from '../components/data';
 import type { Column } from '../components/data';
 import type { AdminRescue } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
-import {
-  RescueDetailModal,
-  RescueVerificationModal,
-  SendEmailModal,
-} from '@/components/modals';
+import { RescueDetailModal, RescueVerificationModal, SendEmailModal } from '@/components/modals';
 
 const PageContainer = styled.div`
   display: flex;
@@ -121,20 +125,30 @@ const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 'info' 
   font-weight: 600;
   background: ${props => {
     switch (props.$variant) {
-      case 'success': return '#d1fae5';
-      case 'warning': return '#fef3c7';
-      case 'danger': return '#fee2e2';
-      case 'info': return '#dbeafe';
-      default: return '#f3f4f6';
+      case 'success':
+        return '#d1fae5';
+      case 'warning':
+        return '#fef3c7';
+      case 'danger':
+        return '#fee2e2';
+      case 'info':
+        return '#dbeafe';
+      default:
+        return '#f3f4f6';
     }
   }};
   color: ${props => {
     switch (props.$variant) {
-      case 'success': return '#065f46';
-      case 'warning': return '#92400e';
-      case 'danger': return '#991b1b';
-      case 'info': return '#1e40af';
-      default: return '#374151';
+      case 'success':
+        return '#065f46';
+      case 'warning':
+        return '#92400e';
+      case 'danger':
+        return '#991b1b';
+      case 'info':
+        return '#1e40af';
+      default:
+        return '#374151';
     }
   }};
 `;
@@ -231,13 +245,13 @@ const Rescues: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'verified':
-        return <Badge $variant="success">Verified</Badge>;
+        return <Badge $variant='success'>Verified</Badge>;
       case 'pending':
-        return <Badge $variant="warning">Pending Review</Badge>;
+        return <Badge $variant='warning'>Pending Review</Badge>;
       case 'rejected':
-        return <Badge $variant="danger">Rejected</Badge>;
+        return <Badge $variant='danger'>Rejected</Badge>;
       default:
-        return <Badge $variant="neutral">{status}</Badge>;
+        return <Badge $variant='neutral'>{status}</Badge>;
     }
   };
 
@@ -246,7 +260,7 @@ const Rescues: React.FC = () => {
     return date.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
@@ -259,7 +273,10 @@ const Rescues: React.FC = () => {
         page: currentPage,
         limit: itemsPerPage,
         search: searchQuery || undefined,
-        status: statusFilter !== 'all' ? (statusFilter as 'pending' | 'verified' | 'suspended' | 'inactive') : undefined,
+        status:
+          statusFilter !== 'all'
+            ? (statusFilter as 'pending' | 'verified' | 'suspended' | 'inactive')
+            : undefined,
       });
 
       setRescues(result.data);
@@ -334,7 +351,7 @@ const Rescues: React.FC = () => {
     {
       id: 'rescue',
       header: 'Rescue Organization',
-      accessor: (row) => (
+      accessor: row => (
         <RescueInfo>
           <RescueName>{row.name}</RescueName>
           <RescueDetail>
@@ -347,51 +364,48 @@ const Rescues: React.FC = () => {
           </RescueDetail>
         </RescueInfo>
       ),
-      width: '350px'
+      width: '350px',
     },
     {
       id: 'status',
       header: 'Status',
-      accessor: (row) => getStatusBadge(row.status),
+      accessor: row => getStatusBadge(row.status),
       width: '140px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'createdAt',
       header: 'Registered',
-      accessor: (row) => formatDate(row.createdAt),
+      accessor: row => formatDate(row.createdAt),
       width: '120px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'verified',
       header: 'Verified',
-      accessor: (row) => row.verifiedAt ? formatDate(row.verifiedAt) : '-',
+      accessor: row => (row.verifiedAt ? formatDate(row.verifiedAt) : '-'),
       width: '120px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'actions',
       header: 'Actions',
-      accessor: (row) => (
-        <ActionButtons onClick={(e) => e.stopPropagation()}>
-          <IconButton
-            title="View details"
-            onClick={() => handleViewDetails(row.rescueId)}
-          >
+      accessor: row => (
+        <ActionButtons onClick={e => e.stopPropagation()}>
+          <IconButton title='View details' onClick={() => handleViewDetails(row.rescueId)}>
             <FiEye />
           </IconButton>
           {row.status === 'pending' && (
             <>
               <IconButton
-                title="Approve"
+                title='Approve'
                 style={{ color: '#10b981', borderColor: '#10b981' }}
                 onClick={() => handleApprove(row)}
               >
                 <FiCheckCircle />
               </IconButton>
               <IconButton
-                title="Reject"
+                title='Reject'
                 style={{ color: '#ef4444', borderColor: '#ef4444' }}
                 onClick={() => handleReject(row)}
               >
@@ -399,28 +413,25 @@ const Rescues: React.FC = () => {
               </IconButton>
             </>
           )}
-          <IconButton
-            title="Send email"
-            onClick={() => handleSendEmail(row)}
-          >
+          <IconButton title='Send email' onClick={() => handleSendEmail(row)}>
             <FiMail />
           </IconButton>
         </ActionButtons>
       ),
       width: '140px',
-      align: 'center'
-    }
+      align: 'center',
+    },
   ];
 
   return (
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">Rescue Management</Heading>
+          <Heading level='h1'>Rescue Management</Heading>
           <Text>Manage rescue organizations and verification status</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant="outline" size="md">
+          <Button variant='outline' size='md'>
             Export Data
           </Button>
         </HeaderActions>
@@ -437,20 +448,20 @@ const Rescues: React.FC = () => {
         <SearchInputWrapper>
           <FiSearch />
           <Input
-            type="text"
-            placeholder="Search by name, city, or email..."
+            type='text'
+            placeholder='Search by name, city, or email...'
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
           />
         </SearchInputWrapper>
 
         <FilterGroup>
           <FilterLabel>Verification Status</FilterLabel>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All Statuses</option>
-            <option value="verified">Verified</option>
-            <option value="pending">Pending Review</option>
-            <option value="rejected">Rejected</option>
+          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value='all'>All Statuses</option>
+            <option value='verified'>Verified</option>
+            <option value='pending'>Pending Review</option>
+            <option value='rejected'>Rejected</option>
           </Select>
         </FilterGroup>
       </FilterBar>
@@ -459,9 +470,9 @@ const Rescues: React.FC = () => {
         columns={columns}
         data={rescues}
         loading={loading}
-        emptyMessage="No rescue organizations found matching your criteria"
-        onRowClick={(rescue) => handleViewDetails(rescue.rescueId)}
-        getRowId={(rescue) => rescue.rescueId}
+        emptyMessage='No rescue organizations found matching your criteria'
+        onRowClick={rescue => handleViewDetails(rescue.rescueId)}
+        getRowId={rescue => rescue.rescueId}
       />
 
       {showDetailModal && selectedRescue && (

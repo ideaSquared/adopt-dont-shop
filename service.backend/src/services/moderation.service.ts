@@ -558,7 +558,7 @@ class ModerationService {
     };
 
     // Process report counts
-    (reportCounts as unknown as ReportCountRow[]).forEach((row) => {
+    (reportCounts as unknown as ReportCountRow[]).forEach(row => {
       const count = parseInt(row.count);
       reports.total += count;
 
@@ -578,7 +578,7 @@ class ModerationService {
     });
 
     // Process action counts
-    (actionCounts as unknown as ActionCountRow[]).forEach((row) => {
+    (actionCounts as unknown as ActionCountRow[]).forEach(row => {
       const count = parseInt(row.count);
       actions.total += count;
       actions.byType[row.actionType] = (actions.byType[row.actionType] || 0) + count;
@@ -600,11 +600,15 @@ class ModerationService {
       response: {
         averageResponseTime:
           responseTimeData.length > 0
-            ? parseFloat(String((responseTimeData[0] as unknown as AvgTimeResult).avgResponseTime || '0'))
+            ? parseFloat(
+                String((responseTimeData[0] as unknown as AvgTimeResult).avgResponseTime || '0')
+              )
             : 0,
         averageResolutionTime:
           resolutionTimeData.length > 0
-            ? parseFloat(String((resolutionTimeData[0] as unknown as AvgTimeResult).avgResolutionTime || '0'))
+            ? parseFloat(
+                String((resolutionTimeData[0] as unknown as AvgTimeResult).avgResolutionTime || '0')
+              )
             : 0,
       },
     };
@@ -666,7 +670,15 @@ class ModerationService {
     escalateTo?: string;
     escalationReason?: string;
   }): Promise<{ success: boolean; updated: number }> {
-    const { reportIds, action, moderatorId, resolutionNotes, assignTo, escalateTo, escalationReason } = options;
+    const {
+      reportIds,
+      action,
+      moderatorId,
+      resolutionNotes,
+      assignTo,
+      escalateTo,
+      escalationReason,
+    } = options;
 
     if (!reportIds || reportIds.length === 0) {
       throw new Error('Report IDs are required');
@@ -765,7 +777,9 @@ class ModerationService {
         },
       });
 
-      logger.info(`Bulk ${action} completed: ${updated} of ${reportIds.length} reports updated by ${moderatorId}`);
+      logger.info(
+        `Bulk ${action} completed: ${updated} of ${reportIds.length} reports updated by ${moderatorId}`
+      );
 
       return { success: true, updated };
     } catch (error) {
@@ -857,7 +871,9 @@ class ModerationService {
     return affectedCount;
   }
 
-  async enrichReportsWithEntityContext(reports: Report[]): Promise<Array<Report & { entityContext?: JsonObject }>> {
+  async enrichReportsWithEntityContext(
+    reports: Report[]
+  ): Promise<Array<Report & { entityContext?: JsonObject }>> {
     if (!reports || reports.length === 0) {
       return reports;
     }
@@ -865,7 +881,7 @@ class ModerationService {
     const entityCache = new Map<string, JsonObject>();
 
     const enrichedReports = await Promise.all(
-      reports.map(async (report) => {
+      reports.map(async report => {
         const cacheKey = `${report.reportedEntityType}:${report.reportedEntityId}`;
         let entityContext: JsonObject | null = null;
 

@@ -88,10 +88,7 @@ export function formatRelativeDate(date: Date | string | number): string {
  * @param formatString - Format string (date-fns format)
  * @returns Formatted date string
  */
-export function formatCustomDate(
-  date: Date | string | number,
-  formatString: string
-): string {
+export function formatCustomDate(date: Date | string | number, formatString: string): string {
   try {
     const dateObj = typeof date === 'string' ? parseISO(date) : new Date(date);
     if (!isValid(dateObj)) {

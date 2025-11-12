@@ -1,4 +1,8 @@
-import { PermissionsService, Permission, UserWithPermissions } from '@adopt-dont-shop/lib-permissions';
+import {
+  PermissionsService,
+  Permission,
+  UserWithPermissions,
+} from '@adopt-dont-shop/lib-permissions';
 import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 
 interface PermissionsContextType {
@@ -31,10 +35,10 @@ export const PermissionsProvider = ({ children, userId }: PermissionsProviderPro
   const [userPermissions, setUserPermissions] = useState<Permission[]>([]);
   const [userWithPermissions, setUserWithPermissions] = useState<UserWithPermissions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const permissionsService = useMemo(() => {
     return new PermissionsService({
-      debug: import.meta.env.NODE_ENV === 'development'
+      debug: import.meta.env.NODE_ENV === 'development',
     });
   }, []);
 
@@ -48,7 +52,7 @@ export const PermissionsProvider = ({ children, userId }: PermissionsProviderPro
       // Get user permissions
       const permissions = await permissionsService.getUserPermissions(userId);
       const userWithPerms = await permissionsService.getUserWithPermissions(userId);
-      
+
       setUserPermissions(permissions || []);
       setUserWithPermissions(userWithPerms);
     } catch (error) {
@@ -81,20 +85,19 @@ export const PermissionsProvider = ({ children, userId }: PermissionsProviderPro
     await loadUserPermissions();
   };
 
-  const value = useMemo(() => ({
-    permissionsService,
-    userPermissions,
-    hasPermission,
-    hasAnyPermission,
-    hasAllPermissions,
-    userWithPermissions,
-    isLoading,
-    refreshPermissions,
-  }), [permissionsService, userPermissions, userWithPermissions, isLoading]);
-
-  return (
-    <PermissionsContext.Provider value={value}>
-      {children}
-    </PermissionsContext.Provider>
+  const value = useMemo(
+    () => ({
+      permissionsService,
+      userPermissions,
+      hasPermission,
+      hasAnyPermission,
+      hasAllPermissions,
+      userWithPermissions,
+      isLoading,
+      refreshPermissions,
+    }),
+    [permissionsService, userPermissions, userWithPermissions, isLoading]
   );
+
+  return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>;
 };

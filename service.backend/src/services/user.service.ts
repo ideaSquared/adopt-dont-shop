@@ -1,4 +1,4 @@
-import { JsonObject } from "../types/common";
+import { JsonObject } from '../types/common';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import Application from '../models/Application';
 import { AuditLog } from '../models/AuditLog';

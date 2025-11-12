@@ -3,13 +3,14 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -220,7 +221,10 @@ html, body {
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Increased min size for better full-screen layout */
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(300px, 1fr)
+  ); /* Increased min size for better full-screen layout */
   gap: 1.5rem;
   margin-bottom: 2rem;
   width: 100%;
@@ -232,7 +236,9 @@ html, body {
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e5e7eb;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .metrics-card:hover {
@@ -568,7 +574,7 @@ html, body {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
   }
-  
+
   .analytics-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
@@ -579,56 +585,56 @@ html, body {
   .app-layout {
     flex-direction: column;
   }
-  
+
   .main-navigation {
     width: 100%;
     height: auto;
     position: relative;
     order: 1;
   }
-  
+
   .nav-list {
     display: flex;
     flex-direction: row;
     overflow-x: auto;
     padding: 0.5rem;
   }
-  
+
   .nav-item {
     margin: 0 0.25rem;
     min-width: max-content;
   }
-  
+
   .nav-link {
     padding: 0.5rem 1rem;
     border-radius: 6px;
     margin-right: 0;
     white-space: nowrap;
   }
-  
+
   .nav-header,
   .nav-footer {
     display: none;
   }
-  
+
   .main-content {
     padding: 1rem;
     order: 2;
   }
-  
+
   .dashboard-header h1 {
     font-size: 2rem;
   }
-  
+
   .metrics-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
   }
-  
+
   .metrics-card {
     padding: 1rem;
   }
-  
+
   .metrics-value {
     font-size: 1.75rem;
   }
@@ -638,32 +644,32 @@ html, body {
   .main-content {
     padding: 0.75rem;
   }
-  
+
   .dashboard-header h1 {
     font-size: 1.75rem;
   }
-  
+
   .metrics-grid {
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
   }
-  
+
   .metrics-card {
     padding: 0.75rem;
   }
-  
+
   .metrics-value {
     font-size: 1.5rem;
   }
-  
+
   .analytics-grid {
     gap: 1rem;
   }
-  
+
   .dashboard-widget {
     padding: 1rem;
   }
-  
+
   .page-header h1 {
     font-size: 1.75rem;
   }

@@ -59,8 +59,8 @@ const DataPoint = styled.circle<{ $active: boolean }>`
   transition: all 0.2s ease;
   fill: white;
   stroke: ${props => props.theme.colors.primary[500]};
-  stroke-width: ${props => props.$active ? '3' : '2'};
-  r: ${props => props.$active ? '6' : '4'};
+  stroke-width: ${props => (props.$active ? '3' : '2')};
+  r: ${props => (props.$active ? '6' : '4')};
 
   &:hover {
     r: 6;
@@ -253,7 +253,7 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
               cx={xScale(index)}
               cy={yScale(point.count)}
               $active={activePoint === index}
-              onMouseEnter={(e) => handlePointHover(index, e)}
+              onMouseEnter={e => handlePointHover(index, e)}
               onMouseLeave={() => {
                 setActivePoint(null);
                 setTooltipPosition(null);

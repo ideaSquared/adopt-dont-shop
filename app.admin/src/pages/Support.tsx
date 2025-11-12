@@ -168,20 +168,30 @@ const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 'info' 
   font-weight: 600;
   background: ${props => {
     switch (props.$variant) {
-      case 'success': return '#d1fae5';
-      case 'warning': return '#fef3c7';
-      case 'danger': return '#fee2e2';
-      case 'info': return '#dbeafe';
-      default: return '#f3f4f6';
+      case 'success':
+        return '#d1fae5';
+      case 'warning':
+        return '#fef3c7';
+      case 'danger':
+        return '#fee2e2';
+      case 'info':
+        return '#dbeafe';
+      default:
+        return '#f3f4f6';
     }
   }};
   color: ${props => {
     switch (props.$variant) {
-      case 'success': return '#065f46';
-      case 'warning': return '#92400e';
-      case 'danger': return '#991b1b';
-      case 'info': return '#1e40af';
-      default: return '#374151';
+      case 'success':
+        return '#065f46';
+      case 'warning':
+        return '#92400e';
+      case 'danger':
+        return '#991b1b';
+      case 'info':
+        return '#1e40af';
+      default:
+        return '#374151';
     }
   }};
 `;
@@ -212,20 +222,30 @@ const PriorityBadge = styled.span<{ $level: string }>`
   font-weight: 600;
   background: ${props => {
     switch (props.$level) {
-      case 'urgent': return '#fee2e2';
-      case 'high': return '#fed7aa';
-      case 'medium': return '#fef3c7';
-      case 'low': return '#e0e7ff';
-      default: return '#f3f4f6';
+      case 'urgent':
+        return '#fee2e2';
+      case 'high':
+        return '#fed7aa';
+      case 'medium':
+        return '#fef3c7';
+      case 'low':
+        return '#e0e7ff';
+      default:
+        return '#f3f4f6';
     }
   }};
   color: ${props => {
     switch (props.$level) {
-      case 'urgent': return '#991b1b';
-      case 'high': return '#9a3412';
-      case 'medium': return '#92400e';
-      case 'low': return '#3730a3';
-      default: return '#374151';
+      case 'urgent':
+        return '#991b1b';
+      case 'high':
+        return '#9a3412';
+      case 'medium':
+        return '#92400e';
+      case 'low':
+        return '#3730a3';
+      default:
+        return '#374151';
     }
   }};
 
@@ -248,7 +268,16 @@ const Support: React.FC = () => {
       priority?: TicketPriority;
       category?: TicketCategory;
       search?: string;
-    } = {};
+      page: number;
+      limit: number;
+      sortBy: 'createdAt' | 'updatedAt' | 'priority' | 'dueDate';
+      sortOrder: 'asc' | 'desc';
+    } = {
+      page: 1,
+      limit: 20,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+    };
 
     if (statusFilter !== 'all') apiFilters.status = statusFilter as TicketStatus;
     if (priorityFilter !== 'all') apiFilters.priority = priorityFilter as TicketPriority;
@@ -259,7 +288,12 @@ const Support: React.FC = () => {
   }, [statusFilter, priorityFilter, categoryFilter, searchQuery]);
 
   // Fetch tickets and stats using hooks
-  const { data: ticketsData, isLoading: ticketsLoading, error: ticketsError, refetch } = useTickets(filters);
+  const {
+    data: ticketsData,
+    isLoading: ticketsLoading,
+    error: ticketsError,
+    refetch,
+  } = useTickets(filters);
   const { data: statsData, isLoading: statsLoading } = useTicketStats();
   const { addResponse } = useTicketMutations();
 
@@ -274,7 +308,9 @@ const Support: React.FC = () => {
     resolved: statsData?.resolved || 0,
   };
 
-  const getStatusBadgeVariant = (status: TicketStatus): 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
+  const getStatusBadgeVariant = (
+    status: TicketStatus
+  ): 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
     switch (status) {
       case 'open':
         return 'danger';
@@ -322,27 +358,34 @@ const Support: React.FC = () => {
     {
       id: 'ticket',
       header: 'Ticket',
-      accessor: (row) => (
+      accessor: row => (
         <TicketInfo>
-          <TicketSubject>#{row.ticketId.slice(-6)} - {row.subject}</TicketSubject>
+          <TicketSubject>
+            #{row.ticketId.slice(-6)} - {row.subject}
+          </TicketSubject>
           <TicketMeta>
             {row.userName || 'Unknown'} ({row.userEmail})
           </TicketMeta>
         </TicketInfo>
       ),
-      width: '400px'
+      width: '400px',
     },
     {
       id: 'category',
       header: 'Category',
-      accessor: (row) => getCategoryLabel(row.category),
-      width: '150px'
+      accessor: row => getCategoryLabel(row.category),
+      width: '150px',
     },
     {
       id: 'priority',
       header: 'Priority',
-      accessor: (row) => {
-        const icon = row.priority === 'urgent' || row.priority === 'critical' || row.priority === 'high' ? <FiAlertCircle /> : <FiClock />;
+      accessor: row => {
+        const icon =
+          row.priority === 'urgent' || row.priority === 'critical' || row.priority === 'high' ? (
+            <FiAlertCircle />
+          ) : (
+            <FiClock />
+          );
         return (
           <PriorityBadge $level={getPriorityLevel(row.priority)}>
             {icon}
@@ -351,48 +394,50 @@ const Support: React.FC = () => {
         );
       },
       width: '120px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'status',
       header: 'Status',
-      accessor: (row) => <Badge $variant={getStatusBadgeVariant(row.status)}>{getStatusLabel(row.status)}</Badge>,
+      accessor: row => (
+        <Badge $variant={getStatusBadgeVariant(row.status)}>{getStatusLabel(row.status)}</Badge>
+      ),
       width: '140px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'messages',
       header: 'Replies',
-      accessor: (row) => (
+      accessor: row => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280' }}>
           <FiMessageSquare />
           {row.responses?.length || 0}
         </div>
       ),
       width: '100px',
-      align: 'center'
+      align: 'center',
     },
     {
       id: 'updated',
       header: 'Last Updated',
-      accessor: (row) => formatRelativeTime(row.updatedAt),
+      accessor: row => formatRelativeTime(row.updatedAt),
       width: '120px',
-      sortable: true
-    }
+      sortable: true,
+    },
   ];
 
   return (
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">Support Tickets</Heading>
+          <Heading level='h1'>Support Tickets</Heading>
           <Text>Manage customer support requests and inquiries</Text>
         </HeaderLeft>
       </PageHeader>
 
       <StatsBar>
         <StatCard>
-          <StatIcon $color="#ef4444">
+          <StatIcon $color='#ef4444'>
             <FiAlertCircle />
           </StatIcon>
           <StatDetails>
@@ -402,7 +447,7 @@ const Support: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#3b82f6">
+          <StatIcon $color='#3b82f6'>
             <FiClock />
           </StatIcon>
           <StatDetails>
@@ -412,7 +457,7 @@ const Support: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#f59e0b">
+          <StatIcon $color='#f59e0b'>
             <FiMessageSquare />
           </StatIcon>
           <StatDetails>
@@ -422,7 +467,7 @@ const Support: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#10b981">
+          <StatIcon $color='#10b981'>
             <FiCheckCircle />
           </StatIcon>
           <StatDetails>
@@ -436,52 +481,61 @@ const Support: React.FC = () => {
         <SearchInputWrapper>
           <FiSearch />
           <Input
-            type="text"
-            placeholder="Search tickets by subject, user, or email..."
+            type='text'
+            placeholder='Search tickets by subject, user, or email...'
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
           />
         </SearchInputWrapper>
 
         <FilterGroup>
           <FilterLabel>Status</FilterLabel>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as TicketStatus | 'all')}>
-            <option value="all">All Statuses</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="waiting_for_user">Waiting for User</option>
-            <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
-            <option value="escalated">Escalated</option>
+          <Select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value as TicketStatus | 'all')}
+          >
+            <option value='all'>All Statuses</option>
+            <option value='open'>Open</option>
+            <option value='in_progress'>In Progress</option>
+            <option value='waiting_for_user'>Waiting for User</option>
+            <option value='resolved'>Resolved</option>
+            <option value='closed'>Closed</option>
+            <option value='escalated'>Escalated</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
           <FilterLabel>Priority</FilterLabel>
-          <Select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as TicketPriority | 'all')}>
-            <option value="all">All Priorities</option>
-            <option value="critical">Critical</option>
-            <option value="urgent">Urgent</option>
-            <option value="high">High</option>
-            <option value="normal">Normal</option>
-            <option value="low">Low</option>
+          <Select
+            value={priorityFilter}
+            onChange={e => setPriorityFilter(e.target.value as TicketPriority | 'all')}
+          >
+            <option value='all'>All Priorities</option>
+            <option value='critical'>Critical</option>
+            <option value='urgent'>Urgent</option>
+            <option value='high'>High</option>
+            <option value='normal'>Normal</option>
+            <option value='low'>Low</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
           <FilterLabel>Category</FilterLabel>
-          <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as TicketCategory | 'all')}>
-            <option value="all">All Categories</option>
-            <option value="technical_issue">Technical Issue</option>
-            <option value="account_problem">Account Problem</option>
-            <option value="adoption_inquiry">Adoption Inquiry</option>
-            <option value="payment_issue">Payment Issue</option>
-            <option value="feature_request">Feature Request</option>
-            <option value="report_bug">Report Bug</option>
-            <option value="general_question">General Question</option>
-            <option value="compliance_concern">Compliance Concern</option>
-            <option value="data_request">Data Request</option>
-            <option value="other">Other</option>
+          <Select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value as TicketCategory | 'all')}
+          >
+            <option value='all'>All Categories</option>
+            <option value='technical_issue'>Technical Issue</option>
+            <option value='account_problem'>Account Problem</option>
+            <option value='adoption_inquiry'>Adoption Inquiry</option>
+            <option value='payment_issue'>Payment Issue</option>
+            <option value='feature_request'>Feature Request</option>
+            <option value='report_bug'>Report Bug</option>
+            <option value='general_question'>General Question</option>
+            <option value='compliance_concern'>Compliance Concern</option>
+            <option value='data_request'>Data Request</option>
+            <option value='other'>Other</option>
           </Select>
         </FilterGroup>
       </FilterBar>
@@ -496,9 +550,9 @@ const Support: React.FC = () => {
         columns={columns}
         data={tickets}
         loading={loading}
-        emptyMessage="No support tickets found matching your criteria"
-        onRowClick={(ticket) => setSelectedTicket(ticket)}
-        getRowId={(ticket) => ticket.ticketId}
+        emptyMessage='No support tickets found matching your criteria'
+        onRowClick={ticket => setSelectedTicket(ticket)}
+        getRowId={ticket => ticket.ticketId}
       />
 
       <TicketDetailModal

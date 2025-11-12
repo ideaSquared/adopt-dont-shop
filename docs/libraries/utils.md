@@ -19,13 +19,13 @@ npm install @adopt-dont-shop/lib-utils
 ## 🚀 Quick Start
 
 ```typescript
-import { 
-  formatDate, 
-  validateEmail, 
-  generateId, 
+import {
+  formatDate,
+  validateEmail,
+  generateId,
   debounce,
   formatCurrency,
-  sanitizeInput 
+  sanitizeInput,
 } from '@adopt-dont-shop/lib-utils';
 
 // Date formatting
@@ -87,10 +87,10 @@ timeAgo(new Date(Date.now() - 3600000)); // '1 hour ago'
 timeAgo(new Date(Date.now() - 86400000)); // '1 day ago'
 
 // With options
-timeAgo(pastDate, { 
+timeAgo(pastDate, {
   addSuffix: true,
   includeSeconds: true,
-  locale: 'en' 
+  locale: 'en',
 });
 ```
 
@@ -161,7 +161,7 @@ validateUrl('ftp://files.example.com'); // true
 // With options
 validateUrl('https://example.com', {
   requireHttps: true,
-  allowedDomains: ['example.com', 'api.example.com']
+  allowedDomains: ['example.com', 'api.example.com'],
 });
 ```
 
@@ -177,7 +177,7 @@ const rules = {
   minLength: 3,
   maxLength: 50,
   pattern: /^[a-zA-Z\s]+$/,
-  customValidator: (value) => value !== 'forbidden'
+  customValidator: value => value !== 'forbidden',
 };
 
 const result = validateInput('John Doe', rules);
@@ -203,7 +203,7 @@ sanitizeInput('User "name" & data'); // 'User &quot;name&quot; &amp; data'
 sanitizeInput(input, {
   allowedTags: ['b', 'i', 'em', 'strong'],
   stripWhitespace: true,
-  maxLength: 100
+  maxLength: 100,
 });
 ```
 
@@ -222,7 +222,7 @@ slugify('Text with Émojis 🐕', {
   replacement: '_',
   remove: /[*+~.()'"!:@]/g,
   lower: true,
-  strict: true
+  strict: true,
 });
 ```
 
@@ -240,7 +240,7 @@ truncateText('This is a long description that needs truncating', 20);
 truncateText(text, 20, {
   ending: ' [more]',
   breakWords: false,
-  preserveWords: true
+  preserveWords: true,
 });
 ```
 
@@ -316,13 +316,13 @@ import { groupBy } from '@adopt-dont-shop/lib-utils';
 const pets = [
   { name: 'Buddy', species: 'dog', age: 3 },
   { name: 'Whiskers', species: 'cat', age: 2 },
-  { name: 'Max', species: 'dog', age: 5 }
+  { name: 'Max', species: 'dog', age: 5 },
 ];
 
 const bySpecies = groupBy(pets, 'species');
 // { dog: [...], cat: [...] }
 
-const byAgeGroup = groupBy(pets, pet => pet.age < 3 ? 'young' : 'adult');
+const byAgeGroup = groupBy(pets, pet => (pet.age < 3 ? 'young' : 'adult'));
 // { young: [...], adult: [...] }
 ```
 
@@ -336,7 +336,7 @@ import { sortBy } from '@adopt-dont-shop/lib-utils';
 const pets = [
   { name: 'Buddy', age: 3 },
   { name: 'Max', age: 1 },
-  { name: 'Luna', age: 5 }
+  { name: 'Luna', age: 5 },
 ];
 
 sortBy(pets, 'age'); // Sorted by age ascending
@@ -391,7 +391,7 @@ Debounce function execution.
 ```typescript
 import { debounce } from '@adopt-dont-shop/lib-utils';
 
-const searchPets = debounce((query) => {
+const searchPets = debounce(query => {
   // API call
 }, 300);
 
@@ -399,7 +399,7 @@ const searchPets = debounce((query) => {
 const debouncedSave = debounce(saveFunction, 1000, {
   leading: false,
   trailing: true,
-  maxWait: 5000
+  maxWait: 5000,
 });
 ```
 
@@ -430,7 +430,7 @@ const result = await retry(apiCall, {
   retries: 3,
   delay: 1000,
   backoff: 'exponential',
-  shouldRetry: (error) => error.status >= 500
+  shouldRetry: error => error.status >= 500,
 });
 ```
 
@@ -493,12 +493,15 @@ Load and merge configuration from various sources.
 ```typescript
 import { loadConfig } from '@adopt-dont-shop/lib-utils';
 
-const config = loadConfig({
-  apiUrl: 'http://localhost:3000',
-  timeout: 5000
-}, {
-  apiUrl: process.env.API_URL
-});
+const config = loadConfig(
+  {
+    apiUrl: 'http://localhost:3000',
+    timeout: 5000,
+  },
+  {
+    apiUrl: process.env.API_URL,
+  }
+);
 ```
 
 ### Error Handling
@@ -513,7 +516,7 @@ import { createError } from '@adopt-dont-shop/lib-utils';
 throw createError('Validation failed', {
   code: 'VALIDATION_ERROR',
   status: 400,
-  details: { field: 'email', reason: 'invalid format' }
+  details: { field: 'email', reason: 'invalid format' },
 });
 ```
 
@@ -543,6 +546,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ Error handling
 
 Run tests:
+
 ```bash
 npm run test:lib-utils
 ```
@@ -550,24 +554,28 @@ npm run test:lib-utils
 ## 🚀 Key Features
 
 ### Comprehensive Validation
+
 - **Email Validation**: RFC 5322 compliant email validation
 - **Phone Validation**: International phone number support
 - **URL Validation**: Protocol and domain validation
 - **Custom Rules**: Flexible validation rule engine
 
 ### Smart Formatting
+
 - **Date Formatting**: Timezone-aware date/time formatting
 - **Currency Support**: Multi-currency with localization
 - **Number Formatting**: Compact notation and percentage support
 - **Text Processing**: Sanitization, truncation, and capitalization
 
 ### Performance Utilities
+
 - **Debouncing**: Prevent excessive function calls
 - **Throttling**: Rate-limit function execution
 - **Retry Logic**: Automatic retry with backoff strategies
 - **Memoization**: Cache function results for performance
 
 ### Data Manipulation
+
 - **Array Processing**: Grouping, sorting, and filtering
 - **Object Operations**: Deep merging, picking, and omitting
 - **Type Checking**: Comprehensive type validation
@@ -578,16 +586,19 @@ npm run test:lib-utils
 ### Common Issues
 
 **Date formatting issues**:
+
 - Check timezone settings and locale support
 - Verify date input format and validity
 - Review format string patterns
 
 **Validation not working**:
+
 - Check validation rules and input format
 - Verify regex patterns and edge cases
 - Review custom validator functions
 
 **Performance concerns**:
+
 - Use debouncing for user input handlers
 - Implement throttling for scroll/resize events
 - Consider memoization for expensive computations

@@ -8,13 +8,13 @@ A date input component with date picker functionality and consistent styling.
 import { DateInput } from '@/components/form/DateInput'
 
 // Basic usage
-<DateInput 
+<DateInput
   value={selectedDate}
   onChange={handleDateChange}
 />
 
 // With custom configuration
-<DateInput 
+<DateInput
   value={selectedDate}
   onChange={handleDateChange}
   placeholder="Select a date..."
@@ -41,4 +41,4 @@ import { DateInput } from '@/components/form/DateInput'
 - Keyboard navigation
 - Accessible markup
 - TypeScript support
-- Consistent with other form inputs 
+- Consistent with other form inputs

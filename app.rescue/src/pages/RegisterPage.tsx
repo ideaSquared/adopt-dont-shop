@@ -20,15 +20,12 @@ const RegisterPage = () => {
   };
 
   return (
-    <AuthLayout
-      title='Join Our Rescue Team'
-      subtitle='Create your rescue staff account'
-    >
+    <AuthLayout title="Join Our Rescue Team" subtitle="Create your rescue staff account">
       <RegisterForm
         onSuccess={handleSuccess}
         requirePhoneNumber={true}
-        termsUrl='/terms'
-        privacyUrl='/privacy'
+        termsUrl="/terms"
+        privacyUrl="/privacy"
         helperText={
           <HelperText>
             <strong>Note:</strong> Registration creates a rescue staff account. You will need to be

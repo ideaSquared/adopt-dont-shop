@@ -73,7 +73,7 @@ const TimelineItem = styled.div<{ isSystem?: boolean }>`
   gap: 1rem;
   padding: 1rem 0;
   z-index: 1;
-  
+
   &:not(:last-child) {
     border-bottom: 1px solid #f3f4f6;
   }
@@ -94,8 +94,10 @@ const EventIcon = styled.div<{ eventType: TimelineEventType; isSystem?: boolean 
   border: 3px solid white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 2;
-  
-  ${props => props.isSystem && `
+
+  ${props =>
+    props.isSystem &&
+    `
     background: #6b7280;
     opacity: 0.8;
   `}
@@ -148,7 +150,7 @@ const MetadataItem = styled.div`
   justify-content: space-between;
   font-size: 0.75rem;
   color: #6b7280;
-  
+
   &:not(:last-child) {
     margin-bottom: 0.25rem;
   }
@@ -190,7 +192,7 @@ const NoteInput = styled.textarea`
   border-radius: 0.375rem;
   font-size: 0.875rem;
   resize: vertical;
-  
+
   &:focus {
     outline: none;
     border-color: #3b82f6;
@@ -203,7 +205,7 @@ const NoteTypeSelect = styled.select`
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  
+
   &:focus {
     outline: none;
     border-color: #3b82f6;
@@ -221,11 +223,11 @@ const SubmitButton = styled.button`
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  
+
   &:hover {
     background: #2563eb;
   }
-  
+
   &:disabled {
     background: #9ca3af;
     cursor: not-allowed;
@@ -257,7 +259,7 @@ function getEventColor(eventType: TimelineEventType): string {
     [TimelineEventType.SYSTEM_AUTO_PROGRESSION]: '#6b7280', // Gray
     [TimelineEventType.MANUAL_OVERRIDE]: '#f59e0b', // Orange
   };
-  
+
   return colors[eventType] || '#6b7280';
 }
 
@@ -286,7 +288,7 @@ function getEventIcon(eventType: TimelineEventType): string {
     [TimelineEventType.SYSTEM_AUTO_PROGRESSION]: '🤖',
     [TimelineEventType.MANUAL_OVERRIDE]: '⚙️',
   };
-  
+
   return icons[eventType] || '📋';
 }
 
@@ -325,34 +327,23 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
   return (
     <TimelineContainer>
       <TimelineLine />
-      
-      {events.map((event) => (
+
+      {events.map(event => (
         <TimelineItem key={event.timeline_id} isSystem={event.created_by_system}>
-          <EventIcon 
-            eventType={event.event_type} 
-            isSystem={event.created_by_system}
-          >
+          <EventIcon eventType={event.event_type} isSystem={event.created_by_system}>
             {getEventIcon(event.event_type)}
           </EventIcon>
-          
+
           <EventContent>
             <EventHeader>
               <EventTitle>{event.title}</EventTitle>
-              <EventTimestamp>
-                {formatDateTime(new Date(event.created_at))}
-              </EventTimestamp>
+              <EventTimestamp>{formatDateTime(new Date(event.created_at))}</EventTimestamp>
             </EventHeader>
-            
-            {event.created_by_system && (
-              <SystemBadge>
-                🤖 Automated
-              </SystemBadge>
-            )}
-            
-            {event.description && (
-              <EventDescription>{event.description}</EventDescription>
-            )}
-            
+
+            {event.created_by_system && <SystemBadge>🤖 Automated</SystemBadge>}
+
+            {event.description && <EventDescription>{event.description}</EventDescription>}
+
             {event.metadata && Object.keys(event.metadata).length > 0 && (
               <EventMetadata>
                 {Object.entries(event.metadata).map(([key, value]) => (
@@ -366,34 +357,26 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
           </EventContent>
         </TimelineItem>
       ))}
-      
+
       {onAddNote && (
         <AddNoteSection>
-          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', fontWeight: 600 }}>
-            Add Note
-          </h4>
+          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', fontWeight: 600 }}>Add Note</h4>
           <NoteForm onSubmit={handleSubmitNote}>
-            <NoteTypeSelect 
-              value={noteType} 
-              onChange={(e) => setNoteType(e.target.value)}
-            >
+            <NoteTypeSelect value={noteType} onChange={e => setNoteType(e.target.value)}>
               <option value="general">General Note</option>
               <option value="interview">Interview Note</option>
               <option value="home_visit">Home Visit Note</option>
               <option value="reference">Reference Note</option>
             </NoteTypeSelect>
-            
+
             <NoteInput
               value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
+              onChange={e => setNoteText(e.target.value)}
               placeholder="Add a note about this application..."
               disabled={submitting}
             />
-            
-            <SubmitButton 
-              type="submit" 
-              disabled={!noteText.trim() || submitting}
-            >
+
+            <SubmitButton type="submit" disabled={!noteText.trim() || submitting}>
               {submitting ? 'Adding...' : 'Add Note'}
             </SubmitButton>
           </NoteForm>

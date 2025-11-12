@@ -21,7 +21,9 @@ const Overlay = styled.div`
 const Modal = styled.div`
   background: white;
   border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
   max-width: 72rem;
   width: 100%;
   margin: 1rem;
@@ -46,8 +48,12 @@ const Spinner = styled.div`
   animation: spin 1s linear infinite;
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -211,8 +217,8 @@ const Tab = styled.button<{ $active: boolean }>`
   background: none;
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  color: ${props => props.$active ? '#3b82f6' : '#6b7280'};
-  border-bottom-color: ${props => props.$active ? '#3b82f6' : 'transparent'};
+  color: ${props => (props.$active ? '#3b82f6' : '#6b7280')};
+  border-bottom-color: ${props => (props.$active ? '#3b82f6' : 'transparent')};
   transition: all 0.2s;
 
   &:hover {
@@ -241,12 +247,12 @@ const TimelineItem = styled.div`
   border: 1px solid #e1e5e9;
   border-radius: 0.5rem;
   transition: all 0.2s ease;
-  
+
   &:hover {
     background: #f6f8fa;
     border-color: #d0d7de;
   }
-  
+
   &:not(:last-child)::after {
     content: '';
     position: absolute;
@@ -271,7 +277,7 @@ const TimelineIcon = styled.div<{ $type: string }>`
   font-size: 1rem;
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  
+
   ${props => {
     switch (props.$type) {
       case 'status_change':
@@ -345,13 +351,13 @@ const TimelineData = styled.div`
   padding: 1rem;
   margin: 0.75rem 0;
   font-size: 0.8125rem;
-  
+
   strong {
     color: #374151;
     display: block;
     margin-bottom: 0.5rem;
   }
-  
+
   pre {
     margin: 0;
     color: #6b7280;
@@ -377,7 +383,7 @@ const AddEventTitle = styled.h4`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
+
   &::before {
     content: '✏️';
     font-size: 1.2em;
@@ -388,7 +394,7 @@ const FormRow = styled.div`
   display: flex;
   gap: 1rem;
   margin-bottom: 1rem;
-  
+
   @media (max-width: 640px) {
     flex-direction: column;
     gap: 0.75rem;
@@ -415,7 +421,7 @@ const FormSelect = styled.select`
   font-size: 0.875rem;
   background: white;
   transition: border-color 0.2s ease;
-  
+
   &:focus {
     outline: none;
     border-color: #3b82f6;
@@ -433,13 +439,13 @@ const FormTextarea = styled.textarea`
   resize: vertical;
   font-family: inherit;
   transition: border-color 0.2s ease;
-  
+
   &:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
-  
+
   &::placeholder {
     color: #9ca3af;
   }
@@ -459,17 +465,17 @@ const EmptyTimeline = styled.div`
   background: #fafbfc;
   border: 2px dashed #d1d5db;
   border-radius: 0.75rem;
-  
+
   p {
     margin: 0 0 0.5rem 0;
-    
+
     &:first-child {
       font-size: 1.125rem;
       font-weight: 500;
       color: #4b5563;
       margin-bottom: 1rem;
     }
-    
+
     &:last-child {
       font-size: 0.9375rem;
       line-height: 1.5;
@@ -478,7 +484,7 @@ const EmptyTimeline = styled.div`
 `;
 
 const TabPanel = styled.div<{ $active: boolean }>`
-  display: ${props => props.$active ? 'block' : 'none'};
+  display: ${props => (props.$active ? 'block' : 'none')};
   padding: 1.5rem;
 `;
 
@@ -646,7 +652,7 @@ const ReferenceStatus = styled.span<{ $status: string }>`
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 9999px;
-  
+
   ${props => {
     switch (props.$status) {
       case 'verified':
@@ -742,7 +748,7 @@ const ScheduleVisitTitle = styled.h4`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
+
   &::before {
     content: '🏠';
     font-size: 1.2em;
@@ -757,7 +763,7 @@ const FormInput = styled.input`
   font-size: 0.875rem;
   background: white;
   transition: border-color 0.2s ease;
-  
+
   &:focus {
     outline: none;
     border-color: #3b82f6;
@@ -772,17 +778,17 @@ const EmptyVisits = styled.div`
   background: #fafbfc;
   border: 2px dashed #d1d5db;
   border-radius: 0.75rem;
-  
+
   p {
     margin: 0 0 0.5rem 0;
-    
+
     &:first-child {
       font-size: 1.125rem;
       font-weight: 500;
       color: #4b5563;
       margin-bottom: 1rem;
     }
-    
+
     &:last-child {
       font-size: 0.9375rem;
       line-height: 1.5;
@@ -833,7 +839,7 @@ const VisitStatus = styled.span<{ $status: string }>`
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 9999px;
-  
+
   ${props => {
     switch (props.$status) {
       case 'scheduled':
@@ -857,7 +863,7 @@ const VisitNotes = styled.div`
   border-radius: 0.375rem;
   padding: 0.75rem;
   margin: 1rem 0;
-  
+
   strong {
     display: block;
     margin-bottom: 0.5rem;
@@ -875,7 +881,7 @@ const VisitOutcome = styled.span<{ $outcome: string }>`
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 9999px;
-  
+
   ${props => {
     switch (props.$outcome) {
       case 'approved':
@@ -956,7 +962,7 @@ const VisitDetailsHeader = styled.div`
   align-items: center;
   padding: 1rem;
   border-bottom: 1px solid #e5e7eb;
-  
+
   h4 {
     margin: 0;
     font-size: 1rem;
@@ -1002,11 +1008,15 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   onAddTimelineEvent,
   onRefresh,
 }) => {
-  const [activeTab, setActiveTab] = useState<'details' | 'references' | 'visits' | 'timeline'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'references' | 'visits' | 'timeline'>(
+    'details'
+  );
   const [statusNotes, setStatusNotes] = useState('');
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
   const [newStatus, setNewStatus] = useState('');
-  const [referenceUpdates, setReferenceUpdates] = useState<Record<string, { status: string; notes: string; showForm: boolean }>>({});
+  const [referenceUpdates, setReferenceUpdates] = useState<
+    Record<string, { status: string; notes: string; showForm: boolean }>
+  >({});
 
   // Timeline state
   const [showAddEvent, setShowAddEvent] = useState(false);
@@ -1030,20 +1040,20 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     scheduledDate: '',
     scheduledTime: '',
     assignedStaff: '',
-    notes: ''
+    notes: '',
   });
   const [isSchedulingVisit, setIsSchedulingVisit] = useState(false);
   const [editingVisit, setEditingVisit] = useState<string | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({
     scheduledDate: '',
     scheduledTime: '',
-    reason: ''
+    reason: '',
   });
   const [completingVisit, setCompletingVisit] = useState<string | null>(null);
   const [completeForm, setCompleteForm] = useState({
     outcome: '' as 'approved' | 'rejected' | 'conditional' | '',
     notes: '',
-    conditions: ''
+    conditions: '',
   });
   const [viewingVisit, setViewingVisit] = useState<string | null>(null);
 
@@ -1053,7 +1063,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) {
       return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     } else if (diffDays === 1) {
@@ -1061,33 +1071,44 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     } else if (diffDays < 7) {
       return `${diffDays} days ago`;
     } else {
-      return date.toLocaleDateString([], { 
-        month: 'short', 
-        day: 'numeric', 
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+      return date.toLocaleDateString([], {
+        month: 'short',
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
       });
     }
   };
 
   const getTimelineIcon = (eventType: string) => {
     switch (eventType) {
-      case 'status_change': return '📋';
-      case 'reference_check': return '📞';
-      case 'home_visit': return '🏠';
-      case 'note': return '📝';
-      case 'system': return '⚙️';
-      default: return '•';
+      case 'status_change':
+        return '📋';
+      case 'reference_check':
+        return '📞';
+      case 'home_visit':
+        return '🏠';
+      case 'note':
+        return '📝';
+      case 'system':
+        return '⚙️';
+      default:
+        return '•';
     }
   };
 
   const getEventTitle = (event: string) => {
     switch (event) {
-      case 'status_change': return 'Status Updated';
-      case 'reference_check': return 'Reference Check';
-      case 'home_visit': return 'Home Visit';
-      case 'note': return 'Note Added';
-      case 'system': return 'System Event';
-      default: 
+      case 'status_change':
+        return 'Status Updated';
+      case 'reference_check':
+        return 'Reference Check';
+      case 'home_visit':
+        return 'Home Visit';
+      case 'note':
+        return 'Note Added';
+      case 'system':
+        return 'System Event';
+      default:
         // Convert snake_case to Title Case with proper spacing
         return event
           .split('_')
@@ -1098,7 +1119,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   const handleAddEvent = async () => {
     if (!newEventDescription.trim()) return;
-    
+
     try {
       setIsAddingEvent(true);
       await onAddTimelineEvent(newEventType, newEventDescription.trim());
@@ -1116,11 +1137,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   // Helper function to get valid status transitions based on current status
   const getValidStatusOptions = (currentStatus: string) => {
     const validTransitions: Record<string, string[]> = {
-      'submitted': ['approved', 'rejected', 'withdrawn'],
-      'approved': [],
-      'rejected': [],
-      'withdrawn': [],
-      'expired': [],
+      submitted: ['approved', 'rejected', 'withdrawn'],
+      approved: [],
+      rejected: [],
+      withdrawn: [],
+      expired: [],
     };
 
     return validTransitions[currentStatus] || [];
@@ -1130,7 +1151,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   useEffect(() => {
     setReferenceUpdates({});
     setLocalApplicationStatus(null); // Clear local status when application changes
-    
+
     // Clear home visit forms
     setShowScheduleVisit(false);
     setEditingVisit(null);
@@ -1140,23 +1161,27 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       scheduledDate: '',
       scheduledTime: '',
       assignedStaff: '',
-      notes: ''
+      notes: '',
     });
     setRescheduleForm({
       scheduledDate: '',
       scheduledTime: '',
-      reason: ''
+      reason: '',
     });
     setCompleteForm({
       outcome: '',
       notes: '',
-      conditions: ''
+      conditions: '',
     });
   }, [application?.id]);
-  
+
   // Clear local status when application status actually changes from backend
   useEffect(() => {
-    if (application?.status && localApplicationStatus && application.status !== localApplicationStatus) {
+    if (
+      application?.status &&
+      localApplicationStatus &&
+      application.status !== localApplicationStatus
+    ) {
       setLocalApplicationStatus(null); // Backend data has caught up, clear local override
     }
   }, [application?.status, localApplicationStatus]);
@@ -1171,8 +1196,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     // Try current flat structure first: application.data.personalInfo
     const flatPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data);
     if (flatPath !== undefined) return flatPath;
-    
-    // Fallback to legacy nested structure: application.data.data.personalInfo  
+
+    // Fallback to legacy nested structure: application.data.data.personalInfo
     const nestedPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data?.data);
     return nestedPath;
   };
@@ -1180,7 +1205,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   // Extract references from application data
   const extractedReferences: ReferenceCheck[] = useMemo(() => {
     const allRefs: ReferenceCheck[] = [];
-    
+
     // First, try to get references from the main references array (backend format)
     const directReferences = application?.references || [];
     if (Array.isArray(directReferences) && directReferences.length > 0) {
@@ -1202,9 +1227,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       const clientRefs = getData('references') || {};
       const personalRefs = clientRefs.personal || [];
       const vetRef = clientRefs.veterinarian;
-      
+
       let referenceIndex = 0;
-      
+
       // Add veterinarian reference if exists
       if (vetRef && vetRef.name && vetRef.name !== 'To be determined') {
         allRefs.push({
@@ -1220,7 +1245,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         });
         referenceIndex++;
       }
-      
+
       // Add personal references
       personalRefs.forEach((ref: any) => {
         if (ref.name) {
@@ -1239,31 +1264,32 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         }
       });
     }
-    
+
     // References found and processed
-    
+
     return allRefs;
   }, [application]);
 
   const handleReferenceUpdate = async (referenceId: string, status: string, notes: string) => {
     try {
       await onReferenceUpdate(referenceId, status, notes);
-      
+
       // Hide the form after successful update
       setReferenceUpdates(prev => ({
         ...prev,
-        [referenceId]: { 
-          ...prev[referenceId], 
+        [referenceId]: {
+          ...prev[referenceId],
           showForm: false,
           status, // Update the local status immediately
-          notes   // Update the local notes immediately
-        }
+          notes, // Update the local notes immediately
+        },
       }));
-      
     } catch (error) {
       console.error('Failed to update reference:', error);
       // Show user-friendly error message
-      alert(`Failed to update reference: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(
+        `Failed to update reference: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -1273,8 +1299,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       [referenceId]: {
         status: prev[referenceId]?.status || 'pending',
         notes: prev[referenceId]?.notes || '',
-        showForm: !prev[referenceId]?.showForm
-      }
+        showForm: !prev[referenceId]?.showForm,
+      },
     }));
   };
 
@@ -1283,8 +1309,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       ...prev,
       [referenceId]: {
         ...prev[referenceId],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
@@ -1296,25 +1322,27 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         scheduledDate: visitForm.scheduledDate,
         scheduledTime: visitForm.scheduledTime,
         assignedStaff: visitForm.assignedStaff,
-        notes: visitForm.notes
+        notes: visitForm.notes,
       });
-      
+
       // Reset form and close modal
       setVisitForm({
         scheduledDate: '',
         scheduledTime: '',
         assignedStaff: '',
-        notes: ''
+        notes: '',
       });
       setShowScheduleVisit(false);
-      
+
       // Refresh data if callback provided
       if (onRefresh) {
         onRefresh();
       }
     } catch (error) {
       console.error('Failed to schedule visit:', error);
-      alert(`Failed to schedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(
+        `Failed to schedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     } finally {
       setIsSchedulingVisit(false);
     }
@@ -1322,11 +1350,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   const handleMarkVisitInProgress = async (visitId: string) => {
     try {
-      await onUpdateVisit(visitId, { 
+      await onUpdateVisit(visitId, {
         status: 'in_progress',
-        startedAt: new Date().toISOString()
+        startedAt: new Date().toISOString(),
       });
-      
+
       if (onRefresh) {
         onRefresh();
       }
@@ -1342,23 +1370,25 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       await onUpdateVisit(visitId, {
         scheduledDate: rescheduleForm.scheduledDate,
         scheduledTime: rescheduleForm.scheduledTime,
-        notes: rescheduleForm.reason ? `Rescheduled: ${rescheduleForm.reason}` : undefined
+        notes: rescheduleForm.reason ? `Rescheduled: ${rescheduleForm.reason}` : undefined,
       });
-      
+
       // Reset form and close modal
       setRescheduleForm({
         scheduledDate: '',
         scheduledTime: '',
-        reason: ''
+        reason: '',
       });
       setEditingVisit(null);
-      
+
       if (onRefresh) {
         onRefresh();
       }
     } catch (error) {
       console.error('Failed to reschedule visit:', error);
-      alert(`Failed to reschedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(
+        `Failed to reschedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -1368,7 +1398,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         status: 'completed',
         outcome: completeForm.outcome,
         notes: completeForm.notes,
-        completedAt: new Date().toISOString()
+        completedAt: new Date().toISOString(),
       };
 
       if (completeForm.outcome === 'conditional' && completeForm.conditions) {
@@ -1376,21 +1406,23 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
 
       await onUpdateVisit(visitId, updateData);
-      
+
       // Reset form and close modal
       setCompleteForm({
         outcome: '',
         notes: '',
-        conditions: ''
+        conditions: '',
       });
       setCompletingVisit(null);
-      
+
       if (onRefresh) {
         onRefresh();
       }
     } catch (error) {
       console.error('Failed to complete visit:', error);
-      alert(`Failed to complete visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(
+        `Failed to complete visit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -1404,9 +1436,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       await onUpdateVisit(visitId, {
         status: 'cancelled',
         cancelReason: reason,
-        cancelledAt: new Date().toISOString()
+        cancelledAt: new Date().toISOString(),
       });
-      
+
       if (onRefresh) {
         onRefresh();
       }
@@ -1419,7 +1451,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   if (loading) {
     return (
       <Overlay onClick={onClose}>
-        <LoadingContainer onClick={(e) => e.stopPropagation()}>
+        <LoadingContainer onClick={e => e.stopPropagation()}>
           <Spinner />
           <LoadingText>Loading application details...</LoadingText>
         </LoadingContainer>
@@ -1430,7 +1462,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   if (error) {
     return (
       <Overlay onClick={onClose}>
-        <ErrorContainer onClick={(e) => e.stopPropagation()}>
+        <ErrorContainer onClick={e => e.stopPropagation()}>
           <ErrorText>Error loading application</ErrorText>
           <ErrorMessage>{error}</ErrorMessage>
           <CloseButton onClick={onClose}>Close</CloseButton>
@@ -1447,22 +1479,24 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     try {
       setIsUpdatingStatus(true);
       await onStatusUpdate(newStatus, statusNotes);
-      
+
       // Update local status immediately after successful backend update
       setLocalApplicationStatus(newStatus);
-      
+
       // Refresh the application data in the background
       if (onRefresh) {
         onRefresh();
       }
-      
+
       setShowStatusUpdate(false);
       setStatusNotes('');
       setNewStatus(''); // Reset status selection
     } catch (error) {
       console.error('Failed to update application status:', error);
       // Show user-friendly error message
-      alert(`Failed to update application status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(
+        `Failed to update application status: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -1499,48 +1533,46 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   return (
     <Overlay onClick={onClose}>
-      <Modal onClick={(e) => e.stopPropagation()}>
+      <Modal onClick={e => e.stopPropagation()}>
         {/* Header */}
         <Header>
           <HeaderContent>
             <HeaderLeft>
-              <HeaderTitle>
-                Application for {application.petName || 'Unknown Pet'}
-              </HeaderTitle>
+              <HeaderTitle>Application for {application.petName || 'Unknown Pet'}</HeaderTitle>
               <HeaderSubtitle>
-                Submitted by {application.applicantName ||
+                Submitted by{' '}
+                {application.applicantName ||
                   application.userName ||
                   `${application.data?.personalInfo?.firstName || application.data?.data?.personalInfo?.firstName || 'Unknown'} ${application.data?.personalInfo?.lastName || application.data?.data?.personalInfo?.lastName || ''}`.trim() ||
-                  'Unknown Applicant'} • {
-                  application.submittedDaysAgo !== undefined
-                    ? (application.submittedDaysAgo === 0 ? 'Today' : `${application.submittedDaysAgo} days ago`)
-                    : application.submittedAt
-                      ? `${Math.floor((new Date().getTime() - new Date(application.submittedAt).getTime()) / (1000 * 60 * 60 * 24))} days ago`
-                      : 'Recently'
-                }
+                  'Unknown Applicant'}{' '}
+                •{' '}
+                {application.submittedDaysAgo !== undefined
+                  ? application.submittedDaysAgo === 0
+                    ? 'Today'
+                    : `${application.submittedDaysAgo} days ago`
+                  : application.submittedAt
+                    ? `${Math.floor((new Date().getTime() - new Date(application.submittedAt).getTime()) / (1000 * 60 * 60 * 24))} days ago`
+                    : 'Recently'}
               </HeaderSubtitle>
             </HeaderLeft>
             <HeaderRight>
               {/* Stage Badge - Prominent display */}
               <StageBadge $color={STAGE_CONFIG[getCurrentStage()]?.color || '#9ca3af'}>
-                {STAGE_CONFIG[getCurrentStage()]?.emoji} {STAGE_CONFIG[getCurrentStage()]?.label || getCurrentStage()}
+                {STAGE_CONFIG[getCurrentStage()]?.emoji}{' '}
+                {STAGE_CONFIG[getCurrentStage()]?.label || getCurrentStage()}
               </StageBadge>
 
               {/* Status Badge - Secondary */}
               <StatusBadge $status={getCurrentStatus()}>
-                {getCurrentStatus() !== 'unknown' ? formatStatusName(getCurrentStatus()) : 'Unknown Status'}
+                {getCurrentStatus() !== 'unknown'
+                  ? formatStatusName(getCurrentStatus())
+                  : 'Unknown Status'}
               </StatusBadge>
 
-              <Button
-                variant="primary"
-                onClick={() => setShowStageTransition(true)}
-              >
+              <Button variant="primary" onClick={() => setShowStageTransition(true)}>
                 Transition Stage
               </Button>
-              <Button
-                variant="secondary"
-                onClick={toggleStatusUpdate}
-              >
+              <Button variant="secondary" onClick={toggleStatusUpdate}>
                 Update Status
               </Button>
               <Button onClick={onClose}>×</Button>
@@ -1553,12 +1585,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           <StatusUpdateContainer>
             <FormField>
               <Label>New Status</Label>
-              <Select
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-              >
+              <Select value={newStatus} onChange={e => setNewStatus(e.target.value)}>
                 <option value="">Select new status...</option>
-                {getValidStatusOptions(getCurrentStatus()).map((status) => (
+                {getValidStatusOptions(getCurrentStatus()).map(status => (
                   <option key={status} value={status}>
                     {formatStatusName(status)}
                   </option>
@@ -1574,16 +1603,20 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               <Label>Notes (optional)</Label>
               <TextArea
                 value={statusNotes}
-                onChange={(e) => setStatusNotes(e.target.value)}
+                onChange={e => setStatusNotes(e.target.value)}
                 placeholder="Add any notes about this status change..."
               />
             </FormField>
             <ButtonGroup>
               <Button onClick={() => setShowStatusUpdate(false)}>Cancel</Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={handleStatusUpdate}
-                disabled={!newStatus || getValidStatusOptions(getCurrentStatus()).length === 0 || isUpdatingStatus}
+                disabled={
+                  !newStatus ||
+                  getValidStatusOptions(getCurrentStatus()).length === 0 ||
+                  isUpdatingStatus
+                }
               >
                 {isUpdatingStatus ? 'Updating...' : 'Update Status'}
               </Button>
@@ -1594,28 +1627,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         {/* Tabs */}
         <TabContainer>
           <TabList>
-            <Tab
-              $active={activeTab === 'details'}
-              onClick={() => setActiveTab('details')}
-            >
+            <Tab $active={activeTab === 'details'} onClick={() => setActiveTab('details')}>
               Application Details
             </Tab>
-            <Tab
-              $active={activeTab === 'references'}
-              onClick={() => setActiveTab('references')}
-            >
+            <Tab $active={activeTab === 'references'} onClick={() => setActiveTab('references')}>
               References ({extractedReferences.length})
             </Tab>
-            <Tab
-              $active={activeTab === 'visits'}
-              onClick={() => setActiveTab('visits')}
-            >
+            <Tab $active={activeTab === 'visits'} onClick={() => setActiveTab('visits')}>
               Home Visits ({homeVisits.length})
             </Tab>
-            <Tab
-              $active={activeTab === 'timeline'}
-              onClick={() => setActiveTab('timeline')}
-            >
+            <Tab $active={activeTab === 'timeline'} onClick={() => setActiveTab('timeline')}>
               Timeline ({timeline.length})
             </Tab>
           </TabList>
@@ -1633,7 +1654,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Name</FieldLabel>
                     <FieldValue>
-                      {getData('personalInfo.firstName') || 'N/A'} {getData('personalInfo.lastName') || ''}
+                      {getData('personalInfo.firstName') || 'N/A'}{' '}
+                      {getData('personalInfo.lastName') || ''}
                     </FieldValue>
                   </Field>
                   <Field>
@@ -1647,8 +1669,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Address</FieldLabel>
                     <FieldValue>
-                      {getData('personalInfo.address') || 'N/A'}<br />
-                      {getData('personalInfo.city') || 'N/A'}, {getData('personalInfo.state') || 'N/A'} {getData('personalInfo.zipCode') || 'N/A'}
+                      {getData('personalInfo.address') || 'N/A'}
+                      <br />
+                      {getData('personalInfo.city') || 'N/A'},{' '}
+                      {getData('personalInfo.state') || 'N/A'}{' '}
+                      {getData('personalInfo.zipCode') || 'N/A'}
                     </FieldValue>
                   </Field>
                   <Field>
@@ -1681,11 +1706,15 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   </Field>
                   <Field>
                     <FieldLabel>Has Allergies</FieldLabel>
-                    <FieldValue>{getData('livingsituation.hasAllergies') ? 'Yes' : 'No'}</FieldValue>
+                    <FieldValue>
+                      {getData('livingsituation.hasAllergies') ? 'Yes' : 'No'}
+                    </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Household Members</FieldLabel>
-                    <FieldValue>{getData('answers.household_members')?.length || 0} members</FieldValue>
+                    <FieldValue>
+                      {getData('answers.household_members')?.length || 0} members
+                    </FieldValue>
                   </Field>
                 </Card>
               </Grid>
@@ -1702,7 +1731,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   </Field>
                   <Field>
                     <FieldLabel>Willing to Train</FieldLabel>
-                    <FieldValue>{getData('petExperience.willingToTrain') ? 'Yes' : 'No'}</FieldValue>
+                    <FieldValue>
+                      {getData('petExperience.willingToTrain') ? 'Yes' : 'No'}
+                    </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Hours Alone Daily</FieldLabel>
@@ -1714,17 +1745,19 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   </Field>
                   <Field>
                     <FieldLabel>Currently Has Pets</FieldLabel>
-                    <FieldValue>{getData('petExperience.hasPetsCurrently') ? 'Yes' : 'No'}</FieldValue>
+                    <FieldValue>
+                      {getData('petExperience.hasPetsCurrently') ? 'Yes' : 'No'}
+                    </FieldValue>
                   </Field>
                 </Card>
-                
+
                 <Card>
                   <CardTitle>References</CardTitle>
                   <Field>
                     <FieldLabel>Veterinarian</FieldLabel>
                     <FieldValue>
                       {getData('references.veterinarian.name') || 'N/A'}
-                      {getData('references.veterinarian.clinicName') && 
+                      {getData('references.veterinarian.clinicName') &&
                         ` - ${getData('references.veterinarian.clinicName')}`}
                     </FieldValue>
                   </Field>
@@ -1802,9 +1835,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       </Field>
                       <FieldVertical>
                         <FieldLabel>What Happened</FieldLabel>
-                        <FieldValueFullWidth>
-                          {pet.what_happened || 'N/A'}
-                        </FieldValueFullWidth>
+                        <FieldValueFullWidth>{pet.what_happened || 'N/A'}</FieldValueFullWidth>
                       </FieldVertical>
                     </Card>
                   ))}
@@ -1822,94 +1853,98 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <p>No references found for this application.</p>
                 </Card>
               ) : (
-                extractedReferences.map((reference) => {
+                extractedReferences.map(reference => {
                   // Use local state if available, otherwise use the reference data
                   const currentStatus = referenceUpdates[reference.id]?.status || reference.status;
                   const currentNotes = referenceUpdates[reference.id]?.notes || reference.notes;
-                  
+
                   return (
-                  <ReferenceCard key={reference.id}>
-                    <ReferenceHeader>
-                      <ReferenceInfo>
-                        <ReferenceName>{reference.contactName}</ReferenceName>
-                        <ReferenceContact>{reference.contactInfo}</ReferenceContact>
-                        <ReferenceRelation>Type: {reference.type}</ReferenceRelation>
-                      </ReferenceInfo>
-                      <ReferenceStatus $status={currentStatus}>
-                        {currentStatus}
-                      </ReferenceStatus>
-                    </ReferenceHeader>
-                    
-                    {reference.completedAt && (
-                      <Field>
-                        <FieldLabel>Last Contacted</FieldLabel>
-                        <FieldValue>{new Date(reference.completedAt).toLocaleDateString()}</FieldValue>
-                      </Field>
-                    )}
-                    
-                    {reference.completedBy && (
-                      <Field>
-                        <FieldLabel>Contacted By</FieldLabel>
-                        <FieldValue>{reference.completedBy}</FieldValue>
-                      </Field>
-                    )}
+                    <ReferenceCard key={reference.id}>
+                      <ReferenceHeader>
+                        <ReferenceInfo>
+                          <ReferenceName>{reference.contactName}</ReferenceName>
+                          <ReferenceContact>{reference.contactInfo}</ReferenceContact>
+                          <ReferenceRelation>Type: {reference.type}</ReferenceRelation>
+                        </ReferenceInfo>
+                        <ReferenceStatus $status={currentStatus}>{currentStatus}</ReferenceStatus>
+                      </ReferenceHeader>
 
-                    {currentNotes && (
-                      <ReferenceNotes>{currentNotes}</ReferenceNotes>
-                    )}
+                      {reference.completedAt && (
+                        <Field>
+                          <FieldLabel>Last Contacted</FieldLabel>
+                          <FieldValue>
+                            {new Date(reference.completedAt).toLocaleDateString()}
+                          </FieldValue>
+                        </Field>
+                      )}
 
-                    <ReferenceActions>
-                      <Button
-                        onClick={() => toggleReferenceForm(reference.id)}
-                        variant="secondary"
-                      >
-                        {referenceUpdates[reference.id]?.showForm ? 'Cancel' : 'Update Status'}
-                      </Button>
-                    </ReferenceActions>
+                      {reference.completedBy && (
+                        <Field>
+                          <FieldLabel>Contacted By</FieldLabel>
+                          <FieldValue>{reference.completedBy}</FieldValue>
+                        </Field>
+                      )}
 
-                    {referenceUpdates[reference.id]?.showForm && (
-                      <ReferenceForm>
-                        <FormField>
-                          <Label>Status</Label>
-                          <StatusSelect
-                            value={referenceUpdates[reference.id]?.status || currentStatus}
-                            onChange={(e) => updateReferenceField(reference.id, 'status', e.target.value)}
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="verified">Verified</option>
-                            <option value="failed">Failed</option>
-                          </StatusSelect>
-                        </FormField>
-                        <FormField>
-                          <Label>Notes</Label>
-                          <NotesInput
-                            value={referenceUpdates[reference.id]?.notes || currentNotes}
-                            onChange={(e) => updateReferenceField(reference.id, 'notes', e.target.value)}
-                            placeholder="Add notes about this reference check..."
-                          />
-                        </FormField>
-                        <ButtonGroup>
-                          <Button 
-                            onClick={() => toggleReferenceForm(reference.id)}
-                            variant="secondary"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="primary"
-                            onClick={() => handleReferenceUpdate(
-                              reference.id,
-                              referenceUpdates[reference.id]?.status || currentStatus,
-                              referenceUpdates[reference.id]?.notes || currentNotes || ''
-                            )}
-                          >
-                            Update Reference
-                          </Button>
-                        </ButtonGroup>
-                      </ReferenceForm>
-                    )}
-                  </ReferenceCard>
+                      {currentNotes && <ReferenceNotes>{currentNotes}</ReferenceNotes>}
+
+                      <ReferenceActions>
+                        <Button
+                          onClick={() => toggleReferenceForm(reference.id)}
+                          variant="secondary"
+                        >
+                          {referenceUpdates[reference.id]?.showForm ? 'Cancel' : 'Update Status'}
+                        </Button>
+                      </ReferenceActions>
+
+                      {referenceUpdates[reference.id]?.showForm && (
+                        <ReferenceForm>
+                          <FormField>
+                            <Label>Status</Label>
+                            <StatusSelect
+                              value={referenceUpdates[reference.id]?.status || currentStatus}
+                              onChange={e =>
+                                updateReferenceField(reference.id, 'status', e.target.value)
+                              }
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="contacted">Contacted</option>
+                              <option value="verified">Verified</option>
+                              <option value="failed">Failed</option>
+                            </StatusSelect>
+                          </FormField>
+                          <FormField>
+                            <Label>Notes</Label>
+                            <NotesInput
+                              value={referenceUpdates[reference.id]?.notes || currentNotes}
+                              onChange={e =>
+                                updateReferenceField(reference.id, 'notes', e.target.value)
+                              }
+                              placeholder="Add notes about this reference check..."
+                            />
+                          </FormField>
+                          <ButtonGroup>
+                            <Button
+                              onClick={() => toggleReferenceForm(reference.id)}
+                              variant="secondary"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="primary"
+                              onClick={() =>
+                                handleReferenceUpdate(
+                                  reference.id,
+                                  referenceUpdates[reference.id]?.status || currentStatus,
+                                  referenceUpdates[reference.id]?.notes || currentNotes || ''
+                                )
+                              }
+                            >
+                              Update Reference
+                            </Button>
+                          </ButtonGroup>
+                        </ReferenceForm>
+                      )}
+                    </ReferenceCard>
                   );
                 })
               )}
@@ -1924,12 +1959,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 <Button
                   variant="primary"
                   onClick={() => setShowScheduleVisit(true)}
-                  disabled={homeVisits.some(v => v.status === 'scheduled' || v.status === 'in_progress')}
+                  disabled={homeVisits.some(
+                    v => v.status === 'scheduled' || v.status === 'in_progress'
+                  )}
                 >
-                  {homeVisits.some(v => v.status === 'scheduled' || v.status === 'in_progress') 
-                    ? 'Visit Already Scheduled' 
-                    : 'Schedule Visit'
-                  }
+                  {homeVisits.some(v => v.status === 'scheduled' || v.status === 'in_progress')
+                    ? 'Visit Already Scheduled'
+                    : 'Schedule Visit'}
                 </Button>
               </SectionHeader>
 
@@ -1942,7 +1978,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <FormInput
                         type="date"
                         value={visitForm.scheduledDate}
-                        onChange={(e) => setVisitForm(prev => ({ ...prev, scheduledDate: e.target.value }))}
+                        onChange={e =>
+                          setVisitForm(prev => ({ ...prev, scheduledDate: e.target.value }))
+                        }
                         min={new Date().toISOString().split('T')[0]}
                       />
                     </FormGroup>
@@ -1951,7 +1989,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <FormInput
                         type="time"
                         value={visitForm.scheduledTime}
-                        onChange={(e) => setVisitForm(prev => ({ ...prev, scheduledTime: e.target.value }))}
+                        onChange={e =>
+                          setVisitForm(prev => ({ ...prev, scheduledTime: e.target.value }))
+                        }
                       />
                     </FormGroup>
                   </FormRow>
@@ -1960,14 +2000,19 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <FormLabel>Assigned Staff</FormLabel>
                       <FormSelect
                         value={visitForm.assignedStaff}
-                        onChange={(e) => setVisitForm(prev => ({ ...prev, assignedStaff: e.target.value }))}
+                        onChange={e =>
+                          setVisitForm(prev => ({ ...prev, assignedStaff: e.target.value }))
+                        }
                         disabled={staffLoading}
                       >
                         <option value="">
                           {staffLoading ? 'Loading staff...' : 'Select staff member...'}
                         </option>
-                        {staff.map((staffMember) => (
-                          <option key={staffMember.id} value={`${staffMember.firstName} ${staffMember.lastName}`}>
+                        {staff.map(staffMember => (
+                          <option
+                            key={staffMember.id}
+                            value={`${staffMember.firstName} ${staffMember.lastName}`}
+                          >
                             {staffMember.firstName} {staffMember.lastName} - {staffMember.title}
                           </option>
                         ))}
@@ -1979,7 +2024,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <FormLabel>Visit Notes (optional)</FormLabel>
                       <FormTextarea
                         value={visitForm.notes}
-                        onChange={(e) => setVisitForm(prev => ({ ...prev, notes: e.target.value }))}
+                        onChange={e => setVisitForm(prev => ({ ...prev, notes: e.target.value }))}
                         placeholder="Any special instructions or notes for the visit..."
                         rows={3}
                       />
@@ -1994,7 +2039,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                           scheduledDate: '',
                           scheduledTime: '',
                           assignedStaff: '',
-                          notes: ''
+                          notes: '',
                         });
                       }}
                     >
@@ -2003,7 +2048,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                     <Button
                       variant="primary"
                       onClick={handleScheduleVisit}
-                      disabled={!visitForm.scheduledDate || !visitForm.scheduledTime || !visitForm.assignedStaff || isSchedulingVisit}
+                      disabled={
+                        !visitForm.scheduledDate ||
+                        !visitForm.scheduledTime ||
+                        !visitForm.assignedStaff ||
+                        isSchedulingVisit
+                      }
                     >
                       {isSchedulingVisit ? 'Scheduling...' : 'Schedule Visit'}
                     </Button>
@@ -2014,10 +2064,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               {homeVisits.length === 0 ? (
                 <EmptyVisits>
                   <p>No home visits scheduled yet.</p>
-                  <p>Schedule a home visit to assess the applicant's living situation and suitability for pet adoption.</p>
+                  <p>
+                    Schedule a home visit to assess the applicant's living situation and suitability
+                    for pet adoption.
+                  </p>
                 </EmptyVisits>
               ) : (
-                homeVisits.map((visit) => (
+                homeVisits.map(visit => (
                   <VisitCard key={visit.id}>
                     <VisitHeader>
                       <VisitInfo>
@@ -2026,7 +2079,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             weekday: 'long',
                             year: 'numeric',
                             month: 'long',
-                            day: 'numeric'
+                            day: 'numeric',
                           })}
                         </VisitDate>
                         <VisitTime>at {visit.scheduledTime}</VisitTime>
@@ -2050,9 +2103,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                           <FieldLabel>Completed On</FieldLabel>
                           <FieldValue>
                             {new Date(visit.completedAt).toLocaleDateString()} at{' '}
-                            {new Date(visit.completedAt).toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
+                            {new Date(visit.completedAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
                             })}
                           </FieldValue>
                         </Field>
@@ -2085,33 +2138,24 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                               setRescheduleForm({
                                 scheduledDate: visit.scheduledDate,
                                 scheduledTime: visit.scheduledTime,
-                                reason: ''
+                                reason: '',
                               });
                             }}
                           >
                             📅 Reschedule
                           </Button>
-                          <Button
-                            variant="danger"
-                            onClick={() => handleCancelVisit(visit.id)}
-                          >
+                          <Button variant="danger" onClick={() => handleCancelVisit(visit.id)}>
                             ❌ Cancel Visit
                           </Button>
                         </>
                       )}
-                      
+
                       {visit.status === 'in_progress' && (
                         <>
-                          <Button
-                            variant="primary"
-                            onClick={() => setCompletingVisit(visit.id)}
-                          >
+                          <Button variant="primary" onClick={() => setCompletingVisit(visit.id)}>
                             ✅ Complete Visit
                           </Button>
-                          <Button
-                            variant="danger"
-                            onClick={() => handleCancelVisit(visit.id)}
-                          >
+                          <Button variant="danger" onClick={() => handleCancelVisit(visit.id)}>
                             ❌ Cancel Visit
                           </Button>
                         </>
@@ -2119,16 +2163,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
                       {visit.status === 'completed' && (
                         <>
-                          <Button
-                            variant="secondary"
-                            onClick={() => setViewingVisit(visit.id)}
-                          >
+                          <Button variant="secondary" onClick={() => setViewingVisit(visit.id)}>
                             👁️ View Details
                           </Button>
-                          <Button
-                            variant="primary"
-                            onClick={() => setShowScheduleVisit(true)}
-                          >
+                          <Button variant="primary" onClick={() => setShowScheduleVisit(true)}>
                             🏠 Schedule Follow-up
                           </Button>
                         </>
@@ -2136,16 +2174,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
                       {visit.status === 'cancelled' && (
                         <>
-                          <Button
-                            variant="secondary"
-                            onClick={() => setViewingVisit(visit.id)}
-                          >
+                          <Button variant="secondary" onClick={() => setViewingVisit(visit.id)}>
                             👁️ View Details
                           </Button>
-                          <Button
-                            variant="primary"
-                            onClick={() => setShowScheduleVisit(true)}
-                          >
+                          <Button variant="primary" onClick={() => setShowScheduleVisit(true)}>
                             🏠 Schedule New Visit
                           </Button>
                         </>
@@ -2162,7 +2194,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             <FormInput
                               type="date"
                               value={rescheduleForm.scheduledDate}
-                              onChange={(e) => setRescheduleForm(prev => ({ ...prev, scheduledDate: e.target.value }))}
+                              onChange={e =>
+                                setRescheduleForm(prev => ({
+                                  ...prev,
+                                  scheduledDate: e.target.value,
+                                }))
+                              }
                               min={new Date().toISOString().split('T')[0]}
                             />
                           </FormGroup>
@@ -2171,7 +2208,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             <FormInput
                               type="time"
                               value={rescheduleForm.scheduledTime}
-                              onChange={(e) => setRescheduleForm(prev => ({ ...prev, scheduledTime: e.target.value }))}
+                              onChange={e =>
+                                setRescheduleForm(prev => ({
+                                  ...prev,
+                                  scheduledTime: e.target.value,
+                                }))
+                              }
                             />
                           </FormGroup>
                         </FormRow>
@@ -2180,7 +2222,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             <FormLabel>Reason for Rescheduling</FormLabel>
                             <FormTextarea
                               value={rescheduleForm.reason}
-                              onChange={(e) => setRescheduleForm(prev => ({ ...prev, reason: e.target.value }))}
+                              onChange={e =>
+                                setRescheduleForm(prev => ({ ...prev, reason: e.target.value }))
+                              }
                               placeholder="Why is this visit being rescheduled?"
                               rows={2}
                             />
@@ -2194,7 +2238,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                               setRescheduleForm({
                                 scheduledDate: visit.scheduledDate,
                                 scheduledTime: visit.scheduledTime,
-                                reason: ''
+                                reason: '',
                               });
                             }}
                           >
@@ -2203,7 +2247,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                           <Button
                             variant="primary"
                             onClick={() => handleRescheduleVisit(visit.id)}
-                            disabled={!rescheduleForm.scheduledDate || !rescheduleForm.scheduledTime || !rescheduleForm.reason}
+                            disabled={
+                              !rescheduleForm.scheduledDate ||
+                              !rescheduleForm.scheduledTime ||
+                              !rescheduleForm.reason
+                            }
                           >
                             Reschedule Visit
                           </Button>
@@ -2220,14 +2268,21 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             <FormLabel>Visit Outcome</FormLabel>
                             <FormSelect
                               value={completeForm.outcome}
-                              onChange={(e) => setCompleteForm(prev => ({ 
-                                ...prev, 
-                                outcome: e.target.value as 'approved' | 'rejected' | 'conditional' 
-                              }))}
+                              onChange={e =>
+                                setCompleteForm(prev => ({
+                                  ...prev,
+                                  outcome: e.target.value as
+                                    | 'approved'
+                                    | 'rejected'
+                                    | 'conditional',
+                                }))
+                              }
                             >
                               <option value="">Select outcome...</option>
                               <option value="approved">Approved - Home is suitable</option>
-                              <option value="conditional">Conditional - Some concerns need addressing</option>
+                              <option value="conditional">
+                                Conditional - Some concerns need addressing
+                              </option>
                               <option value="rejected">Rejected - Home is not suitable</option>
                             </FormSelect>
                           </FormGroup>
@@ -2237,7 +2292,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             <FormLabel>Visit Summary</FormLabel>
                             <FormTextarea
                               value={completeForm.notes}
-                              onChange={(e) => setCompleteForm(prev => ({ ...prev, notes: e.target.value }))}
+                              onChange={e =>
+                                setCompleteForm(prev => ({ ...prev, notes: e.target.value }))
+                              }
                               placeholder="Provide a detailed summary of the home visit findings..."
                               rows={4}
                             />
@@ -2249,7 +2306,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                               <FormLabel>Conditions to Address</FormLabel>
                               <FormTextarea
                                 value={completeForm.conditions}
-                                onChange={(e) => setCompleteForm(prev => ({ ...prev, conditions: e.target.value }))}
+                                onChange={e =>
+                                  setCompleteForm(prev => ({ ...prev, conditions: e.target.value }))
+                                }
                                 placeholder="List specific conditions that need to be met..."
                                 rows={3}
                               />
@@ -2264,7 +2323,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                               setCompleteForm({
                                 outcome: '',
                                 notes: '',
-                                conditions: ''
+                                conditions: '',
                               });
                             }}
                           >
@@ -2308,10 +2367,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <FormLabel>Event Type</FormLabel>
                       <FormSelect
                         value={newEventType}
-                        onChange={(e) => setNewEventType(e.target.value as TimelineEventType)}
+                        onChange={e => setNewEventType(e.target.value as TimelineEventType)}
                       >
                         <option value={TimelineEventType.NOTE_ADDED}>Note</option>
-                        <option value={TimelineEventType.REFERENCE_CONTACTED}>Reference Check</option>
+                        <option value={TimelineEventType.REFERENCE_CONTACTED}>
+                          Reference Check
+                        </option>
                         <option value={TimelineEventType.HOME_VISIT_SCHEDULED}>Home Visit</option>
                         <option value={TimelineEventType.MANUAL_OVERRIDE}>Manual Override</option>
                       </FormSelect>
@@ -2322,7 +2383,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <FormLabel>Description</FormLabel>
                       <FormTextarea
                         value={newEventDescription}
-                        onChange={(e) => setNewEventDescription(e.target.value)}
+                        onChange={e => setNewEventDescription(e.target.value)}
                         placeholder="Enter event description..."
                         rows={3}
                       />
@@ -2356,12 +2417,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 {timeline.length === 0 ? (
                   <EmptyTimeline>
                     <p>No timeline events yet.</p>
-                    <p>Timeline events will appear here as actions are taken on this application.</p>
+                    <p>
+                      Timeline events will appear here as actions are taken on this application.
+                    </p>
                   </EmptyTimeline>
                 ) : (
                   timeline
-                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                    .map((event) => (
+                    .sort(
+                      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+                    )
+                    .map(event => (
                       <TimelineItem key={event.id}>
                         <TimelineIcon $type={event.event}>
                           {getTimelineIcon(event.event)}
@@ -2376,21 +2441,26 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                           <TimelineDescription>
                             {event.event === 'status_change' && event.data?.newStatus
                               ? `Status changed to: ${formatStatusName(event.data.newStatus)}`
-                              : event.description
-                            }
+                              : event.description}
                           </TimelineDescription>
                           {event.data && Object.keys(event.data).length > 0 && (
                             <TimelineData>
                               <strong>Additional Details:</strong>
                               {event.data.oldStatus && event.data.newStatus ? (
                                 <div style={{ marginTop: '0.5rem' }}>
-                                  <span style={{ color: '#ef4444' }}>From: {formatStatusName(event.data.oldStatus)}</span>
+                                  <span style={{ color: '#ef4444' }}>
+                                    From: {formatStatusName(event.data.oldStatus)}
+                                  </span>
                                   <br />
-                                  <span style={{ color: '#10b981' }}>To: {formatStatusName(event.data.newStatus)}</span>
+                                  <span style={{ color: '#10b981' }}>
+                                    To: {formatStatusName(event.data.newStatus)}
+                                  </span>
                                   {event.data.notes && (
                                     <>
                                       <br />
-                                      <span style={{ color: '#6b7280' }}>Notes: {event.data.notes}</span>
+                                      <span style={{ color: '#6b7280' }}>
+                                        Notes: {event.data.notes}
+                                      </span>
                                     </>
                                   )}
                                 </div>
@@ -2413,7 +2483,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       {/* Visit Details Modal */}
       {viewingVisit && homeVisits.find(v => v.id === viewingVisit) && (
         <VisitDetailsModal onClick={() => setViewingVisit(null)}>
-          <VisitDetailsContent onClick={(e) => e.stopPropagation()}>
+          <VisitDetailsContent onClick={e => e.stopPropagation()}>
             <VisitDetailsHeader>
               <h4>Visit Details</h4>
               <Button onClick={() => setViewingVisit(null)}>×</Button>
@@ -2428,7 +2498,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                     <Field>
                       <FieldLabel>Original Date</FieldLabel>
                       <FieldValue>
-                        {new Date(visit.scheduledDate).toLocaleDateString()} at {visit.scheduledTime}
+                        {new Date(visit.scheduledDate).toLocaleDateString()} at{' '}
+                        {visit.scheduledTime}
                       </FieldValue>
                     </Field>
                     <Field>
@@ -2463,7 +2534,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <Field>
                         <FieldLabel>Completed At</FieldLabel>
                         <FieldValue>
-                          {new Date(visit.completedAt).toLocaleDateString()} at {new Date(visit.completedAt).toLocaleTimeString()}
+                          {new Date(visit.completedAt).toLocaleDateString()} at{' '}
+                          {new Date(visit.completedAt).toLocaleTimeString()}
                         </FieldValue>
                       </Field>
                     )}
@@ -2471,7 +2543,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       <Field>
                         <FieldLabel>Cancelled At</FieldLabel>
                         <FieldValue>
-                          {new Date(visit.cancelledAt).toLocaleDateString()} at {new Date(visit.cancelledAt).toLocaleTimeString()}
+                          {new Date(visit.cancelledAt).toLocaleDateString()} at{' '}
+                          {new Date(visit.cancelledAt).toLocaleTimeString()}
                         </FieldValue>
                       </Field>
                     )}

@@ -58,22 +58,42 @@ export const PermissionsProvider = ({ children }: PermissionsProviderProps) => {
   // Fallback function to get permissions based on role
   const getRolePermissions = (role?: string): Permission[] => {
     const permissionMappings: Record<string, Permission[]> = {
-      'rescue_admin': [
-        'staff.create', 'staff.read', 'staff.update', 'staff.delete', 'staff.list',
-        'pets.create', 'pets.read', 'pets.update', 'pets.delete', 'pets.list',
-        'applications.read', 'applications.update', 'applications.approve', 'applications.reject',
-        'rescues.read', 'rescues.update'
+      rescue_admin: [
+        'staff.create',
+        'staff.read',
+        'staff.update',
+        'staff.delete',
+        'staff.list',
+        'pets.create',
+        'pets.read',
+        'pets.update',
+        'pets.delete',
+        'pets.list',
+        'applications.read',
+        'applications.update',
+        'applications.approve',
+        'applications.reject',
+        'rescues.read',
+        'rescues.update',
       ] as Permission[],
-      'rescue_staff': [
-        'staff.read', 'staff.list',
-        'pets.create', 'pets.read', 'pets.update', 'pets.list',
-        'applications.read', 'applications.update'
+      rescue_staff: [
+        'staff.read',
+        'staff.list',
+        'pets.create',
+        'pets.read',
+        'pets.update',
+        'pets.list',
+        'applications.read',
+        'applications.update',
       ] as Permission[],
-      'rescue_volunteer': [
-        'staff.read', 'pets.read', 'pets.list', 'applications.read'
-      ] as Permission[]
+      rescue_volunteer: [
+        'staff.read',
+        'pets.read',
+        'pets.list',
+        'applications.read',
+      ] as Permission[],
     };
-    
+
     return permissionMappings[role || ''] || [];
   };
 
@@ -86,17 +106,16 @@ export const PermissionsProvider = ({ children }: PermissionsProviderProps) => {
     return user?.role === role;
   };
 
-  const value = useMemo(() => ({
-    permissionsService,
-    userPermissions,
-    hasPermission,
-    hasRole,
-    isLoading,
-  }), [permissionsService, userPermissions, isLoading, user?.role]);
-
-  return (
-    <PermissionsContext.Provider value={value}>
-      {children}
-    </PermissionsContext.Provider>
+  const value = useMemo(
+    () => ({
+      permissionsService,
+      userPermissions,
+      hasPermission,
+      hasRole,
+      isLoading,
+    }),
+    [permissionsService, userPermissions, isLoading, user?.role]
   );
+
+  return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>;
 };

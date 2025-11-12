@@ -37,7 +37,7 @@ const service = new FeatureFlagsService({
   enableStatsig: true,
   debug: true,
   cacheTtl: 5 * 60 * 1000, // 5 minutes
-  maxCacheSize: 200
+  maxCacheSize: 200,
 });
 ```
 
@@ -45,14 +45,14 @@ const service = new FeatureFlagsService({
 
 ### FeatureFlagsServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Backend API URL |
-| `statsigClientKey` | `string` | `undefined` | Statsig SDK client key |
-| `enableStatsig` | `boolean` | `true` | Enable Statsig integration |
-| `debug` | `boolean` | `false` | Enable debug logging |
-| `cacheTtl` | `number` | `300000` | Cache TTL in milliseconds (5 min) |
-| `maxCacheSize` | `number` | `200` | Maximum cache entries |
+| Property           | Type      | Default                    | Description                       |
+| ------------------ | --------- | -------------------------- | --------------------------------- |
+| `apiUrl`           | `string`  | `process.env.VITE_API_URL` | Backend API URL                   |
+| `statsigClientKey` | `string`  | `undefined`                | Statsig SDK client key            |
+| `enableStatsig`    | `boolean` | `true`                     | Enable Statsig integration        |
+| `debug`            | `boolean` | `false`                    | Enable debug logging              |
+| `cacheTtl`         | `number`  | `300000`                   | Cache TTL in milliseconds (5 min) |
+| `maxCacheSize`     | `number`  | `200`                      | Maximum cache entries             |
 
 ### Environment Variables
 
@@ -82,7 +82,7 @@ Check if a backend feature flag is enabled.
 ```typescript
 const isEnabled = await featureFlagsService.isFeatureEnabled('new_dashboard', {
   useCache: true,
-  timeout: 5000
+  timeout: 5000,
 });
 ```
 
@@ -91,14 +91,17 @@ const isEnabled = await featureFlagsService.isFeatureEnabled('new_dashboard', {
 Get all feature flags with optional filtering.
 
 ```typescript
-const flags = await featureFlagsService.getAllFlags({
-  enabled: true,
-  search: 'ui_',
-  category: 'frontend'
-}, {
-  useCache: true,
-  forceRefresh: false
-});
+const flags = await featureFlagsService.getAllFlags(
+  {
+    enabled: true,
+    search: 'ui_',
+    category: 'frontend',
+  },
+  {
+    useCache: true,
+    forceRefresh: false,
+  }
+);
 ```
 
 ##### `setFlag(flagName, flagData, options?)`
@@ -112,8 +115,8 @@ await featureFlagsService.setFlag('beta_features', {
   enabled: true,
   config: {
     rolloutPercentage: 25,
-    allowedUserGroups: ['beta_testers', 'premium_users']
-  }
+    allowedUserGroups: ['beta_testers', 'premium_users'],
+  },
 });
 ```
 
@@ -150,8 +153,8 @@ const user: StatsigUser = {
   custom: {
     plan: 'premium',
     signupDate: '2024-01-15',
-    lastActiveDate: '2024-12-01'
-  }
+    lastActiveDate: '2024-12-01',
+  },
 };
 
 featureFlagsService.updateUser(user);
@@ -217,7 +220,7 @@ Log feature flag events for analytics.
 featureFlagsService.logEvent('feature_used', 1, {
   feature_name: 'new_dashboard',
   user_type: 'premium',
-  session_duration: 1200
+  session_duration: 1200,
 });
 ```
 
@@ -335,11 +338,11 @@ export const featureFlagMiddleware = (flagName: string, fallback = false) => {
     try {
       const isEnabled = await featureFlagsService.isFeatureEnabled(flagName);
       req.featureEnabled = isEnabled;
-      
+
       if (!isEnabled && fallback) {
         return res.status(404).json({ error: 'Feature not available' });
       }
-      
+
       next();
     } catch (error) {
       req.featureEnabled = fallback;
@@ -349,20 +352,17 @@ export const featureFlagMiddleware = (flagName: string, fallback = false) => {
 };
 
 // In routes
-app.get('/api/v2/pets', 
-  featureFlagMiddleware('api_v2_enabled'),
-  async (req, res) => {
-    if (req.featureEnabled) {
-      // Use new API logic
-      const pets = await newPetService.getPets(req.query);
-      res.json(pets);
-    } else {
-      // Fallback to old API
-      const pets = await legacyPetService.getPets(req.query);
-      res.json(pets);
-    }
+app.get('/api/v2/pets', featureFlagMiddleware('api_v2_enabled'), async (req, res) => {
+  if (req.featureEnabled) {
+    // Use new API logic
+    const pets = await newPetService.getPets(req.query);
+    res.json(pets);
+  } else {
+    // Fallback to old API
+    const pets = await legacyPetService.getPets(req.query);
+    res.json(pets);
   }
-);
+});
 ```
 
 ## 🧪 Testing
@@ -378,6 +378,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ User context management
 
 Run tests:
+
 ```bash
 npm run test:lib-feature-flags
 ```
@@ -385,24 +386,28 @@ npm run test:lib-feature-flags
 ## 🚀 Key Features
 
 ### Backend Integration
+
 - **Full CRUD Operations**: Create, read, update, delete feature flags
 - **Advanced Filtering**: Search and filter flags by category, status
 - **Public Flags**: Safe client-side flag exposure
 - **Real-time Updates**: Cache invalidation and live updates
 
 ### Statsig Integration
+
 - **Feature Gates**: Simple on/off feature toggles
 - **Experiments**: A/B and multivariate testing
 - **Dynamic Config**: Remote configuration management
 - **User Targeting**: Personalized feature rollouts
 
 ### Performance & Reliability
+
 - **Intelligent Caching**: LRU cache with TTL optimization
 - **Error Resilience**: Graceful degradation when services fail
 - **Batching**: Efficient bulk flag operations
 - **Monitoring**: Comprehensive metrics and analytics
 
 ### Developer Experience
+
 - **TypeScript Support**: Full type safety and IntelliSense
 - **Debug Mode**: Detailed logging for development
 - **React Hooks**: Easy integration with React apps
@@ -413,16 +418,19 @@ npm run test:lib-feature-flags
 ### Common Issues
 
 **Flags not updating**:
+
 - Check cache TTL settings and force refresh options
 - Verify API connectivity and authentication
 - Enable debug mode for detailed logging
 
 **Statsig integration issues**:
+
 - Verify client key configuration
 - Check user context setup
 - Review Statsig console for experiment status
 
 **Performance concerns**:
+
 - Monitor cache hit rates and optimize TTL
 - Use bulk operations for multiple flag checks
 - Implement proper error handling and fallbacks
@@ -431,7 +439,7 @@ npm run test:lib-feature-flags
 
 ```typescript
 const featureFlags = new FeatureFlagsService({
-  debug: true // Enables comprehensive logging
+  debug: true, // Enables comprehensive logging
 });
 ```
 

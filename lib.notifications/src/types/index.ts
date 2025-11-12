@@ -277,4 +277,3 @@ export interface NotificationFilters extends PaginationOptions {
   dateFrom?: string;
   dateTo?: string;
 }
-

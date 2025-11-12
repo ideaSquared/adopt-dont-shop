@@ -203,13 +203,16 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
     return (
       <PolicyCard>
         <SectionTitle>
-          <MdPets className="icon" />
+          <MdPets className='icon' />
           Adoption Information
         </SectionTitle>
         <EmptyState>
-          <MdPets className="icon" />
+          <MdPets className='icon' />
           <h3>No adoption information available</h3>
-          <p>{rescueName} hasn't provided adoption policies yet. Please contact them directly for more information.</p>
+          <p>
+            {rescueName} hasn't provided adoption policies yet. Please contact them directly for
+            more information.
+          </p>
         </EmptyState>
       </PolicyCard>
     );
@@ -225,17 +228,18 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
   return (
     <PolicyCard>
       <SectionTitle>
-        <MdPets className="icon" />
+        <MdPets className='icon' />
         Adoption Information
       </SectionTitle>
 
       {/* Adoption Fee Range */}
       <FeeRange>
-        <MdAttachMoney className="icon" />
-        <div className="fee-info">
-          <div className="label">Adoption Fee Range</div>
-          <div className="amount">
-            {formatCurrency(adoptionPolicies.adoptionFeeRange.min)} - {formatCurrency(adoptionPolicies.adoptionFeeRange.max)}
+        <MdAttachMoney className='icon' />
+        <div className='fee-info'>
+          <div className='label'>Adoption Fee Range</div>
+          <div className='amount'>
+            {formatCurrency(adoptionPolicies.adoptionFeeRange.min)} -{' '}
+            {formatCurrency(adoptionPolicies.adoptionFeeRange.max)}
           </div>
         </div>
       </FeeRange>
@@ -244,22 +248,23 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
       <RequirementsGrid>
         {adoptionPolicies.requireHomeVisit && (
           <RequirementItem>
-            <MdHome className="icon" />
-            <span className="text">Home visit required</span>
+            <MdHome className='icon' />
+            <span className='text'>Home visit required</span>
           </RequirementItem>
         )}
         {adoptionPolicies.requireReferences && (
           <RequirementItem>
-            <MdPeople className="icon" />
-            <span className="text">
-              {adoptionPolicies.minimumReferenceCount} reference{adoptionPolicies.minimumReferenceCount !== 1 ? 's' : ''} required
+            <MdPeople className='icon' />
+            <span className='text'>
+              {adoptionPolicies.minimumReferenceCount} reference
+              {adoptionPolicies.minimumReferenceCount !== 1 ? 's' : ''} required
             </span>
           </RequirementItem>
         )}
         {adoptionPolicies.requireVeterinarianReference && (
           <RequirementItem>
-            <MdCheckCircle className="icon" />
-            <span className="text">Veterinarian reference required</span>
+            <MdCheckCircle className='icon' />
+            <span className='text'>Veterinarian reference required</span>
           </RequirementItem>
         )}
       </RequirementsGrid>
@@ -271,8 +276,8 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
           <ul>
             {adoptionPolicies.requirements.map((requirement, index) => (
               <li key={index}>
-                <div className="bullet" />
-                <span className="text">{requirement}</span>
+                <div className='bullet' />
+                <span className='text'>{requirement}</span>
               </li>
             ))}
           </ul>
@@ -286,8 +291,8 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
           <ul>
             {adoptionPolicies.policies.map((policy, index) => (
               <li key={index}>
-                <div className="bullet" />
-                <span className="text">{policy}</span>
+                <div className='bullet' />
+                <span className='text'>{policy}</span>
               </li>
             ))}
           </ul>

@@ -26,9 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <AppLayout>
       <Navigation />
-      <MainContent>
-        {children}
-      </MainContent>
+      <MainContent>{children}</MainContent>
     </AppLayout>
   );
 };

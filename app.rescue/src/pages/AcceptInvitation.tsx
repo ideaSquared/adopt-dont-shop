@@ -1,4 +1,3 @@
-import { AcceptInvitationPayload, InvitationDetails } from '@adopt-dont-shop/lib-invitations';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
@@ -94,14 +93,14 @@ const RequiredIndicator = styled.span`
 const FormInput = styled.input<{ hasError?: boolean }>`
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 2px solid ${props => props.hasError ? '#dc3545' : '#e9ecef'};
+  border: 2px solid ${props => (props.hasError ? '#dc3545' : '#e9ecef')};
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.2s ease;
 
   &:focus {
     outline: none;
-    border-color: ${props => props.hasError ? '#dc3545' : '#667eea'};
+    border-color: ${props => (props.hasError ? '#dc3545' : '#667eea')};
   }
 
   &:disabled {
@@ -155,8 +154,12 @@ const LoadingSpinner = styled.span`
   animation: spin 1s linear infinite;
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -348,9 +351,7 @@ const AcceptInvitation: React.FC = () => {
       setSuccess(true);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : 'Failed to accept invitation. Please try again.'
+        err instanceof Error ? err.message : 'Failed to accept invitation. Please try again.'
       );
     } finally {
       setSubmitting(false);
@@ -393,9 +394,7 @@ const AcceptInvitation: React.FC = () => {
                 Your account has been successfully created. You can now log in to start working with
                 your rescue team.
               </p>
-              <LoginButton onClick={handleGoToLogin}>
-                Go to Login
-              </LoginButton>
+              <LoginButton onClick={handleGoToLogin}>Go to Login</LoginButton>
             </SuccessContainer>
           </CardBody>
         </Card>
@@ -457,7 +456,7 @@ const AcceptInvitation: React.FC = () => {
                 type="text"
                 hasError={!!errors.firstName}
                 value={formData.firstName}
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                onChange={e => handleInputChange('firstName', e.target.value)}
                 placeholder="Enter your first name"
                 disabled={submitting}
                 required
@@ -475,7 +474,7 @@ const AcceptInvitation: React.FC = () => {
                 type="text"
                 hasError={!!errors.lastName}
                 value={formData.lastName}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                onChange={e => handleInputChange('lastName', e.target.value)}
                 placeholder="Enter your last name"
                 disabled={submitting}
                 required
@@ -492,7 +491,7 @@ const AcceptInvitation: React.FC = () => {
                 type="password"
                 hasError={!!errors.password}
                 value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
+                onChange={e => handleInputChange('password', e.target.value)}
                 placeholder="Create a secure password"
                 disabled={submitting}
                 required
@@ -510,7 +509,7 @@ const AcceptInvitation: React.FC = () => {
                 type="password"
                 hasError={!!errors.confirmPassword}
                 value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                onChange={e => handleInputChange('confirmPassword', e.target.value)}
                 placeholder="Re-enter your password"
                 disabled={submitting}
                 required
@@ -525,7 +524,7 @@ const AcceptInvitation: React.FC = () => {
                 type="text"
                 hasError={!!errors.title}
                 value={formData.title || ''}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+                onChange={e => handleInputChange('title', e.target.value)}
                 placeholder="e.g., Volunteer, Coordinator"
                 disabled={submitting}
                 maxLength={100}

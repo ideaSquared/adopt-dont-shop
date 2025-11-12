@@ -22,11 +22,16 @@ const getDevUserDescription = (userType: string, email: string): string => {
 
   // Fallback based on user type
   switch (userType) {
-    case 'admin': return 'Administrator';
-    case 'moderator': return 'Moderator';
-    case 'rescue_staff': return 'Rescue Staff';
-    case 'adopter': return 'Adopter';
-    default: return 'Dev User';
+    case 'admin':
+      return 'Administrator';
+    case 'moderator':
+      return 'Moderator';
+    case 'rescue_staff':
+      return 'Rescue Staff';
+    case 'adopter':
+      return 'Adopter';
+    default:
+      return 'Dev User';
   }
 };
 
@@ -1154,41 +1159,62 @@ if (process.env.NODE_ENV === 'development') {
               { [require('sequelize').Op.like]: '%@pawsrescue.dev' },
               { [require('sequelize').Op.like]: '%@happytailsrescue.dev' },
               { [require('sequelize').Op.like]: '%@happytails.org' },
-              { [require('sequelize').Op.in]: [
-                'john.smith@gmail.com',
-                'emily.davis@yahoo.com',
-                'michael.brown@outlook.com',
-                'jessica.wilson@gmail.com'
-              ]}
-            ]
-          }
+              {
+                [require('sequelize').Op.in]: [
+                  'john.smith@gmail.com',
+                  'emily.davis@yahoo.com',
+                  'michael.brown@outlook.com',
+                  'jessica.wilson@gmail.com',
+                ],
+              },
+            ],
+          },
         },
         attributes: [
-          'userId', 'firstName', 'lastName', 'email', 'userType', 'status',
-          'emailVerified', 'country', 'city', 'addressLine1', 'postalCode',
-          'timezone', 'language', 'bio', 'dateOfBirth', 'phoneNumber',
-          'termsAcceptedAt', 'privacyPolicyAcceptedAt', 'createdAt', 'updatedAt'
+          'userId',
+          'firstName',
+          'lastName',
+          'email',
+          'userType',
+          'status',
+          'emailVerified',
+          'country',
+          'city',
+          'addressLine1',
+          'postalCode',
+          'timezone',
+          'language',
+          'bio',
+          'dateOfBirth',
+          'phoneNumber',
+          'termsAcceptedAt',
+          'privacyPolicyAcceptedAt',
+          'createdAt',
+          'updatedAt',
         ],
-        order: [['userType', 'ASC'], ['email', 'ASC']]
+        order: [
+          ['userType', 'ASC'],
+          ['email', 'ASC'],
+        ],
       });
 
       // Transform to DevUser format with descriptions
       const transformedUsers = seededUsers.map(user => ({
         ...user.toJSON(),
-        description: getDevUserDescription(user.userType, user.email)
+        description: getDevUserDescription(user.userType, user.email),
       }));
 
       res.json({
         users: transformedUsers,
         password: 'DevPassword123!',
         source: 'database',
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     } catch (error) {
       logger.error('Failed to fetch seeded users:', { error });
       res.status(500).json({
         error: 'Failed to fetch seeded users',
-        fallback: 'Use local data'
+        fallback: 'Use local data',
       });
     }
   });

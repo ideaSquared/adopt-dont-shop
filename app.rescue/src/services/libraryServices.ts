@@ -27,20 +27,22 @@ globalApiService.updateConfig({
   debug: isDevelopment(),
   getAuthToken: () => {
     return localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-  }
+  },
 });
 
 // Add 401 error interceptor for automatic logout and redirect
-globalApiService.interceptors.addErrorInterceptor(async (error) => {
+globalApiService.interceptors.addErrorInterceptor(async error => {
   // Handle 401 authentication errors
-  if (error instanceof AuthenticationError || 
-      (error instanceof Error && error.message.includes('401'))) {
+  if (
+    error instanceof AuthenticationError ||
+    (error instanceof Error && error.message.includes('401'))
+  ) {
     // Clear authentication tokens
     localStorage.removeItem('authToken');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
-    
+
     // Redirect to homepage
     window.location.href = '/';
   }
@@ -72,4 +74,3 @@ export const authService = new AuthService();
 
 // Export the configured API service for direct use
 export const apiService = globalApiService;
-

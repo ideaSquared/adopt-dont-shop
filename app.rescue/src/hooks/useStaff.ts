@@ -73,9 +73,7 @@ export const useStaff = () => {
     updateStaffMember: async (userId: string, staffData: { title?: string }, rescueId: string) => {
       try {
         const updatedStaff = await staffService.updateStaffMember(userId, staffData, rescueId);
-        setStaff(prev => prev.map(member => 
-          member.userId === userId ? updatedStaff : member
-        ));
+        setStaff(prev => prev.map(member => (member.userId === userId ? updatedStaff : member)));
         return updatedStaff;
       } catch (error) {
         throw error;

@@ -25,7 +25,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-adopt_dont_shop_dev}"]
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-adopt_dont_shop_dev}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,7 +85,7 @@ services:
     restart: unless-stopped
     mem_limit: 1g
     memswap_limit: 1g
-    cpus: "1.0"
+    cpus: '1.0'
 
   # ============================================================================
   # FRONTEND APPLICATIONS - Using Optimized Workspace Pattern
@@ -113,12 +114,12 @@ services:
       CHOKIDAR_USEPOLLING: true
       CHOKIDAR_INTERVAL: 1000
       CHOKIDAR_AWAITWRITEFINISH: 2000
-      NODE_OPTIONS: "--max-old-space-size=3072 --max-semi-space-size=128"
+      NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     depends_on:
       - service-backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -149,12 +150,12 @@ services:
       CHOKIDAR_USEPOLLING: true
       CHOKIDAR_INTERVAL: 1000
       CHOKIDAR_AWAITWRITEFINISH: 2000
-      NODE_OPTIONS: "--max-old-space-size=3072 --max-semi-space-size=128"
+      NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     depends_on:
       - service-backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -188,12 +189,12 @@ services:
       CHOKIDAR_AWAITWRITEFINISH: 2000
       WATCHPACK_POLLING: true
       FAST_REFRESH: true
-      NODE_OPTIONS: "--max-old-space-size=3072 --max-semi-space-size=128"
+      NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     depends_on:
       - service-backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
       interval: 30s
       timeout: 10s
       retries: 3

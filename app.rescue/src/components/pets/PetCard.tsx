@@ -38,7 +38,11 @@ const PlaceholderImage = styled.div`
   justify-content: center;
   font-size: 3rem;
   color: ${props => props.theme.colors.neutral[400]};
-  background: linear-gradient(135deg, ${props => props.theme.colors.neutral[50]}, ${props => props.theme.colors.neutral[100]});
+  background: linear-gradient(
+    135deg,
+    ${props => props.theme.colors.neutral[50]},
+    ${props => props.theme.colors.neutral[100]}
+  );
 `;
 
 const StatusBadgeContainer = styled.div`
@@ -153,7 +157,8 @@ const ModalContent = styled(Card)`
       color: ${props => props.theme.text.primary};
     }
 
-    select, textarea {
+    select,
+    textarea {
       width: 100%;
       padding: 0.75rem;
       border: 1px solid ${props => props.theme.colors.neutral[300]};
@@ -250,12 +255,7 @@ interface PetCardProps {
   onDelete: (petId: string, reason?: string) => Promise<void>;
 }
 
-const PetCard: React.FC<PetCardProps> = ({
-  pet,
-  onStatusChange,
-  onEdit,
-  onDelete,
-}) => {
+const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete }) => {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newStatus, setNewStatus] = useState<PetStatus>(pet.status as PetStatus);
@@ -307,9 +307,7 @@ const PetCard: React.FC<PetCardProps> = ({
             <PlaceholderImage>🐾</PlaceholderImage>
           )}
           <StatusBadgeContainer>
-            <StatusBadge status={pet.status}>
-              {getStatusLabel(pet.status)}
-            </StatusBadge>
+            <StatusBadge status={pet.status}>{getStatusLabel(pet.status)}</StatusBadge>
           </StatusBadgeContainer>
         </PetImageContainer>
 
@@ -352,16 +350,12 @@ const PetCard: React.FC<PetCardProps> = ({
             <Button variant="outline" size="sm" onClick={handleEdit}>
               Edit
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowStatusModal(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowStatusModal(true)}>
               Status
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleDelete}
               disabled={isDeleting}
               style={{ color: '#ef4444' }}
@@ -375,15 +369,15 @@ const PetCard: React.FC<PetCardProps> = ({
       {/* Status Update Modal */}
       {showStatusModal && (
         <StatusUpdateModal onClick={() => setShowStatusModal(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalContent onClick={e => e.stopPropagation()}>
             <h3>Update Pet Status</h3>
-            
+
             <div className="form-group">
               <label htmlFor="status-select">New Status:</label>
               <select
                 id="status-select"
                 value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value as PetStatus)}
+                onChange={e => setNewStatus(e.target.value as PetStatus)}
               >
                 <option value="available">Available</option>
                 <option value="pending">Pending</option>
@@ -400,22 +394,16 @@ const PetCard: React.FC<PetCardProps> = ({
               <textarea
                 id="status-notes"
                 value={statusNotes}
-                onChange={(e) => setStatusNotes(e.target.value)}
+                onChange={e => setStatusNotes(e.target.value)}
                 placeholder="Add any notes about this status change..."
               />
             </div>
 
             <div className="modal-actions">
-              <Button
-                variant="outline"
-                onClick={() => setShowStatusModal(false)}
-              >
+              <Button variant="outline" onClick={() => setShowStatusModal(false)}>
                 Cancel
               </Button>
-              <Button
-                variant="primary"
-                onClick={handleStatusUpdate}
-              >
+              <Button variant="primary" onClick={handleStatusUpdate}>
                 Update
               </Button>
             </div>
@@ -426,30 +414,26 @@ const PetCard: React.FC<PetCardProps> = ({
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <StatusUpdateModal onClick={cancelDelete}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalContent onClick={e => e.stopPropagation()}>
             <h3>Delete Pet: {pet.name}</h3>
-            
+
             <p style={{ marginBottom: '1rem', color: '#666' }}>
               Are you sure you want to delete this pet? This action cannot be undone.
             </p>
-            
+
             <div className="form-group">
               <label htmlFor="delete-reason">Reason for deletion (optional):</label>
               <textarea
                 id="delete-reason"
                 value={deleteReason}
-                onChange={(e) => setDeleteReason(e.target.value)}
+                onChange={e => setDeleteReason(e.target.value)}
                 placeholder="e.g., Pet was adopted, medical issues, etc."
                 rows={3}
               />
             </div>
 
             <div className="form-actions">
-              <Button
-                variant="outline"
-                onClick={cancelDelete}
-                disabled={isDeleting}
-              >
+              <Button variant="outline" onClick={cancelDelete} disabled={isDeleting}>
                 Cancel
               </Button>
               <Button

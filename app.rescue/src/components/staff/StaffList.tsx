@@ -102,8 +102,12 @@ const Spinner = styled.div`
   animation: spin 1s linear infinite;
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -147,13 +151,13 @@ const StaffList: React.FC<StaffListProps> = ({
   const [filterBy, setFilterBy] = useState<'all' | 'verified' | 'pending'>('all');
 
   const filteredStaff = staff.filter(member => {
-    const matchesSearch = 
+    const matchesSearch =
       member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.title.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilter = 
+    const matchesFilter =
       filterBy === 'all' ||
       (filterBy === 'verified' && member.isVerified) ||
       (filterBy === 'pending' && !member.isVerified);
@@ -181,11 +185,11 @@ const StaffList: React.FC<StaffListProps> = ({
               type="text"
               placeholder="Search staff members..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
             />
             <FilterSelect
               value={filterBy}
-              onChange={(e) => setFilterBy(e.target.value as 'all' | 'verified' | 'pending')}
+              onChange={e => setFilterBy(e.target.value as 'all' | 'verified' | 'pending')}
             >
               <option value="all">All Staff</option>
               <option value="verified">Verified Only</option>
@@ -216,7 +220,7 @@ const StaffList: React.FC<StaffListProps> = ({
         </EmptyState>
       ) : (
         <StaffGrid>
-          {filteredStaff.map((staffMember) => {
+          {filteredStaff.map(staffMember => {
             // Prevent self-editing and self-removal
             const isCurrentUser = staffMember.userId === currentUserId;
             return (

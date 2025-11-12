@@ -5,6 +5,7 @@ A comprehensive shared utility library providing common functions used across th
 ## Overview
 
 This library provides over 25 utility functions organized into five main categories:
+
 - **Date & Time Utilities**: Date formatting, relative time, parsing, business hours validation
 - **String Utilities**: Slugification, truncation, sanitization, ID generation, text manipulation
 - **Data Transformation**: Deep cloning, object merging, flattening/unflattening, array-to-map conversion
@@ -14,12 +15,14 @@ This library provides over 25 utility functions organized into five main categor
 ## Features
 
 ### Date & Time Operations
+
 - Format dates in multiple formats (YYYY-MM-DD, ISO, locale-specific)
 - Generate relative time strings ("2 hours ago", "just now")
 - Parse date strings with validation
 - Business hours validation (weekdays 9 AM - 5 PM)
 
 ### String Processing
+
 - URL-safe slug generation with length limits
 - Smart text truncation with word preservation
 - HTML/XSS input sanitization
@@ -27,12 +30,14 @@ This library provides over 25 utility functions organized into five main categor
 - Word capitalization utilities
 
 ### Data Transformation
+
 - Deep object/array cloning with Date support
 - Object merging with overwrite behavior
 - Object flattening/unflattening with custom delimiters
 - Array-to-Map conversion with key/value field selection
 
 ### Validation & Formatting
+
 - Email validation with normalization
 - Phone number validation and formatting
 - URL validation
@@ -55,7 +60,7 @@ import { UtilsService } from '@adopt-dont-shop/lib-utils';
 const utils = new UtilsService({
   debug: false,
   timezone: 'UTC',
-  currency: 'USD'
+  currency: 'USD',
 });
 
 // Date formatting
@@ -90,13 +95,13 @@ const phone = utils.formatPhoneNumber('5551234567'); // "(555) 123-4567"
 const utils = new UtilsService({
   debug: true,
   timezone: 'America/New_York',
-  currency: 'EUR'
+  currency: 'EUR',
 });
 
 // Update config at runtime
-utils.updateConfig({ 
+utils.updateConfig({
   debug: false,
-  currency: 'GBP' 
+  currency: 'GBP',
 });
 
 // Get current config
@@ -106,12 +111,14 @@ const config = utils.getConfig();
 ## API Reference
 
 ### Date & Time Utilities
+
 - `formatDate(date, options?)` - Format dates with multiple format options
 - `formatRelativeTime(date)` - Generate relative time strings
 - `parseDate(dateString)` - Parse and validate date strings
 - `isBusinessHours(date?)` - Check if date falls within business hours
 
 ### String Utilities
+
 - `slugify(text, options?)` - Create URL-safe slugs
 - `truncate(text, options)` - Smart text truncation with word preservation
 - `sanitizeInput(input)` - HTML/XSS sanitization
@@ -119,6 +126,7 @@ const config = utils.getConfig();
 - `capitalizeWords(text)` - Capitalize first letter of each word
 
 ### Data Transformation
+
 - `deepClone(obj)` - Deep clone objects, arrays, and dates
 - `mergeObjects(...objects)` - Merge multiple objects with overwrite
 - `flattenObject(obj, options?)` - Flatten nested objects
@@ -126,12 +134,14 @@ const config = utils.getConfig();
 - `arrayToMap(array, options)` - Convert arrays to Maps
 
 ### Validation Utilities
+
 - `isValidEmail(email)` - Email validation with normalization
 - `isValidPhone(phone)` - Phone number validation
 - `isValidURL(url)` - URL validation
 - `validateFileType(filename, options?)` - File type validation
 
 ### Formatting Utilities
+
 - `formatCurrency(amount, options?)` - Currency formatting with locale support
 - `formatFileSize(bytes)` - File size formatting
 - `formatPhoneNumber(phone, options?)` - Phone number formatting
@@ -150,8 +160,9 @@ The library includes 55+ comprehensive tests covering all utility functions with
 ## TypeScript Support
 
 Fully typed with comprehensive interfaces:
+
 - `DateFormatOptions`
-- `TruncateOptions` 
+- `TruncateOptions`
 - `SlugifyOptions`
 - `ValidationResult`
 - `CurrencyOptions`
@@ -165,6 +176,7 @@ All utilities are optimized for performance with minimal dependencies and effici
 ## Contributing
 
 When adding new utilities:
+
 1. Add the function to the appropriate category in `UtilsService`
 2. Add TypeScript interfaces to `src/types/index.ts`
 3. Write comprehensive tests covering edge cases

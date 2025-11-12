@@ -6,6 +6,7 @@
 ## Overview
 
 This document contains the complete implementation for:
+
 1. **Rescue Configuration** (Immediate Priority) - ✅ Code Complete
 2. **Application Workflow** (High Priority) - 📝 Implementation Guide
 
@@ -327,18 +328,18 @@ const getApplicationProgress = (application: ApplicationListItem) => {
   const stage = application.stage || 'PENDING';
 
   const stageToStep: Record<string, number> = {
-    'PENDING': 0,
-    'REVIEWING': 1,
-    'VISITING': 2,
-    'DECIDING': 3,
-    'RESOLVED': 4,
+    PENDING: 0,
+    REVIEWING: 1,
+    VISITING: 2,
+    DECIDING: 3,
+    RESOLVED: 4,
   };
 
   return {
     current: stageToStep[stage] || 0,
     total: 4,
     stage,
-    finalOutcome: application.finalOutcome
+    finalOutcome: application.finalOutcome,
   };
 };
 
@@ -366,20 +367,24 @@ const getStepStatus = (
 
 const getStepLabel = (stepIndex: number, stage: string, finalOutcome?: string): string => {
   const labels = [
-    'Pending',      // Step 0 - PENDING
-    'Reviewing',    // Step 1 - REVIEWING
-    'Visiting',     // Step 2 - VISITING
-    'Deciding',     // Step 3 - DECIDING
-    'Resolved'      // Step 4 - RESOLVED
+    'Pending', // Step 0 - PENDING
+    'Reviewing', // Step 1 - REVIEWING
+    'Visiting', // Step 2 - VISITING
+    'Deciding', // Step 3 - DECIDING
+    'Resolved', // Step 4 - RESOLVED
   ];
 
   // For resolved stage, show the final outcome
   if (stepIndex === 4 && stage === 'RESOLVED') {
     switch (finalOutcome) {
-      case 'APPROVED': return 'Approved';
-      case 'REJECTED': return 'Rejected';
-      case 'WITHDRAWN': return 'Withdrawn';
-      default: return 'Resolved';
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      case 'WITHDRAWN':
+        return 'Withdrawn';
+      default:
+        return 'Resolved';
     }
   }
 
@@ -400,30 +405,20 @@ const getActionButtons = (
   // Stage-based actions
   switch (stage) {
     case 'PENDING':
-      actions.push(
-        { label: 'Start Review', action: () => {}, variant: 'primary' as const }
-      );
+      actions.push({ label: 'Start Review', action: () => {}, variant: 'primary' as const });
       break;
     case 'REVIEWING':
-      actions.push(
-        { label: 'Schedule Visit', action: () => {}, variant: 'primary' as const }
-      );
+      actions.push({ label: 'Schedule Visit', action: () => {}, variant: 'primary' as const });
       break;
     case 'VISITING':
     case 'DECIDING':
-      actions.push(
-        { label: 'View Details', action: () => {}, variant: 'secondary' as const }
-      );
+      actions.push({ label: 'View Details', action: () => {}, variant: 'secondary' as const });
       break;
     case 'RESOLVED':
-      actions.push(
-        { label: 'View Details', action: () => {}, variant: 'secondary' as const }
-      );
+      actions.push({ label: 'View Details', action: () => {}, variant: 'secondary' as const });
       break;
     default:
-      actions.push(
-        { label: 'View', action: () => {}, variant: 'secondary' as const }
-      );
+      actions.push({ label: 'View', action: () => {}, variant: 'secondary' as const });
   }
 
   return actions.slice(0, 2);
@@ -467,24 +462,29 @@ const getActionButtons = (
 ## Next Steps
 
 ### 1. Update RescueSettings.tsx
+
 Copy the code above and replace the current file content.
 
 ### 2. Update ApplicationList.tsx
+
 Apply the three code changes listed above to support the 5-stage workflow.
 
 ### 3. Test Rescue Configuration
+
 - Navigate to Settings in the rescue app
 - Test profile form (all fields, validation, save)
 - Test policies form (requirements, fees, policies)
 - Verify permission checks work
 
 ### 4. Test Application Workflow
+
 - Verify applications show 5-stage progress (Pending → Reviewing → Visiting → Deciding → Resolved)
 - Check stage badges and colors
 - Test stage filtering
 - Verify progress bar displays correctly
 
 ### 5. Additional Implementation (Optional - Not Started Yet)
+
 - Auto-progression logic in ApplicationReview.tsx
 - Bulk operations component
 - Stage transition API calls

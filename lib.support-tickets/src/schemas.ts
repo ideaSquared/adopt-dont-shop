@@ -10,13 +10,7 @@ export const TicketStatusSchema = z.enum([
   'escalated',
 ]);
 
-export const TicketPrioritySchema = z.enum([
-  'low',
-  'normal',
-  'high',
-  'urgent',
-  'critical',
-]);
+export const TicketPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent', 'critical']);
 
 export const TicketCategorySchema = z.enum([
   'technical_issue',
@@ -195,13 +189,15 @@ export const TicketStatsSchema = z.object({
       count: z.number().int(),
     })
   ),
-  staffActivity: z.array(
-    z.object({
-      staffId: z.string(),
-      assignedCount: z.number().int(),
-      resolvedCount: z.number().int(),
-    })
-  ).optional(),
+  staffActivity: z
+    .array(
+      z.object({
+        staffId: z.string(),
+        assignedCount: z.number().int(),
+        resolvedCount: z.number().int(),
+      })
+    )
+    .optional(),
 });
 
 // Export inferred types

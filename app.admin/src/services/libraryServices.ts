@@ -7,12 +7,15 @@ export const globalApiService = new ApiService({
   // Provide function to get auth token from localStorage
   getAuthToken: () => {
     return localStorage.getItem('authToken') || localStorage.getItem('accessToken');
-  }
+  },
 });
 
 // Add error interceptor for handling 401 responses
 globalApiService.interceptors.addErrorInterceptor((error: unknown) => {
-  if (error instanceof AuthenticationError || (error as { response?: { status?: number } })?.response?.status === 401) {
+  if (
+    error instanceof AuthenticationError ||
+    (error as { response?: { status?: number } })?.response?.status === 401
+  ) {
     // Clear authentication token
     localStorage.removeItem('authToken');
     localStorage.removeItem('accessToken');

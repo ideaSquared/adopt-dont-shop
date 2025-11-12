@@ -45,18 +45,21 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
 ### Frontend Applications
 
 **app.client** - Public adoption portal
+
 - Technology: React + TypeScript + Vite
 - Port: 3000
 - Domain: localhost / www.adoptdontshop.com
 - Features: Pet discovery, swipe interface, applications
 
 **app.admin** - Admin dashboard
+
 - Technology: React + TypeScript + Vite
 - Port: 3001
 - Domain: admin.localhost / admin.adoptdontshop.com
 - Features: User management, system configuration
 
 **app.rescue** - Rescue management portal
+
 - Technology: React + TypeScript + Vite
 - Port: 3002
 - Domain: rescue.localhost / rescue.adoptdontshop.com
@@ -65,6 +68,7 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
 ### Backend Services
 
 **service.backend** - Main API
+
 - Technology: Node.js + Express + TypeScript
 - Port: 5000
 - Domain: api.localhost / api.adoptdontshop.com
@@ -73,15 +77,18 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
 ### Databases & Storage
 
 **PostgreSQL** - Primary database
+
 - Version: 15+ with PostGIS extension
 - Port: 5432
 - Features: User data, pets, applications, messaging
 
 **Redis** - Cache & sessions
+
 - Port: 6379
 - Features: Session storage, API caching, rate limiting
 
 **File Storage** - Media files
+
 - Development: Local uploads directory
 - Production: AWS S3 with CloudFront CDN
 
@@ -90,11 +97,13 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
 All libraries follow ESM-only architecture with TypeScript:
 
 **Core Services:**
+
 - `@adopt-dont-shop/lib-api` - API client
 - `@adopt-dont-shop/lib-auth` - Authentication
 - `@adopt-dont-shop/lib-validation` - Validation schemas
 
 **Feature Libraries:**
+
 - `@adopt-dont-shop/lib-applications` - Application management
 - `@adopt-dont-shop/lib-chat` - Real-time messaging
 - `@adopt-dont-shop/lib-discovery` - Pet discovery
@@ -108,6 +117,7 @@ All libraries follow ESM-only architecture with TypeScript:
 - `@adopt-dont-shop/lib-users` - User management
 
 **Utilities:**
+
 - `@adopt-dont-shop/lib-analytics` - Analytics
 - `@adopt-dont-shop/lib-common` - Common utilities
 
@@ -144,12 +154,14 @@ docker-compose -f docker-compose.prod.yml up -d
 ### Subdomain Routing
 
 **Development:**
+
 - `localhost` → app.client (port 3000)
 - `admin.localhost` → app.admin (port 3001)
 - `rescue.localhost` → app.rescue (port 3002)
 - `api.localhost` → service.backend (port 5000)
 
 **Production:**
+
 - `www.adoptdontshop.com` → app.client
 - `admin.adoptdontshop.com` → app.admin
 - `rescue.adoptdontshop.com` → app.rescue
@@ -220,16 +232,19 @@ npm run db:migrate:undo
 ### Environments
 
 **Development:**
+
 - Branch: develop
 - Deployment: Automatic on commit
 - URL: dev.adoptdontshop.com
 
 **Staging:**
+
 - Branch: staging
 - Deployment: Manual approval
 - URL: staging.adoptdontshop.com
 
 **Production:**
+
 - Branch: main
 - Deployment: Manual approval with rollback
 - URL: adoptdontshop.com
@@ -237,18 +252,21 @@ npm run db:migrate:undo
 ## Monitoring & Logging
 
 ### Application Monitoring
+
 - Error tracking (Sentry or similar)
 - Performance monitoring (Web Vitals)
 - API response times
 - Database query performance
 
 ### Infrastructure Monitoring
+
 - Docker container health
 - Resource usage (CPU, memory, disk)
 - Network traffic
 - Database connections
 
 ### Logging
+
 - Centralized logging (Winston + ELK stack)
 - Structured JSON logs
 - Log levels: error, warn, info, debug
@@ -257,18 +275,21 @@ npm run db:migrate:undo
 ## Security
 
 ### Authentication & Authorization
+
 - JWT tokens with refresh rotation
 - Role-based access control (RBAC)
 - Permission-based endpoints
 - Session management with Redis
 
 ### Data Protection
+
 - HTTPS/TLS encryption
 - Database encryption at rest
 - Environment variable secrets
 - API rate limiting
 
 ### Best Practices
+
 - Regular security audits
 - Dependency vulnerability scanning
 - Container security scanning
@@ -277,18 +298,21 @@ npm run db:migrate:undo
 ## Performance Optimization
 
 ### Frontend
+
 - Code splitting and lazy loading
 - Image optimization and CDN
 - Bundle size optimization
 - Caching strategies
 
 ### Backend
+
 - Database query optimization
 - Redis caching
 - Connection pooling
 - Load balancing (production)
 
 ### Database
+
 - Indexed queries
 - Query optimization
 - Connection pooling
@@ -297,16 +321,19 @@ npm run db:migrate:undo
 ## Scaling Strategy
 
 ### Horizontal Scaling
+
 - Multiple backend instances behind load balancer
 - Session sharing via Redis
 - Stateless application design
 
 ### Vertical Scaling
+
 - Database resource allocation
 - Container resource limits
 - Cache size optimization
 
 ### Database Scaling
+
 - Read replicas for read-heavy operations
 - Connection pooling
 - Query optimization
@@ -317,6 +344,7 @@ npm run db:migrate:undo
 ### Common Issues
 
 **Port Conflicts:**
+
 ```bash
 # Check port usage
 netstat -ano | findstr :5000
@@ -326,6 +354,7 @@ taskkill /PID <pid> /F
 ```
 
 **Database Connection:**
+
 ```bash
 # Check PostgreSQL is running
 docker-compose ps database
@@ -335,6 +364,7 @@ docker-compose logs database
 ```
 
 **Build Errors:**
+
 ```bash
 # Clear node_modules and rebuild
 rm -rf node_modules && npm install

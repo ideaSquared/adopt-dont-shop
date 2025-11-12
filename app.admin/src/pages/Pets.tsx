@@ -71,7 +71,7 @@ const Pets: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">Pet Management</Heading>
+          <Heading level='h1'>Pet Management</Heading>
           <Text>
             {petId
               ? `Viewing details for pet: ${petId}`
@@ -86,8 +86,8 @@ const Pets: React.FC = () => {
           <div>
             <strong>Direct Link Navigation</strong>
             <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-              You've navigated to this pet via a direct link (e.g., from a moderation report).
-              The full pet management interface is under development.
+              You've navigated to this pet via a direct link (e.g., from a moderation report). The
+              full pet management interface is under development.
             </p>
           </div>
         </InfoBanner>
@@ -98,12 +98,17 @@ const Pets: React.FC = () => {
           <>
             <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Pet Details</h2>
             <p style={{ color: '#6b7280', margin: 0 }}>
-              Pet ID: <code style={{
-                background: '#f3f4f6',
-                padding: '0.25rem 0.5rem',
-                borderRadius: '4px',
-                fontFamily: 'monospace'
-              }}>{petId}</code>
+              Pet ID:{' '}
+              <code
+                style={{
+                  background: '#f3f4f6',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {petId}
+              </code>
             </p>
             <p style={{ color: '#6b7280', marginTop: '1rem' }}>
               Full pet details view will be implemented here. This will include:

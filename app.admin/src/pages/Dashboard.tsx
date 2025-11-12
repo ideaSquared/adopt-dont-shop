@@ -73,7 +73,7 @@ const MetricValue = styled.div`
 
 const MetricChange = styled.div<{ $positive?: boolean }>`
   font-size: 0.875rem;
-  color: ${props => props.$positive ? '#10b981' : '#ef4444'};
+  color: ${props => (props.$positive ? '#10b981' : '#ef4444')};
   font-weight: 500;
 `;
 
@@ -84,49 +84,49 @@ const Dashboard: React.FC = () => {
       label: 'Total Users',
       value: '12,543',
       change: '+12% from last month',
-      positive: true
+      positive: true,
     },
     {
       icon: '🏠',
       label: 'Active Rescues',
       value: '284',
       change: '+8% from last month',
-      positive: true
+      positive: true,
     },
     {
       icon: '🐾',
       label: 'Pets Listed',
       value: '1,892',
       change: '+15% from last month',
-      positive: true
+      positive: true,
     },
     {
       icon: '❤️',
       label: 'Adoptions (30d)',
       value: '456',
       change: '+23% from last month',
-      positive: true
+      positive: true,
     },
     {
       icon: '📋',
       label: 'Pending Applications',
       value: '187',
       change: '-5% from last month',
-      positive: false
+      positive: false,
     },
     {
       icon: '🎫',
       label: 'Open Tickets',
       value: '34',
       change: '+2 from yesterday',
-      positive: false
-    }
+      positive: false,
+    },
   ];
 
   return (
     <DashboardContainer>
       <PageHeader>
-        <Heading level="h1">Admin Dashboard</Heading>
+        <Heading level='h1'>Admin Dashboard</Heading>
         <Text>Welcome back! Here's what's happening across the platform today.</Text>
       </PageHeader>
 
@@ -138,22 +138,22 @@ const Dashboard: React.FC = () => {
               <MetricLabel>{metric.label}</MetricLabel>
             </MetricHeader>
             <MetricValue>{metric.value}</MetricValue>
-            <MetricChange $positive={metric.positive}>
-              {metric.change}
-            </MetricChange>
+            <MetricChange $positive={metric.positive}>{metric.change}</MetricChange>
           </MetricCard>
         ))}
       </MetricsGrid>
 
       {/* Placeholder for more dashboard content */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '12px',
-        padding: '2rem',
-        textAlign: 'center',
-        color: '#6b7280'
-      }}>
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '12px',
+          padding: '2rem',
+          textAlign: 'center',
+          color: '#6b7280',
+        }}
+      >
         <p style={{ margin: 0, fontSize: '0.875rem' }}>
           📊 Additional dashboard widgets will be added here: recent activity, charts, alerts, etc.
         </p>

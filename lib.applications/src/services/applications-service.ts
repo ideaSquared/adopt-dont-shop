@@ -392,4 +392,3 @@ export class ApplicationsService {
 
 // Create and export singleton instance
 export const applicationsService = new ApplicationsService();
-

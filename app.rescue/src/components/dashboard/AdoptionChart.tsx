@@ -17,10 +17,10 @@ const AdoptionChart: React.FC<AdoptionChartProps> = ({ data }) => {
       <div className="chart-container">
         {data.map((item, index) => (
           <div key={index} className="chart-bar">
-            <div 
+            <div
               className="bar"
-              style={{ 
-                height: `${(item.adoptions / maxAdoptions) * 100}%` 
+              style={{
+                height: `${(item.adoptions / maxAdoptions) * 100}%`,
               }}
               title={`${item.month}: ${item.adoptions} adoptions`}
             />
@@ -29,7 +29,7 @@ const AdoptionChart: React.FC<AdoptionChartProps> = ({ data }) => {
           </div>
         ))}
       </div>
-      
+
       <div className="chart-summary">
         <p>
           <strong>Total Adoptions: </strong>
@@ -37,9 +37,10 @@ const AdoptionChart: React.FC<AdoptionChartProps> = ({ data }) => {
         </p>
         <p>
           <strong>Best Month: </strong>
-          {data.reduce((best, current) => 
-            current.adoptions > best.adoptions ? current : best
-          ).month}
+          {
+            data.reduce((best, current) => (current.adoptions > best.adoptions ? current : best))
+              .month
+          }
         </p>
       </div>
     </div>

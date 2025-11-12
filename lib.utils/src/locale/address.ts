@@ -12,8 +12,7 @@
 export function validatePostcode(postcode: string): boolean {
   // UK postcode regex
   // Supports: SW1A 1AA, M1 1AA, B33 8TH, CR2 6XH, DN55 1PT, etc.
-  const postcodeRegex =
-    /^([A-Z]{1,2}\d{1,2}[A-Z]?)\s*(\d[A-Z]{2})$/i;
+  const postcodeRegex = /^([A-Z]{1,2}\d{1,2}[A-Z]?)\s*(\d[A-Z]{2})$/i;
 
   const cleaned = postcode.trim().toUpperCase();
   return postcodeRegex.test(cleaned);
