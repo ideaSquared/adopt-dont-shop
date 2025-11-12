@@ -303,7 +303,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   // Use responses length as key to force re-render when responses change
   const responsesKey = ticket.responses?.length || 0;
 
-  const statusColorMap = {
+  const statusColorMap: Record<string, { bg: string; color: string }> = {
     open: { bg: '#dbeafe', color: '#1e40af' },
     in_progress: { bg: '#fef3c7', color: '#92400e' },
     waiting_for_user: { bg: '#e0e7ff', color: '#4338ca' },
@@ -312,7 +312,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     escalated: { bg: '#fee2e2', color: '#991b1b' },
   };
 
-  const priorityColorMap = {
+  const priorityColorMap: Record<string, { bg: string; color: string }> = {
     low: { bg: '#f3f4f6', color: '#374151' },
     normal: { bg: '#dbeafe', color: '#1e40af' },
     high: { bg: '#fef3c7', color: '#92400e' },

@@ -268,7 +268,16 @@ const Support: React.FC = () => {
       priority?: TicketPriority;
       category?: TicketCategory;
       search?: string;
-    } = {};
+      page: number;
+      limit: number;
+      sortBy: 'createdAt' | 'updatedAt' | 'priority' | 'dueDate';
+      sortOrder: 'asc' | 'desc';
+    } = {
+      page: 1,
+      limit: 20,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+    };
 
     if (statusFilter !== 'all') apiFilters.status = statusFilter as TicketStatus;
     if (priorityFilter !== 'all') apiFilters.priority = priorityFilter as TicketPriority;

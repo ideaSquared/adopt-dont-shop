@@ -1011,17 +1011,17 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
         <ActionBar>
           <Button
             variant='secondary'
-            icon={<FiArchive />}
+            leftIcon={<FiArchive />}
             onClick={handleArchiveChat}
             disabled={conversation?.status === 'archived'}
           >
             Archive
           </Button>
-          <Button variant='danger' icon={<FiTrash2 />} onClick={handleDeleteChat}>
+          <Button variant='danger' leftIcon={<FiTrash2 />} onClick={handleDeleteChat}>
             Delete
           </Button>
           <div style={{ marginLeft: 'auto' }}>
-            <Button variant='secondary' icon={<FiX />} onClick={onClose}>
+            <Button variant='secondary' leftIcon={<FiX />} onClick={onClose}>
               Close
             </Button>
           </div>
