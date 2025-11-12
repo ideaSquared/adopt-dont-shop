@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { Response, NextFunction } from 'express';
 import { UserType } from '../../models/User';
 import {
@@ -24,13 +25,13 @@ describe('RBAC Middleware', () => {
       params: {},
     };
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
 
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('requireRole - Role-based access control', () => {

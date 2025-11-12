@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 interface FileUploadAttributes {
@@ -48,7 +48,7 @@ class FileUpload
 FileUpload.init(
   {
     upload_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       defaultValue: () => uuidv4(),
       primaryKey: true,
     },
@@ -140,7 +140,7 @@ FileUpload.init(
       },
     },
     metadata: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
       validate: {

@@ -1,16 +1,20 @@
-// Mock csrf-csrf library
-const mockGenerateToken = jest.fn();
-const mockDoubleCsrfProtection = jest.fn();
+import { vi } from 'vitest';
 
-jest.mock('csrf-csrf', () => ({
-  doubleCsrf: jest.fn(() => ({
-    generateCsrfToken: mockGenerateToken,
-    doubleCsrfProtection: mockDoubleCsrfProtection,
-  })),
-}));
+// Mock csrf-csrf library
+vi.mock('csrf-csrf', () => {
+  const mockGenerateToken = vi.fn();
+  const mockDoubleCsrfProtection = vi.fn();
+
+  return {
+    doubleCsrf: vi.fn(() => ({
+      generateCsrfToken: mockGenerateToken,
+      doubleCsrfProtection: mockDoubleCsrfProtection,
+    })),
+  };
+});
 
 // Mock config
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     security: {
       csrfSecret: 'test-csrf-secret-with-32-characters-minimum',
@@ -26,6 +30,11 @@ import {
   csrfErrorHandler,
 } from '../../middleware/csrf';
 import { logger } from '../../utils/logger';
+import { doubleCsrf } from 'csrf-csrf';
+
+// Get references to the mocked functions
+const { generateCsrfToken: mockGenerateToken, doubleCsrfProtection: mockDoubleCsrfProtection } =
+  (doubleCsrf as ReturnType<typeof vi.fn>)();
 
 describe('CSRF Middleware', () => {
   let mockRequest: Partial<Request>;
@@ -43,14 +52,14 @@ describe('CSRF Middleware', () => {
     };
     mockResponse = {
       locals: {},
-      setHeader: jest.fn(),
-      json: jest.fn(),
-      status: jest.fn().mockReturnThis(),
+      setHeader: vi.fn(),
+      json: vi.fn(),
+      status: vi.fn().mockReturnThis(),
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
 
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('csrfTokenGenerator - Token generation middleware', () => {
@@ -148,7 +157,7 @@ describe('CSRF Middleware', () => {
           csrfToken: firstToken,
         });
 
-        jest.clearAllMocks();
+        vi.clearAllMocks();
 
         mockGenerateToken.mockReturnValueOnce(secondToken);
         getCsrfToken(mockRequest as Request, mockResponse as Response, mockNext);

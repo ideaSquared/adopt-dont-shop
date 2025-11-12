@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { Response } from 'express';
 import { UserController } from '../../controllers/user.controller';
 import { UserType } from '../../models/User';
@@ -6,16 +7,16 @@ import { AuthenticatedRequest } from '../../types';
 import { logger } from '../../utils/logger';
 
 // Mock dependencies
-jest.mock('../../services/user.service');
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../services/user.service');
+vi.mock('../../utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
-const MockedUserService = UserService as jest.Mocked<typeof UserService>;
+const MockedUserService = UserService as vi.Mocked<typeof UserService>;
 
 describe('UserController', () => {
   let req: Partial<AuthenticatedRequest>;
@@ -23,7 +24,7 @@ describe('UserController', () => {
   let controller: UserController;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     req = {
       user: {
@@ -38,9 +39,9 @@ describe('UserController', () => {
     };
 
     res = {
-      json: jest.fn().mockReturnThis(),
-      status: jest.fn().mockReturnThis(),
-      clearCookie: jest.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
+      clearCookie: vi.fn().mockReturnThis(),
     };
 
     controller = new UserController();
@@ -51,7 +52,7 @@ describe('UserController', () => {
       const reason = 'No longer need the service';
       req.body = { reason };
 
-      MockedUserService.deleteAccount = jest.fn().mockResolvedValue(undefined);
+      MockedUserService.deleteAccount = vi.fn().mockResolvedValue(undefined);
 
       await controller.deleteAccount(req as AuthenticatedRequest, res as Response);
 
@@ -66,7 +67,7 @@ describe('UserController', () => {
     it('should delete user account without reason', async () => {
       req.body = {};
 
-      MockedUserService.deleteAccount = jest.fn().mockResolvedValue(undefined);
+      MockedUserService.deleteAccount = vi.fn().mockResolvedValue(undefined);
 
       await controller.deleteAccount(req as AuthenticatedRequest, res as Response);
 
@@ -81,7 +82,7 @@ describe('UserController', () => {
     it('should handle user not found error', async () => {
       req.body = { reason: 'Test' };
 
-      MockedUserService.deleteAccount = jest.fn().mockRejectedValue(new Error('User not found'));
+      MockedUserService.deleteAccount = vi.fn().mockRejectedValue(new Error('User not found'));
 
       await controller.deleteAccount(req as AuthenticatedRequest, res as Response);
 
@@ -94,7 +95,7 @@ describe('UserController', () => {
     it('should handle general deletion errors', async () => {
       req.body = { reason: 'Test' };
 
-      MockedUserService.deleteAccount = jest.fn().mockRejectedValue(new Error('Database error'));
+      MockedUserService.deleteAccount = vi.fn().mockRejectedValue(new Error('Database error'));
 
       await controller.deleteAccount(req as AuthenticatedRequest, res as Response);
 
@@ -109,7 +110,7 @@ describe('UserController', () => {
       req.body = { reason: 'Test' };
 
       // This would cause the service to be called with undefined, leading to an error
-      MockedUserService.deleteAccount = jest.fn().mockRejectedValue(new Error('Invalid user'));
+      MockedUserService.deleteAccount = vi.fn().mockRejectedValue(new Error('Invalid user'));
 
       await controller.deleteAccount(req as AuthenticatedRequest, res as Response);
 
@@ -122,7 +123,7 @@ describe('UserController', () => {
     it('should log successful deletion', async () => {
       req.body = { reason: 'Test' };
 
-      MockedUserService.deleteAccount = jest.fn().mockResolvedValue(undefined);
+      MockedUserService.deleteAccount = vi.fn().mockResolvedValue(undefined);
 
       await controller.deleteAccount(req as AuthenticatedRequest, res as Response);
 
@@ -139,7 +140,7 @@ describe('UserController', () => {
       req.body = { reason: 'Test' };
 
       const error = new Error('Service error');
-      MockedUserService.deleteAccount = jest.fn().mockRejectedValue(error);
+      MockedUserService.deleteAccount = vi.fn().mockRejectedValue(error);
 
       await controller.deleteAccount(req as AuthenticatedRequest, res as Response);
 

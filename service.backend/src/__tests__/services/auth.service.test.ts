@@ -44,10 +44,10 @@ describe('AuthService', () => {
     };
 
     // Mock bcrypt hash globally for all tests
-    mockedBcrypt.hash = jest
-      .fn()
-      .mockImplementation((password: string) => Promise.resolve(`hashed_${password}` as never));
-    mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+    mockedBcrypt.hash = vi.fn().mockImplementation((password: string) =>
+      Promise.resolve(`hashed_${password}` as never)
+    );
+    mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
     // Mock crypto for verification tokens
     const mockCrypto = crypto as jest.Mocked<typeof crypto>;

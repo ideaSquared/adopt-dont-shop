@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 export enum TemplateType {
@@ -323,9 +323,8 @@ EmailTemplate.init(
       field: 'text_content',
     },
     variables: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidVariables(value: TemplateVariable[]) {
           if (!Array.isArray(value)) {
@@ -340,7 +339,7 @@ EmailTemplate.init(
       },
     },
     metadata: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
     },
@@ -362,9 +361,8 @@ EmailTemplate.init(
       },
     },
     versions: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
     },
     currentVersion: {
       type: DataTypes.INTEGER,
@@ -391,9 +389,29 @@ EmailTemplate.init(
       },
     },
     tags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: false,
-      defaultValue: [],
+      defaultValue: process.env.NODE_ENV === 'test' ? '[]' : [],
+      get() {
+        const rawValue = this.getDataValue('tags');
+        // In SQLite, arrays are stored as JSON strings
+        if (typeof rawValue === 'string') {
+          try {
+            return JSON.parse(rawValue);
+          } catch {
+            return [];
+          }
+        }
+        return rawValue || [];
+      },
+      set(value: string[]) {
+        // In SQLite, store as JSON string
+        if (process.env.NODE_ENV === 'test') {
+          this.setDataValue('tags', JSON.stringify(value || []) as any);
+        } else {
+          this.setDataValue('tags', value || [] as any);
+        }
+      },
     },
     createdBy: {
       type: DataTypes.STRING,

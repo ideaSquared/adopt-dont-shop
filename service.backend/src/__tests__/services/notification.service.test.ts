@@ -7,6 +7,51 @@ jest.mock('../../sequelize', () => ({
   },
 }));
 
+// Mock EmailQueue to prevent initialization errors
+jest.mock('../../models/EmailQueue', () => ({
+  __esModule: true,
+  default: {
+    create: jest.fn(),
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    build: jest.fn(),
+  },
+  EmailStatus: {
+    QUEUED: 'queued',
+    SENDING: 'sending',
+    SENT: 'sent',
+    FAILED: 'failed',
+  },
+  EmailPriority: {
+    NORMAL: 'normal',
+    HIGH: 'high',
+  },
+  EmailType: {
+    TRANSACTIONAL: 'transactional',
+    NOTIFICATION: 'notification',
+  },
+}));
+
+// Mock EmailTemplate to prevent initialization errors
+jest.mock('../../models/EmailTemplate', () => ({
+  __esModule: true,
+  default: {
+    create: jest.fn(),
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+  },
+  TemplateType: {
+    TRANSACTIONAL: 'transactional',
+    NOTIFICATION: 'notification',
+  },
+  TemplateStatus: {
+    ACTIVE: 'active',
+    DRAFT: 'draft',
+  },
+}));
+
 // Mock models
 jest.mock('../../models/Notification', () => {
   const mockNotification = {
@@ -193,7 +238,7 @@ describe('NotificationService', () => {
         expect(MockedNotification.findAndCountAll).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              userId: 'user-123',
+              user_id: 'user-123',
               read_at: null,
             }),
             limit: 10,
@@ -381,7 +426,7 @@ describe('NotificationService', () => {
           message: 'Check out our new feature!',
         };
 
-        (MockedNotification.create as jest.Mock).mockImplementation(data =>
+        (MockedNotification.create as vi.Mock).mockImplementation((data) =>
           Promise.resolve({
             notificationId: `notif-${data.user_id}`,
             ...data,

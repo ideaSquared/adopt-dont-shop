@@ -1,30 +1,45 @@
+import { vi } from 'vitest';
+
 // Mock jsonwebtoken with error classes
-class JsonWebTokenError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'JsonWebTokenError';
+vi.mock('jsonwebtoken', () => {
+  class JsonWebTokenError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'JsonWebTokenError';
+    }
   }
-}
 
-class TokenExpiredError extends Error {
-  expiredAt: Date;
-  constructor(message: string, expiredAt: Date) {
-    super(message);
-    this.name = 'TokenExpiredError';
-    this.expiredAt = expiredAt;
+  class TokenExpiredError extends Error {
+    expiredAt: Date;
+    constructor(message: string, expiredAt: Date) {
+      super(message);
+      this.name = 'TokenExpiredError';
+      this.expiredAt = expiredAt;
+    }
   }
-}
 
-jest.mock('jsonwebtoken', () => ({
-  sign: jest.fn(),
-  verify: jest.fn(),
-  decode: jest.fn(),
-  JsonWebTokenError,
-  TokenExpiredError,
-}));
+  const sign = vi.fn();
+  const verify = vi.fn();
+  const decode = vi.fn();
+
+  return {
+    default: {
+      sign,
+      verify,
+      decode,
+      JsonWebTokenError,
+      TokenExpiredError,
+    },
+    sign,
+    verify,
+    decode,
+    JsonWebTokenError,
+    TokenExpiredError,
+  };
+});
 
 // Mock env config before it's imported
-jest.mock('../../config/env', () => ({
+vi.mock('../../config/env', () => ({
   env: {
     NODE_ENV: 'test',
     PORT: 3000,
@@ -43,43 +58,64 @@ jest.mock('../../config/env', () => ({
   },
 }));
 
-// Mock Role and Permission models before they are imported
-jest.mock('../../models/Role', () => ({
+// Mock User model before it is imported
+vi.mock('../../models/User', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    belongsToMany: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    belongsToMany: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
-jest.mock('../../models/Permission', () => ({
+// Mock Role and Permission models before they are imported
+vi.mock('../../models/Role', () => ({
   __esModule: true,
   default: {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    findAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
-    count: jest.fn(),
-    hasMany: jest.fn(),
-    belongsTo: jest.fn(),
-    belongsToMany: jest.fn(),
-    associate: jest.fn(),
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    belongsToMany: vi.fn(),
+    associate: vi.fn(),
+  },
+}));
+
+vi.mock('../../models/Permission', () => ({
+  __esModule: true,
+  default: {
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    belongsToMany: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+// Import error classes from mocked jwt
+const { JsonWebTokenError, TokenExpiredError } = jwt;
+
 import {
   authenticateToken,
   optionalAuth,
@@ -109,13 +145,13 @@ describe('Authentication Middleware', () => {
       }) as AuthenticatedRequest['get'],
     };
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
 
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('authenticateToken - Required authentication', () => {
@@ -181,7 +217,7 @@ describe('Authentication Middleware', () => {
     describe('when token is invalid', () => {
       it('should reject invalid JWT format and return 401', async () => {
         mockRequest.headers = { authorization: 'Bearer invalid-token' };
-        (jwt.verify as jest.Mock).mockImplementation(() => {
+        (jwt.verify as vi.Mock).mockImplementation(() => {
           throw new JsonWebTokenError('invalid token');
         });
 
@@ -207,7 +243,7 @@ describe('Authentication Middleware', () => {
 
       it('should reject malformed JWT signature', async () => {
         mockRequest.headers = { authorization: 'Bearer malformed.jwt.token' };
-        (jwt.verify as jest.Mock).mockImplementation(() => {
+        (jwt.verify as vi.Mock).mockImplementation(() => {
           throw new JsonWebTokenError('invalid signature');
         });
 
@@ -227,7 +263,7 @@ describe('Authentication Middleware', () => {
     describe('when token is expired', () => {
       it('should reject expired tokens and return 401', async () => {
         mockRequest.headers = { authorization: 'Bearer expired-token' };
-        (jwt.verify as jest.Mock).mockImplementation(() => {
+        (jwt.verify as vi.Mock).mockImplementation(() => {
           throw new TokenExpiredError('jwt expired', new Date());
         });
 
@@ -260,8 +296,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(null);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(null);
 
         await authenticateToken(
           mockRequest as AuthenticatedRequest,
@@ -290,8 +326,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(null);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(null);
 
         await authenticateToken(
           mockRequest as AuthenticatedRequest,
@@ -326,8 +362,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await authenticateToken(
           mockRequest as AuthenticatedRequest,
@@ -363,8 +399,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await authenticateToken(
           mockRequest as AuthenticatedRequest,
@@ -393,8 +429,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await authenticateToken(
           mockRequest as AuthenticatedRequest,
@@ -428,8 +464,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await authenticateToken(
           mockRequest as AuthenticatedRequest,
@@ -453,8 +489,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await authenticateToken(
           mockRequest as AuthenticatedRequest,
@@ -476,7 +512,7 @@ describe('Authentication Middleware', () => {
     describe('when unexpected errors occur', () => {
       it('should return 500 for unexpected errors', async () => {
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockImplementation(() => {
+        (jwt.verify as vi.Mock).mockImplementation(() => {
           throw new Error('Unexpected error');
         });
 
@@ -496,7 +532,7 @@ describe('Authentication Middleware', () => {
       it('should log unexpected errors with security context', async () => {
         mockRequest.headers = { authorization: 'Bearer valid-token' };
         const unexpectedError = new Error('Database connection failed');
-        (jwt.verify as jest.Mock).mockImplementation(() => {
+        (jwt.verify as vi.Mock).mockImplementation(() => {
           throw unexpectedError;
         });
 
@@ -535,7 +571,7 @@ describe('Authentication Middleware', () => {
     describe('when token is invalid', () => {
       it('should continue without authentication on invalid token', async () => {
         mockRequest.headers = { authorization: 'Bearer invalid-token' };
-        (jwt.verify as jest.Mock).mockImplementation(() => {
+        (jwt.verify as vi.Mock).mockImplementation(() => {
           throw new JsonWebTokenError('invalid token');
         });
 
@@ -561,8 +597,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(null);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(null);
 
         await optionalAuth(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
@@ -586,8 +622,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await optionalAuth(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
@@ -611,8 +647,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await optionalAuth(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
@@ -649,7 +685,7 @@ describe('Authentication Middleware', () => {
     describe('when token verification fails', () => {
       it('should continue without authentication', async () => {
         mockRequest.headers = { authorization: 'Bearer invalid-token' };
-        (jwt.verify as jest.Mock).mockImplementation(() => {
+        (jwt.verify as vi.Mock).mockImplementation(() => {
           throw new JsonWebTokenError('invalid token');
         });
 
@@ -678,8 +714,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(null);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(null);
 
         await authenticateOptionalToken(
           mockRequest as AuthenticatedRequest,
@@ -707,8 +743,8 @@ describe('Authentication Middleware', () => {
         };
 
         mockRequest.headers = { authorization: 'Bearer valid-token' };
-        (jwt.verify as jest.Mock).mockReturnValue(payload);
-        (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
 
         await authenticateOptionalToken(
           mockRequest as AuthenticatedRequest,

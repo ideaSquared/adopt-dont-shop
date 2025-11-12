@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 
 // Timeline Event Types
 export enum TimelineEventType {
@@ -73,17 +73,14 @@ class ApplicationTimeline
 ApplicationTimeline.init(
   {
     timeline_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
     application_id: {
       type: DataTypes.STRING,
       allowNull: false,
-      references: {
-        model: 'applications',
-        key: 'application_id',
-      },
+      // Note: Foreign key constraint managed by associations, not model definition
     },
     event_type: {
       type: DataTypes.ENUM(...Object.values(TimelineEventType)),
@@ -98,16 +95,13 @@ ApplicationTimeline.init(
       allowNull: true,
     },
     metadata: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
     },
     created_by: {
       type: DataTypes.STRING,
       allowNull: true,
-      references: {
-        model: 'users',
-        key: 'user_id',
-      },
+      // Note: Foreign key constraint managed by associations, not model definition
     },
     created_by_system: {
       type: DataTypes.BOOLEAN,

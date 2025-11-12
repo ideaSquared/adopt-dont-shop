@@ -1,9 +1,10 @@
+import { vi } from 'vitest';
 // Mock logger before importing error handler
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../utils/logger', () => ({
   logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -24,16 +25,16 @@ describe('Error Handler Middleware', () => {
       path: '/api/test',
     };
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
 
     // Store original NODE_ENV
     originalNodeEnv = process.env.NODE_ENV;
 
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -117,7 +118,7 @@ describe('Error Handler Middleware', () => {
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-      const jsonCall = (mockResponse.json as jest.Mock).mock.calls[0][0];
+      const jsonCall = (mockResponse.json as vi.Mock).mock.calls[0][0];
       expect(jsonCall.stack).toBeUndefined();
     });
 
@@ -298,7 +299,7 @@ describe('Error Handler Middleware', () => {
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-      const jsonCall = (mockResponse.json as jest.Mock).mock.calls[0][0];
+      const jsonCall = (mockResponse.json as vi.Mock).mock.calls[0][0];
       expect(jsonCall.stack).toBeUndefined();
     });
 
@@ -357,7 +358,7 @@ describe('Error Handler Middleware', () => {
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-      const jsonCall = (mockResponse.json as jest.Mock).mock.calls[0][0];
+      const jsonCall = (mockResponse.json as vi.Mock).mock.calls[0][0];
       expect(jsonCall.status).toBe('error');
     });
 
@@ -366,7 +367,7 @@ describe('Error Handler Middleware', () => {
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-      const jsonCall = (mockResponse.json as jest.Mock).mock.calls[0][0];
+      const jsonCall = (mockResponse.json as vi.Mock).mock.calls[0][0];
       expect(jsonCall.code).toBe(404);
     });
 
@@ -375,7 +376,7 @@ describe('Error Handler Middleware', () => {
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-      const jsonCall = (mockResponse.json as jest.Mock).mock.calls[0][0];
+      const jsonCall = (mockResponse.json as vi.Mock).mock.calls[0][0];
       expect(jsonCall.message).toBeDefined();
     });
   });

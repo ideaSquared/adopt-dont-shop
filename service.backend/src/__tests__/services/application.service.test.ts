@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Application Service - Business Logic Tests
  *
@@ -12,9 +13,9 @@ import User, { UserType } from '../../models/User';
 import { CreateApplicationRequest, ApplicationStatusUpdateRequest } from '../../types/application';
 
 // Cast models to mocked versions
-const MockedApplication = Application as jest.Mocked<typeof Application>;
-const MockedPet = Pet as jest.Mocked<typeof Pet>;
-const MockedUser = User as jest.Mocked<typeof User>;
+const MockedApplication = Application as vi.Mocked<typeof Application>;
+const MockedPet = Pet as vi.Mocked<typeof Pet>;
+const MockedUser = User as vi.Mocked<typeof User>;
 
 describe('ApplicationService - Business Logic', () => {
   // Test data
@@ -30,7 +31,7 @@ describe('ApplicationService - Business Logic', () => {
     lastName: 'Doe',
     userType: UserType.ADOPTER,
     status: 'active',
-    toJSON: jest.fn().mockReturnThis(),
+    toJSON: vi.fn().mockReturnThis(),
     ...overrides,
   });
 
@@ -42,7 +43,7 @@ describe('ApplicationService - Business Logic', () => {
     status: PetStatus.AVAILABLE,
     rescueId: mockRescueId,
     rescue_id: mockRescueId, // snake_case for database field
-    toJSON: jest.fn().mockReturnThis(),
+    toJSON: vi.fn().mockReturnThis(),
     ...overrides,
   });
 
@@ -64,12 +65,12 @@ describe('ApplicationService - Business Logic', () => {
     ],
     priority: ApplicationPriority.NORMAL,
     submitted_at: new Date(),
-    update: jest.fn().mockResolvedValue(true),
-    reload: jest.fn().mockResolvedValue(true),
-    save: jest.fn().mockResolvedValue(true),
-    destroy: jest.fn().mockResolvedValue(true),
-    toJSON: jest.fn().mockReturnThis(),
-    canTransitionTo: jest.fn(),
+    update: vi.fn().mockResolvedValue(true),
+    reload: vi.fn().mockResolvedValue(true),
+    save: vi.fn().mockResolvedValue(true),
+    destroy: vi.fn().mockResolvedValue(true),
+    toJSON: vi.fn().mockReturnThis(),
+    canTransitionTo: vi.fn(),
     ...overrides,
   });
 
@@ -95,7 +96,7 @@ describe('ApplicationService - Business Logic', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Business Rule: Application Creation', () => {
@@ -106,10 +107,10 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication();
       const request = createValidApplicationRequest();
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-      MockedApplication.findOne = jest.fn().mockResolvedValue(null); // No duplicate
-      MockedApplication.create = jest.fn().mockResolvedValue(mockApplication);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(null); // No duplicate
+      MockedApplication.create = vi.fn().mockResolvedValue(mockApplication);
 
       // When: User creates application
       const result = await ApplicationService.createApplication(request, mockUserId);
@@ -144,9 +145,9 @@ describe('ApplicationService - Business Logic', () => {
       const existingApplication = createMockApplication();
       const request = createValidApplicationRequest();
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-      MockedApplication.findOne = jest.fn().mockResolvedValue(existingApplication);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(existingApplication);
 
       // When & Then: Duplicate application is rejected
       await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
@@ -162,8 +163,8 @@ describe('ApplicationService - Business Logic', () => {
       const mockPet = createMockPet({ status: PetStatus.ADOPTED });
       const request = createValidApplicationRequest();
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When & Then: Application is rejected
       await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
@@ -177,7 +178,7 @@ describe('ApplicationService - Business Logic', () => {
       // Given: User does not exist
       const request = createValidApplicationRequest();
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(null);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
       // When & Then: Application is rejected
       await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
@@ -190,8 +191,8 @@ describe('ApplicationService - Business Logic', () => {
       const mockUser = createMockUser();
       const request = createValidApplicationRequest();
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(null);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
       // When & Then: Application is rejected
       await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
@@ -204,9 +205,9 @@ describe('ApplicationService - Business Logic', () => {
     it('allows SUBMITTED → APPROVED transition', async () => {
       // Given: Application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(true);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Rescue approves application
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -231,9 +232,9 @@ describe('ApplicationService - Business Logic', () => {
     it('allows SUBMITTED → REJECTED transition with reason', async () => {
       // Given: Application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(true);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Rescue rejects application
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -260,9 +261,9 @@ describe('ApplicationService - Business Logic', () => {
     it('prevents APPROVED → REJECTED transition', async () => {
       // Given: Application already APPROVED
       const mockApplication = createMockApplication(ApplicationStatus.APPROVED);
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(false);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(false);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When & Then: Cannot reverse approval
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -284,9 +285,9 @@ describe('ApplicationService - Business Logic', () => {
     it('prevents REJECTED → APPROVED transition', async () => {
       // Given: Application already REJECTED
       const mockApplication = createMockApplication(ApplicationStatus.REJECTED);
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(false);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(false);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When & Then: Cannot reverse rejection
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -308,9 +309,9 @@ describe('ApplicationService - Business Logic', () => {
     it('allows SUBMITTED → WITHDRAWN transition by adopter', async () => {
       // Given: Application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(true);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Adopter withdraws application
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -335,9 +336,9 @@ describe('ApplicationService - Business Logic', () => {
     it('prevents APPROVED → WITHDRAWN transition', async () => {
       // Given: Application already APPROVED
       const mockApplication = createMockApplication(ApplicationStatus.APPROVED);
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(false);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(false);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When & Then: Cannot withdraw approved application
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -357,7 +358,7 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
       mockApplication.user_id = mockUserId;
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When: User updates answers
       const updates = {
@@ -382,7 +383,7 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication(ApplicationStatus.APPROVED);
       mockApplication.user_id = mockUserId;
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When & Then: Update is rejected
       const updates = { answers: { experience: 'New info' } };
@@ -399,7 +400,7 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication(ApplicationStatus.REJECTED);
       mockApplication.user_id = mockUserId;
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When & Then: Update is rejected
       const updates = { answers: { experience: 'New info' } };
@@ -416,7 +417,7 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
       mockApplication.user_id = 'other-user-456';
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When & Then: Update is rejected
       const updates = { answers: { experience: 'Hacked!' } };
@@ -435,7 +436,7 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication();
       mockApplication.user_id = mockUserId;
 
-      MockedApplication.findOne = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
 
       // When: User requests their application
       const result = await ApplicationService.getApplicationById(
@@ -460,7 +461,7 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication();
       mockApplication.user_id = 'other-user-456';
 
-      MockedApplication.findOne = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
 
       // When & Then: Access denied
       await expect(
@@ -473,7 +474,7 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication();
       mockApplication.rescue_id = mockRescueId;
 
-      MockedApplication.findOne = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Rescue staff views application
       const result = await ApplicationService.getApplicationById(
@@ -490,7 +491,7 @@ describe('ApplicationService - Business Logic', () => {
       // Given: Any application
       const mockApplication = createMockApplication();
 
-      MockedApplication.findOne = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Admin views application
       const result = await ApplicationService.getApplicationById(
@@ -512,10 +513,10 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication();
       const request = createValidApplicationRequest();
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-      MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-      MockedApplication.create = jest.fn().mockResolvedValue(mockApplication);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+      MockedApplication.create = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Application is created
       await ApplicationService.createApplication(request, mockUserId);
@@ -534,16 +535,16 @@ describe('ApplicationService - Business Logic', () => {
       const mockPet = createMockPet();
       const mockApplication = createMockApplication();
       mockApplication.submitted_at = new Date();
-      mockApplication.toJSON = jest.fn().mockReturnValue({
+      mockApplication.toJSON = vi.fn().mockReturnValue({
         ...mockApplication,
         submitted_at: mockApplication.submitted_at,
       });
       const request = createValidApplicationRequest();
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-      MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-      MockedApplication.create = jest.fn().mockResolvedValue(mockApplication);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+      MockedApplication.create = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Application is created
       const result = await ApplicationService.createApplication(request, mockUserId);
@@ -556,9 +557,9 @@ describe('ApplicationService - Business Logic', () => {
     it('sets decision_at timestamp when application is approved', async () => {
       // Given: Application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(true);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Application is approved
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -583,9 +584,9 @@ describe('ApplicationService - Business Logic', () => {
     it('sets decision_at timestamp when application is rejected', async () => {
       // Given: Application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(true);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Application is rejected
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -615,10 +616,10 @@ describe('ApplicationService - Business Logic', () => {
       const mockApplication = createMockApplication();
       const request = createValidApplicationRequest();
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-      MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-      MockedApplication.create = jest.fn().mockResolvedValue(mockApplication);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+      MockedApplication.create = vi.fn().mockResolvedValue(mockApplication);
 
       // When: Application is created
       await ApplicationService.createApplication(request, mockUserId);
@@ -637,9 +638,9 @@ describe('ApplicationService - Business Logic', () => {
       // Given: User owns application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
       mockApplication.user_id = mockUserId;
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(true);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When: User withdraws application
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -665,9 +666,9 @@ describe('ApplicationService - Business Logic', () => {
       // Given: Application is APPROVED
       const mockApplication = createMockApplication(ApplicationStatus.APPROVED);
       mockApplication.user_id = mockUserId;
-      (mockApplication.canTransitionTo as jest.Mock).mockReturnValue(false);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(false);
 
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(mockApplication);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
       // When & Then: Withdrawal is rejected
       const updateRequest: ApplicationStatusUpdateRequest = {
@@ -686,7 +687,7 @@ describe('ApplicationService - Business Logic', () => {
   describe('Error Handling', () => {
     it('throws error when application not found', async () => {
       // Given: Application does not exist
-      MockedApplication.findByPk = jest.fn().mockResolvedValue(null);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(null);
 
       // When & Then: Error is thrown
       await expect(
@@ -704,10 +705,10 @@ describe('ApplicationService - Business Logic', () => {
       const mockPet = createMockPet();
       const request = createValidApplicationRequest();
 
-      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
-      MockedPet.findByPk = jest.fn().mockResolvedValue(mockPet);
-      MockedApplication.findOne = jest.fn().mockResolvedValue(null);
-      MockedApplication.create = jest.fn().mockRejectedValue(new Error('Database error'));
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+      MockedApplication.create = vi.fn().mockRejectedValue(new Error('Database error'));
 
       // When & Then: Error is propagated
       await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(

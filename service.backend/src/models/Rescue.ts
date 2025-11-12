@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 
 interface RescueAttributes {
   rescueId: string;
@@ -74,7 +74,7 @@ class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implement
 Rescue.init(
   {
     rescueId: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       primaryKey: true,
       defaultValue: DataTypes.UUIDV4,
       field: 'rescue_id',
@@ -187,7 +187,7 @@ Rescue.init(
       },
     },
     settings: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       defaultValue: {},
     },

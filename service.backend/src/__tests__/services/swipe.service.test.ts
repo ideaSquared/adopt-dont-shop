@@ -1,23 +1,24 @@
+import { vi } from 'vitest';
 import sequelize from '../../sequelize';
 import { SwipeAction, SwipeService } from '../../services/swipe.service';
 
 // Mock dependencies
-jest.mock('../../sequelize');
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../sequelize');
+vi.mock('../../utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
-const mockSequelize = sequelize as jest.Mocked<typeof sequelize>;
+const mockSequelize = sequelize as vi.Mocked<typeof sequelize>;
 
 describe('SwipeService', () => {
   let swipeService: SwipeService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     swipeService = new SwipeService(true); // Skip table creation in tests
   });
 
@@ -31,7 +32,7 @@ describe('SwipeService', () => {
     };
 
     it('should record swipe action successfully', async () => {
-      mockSequelize.query = jest.fn().mockResolvedValue([]);
+      mockSequelize.query = vi.fn().mockResolvedValue([]);
 
       await swipeService.recordSwipeAction(mockSwipeAction);
 
@@ -51,7 +52,7 @@ describe('SwipeService', () => {
 
     it('should record swipe action without userId', async () => {
       const actionWithoutUser = { ...mockSwipeAction, userId: undefined };
-      mockSequelize.query = jest.fn().mockResolvedValue([]);
+      mockSequelize.query = vi.fn().mockResolvedValue([]);
 
       await swipeService.recordSwipeAction(actionWithoutUser);
 
@@ -70,7 +71,7 @@ describe('SwipeService', () => {
     });
 
     it('should update user preferences for like action', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([]) // First call for inserting swipe action
         .mockResolvedValueOnce([
@@ -116,7 +117,7 @@ describe('SwipeService', () => {
 
     it('should update user preferences for super_like action with higher weight', async () => {
       const superLikeAction = { ...mockSwipeAction, action: 'super_like' as const };
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
@@ -147,7 +148,7 @@ describe('SwipeService', () => {
 
     it('should not update preferences for pass action', async () => {
       const passAction = { ...mockSwipeAction, action: 'pass' as const };
-      mockSequelize.query = jest.fn().mockResolvedValue([]);
+      mockSequelize.query = vi.fn().mockResolvedValue([]);
 
       await swipeService.recordSwipeAction(passAction);
 
@@ -155,7 +156,7 @@ describe('SwipeService', () => {
     });
 
     it('should handle error when recording swipe action fails', async () => {
-      mockSequelize.query = jest.fn().mockRejectedValue(new Error('Database error'));
+      mockSequelize.query = vi.fn().mockRejectedValue(new Error('Database error'));
 
       await expect(swipeService.recordSwipeAction(mockSwipeAction)).rejects.toThrow(
         'Failed to record swipe action'
@@ -163,7 +164,7 @@ describe('SwipeService', () => {
     });
 
     it('should continue if preference update fails', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([]) // Insert swipe action succeeds
         .mockResolvedValueOnce([[{ type: 'dog', breed: 'Golden Retriever' }]]) // Get pet details succeeds
@@ -199,7 +200,7 @@ describe('SwipeService', () => {
     const mockSessionData = [{ avg_session_length: 15.5 }];
 
     it('should get user swipe stats successfully', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([mockStatsData])
         .mockResolvedValueOnce([mockBreedData])
@@ -239,7 +240,7 @@ describe('SwipeService', () => {
         },
       ];
 
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([emptyStats])
         .mockResolvedValueOnce([[]])
@@ -266,7 +267,7 @@ describe('SwipeService', () => {
         },
       ];
 
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([nullStats])
         .mockResolvedValueOnce([[]])
@@ -284,7 +285,7 @@ describe('SwipeService', () => {
     });
 
     it('should handle error when getting user stats fails', async () => {
-      mockSequelize.query = jest.fn().mockRejectedValue(new Error('Database error'));
+      mockSequelize.query = vi.fn().mockRejectedValue(new Error('Database error'));
 
       await expect(swipeService.getUserSwipeStats('user123')).rejects.toThrow(
         'Failed to get user swipe statistics'
@@ -308,7 +309,7 @@ describe('SwipeService', () => {
     ];
 
     it('should get session stats successfully', async () => {
-      mockSequelize.query = jest.fn().mockResolvedValue([mockSessionData]);
+      mockSequelize.query = vi.fn().mockResolvedValue([mockSessionData]);
 
       const result = await swipeService.getSessionStats('session123');
 
@@ -330,7 +331,7 @@ describe('SwipeService', () => {
     });
 
     it('should throw error when session not found', async () => {
-      mockSequelize.query = jest.fn().mockResolvedValue([[]]);
+      mockSequelize.query = vi.fn().mockResolvedValue([[]]);
 
       await expect(swipeService.getSessionStats('nonexistent')).rejects.toThrow(
         'Failed to get session statistics'
@@ -345,7 +346,7 @@ describe('SwipeService', () => {
         },
       ];
 
-      mockSequelize.query = jest.fn().mockResolvedValue([sessionDataWithNullDuration]);
+      mockSequelize.query = vi.fn().mockResolvedValue([sessionDataWithNullDuration]);
 
       const result = await swipeService.getSessionStats('session123');
 
@@ -353,7 +354,7 @@ describe('SwipeService', () => {
     });
 
     it('should handle error when getting session stats fails', async () => {
-      mockSequelize.query = jest.fn().mockRejectedValue(new Error('Database error'));
+      mockSequelize.query = vi.fn().mockRejectedValue(new Error('Database error'));
 
       await expect(swipeService.getSessionStats('session123')).rejects.toThrow(
         'Failed to get session statistics'
@@ -371,7 +372,7 @@ describe('SwipeService', () => {
     ];
 
     it('should get user preferences successfully', async () => {
-      mockSequelize.query = jest.fn().mockResolvedValue([mockPreferences]);
+      mockSequelize.query = vi.fn().mockResolvedValue([mockPreferences]);
 
       const result = await swipeService.getUserPreferences('user123');
 
@@ -394,7 +395,7 @@ describe('SwipeService', () => {
     });
 
     it('should return empty object when no preferences found', async () => {
-      mockSequelize.query = jest.fn().mockResolvedValue([[]]);
+      mockSequelize.query = vi.fn().mockResolvedValue([[]]);
 
       const result = await swipeService.getUserPreferences('user123');
 
@@ -402,7 +403,7 @@ describe('SwipeService', () => {
     });
 
     it('should return empty object on database error', async () => {
-      mockSequelize.query = jest.fn().mockRejectedValue(new Error('Database error'));
+      mockSequelize.query = vi.fn().mockRejectedValue(new Error('Database error'));
 
       const result = await swipeService.getUserPreferences('user123');
 
@@ -426,7 +427,7 @@ describe('SwipeService', () => {
     ];
 
     it('should update user preferences for like action', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([mockPetData])
@@ -459,7 +460,7 @@ describe('SwipeService', () => {
     });
 
     it('should handle pet not found gracefully', async () => {
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([]) // Insert swipe action
         .mockResolvedValueOnce([[]]); // No pet found
@@ -484,7 +485,7 @@ describe('SwipeService', () => {
         },
       ];
 
-      mockSequelize.query = jest
+      mockSequelize.query = vi
         .fn()
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([petWithoutBreed])

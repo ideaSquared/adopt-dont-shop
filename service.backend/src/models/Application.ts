@@ -1,5 +1,5 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 // Simple application status enum for small charities
@@ -212,7 +212,8 @@ Application.init(
     application_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'application_' || left(md5(random()::text), 12)`),
+      // Remove default value for SQLite compatibility
+      // Application IDs will be generated in beforeCreate hook
     },
     user_id: {
       type: DataTypes.STRING,
@@ -233,7 +234,7 @@ Application.init(
       onDelete: 'CASCADE',
     },
     rescue_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'rescues',
@@ -304,7 +305,7 @@ Application.init(
       allowNull: true,
     },
     answers: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
       validate: {
@@ -312,9 +313,8 @@ Application.init(
       },
     },
     references: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidReferences(
           value: Array<{
@@ -341,9 +341,8 @@ Application.init(
       },
     },
     documents: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidDocuments(
           value: Array<{
@@ -383,9 +382,9 @@ Application.init(
       },
     },
     tags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: true,
-      defaultValue: [],
+      // Remove defaultValue for SQLite compatibility (TEXT type can't have array default)
     },
     notes: {
       type: DataTypes.TEXT,
@@ -485,6 +484,13 @@ Application.init(
       },
     ],
     hooks: {
+      beforeCreate: (application: Application) => {
+        // Generate application ID if not provided
+        if (!application.application_id) {
+          const randomStr = Math.random().toString(36).substring(2, 14);
+          application.application_id = `application_${randomStr}`;
+        }
+      },
       beforeValidate: (application: Application) => {
         // Auto-set submitted_at when status changes to submitted
         if (application.status === ApplicationStatus.SUBMITTED && !application.submitted_at) {

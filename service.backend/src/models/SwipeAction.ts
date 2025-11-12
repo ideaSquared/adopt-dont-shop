@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 
 // Swipe action attributes
 export interface SwipeActionAttributes {
@@ -200,13 +200,13 @@ export class SwipeAction
 SwipeAction.init(
   {
     swipeActionId: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
       allowNull: false,
     },
     sessionId: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'swipe_sessions',
@@ -253,12 +253,12 @@ SwipeAction.init(
       comment: 'Type of device used for the action',
     },
     coordinates: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       comment: 'Screen coordinates where action occurred',
     },
     gestureData: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
       comment: 'Gesture metadata for analytics',
     },

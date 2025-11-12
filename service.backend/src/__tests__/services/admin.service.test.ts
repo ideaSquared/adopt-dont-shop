@@ -633,14 +633,18 @@ describe('AdminService', () => {
 
   describe('Error Handling', () => {
     it('should log errors when user operations fail', async () => {
-      (MockedUser.findByPk as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (MockedUser.findByPk as vi.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
 
       await expect(AdminService.getUserById('user-123')).rejects.toThrow();
       expect(mockLogger.error).toHaveBeenCalled();
     });
 
     it('should log errors when rescue operations fail', async () => {
-      (MockedRescue.findByPk as jest.Mock).mockRejectedValue(new Error('Connection error'));
+      (MockedRescue.findByPk as vi.Mock).mockRejectedValue(
+        new Error('Connection error')
+      );
 
       await expect(AdminService.verifyRescue('rescue-123', 'admin-456')).rejects.toThrow();
     });

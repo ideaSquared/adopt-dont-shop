@@ -1,5 +1,7 @@
+import { vi } from 'vitest';
+
 // Mock env config FIRST before any imports
-jest.mock('../config/env', () => ({
+vi.mock('../config/env', () => ({
   env: {
     JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',

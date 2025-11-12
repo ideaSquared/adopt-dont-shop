@@ -1,40 +1,27 @@
+import { vi } from 'vitest';
 import { Op } from 'sequelize';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../../models/Pet';
 import Rescue from '../../models/Rescue';
 import { DiscoveryFilters, DiscoveryService } from '../../services/discovery.service';
 
 // Mock dependencies
-jest.mock('../../models/Pet');
-jest.mock('../../models/Rescue');
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../models/Pet');
+vi.mock('../../models/Rescue');
+vi.mock('../../utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
-// Mock Sequelize and Op
-jest.mock('sequelize', () => {
-  const actualSequelize = jest.requireActual('sequelize');
-  return {
-    ...actualSequelize,
-    Op: {
-      gt: Symbol('gt'),
-      iLike: Symbol('iLike'),
-    },
-    fn: jest.fn(),
-    literal: jest.fn(),
-  };
-});
-
-const MockedPet = Pet as jest.Mocked<typeof Pet>;
+const MockedPet = Pet as vi.Mocked<typeof Pet>;
 
 describe('DiscoveryService', () => {
   let discoveryService: DiscoveryService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     discoveryService = new DiscoveryService();
   });
 
@@ -85,8 +72,8 @@ describe('DiscoveryService', () => {
       const filteredPets = mockPets.filter(pet => pet.images && pet.images.length > 0);
 
       // Spy on private methods to avoid complex mocking
-      jest.spyOn(discoveryService as any, 'getSmartSortedPets').mockResolvedValue(filteredPets);
-      jest.spyOn(discoveryService as any, 'transformToDiscoveryPets').mockResolvedValue([
+      vi.spyOn(discoveryService as any, 'getSmartSortedPets').mockResolvedValue(filteredPets);
+      vi.spyOn(discoveryService as any, 'transformToDiscoveryPets').mockResolvedValue([
         {
           petId: 'pet1',
           name: 'Buddy',
@@ -133,7 +120,7 @@ describe('DiscoveryService', () => {
     });
 
     it('should handle error when database query fails', async () => {
-      MockedPet.findAll = jest.fn().mockRejectedValue(new Error('Database error'));
+      MockedPet.findAll = vi.fn().mockRejectedValue(new Error('Database error'));
 
       await expect(discoveryService.getDiscoveryQueue({}, 20)).rejects.toThrow(
         'Failed to generate discovery queue'
@@ -163,7 +150,7 @@ describe('DiscoveryService', () => {
     ];
 
     it('should load more pets successfully', async () => {
-      MockedPet.findAll = jest.fn().mockResolvedValue(mockPets);
+      MockedPet.findAll = vi.fn().mockResolvedValue(mockPets);
 
       const result = await discoveryService.loadMorePets('session123', 'pet2', 10);
 
@@ -189,7 +176,7 @@ describe('DiscoveryService', () => {
     });
 
     it('should return empty array when no more pets available', async () => {
-      MockedPet.findAll = jest.fn().mockResolvedValue([]);
+      MockedPet.findAll = vi.fn().mockResolvedValue([]);
 
       const result = await discoveryService.loadMorePets('session123', 'pet999', 10);
 
@@ -197,7 +184,7 @@ describe('DiscoveryService', () => {
     });
 
     it('should handle error when loading more pets fails', async () => {
-      MockedPet.findAll = jest.fn().mockRejectedValue(new Error('Database error'));
+      MockedPet.findAll = vi.fn().mockRejectedValue(new Error('Database error'));
 
       await expect(discoveryService.loadMorePets('session123', 'pet2', 10)).rejects.toThrow(
         'Failed to load more pets'

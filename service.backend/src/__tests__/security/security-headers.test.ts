@@ -1,15 +1,16 @@
+import { vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import helmet from 'helmet';
 import cors from 'cors';
 
 // Mock logger to prevent initialization issues
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 

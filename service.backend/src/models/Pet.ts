@@ -1,6 +1,6 @@
 // src/models/Pet.ts
 import { DataTypes, Model, Op, Optional, QueryTypes, WhereOptions } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 // Pet status enum
@@ -346,7 +346,6 @@ Pet.init(
     pet_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'pet_' || left(md5(random()::text), 12)`),
     },
     name: {
       type: DataTypes.STRING(100),
@@ -357,7 +356,7 @@ Pet.init(
       },
     },
     rescue_id: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'rescues',
@@ -519,9 +518,8 @@ Pet.init(
       allowNull: true,
     },
     temperament: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: true,
-      defaultValue: [],
     },
     medical_notes: {
       type: DataTypes.TEXT,
@@ -562,9 +560,8 @@ Pet.init(
       allowNull: true,
     },
     images: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
       validate: {
         isValidImages(value: unknown) {
           if (!Array.isArray(value)) {
@@ -584,12 +581,11 @@ Pet.init(
       },
     },
     videos: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
-      defaultValue: [],
     },
     location: {
-      type: DataTypes.GEOMETRY('POINT'),
+      type: getGeometryType('POINT'),
       allowNull: true,
     },
     available_since: {
@@ -637,9 +633,8 @@ Pet.init(
       allowNull: true,
     },
     tags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: getArrayType(DataTypes.STRING),
       allowNull: true,
-      defaultValue: [],
     },
     created_at: {
       type: DataTypes.DATE,
@@ -742,12 +737,15 @@ Pet.init(
         }
       },
       beforeSave: async (pet: Pet) => {
-        // Update search vector
+        // Update search vector (PostgreSQL only)
+        const dialect = sequelize.getDialect();
+
         if (
-          pet.changed('name') ||
-          pet.changed('breed') ||
-          pet.changed('short_description') ||
-          pet.changed('long_description')
+          dialect === 'postgres' &&
+          (pet.changed('name') ||
+            pet.changed('breed') ||
+            pet.changed('short_description') ||
+            pet.changed('long_description'))
         ) {
           const searchText = [
             pet.name,
