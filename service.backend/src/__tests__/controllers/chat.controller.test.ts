@@ -293,7 +293,7 @@ describe('ChatController', () => {
         );
 
         const responseData = (mockResponse.json as Mock).mock.calls[0][0];
-        expect(responseData.chat.participants[0].name).toBe('Alice Smith');
+        expect(responseData.data.participants[0].name).toBe('Alice Smith');
       });
     });
 
@@ -531,7 +531,7 @@ describe('ChatController', () => {
         );
 
         const responseData = (mockResponse.json as Mock).mock.calls[0][0];
-        expect(responseData.messages[0].sender_name).toBe('Jane Smith');
+        expect(responseData.data.messages[0].senderName).toBe('Jane Smith');
       });
     });
 
@@ -778,7 +778,7 @@ describe('ChatController', () => {
           content: 'Hello',
         };
 
-        (ChatService.addMessageReaction as Mock).mockResolvedValue(mockReaction);
+        (ChatService.addMessageReaction as Mock).mockResolvedValue(mockMessage);
 
         await ChatController.addReaction(
           mockRequest as AuthenticatedRequest,
@@ -808,7 +808,7 @@ describe('ChatController', () => {
           content: 'Hello',
         };
 
-        (ChatService.removeMessageReaction as Mock).mockResolvedValue(undefined);
+        (ChatService.removeMessageReaction as Mock).mockResolvedValue(mockMessage);
 
         await ChatController.removeReaction(
           mockRequest as AuthenticatedRequest,
@@ -855,7 +855,8 @@ describe('ChatController', () => {
           },
         };
 
-        (FileUploadService.uploadFile as Mock).mockResolvedValue(mockUpload);
+        (ChatService.getChatById as Mock).mockResolvedValue(mockChat);
+        (FileUploadService.uploadFile as Mock).mockResolvedValue(mockUploadResult);
 
         await ChatController.uploadAttachment(
           mockRequest as AuthenticatedRequest,
@@ -891,6 +892,7 @@ describe('ChatController', () => {
           Participants: [{ participant_id: 'user-123' }],
         };
 
+        (ChatService.getChatById as Mock).mockResolvedValue(mockChat);
         (FileUploadService.uploadFile as vi.Mock).mockRejectedValue(new Error('Upload failed'));
 
         await ChatController.uploadAttachment(
