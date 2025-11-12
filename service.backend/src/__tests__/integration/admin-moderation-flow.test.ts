@@ -9,12 +9,21 @@ vi.mock('../../config/env', () => ({
   },
 }));
 
-vi.mock('../../sequelize', () => ({
-  transaction: vi.fn().mockResolvedValue({
+vi.mock('../../sequelize', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../sequelize')>();
+  const originalSequelize = actual.default;
+
+  // Mock transaction method but keep everything else
+  originalSequelize.transaction = vi.fn().mockResolvedValue({
     commit: vi.fn().mockResolvedValue(undefined),
     rollback: vi.fn().mockResolvedValue(undefined),
-  }),
-}));
+  });
+
+  return {
+    ...actual,
+    default: originalSequelize,
+  };
+});
 
 import { Op } from 'sequelize';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../../models/Report';
@@ -726,13 +735,13 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           },
         ];
 
-        MockedReport.findAll = jest
+        MockedReport.findAll = vi
           .fn()
           .mockResolvedValueOnce(reportCountsResult as never)
           .mockResolvedValueOnce(responseTimeResult as never)
           .mockResolvedValueOnce(resolutionTimeResult as never);
 
-        MockedModeratorAction.findAll = jest
+        MockedModeratorAction.findAll = vi
           .fn()
           .mockResolvedValueOnce(actionCountsResult as never);
 
@@ -779,13 +788,13 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           },
         ];
 
-        MockedReport.findAll = jest
+        MockedReport.findAll = vi
           .fn()
           .mockResolvedValueOnce(reportCountsResult as never)
           .mockResolvedValueOnce(responseTimeResult as never)
           .mockResolvedValueOnce(resolutionTimeResult as never);
 
-        MockedModeratorAction.findAll = jest
+        MockedModeratorAction.findAll = vi
           .fn()
           .mockResolvedValueOnce(actionCountsResult as never);
 
@@ -840,13 +849,13 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           },
         ];
 
-        MockedReport.findAll = jest
+        MockedReport.findAll = vi
           .fn()
           .mockResolvedValueOnce(reportCountsResult as never)
           .mockResolvedValueOnce(responseTimeResult as never)
           .mockResolvedValueOnce(resolutionTimeResult as never);
 
-        MockedModeratorAction.findAll = jest
+        MockedModeratorAction.findAll = vi
           .fn()
           .mockResolvedValueOnce(actionCountsResult as never);
 
@@ -905,7 +914,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           }),
         ];
 
-        MockedModeratorAction.findAll = jest
+        MockedModeratorAction.findAll = vi
           .fn()
           .mockResolvedValueOnce(mockActions as never)
           .mockResolvedValueOnce([mockActions[1]] as never);
@@ -917,7 +926,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
       });
 
       it('should return empty array if no active actions for user', async () => {
-        MockedModeratorAction.findAll = jest
+        MockedModeratorAction.findAll = vi
           .fn()
           .mockResolvedValueOnce([] as never)
           .mockResolvedValueOnce([] as never);

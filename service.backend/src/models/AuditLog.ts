@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 export class AuditLog extends Model {
@@ -49,7 +49,7 @@ AuditLog.init(
       defaultValue: DataTypes.NOW,
     },
     metadata: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: true,
     },
     category: {

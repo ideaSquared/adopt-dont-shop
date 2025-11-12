@@ -10,6 +10,8 @@
 import { config } from 'dotenv';
 import { vi, beforeEach, afterAll, beforeAll } from 'vitest';
 import sequelize from './sequelize';
+// Import all models to ensure they're loaded before tests run
+import './models/index';
 
 // Load test environment variables
 config({ path: '.env.test' });

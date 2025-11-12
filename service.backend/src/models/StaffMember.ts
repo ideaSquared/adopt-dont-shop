@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 
 interface StaffMemberAttributes {
   staffMemberId: string;
@@ -57,13 +57,13 @@ class StaffMember
 StaffMember.init(
   {
     staffMemberId: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       primaryKey: true,
       defaultValue: DataTypes.UUIDV4,
       field: 'staff_member_id',
     },
     rescueId: {
-      type: DataTypes.UUID,
+      type: getUuidType(),
       allowNull: false,
       field: 'rescue_id',
       references: {

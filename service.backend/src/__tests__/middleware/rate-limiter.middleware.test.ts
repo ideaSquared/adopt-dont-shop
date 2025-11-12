@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 // Store rate limit configurations for inspection
 const rateLimitConfigs: Array<Record<string, unknown>> = [];
 
@@ -7,12 +6,12 @@ vi.mock('express-rate-limit', () => {
   return vi.fn((options) => {
     rateLimitConfigs.push(options as Record<string, unknown>);
     // Return a mock middleware function
-    return vi.fn((req, res, next) => next());
+    return jest.fn((req, res, next) => next());
   });
 });
 
 // Mock config
-vi.mock('../../config', () => ({
+jest.mock('../../config', () => ({
   config: {
     nodeEnv: 'test',
     rateLimit: {
@@ -44,13 +43,13 @@ describe('Rate Limiter Middleware', () => {
       path: '/api/test',
     };
     mockResponse = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn().mockReturnThis(),
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
     };
-    mockNext = vi.fn();
+    mockNext = jest.fn();
 
     // Clear all mocks
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('Rate limiter initialization', () => {

@@ -1,5 +1,5 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getJsonType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 // Device platform enum
@@ -81,7 +81,6 @@ DeviceToken.init(
     token_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'token_' || left(md5(random()::text), 12)`),
     },
     user_id: {
       type: DataTypes.STRING,
@@ -109,7 +108,7 @@ DeviceToken.init(
       allowNull: true,
     },
     device_info: {
-      type: DataTypes.JSONB,
+      type: getJsonType(),
       allowNull: false,
       defaultValue: {},
     },

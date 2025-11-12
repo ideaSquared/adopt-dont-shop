@@ -15,20 +15,6 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
-// Mock Sequelize and Op
-vi.mock('sequelize', () => {
-  const actualSequelize = vi.importActual('sequelize');
-  return {
-    ...actualSequelize,
-    Op: {
-      gt: Symbol('gt'),
-      iLike: Symbol('iLike'),
-    },
-    fn: vi.fn(),
-    literal: vi.fn(),
-  };
-});
-
 const MockedPet = Pet as vi.Mocked<typeof Pet>;
 
 describe('DiscoveryService', () => {

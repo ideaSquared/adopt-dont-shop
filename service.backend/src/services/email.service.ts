@@ -984,4 +984,6 @@ class EmailService {
   }
 }
 
+// Export the class for testing (allows creating fresh instances)
+export { EmailService };
 export default new EmailService();

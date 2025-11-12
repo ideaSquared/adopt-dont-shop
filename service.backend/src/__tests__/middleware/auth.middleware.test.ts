@@ -1,28 +1,42 @@
 import { vi } from 'vitest';
+
 // Mock jsonwebtoken with error classes
-class JsonWebTokenError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'JsonWebTokenError';
+vi.mock('jsonwebtoken', () => {
+  class JsonWebTokenError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'JsonWebTokenError';
+    }
   }
-}
 
-class TokenExpiredError extends Error {
-  expiredAt: Date;
-  constructor(message: string, expiredAt: Date) {
-    super(message);
-    this.name = 'TokenExpiredError';
-    this.expiredAt = expiredAt;
+  class TokenExpiredError extends Error {
+    expiredAt: Date;
+    constructor(message: string, expiredAt: Date) {
+      super(message);
+      this.name = 'TokenExpiredError';
+      this.expiredAt = expiredAt;
+    }
   }
-}
 
-vi.mock('jsonwebtoken', () => ({
-  sign: vi.fn(),
-  verify: vi.fn(),
-  decode: vi.fn(),
-  JsonWebTokenError,
-  TokenExpiredError,
-}));
+  const sign = vi.fn();
+  const verify = vi.fn();
+  const decode = vi.fn();
+
+  return {
+    default: {
+      sign,
+      verify,
+      decode,
+      JsonWebTokenError,
+      TokenExpiredError,
+    },
+    sign,
+    verify,
+    decode,
+    JsonWebTokenError,
+    TokenExpiredError,
+  };
+});
 
 // Mock env config before it's imported
 vi.mock('../../config/env', () => ({
@@ -41,6 +55,24 @@ vi.mock('../../config/env', () => ({
     POSTGRES_USER: 'test',
     POSTGRES_PASSWORD: 'test',
     POSTGRES_DB: 'test',
+  },
+}));
+
+// Mock User model before it is imported
+vi.mock('../../models/User', () => ({
+  __esModule: true,
+  default: {
+    findByPk: vi.fn(),
+    findOne: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    destroy: vi.fn(),
+    count: vi.fn(),
+    hasMany: vi.fn(),
+    belongsTo: vi.fn(),
+    belongsToMany: vi.fn(),
+    associate: vi.fn(),
   },
 }));
 
@@ -81,6 +113,9 @@ vi.mock('../../models/Permission', () => ({
 
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+// Import error classes from mocked jwt
+const { JsonWebTokenError, TokenExpiredError } = jwt;
+
 import {
   authenticateToken,
   optionalAuth,

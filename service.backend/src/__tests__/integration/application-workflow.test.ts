@@ -29,7 +29,6 @@ import { JsonObject } from '../../types/common';
 vi.mock('../../models/Application');
 vi.mock('../../models/Pet');
 vi.mock('../../models/User');
-vi.mock('../../models/ApplicationQuestion');
 vi.mock('../../services/auditLog.service');
 vi.mock('../../services/applicationTimeline.service');
 vi.mock('../../utils/logger');

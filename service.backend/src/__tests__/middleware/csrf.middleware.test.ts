@@ -1,14 +1,17 @@
 import { vi } from 'vitest';
-// Mock csrf-csrf library
-const mockGenerateToken = vi.fn();
-const mockDoubleCsrfProtection = vi.fn();
 
-vi.mock('csrf-csrf', () => ({
-  doubleCsrf: vi.fn(() => ({
-    generateCsrfToken: mockGenerateToken,
-    doubleCsrfProtection: mockDoubleCsrfProtection,
-  })),
-}));
+// Mock csrf-csrf library
+vi.mock('csrf-csrf', () => {
+  const mockGenerateToken = vi.fn();
+  const mockDoubleCsrfProtection = vi.fn();
+
+  return {
+    doubleCsrf: vi.fn(() => ({
+      generateCsrfToken: mockGenerateToken,
+      doubleCsrfProtection: mockDoubleCsrfProtection,
+    })),
+  };
+});
 
 // Mock config
 vi.mock('../../config', () => ({
@@ -27,6 +30,11 @@ import {
   csrfErrorHandler,
 } from '../../middleware/csrf';
 import { logger } from '../../utils/logger';
+import { doubleCsrf } from 'csrf-csrf';
+
+// Get references to the mocked functions
+const { generateCsrfToken: mockGenerateToken, doubleCsrfProtection: mockDoubleCsrfProtection } =
+  (doubleCsrf as ReturnType<typeof vi.fn>)();
 
 describe('CSRF Middleware', () => {
   let mockRequest: Partial<Request>;

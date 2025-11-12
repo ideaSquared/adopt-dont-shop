@@ -1,10 +1,9 @@
-import { vi } from 'vitest';
 // Mock sequelize first
-vi.mock('../../sequelize', () => ({
+jest.mock('../../sequelize', () => ({
   __esModule: true,
   default: {
-    define: vi.fn(),
-    transaction: vi.fn(),
+    define: jest.fn(),
+    transaction: jest.fn(),
   },
 }));
 
@@ -54,16 +53,16 @@ jest.mock('../../models/EmailTemplate', () => ({
 }));
 
 // Mock models
-vi.mock('../../models/Notification', () => {
+jest.mock('../../models/Notification', () => {
   const mockNotification = {
-    create: vi.fn(),
-    findByPk: vi.fn(),
-    findOne: vi.fn(),
-    findAll: vi.fn(),
-    findAndCountAll: vi.fn(),
-    count: vi.fn(),
-    update: vi.fn(),
-    destroy: vi.fn(),
+    create: jest.fn(),
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    findAndCountAll: jest.fn(),
+    count: jest.fn(),
+    update: jest.fn(),
+    destroy: jest.fn(),
   };
   return {
     __esModule: true,
@@ -92,11 +91,11 @@ vi.mock('../../models/Notification', () => {
   };
 });
 
-vi.mock('../../models/DeviceToken', () => {
+jest.mock('../../models/DeviceToken', () => {
   const mockDeviceToken = {
-    findAll: vi.fn(),
-    create: vi.fn(),
-    destroy: vi.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    destroy: jest.fn(),
   };
   return {
     __esModule: true,
@@ -106,18 +105,18 @@ vi.mock('../../models/DeviceToken', () => {
 
 // Mock User model with sequelize transaction support
 const mockTransaction = {
-  commit: vi.fn().mockResolvedValue(undefined),
-  rollback: vi.fn().mockResolvedValue(undefined),
+  commit: jest.fn().mockResolvedValue(undefined),
+  rollback: jest.fn().mockResolvedValue(undefined),
 };
 
 const mockSequelize = {
-  transaction: vi.fn().mockResolvedValue(mockTransaction),
+  transaction: jest.fn().mockResolvedValue(mockTransaction),
 };
 
-vi.mock('../../models/User', () => {
+jest.mock('../../models/User', () => {
   const mockUser = {
-    findByPk: vi.fn(),
-    findOne: vi.fn(),
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
     sequelize: mockSequelize,
   };
   return {
@@ -127,7 +126,7 @@ vi.mock('../../models/User', () => {
 });
 
 // Mock config
-vi.mock('../../config', () => ({
+jest.mock('../../config', () => ({
   config: {
     notifications: {
       enabled: true,
@@ -136,8 +135,8 @@ vi.mock('../../config', () => ({
 }));
 
 // Mock audit log service
-const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
-vi.mock('../../services/auditLog.service', () => ({
+const mockAuditLogAction = jest.fn().mockResolvedValue(undefined);
+jest.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: mockAuditLogAction,
   },
@@ -145,21 +144,21 @@ vi.mock('../../services/auditLog.service', () => ({
 
 // Mock logger
 const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
 };
 
-vi.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger', () => ({
   __esModule: true,
   default: mockLogger,
   logger: mockLogger,
   loggerHelpers: {
-    logBusiness: vi.fn(),
-    logDatabase: vi.fn(),
-    logPerformance: vi.fn(),
-    logExternalService: vi.fn(),
+    logBusiness: jest.fn(),
+    logDatabase: jest.fn(),
+    logPerformance: jest.fn(),
+    logExternalService: jest.fn(),
   },
 }));
 
@@ -172,13 +171,13 @@ import DeviceToken from '../../models/DeviceToken';
 import User from '../../models/User';
 import { NotificationService } from '../../services/notification.service';
 
-const MockedNotification = Notification as vi.Mocked<typeof Notification>;
-const MockedDeviceToken = DeviceToken as vi.Mocked<typeof DeviceToken>;
-const MockedUser = User as vi.Mocked<typeof User>;
+const MockedNotification = Notification as jest.Mocked<typeof Notification>;
+const MockedDeviceToken = DeviceToken as jest.Mocked<typeof DeviceToken>;
+const MockedUser = User as jest.Mocked<typeof User>;
 
 describe('NotificationService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('Getting notifications', () => {
@@ -193,7 +192,7 @@ describe('NotificationService', () => {
             message: 'You have a new message',
             readAt: null,
             createdAt: new Date(),
-            toJSON: vi.fn().mockReturnValue({
+            toJSON: jest.fn().mockReturnValue({
               notificationId: 'notif-1',
               userId: 'user-123',
               type: NotificationType.MESSAGE_RECEIVED,
@@ -211,7 +210,7 @@ describe('NotificationService', () => {
             message: 'Your application was approved',
             readAt: new Date(),
             createdAt: new Date(),
-            toJSON: vi.fn().mockReturnValue({
+            toJSON: jest.fn().mockReturnValue({
               notificationId: 'notif-2',
               userId: 'user-123',
               type: NotificationType.APPLICATION_STATUS,
@@ -223,7 +222,7 @@ describe('NotificationService', () => {
           },
         ];
 
-        (MockedNotification.findAndCountAll as vi.Mock).mockResolvedValue({
+        (MockedNotification.findAndCountAll as jest.Mock).mockResolvedValue({
           rows: mockNotifications,
           count: 2,
         });
@@ -249,7 +248,7 @@ describe('NotificationService', () => {
       });
 
       it('should filter by notification type', async () => {
-        (MockedNotification.findAndCountAll as vi.Mock).mockResolvedValue({
+        (MockedNotification.findAndCountAll as jest.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -268,14 +267,14 @@ describe('NotificationService', () => {
       });
 
       it('should exclude expired notifications', async () => {
-        (MockedNotification.findAndCountAll as vi.Mock).mockResolvedValue({
+        (MockedNotification.findAndCountAll as jest.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
 
         await NotificationService.getUserNotifications('user-123');
 
-        const callArgs = (MockedNotification.findAndCountAll as vi.Mock).mock.calls[0][0];
+        const callArgs = (MockedNotification.findAndCountAll as jest.Mock).mock.calls[0][0];
         // Service uses Op.or which becomes a Symbol property
         const hasOrClause = Object.getOwnPropertySymbols(callArgs.where).some(sym =>
           sym.toString().includes('or')
@@ -294,7 +293,7 @@ describe('NotificationService', () => {
           message: 'Test message',
         };
 
-        (MockedNotification.findOne as vi.Mock).mockResolvedValue(mockNotification);
+        (MockedNotification.findOne as jest.Mock).mockResolvedValue(mockNotification);
 
         const result = await NotificationService.getNotificationById('notif-123', 'user-123');
 
@@ -308,7 +307,7 @@ describe('NotificationService', () => {
       });
 
       it('should return null if notification not found', async () => {
-        (MockedNotification.findOne as vi.Mock).mockResolvedValue(null);
+        (MockedNotification.findOne as jest.Mock).mockResolvedValue(null);
 
         const result = await NotificationService.getNotificationById('notif-999', 'user-123');
 
@@ -341,7 +340,7 @@ describe('NotificationService', () => {
           created_at: expect.any(Date),
         };
 
-        (MockedNotification.create as vi.Mock).mockResolvedValue(mockNotification);
+        (MockedNotification.create as jest.Mock).mockResolvedValue(mockNotification);
 
         const result = await NotificationService.createNotification(notificationData);
 
@@ -373,7 +372,7 @@ describe('NotificationService', () => {
           message: 'System maintenance scheduled',
         };
 
-        (MockedNotification.create as vi.Mock).mockResolvedValue({
+        (MockedNotification.create as jest.Mock).mockResolvedValue({
           notificationId: 'notif-456',
           ...notificationData,
         });
@@ -397,7 +396,7 @@ describe('NotificationService', () => {
           expiresAt,
         };
 
-        (MockedNotification.create as vi.Mock).mockResolvedValue({
+        (MockedNotification.create as jest.Mock).mockResolvedValue({
           notification_id: 'notif-789',
           user_id: 'user-123',
           type: NotificationType.REMINDER,
@@ -453,7 +452,7 @@ describe('NotificationService', () => {
       it('should fail if any notification creation fails', async () => {
         const users = ['user-1', 'user-2'];
 
-        (MockedNotification.create as vi.Mock)
+        (MockedNotification.create as jest.Mock)
           .mockResolvedValueOnce({ notification_id: 'notif-1', user_id: 'user-1' })
           .mockRejectedValueOnce(new Error('Database error'));
 
@@ -475,7 +474,7 @@ describe('NotificationService', () => {
   describe('Managing notification read status', () => {
     describe('when marking a notification as read', () => {
       it('should update read timestamp', async () => {
-        (MockedNotification.update as vi.Mock).mockResolvedValue([1]); // 1 row affected
+        (MockedNotification.update as jest.Mock).mockResolvedValue([1]); // 1 row affected
 
         await NotificationService.markAsRead('notif-123', 'user-123');
 
@@ -498,7 +497,7 @@ describe('NotificationService', () => {
       });
 
       it('should throw error if notification not found', async () => {
-        (MockedNotification.update as vi.Mock).mockResolvedValue([0]); // 0 rows affected
+        (MockedNotification.update as jest.Mock).mockResolvedValue([0]); // 0 rows affected
 
         await expect(NotificationService.markAsRead('notif-999', 'user-123')).rejects.toThrow(
           'Notification not found or access denied'
@@ -508,7 +507,7 @@ describe('NotificationService', () => {
 
     describe('when marking all notifications as read', () => {
       it('should update all unread notifications for user', async () => {
-        (MockedNotification.update as vi.Mock).mockResolvedValue([3]); // 3 rows updated
+        (MockedNotification.update as jest.Mock).mockResolvedValue([3]); // 3 rows updated
 
         const result = await NotificationService.markAllAsRead('user-123');
 
@@ -532,7 +531,7 @@ describe('NotificationService', () => {
   describe('Deleting notifications', () => {
     describe('when deleting a single notification', () => {
       it('should soft delete notification if user owns it', async () => {
-        (MockedNotification.update as vi.Mock).mockResolvedValue([1]); // 1 row affected
+        (MockedNotification.update as jest.Mock).mockResolvedValue([1]); // 1 row affected
 
         await NotificationService.deleteNotification('notif-123', 'user-123');
 
@@ -555,7 +554,7 @@ describe('NotificationService', () => {
       });
 
       it('should throw error if notification not found', async () => {
-        (MockedNotification.update as vi.Mock).mockResolvedValue([0]); // 0 rows affected
+        (MockedNotification.update as jest.Mock).mockResolvedValue([0]); // 0 rows affected
 
         await expect(
           NotificationService.deleteNotification('notif-999', 'user-123')
@@ -567,7 +566,7 @@ describe('NotificationService', () => {
   describe('Notification counts', () => {
     describe('when getting unread count', () => {
       it('should return count of unread notifications', async () => {
-        (MockedNotification.count as vi.Mock).mockResolvedValue(5);
+        (MockedNotification.count as jest.Mock).mockResolvedValue(5);
 
         const result = await NotificationService.getUnreadCount('user-123');
 
@@ -584,7 +583,7 @@ describe('NotificationService', () => {
       });
 
       it('should return 0 if no unread notifications', async () => {
-        (MockedNotification.count as vi.Mock).mockResolvedValue(0);
+        (MockedNotification.count as jest.Mock).mockResolvedValue(0);
 
         const result = await NotificationService.getUnreadCount('user-123');
 
@@ -608,7 +607,7 @@ describe('NotificationService', () => {
           },
         };
 
-        (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
+        (MockedUser.findByPk as jest.Mock).mockResolvedValue(mockUser);
 
         const preferences = await NotificationService.getNotificationPreferences('user-123');
 
@@ -627,7 +626,7 @@ describe('NotificationService', () => {
           notificationPreferences: null,
         };
 
-        (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
+        (MockedUser.findByPk as jest.Mock).mockResolvedValue(mockUser);
 
         const preferences = await NotificationService.getNotificationPreferences('user-123');
 
@@ -642,10 +641,10 @@ describe('NotificationService', () => {
         const mockUser = {
           userId: 'user-123',
           notificationPreferences: {},
-          update: vi.fn().mockResolvedValue(undefined),
+          update: jest.fn().mockResolvedValue(undefined),
         };
 
-        (MockedUser.findByPk as vi.Mock).mockResolvedValue(mockUser);
+        (MockedUser.findByPk as jest.Mock).mockResolvedValue(mockUser);
 
         const updates = {
           email: false,
@@ -669,7 +668,7 @@ describe('NotificationService', () => {
       });
 
       it('should throw error if user not found', async () => {
-        (MockedUser.findByPk as vi.Mock).mockResolvedValue(null);
+        (MockedUser.findByPk as jest.Mock).mockResolvedValue(null);
 
         await expect(
           NotificationService.updateNotificationPreferences('user-999', { email: false })
@@ -681,7 +680,7 @@ describe('NotificationService', () => {
   describe('Cleanup operations', () => {
     describe('when cleaning up expired notifications', () => {
       it('should delete notifications older than specified days', async () => {
-        (MockedNotification.destroy as vi.Mock).mockResolvedValue(15); // 15 deleted
+        (MockedNotification.destroy as jest.Mock).mockResolvedValue(15); // 15 deleted
 
         const deletedCount = await NotificationService.cleanupExpiredNotifications(30);
 
@@ -696,7 +695,7 @@ describe('NotificationService', () => {
       });
 
       it('should use default retention period if not specified', async () => {
-        (MockedNotification.destroy as vi.Mock).mockResolvedValue(0);
+        (MockedNotification.destroy as jest.Mock).mockResolvedValue(0);
 
         await NotificationService.cleanupExpiredNotifications();
 
