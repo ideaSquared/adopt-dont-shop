@@ -7,14 +7,16 @@ Successfully migrated to Vitest and resolved all MSW v2 compatibility issues!
 ## Test Results Summary
 
 ### Frontend Apps (Vitest + MSW v2)
+
 - **app.client**: 52 behavioral tests ✅
 - **app.admin**: 30 behavioral tests ✅
 - **app.rescue**: 37 behavioral tests ✅
 - **Subtotal**: 119 behavioral tests passing with MSW v2!
 
 ### Component Libraries (Jest)
+
 - **lib.components**: 387 component tests (34/36 suites) ✅
-- **lib.* (other libraries)**: 16/19 passing ✅
+- **lib.\* (other libraries)**: 16/19 passing ✅
 
 ### Grand Total: 506 tests passing! 🎉
 
@@ -23,6 +25,7 @@ Successfully migrated to Vitest and resolved all MSW v2 compatibility issues!
 **Frontend App Behavioral Tests (6 test files):**
 
 #### app.client (4 test files):
+
 1. **authentication.behavior.test.tsx**
    - Login workflow with validation
    - Registration with error handling
@@ -49,6 +52,7 @@ Successfully migrated to Vitest and resolved all MSW v2 compatibility issues!
    - Pet card interactions
 
 #### app.admin (2 test files):
+
 1. **user-management.behavior.test.tsx**
    - User listing and filtering
    - User profile viewing
@@ -63,6 +67,7 @@ Successfully migrated to Vitest and resolved all MSW v2 compatibility issues!
    - Rescue statistics
 
 #### app.rescue (2 test files):
+
 1. **pet-management.behavior.test.tsx**
    - Pet listing and creation
    - Pet profile editing
@@ -120,6 +125,7 @@ Successfully migrated all frontend apps from Jest to Vitest, enabling MSW v2 com
 ### Important MSW Pattern:
 
 **Always place specific routes BEFORE parameterized routes:**
+
 ```typescript
 // ✅ Correct order
 http.get('/api/v1/rescues/stats', ...),      // Specific route first
@@ -133,11 +139,13 @@ http.get('/api/v1/rescues/stats', ...)
 ## Test Coverage Analysis
 
 ### High Coverage Areas
+
 - ✅ UI Components (lib.components): 387 tests passing
 - ✅ Behavioral tests: 101 tests passing with MSW v2
 - ✅ Test infrastructure: MSW handlers, test utilities, render helpers
 
 ### All Tests Passing ✅
+
 - ✅ Authentication flows (9 tests)
 - ✅ Application workflows (16 tests)
 - ✅ Pet discovery (27 tests)
@@ -147,6 +155,7 @@ http.get('/api/v1/rescues/stats', ...)
 ### Critical Workflows Covered
 
 **app.client:**
+
 - User registration and login
 - Pet discovery and filtering
 - Swipe interactions
@@ -154,12 +163,14 @@ http.get('/api/v1/rescues/stats', ...)
 - Profile management
 
 **app.admin:**
+
 - Rescue organization verification
 - Status filtering and pagination
 - Document review
 - Approval/rejection workflows
 
 **app.rescue:**
+
 - Application review process
 - Multi-stage workflow management
 - Reference checks
@@ -169,20 +180,24 @@ http.get('/api/v1/rescues/stats', ...)
 ## Testing Philosophy Applied
 
 ✅ **Test Behavior, Not Implementation**
+
 - Tests focus on user actions and expected outcomes
 - No testing of internal state or private methods
 - API mocking at network layer (MSW)
 
 ✅ **Arrange-Act-Assert Pattern**
+
 - Clear test structure throughout
 - Setup → Action → Verification
 
 ✅ **Accessible Queries**
+
 - Use getByRole, getByLabelText, getByText
 - Avoid getByTestId unless necessary
 - Tests verify accessibility
 
 ✅ **Comprehensive Error Handling**
+
 - API failure scenarios
 - Validation errors
 - Retry logic
@@ -191,7 +206,9 @@ http.get('/api/v1/rescues/stats', ...)
 ## Recommendations
 
 ### Immediate (To Enable New Tests):
+
 1. Add BroadcastChannel mock to setup files:
+
    ```typescript
    global.BroadcastChannel = class BroadcastChannel {
      postMessage() {}
@@ -204,11 +221,13 @@ http.get('/api/v1/rescues/stats', ...)
 3. Or refactor tests to use jest.spyOn(global, 'fetch') instead of MSW
 
 ### Short-term:
+
 1. Run new behavioral tests once MSW is configured
 2. Add more component-level integration tests
 3. Achieve 80%+ coverage on critical user flows
 
 ### Long-term:
+
 1. Consider Playwright for E2E testing
 2. Add visual regression testing
 3. Performance testing for discovery queue
@@ -217,6 +236,7 @@ http.get('/api/v1/rescues/stats', ...)
 ## Files Created
 
 ### Test Files (6):
+
 - `app.client/src/__tests__/authentication.behavior.test.tsx`
 - `app.client/src/__tests__/application-workflow.behavior.test.tsx`
 - `app.client/src/__tests__/discovery-service.behavior.test.tsx`
@@ -225,6 +245,7 @@ http.get('/api/v1/rescues/stats', ...)
 - `app.rescue/src/__tests__/application-review.behavior.test.tsx`
 
 ### Test Infrastructure (12):
+
 - `app.client/src/test-utils/render.tsx`
 - `app.client/src/test-utils/index.ts`
 - `app.client/src/test-utils/msw-handlers.ts`
@@ -268,20 +289,23 @@ npm test
 **Total Tests Passing: 506**
 
 **Frontend Apps (Vitest):**
+
 - app.client: 52 behavioral tests ✅
 - app.admin: 30 behavioral tests ✅
 - app.rescue: 37 behavioral tests ✅
 - MSW v2: Working perfectly ✅
 
 **Component Libraries (Jest):**
+
 - lib.components: 387 tests (34/36 suites) ✅
-- lib.* (other libraries): 16/19 passing ✅
+- lib.\* (other libraries): 16/19 passing ✅
 
 ### Migration Results:
 
 **Time Taken:** ~2 hours (Vitest migration + MSW handler fixes)
 
 **Key Achievements:**
+
 1. Resolved all MSW v2 ESM compatibility issues
 2. Migrated 3 frontend apps to Vitest
 3. Fixed MSW handler ordering issues
@@ -292,6 +316,7 @@ npm test
 8. Cleaned up test infrastructure following TDD/BDD principles
 
 **Architecture:**
+
 - Frontend apps use Vitest (modern, fast, ESM-native)
 - Libraries continue using Jest (stable, no breaking changes needed)
 - Both testing frameworks coexist peacefully in monorepo

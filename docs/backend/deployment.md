@@ -9,6 +9,7 @@ This guide covers deploying the Adopt Don't Shop Backend Service across differen
 ### System Requirements
 
 **Production Environment:**
+
 - Node.js 18+ LTS
 - PostgreSQL 13+
 - Redis 6+ (for session storage and caching)
@@ -16,6 +17,7 @@ This guide covers deploying the Adopt Don't Shop Backend Service across differen
 - 20GB+ disk space
 
 **Development Environment:**
+
 - Node.js 18+
 - PostgreSQL 13+
 - Git
@@ -24,18 +26,22 @@ This guide covers deploying the Adopt Don't Shop Backend Service across differen
 ### Required Services
 
 **Database:**
+
 - PostgreSQL with extensions: `uuid-ossp`, `postgis` (for location features)
 - Connection pooling recommended (PgBouncer)
 
 **Storage:**
+
 - File storage (AWS S3, Google Cloud Storage, or local)
 - CDN for static assets (optional but recommended)
 
 **Email:**
+
 - SMTP provider (SendGrid, Mailgun, or custom SMTP)
 - Email templates and transactional email support
 
 **Monitoring:**
+
 - Application monitoring (optional: DataDog, New Relic)
 - Log aggregation (optional: ELK stack, Splunk)
 
@@ -202,7 +208,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - '5000:5000'
     environment:
       - NODE_ENV=production
     env_file:
@@ -212,7 +218,7 @@ services:
       - redis
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:5000/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -229,7 +235,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
-      - "5432:5432"
+      - '5432:5432'
     restart: unless-stopped
     networks:
       - app-network
@@ -238,7 +244,7 @@ services:
     image: redis:7-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -248,8 +254,8 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - ./ssl:/etc/nginx/ssl
@@ -279,7 +285,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "5000:5000"
+      - '5000:5000'
     environment:
       - NODE_ENV=development
     env_file:
@@ -300,7 +306,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     networks:
@@ -354,15 +360,15 @@ metadata:
   name: api-config
   namespace: adopt-dont-shop
 data:
-  NODE_ENV: "production"
-  PORT: "5000"
-  API_VERSION: "v1"
-  LOG_LEVEL: "info"
-  DB_HOST: "postgres-service"
-  DB_PORT: "5432"
-  DB_NAME: "adopt_dont_shop_prod"
-  REDIS_HOST: "redis-service"
-  REDIS_PORT: "6379"
+  NODE_ENV: 'production'
+  PORT: '5000'
+  API_VERSION: 'v1'
+  LOG_LEVEL: 'info'
+  DB_HOST: 'postgres-service'
+  DB_PORT: '5432'
+  DB_NAME: 'adopt_dont_shop_prod'
+  REDIS_HOST: 'redis-service'
+  REDIS_PORT: '6379'
 ```
 
 ### Secrets
@@ -407,35 +413,35 @@ spec:
         app: api
     spec:
       containers:
-      - name: api
-        image: adoptdontshop/api:latest
-        ports:
-        - containerPort: 5000
-        envFrom:
-        - configMapRef:
-            name: api-config
-        - secretRef:
-            name: api-secrets
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 5000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 5000
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        imagePullPolicy: Always
+        - name: api
+          image: adoptdontshop/api:latest
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: api-config
+            - secretRef:
+                name: api-secrets
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          imagePullPolicy: Always
 ```
 
 ### Service
@@ -467,26 +473,26 @@ metadata:
   name: api-ingress
   namespace: adopt-dont-shop
   annotations:
-    kubernetes.io/ingress.class: "nginx"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/rate-limit: "100"
-    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    kubernetes.io/ingress.class: 'nginx'
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+    nginx.ingress.kubernetes.io/rate-limit: '100'
+    nginx.ingress.kubernetes.io/rate-limit-window: '1m'
 spec:
   tls:
-  - hosts:
-    - api.adoptdontshop.com
-    secretName: api-tls
+    - hosts:
+        - api.adoptdontshop.com
+      secretName: api-tls
   rules:
-  - host: api.adoptdontshop.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: api-service
-            port:
-              number: 80
+    - host: api.adoptdontshop.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 80
 ```
 
 ### PostgreSQL StatefulSet
@@ -510,41 +516,41 @@ spec:
         app: postgres
     spec:
       containers:
-      - name: postgres
-        image: postgres:15-alpine
-        ports:
-        - containerPort: 5432
-        env:
-        - name: POSTGRES_DB
-          value: "adopt_dont_shop_prod"
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: api-secrets
-              key: DB_USER
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: api-secrets
-              key: DB_PASS
-        volumeMounts:
-        - name: postgres-storage
-          mountPath: /var/lib/postgresql/data
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: 'adopt_dont_shop_prod'
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: DB_PASS
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '250m'
+            limits:
+              memory: '1Gi'
+              cpu: '500m'
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-storage
+      spec:
+        accessModes: ['ReadWriteOnce']
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
-  volumeClaimTemplates:
-  - metadata:
-      name: postgres-storage
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 20Gi
+            storage: 20Gi
 ```
 
 ### Deploy to Kubernetes
@@ -672,26 +678,26 @@ spec:
   template:
     metadata:
       annotations:
-        autoscaling.knative.dev/maxScale: "10"
-        run.googleapis.com/cpu-throttling: "false"
+        autoscaling.knative.dev/maxScale: '10'
+        run.googleapis.com/cpu-throttling: 'false'
     spec:
       containerConcurrency: 100
       containers:
-      - image: gcr.io/project-id/adopt-dont-shop-api
-        ports:
-        - containerPort: 5000
-        env:
-        - name: NODE_ENV
-          value: "production"
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: api-secrets
-              key: jwt-secret
-        resources:
-          limits:
-            cpu: "1"
-            memory: "512Mi"
+        - image: gcr.io/project-id/adopt-dont-shop-api
+          ports:
+            - containerPort: 5000
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: jwt-secret
+          resources:
+            limits:
+              cpu: '1'
+              memory: '512Mi'
 ```
 
 ### Azure Deployment
@@ -705,28 +711,28 @@ location: eastus
 name: adopt-dont-shop-api
 properties:
   containers:
-  - name: api
-    properties:
-      image: adoptdontshop/api:latest
-      ports:
-      - port: 5000
-        protocol: TCP
-      environmentVariables:
-      - name: NODE_ENV
-        value: production
-      - name: JWT_SECRET
-        secureValue: your-jwt-secret
-      resources:
-        requests:
-          cpu: 0.5
-          memoryInGb: 1
+    - name: api
+      properties:
+        image: adoptdontshop/api:latest
+        ports:
+          - port: 5000
+            protocol: TCP
+        environmentVariables:
+          - name: NODE_ENV
+            value: production
+          - name: JWT_SECRET
+            secureValue: your-jwt-secret
+        resources:
+          requests:
+            cpu: 0.5
+            memoryInGb: 1
   osType: Linux
   restartPolicy: Always
   ipAddress:
     type: Public
     ports:
-    - port: 5000
-      protocol: TCP
+      - port: 5000
+        protocol: TCP
 ```
 
 ## Database Migrations
@@ -799,12 +805,12 @@ const prometheus = require('prom-client');
 const httpRequestDuration = new prometheus.Histogram({
   name: 'http_request_duration_seconds',
   help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route', 'status']
+  labelNames: ['method', 'route', 'status'],
 });
 
 const activeConnections = new prometheus.Gauge({
   name: 'active_connections_total',
-  help: 'Total number of active connections'
+  help: 'Total number of active connections',
 });
 ```
 
@@ -824,8 +830,8 @@ const logger = winston.createLogger({
   transports: [
     new winston.transports.Console(),
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' })
-  ]
+    new winston.transports.File({ filename: 'logs/combined.log' }),
+  ],
 });
 ```
 
@@ -921,21 +927,23 @@ echo "Database restored from $BACKUP_FILE"
 if (process.env.NODE_ENV === 'production') {
   // Enable compression
   app.use(compression());
-  
+
   // Security headers
   app.use(helmet());
-  
+
   // Trust proxy
   app.set('trust proxy', 1);
-  
+
   // Disable x-powered-by header
   app.disable('x-powered-by');
-  
+
   // Static file caching
-  app.use(express.static('public', {
-    maxAge: '1y',
-    etag: false
-  }));
+  app.use(
+    express.static('public', {
+      maxAge: '1y',
+      etag: false,
+    })
+  );
 }
 ```
 
@@ -949,15 +957,15 @@ const config = {
       max: 20,
       min: 2,
       acquire: 30000,
-      idle: 10000
+      idle: 10000,
     },
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false
-      }
-    }
-  }
+        rejectUnauthorized: false,
+      },
+    },
+  },
 };
 ```
 
@@ -966,6 +974,7 @@ const config = {
 ### Common Deployment Issues
 
 **Database Connection Issues:**
+
 ```bash
 # Check database connectivity
 pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER
@@ -975,6 +984,7 @@ psql $DATABASE_URL -c "SELECT version();"
 ```
 
 **Memory Issues:**
+
 ```bash
 # Monitor memory usage
 docker stats
@@ -984,6 +994,7 @@ kubectl top pods -n adopt-dont-shop
 ```
 
 **SSL Certificate Issues:**
+
 ```bash
 # Check certificate validity
 openssl x509 -in cert.pem -text -noout
@@ -1029,21 +1040,23 @@ docker exec -it postgres_container psql -U postgres -c "SELECT * FROM pg_stat_ac
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"]
-    }
-  }
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
+    },
+  })
+);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP'
+  message: 'Too many requests from this IP',
 });
 
 app.use('/api/', limiter);
@@ -1051,4 +1064,4 @@ app.use('/api/', limiter);
 
 ---
 
-This deployment guide provides comprehensive instructions for deploying the Adopt Don't Shop Backend Service across various environments and platforms. 
+This deployment guide provides comprehensive instructions for deploying the Adopt Don't Shop Backend Service across various environments and platforms.

@@ -17,12 +17,12 @@ npm run new-app <app-name> <app-type>
 
 ### App Types
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| `client` | Client-facing React app | Public adoption portals |
-| `rescue` | Rescue management React app | Rescue staff tools |
-| `admin` | Admin dashboard React app | Platform administration |
-| `service` | Backend Node.js service | API services |
+| Type      | Description                 | Use Case                |
+| --------- | --------------------------- | ----------------------- |
+| `client`  | Client-facing React app     | Public adoption portals |
+| `rescue`  | Rescue management React app | Rescue staff tools      |
+| `admin`   | Admin dashboard React app   | Platform administration |
+| `service` | Backend Node.js service     | API services            |
 
 ## Examples
 
@@ -76,6 +76,7 @@ app.{name}/
 ```
 
 **Pre-installed Libraries:**
+
 - Client: api, auth, pets, discovery, chat, analytics, validation
 - Rescue: api, auth, pets (enhanced), applications, chat, rescues
 - Admin: api, auth, users, rescues, analytics, permissions
@@ -105,6 +106,7 @@ service.{name}/
 ### Generated package.json
 
 Frontend apps include:
+
 ```json
 {
   "name": "@adopt-dont-shop/app.{name}",
@@ -120,6 +122,7 @@ Frontend apps include:
 ```
 
 Backend services include:
+
 ```json
 {
   "name": "@adopt-dont-shop/service.{name}",
@@ -134,6 +137,7 @@ Backend services include:
 ### Generated Dockerfile
 
 Multi-stage build optimized for workspace:
+
 ```dockerfile
 FROM node:20-alpine AS base
 WORKDIR /app
@@ -175,13 +179,14 @@ npm install
 ### 3. Update docker-compose.yml
 
 Add service to root `docker-compose.yml`:
+
 ```yaml
 app.{name}:
   build:
     context: .
     dockerfile: app.{name}/Dockerfile
   ports:
-    - "300X:3000"  # Choose available port
+    - '300X:3000' # Choose available port
   environment:
     - VITE_API_BASE_URL=http://api.localhost:5000
 ```
@@ -189,6 +194,7 @@ app.{name}:
 ### 4. Update nginx Configuration
 
 Add subdomain routing to `nginx/nginx.conf`:
+
 ```nginx
 server {
   listen 80;
@@ -219,6 +225,7 @@ npm run dev
 ### Adding More Libraries
 
 Edit `package.json` to add libraries:
+
 ```json
 {
   "dependencies": {
@@ -231,6 +238,7 @@ Edit `package.json` to add libraries:
 ### Modifying Templates
 
 Generator templates located in:
+
 ```
 scripts/templates/
 ├── client/     # Client app template
@@ -242,16 +250,19 @@ scripts/templates/
 ## Best Practices
 
 ### Naming Conventions
+
 - Frontend apps: `app.{purpose}` (e.g., `app.mobile`, `app.foster`)
 - Backend services: `service.{domain}` (e.g., `service.payments`, `service.analytics`)
 - Use lowercase with dots as separators
 
 ### Library Selection
+
 - Only include libraries your app actually needs
 - Avoid over-installing to keep bundle sizes small
 - Use tree-shaking to eliminate unused code
 
 ### Configuration
+
 - Use environment variables for all configuration
 - Never commit `.env` files
 - Provide comprehensive `.env.example`

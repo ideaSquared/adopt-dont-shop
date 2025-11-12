@@ -35,18 +35,21 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 ### Key Characteristics
 
 **✅ Shared Libraries**
+
 - 16 libraries with consistent ESM architecture
 - TypeScript-first with full type safety
 - Published as workspace dependencies
 - Versioned and tested independently
 
 **✅ Single Database**
+
 - PostgreSQL with PostGIS
 - Shared schema across all services
 - Centralized migrations
 - Simplified transactions and data consistency
 
 **✅ Microservice Apps**
+
 - Frontend apps (React + Vite)
 - Backend services (Node.js + Express)
 - Independent deployment
@@ -57,6 +60,7 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 ### Standards
 
 All libraries follow these standards:
+
 - **Module System**: ES Modules only (no CommonJS)
 - **Build Tool**: TypeScript Compiler (tsc)
 - **Testing**: Jest with 8/8 tests per library
@@ -84,11 +88,13 @@ lib.{name}/
 ### Library Categories
 
 **Core Services (3)**
+
 - lib.api - HTTP client wrapper
 - lib.auth - Authentication
 - lib.validation - Schema validation
 
 **Feature Libraries (11)**
+
 - lib.applications - Application management
 - lib.chat - Real-time messaging
 - lib.discovery - Pet discovery
@@ -102,6 +108,7 @@ lib.{name}/
 - lib.users - User management
 
 **Utilities (2)**
+
 - lib.analytics - Analytics tracking
 - lib.common - Shared utilities
 
@@ -110,6 +117,7 @@ lib.{name}/
 ### Single Database Benefits
 
 **Advantages:**
+
 - ✅ ACID transactions across domains
 - ✅ Simpler deployment and operations
 - ✅ No distributed transaction complexity
@@ -118,6 +126,7 @@ lib.{name}/
 - ✅ Better performance for related data
 
 **When to Use:**
+
 - Platform is medium-scale (< 1M users)
 - Strong data relationships exist
 - ACID transactions are important
@@ -127,6 +136,7 @@ lib.{name}/
 ### Migration Path
 
 If needed in future:
+
 1. **Database per Service** - Split when scaling requires it
 2. **Event Sourcing** - Add for audit trail needs
 3. **CQRS** - Separate read/write models
@@ -194,6 +204,7 @@ const user = authService.getCurrentUser();
 ## Best Practices
 
 ### Library Design
+
 - Keep libraries focused and single-purpose
 - Minimize dependencies between libraries
 - Provide clear, documented public APIs
@@ -201,6 +212,7 @@ const user = authService.getCurrentUser();
 - Include comprehensive tests
 
 ### Database Design
+
 - Use clear naming conventions
 - Add indexes for frequently queried fields
 - Document schema in database-schema.md
@@ -208,6 +220,7 @@ const user = authService.getCurrentUser();
 - Never modify existing migrations
 
 ### Application Structure
+
 - Import only needed libraries
 - Use tree-shaking to reduce bundle size
 - Follow shared coding standards
@@ -240,6 +253,7 @@ COPY --from=build /app/app.{name}/dist /usr/share/nginx/html
 ```
 
 ### Benefits
+
 - ✅ Libraries built once, shared across apps
 - ✅ Smaller final images (multi-stage)
 - ✅ Consistent build environment
@@ -248,6 +262,7 @@ COPY --from=build /app/app.{name}/dist /usr/share/nginx/html
 ## Testing Strategy
 
 ### Library Tests
+
 - Each library has 8 comprehensive tests
 - Test service initialization
 - Test method functionality
@@ -255,6 +270,7 @@ COPY --from=build /app/app.{name}/dist /usr/share/nginx/html
 - Test edge cases
 
 ### Integration Tests
+
 - Test library interactions
 - Test database operations
 - Test API integrations
@@ -279,18 +295,21 @@ npm run test:watch
 ## Performance Optimization
 
 ### Library Optimization
+
 - Tree-shake unused exports
 - Use dynamic imports for large features
 - Minimize library dependencies
 - Optimize bundle size
 
 ### Database Optimization
+
 - Add indexes for frequent queries
 - Use connection pooling
 - Optimize query performance
 - Monitor slow queries
 
 ### Application Optimization
+
 - Code splitting for routes
 - Lazy load heavy components
 - Cache API responses
@@ -299,19 +318,23 @@ npm run test:watch
 ## Scaling Considerations
 
 ### Horizontal Scaling
+
 - Multiple app instances behind load balancer
 - Stateless application design
 - Session storage in Redis
 - Shared file storage (S3)
 
 ### Vertical Scaling
+
 - Increase database resources
 - Optimize container resources
 - Scale Redis cache
 - Use CDN for static assets
 
 ### Future Migration
+
 When to consider microservices:
+
 - User base > 1M
 - Team size > 50 developers
 - Different scaling needs per domain

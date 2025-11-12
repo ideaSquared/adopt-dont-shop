@@ -31,7 +31,7 @@ await apiService.delete('/api/pets/123');
 const customApi = new ApiService({
   apiUrl: 'https://api.example.com',
   timeout: 10000,
-  debug: true
+  debug: true,
 });
 ```
 
@@ -39,13 +39,13 @@ const customApi = new ApiService({
 
 ### ApiServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Base API URL |
-| `timeout` | `number` | `10000` | Request timeout in milliseconds |
-| `retries` | `number` | `3` | Number of retry attempts |
-| `headers` | `Record<string, string>` | `{}` | Default headers for all requests |
-| `debug` | `boolean` | `false` | Enable debug logging |
+| Property  | Type                     | Default                    | Description                      |
+| --------- | ------------------------ | -------------------------- | -------------------------------- |
+| `apiUrl`  | `string`                 | `process.env.VITE_API_URL` | Base API URL                     |
+| `timeout` | `number`                 | `10000`                    | Request timeout in milliseconds  |
+| `retries` | `number`                 | `3`                        | Number of retry attempts         |
+| `headers` | `Record<string, string>` | `{}`                       | Default headers for all requests |
+| `debug`   | `boolean`                | `false`                    | Enable debug logging             |
 
 ### Environment Variables
 
@@ -76,13 +76,13 @@ const pets = await apiService.get('/api/pets');
 const filteredPets = await apiService.get('/api/pets', {
   species: 'dog',
   status: 'available',
-  limit: 20
+  limit: 20,
 });
 
 // With custom options
 const data = await apiService.get('/api/pets', null, {
   timeout: 15000,
-  headers: { 'Accept': 'application/json' }
+  headers: { Accept: 'application/json' },
 });
 ```
 
@@ -95,14 +95,14 @@ Perform POST requests with request body.
 const newPet = await apiService.post('/api/pets', {
   name: 'Buddy',
   species: 'dog',
-  breed: 'Golden Retriever'
+  breed: 'Golden Retriever',
 });
 
 // File upload
 const formData = new FormData();
 formData.append('photo', file);
 const uploadResult = await apiService.post('/api/pets/123/photos', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' }
+  headers: { 'Content-Type': 'multipart/form-data' },
 });
 ```
 
@@ -114,7 +114,7 @@ Perform PUT requests for full resource updates.
 const updatedPet = await apiService.put('/api/pets/123', {
   name: 'Buddy Updated',
   status: 'adopted',
-  description: 'Now in loving home!'
+  description: 'Now in loving home!',
 });
 ```
 
@@ -124,7 +124,7 @@ Perform PATCH requests for partial updates.
 
 ```typescript
 const partialUpdate = await apiService.patch('/api/pets/123', {
-  status: 'adopted'
+  status: 'adopted',
 });
 ```
 
@@ -137,7 +137,7 @@ await apiService.delete('/api/pets/123');
 
 // With confirmation
 await apiService.delete('/api/pets/123', {
-  headers: { 'X-Confirm': 'true' }
+  headers: { 'X-Confirm': 'true' },
 });
 ```
 
@@ -149,28 +149,28 @@ Add request interceptors for preprocessing requests.
 
 ```typescript
 // Add authentication header
-apiService.interceptors.addRequestInterceptor(async (config) => {
+apiService.interceptors.addRequestInterceptor(async config => {
   const token = localStorage.getItem('authToken');
   if (token) {
     config.headers = {
       ...config.headers,
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     };
   }
   return config;
 });
 
 // Add request logging
-apiService.interceptors.addRequestInterceptor(async (config) => {
+apiService.interceptors.addRequestInterceptor(async config => {
   console.log(`🌐 ${config.method.toUpperCase()} ${config.url}`);
   return config;
 });
 
 // Add API version header
-apiService.interceptors.addRequestInterceptor(async (config) => {
+apiService.interceptors.addRequestInterceptor(async config => {
   config.headers = {
     ...config.headers,
-    'X-API-Version': '1.0'
+    'X-API-Version': '1.0',
   };
   return config;
 });
@@ -182,7 +182,7 @@ Add response interceptors for processing responses.
 
 ```typescript
 // Transform response data
-apiService.interceptors.addResponseInterceptor(async (response) => {
+apiService.interceptors.addResponseInterceptor(async response => {
   // Automatically extract data field if present
   if (response.data && typeof response.data === 'object' && 'data' in response.data) {
     return response.data.data;
@@ -191,7 +191,7 @@ apiService.interceptors.addResponseInterceptor(async (response) => {
 });
 
 // Response logging
-apiService.interceptors.addResponseInterceptor(async (response) => {
+apiService.interceptors.addResponseInterceptor(async response => {
   console.log(`✅ Response received for ${response.config?.url}`);
   return response;
 });
@@ -203,14 +203,14 @@ Add error interceptors for handling failures.
 
 ```typescript
 // Token refresh on 401 errors
-apiService.interceptors.addErrorInterceptor(async (error) => {
+apiService.interceptors.addErrorInterceptor(async error => {
   if (error instanceof AuthenticationError && error.status === 401) {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         const newTokens = await refreshAuthToken(refreshToken);
         localStorage.setItem('authToken', newTokens.token);
-        
+
         // Retry the original request
         return await apiService.request(error.config);
       }
@@ -223,7 +223,7 @@ apiService.interceptors.addErrorInterceptor(async (error) => {
 });
 
 // Error logging
-apiService.interceptors.addErrorInterceptor(async (error) => {
+apiService.interceptors.addErrorInterceptor(async error => {
   console.error(`❌ API Error: ${error.message}`);
   throw error;
 });
@@ -238,21 +238,21 @@ Update service configuration at runtime.
 ```typescript
 // Update API URL
 apiService.updateConfig({
-  apiUrl: 'https://production-api.example.com'
+  apiUrl: 'https://production-api.example.com',
 });
 
 // Update headers
 apiService.updateConfig({
   headers: {
     'X-App-Version': '2.1.0',
-    'X-Client-Type': 'web'
-  }
+    'X-Client-Type': 'web',
+  },
 });
 
 // Update timeout and retries
 apiService.updateConfig({
   timeout: 15000,
-  retries: 5
+  retries: 5,
 });
 ```
 
@@ -271,11 +271,11 @@ console.log('Current timeout:', currentConfig.timeout);
 ##### Custom Error Types
 
 ```typescript
-import { 
-  ApiError, 
-  AuthenticationError, 
-  NetworkError, 
-  ValidationError 
+import {
+  ApiError,
+  AuthenticationError,
+  NetworkError,
+  ValidationError,
 } from '@adopt-dont-shop/lib-api';
 
 try {
@@ -309,7 +309,7 @@ try {
 
 - HTTP methods (GET, POST, PUT, PATCH, DELETE)
 - Authentication headers
-- Request/Response interceptors  
+- Request/Response interceptors
 - Error handling and retries
 - Timeout management
 - Development debugging
@@ -355,14 +355,14 @@ import { apiService } from '@adopt-dont-shop/lib-api';
 // Configure API for client app
 apiService.updateConfig({
   apiUrl: import.meta.env.VITE_API_URL,
-  debug: import.meta.env.DEV
+  debug: import.meta.env.DEV,
 });
 
 // Add client-specific interceptors
-apiService.interceptors.addRequestInterceptor(async (config) => {
+apiService.interceptors.addRequestInterceptor(async config => {
   config.headers = {
     ...config.headers,
-    'X-App': 'client'
+    'X-App': 'client',
   };
   return config;
 });
@@ -377,7 +377,7 @@ import { apiService } from '@adopt-dont-shop/lib-api';
 // Configure API for rescue app
 apiService.updateConfig({
   apiUrl: import.meta.env.VITE_API_URL,
-  headers: { 'X-App': 'rescue' }
+  headers: { 'X-App': 'rescue' },
 });
 ```
 
@@ -391,7 +391,7 @@ import { apiService } from '@adopt-dont-shop/lib-api';
 apiService.updateConfig({
   apiUrl: import.meta.env.VITE_API_URL,
   timeout: 30000,
-  headers: { 'X-App': 'admin' }
+  headers: { 'X-App': 'admin' },
 });
 ```
 
@@ -408,6 +408,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ Mock service for testing
 
 Run tests:
+
 ```bash
 npm run test:lib-api
 ```
@@ -435,7 +436,7 @@ describe('PetService', () => {
     mockApiService.get.mockResolvedValue({ data: mockPets });
 
     const result = await petService.getAllPets();
-    
+
     expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets', undefined);
     expect(result.data).toEqual(mockPets);
   });
@@ -445,24 +446,28 @@ describe('PetService', () => {
 ## 🚀 Key Features
 
 ### Unified HTTP Interface
+
 - **Consistent API**: Same interface across all HTTP methods
 - **Type Safety**: Full TypeScript support with proper typing
 - **Promise-Based**: Modern async/await support
 - **Error Handling**: Structured error types for different scenarios
 
 ### Flexible Interceptor System
+
 - **Request Interceptors**: Modify requests before sending
 - **Response Interceptors**: Transform responses after receiving
 - **Error Interceptors**: Handle and transform errors
 - **Chain Support**: Multiple interceptors with proper execution order
 
 ### Robust Error Handling
+
 - **Custom Error Types**: Specific error classes for different scenarios
 - **Automatic Retries**: Configurable retry logic with exponential backoff
 - **Network Resilience**: Graceful handling of network failures
 - **Debug Support**: Comprehensive logging for development
 
 ### Performance Optimization
+
 - **Connection Pooling**: Efficient HTTP connection management
 - **Request Deduplication**: Prevent duplicate requests
 - **Caching Support**: HTTP cache headers and ETags
@@ -473,16 +478,19 @@ describe('PetService', () => {
 ### Common Issues
 
 **Authentication errors**:
+
 - Check token format and Authorization header
 - Verify token refresh logic in error interceptors
 - Review authentication flow and token storage
 
 **Network connectivity**:
+
 - Check API URL configuration and reachability
 - Verify CORS settings for cross-origin requests
 - Review network error handling and retry logic
 
 **Request timeouts**:
+
 - Adjust timeout configuration for slow endpoints
 - Implement proper loading states in UI
 - Consider request cancellation for component unmounting
@@ -491,7 +499,7 @@ describe('PetService', () => {
 
 ```typescript
 const api = new ApiService({
-  debug: true // Enables comprehensive request/response logging
+  debug: true, // Enables comprehensive request/response logging
 });
 
 // Or enable debugging on existing instance

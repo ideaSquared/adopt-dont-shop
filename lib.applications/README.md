@@ -42,11 +42,11 @@ const customResult = await customService.exampleMethod({ custom: 'data' });
 
 ### ApplicationsServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Base API URL |
-| `debug` | `boolean` | `process.env.NODE_ENV === 'development'` | Enable debug logging |
-| `headers` | `Record<string, string>` | `{}` | Custom headers for requests |
+| Property  | Type                     | Default                                  | Description                 |
+| --------- | ------------------------ | ---------------------------------------- | --------------------------- |
+| `apiUrl`  | `string`                 | `process.env.VITE_API_URL`               | Base API URL                |
+| `debug`   | `boolean`                | `process.env.NODE_ENV === 'development'` | Enable debug logging        |
+| `headers` | `Record<string, string>` | `{}`                                     | Custom headers for requests |
 
 ### Environment Variables
 
@@ -78,15 +78,16 @@ Example method that demonstrates the library's capabilities.
 ```typescript
 await service.exampleMethod(
   { key: 'value' },
-  { 
+  {
     timeout: 5000,
     useCache: true,
-    metadata: { requestId: 'abc123' }
+    metadata: { requestId: 'abc123' },
   }
 );
 ```
 
 **Parameters:**
+
 - `data` (Record<string, unknown>): Input data
 - `options` (ApplicationsServiceOptions): Operation options
 
@@ -129,6 +130,7 @@ const isHealthy = await service.healthCheck();
 ### React/Vite Apps (app.client, app.admin, app.rescue)
 
 1. **Add to package.json:**
+
 ```json
 {
   "dependencies": {
@@ -138,6 +140,7 @@ const isHealthy = await service.healthCheck();
 ```
 
 2. **Import and use:**
+
 ```typescript
 // src/services/index.ts
 export { applicationsService } from '@adopt-dont-shop/lib-applications';
@@ -151,8 +154,8 @@ function MyComponent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await applicationsService.exampleMethod({ 
-          component: 'MyComponent' 
+        const result = await applicationsService.exampleMethod({
+          component: 'MyComponent'
         });
         setData(result.data);
       } catch (error) {
@@ -170,6 +173,7 @@ function MyComponent() {
 ### Node.js Backend (service.backend)
 
 1. **Add to package.json:**
+
 ```json
 {
   "dependencies": {
@@ -179,6 +183,7 @@ function MyComponent() {
 ```
 
 2. **Import and use:**
+
 ```typescript
 // src/services/applications.service.ts
 import { ApplicationsService } from '@adopt-dont-shop/lib-applications';
@@ -206,12 +211,14 @@ app.get('/api/applications/example', async (req, res) => {
 ### Development with Docker Compose
 
 1. **Build the library:**
+
 ```bash
 # From workspace root
 docker-compose -f docker-compose.lib.yml up lib-applications
 ```
 
 2. **Run tests:**
+
 ```bash
 docker-compose -f docker-compose.lib.yml run lib-applications-test
 ```
@@ -351,7 +358,7 @@ import { applicationsService } from '@adopt-dont-shop/lib-applications';
 applicationsService.updateConfig({
   apiUrl: apiService.getConfig().baseUrl,
   headers: {
-    'Authorization': `Bearer ${authService.getToken()}`,
+    Authorization: `Bearer ${authService.getToken()}`,
   },
 });
 ```
@@ -434,6 +441,7 @@ applicationsService.updateConfig({ debug: true });
 ```
 
 Or set environment variable:
+
 ```bash
 NODE_ENV=development
 ```

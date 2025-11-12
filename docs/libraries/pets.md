@@ -36,7 +36,7 @@ const newPet = await petsService.createPet({
   age: 3,
   gender: 'male',
   status: 'available',
-  rescueId: 'rescue_456'
+  rescueId: 'rescue_456',
 });
 
 // Advanced configuration
@@ -44,7 +44,7 @@ const service = new PetsService({
   apiUrl: 'https://api.example.com',
   timeout: 10000,
   retries: 3,
-  debug: true
+  debug: true,
 });
 ```
 
@@ -52,12 +52,12 @@ const service = new PetsService({
 
 ### PetsServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Backend API URL |
-| `timeout` | `number` | `10000` | Request timeout in milliseconds |
-| `retries` | `number` | `3` | Number of retry attempts |
-| `debug` | `boolean` | `false` | Enable debug logging |
+| Property  | Type      | Default                    | Description                     |
+| --------- | --------- | -------------------------- | ------------------------------- |
+| `apiUrl`  | `string`  | `process.env.VITE_API_URL` | Backend API URL                 |
+| `timeout` | `number`  | `10000`                    | Request timeout in milliseconds |
+| `retries` | `number`  | `3`                        | Number of retry attempts        |
+| `debug`   | `boolean` | `false`                    | Enable debug logging            |
 
 ### Environment Variables
 
@@ -81,26 +81,29 @@ NODE_ENV=development
 Get all pets with optional filtering and pagination.
 
 ```typescript
-const pets = await petsService.getAllPets({
-  status: 'available',
-  species: 'dog',
-  breed: 'Golden Retriever',
-  ageMin: 1,
-  ageMax: 5,
-  gender: 'male',
-  size: 'medium',
-  rescueId: 'rescue_123',
-  location: {
-    city: 'San Francisco',
-    state: 'CA',
-    radius: 50
+const pets = await petsService.getAllPets(
+  {
+    status: 'available',
+    species: 'dog',
+    breed: 'Golden Retriever',
+    ageMin: 1,
+    ageMax: 5,
+    gender: 'male',
+    size: 'medium',
+    rescueId: 'rescue_123',
+    location: {
+      city: 'San Francisco',
+      state: 'CA',
+      radius: 50,
+    },
+  },
+  {
+    page: 1,
+    limit: 20,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
   }
-}, {
-  page: 1,
-  limit: 20,
-  sortBy: 'createdAt',
-  sortOrder: 'desc'
-});
+);
 ```
 
 ##### `getPetById(petId, options?)`
@@ -111,7 +114,7 @@ Get a specific pet by ID.
 const pet = await petsService.getPetById('pet_123', {
   includeMedia: true,
   includeMedical: true,
-  includeApplications: false
+  includeApplications: false,
 });
 ```
 
@@ -137,13 +140,13 @@ const pet = await petsService.createPet({
     goodWithPets: true,
     energyLevel: 'medium',
     trainedLevel: 'house-trained',
-    specialNeeds: false
+    specialNeeds: false,
   },
   location: {
     city: 'Portland',
     state: 'OR',
-    zipCode: '97201'
-  }
+    zipCode: '97201',
+  },
 });
 ```
 
@@ -155,7 +158,7 @@ Update an existing pet profile.
 const updatedPet = await petsService.updatePet('pet_123', {
   status: 'adopted',
   adoptionDate: new Date().toISOString(),
-  description: 'Updated description with new information'
+  description: 'Updated description with new information',
 });
 ```
 
@@ -177,7 +180,7 @@ Upload a photo for a pet.
 const photo = await petsService.uploadPetPhoto('pet_123', photoFile, {
   isPrimary: true,
   caption: 'Buddy playing in the yard',
-  tags: ['outdoor', 'playing', 'happy']
+  tags: ['outdoor', 'playing', 'happy'],
 });
 ```
 
@@ -188,7 +191,7 @@ Get all photos for a pet.
 ```typescript
 const photos = await petsService.getPetPhotos('pet_123', {
   includeMetadata: true,
-  sortBy: 'uploadDate'
+  sortBy: 'uploadDate',
 });
 ```
 
@@ -200,7 +203,7 @@ Update photo information.
 await petsService.updatePetPhoto('pet_123', 'photo_456', {
   caption: 'Updated caption',
   isPrimary: false,
-  tags: ['indoor', 'portrait']
+  tags: ['indoor', 'portrait'],
 });
 ```
 
@@ -222,7 +225,7 @@ Get medical records for a pet.
 const medicalRecords = await petsService.getPetMedicalRecords('pet_123', {
   includeVaccinations: true,
   includeTreatments: true,
-  sortBy: 'date'
+  sortBy: 'date',
 });
 ```
 
@@ -239,7 +242,7 @@ const record = await petsService.addMedicalRecord('pet_123', {
   description: 'Annual vaccinations (DHPP, Rabies)',
   notes: 'Pet responded well, no adverse reactions',
   nextDueDate: '2025-01-15',
-  documents: ['vacc_cert_123.pdf']
+  documents: ['vacc_cert_123.pdf'],
 });
 ```
 
@@ -250,7 +253,7 @@ Update a medical record.
 ```typescript
 await petsService.updateMedicalRecord('pet_123', 'record_456', {
   notes: 'Updated notes with additional observations',
-  followUpRequired: false
+  followUpRequired: false,
 });
 ```
 
@@ -271,7 +274,7 @@ Get detailed breed information.
 
 ```typescript
 const breedInfo = await petsService.getBreedInfo('golden_retriever');
-// Returns: { 
+// Returns: {
 //   name: 'Golden Retriever',
 //   size: 'large',
 //   temperament: ['friendly', 'intelligent', 'devoted'],
@@ -292,7 +295,7 @@ Get adoption applications for a pet.
 const applications = await petsService.getPetApplications('pet_123', {
   status: 'pending',
   sortBy: 'submissionDate',
-  includeApplicantInfo: true
+  includeApplicantInfo: true,
 });
 ```
 
@@ -305,7 +308,7 @@ await petsService.updateAdoptionStatus('pet_123', 'adopted', {
   adopterId: 'user_789',
   adoptionDate: new Date().toISOString(),
   adoptionFee: 250,
-  notes: 'Great match! Family has experience with the breed.'
+  notes: 'Great match! Family has experience with the breed.',
 });
 ```
 
@@ -319,10 +322,10 @@ Search pets with text query and filters.
 const searchResults = await petsService.searchPets('friendly golden retriever', {
   location: {
     city: 'San Francisco',
-    radius: 25
+    radius: 25,
   },
   ageMax: 3,
-  goodWithKids: true
+  goodWithKids: true,
 });
 ```
 
@@ -334,7 +337,7 @@ Find pets similar to the specified pet.
 const similarPets = await petsService.getSimilarPets('pet_123', {
   limit: 5,
   includeAdopted: false,
-  similarityFactors: ['breed', 'age', 'size', 'temperament']
+  similarityFactors: ['breed', 'age', 'size', 'temperament'],
 });
 ```
 
@@ -345,7 +348,7 @@ Get featured pets for promotion.
 ```typescript
 const featuredPets = await petsService.getFeaturedPets({
   limit: 10,
-  rescueId: 'rescue_456'
+  rescueId: 'rescue_456',
 });
 ```
 
@@ -388,7 +391,7 @@ export function usePetSearch(filters: any) {
   const searchPets = async (newFilters = filters) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const results = await service.getAllPets(newFilters);
       setPets(results.pets);
@@ -439,19 +442,19 @@ function PetSearchResults() {
     species: 'dog',
     status: 'available'
   });
-  
+
   const { pets, loading, error, searchPets } = usePetSearch(filters);
 
   return (
     <div>
-      <PetFilters 
-        filters={filters} 
+      <PetFilters
+        filters={filters}
         onFiltersChange={setFilters}
       />
-      
+
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} />}
-      
+
       <div className="pet-grid">
         {pets.map(pet => (
           <PetCard key={pet.id} pet={pet} />
@@ -508,14 +511,14 @@ app.get('/api/pets', async (req, res) => {
       status: req.query.status,
       species: req.query.species,
       rescueId: req.query.rescueId,
-      ...req.query
+      ...req.query,
     };
-    
+
     const result = await petsService.getAllPets(filters, {
       page: parseInt(req.query.page) || 1,
-      limit: parseInt(req.query.limit) || 20
+      limit: parseInt(req.query.limit) || 20,
     });
-    
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch pets' });
@@ -554,6 +557,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ Error handling and validation
 
 Run tests:
+
 ```bash
 npm run test:lib-pets
 ```
@@ -561,24 +565,28 @@ npm run test:lib-pets
 ## 🚀 Key Features
 
 ### Comprehensive Pet Management
+
 - **Full Lifecycle**: From intake to adoption
 - **Rich Profiles**: Detailed pet information and characteristics
 - **Media Support**: Photo and video management
 - **Medical Tracking**: Comprehensive health records
 
 ### Advanced Search & Discovery
+
 - **Multi-Criteria Search**: Species, breed, age, location, characteristics
 - **Smart Matching**: AI-powered pet recommendations
 - **Geographic Search**: Location-based pet discovery
 - **Similar Pets**: Find pets with similar characteristics
 
 ### Adoption Workflow
+
 - **Application Management**: Track adoption applications
 - **Status Tracking**: Real-time adoption status updates
 - **Communication**: Integrated messaging for adoption process
 - **Documentation**: Adoption agreements and records
 
 ### Data Management
+
 - **Breed Database**: Comprehensive breed information
 - **Medical Records**: Vaccination, treatment, and health tracking
 - **Photo Management**: Multiple photos with metadata
@@ -589,16 +597,19 @@ npm run test:lib-pets
 ### Common Issues
 
 **Pet photos not uploading**:
+
 - Check file size limits and supported formats
 - Verify API endpoint accessibility
 - Enable debug mode for detailed error messages
 
 **Search results inconsistent**:
+
 - Verify filter parameters and data types
 - Check database indexing for search fields
 - Review location-based search radius settings
 
 **Medical records not saving**:
+
 - Validate required fields and data formats
 - Check user permissions for medical data
 - Verify veterinarian and clinic information
@@ -607,7 +618,7 @@ npm run test:lib-pets
 
 ```typescript
 const pets = new PetsService({
-  debug: true // Enables comprehensive API logging
+  debug: true, // Enables comprehensive API logging
 });
 ```
 

@@ -37,9 +37,9 @@ const newRescue = await rescueService.createRescue({
     street: '123 Main St',
     city: 'Portland',
     state: 'OR',
-    zipCode: '97201'
+    zipCode: '97201',
   },
-  description: 'Dedicated to finding loving homes for abandoned pets'
+  description: 'Dedicated to finding loving homes for abandoned pets',
 });
 
 // Advanced configuration
@@ -47,7 +47,7 @@ const service = new RescueService({
   apiUrl: 'https://api.example.com',
   timeout: 10000,
   retries: 3,
-  debug: true
+  debug: true,
 });
 ```
 
@@ -55,12 +55,12 @@ const service = new RescueService({
 
 ### RescueServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Backend API URL |
-| `timeout` | `number` | `10000` | Request timeout in milliseconds |
-| `retries` | `number` | `3` | Number of retry attempts |
-| `debug` | `boolean` | `false` | Enable debug logging |
+| Property  | Type      | Default                    | Description                     |
+| --------- | --------- | -------------------------- | ------------------------------- |
+| `apiUrl`  | `string`  | `process.env.VITE_API_URL` | Backend API URL                 |
+| `timeout` | `number`  | `10000`                    | Request timeout in milliseconds |
+| `retries` | `number`  | `3`                        | Number of retry attempts        |
+| `debug`   | `boolean` | `false`                    | Enable debug logging            |
 
 ### Environment Variables
 
@@ -84,22 +84,25 @@ NODE_ENV=development
 Get all rescue organizations with filtering and pagination.
 
 ```typescript
-const rescues = await rescueService.getAllRescues({
-  verified: true,
-  status: 'active',
-  location: {
-    city: 'Portland',
-    state: 'OR',
-    radius: 50
+const rescues = await rescueService.getAllRescues(
+  {
+    verified: true,
+    status: 'active',
+    location: {
+      city: 'Portland',
+      state: 'OR',
+      radius: 50,
+    },
+    specialties: ['dogs', 'cats'],
+    capacity: { min: 10, max: 100 },
   },
-  specialties: ['dogs', 'cats'],
-  capacity: { min: 10, max: 100 }
-}, {
-  page: 1,
-  limit: 20,
-  sortBy: 'name',
-  sortOrder: 'asc'
-});
+  {
+    page: 1,
+    limit: 20,
+    sortBy: 'name',
+    sortOrder: 'asc',
+  }
+);
 ```
 
 ##### `getRescueById(rescueId, options?)`
@@ -110,7 +113,7 @@ Get a specific rescue by ID.
 const rescue = await rescueService.getRescueById('rescue_123', {
   includeStats: true,
   includeVolunteers: true,
-  includePets: false
+  includePets: false,
 });
 ```
 
@@ -128,7 +131,7 @@ const rescue = await rescueService.createRescue({
     street: '456 Oak Avenue',
     city: 'Seattle',
     state: 'WA',
-    zipCode: '98101'
+    zipCode: '98101',
   },
   description: 'No-kill shelter specializing in senior pets',
   mission: 'To provide loving care for senior and special needs animals',
@@ -136,14 +139,14 @@ const rescue = await rescueService.createRescue({
   capacity: {
     dogs: 25,
     cats: 40,
-    other: 10
+    other: 10,
   },
   facilities: ['medical-facility', 'grooming', 'training-area'],
   socialMedia: {
     facebook: 'facebook.com/furryfriends',
     instagram: '@furryfriends',
-    twitter: '@furryfriends'
-  }
+    twitter: '@furryfriends',
+  },
 });
 ```
 
@@ -155,7 +158,7 @@ Update an existing rescue profile.
 const updatedRescue = await rescueService.updateRescue('rescue_123', {
   description: 'Updated mission and services',
   capacity: { dogs: 30, cats: 45, other: 15 },
-  facilities: ['medical-facility', 'grooming', 'training-area', 'quarantine']
+  facilities: ['medical-facility', 'grooming', 'training-area', 'quarantine'],
 });
 ```
 
@@ -178,7 +181,7 @@ const volunteers = await rescueService.getRescueVolunteers('rescue_123', {
   status: 'active',
   role: 'foster',
   includeSchedule: true,
-  sortBy: 'joinDate'
+  sortBy: 'joinDate',
 });
 ```
 
@@ -194,12 +197,12 @@ const volunteer = await rescueService.addVolunteer('rescue_123', {
   availability: {
     monday: { start: '09:00', end: '17:00' },
     wednesday: { start: '09:00', end: '17:00' },
-    saturday: { start: '08:00', end: '16:00' }
+    saturday: { start: '08:00', end: '16:00' },
   },
   preferences: {
     animals: ['dogs', 'cats'],
-    tasks: ['feeding', 'walking', 'socialization']
-  }
+    tasks: ['feeding', 'walking', 'socialization'],
+  },
 });
 ```
 
@@ -211,7 +214,7 @@ Update volunteer information.
 await rescueService.updateVolunteer('rescue_123', 'vol_789', {
   role: 'foster-coordinator',
   skills: ['animal-care', 'training', 'administration'],
-  status: 'active'
+  status: 'active',
 });
 ```
 
@@ -233,7 +236,7 @@ Get rescue resources and inventory.
 const resources = await rescueService.getRescueResources('rescue_123', {
   category: 'medical',
   lowStock: true,
-  includeHistory: false
+  includeHistory: false,
 });
 ```
 
@@ -246,7 +249,7 @@ await rescueService.updateResourceInventory('rescue_123', 'resource_456', {
   currentStock: 25,
   minimumStock: 10,
   lastRestocked: new Date().toISOString(),
-  supplier: 'Pet Supply Co.'
+  supplier: 'Pet Supply Co.',
 });
 ```
 
@@ -260,10 +263,10 @@ const request = await rescueService.addResourceRequest('rescue_123', {
   items: [
     { name: 'Dog Food (Large Breed)', quantity: 50, priority: 'high' },
     { name: 'Cat Litter', quantity: 20, priority: 'medium' },
-    { name: 'Blankets', quantity: 30, priority: 'low' }
+    { name: 'Blankets', quantity: 30, priority: 'low' },
   ],
   description: 'Winter supply needs for increased animal intake',
-  deadline: '2024-02-15'
+  deadline: '2024-02-15',
 });
 ```
 
@@ -280,8 +283,8 @@ const events = await rescueService.getRescueEvents('rescue_123', {
   includeRegistrations: true,
   dateRange: {
     start: '2024-01-01',
-    end: '2024-03-31'
-  }
+    end: '2024-03-31',
+  },
 });
 ```
 
@@ -298,15 +301,15 @@ const event = await rescueService.createEvent('rescue_123', {
   endDate: '2024-02-15T16:00:00Z',
   location: {
     name: 'Central Park Pavilion',
-    address: '789 Park Avenue, Portland, OR 97201'
+    address: '789 Park Avenue, Portland, OR 97201',
   },
   capacity: 100,
   requiresRegistration: true,
   volunteerRoles: [
     { role: 'check-in', count: 2 },
     { role: 'animal-handler', count: 4 },
-    { role: 'adoption-counselor', count: 3 }
-  ]
+    { role: 'adoption-counselor', count: 3 },
+  ],
 });
 ```
 
@@ -317,7 +320,7 @@ Update event information.
 ```typescript
 await rescueService.updateEvent('rescue_123', 'event_456', {
   capacity: 150,
-  description: 'Updated event description with new activities'
+  description: 'Updated event description with new activities',
 });
 ```
 
@@ -331,7 +334,7 @@ Get rescue performance statistics.
 const stats = await rescueService.getRescueStats('rescue_123', {
   timeframe: 'year',
   includeComparisons: true,
-  metrics: ['adoptions', 'intakes', 'volunteers', 'donations']
+  metrics: ['adoptions', 'intakes', 'volunteers', 'donations'],
 });
 
 // Returns:
@@ -350,7 +353,7 @@ Get detailed adoption metrics.
 ```typescript
 const adoptionMetrics = await rescueService.getAdoptionMetrics('rescue_123', {
   period: 'last-6-months',
-  breakdown: ['species', 'age-group', 'adoption-time']
+  breakdown: ['species', 'age-group', 'adoption-time'],
 });
 ```
 
@@ -362,7 +365,7 @@ Get volunteer engagement metrics.
 const volunteerMetrics = await rescueService.getVolunteerMetrics('rescue_123', {
   includeHours: true,
   includeRetention: true,
-  period: 'quarter'
+  period: 'quarter',
 });
 ```
 
@@ -377,7 +380,7 @@ const donations = await rescueService.getDonations('rescue_123', {
   timeframe: 'month',
   type: 'monetary',
   minAmount: 100,
-  includeRecurring: true
+  includeRecurring: true,
 });
 ```
 
@@ -394,7 +397,7 @@ const donation = await rescueService.addDonation('rescue_123', {
   recurring: false,
   designation: 'medical-fund',
   anonymous: false,
-  notes: 'In memory of beloved pet Max'
+  notes: 'In memory of beloved pet Max',
 });
 ```
 
@@ -406,7 +409,7 @@ Get expense records.
 const expenses = await rescueService.getExpenses('rescue_123', {
   category: 'medical',
   timeframe: 'quarter',
-  includeReceipts: true
+  includeReceipts: true,
 });
 ```
 
@@ -453,7 +456,7 @@ export function useRescueDetail(rescueId: string) {
           service.getRescueById(rescueId, { includeStats: true }),
           service.getRescueStats(rescueId, { timeframe: 'year' })
         ]);
-        
+
         setRescue(rescueData);
         setStats(statsData);
       } catch (error) {
@@ -498,7 +501,7 @@ function VolunteerDashboard({ rescueId }: { rescueId: string }) {
         rescueService.getRescueVolunteers(rescueId),
         rescueService.getRescueEvents(rescueId, { upcoming: true })
       ]);
-      
+
       setVolunteers(volunteersData);
       setEvents(eventsData);
     };
@@ -533,14 +536,14 @@ app.get('/api/rescues', async (req, res) => {
       verified: req.query.verified === 'true',
       location: req.query.location,
       specialties: req.query.specialties?.split(','),
-      ...req.query
+      ...req.query,
     };
-    
+
     const result = await rescueService.getAllRescues(filters, {
       page: parseInt(req.query.page) || 1,
-      limit: parseInt(req.query.limit) || 20
+      limit: parseInt(req.query.limit) || 20,
     });
-    
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch rescues' });
@@ -559,7 +562,7 @@ app.post('/api/rescues/:id/volunteers', async (req, res) => {
 app.get('/api/rescues/:id/stats', async (req, res) => {
   try {
     const stats = await rescueService.getRescueStats(req.params.id, {
-      timeframe: req.query.timeframe || 'year'
+      timeframe: req.query.timeframe || 'year',
     });
     res.json(stats);
   } catch (error) {
@@ -581,6 +584,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ Error handling and validation
 
 Run tests:
+
 ```bash
 npm run test:lib-rescue
 ```
@@ -588,24 +592,28 @@ npm run test:lib-rescue
 ## 🚀 Key Features
 
 ### Comprehensive Organization Management
+
 - **Full Profiles**: Detailed rescue organization information
 - **Verification System**: Trust and credibility indicators
 - **Multi-location Support**: Chain and network rescue management
 - **Capacity Tracking**: Real-time animal capacity monitoring
 
 ### Volunteer Coordination
+
 - **Role Management**: Multiple volunteer roles and permissions
 - **Scheduling**: Availability and shift management
 - **Skills Tracking**: Volunteer capabilities and expertise
 - **Communication**: Integrated messaging and notifications
 
 ### Event Management
+
 - **Multiple Event Types**: Adoption events, fundraisers, training
 - **Registration System**: Event attendance and volunteer signup
 - **Resource Planning**: Equipment and supply coordination
 - **Analytics**: Event performance and ROI tracking
 
 ### Financial Oversight
+
 - **Donation Tracking**: Monetary and in-kind donation records
 - **Expense Management**: Categorized spending and budgeting
 - **Grant Management**: Application and reporting assistance
@@ -616,16 +624,19 @@ npm run test:lib-rescue
 ### Common Issues
 
 **Volunteer data not syncing**:
+
 - Check user permissions and rescue associations
 - Verify volunteer status and role assignments
 - Enable debug mode for detailed sync logs
 
 **Event registration issues**:
+
 - Validate event capacity and requirements
 - Check registration deadline and availability
 - Review volunteer role assignments
 
 **Statistics not updating**:
+
 - Verify data collection timeframes
 - Check cached data and refresh intervals
 - Review metric calculation parameters
@@ -634,7 +645,7 @@ npm run test:lib-rescue
 
 ```typescript
 const rescue = new RescueService({
-  debug: true // Enables comprehensive API logging
+  debug: true, // Enables comprehensive API logging
 });
 ```
 

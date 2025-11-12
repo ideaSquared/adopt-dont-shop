@@ -7,21 +7,25 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ## Architecture Principles
 
 ### 1. Modular Design
+
 - Component-based architecture with clear separation of concerns
 - Feature-based folder structure for better organization
 - Shared component library integration for consistency
 
 ### 2. Data Flow
+
 - Unidirectional data flow using React patterns
 - React Context for global state, local state for components
 - React Query for server state management and caching
 
 ### 3. Security-First
+
 - Role-based access control (RBAC) at component and route level
 - Permission-based rendering for fine-grained access
 - Secure API communication with automatic token management
 
 ### 4. Performance
+
 - Code splitting for reduced bundle sizes
 - Lazy loading for non-critical components
 - Optimistic updates for better UX
@@ -30,6 +34,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ## System Layers
 
 ### Frontend Layer (React App)
+
 - **Pages**: Route components and layouts
 - **Components**: UI and business logic components
 - **Contexts**: Global state management
@@ -37,6 +42,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 - **Services**: API and external integrations
 
 ### Shared Libraries
+
 - `@adopt-dont-shop/components` - UI components
 - `@adopt-dont-shop/lib-api` - API client
 - `@adopt-dont-shop/lib-auth` - Authentication
@@ -44,11 +50,13 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 - `@adopt-dont-shop/lib-validation` - Form validation
 
 ### Communication Layer
+
 - **HTTP**: Axios + React Query for REST APIs
 - **WebSocket**: Socket.IO for real-time updates
 - **Interceptors**: Auth management, error handling, caching
 
 ### Backend Integration
+
 - **API Gateway**: service.backend endpoints
 - **Authentication**: JWT with refresh tokens
 - **Rate Limiting**: Protection against abuse
@@ -59,22 +67,26 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ### Global State (React Context)
 
 **AuthContext**
+
 - User authentication state
 - Login/logout functionality
 - Token management
 - User profile data
 
 **RescueContext**
+
 - Current rescue organization data
 - Rescue settings and configuration
 - Staff and permission information
 
 **NotificationContext**
+
 - Real-time notifications
 - Notification preferences
 - Unread counts and alerts
 
 **PermissionContext**
+
 - User roles and permissions
 - Access control logic
 - Permission checking utilities
@@ -82,24 +94,28 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ### Server State (React Query)
 
 **Pet Queries**
+
 - Pet list with filters and pagination
 - Individual pet details
 - Pet images and media
 - Pet search results
 
 **Application Queries**
+
 - Application list by status
 - Application details and history
 - Applicant information
 - Reference checking data
 
 **Analytics Queries**
+
 - Dashboard metrics
 - Performance reports
 - Adoption statistics
 - Custom report data
 
 ### Local State
+
 - Component-specific UI state
 - Form input values
 - Modal visibility
@@ -108,6 +124,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ## Component Architecture
 
 ### Page Components (Routes)
+
 - **DashboardPage**: Main dashboard with metrics
 - **PetsPage**: Pet management interface
 - **ApplicationsPage**: Application processing
@@ -119,6 +136,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ### Feature Components
 
 **Pet Management**
+
 - `PetList` - Grid/list view of pets
 - `PetCard` - Individual pet display
 - `PetForm` - Create/edit pet profiles
@@ -126,6 +144,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 - `PetImages` - Photo gallery management
 
 **Application Processing**
+
 - `ApplicationList` - Application queue
 - `ApplicationCard` - Application summary
 - `ApplicationDetails` - Full application view
@@ -133,18 +152,21 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 - `ReferenceCheck` - Reference verification
 
 **Staff Management**
+
 - `StaffDirectory` - Team member list
 - `StaffCard` - Individual staff display
 - `StaffForm` - Add/edit staff
 - `PermissionEditor` - Role and permission management
 
 **Analytics**
+
 - `Dashboard` - Key metrics overview
 - `MetricCard` - Individual metric display
 - `Chart` - Data visualization
 - `ReportGenerator` - Custom report builder
 
 ### Shared UI Components
+
 - `Button`, `Input`, `Select`, `Checkbox`
 - `Modal`, `Drawer`, `Dropdown`
 - `Card`, `Table`, `List`
@@ -154,6 +176,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ## Service Layer
 
 ### API Service (`lib.api`)
+
 ```typescript
 // Centralized API client
 - GET /api/v1/pets
@@ -163,36 +186,30 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ```
 
 ### Authentication Service (`lib.auth`)
+
 ```typescript
 // Auth management
-- login(credentials)
-- logout()
-- refreshToken()
-- getUser()
-- checkPermission(permission)
+-login(credentials) - logout() - refreshToken() - getUser() - checkPermission(permission);
 ```
 
 ### WebSocket Service (`lib.chat`)
+
 ```typescript
 // Real-time communication
-- connect()
-- disconnect()
-- subscribe(event, callback)
-- emit(event, data)
+-connect() - disconnect() - subscribe(event, callback) - emit(event, data);
 ```
 
 ### Upload Service
+
 ```typescript
 // File upload handling
-- uploadImage(file)
-- uploadDocument(file)
-- deleteFile(fileId)
-- getPresignedUrl(fileId)
+-uploadImage(file) - uploadDocument(file) - deleteFile(fileId) - getPresignedUrl(fileId);
 ```
 
 ## Routing Strategy
 
 ### Route Structure
+
 ```
 /                           - Dashboard (protected)
 /pets                       - Pet management (protected)
@@ -207,6 +224,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ```
 
 ### Route Protection
+
 - **Public**: Login, registration
 - **Protected**: All authenticated routes
 - **Role-Based**: Admin, rescue staff, volunteer
@@ -214,6 +232,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ## Security Architecture
 
 ### Authentication Flow
+
 1. User login with credentials
 2. Backend validates and returns JWT + refresh token
 3. Access token stored in memory
@@ -222,6 +241,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 6. Logout clears all tokens and session
 
 ### Authorization
+
 - Role-based access control (RBAC)
 - Permission checks at route level
 - Component-level permission checks
@@ -229,6 +249,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 - Audit logging for sensitive actions
 
 ### Data Protection
+
 - Input validation with Zod schemas
 - XSS protection with Content Security Policy
 - HTTPS-only communication
@@ -238,6 +259,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 ## Performance Optimization
 
 ### Code Splitting
+
 ```typescript
 // Lazy load routes
 const PetsPage = lazy(() => import('./pages/PetsPage'));
@@ -245,6 +267,7 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 ```
 
 ### React Query Caching
+
 ```typescript
 // Cache configuration
 {
@@ -255,6 +278,7 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 ```
 
 ### Image Optimization
+
 - Lazy loading with Intersection Observer
 - Responsive images with srcset
 - WebP format with fallbacks
@@ -262,6 +286,7 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 - CDN delivery
 
 ### Bundle Optimization
+
 - Tree shaking for unused code
 - Minification and compression
 - Dynamic imports for large dependencies
@@ -273,12 +298,14 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 ### WebSocket Integration
 
 **Connection Management**
+
 - Auto-connect on authentication
 - Reconnection with exponential backoff
 - Connection health monitoring
 - Graceful degradation on failure
 
 **Real-Time Events**
+
 - `notification:new` - New notification received
 - `application:updated` - Application status changed
 - `message:new` - New chat message
@@ -288,12 +315,14 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 ## Error Handling
 
 ### Error Boundaries
+
 - Page-level error boundaries
 - Component-level error boundaries
 - Graceful fallback UI
 - Error reporting to monitoring service
 
 ### API Error Handling
+
 - Network errors with retry logic
 - Authentication errors with re-login
 - Validation errors with user feedback
@@ -301,6 +330,7 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 - Timeout handling
 
 ### User Feedback
+
 - Toast notifications for success/error
 - Inline validation errors
 - Loading states during operations
@@ -309,6 +339,7 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 ## Testing Strategy
 
 ### Unit Tests
+
 - Component rendering
 - Hook behavior
 - Utility functions
@@ -316,12 +347,14 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 - Permission logic
 
 ### Integration Tests
+
 - User flows (login, pet management, applications)
 - API integration
 - State management
 - Real-time features
 
 ### E2E Tests (Playwright)
+
 - Critical user journeys
 - Cross-browser compatibility
 - Mobile responsiveness
@@ -330,6 +363,7 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 ## Build & Deployment
 
 ### Development Build
+
 ```bash
 npm run dev              # Start dev server
 npm run test            # Run tests
@@ -337,12 +371,14 @@ npm run lint            # Check code quality
 ```
 
 ### Production Build
+
 ```bash
 npm run build           # Optimized production build
 npm run preview         # Preview production build
 ```
 
 ### Environment Configuration
+
 ```bash
 VITE_API_URL            # Backend API URL
 VITE_WS_URL             # WebSocket URL
@@ -350,6 +386,7 @@ VITE_ENV                # Environment (dev/staging/prod)
 ```
 
 ### Docker Deployment
+
 ```dockerfile
 # Multi-stage build
 FROM node:20-alpine AS build
@@ -360,12 +397,14 @@ FROM nginx:alpine AS production
 ## Monitoring & Analytics
 
 ### Application Monitoring
+
 - Error tracking (Sentry)
 - Performance monitoring (Web Vitals)
 - User session replay
 - API response time tracking
 
 ### User Analytics
+
 - Page view tracking
 - Feature usage statistics
 - User journey analysis
@@ -373,6 +412,7 @@ FROM nginx:alpine AS production
 - Custom event tracking
 
 ### Performance Metrics
+
 - **Target**: Lighthouse score 90+
 - **Initial Load**: < 2 seconds
 - **Route Navigation**: < 500ms
@@ -382,6 +422,7 @@ FROM nginx:alpine AS production
 ## Accessibility
 
 ### WCAG 2.1 AA Compliance
+
 - Semantic HTML structure
 - ARIA labels and roles
 - Keyboard navigation support
@@ -391,6 +432,7 @@ FROM nginx:alpine AS production
 - Skip links for navigation
 
 ### Testing
+
 - Automated accessibility testing (axe-core)
 - Manual screen reader testing
 - Keyboard navigation testing
@@ -399,11 +441,13 @@ FROM nginx:alpine AS production
 ## Browser Support
 
 ### Target Browsers
+
 - **Desktop**: Chrome, Firefox, Safari, Edge (latest 2 versions)
 - **Mobile**: iOS Safari, Chrome Android (latest 2 versions)
 - **Progressive Enhancement**: Core functionality works on older browsers
 
 ### Polyfills
+
 - ES2020+ features as needed
 - CSS Grid/Flexbox fallbacks
 - Fetch API polyfill for older browsers
@@ -411,18 +455,21 @@ FROM nginx:alpine AS production
 ## Future Enhancements
 
 ### Short Term
+
 - Progressive Web App (PWA) support
 - Offline functionality with service workers
 - Push notifications
 - Advanced caching strategies
 
 ### Medium Term
+
 - Native mobile apps (React Native)
 - Advanced analytics dashboard
 - AI-powered recommendations
 - Enhanced real-time collaboration
 
 ### Long Term
+
 - Micro-frontend architecture
 - GraphQL integration
 - Advanced automation workflows

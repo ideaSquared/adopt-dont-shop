@@ -28,30 +28,34 @@ DB_PASSWORD=your-secure-database-password-here
 
 - **JWT_SECRET**: Minimum 32 characters, cryptographically random
 - **SESSION_SECRET**: Minimum 32 characters, cryptographically random
-- **CORS_ORIGIN**: Never use '*' in production
+- **CORS_ORIGIN**: Never use '\*' in production
 - **DB_LOGGING**: Must be false in production to prevent credential leaks
 
 ### 🛡️ Implemented Security Features
 
 #### Rate Limiting
+
 - **General API**: 100 requests per 15 minutes per IP
 - **Authentication**: 5 requests per 15 minutes per IP
 - **Password Reset**: 3 requests per hour per IP
 - **File Upload**: 20 uploads per 15 minutes per IP
 
 #### Authentication Security
+
 - **JWT tokens**: Short-lived (15 minutes) access tokens
 - **Refresh tokens**: 7-day rotation
 - **Password hashing**: bcrypt with 12+ rounds
 - **Account lockout**: Automatic protection against brute force
 
 #### Request Security
+
 - **Helmet.js**: Security headers including CSP, HSTS
 - **Content Security Policy**: Strict directives
 - **CORS**: Configurable origin restrictions
 - **Request size limits**: 10MB for JSON/form data
 
 #### Database Security
+
 - **Logging disabled**: In production to prevent credential exposure
 - **Parameterized queries**: Sequelize ORM prevents SQL injection
 - **Connection pooling**: Secure connection management
@@ -59,6 +63,7 @@ DB_PASSWORD=your-secure-database-password-here
 ### 🔧 Security Configuration Examples
 
 #### Generate Secure Secrets
+
 ```bash
 # Generate JWT secret (Unix/Linux/macOS)
 openssl rand -base64 32
@@ -71,6 +76,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
 #### Nginx Security Configuration
+
 ```nginx
 server {
     listen 443 ssl http2;
@@ -99,12 +105,14 @@ server {
 ### 🚀 Production Deployment Security
 
 #### Environment Setup
+
 1. **Never commit .env files** to version control
 2. **Use environment-specific secrets** for each deployment
 3. **Rotate secrets regularly** (monthly for JWT secrets)
 4. **Monitor for credential leaks** in logs and code
 
 #### Infrastructure Security
+
 - **Use HTTPS only** - TLS 1.3 recommended
 - **Implement WAF** - Web Application Firewall
 - **Network segmentation** - Database access restricted
@@ -112,6 +120,7 @@ server {
 - **Security monitoring** - Log analysis and alerting
 
 #### Container Security
+
 ```dockerfile
 # Use non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -128,6 +137,7 @@ RUN npm audit --audit-level moderate
 ### 📊 Security Monitoring
 
 #### Key Metrics to Monitor
+
 - **Failed authentication attempts** - Alert on patterns
 - **Rate limit violations** - Monitor for abuse
 - **Database query patterns** - Detect SQL injection attempts
@@ -135,6 +145,7 @@ RUN npm audit --audit-level moderate
 - **Error rates** - Unusual error patterns may indicate attacks
 
 #### Recommended Tools
+
 - **Audit logging**: All implemented in application
 - **Error tracking**: Sentry integration ready
 - **Performance monitoring**: APM tools
@@ -143,12 +154,14 @@ RUN npm audit --audit-level moderate
 ### 🔄 Security Maintenance
 
 #### Regular Tasks
+
 - [ ] **Weekly**: Review security logs
 - [ ] **Monthly**: Rotate JWT and session secrets
 - [ ] **Quarterly**: Security audit and penetration testing
 - [ ] **Per release**: Dependency security audit
 
 #### Incident Response
+
 1. **Immediate**: Isolate affected systems
 2. **Assessment**: Determine scope and impact
 3. **Containment**: Stop the attack vector
@@ -158,6 +171,7 @@ RUN npm audit --audit-level moderate
 ### 📞 Security Contacts
 
 For security issues:
+
 - **Email**: security@adoptdontshop.com
 - **Responsible disclosure**: security-reports@adoptdontshop.com
 - **Emergency**: security-emergency@adoptdontshop.com
@@ -166,4 +180,4 @@ For security issues:
 
 **Last Updated**: June 2024  
 **Security Version**: 1.0  
-**Compliance**: OWASP Top 10, GDPR, CCPA Ready 
+**Compliance**: OWASP Top 10, GDPR, CCPA Ready

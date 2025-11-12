@@ -94,7 +94,7 @@ const advancedOptions: AdvancedSearchOptions = {
   includeTypes: ['pet'],
   location: {
     lat: 40.7128,
-    lng: -74.0060,
+    lng: -74.006,
     radius: 25,
   },
   facets: ['type', 'size', 'age', 'breed'],
@@ -114,7 +114,9 @@ console.log('Available facets:', results.facets);
 ```typescript
 // Get search metrics
 const metrics = searchService.getSearchMetrics();
-console.log(`Cache hit rate: ${(metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses)) * 100}%`);
+console.log(
+  `Cache hit rate: ${(metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses)) * 100}%`
+);
 
 // Get cache statistics
 const stats = searchService.getCacheStats();
@@ -135,6 +137,7 @@ new SearchService(config?: SearchServiceConfig)
 ```
 
 **Parameters:**
+
 - `config.apiUrl` - Base API URL
 - `config.debug` - Enable debug logging
 - `config.headers` - Custom headers for requests
@@ -146,6 +149,7 @@ new SearchService(config?: SearchServiceConfig)
 Search for pets with advanced filtering and sorting.
 
 **Parameters:**
+
 - `filters: PetSearchFilters` - Search filters and pagination
 - `options?: SearchServiceOptions` - Request options
 
@@ -156,6 +160,7 @@ Search for pets with advanced filtering and sorting.
 Search messages within conversations.
 
 **Parameters:**
+
 - `searchOptions: MessageSearchOptions` - Message search criteria
 - `options?: SearchServiceOptions` - Request options
 
@@ -166,6 +171,7 @@ Search messages within conversations.
 Get search suggestions and autocomplete.
 
 **Parameters:**
+
 - `query: string` - Partial search query
 - `type?: 'pets' | 'messages' | 'all'` - Type of suggestions
 - `options?: SearchServiceOptions` - Request options
@@ -177,6 +183,7 @@ Get search suggestions and autocomplete.
 Perform faceted search with advanced filtering.
 
 **Parameters:**
+
 - `query: string` - Search query
 - `advancedOptions?: AdvancedSearchOptions` - Advanced search options
 - `options?: SearchServiceOptions` - Request options
@@ -288,9 +295,9 @@ interface SearchMetrics {
   averageQueryTime: number;
   popularQueries: Map<string, number>;
   performanceData: {
-    fastQueries: number;    // < 100ms
-    mediumQueries: number;  // 100-500ms
-    slowQueries: number;    // > 500ms
+    fastQueries: number; // < 100ms
+    mediumQueries: number; // 100-500ms
+    slowQueries: number; // > 500ms
   };
 }
 ```
@@ -309,6 +316,7 @@ The search service uses an intelligent caching strategy:
 ### Cache Key Generation
 
 Cache keys are generated based on:
+
 - Search type (pets, messages, faceted)
 - All search parameters sorted alphabetically
 - Base64 encoded for consistent formatting
@@ -340,7 +348,9 @@ console.log(`Medium queries: ${metrics.performanceData.mediumQueries}`);
 console.log(`Slow queries: ${metrics.performanceData.slowQueries}`);
 
 console.log(`Average query time: ${metrics.averageQueryTime}ms`);
-console.log(`Cache hit rate: ${(metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses)) * 100}%`);
+console.log(
+  `Cache hit rate: ${(metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses)) * 100}%`
+);
 ```
 
 ## Error Handling
@@ -360,6 +370,7 @@ npm test
 ```
 
 The library includes comprehensive tests covering:
+
 - Pet search with various filter combinations
 - Message search with date ranges and sorting
 - Search suggestions and autocomplete
@@ -383,7 +394,7 @@ const searchService = new SearchService({
   apiUrl: 'https://api.example.com',
   debug: process.env.NODE_ENV === 'development',
   headers: {
-    'Authorization': `Bearer ${token}`,
+    Authorization: `Bearer ${token}`,
     'X-Client-Version': '1.0.0',
   },
 });
@@ -450,15 +461,16 @@ Example method that demonstrates the library's capabilities.
 ```typescript
 await service.exampleMethod(
   { key: 'value' },
-  { 
+  {
     timeout: 5000,
     useCache: true,
-    metadata: { requestId: 'abc123' }
+    metadata: { requestId: 'abc123' },
   }
 );
 ```
 
 **Parameters:**
+
 - `data` (Record<string, unknown>): Input data
 - `options` (SearchServiceOptions): Operation options
 
@@ -501,6 +513,7 @@ const isHealthy = await service.healthCheck();
 ### React/Vite Apps (app.client, app.admin, app.rescue)
 
 1. **Add to package.json:**
+
 ```json
 {
   "dependencies": {
@@ -510,6 +523,7 @@ const isHealthy = await service.healthCheck();
 ```
 
 2. **Import and use:**
+
 ```typescript
 // src/services/index.ts
 export { searchService } from '@adopt-dont-shop/lib-search';
@@ -523,8 +537,8 @@ function MyComponent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await searchService.exampleMethod({ 
-          component: 'MyComponent' 
+        const result = await searchService.exampleMethod({
+          component: 'MyComponent'
         });
         setData(result.data);
       } catch (error) {
@@ -542,6 +556,7 @@ function MyComponent() {
 ### Node.js Backend (service.backend)
 
 1. **Add to package.json:**
+
 ```json
 {
   "dependencies": {
@@ -551,6 +566,7 @@ function MyComponent() {
 ```
 
 2. **Import and use:**
+
 ```typescript
 // src/services/search.service.ts
 import { SearchService } from '@adopt-dont-shop/lib-search';
@@ -578,12 +594,14 @@ app.get('/api/search/example', async (req, res) => {
 ### Development with Docker Compose
 
 1. **Build the library:**
+
 ```bash
 # From workspace root
 docker-compose -f docker-compose.lib.yml up lib-search
 ```
 
 2. **Run tests:**
+
 ```bash
 docker-compose -f docker-compose.lib.yml run lib-search-test
 ```
@@ -723,7 +741,7 @@ import { searchService } from '@adopt-dont-shop/lib-search';
 searchService.updateConfig({
   apiUrl: apiService.getConfig().baseUrl,
   headers: {
-    'Authorization': `Bearer ${authService.getToken()}`,
+    Authorization: `Bearer ${authService.getToken()}`,
   },
 });
 ```
@@ -806,6 +824,7 @@ searchService.updateConfig({ debug: true });
 ```
 
 Or set environment variable:
+
 ```bash
 NODE_ENV=development
 ```

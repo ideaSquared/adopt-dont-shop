@@ -54,11 +54,13 @@ adopt-dont-shop/
 ### Working with Packages
 
 **All packages are scoped under `@adopt-dont-shop/`:**
+
 - Apps: `@adopt-dont-shop/app-*`
 - Libraries: `@adopt-dont-shop/lib-*`
 - Service: `@adopt-dont-shop/service-backend`
 
 **Key Scripts:**
+
 ```bash
 # Development
 npm run dev                    # Run all packages
@@ -79,6 +81,7 @@ npm run build:apps            # Build applications
 ```
 
 **Important Monorepo Rules:**
+
 1. **Always build libraries before apps** - apps depend on built library artifacts
 2. Use `turbo` commands for optimal caching and parallel execution
 3. Reference workspace packages with `*` version (e.g., `"@adopt-dont-shop/lib-api": "*"`)
@@ -99,6 +102,7 @@ npm run build:apps            # Build applications
 - Tests must document expected business behaviour
 
 #### Testing Tools
+
 - **Jest** for testing framework
 - **React Testing Library** for React components
 - **MSW (Mock Service Worker)** for API mocking when needed
@@ -107,6 +111,7 @@ npm run build:apps            # Build applications
 ### Test Organization
 
 **Backend Service:**
+
 ```
 service.backend/src/
   __tests__/
@@ -120,6 +125,7 @@ service.backend/src/
 ```
 
 **Shared Libraries:**
+
 ```
 lib.auth/src/
     auth-service.ts
@@ -127,6 +133,7 @@ lib.auth/src/
 ```
 
 **React Applications:**
+
 ```
 app.admin/src/
     components/
@@ -195,12 +202,14 @@ type User = {
 - Use array methods (`map`, `filter`, `reduce`) over imperative loops
 
 ### Code Structure
+
 - **No nested if/else statements** - use early returns, guard clauses, or composition
 - **Avoid deep nesting** in general (max 2 levels)
 - Keep functions small and focused on a single responsibility
 - Prefer flat, readable code over clever abstractions
 
 ### Naming Conventions
+
 - **Functions**: `camelCase`, verb-based
 - **Types**: `PascalCase`
 - **Constants**: `UPPER_SNAKE_CASE` for true constants, `camelCase` for configuration
@@ -220,6 +229,7 @@ Request → Controller → Service → Model → Database
 ```
 
 **Controllers** (`src/controllers/`):
+
 - Handle HTTP request/response
 - Validate input using express-validator
 - Call service layer methods
@@ -227,6 +237,7 @@ Request → Controller → Service → Model → Database
 - NO business logic
 
 **Services** (`src/services/`):
+
 - Contain all business logic
 - Pure, testable functions
 - Handle data transformations
@@ -234,6 +245,7 @@ Request → Controller → Service → Model → Database
 - Throw errors, let middleware handle HTTP responses
 
 **Models** (`src/models/`):
+
 - Define database schema using Sequelize
 - Use TypeScript enums for status/type fields
 - Define associations
@@ -306,25 +318,28 @@ class User extends Model<UserAttributes> implements UserAttributes {
   declare updatedAt: Date;
 }
 
-User.init({
-  userId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-    validate: {
-      isEmail: true,
+User.init(
+  {
+    userId: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true,
+      },
+    },
+    status: {
+      type: DataTypes.ENUM(...Object.values(UserStatus)),
+      defaultValue: UserStatus.ACTIVE,
     },
   },
-  status: {
-    type: DataTypes.ENUM(...Object.values(UserStatus)),
-    defaultValue: UserStatus.ACTIVE,
-  },
-}, { sequelize });
+  { sequelize }
+);
 ```
 
 ### Database Migrations
@@ -339,7 +354,11 @@ User.init({
 
 ```typescript
 // Authentication middleware
-export const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authenticate = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const token = extractToken(req);
     const decoded = verifyToken(token);
@@ -374,6 +393,7 @@ app.*/src/
 ### Component Patterns
 
 **Functional Components Only:**
+
 ```typescript
 // Good: Functional component with TypeScript
 type UserCardProps = {
@@ -703,15 +723,18 @@ Follow Red-Green-Refactor strictly:
 
 - Each commit should represent a complete, working change
 - Use conventional commits format:
+
 ```
 feat: add user invitation system
 fix: correct date format in rescue profile
 refactor: extract rescue validation logic
 test: add edge cases for rescue registration
 ```
+
 - Include test changes with feature changes in the same commit
 
 ### Pull Request Standards
+
 - Every PR must have all tests passing
 - All linting and quality checks must pass
 - Work in small increments that maintain a working state
@@ -725,6 +748,7 @@ test: add edge cases for rescue registration
 ### Expectations
 
 When working with the code:
+
 1. **Think deeply and carefully** before making any edits
 2. **Understand the full context** of the code and the requirements
 3. **Ask clarifying questions** when requirements are ambiguous
@@ -734,6 +758,7 @@ When working with the code:
 ### Code Changes
 
 When suggesting or making changes:
+
 - Respect the existing patterns and conventions
 - Maintain test coverage for all behaviour changes
 - Follow TDD - write or modify tests first
@@ -752,6 +777,7 @@ When suggesting or making changes:
 ### Monorepo Awareness
 
 When working across packages:
+
 - Understand which packages depend on your changes
 - Build libraries before testing dependent apps
 - Consider the impact on all consuming packages

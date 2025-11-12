@@ -14,6 +14,7 @@ While attempting to create comprehensive business logic tests for `ApplicationSe
 **The Problem:** All Sequelize models call `Model.init()` as top-level code when the module is imported, requiring a real database connection before tests can even load.
 
 **Impact:**
+
 - ❌ Cannot use `jest.mock()` for models
 - ❌ Cannot write fast unit tests with mocked dependencies
 - ❌ Test setup is extremely complex and fragile
@@ -63,7 +64,7 @@ We tried multiple approaches:
 
 1. **jest.mock('../../models/ApplicationTimeline')** - Model file still executes before mock applies
 2. **jest.mock('../../sequelize')** - Import happens before mock is set up
-3. **Manual __mocks__ directory** - Same timing issue
+3. **Manual **mocks** directory** - Same timing issue
 4. **Mocking every Sequelize method** - Whack-a-mole, impossible to get complete
 
 The fundamental issue: **JavaScript executes top-level code when a module is imported, BEFORE any mocks can take effect.**
@@ -73,27 +74,34 @@ The fundamental issue: **JavaScript executes top-level code when a module is imp
 ## Attempted Solutions (All Failed)
 
 ### Attempt 1: Basic jest.mock()
+
 ```typescript
 jest.mock('../../models/Application');
 import { ApplicationService } from '../../services/application.service';
 ```
+
 **Result:** ❌ Model still initializes, fails with "Cannot read properties of undefined (reading 'define')"
 
 ### Attempt 2: Mock Sequelize Instance
+
 ```typescript
 const mockSequelize = { define: jest.fn(), query: jest.fn(), ... };
 jest.mock('../../sequelize', () => ({ default: mockSequelize }));
 ```
+
 **Result:** ❌ Still fails - import happens before mock applies
 
-### Attempt 3: Manual Mock in __mocks__/
+### Attempt 3: Manual Mock in **mocks**/
+
 ```typescript
 // src/__mocks__/sequelize.ts
 export default { define: jest.fn(), ... };
 ```
+
 **Result:** ❌ Manual mock not picked up, same timing issue
 
 ### Attempt 4: Complete Sequelize API Mock
+
 Added 20+ methods: `define`, `query`, `transaction`, `runHooks`, `isDefined`, etc.
 **Result:** ❌ Still missing methods, impossible to complete
 
@@ -106,6 +114,7 @@ Added 20+ methods: `define`, `query`, `transaction`, `runHooks`, `isDefined`, et
 **Approach:** Use real Sequelize with SQLite in-memory database for tests
 
 **Pros:**
+
 - ✅ Works immediately with current architecture
 - ✅ Tests actual business logic with real database
 - ✅ Catches integration bugs that mocks would miss
@@ -114,11 +123,13 @@ Added 20+ methods: `define`, `query`, `transaction`, `runHooks`, `isDefined`, et
 - ✅ No architectural changes required
 
 **Cons:**
+
 - ⚠️ Slightly slower than pure unit tests (milliseconds vs microseconds)
 - ⚠️ Requires database setup/teardown in tests
 - ⚠️ Tests are technically integration tests, not unit tests
 
 **Implementation:**
+
 ```typescript
 // Test setup
 import { Sequelize } from 'sequelize';
@@ -170,6 +181,7 @@ it('prevents duplicate applications for same pet', async () => {
 **Changes Required:**
 
 1. Create `models/index.ts`:
+
 ```typescript
 import { Sequelize } from 'sequelize';
 import User from './User';
@@ -194,6 +206,7 @@ export { User, Pet, Application, ... };
 ```
 
 2. Update each model file:
+
 ```typescript
 // models/User.ts - BEFORE
 import sequelize from '../sequelize';
@@ -213,6 +226,7 @@ export default User;
 ```
 
 3. Update server startup:
+
 ```typescript
 // server.ts
 import sequelize from './sequelize';
@@ -225,12 +239,14 @@ app.listen(3000);
 ```
 
 4. Tests can now mock:
+
 ```typescript
-jest.mock('../models/User');  // Works! No auto-initialization
+jest.mock('../models/User'); // Works! No auto-initialization
 import { ApplicationService } from '../services/application.service';
 ```
 
 **Pros:**
+
 - ✅ Enables traditional unit testing with mocks
 - ✅ Clear separation of model definition vs initialization
 - ✅ Better architecture for dependency injection
@@ -238,6 +254,7 @@ import { ApplicationService } from '../services/application.service';
 - ✅ Standard pattern used by many Sequelize projects
 
 **Cons:**
+
 - ⚠️ Requires refactoring all 30+ model files
 - ⚠️ Need to update association definitions
 - ⚠️ Risk of breaking existing functionality
@@ -253,6 +270,7 @@ import { ApplicationService } from '../services/application.service';
 **Approach:** Pass models as dependencies to services instead of importing directly
 
 **Example:**
+
 ```typescript
 // BEFORE
 export class ApplicationService {
@@ -282,6 +300,7 @@ export class ApplicationService {
 ```
 
 **Tests:**
+
 ```typescript
 const mockUserModel = { findByPk: jest.fn(), ... };
 const mockApplicationModel = { create: jest.fn(), ... };
@@ -296,12 +315,14 @@ const service = new ApplicationService(
 ```
 
 **Pros:**
+
 - ✅ Perfect testability
 - ✅ Clear dependencies
 - ✅ Follows SOLID principles
 - ✅ TypeScript-friendly
 
 **Cons:**
+
 - ⚠️ Very invasive changes to all services
 - ⚠️ Changes from static methods to instance methods
 - ⚠️ Requires dependency container/factory
@@ -315,17 +336,18 @@ const service = new ApplicationService(
 
 ## Comparison Matrix
 
-| Solution | Works Now | Test Speed | Effort | Risk | Confidence | Maintainability |
-|----------|-----------|------------|--------|------|------------|-----------------|
-| **Integration Tests (SQLite)** | ✅ Yes | ⚡ Good | 🟢 2-3 days | 🟢 Low | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Lazy Initialization** | ❌ No | ⚡⚡⚡ Fast | 🟡 1-2 weeks | 🟡 Medium | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Dependency Injection** | ❌ No | ⚡⚡⚡ Fast | 🔴 2-3 weeks | 🔴 High | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Solution                       | Works Now | Test Speed  | Effort       | Risk      | Confidence | Maintainability |
+| ------------------------------ | --------- | ----------- | ------------ | --------- | ---------- | --------------- |
+| **Integration Tests (SQLite)** | ✅ Yes    | ⚡ Good     | 🟢 2-3 days  | 🟢 Low    | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐        |
+| **Lazy Initialization**        | ❌ No     | ⚡⚡⚡ Fast | 🟡 1-2 weeks | 🟡 Medium | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐      |
+| **Dependency Injection**       | ❌ No     | ⚡⚡⚡ Fast | 🔴 2-3 weeks | 🔴 High   | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐      |
 
 ---
 
 ## Recommended Implementation Plan
 
 ### Phase 1: Immediate (This Week)
+
 ✅ **Use Integration Tests for All Service Testing**
 
 1. Create `__tests__/integration/` directory
@@ -338,12 +360,14 @@ const service = new ApplicationService(
 5. Document this as the standard testing approach
 
 **Files to Create:**
+
 - `src/__tests__/integration/application-workflow.integration.test.ts`
 - `src/__tests__/integration/pet-management.integration.test.ts`
 - `src/__tests__/integration/auth-security.integration.test.ts`
 - `src/__tests__/helpers/test-database.ts` (SQLite setup helper)
 
 ### Phase 2: Future Sprint (When Time Permits)
+
 🔮 **Refactor Models for Better Testability**
 
 1. Create `models/index.ts` with `initializeModels()` function
@@ -359,6 +383,7 @@ const service = new ApplicationService(
 Even with integration tests, we can still test all business rules from the original plan:
 
 ### Application Workflow (30+ test cases)
+
 - ✅ Duplicate prevention
 - ✅ Status transition validation
 - ✅ Modification rules by status
@@ -368,12 +393,14 @@ Even with integration tests, we can still test all business rules from the origi
 - ✅ Edge cases (race conditions, concurrent applications)
 
 ### Pet Management (20+ test cases)
+
 - ✅ Status management (available → adopted → etc.)
 - ✅ Application blocking when not available
 - ✅ Status change validation
 - ✅ Multi-pet operations
 
 ### Auth Service (25+ test cases)
+
 - ✅ Login attempts and rate limiting
 - ✅ Account lockout after failed attempts
 - ✅ Token generation and validation
@@ -389,6 +416,7 @@ Even with integration tests, we can still test all business rules from the origi
 **Decision:** Proceed with **Solution 1 (Integration Tests with SQLite)** immediately.
 
 **Rationale:**
+
 1. **Works Now** - No architectural changes needed
 2. **High Quality** - Tests actual behavior, not mocked behavior
 3. **Fast Enough** - Millisecond overhead vs microseconds is acceptable
@@ -406,6 +434,7 @@ Even with integration tests, we can still test all business rules from the origi
 SQLite is compatible enough for testing, but note these differences:
 
 **Compatible:**
+
 - ✅ Basic CRUD operations
 - ✅ Transactions
 - ✅ Foreign keys
@@ -413,6 +442,7 @@ SQLite is compatible enough for testing, but note these differences:
 - ✅ Most data types (UUID becomes TEXT)
 
 **Incompatible:**
+
 - ❌ JSONB (use JSON instead)
 - ❌ Array columns (serialize as JSON)
 - ❌ PostgreSQL-specific functions
@@ -423,11 +453,13 @@ SQLite is compatible enough for testing, but note these differences:
 ### Test Performance
 
 **Expected Performance:**
+
 - Setup/teardown per test suite: ~100ms
 - Individual test with database operations: ~5-10ms
 - 100 tests: ~1-2 seconds total
 
 **Comparison:**
+
 - Pure unit tests with mocks: ~0.1-0.5ms per test
 - Integration tests with SQLite: ~5-10ms per test
 - **20x slower, but still very fast** (1-2s vs 0.05s for 100 tests)
@@ -445,6 +477,7 @@ SQLite is compatible enough for testing, but note these differences:
 ---
 
 **Next Steps:**
+
 1. Review and approve this approach
 2. Create SQLite test helper
 3. Write first integration test for ApplicationService

@@ -8,7 +8,7 @@ The application consists of multiple services:
 
 - **service.backend** - Main API backend service (Node.js/Express)
 - **app.client** - Public-facing React application (port 3000)
-- **app.admin** - Admin dashboard React application (port 3001)  
+- **app.admin** - Admin dashboard React application (port 3001)
 - **app.rescue** - Rescue management React application (port 3002)
 - **lib.components** - Shared React component library
 - **database** - PostgreSQL database
@@ -20,16 +20,18 @@ The application consists of multiple services:
 ### Subdomain Setup
 
 The application uses subdomain routing for a more production-like experience:
+
 - **localhost** - Main client application
-- **admin.localhost** - Admin dashboard  
+- **admin.localhost** - Admin dashboard
 - **rescue.localhost** - Rescue management portal
 - **api.localhost** - Backend API
 
 Modern browsers automatically resolve `*.localhost` subdomains to `127.0.0.1`, so no additional configuration is needed for most setups.
 
 **Note**: If subdomains don't work in your browser, you can still access services directly via ports:
+
 - Client: http://localhost:3000
-- Admin: http://localhost:3001  
+- Admin: http://localhost:3001
 - Rescue: http://localhost:3002
 - API: http://localhost:5000
 
@@ -40,15 +42,16 @@ Modern browsers automatically resolve `*.localhost` subdomains to `127.0.0.1`, s
    - Git installed
 
 2. **Setup**
+
    ```bash
    # Clone the repository
    git clone <repository-url>
    cd adopt-dont-shop
-   
+
    # Copy environment file
    cp .env.example .env
    # Edit .env with your configuration
-   
+
    # Start all services
    docker-compose up
    ```
@@ -90,6 +93,7 @@ DB_LOGGING=true
 **Problem**: Service-backend couldn't connect to PostgreSQL database due to missing environment variables.
 
 **Solution**: Updated `docker-compose.yml` to provide proper database configuration:
+
 - Added `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` environment variables
 - Added `DEV_DB_NAME` for development environment
 - Database connection now works properly
@@ -98,7 +102,8 @@ DB_LOGGING=true
 
 **Problem**: App-client couldn't resolve `styled-components` from the shared components library.
 
-**Solution**: 
+**Solution**:
+
 - Moved `styled-components` to peerDependencies in `lib.components/package.json`
 - Added missing dependencies (`@radix-ui/react-tooltip`, `@radix-ui/react-dropdown-menu`, `clsx`) to both lib.components and app.client
 - Updated Vite configuration in app.client to properly resolve styled-components
@@ -108,7 +113,8 @@ DB_LOGGING=true
 
 **Problem**: Ports already in use on your system.
 
-**Solution**: 
+**Solution**:
+
 ```bash
 # Stop conflicting services
 sudo service nginx stop
@@ -122,6 +128,7 @@ sudo service postgresql stop
 **Problem**: `*.localhost` subdomains not resolving.
 
 **Solution**: Use direct port access or add entries to `/etc/hosts`:
+
 ```
 127.0.0.1 admin.localhost
 127.0.0.1 rescue.localhost
@@ -133,6 +140,7 @@ sudo service postgresql stop
 **Problem**: Permission denied errors with mounted volumes.
 
 **Solution**:
+
 ```bash
 # On Linux/macOS, fix ownership
 sudo chown -R $USER:$USER ./uploads
@@ -186,6 +194,7 @@ docker system prune                  # Clean up unused resources
 ## Performance Tips
 
 1. **Use BuildKit** for faster builds:
+
    ```bash
    export DOCKER_BUILDKIT=1
    export COMPOSE_DOCKER_CLI_BUILD=1

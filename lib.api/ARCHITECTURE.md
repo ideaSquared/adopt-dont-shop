@@ -6,7 +6,7 @@
 
 - HTTP methods (GET, POST, PUT, PATCH, DELETE)
 - Authentication headers
-- Request/Response interceptors  
+- Request/Response interceptors
 - Error handling and retries
 - Timeout management
 - Development debugging
@@ -54,7 +54,7 @@ export const petService = new PetService();
 ### Example: lib.auth
 
 ```typescript
-// lib.auth/src/auth-service.ts  
+// lib.auth/src/auth-service.ts
 import { apiService, AuthenticationError } from '@adopt-dont-shop/lib-api';
 import type { LoginRequest, AuthResponse, User } from './types';
 
@@ -63,13 +63,13 @@ export class AuthService {
 
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await this.api.post('/api/v1/auth/login', credentials);
-    
+
     // Store tokens
     localStorage.setItem('authToken', response.token);
     if (response.refreshToken) {
       localStorage.setItem('refreshToken', response.refreshToken);
     }
-    
+
     return response;
   }
 
@@ -134,6 +134,7 @@ if (import.meta.env.DEV) {
 ## App Integration
 
 ### app.client
+
 ```typescript
 // app.client/src/services/index.ts
 import { apiService } from '@adopt-dont-shop/lib-api';
@@ -143,13 +144,14 @@ import { authService } from '@adopt-dont-shop/lib-auth';
 // Configure API for client app
 apiService.updateConfig({
   apiUrl: import.meta.env.VITE_API_URL,
-  debug: import.meta.env.DEV
+  debug: import.meta.env.DEV,
 });
 
 export { petService, authService };
 ```
 
 ### app.rescue
+
 ```typescript
 // app.rescue/src/services/index.ts
 import { apiService } from '@adopt-dont-shop/lib-api';
@@ -160,13 +162,14 @@ import { rescueService } from '@adopt-dont-shop/lib-rescue';
 // Configure API for rescue app
 apiService.updateConfig({
   apiUrl: import.meta.env.VITE_API_URL,
-  headers: { 'X-App': 'rescue' }
+  headers: { 'X-App': 'rescue' },
 });
 
 export { petService, authService, rescueService };
 ```
 
-### app.admin  
+### app.admin
+
 ```typescript
 // app.admin/src/services/index.ts
 import { apiService } from '@adopt-dont-shop/lib-api';
@@ -177,7 +180,7 @@ import { adminService } from '@adopt-dont-shop/lib-admin';
 apiService.updateConfig({
   apiUrl: import.meta.env.VITE_API_URL,
   timeout: 30000,
-  headers: { 'X-App': 'admin' }
+  headers: { 'X-App': 'admin' },
 });
 
 export { authService, adminService };

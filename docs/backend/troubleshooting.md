@@ -37,11 +37,13 @@ curl http://localhost:5000/health/db
 ### Connection Problems
 
 **Symptoms:**
+
 - "Connection refused" errors
 - "ECONNREFUSED" errors
 - Database timeout errors
 
 **Diagnostics:**
+
 ```bash
 # Test database connectivity
 pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER
@@ -60,39 +62,43 @@ echo $DB_HOST $DB_PORT $DB_NAME $DB_USER
 **Solutions:**
 
 1. **Database not running:**
+
    ```bash
    # Start PostgreSQL service
    sudo systemctl start postgresql
-   
+
    # Or start Docker container
    docker start postgres_container
    ```
 
 2. **Wrong connection parameters:**
+
    ```bash
    # Verify .env file
    cat .env | grep DB_
-   
+
    # Update connection string
    export DATABASE_URL="postgresql://user:pass@host:port/dbname"
    ```
 
 3. **Firewall blocking connection:**
+
    ```bash
    # Check if port is open
    telnet $DB_HOST $DB_PORT
-   
+
    # Open port in firewall
    sudo ufw allow 5432
    ```
 
 4. **SSL/TLS issues:**
+
    ```javascript
    // Disable SSL for development
    dialectOptions: {
      ssl: false
    }
-   
+
    // Or configure SSL properly
    dialectOptions: {
      ssl: {
@@ -105,11 +111,13 @@ echo $DB_HOST $DB_PORT $DB_NAME $DB_USER
 ### Migration Issues
 
 **Symptoms:**
+
 - Migration fails with SQL errors
 - "Table already exists" errors
 - "Column does not exist" errors
 
 **Diagnostics:**
+
 ```bash
 # Check migration status
 npx sequelize-cli db:migrate:status
@@ -125,15 +133,17 @@ SELECT * FROM "SequelizeMeta";
 **Solutions:**
 
 1. **Failed migration:**
+
    ```bash
    # Rollback last migration
    npx sequelize-cli db:migrate:undo
-   
+
    # Fix migration file and re-run
    npx sequelize-cli db:migrate
    ```
 
 2. **Out of sync migrations:**
+
    ```bash
    # Reset database (development only)
    npx sequelize-cli db:drop
@@ -142,44 +152,48 @@ SELECT * FROM "SequelizeMeta";
    ```
 
 3. **Manual migration fix:**
+
    ```sql
    -- Remove migration record
    DELETE FROM "SequelizeMeta" WHERE name = 'problematic-migration.js';
-   
+
    -- Fix database manually
    ALTER TABLE users ADD COLUMN new_column VARCHAR(255);
-   
+
    -- Re-run migration
    ```
 
 ### Performance Issues
 
 **Symptoms:**
+
 - Slow query responses
 - Database timeouts
 - High CPU usage
 
 **Diagnostics:**
+
 ```sql
 -- Check active connections
 SELECT * FROM pg_stat_activity;
 
 -- Find slow queries
-SELECT query, mean_exec_time, calls 
-FROM pg_stat_statements 
-ORDER BY mean_exec_time DESC 
+SELECT query, mean_exec_time, calls
+FROM pg_stat_statements
+ORDER BY mean_exec_time DESC
 LIMIT 10;
 
 -- Check table sizes
-SELECT schemaname, tablename, 
+SELECT schemaname, tablename,
        pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
-FROM pg_tables 
+FROM pg_tables
 ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 ```
 
 **Solutions:**
 
 1. **Missing indexes:**
+
    ```sql
    -- Add missing indexes
    CREATE INDEX idx_pets_type_status ON pets(type, status);
@@ -187,6 +201,7 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
    ```
 
 2. **Connection pool issues:**
+
    ```javascript
    // Increase pool size
    pool: {
@@ -208,11 +223,13 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 ### JWT Token Problems
 
 **Symptoms:**
+
 - "Invalid token" errors
 - "Token expired" errors
 - Authentication fails silently
 
 **Diagnostics:**
+
 ```bash
 # Decode JWT token (without verification)
 echo "eyJhbGciOiJIUzI1NiIs..." | base64 -d
@@ -227,29 +244,32 @@ echo $JWT_SECRET | wc -c  # Should be 32+ characters
 **Solutions:**
 
 1. **Token expired:**
+
    ```javascript
    // Check token expiration
    const decoded = jwt.decode(token);
    console.log('Token expires at:', new Date(decoded.exp * 1000));
-   
+
    // Refresh token
    const newToken = await refreshAccessToken(refreshToken);
    ```
 
 2. **Wrong JWT secret:**
+
    ```bash
    # Verify JWT_SECRET in environment
    grep JWT_SECRET .env
-   
+
    # Ensure secret is consistent across environments
    export JWT_SECRET="your-consistent-secret-key"
    ```
 
 3. **Token format issues:**
+
    ```javascript
    // Ensure proper Bearer format
    const token = authHeader.replace('Bearer ', '');
-   
+
    // Handle missing Authorization header
    if (!authHeader || !authHeader.startsWith('Bearer ')) {
      return res.status(401).json({ error: 'Missing or invalid token' });
@@ -259,11 +279,13 @@ echo $JWT_SECRET | wc -c  # Should be 32+ characters
 ### Password Issues
 
 **Symptoms:**
+
 - Login fails with correct password
 - Password reset doesn't work
 - Hash comparison errors
 
 **Diagnostics:**
+
 ```javascript
 // Test password hashing
 const bcrypt = require('bcrypt');
@@ -280,6 +302,7 @@ console.log('Stored hash:', user.passwordHash);
 **Solutions:**
 
 1. **Bcrypt rounds mismatch:**
+
    ```javascript
    // Ensure consistent salt rounds
    const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
@@ -287,12 +310,13 @@ console.log('Stored hash:', user.passwordHash);
    ```
 
 2. **Password reset token issues:**
+
    ```javascript
    // Check token expiration
    if (user.passwordResetExpires < new Date()) {
      throw new Error('Password reset token expired');
    }
-   
+
    // Generate secure token
    const token = crypto.randomBytes(32).toString('hex');
    ```
@@ -302,12 +326,14 @@ console.log('Stored hash:', user.passwordHash);
 ### Request/Response Problems
 
 **Symptoms:**
+
 - 404 errors for existing endpoints
 - CORS errors
 - Request timeout errors
 - Malformed JSON responses
 
 **Diagnostics:**
+
 ```bash
 # Test endpoint availability
 curl -I http://localhost:5000/api/v1/pets
@@ -326,34 +352,39 @@ curl -v http://localhost:5000/api/v1/pets
 **Solutions:**
 
 1. **Route not found:**
+
    ```javascript
    // Check route registration
    app.use('/api/v1', routes);
-   
+
    // Verify route definition
    router.get('/pets', petController.getAllPets);
-   
+
    // Check middleware order
    app.use(cors());
    app.use('/api/v1', routes);
    ```
 
 2. **CORS issues:**
+
    ```javascript
    // Configure CORS properly
-   app.use(cors({
-     origin: process.env.CORS_ORIGIN?.split(',') || '*',
-     credentials: true,
-     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-     allowedHeaders: ['Content-Type', 'Authorization']
-   }));
+   app.use(
+     cors({
+       origin: process.env.CORS_ORIGIN?.split(',') || '*',
+       credentials: true,
+       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+       allowedHeaders: ['Content-Type', 'Authorization'],
+     })
+   );
    ```
 
 3. **Request timeout:**
+
    ```javascript
    // Increase timeout
    app.use(timeout('30s'));
-   
+
    // Handle timeout gracefully
    app.use((req, res, next) => {
      if (!req.timedout) next();
@@ -363,11 +394,13 @@ curl -v http://localhost:5000/api/v1/pets
 ### Validation Errors
 
 **Symptoms:**
+
 - Request validation fails
 - Unexpected validation messages
 - Schema validation errors
 
 **Diagnostics:**
+
 ```javascript
 // Test validation schema
 const { error } = schema.validate(requestData);
@@ -383,11 +416,12 @@ console.log('Content-Type:', req.headers['content-type']);
 **Solutions:**
 
 1. **Schema validation:**
+
    ```javascript
    // Update validation schema
    const schema = Joi.object({
      email: Joi.string().email().required(),
-     password: Joi.string().min(8).required()
+     password: Joi.string().min(8).required(),
    });
    ```
 
@@ -403,11 +437,13 @@ console.log('Content-Type:', req.headers['content-type']);
 ### Email Delivery Problems
 
 **Symptoms:**
+
 - Emails not being sent
 - Email delivery failures
 - SMTP connection errors
 
 **Diagnostics:**
+
 ```bash
 # Test SMTP connection
 telnet smtp.sendgrid.net 587
@@ -424,6 +460,7 @@ curl -X POST http://localhost:5000/api/v1/email/test \
 **Solutions:**
 
 1. **SMTP configuration:**
+
    ```javascript
    // Verify SMTP settings
    const transporter = nodemailer.createTransporter({
@@ -432,15 +469,16 @@ curl -X POST http://localhost:5000/api/v1/email/test \
      secure: process.env.SMTP_SECURE === 'true',
      auth: {
        user: process.env.SMTP_USER,
-       pass: process.env.SMTP_PASS
-     }
+       pass: process.env.SMTP_PASS,
+     },
    });
-   
+
    // Test connection
    await transporter.verify();
    ```
 
 2. **API key issues:**
+
    ```bash
    # Verify SendGrid API key
    curl -X GET "https://api.sendgrid.com/v3/user/account" \
@@ -463,11 +501,13 @@ curl -X POST http://localhost:5000/api/v1/email/test \
 ### Storage Problems
 
 **Symptoms:**
+
 - File upload failures
 - "Permission denied" errors
 - Storage quota exceeded
 
 **Diagnostics:**
+
 ```bash
 # Check disk space
 df -h
@@ -485,6 +525,7 @@ curl -F "file=@large-file.jpg" http://localhost:5000/api/v1/upload
 **Solutions:**
 
 1. **Permission issues:**
+
    ```bash
    # Fix directory permissions
    chmod 755 uploads/
@@ -492,16 +533,17 @@ curl -F "file=@large-file.jpg" http://localhost:5000/api/v1/upload
    ```
 
 2. **File size limits:**
+
    ```javascript
    // Increase upload limits
    app.use(express.json({ limit: '50mb' }));
    app.use(express.urlencoded({ limit: '50mb', extended: true }));
-   
+
    // Configure multer limits
    const upload = multer({
      limits: {
-       fileSize: 10 * 1024 * 1024 // 10MB
-     }
+       fileSize: 10 * 1024 * 1024, // 10MB
+     },
    });
    ```
 
@@ -521,11 +563,13 @@ curl -F "file=@large-file.jpg" http://localhost:5000/api/v1/upload
 ### High Memory Usage
 
 **Symptoms:**
+
 - Application crashes with "out of memory"
 - Slow response times
 - Memory leaks
 
 **Diagnostics:**
+
 ```bash
 # Monitor memory usage
 top -p $(pgrep node)
@@ -541,28 +585,30 @@ node --trace-warnings --trace-deprecation app.js
 **Solutions:**
 
 1. **Memory leaks:**
+
    ```javascript
    // Properly close database connections
    process.on('SIGINT', async () => {
      await sequelize.close();
      process.exit(0);
    });
-   
+
    // Remove event listeners
    emitter.removeAllListeners();
-   
+
    // Clear intervals/timeouts
    clearInterval(intervalId);
    ```
 
 2. **Large query results:**
+
    ```javascript
    // Use pagination
    const pets = await Pet.findAndCountAll({
      limit: 20,
-     offset: page * 20
+     offset: page * 20,
    });
-   
+
    // Stream large datasets
    const stream = Pet.findAll({ raw: true }).stream();
    ```
@@ -570,11 +616,13 @@ node --trace-warnings --trace-deprecation app.js
 ### High CPU Usage
 
 **Symptoms:**
+
 - Server becomes unresponsive
 - High CPU usage in monitoring
 - Request timeouts
 
 **Diagnostics:**
+
 ```bash
 # Monitor CPU usage
 htop
@@ -587,22 +635,22 @@ node --prof-process isolate-*.log > processed.txt
 **Solutions:**
 
 1. **Optimize algorithms:**
+
    ```javascript
    // Use efficient data structures
    const userMap = new Map();
-   
+
    // Avoid nested loops
-   const results = pets.filter(pet => 
-     petIds.includes(pet.id)
-   );
+   const results = pets.filter(pet => petIds.includes(pet.id));
    ```
 
 2. **Add caching:**
+
    ```javascript
    // Cache frequent queries
    const redis = require('redis');
    const client = redis.createClient();
-   
+
    const cached = await client.get(`pets:${type}`);
    if (cached) {
      return JSON.parse(cached);
@@ -614,11 +662,13 @@ node --prof-process isolate-*.log > processed.txt
 ### Container Problems
 
 **Symptoms:**
+
 - Container won't start
 - "Port already in use" errors
 - Container exits immediately
 
 **Diagnostics:**
+
 ```bash
 # Check container status
 docker ps -a
@@ -636,15 +686,17 @@ netstat -tulpn | grep :5000
 **Solutions:**
 
 1. **Port conflicts:**
+
    ```bash
    # Kill process using port
    sudo kill -9 $(lsof -ti:5000)
-   
+
    # Use different port
    docker run -p 5001:5000 app_image
    ```
 
 2. **Container exits:**
+
    ```dockerfile
    # Fix Dockerfile
    FROM node:18-alpine
@@ -667,11 +719,13 @@ netstat -tulpn | grep :5000
 ### Production Deployment
 
 **Symptoms:**
+
 - Application crashes in production
 - Environment variable issues
 - SSL certificate problems
 
 **Diagnostics:**
+
 ```bash
 # Check application logs
 pm2 logs
@@ -687,13 +741,14 @@ openssl s_client -connect domain.com:443
 **Solutions:**
 
 1. **Environment configuration:**
+
    ```bash
    # Set production environment
    export NODE_ENV=production
-   
+
    # Load environment file
    source .env.production
-   
+
    # Verify critical variables
    if [ -z "$JWT_SECRET" ]; then
      echo "JWT_SECRET not set"
@@ -702,10 +757,11 @@ openssl s_client -connect domain.com:443
    ```
 
 2. **SSL certificate:**
+
    ```bash
    # Renew Let's Encrypt certificate
    certbot renew
-   
+
    # Update nginx configuration
    nginx -t && nginx -s reload
    ```
@@ -763,6 +819,7 @@ fi
 When reporting issues, include:
 
 1. **Environment details:**
+
    ```bash
    node --version
    npm --version
@@ -771,12 +828,14 @@ When reporting issues, include:
    ```
 
 2. **Error logs:**
+
    ```bash
    tail -n 100 logs/error.log
    docker logs --tail 100 container_name
    ```
 
 3. **System information:**
+
    ```bash
    uname -a
    free -h
@@ -817,4 +876,4 @@ pm2 monit                  # Monitor processes
 
 ---
 
-This troubleshooting guide covers the most common issues encountered with the Adopt Don't Shop Backend Service. For additional help, consult the specific service documentation or contact the development team. 
+This troubleshooting guide covers the most common issues encountered with the Adopt Don't Shop Backend Service. For additional help, consult the specific service documentation or contact the development team.

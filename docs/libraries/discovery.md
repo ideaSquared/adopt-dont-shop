@@ -27,13 +27,13 @@ import { discoveryService } from '@adopt-dont-shop/lib-discovery';
 // Get personalized feed
 const feed = await discoveryService.getPersonalizedFeed('user_123', {
   limit: 20,
-  includeRecommendations: true
+  includeRecommendations: true,
 });
 
 // Get trending content
 const trending = await discoveryService.getTrendingContent({
   timeframe: 'week',
-  categories: ['pets', 'success-stories']
+  categories: ['pets', 'success-stories'],
 });
 
 // Advanced configuration
@@ -41,7 +41,7 @@ const service = new DiscoveryService({
   apiUrl: 'https://api.example.com',
   enableAI: true,
   cacheTtl: 300000,
-  debug: true
+  debug: true,
 });
 ```
 
@@ -49,13 +49,13 @@ const service = new DiscoveryService({
 
 ### DiscoveryServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Backend API URL |
-| `enableAI` | `boolean` | `true` | Enable AI-powered recommendations |
-| `cacheTtl` | `number` | `300000` | Cache TTL in milliseconds (5 min) |
-| `maxFeedItems` | `number` | `100` | Maximum items per feed |
-| `debug` | `boolean` | `false` | Enable debug logging |
+| Property       | Type      | Default                    | Description                       |
+| -------------- | --------- | -------------------------- | --------------------------------- |
+| `apiUrl`       | `string`  | `process.env.VITE_API_URL` | Backend API URL                   |
+| `enableAI`     | `boolean` | `true`                     | Enable AI-powered recommendations |
+| `cacheTtl`     | `number`  | `300000`                   | Cache TTL in milliseconds (5 min) |
+| `maxFeedItems` | `number`  | `100`                      | Maximum items per feed            |
+| `debug`        | `boolean` | `false`                    | Enable debug logging              |
 
 ### Environment Variables
 
@@ -91,7 +91,7 @@ const feed = await discoveryService.getPersonalizedFeed('user_123', {
   includeTrending: true,
   categories: ['pets', 'success-stories', 'events'],
   refreshUserModel: false,
-  diversityFactor: 0.3 // 0 = pure relevance, 1 = maximum diversity
+  diversityFactor: 0.3, // 0 = pure relevance, 1 = maximum diversity
 });
 
 // Returns:
@@ -124,14 +124,14 @@ await discoveryService.updateUserPreferences('user_123', {
   ages: { min: 1, max: 8 },
   characteristics: {
     goodWithKids: true,
-    energyLevel: 'medium'
+    energyLevel: 'medium',
   },
   interests: ['training', 'health', 'success-stories'],
   location: {
     latitude: 45.5152,
     longitude: -122.6784,
-    radius: 50
-  }
+    radius: 50,
+  },
 });
 ```
 
@@ -142,7 +142,7 @@ Get insights about user behavior and preferences.
 ```typescript
 const insights = await discoveryService.getUserInsights('user_123', {
   timeframe: 'month',
-  includeRecommendations: true
+  includeRecommendations: true,
 });
 
 // Returns:
@@ -175,10 +175,10 @@ const trending = await discoveryService.getTrendingContent({
   contentTypes: ['photo', 'video', 'article'],
   location: {
     city: 'Portland',
-    radius: 100
+    radius: 100,
   },
   limit: 50,
-  minEngagement: 10
+  minEngagement: 10,
 });
 ```
 
@@ -191,7 +191,7 @@ const trendingTags = await discoveryService.getTrendingTags({
   timeframe: 'day',
   category: 'pets',
   minCount: 5,
-  limit: 20
+  limit: 20,
 });
 
 // Returns: ['#adoptdontshop', '#goldenretriever', '#rescuedog', ...]
@@ -206,7 +206,7 @@ const viralContent = await discoveryService.getViralContent({
   timeframe: 'day',
   minViralityScore: 0.8,
   categories: ['pets', 'success-stories'],
-  limit: 10
+  limit: 10,
 });
 ```
 
@@ -223,7 +223,7 @@ const recommendations = await discoveryService.getRecommendedContent('user_123',
   includeReasons: true,
   excludeViewed: true,
   freshnessFactor: 0.2, // 0 = ignore recency, 1 = prioritize new content
-  diversityFactor: 0.3
+  diversityFactor: 0.3,
 });
 ```
 
@@ -236,7 +236,7 @@ const similarContent = await discoveryService.getSimilarContent('content_123', {
   count: 8,
   similarityFactors: ['category', 'tags', 'description'],
   excludeAuthor: false,
-  maxAge: '30d'
+  maxAge: '30d',
 });
 ```
 
@@ -249,7 +249,7 @@ const categoryContent = await discoveryService.getContentForCategory('success-st
   curationStrategy: 'balanced', // 'popular', 'recent', 'balanced', 'diverse'
   limit: 20,
   includePersonalization: true,
-  userId: 'user_123'
+  userId: 'user_123',
 });
 ```
 
@@ -266,8 +266,8 @@ await discoveryService.trackContentInteraction('user_123', 'content_456', {
   metadata: {
     source: 'feed',
     position: 3,
-    context: 'personalized'
-  }
+    context: 'personalized',
+  },
 });
 
 // Other interaction types: 'like', 'share', 'comment', 'save', 'apply'
@@ -283,14 +283,14 @@ await discoveryService.batchTrackInteractions([
     userId: 'user_123',
     contentId: 'content_456',
     type: 'view',
-    timestamp: '2024-01-15T10:30:00Z'
+    timestamp: '2024-01-15T10:30:00Z',
   },
   {
     userId: 'user_123',
     contentId: 'content_789',
     type: 'like',
-    timestamp: '2024-01-15T10:32:00Z'
-  }
+    timestamp: '2024-01-15T10:32:00Z',
+  },
 ]);
 ```
 
@@ -301,7 +301,7 @@ Get engagement metrics for specific content.
 ```typescript
 const metrics = await discoveryService.getContentMetrics('content_123', {
   timeframe: 'week',
-  includeBreakdown: true
+  includeBreakdown: true,
 });
 
 // Returns:
@@ -332,7 +332,7 @@ const collection = await discoveryService.createContentCollection('user_123', {
   description: 'Heartwarming adoption success stories',
   visibility: 'public', // 'public', 'private', 'followers'
   contentIds: ['content_123', 'content_456', 'content_789'],
-  tags: ['inspiration', 'success', 'adoption']
+  tags: ['inspiration', 'success', 'adoption'],
 });
 ```
 
@@ -345,7 +345,7 @@ const collections = await discoveryService.getContentCollections('user_123', {
   includePublic: true,
   includeShared: true,
   sortBy: 'updated',
-  limit: 20
+  limit: 20,
 });
 ```
 
@@ -358,7 +358,7 @@ const featured = await discoveryService.getFeaturedCollections({
   category: 'pets',
   timeframe: 'month',
   minItems: 5,
-  limit: 10
+  limit: 10,
 });
 ```
 
@@ -372,7 +372,7 @@ Get discovery and engagement analytics.
 const metrics = await discoveryService.getDiscoveryMetrics({
   timeframe: 'week',
   includeUserSegments: true,
-  includeContentBreakdown: true
+  includeContentBreakdown: true,
 });
 
 // Returns:
@@ -397,7 +397,7 @@ Get recommendation system performance metrics.
 ```typescript
 const performance = await discoveryService.getRecommendationPerformance({
   timeframe: 'month',
-  includeABTestResults: true
+  includeABTestResults: true,
 });
 
 // Returns:
@@ -474,7 +474,7 @@ export function usePersonalizedFeed(userId: string) {
         limit: 20,
         offset: refresh ? 0 : feed.length
       });
-      
+
       setFeed(refresh ? result.items : [...feed, ...result.items]);
       setHasMore(result.hasMore);
     } catch (error) {
@@ -545,7 +545,7 @@ function PersonalizedFeed({ userId }: { userId: string }) {
           onLike={() => handleLike(item.id)}
         />
       ))}
-      
+
       {hasMore && (
         <button onClick={() => loadFeed()} disabled={loading}>
           {loading ? 'Loading...' : 'Load More'}
@@ -583,7 +583,7 @@ function DiscoveryDashboard() {
         service.getRecommendedContent(userId, { count: 6 }),
         service.getUserInsights(userId)
       ]);
-      
+
       setRecommendations(recs);
       setInsights(userInsights);
     };
@@ -618,7 +618,7 @@ app.get('/api/users/:id/feed', async (req, res) => {
   try {
     const feed = await discoveryService.getPersonalizedFeed(req.params.id, {
       limit: parseInt(req.query.limit) || 20,
-      offset: parseInt(req.query.offset) || 0
+      offset: parseInt(req.query.offset) || 0,
     });
     res.json(feed);
   } catch (error) {
@@ -631,7 +631,7 @@ app.get('/api/trending', async (req, res) => {
     const trending = await discoveryService.getTrendingContent({
       timeframe: req.query.timeframe || 'day',
       categories: req.query.categories?.split(','),
-      limit: parseInt(req.query.limit) || 20
+      limit: parseInt(req.query.limit) || 20,
     });
     res.json(trending);
   } catch (error) {
@@ -666,6 +666,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ AI-powered insights
 
 Run tests:
+
 ```bash
 npm run test:lib-discovery
 ```
@@ -673,24 +674,28 @@ npm run test:lib-discovery
 ## 🚀 Key Features
 
 ### Intelligent Content Discovery
+
 - **Personalized Feeds**: AI-driven content curation based on user behavior
 - **Trending Detection**: Real-time identification of viral and popular content
 - **Smart Recommendations**: Multi-algorithm recommendation system
 - **Content Collections**: Curated content groupings and playlists
 
 ### Advanced Analytics
+
 - **Engagement Tracking**: Comprehensive user interaction monitoring
 - **Performance Metrics**: Content and recommendation system analytics
 - **User Insights**: Behavioral analysis and preference detection
 - **Predictive Analytics**: AI-powered performance predictions
 
 ### Content Curation
+
 - **Automated Curation**: AI-assisted content organization
 - **Editorial Tools**: Manual curation and featured content management
 - **Quality Scoring**: Content quality assessment and ranking
 - **Diversity Optimization**: Balanced content distribution algorithms
 
 ### Real-time Intelligence
+
 - **Live Trending**: Real-time trending content detection
 - **Dynamic Personalization**: Adaptive user preference learning
 - **A/B Testing**: Recommendation algorithm optimization
@@ -701,16 +706,19 @@ npm run test:lib-discovery
 ### Common Issues
 
 **Personalized feed not updating**:
+
 - Check user preference synchronization
 - Verify interaction tracking functionality
 - Review recommendation model training status
 
 **Poor recommendation quality**:
+
 - Increase user interaction data collection
 - Tune recommendation algorithm parameters
 - Review content quality and metadata
 
 **Trending content not appearing**:
+
 - Check engagement threshold settings
 - Verify real-time data processing
 - Review trending algorithm sensitivity
@@ -719,7 +727,7 @@ npm run test:lib-discovery
 
 ```typescript
 const discovery = new DiscoveryService({
-  debug: true // Enables detailed recommendation logging
+  debug: true, // Enables detailed recommendation logging
 });
 ```
 

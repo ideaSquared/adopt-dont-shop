@@ -8,14 +8,14 @@ A textarea component with auto-resize, character counting, and validation featur
 import { TextArea } from '@/components/form/TextArea'
 
 // Basic usage
-<TextArea 
+<TextArea
   value={text}
   onChange={handleChange}
   placeholder="Enter your message..."
 />
 
 // With advanced features
-<TextArea 
+<TextArea
   value={text}
   onChange={handleChange}
   placeholder="Write your description..."
@@ -50,4 +50,4 @@ import { TextArea } from '@/components/form/TextArea'
 - Error state handling
 - Accessible markup
 - TypeScript support
-- Consistent form styling 
+- Consistent form styling

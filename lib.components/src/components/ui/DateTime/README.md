@@ -14,7 +14,7 @@ import { DateTime } from '@/components/ui/DateTime'
 <DateTime date={new Date('2024-01-01')} />
 
 // Custom format
-<DateTime 
+<DateTime
   date={date}
   format="short"
   className="custom-class"
@@ -33,4 +33,4 @@ import { DateTime } from '@/components/ui/DateTime'
 - Multiple date formats
 - Timezone handling
 - Accessible markup
-- TypeScript support 
+- TypeScript support

@@ -16,6 +16,7 @@ GET /api/v1/staff/me
 **Purpose**: Returns the current authenticated user's staff member record, including their `rescueId`
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -40,6 +41,7 @@ npm run dev
 ```
 
 Or if running via Docker:
+
 ```bash
 docker-compose restart backend
 ```
@@ -61,6 +63,7 @@ curl -X GET http://localhost:5000/api/v1/staff/me \
 ## What Was Missing
 
 The frontend (`app.rescue/src/pages/RescueSettings.tsx`) was calling:
+
 1. ❌ `GET /api/v1/staff/me` - **Did not exist**
 2. ✅ `GET /api/v1/rescues/:rescueId` - Already existed
 
@@ -69,6 +72,7 @@ I initially assumed this endpoint existed because it's a common pattern, but fai
 ## Additional Notes
 
 The endpoint:
+
 - Requires authentication (`authenticateToken` middleware)
 - Returns 404 if the user is not associated with any rescue
 - Does NOT require special permissions (unlike `/colleagues` which needs `staff.read`)
@@ -77,6 +81,7 @@ The endpoint:
 ## Testing Checklist
 
 After restarting the backend, verify:
+
 - [ ] Backend starts without errors
 - [ ] `/api/v1/staff/me` returns 200 with your staff data
 - [ ] Rescue Settings page loads without 404 error
@@ -90,8 +95,8 @@ After restarting the backend, verify:
 ## Next Steps
 
 Once the backend is running:
+
 1. Test the Rescue Settings page
 2. Try editing and saving rescue profile
 3. Try editing and saving adoption policies
 4. Report any issues found
-

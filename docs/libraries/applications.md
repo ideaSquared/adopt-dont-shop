@@ -53,13 +53,13 @@ const service = new ApplicationsService({
 
 ### ApplicationsServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Backend API URL |
-| `workflowEnabled` | `boolean` | `true` | Enable automated workflow processing |
-| `autoEvaluation` | `boolean` | `true` | Enable automatic application scoring |
-| `notificationEnabled` | `boolean` | `true` | Enable status change notifications |
-| `debug` | `boolean` | `false` | Enable debug logging |
+| Property              | Type      | Default                    | Description                          |
+| --------------------- | --------- | -------------------------- | ------------------------------------ |
+| `apiUrl`              | `string`  | `process.env.VITE_API_URL` | Backend API URL                      |
+| `workflowEnabled`     | `boolean` | `true`                     | Enable automated workflow processing |
+| `autoEvaluation`      | `boolean` | `true`                     | Enable automatic application scoring |
+| `notificationEnabled` | `boolean` | `true`                     | Enable status change notifications   |
+| `debug`               | `boolean` | `false`                    | Enable debug logging                 |
 
 ### Environment Variables
 
@@ -87,24 +87,27 @@ NODE_ENV=development
 Get all adoption applications with filtering and pagination.
 
 ```typescript
-const applications = await applicationsService.getAllApplications({
-  status: 'pending',
-  petId: 'pet_123',
-  rescueId: 'rescue_456',
-  applicantId: 'user_789',
-  priority: 'high',
-  dateRange: {
-    start: '2024-01-01',
-    end: '2024-03-31'
+const applications = await applicationsService.getAllApplications(
+  {
+    status: 'pending',
+    petId: 'pet_123',
+    rescueId: 'rescue_456',
+    applicantId: 'user_789',
+    priority: 'high',
+    dateRange: {
+      start: '2024-01-01',
+      end: '2024-03-31',
+    },
+  },
+  {
+    page: 1,
+    limit: 20,
+    sortBy: 'submissionDate',
+    sortOrder: 'desc',
+    includeApplicant: true,
+    includePet: true,
   }
-}, {
-  page: 1,
-  limit: 20,
-  sortBy: 'submissionDate',
-  sortOrder: 'desc',
-  includeApplicant: true,
-  includePet: true
-});
+);
 ```
 
 ##### `getApplicationById(applicationId, options?)`
@@ -116,7 +119,7 @@ const application = await applicationsService.getApplicationById('app_123', {
   includeHistory: true,
   includeEvaluation: true,
   includeReferences: true,
-  includeDocuments: true
+  includeDocuments: true,
 });
 ```
 
@@ -136,9 +139,9 @@ const application = await applicationsService.createApplication({
       email: 'john@example.com',
       phone: '555-0123',
       dateOfBirth: '1985-06-15',
-      occupation: 'Software Engineer'
+      occupation: 'Software Engineer',
     },
-    
+
     // Living Situation
     livingSituation: {
       type: 'house', // 'apartment', 'house', 'condo', 'other'
@@ -149,9 +152,9 @@ const application = await applicationsService.createApplication({
       householdSize: 3,
       hasChildren: true,
       childrenAges: [8, 12],
-      hasAllergies: false
+      hasAllergies: false,
     },
-    
+
     // Pet Experience
     petExperience: {
       level: 'intermediate', // 'beginner', 'intermediate', 'advanced'
@@ -160,26 +163,26 @@ const application = await applicationsService.createApplication({
           type: 'dog',
           breed: 'Golden Retriever',
           yearsOwned: 8,
-          outcome: 'natural-death'
-        }
+          outcome: 'natural-death',
+        },
       ],
       currentPets: [],
       vetReference: {
         name: 'Dr. Smith',
         clinic: 'Happy Pets Veterinary',
-        phone: '555-0456'
-      }
+        phone: '555-0456',
+      },
     },
-    
+
     // Care Plan
     carePlan: {
       dailyExerciseHours: 2,
       aloneTimeHours: 4,
       trainingPlans: ['basic-obedience', 'house-training'],
       budgetMonthly: 200,
-      emergencyFund: 2000
+      emergencyFund: 2000,
     },
-    
+
     // References
     references: [
       {
@@ -187,14 +190,14 @@ const application = await applicationsService.createApplication({
         relationship: 'friend',
         phone: '555-0789',
         email: 'jane@example.com',
-        yearsKnown: 5
-      }
-    ]
+        yearsKnown: 5,
+      },
+    ],
   },
-  
+
   // Additional metadata
   source: 'website',
-  notes: 'Applicant seems very enthusiastic and prepared'
+  notes: 'Applicant seems very enthusiastic and prepared',
 });
 ```
 
@@ -208,7 +211,7 @@ const updatedApplication = await applicationsService.updateApplication('app_123'
   assignedTo: 'counselor_456',
   priority: 'high',
   notes: 'Updated application with additional information',
-  internalNotes: 'Strong candidate, fast-track for approval'
+  internalNotes: 'Strong candidate, fast-track for approval',
 });
 ```
 
@@ -230,7 +233,7 @@ Submit an application for review.
 await applicationsService.submitApplication('app_123', {
   submissionNotes: 'All required documents provided',
   autoAssign: true,
-  priority: 'normal'
+  priority: 'normal',
 });
 ```
 
@@ -248,14 +251,14 @@ const review = await applicationsService.reviewApplication('app_123', {
     petExperience: 7,
     financialStability: 8,
     compatibility: 9,
-    references: 8
+    references: 8,
   },
   comments: 'Excellent match! Great living situation and experience level.',
   conditions: [
     'Must complete training course within 30 days',
-    'Provide vet records for current pets'
+    'Provide vet records for current pets',
   ],
-  recommendedActions: ['schedule-meet-greet', 'verify-references']
+  recommendedActions: ['schedule-meet-greet', 'verify-references'],
 });
 ```
 
@@ -274,8 +277,8 @@ const interview = await applicationsService.scheduleInterview('app_123', {
   questions: [
     'Tell us about your pet experience',
     'How will you handle behavioral challenges?',
-    'What is your daily routine like?'
-  ]
+    'What is your daily routine like?',
+  ],
 });
 ```
 
@@ -287,19 +290,14 @@ Schedule and conduct a home visit.
 const homeVisit = await applicationsService.conductHomeVisit('app_123', {
   scheduledFor: '2024-02-20T10:00:00Z',
   visitorId: 'volunteer_789',
-  checklist: [
-    'secure-fencing',
-    'safe-environment',
-    'adequate-space',
-    'family-readiness'
-  ],
+  checklist: ['secure-fencing', 'safe-environment', 'adequate-space', 'family-readiness'],
   findings: {
     environment: 'excellent',
     safety: 'good',
-    family: 'very-prepared'
+    family: 'very-prepared',
   },
   recommendations: ['install baby gate at stairs'],
-  approved: true
+  approved: true,
 });
 ```
 
@@ -313,7 +311,7 @@ Check and verify applicant references.
 const referenceResults = await applicationsService.checkReferences('app_123', {
   autoContact: true,
   requireAll: false,
-  timeoutDays: 7
+  timeoutDays: 7,
 });
 
 // Returns:
@@ -336,7 +334,7 @@ await applicationsService.addReference('app_123', {
   phone: '555-0321',
   email: 'bob@example.com',
   yearsKnown: 3,
-  notes: 'Has seen applicant with their previous pets'
+  notes: 'Has seen applicant with their previous pets',
 });
 ```
 
@@ -350,7 +348,7 @@ await applicationsService.updateReferenceStatus('app_123', 'ref_456', {
   response: 'positive',
   score: 8,
   notes: 'Reference confirmed applicant is responsible pet owner',
-  contactDate: new Date().toISOString()
+  contactDate: new Date().toISOString(),
 });
 ```
 
@@ -365,7 +363,7 @@ const document = await applicationsService.uploadDocument('app_123', documentFil
   type: 'identification', // 'identification', 'income-proof', 'lease-agreement', 'vet-records'
   name: 'Drivers License',
   required: true,
-  verified: false
+  verified: false,
 });
 ```
 
@@ -377,7 +375,7 @@ Get all documents for an application.
 const documents = await applicationsService.getApplicationDocuments('app_123', {
   includeRequired: true,
   includeOptional: true,
-  verified: null // true, false, or null for all
+  verified: null, // true, false, or null for all
 });
 ```
 
@@ -390,7 +388,7 @@ await applicationsService.verifyDocument('app_123', 'doc_456', {
   verified: true,
   verifiedBy: 'admin_789',
   verificationDate: new Date().toISOString(),
-  notes: 'Valid state-issued ID confirmed'
+  notes: 'Valid state-issued ID confirmed',
 });
 ```
 
@@ -401,14 +399,17 @@ await applicationsService.verifyDocument('app_123', 'doc_456', {
 Get application analytics and metrics.
 
 ```typescript
-const metrics = await applicationsService.getApplicationMetrics({
-  rescueId: 'rescue_123',
-  timeframe: 'month'
-}, {
-  includeConversionRates: true,
-  includeProcessingTimes: true,
-  includeScoring: true
-});
+const metrics = await applicationsService.getApplicationMetrics(
+  {
+    rescueId: 'rescue_123',
+    timeframe: 'month',
+  },
+  {
+    includeConversionRates: true,
+    includeProcessingTimes: true,
+    includeScoring: true,
+  }
+);
 
 // Returns:
 // {
@@ -433,7 +434,7 @@ Get application trends and patterns.
 const trends = await applicationsService.getApplicationTrends({
   timeframe: 'quarter',
   groupBy: 'week',
-  includeSeasonality: true
+  includeSeasonality: true,
 });
 ```
 
@@ -445,7 +446,7 @@ Get reviewer performance metrics.
 const performance = await applicationsService.getPerformanceMetrics('counselor_456', {
   timeframe: 'month',
   includeAccuracy: true,
-  includeSpeed: true
+  includeSpeed: true,
 });
 ```
 
@@ -494,7 +495,7 @@ export function useApplicationForm(petId: string) {
         applicantId: getCurrentUserId(),
         applicationData: finalData
       });
-      
+
       await service.submitApplication(application.id);
       return application;
     } catch (error) {
@@ -569,11 +570,11 @@ function AdoptionApplicationForm({ petId }: { petId: string }) {
 
   return (
     <div className="application-form">
-      <ApplicationStepper 
+      <ApplicationStepper
         currentStep={currentStep}
         onStepChange={handleStepChange}
       />
-      
+
       <ApplicationFormStep
         step={currentStep}
         data={formData}
@@ -630,7 +631,7 @@ function ApplicationReviewDashboard() {
   return (
     <div className="review-dashboard">
       <ApplicationFilters filters={filters} onChange={setFilters} />
-      <ApplicationQueue 
+      <ApplicationQueue
         applications={applications}
         onReview={handleReview}
       />
@@ -658,14 +659,14 @@ app.get('/api/applications', async (req, res) => {
       status: req.query.status,
       rescueId: req.query.rescueId,
       petId: req.query.petId,
-      ...req.query
+      ...req.query,
     };
-    
+
     const result = await applicationsService.getAllApplications(filters, {
       page: parseInt(req.query.page) || 1,
-      limit: parseInt(req.query.limit) || 20
+      limit: parseInt(req.query.limit) || 20,
     });
-    
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch applications' });
@@ -685,7 +686,7 @@ app.put('/api/applications/:id/review', async (req, res) => {
   try {
     const review = await applicationsService.reviewApplication(req.params.id, {
       ...req.body,
-      reviewerId: req.user.id
+      reviewerId: req.user.id,
     });
     res.json(review);
   } catch (error) {
@@ -707,6 +708,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ Error handling and validation
 
 Run tests:
+
 ```bash
 npm run test:lib-applications
 ```
@@ -714,24 +716,28 @@ npm run test:lib-applications
 ## 🚀 Key Features
 
 ### Comprehensive Application Management
+
 - **Multi-Step Forms**: Progressive application collection
 - **Document Upload**: Secure file handling and verification
 - **Reference Checking**: Automated reference verification
 - **Status Tracking**: Real-time application progress
 
 ### Automated Workflow
+
 - **Smart Assignment**: Automatic application routing
 - **Evaluation Scoring**: AI-powered compatibility assessment
 - **Workflow Automation**: Streamlined review processes
 - **Deadline Management**: Automated reminders and escalations
 
 ### Advanced Evaluation Tools
+
 - **Scoring Algorithms**: Multi-factor compatibility scoring
 - **Interview Scheduling**: Integrated calendar and communication
 - **Home Visit Management**: Site visit coordination and reporting
 - **Decision Support**: Data-driven approval recommendations
 
 ### Analytics & Reporting
+
 - **Performance Metrics**: Approval rates and processing times
 - **Trend Analysis**: Application patterns and seasonality
 - **Quality Metrics**: Reviewer performance and accuracy
@@ -742,16 +748,19 @@ npm run test:lib-applications
 ### Common Issues
 
 **Application submissions failing**:
+
 - Check required field validation
 - Verify document upload limits and formats
 - Review form data serialization
 
 **Workflow not progressing**:
+
 - Check workflow configuration and rules
 - Verify user permissions and assignments
 - Review automated action triggers
 
 **Reference verification issues**:
+
 - Validate contact information format
 - Check notification delivery settings
 - Review reference response tracking
@@ -760,7 +769,7 @@ npm run test:lib-applications
 
 ```typescript
 const applications = new ApplicationsService({
-  debug: true // Enables detailed workflow logging
+  debug: true, // Enables detailed workflow logging
 });
 ```
 

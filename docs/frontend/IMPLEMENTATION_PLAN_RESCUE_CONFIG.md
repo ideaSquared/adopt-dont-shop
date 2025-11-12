@@ -1,17 +1,20 @@
 # Implementation Plan: Rescue Configuration & Application Workflow
 
 ## Overview
+
 This document outlines the implementation plan for completing the Immediate and High Priority features for app.rescue as identified in the PRD review.
 
 ## Priority 1: Rescue Configuration (Immediate)
 
 ### Current State
+
 - Placeholder page exists at `app.rescue/src/pages/RescueSettings.tsx`
 - Backend API endpoints exist:
   - `GET /api/v1/rescues/:rescueId` - Get rescue profile
   - `PUT /api/v1/rescues/:rescueId` - Update rescue information
 
 ### Required Features (from PRD)
+
 1. **Rescue Profile Management**
    - Basic information (name, type, contact details)
    - Address and location
@@ -38,6 +41,7 @@ This document outlines the implementation plan for completing the Immediate and 
 ### Implementation Steps
 
 #### Step 1: Create Rescue Settings Service
+
 - File: `app.rescue/src/services/rescueService.ts`
 - Functions:
   - `getRescueProfile(rescueId)`
@@ -48,12 +52,14 @@ This document outlines the implementation plan for completing the Immediate and 
   - `updateAdoptionPolicies(rescueId, policies)`
 
 #### Step 2: Create Rescue Settings Components
+
 - `RescueProfileForm.tsx` - Basic rescue information
 - `ApplicationQuestionsManager.tsx` - Custom questions editor
 - `AdoptionPolicyForm.tsx` - Policy configuration
 - `OperatingHoursForm.tsx` - Hours and availability
 
 #### Step 3: Implement Main Settings Page
+
 - Replace placeholder in `RescueSettings.tsx`
 - Tab-based interface for different configuration areas
 - Permission checks for edit access
@@ -62,11 +68,13 @@ This document outlines the implementation plan for completing the Immediate and 
 ## Priority 2: Application Workflow (High Priority)
 
 ### Current State
+
 - Database supports 5-stage workflow: PENDING → REVIEWING → VISITING → DECIDING → RESOLVED
 - Types defined in `app.rescue/src/types/applicationStages.ts`
 - Current UI uses simplified statuses (submitted, approved, rejected, withdrawn)
 
 ### Required Features (from PRD)
+
 1. **Five-Stage Workflow**
    - PENDING: Applications awaiting initial review
    - REVIEWING: Active review with reference checks
@@ -93,6 +101,7 @@ This document outlines the implementation plan for completing the Immediate and 
 ### Implementation Steps
 
 #### Step 1: Update Application Service
+
 - File: `app.rescue/src/services/applicationService.ts`
 - Add functions:
   - `transitionStage(applicationId, newStage, data)`
@@ -100,24 +109,28 @@ This document outlines the implementation plan for completing the Immediate and 
   - `getValidTransitions(currentStage)`
 
 #### Step 2: Update Application List UI
+
 - Update `ApplicationList.tsx` to show stages
 - Add stage-based filters
 - Add stage transition buttons
 - Update progress indicators
 
 #### Step 3: Implement Stage Transition Logic
+
 - Create `useStageTransitions.ts` hook
 - Validate transitions
 - Handle auto-progression triggers
 - Update timeline events
 
 #### Step 4: Add Bulk Operations
+
 - Bulk selection in application list
 - Bulk action dropdown
 - Confirmation modals
 - Progress tracking
 
 #### Step 5: Update Application Review Modal
+
 - Show current stage prominently
 - Display available actions based on stage
 - Auto-progress after home visit completion
@@ -126,6 +139,7 @@ This document outlines the implementation plan for completing the Immediate and 
 ## Data Models
 
 ### Rescue Configuration
+
 ```typescript
 interface RescueProfile {
   rescue_id: string;
@@ -168,6 +182,7 @@ interface AdoptionPolicy {
 ```
 
 ### Stage Transition
+
 ```typescript
 interface StageTransition {
   applicationId: string;
@@ -183,6 +198,7 @@ interface StageTransition {
 ## Testing Checklist
 
 ### Rescue Configuration
+
 - [ ] Load rescue profile
 - [ ] Update rescue basic info
 - [ ] Add/edit/remove custom questions
@@ -191,6 +207,7 @@ interface StageTransition {
 - [ ] Changes persist across page reload
 
 ### Application Workflow
+
 - [ ] Applications display correct stage
 - [ ] Stage transitions work correctly
 - [ ] Invalid transitions are blocked
@@ -201,12 +218,14 @@ interface StageTransition {
 - [ ] Statistics update correctly
 
 ## Timeline
+
 - **Rescue Configuration**: 2-3 hours
 - **Application Workflow**: 3-4 hours
 - **Testing & Refinement**: 1-2 hours
 - **Total**: 6-9 hours
 
 ## Dependencies
+
 - Backend API endpoints (already exist)
 - Database schema (already supports stages)
 - Type definitions (already exist)

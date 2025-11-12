@@ -21,28 +21,24 @@ const router = express.Router();
           .status(404)
           .json({ success: false, message: 'You are not associated with any rescue organization' });
       }
-      res
-        .status(200)
-        .json({
-          success: true,
-          data: {
-            staffMemberId: staffMember.staffMemberId,
-            userId: staffMember.userId,
-            rescueId: staffMember.rescueId,
-            title: staffMember.title,
-            isVerified: staffMember.isVerified,
-            addedAt: staffMember.addedAt,
-          },
-        });
+      res.status(200).json({
+        success: true,
+        data: {
+          staffMemberId: staffMember.staffMemberId,
+          userId: staffMember.userId,
+          rescueId: staffMember.rescueId,
+          title: staffMember.title,
+          isVerified: staffMember.isVerified,
+          addedAt: staffMember.addedAt,
+        },
+      });
     } catch (error) {
       logger.error('Get staff me failed:', error);
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: 'Failed to retrieve staff information',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve staff information',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }
 );

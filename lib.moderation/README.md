@@ -35,13 +35,13 @@ import { moderationService } from '@adopt-dont-shop/lib-moderation';
 const reports = await moderationService.getReports({
   status: 'pending',
   page: 1,
-  limit: 20
+  limit: 20,
 });
 
 // Take moderation action
 await moderationService.takeAction(reportId, {
   actionType: 'warning_issued',
-  reason: 'Violation of community guidelines'
+  reason: 'Violation of community guidelines',
 });
 ```
 
@@ -51,8 +51,12 @@ await moderationService.takeAction(reportId, {
 import { useReports, useReportDetail } from '@adopt-dont-shop/lib-moderation';
 
 function ModerationDashboard() {
-  const { data: reports, isLoading, error } = useReports({
-    status: 'pending'
+  const {
+    data: reports,
+    isLoading,
+    error,
+  } = useReports({
+    status: 'pending',
   });
 
   // ... render component
