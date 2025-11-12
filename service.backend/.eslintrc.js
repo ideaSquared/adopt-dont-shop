@@ -44,18 +44,11 @@ module.exports = {
     {
       files: ['**/*.test.{ts,js}', '**/*.spec.{ts,js}', '**/__tests__/**/*'],
       env: {
-        jest: true,
         node: true,
       },
-      extends: ['plugin:jest/recommended'],
-      plugins: ['jest'],
       rules: {
         // Test-specific rules
         'no-console': 'off',
-        'jest/expect-expect': 'error',
-        'jest/no-disabled-tests': 'warn',
-        'jest/no-focused-tests': 'error',
-        'jest/prefer-to-have-length': 'warn',
       },
     },
     // Seeders and development scripts can use console
