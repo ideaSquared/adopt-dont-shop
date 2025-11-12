@@ -46,7 +46,7 @@ export const errorHandler = (
     return res.status(400).json({
       status: 'error',
       message: 'Validation error',
-      errors: sequelizeErr.errors?.map((e) => ({
+      errors: sequelizeErr.errors?.map(e => ({
         field: e.path,
         message: e.message,
       })),

@@ -42,9 +42,14 @@ export class ModerationController {
         category: typeof req.query.category === 'string' ? req.query.category : undefined,
         severity: typeof req.query.severity === 'string' ? req.query.severity : undefined,
         reporterId: typeof req.query.reporterId === 'string' ? req.query.reporterId : undefined,
-        reportedUserId: typeof req.query.reportedUserId === 'string' ? req.query.reportedUserId : undefined,
-        assignedModerator: typeof req.query.assignedModerator === 'string' ? req.query.assignedModerator : undefined,
-        reportedEntityType: typeof req.query.reportedEntityType === 'string' ? req.query.reportedEntityType : undefined,
+        reportedUserId:
+          typeof req.query.reportedUserId === 'string' ? req.query.reportedUserId : undefined,
+        assignedModerator:
+          typeof req.query.assignedModerator === 'string' ? req.query.assignedModerator : undefined,
+        reportedEntityType:
+          typeof req.query.reportedEntityType === 'string'
+            ? req.query.reportedEntityType
+            : undefined,
         search: typeof req.query.search === 'string' ? req.query.search : undefined,
       };
 
