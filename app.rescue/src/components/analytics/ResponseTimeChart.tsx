@@ -44,7 +44,9 @@ const TimeValue = styled.div<{ $isCompliant: boolean }>`
   font-size: 0.875rem;
   font-weight: 600;
   color: ${props =>
-    props.$isCompliant ? props.theme.colors.semantic.success[600] : props.theme.colors.semantic.error[600]};
+    props.$isCompliant
+      ? props.theme.colors.semantic.success[600]
+      : props.theme.colors.semantic.error[600]};
 `;
 
 const BarsContainer = styled.div`
@@ -98,7 +100,9 @@ const ComplianceIndicator = styled.div<{ $isCompliant: boolean }>`
   gap: 0.375rem;
   font-size: 0.75rem;
   color: ${props =>
-    props.$isCompliant ? props.theme.colors.semantic.success[600] : props.theme.colors.semantic.error[600]};
+    props.$isCompliant
+      ? props.theme.colors.semantic.success[600]
+      : props.theme.colors.semantic.error[600]};
   margin-top: 0.375rem;
 `;
 

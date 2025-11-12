@@ -255,7 +255,12 @@ const Audit: React.FC = () => {
       AuditLogsService.getAuditLogs({
         action: actionFilter !== 'all' ? actionFilter : undefined,
         entity: resourceFilter !== 'all' ? resourceFilter : undefined,
-        status: statusFilter !== 'all' ? (statusFilter === 'success' ? AuditLogStatus.SUCCESS : AuditLogStatus.FAILURE) : undefined,
+        status:
+          statusFilter !== 'all'
+            ? statusFilter === 'success'
+              ? AuditLogStatus.SUCCESS
+              : AuditLogStatus.FAILURE
+            : undefined,
         page,
         limit: 50,
         startDate: sevenDaysAgo,
