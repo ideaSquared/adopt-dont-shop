@@ -684,7 +684,15 @@ describe('PetService - Business Logic', () => {
     it('should replace all images when updating', async () => {
       // Given: Pet with existing images
       const mockPet = createMockPet({
-        images: [{ image_id: 'old_img', url: 'old.jpg', is_primary: true, order_index: 0, uploaded_at: new Date() }],
+        images: [
+          {
+            image_id: 'old_img',
+            url: 'old.jpg',
+            is_primary: true,
+            order_index: 0,
+            uploaded_at: new Date(),
+          },
+        ],
       });
       mockPet.reload.mockResolvedValue(mockPet);
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
@@ -719,9 +727,27 @@ describe('PetService - Business Logic', () => {
       // Given: Pet with multiple images
       const mockPet = createMockPet({
         images: [
-          { image_id: 'img1', url: 'photo1.jpg', is_primary: true, order_index: 0, uploaded_at: new Date() },
-          { image_id: 'img2', url: 'photo2.jpg', is_primary: false, order_index: 1, uploaded_at: new Date() },
-          { image_id: 'img3', url: 'photo3.jpg', is_primary: false, order_index: 2, uploaded_at: new Date() },
+          {
+            image_id: 'img1',
+            url: 'photo1.jpg',
+            is_primary: true,
+            order_index: 0,
+            uploaded_at: new Date(),
+          },
+          {
+            image_id: 'img2',
+            url: 'photo2.jpg',
+            is_primary: false,
+            order_index: 1,
+            uploaded_at: new Date(),
+          },
+          {
+            image_id: 'img3',
+            url: 'photo3.jpg',
+            is_primary: false,
+            order_index: 2,
+            uploaded_at: new Date(),
+          },
         ],
       });
       mockPet.reload.mockResolvedValue(mockPet);
@@ -745,14 +771,22 @@ describe('PetService - Business Logic', () => {
     it('should throw error when removing non-existent image', async () => {
       // Given: Pet without the specified image
       const mockPet = createMockPet({
-        images: [{ image_id: 'img1', url: 'photo1.jpg', is_primary: true, order_index: 0, uploaded_at: new Date() }],
+        images: [
+          {
+            image_id: 'img1',
+            url: 'photo1.jpg',
+            is_primary: true,
+            order_index: 0,
+            uploaded_at: new Date(),
+          },
+        ],
       });
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When & Then: Removing non-existent image fails
-      await expect(
-        PetService.removePetImage(mockPetId, 'nonexistent', mockUserId)
-      ).rejects.toThrow('Image not found');
+      await expect(PetService.removePetImage(mockPetId, 'nonexistent', mockUserId)).rejects.toThrow(
+        'Image not found'
+      );
     });
   });
 
@@ -828,8 +862,20 @@ describe('PetService - Business Logic', () => {
       // Given: Pet with 2 existing images
       const mockPet = createMockPet({
         images: [
-          { image_id: 'img1', url: 'photo1.jpg', is_primary: true, order_index: 0, uploaded_at: new Date() },
-          { image_id: 'img2', url: 'photo2.jpg', is_primary: false, order_index: 1, uploaded_at: new Date() },
+          {
+            image_id: 'img1',
+            url: 'photo1.jpg',
+            is_primary: true,
+            order_index: 0,
+            uploaded_at: new Date(),
+          },
+          {
+            image_id: 'img2',
+            url: 'photo2.jpg',
+            is_primary: false,
+            order_index: 1,
+            uploaded_at: new Date(),
+          },
         ],
       });
       mockPet.reload.mockResolvedValue(mockPet);
@@ -899,9 +945,9 @@ describe('PetService - Business Logic', () => {
       };
 
       // When & Then: Error is propagated
-      await expect(
-        PetService.updatePetStatus(mockPetId, statusUpdate, mockUserId)
-      ).rejects.toThrow('Status update failed');
+      await expect(PetService.updatePetStatus(mockPetId, statusUpdate, mockUserId)).rejects.toThrow(
+        'Status update failed'
+      );
     });
 
     it('should return null for non-existent pet in getPetById', async () => {

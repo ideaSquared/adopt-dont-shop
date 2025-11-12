@@ -144,7 +144,7 @@ export const HomePage: React.FC = () => {
       properties: {
         variant: showNewHero ? 'new_hero' : 'original_hero',
         user_authenticated: isAuthenticated,
-      }
+      },
     });
 
     // Track page view with new analytics service
@@ -173,7 +173,7 @@ export const HomePage: React.FC = () => {
           properties: {
             pet_count: pets.length,
             user_authenticated: isAuthenticated,
-          }
+          },
         });
 
         // Log successful load (existing Statsig tracking)
@@ -195,7 +195,7 @@ export const HomePage: React.FC = () => {
           properties: {
             error_message: err instanceof Error ? err.message : 'Unknown error',
             user_authenticated: isAuthenticated,
-          }
+          },
         });
 
         // Log error (existing Statsig tracking)
@@ -221,7 +221,7 @@ export const HomePage: React.FC = () => {
       properties: {
         featured_pets_count: featuredPets.length,
         user_authenticated: isAuthenticated,
-      }
+      },
     });
 
     // Existing Statsig tracking
@@ -244,7 +244,7 @@ export const HomePage: React.FC = () => {
         user_authenticated: isAuthenticated,
         featured_pets_visible: featuredPets.length,
         hero_variant: showNewHero ? 'new_hero' : 'original_hero',
-      }
+      },
     });
 
     // Existing Statsig tracking
@@ -260,13 +260,31 @@ export const HomePage: React.FC = () => {
     <div>
       {/* Hero Section - A/B Test with Feature Flags */}
       {showNewHero ? (
-        <Section style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', textAlign: 'center' }}>
+        <Section
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            textAlign: 'center',
+          }}
+        >
           <Container>
-            <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>Find Your Perfect Companion</h1>
-            <p style={{ fontSize: '1.5rem', marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
-              Every pet deserves a loving home. Browse thousands of adoptable pets and find your new best friend today.
+            <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>
+              Find Your Perfect Companion
+            </h1>
+            <p
+              style={{
+                fontSize: '1.5rem',
+                marginBottom: '2rem',
+                maxWidth: '600px',
+                margin: '0 auto 2rem',
+              }}
+            >
+              Every pet deserves a loving home. Browse thousands of adoptable pets and find your new
+              best friend today.
             </p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div
+              style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}
+            >
               <Button variant='primary' size='lg' onClick={() => handleCTAClick('browse_pets')}>
                 Start Browsing Pets
               </Button>

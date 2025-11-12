@@ -568,7 +568,12 @@ Pet.init(
             throw new Error('Images must be an array');
           }
           value.forEach((img, index) => {
-            if (typeof img !== 'object' || img === null || !('image_id' in img) || !('url' in img)) {
+            if (
+              typeof img !== 'object' ||
+              img === null ||
+              !('image_id' in img) ||
+              !('url' in img)
+            ) {
               throw new Error(`Image at index ${index} must have image_id and url`);
             }
           });

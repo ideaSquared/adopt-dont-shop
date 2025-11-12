@@ -54,8 +54,8 @@ export async function seedUserRoles() {
     // Find all users who are rescue staff type
     const rescueStaffUsers = await User.findAll({
       where: {
-        userType: 'rescue_staff'
-      }
+        userType: 'rescue_staff',
+      },
     });
 
     for (const user of rescueStaffUsers) {
@@ -64,7 +64,7 @@ export async function seedUserRoles() {
         where: {
           userId: user.userId,
           roleId: rescueStaffRole.roleId,
-        }
+        },
       });
 
       // If no role exists, assign it

@@ -13,7 +13,7 @@ import { Tooltip } from '@/components/ui/Tooltip'
 </Tooltip>
 
 // With custom configuration
-<Tooltip 
+<Tooltip
   content={tooltipContent}
   position="top"
   delay={500}
@@ -39,4 +39,4 @@ import { Tooltip } from '@/components/ui/Tooltip'
 - Customizable delay
 - Keyboard accessible
 - Screen reader support
-- TypeScript support 
+- TypeScript support

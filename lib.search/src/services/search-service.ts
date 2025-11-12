@@ -421,4 +421,3 @@ export class SearchService {
     }, 60000); // Run every minute
   }
 }
-

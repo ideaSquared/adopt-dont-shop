@@ -293,7 +293,10 @@ export const loggerHelpers = {
         action,
         entity: data.entity as string,
         entityId: data.entityId as string,
-        details: (data.details && typeof data.details === 'object' && !Array.isArray(data.details)) ? data.details as JsonObject : undefined,
+        details:
+          data.details && typeof data.details === 'object' && !Array.isArray(data.details)
+            ? (data.details as JsonObject)
+            : undefined,
         ipAddress: data.ip as string,
         userAgent: data.userAgent as string,
       });

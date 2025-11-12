@@ -209,8 +209,7 @@ export const ResetPasswordPage: React.FC = () => {
 
       // Handle specific error cases
       if (error.response?.status === 401 || error.response?.status === 400) {
-        errorMessage =
-          'Invalid or expired reset token. Please request a new password reset link.';
+        errorMessage = 'Invalid or expired reset token. Please request a new password reset link.';
         logEvent('password_reset_token_invalid', 1, {
           error_status: String(error.response?.status || 'unknown'),
         });
@@ -240,7 +239,9 @@ export const ResetPasswordPage: React.FC = () => {
             <h2>Password Reset Successful!</h2>
             <p>Your password has been successfully updated.</p>
             <p>You can now log in with your new password.</p>
-            <p className='redirect-message'>Redirecting to login in {redirectCountdown} seconds...</p>
+            <p className='redirect-message'>
+              Redirecting to login in {redirectCountdown} seconds...
+            </p>
 
             <Button
               type='button'

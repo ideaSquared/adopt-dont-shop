@@ -15,7 +15,7 @@ const Badge = styled.span<{ $variant: 'primary' | 'success' | 'warning' | 'dange
   font-weight: 500;
   border-radius: 9999px;
   white-space: nowrap;
-  
+
   ${props => {
     switch (props.$variant) {
       case 'success':
@@ -54,7 +54,7 @@ const Badge = styled.span<{ $variant: 'primary' | 'success' | 'warning' | 'dange
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) => {
   const variant = getStatusColor(status);
-  
+
   return (
     <Badge $variant={variant} className={className}>
       {formatStatusName(status)}

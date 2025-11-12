@@ -54,7 +54,15 @@ describe('ApplicationService - Business Logic', () => {
     rescue_id: mockRescueId,
     status,
     answers: { experience: 'yes', has_yard: 'yes' },
-    references: [{ id: 'ref-1', name: 'Jane Doe', email: 'jane@example.com', phone: '555-0100', relationship: 'friend' }],
+    references: [
+      {
+        id: 'ref-1',
+        name: 'Jane Doe',
+        email: 'jane@example.com',
+        phone: '555-0100',
+        relationship: 'friend',
+      },
+    ],
     priority: ApplicationPriority.NORMAL,
     submitted_at: new Date(),
     update: vi.fn().mockResolvedValue(true),
@@ -79,7 +87,7 @@ describe('ApplicationService - Business Logic', () => {
         name: 'Jane Smith',
         relationship: 'friend',
         phone: '555-0100',
-        email: 'jane@example.com'
+        email: 'jane@example.com',
       },
     ],
     priority: ApplicationPriority.NORMAL,
@@ -142,9 +150,9 @@ describe('ApplicationService - Business Logic', () => {
       MockedApplication.findOne = vi.fn().mockResolvedValue(existingApplication);
 
       // When & Then: Duplicate application is rejected
-      await expect(
-        ApplicationService.createApplication(request, mockUserId)
-      ).rejects.toThrow('already have an active application');
+      await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
+        'already have an active application'
+      );
 
       expect(MockedApplication.create).not.toHaveBeenCalled();
     });
@@ -159,9 +167,9 @@ describe('ApplicationService - Business Logic', () => {
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When & Then: Application is rejected
-      await expect(
-        ApplicationService.createApplication(request, mockUserId)
-      ).rejects.toThrow('not available');
+      await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
+        'not available'
+      );
 
       expect(MockedApplication.create).not.toHaveBeenCalled();
     });
@@ -173,9 +181,9 @@ describe('ApplicationService - Business Logic', () => {
       MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
       // When & Then: Application is rejected
-      await expect(
-        ApplicationService.createApplication(request, mockUserId)
-      ).rejects.toThrow('User not found');
+      await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
+        'User not found'
+      );
     });
 
     it('requires pet to exist', async () => {
@@ -187,9 +195,9 @@ describe('ApplicationService - Business Logic', () => {
       MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
       // When & Then: Application is rejected
-      await expect(
-        ApplicationService.createApplication(request, mockUserId)
-      ).rejects.toThrow('Pet not found');
+      await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
+        'Pet not found'
+      );
     });
   });
 
@@ -339,11 +347,7 @@ describe('ApplicationService - Business Logic', () => {
       };
 
       await expect(
-        ApplicationService.updateApplicationStatus(
-          mockApplicationId,
-          updateRequest,
-          mockUserId
-        )
+        ApplicationService.updateApplicationStatus(mockApplicationId, updateRequest, mockUserId)
       ).rejects.toThrow('Cannot transition from approved to withdrawn');
     });
   });
@@ -408,7 +412,7 @@ describe('ApplicationService - Business Logic', () => {
       expect(mockApplication.update).not.toHaveBeenCalled();
     });
 
-    it('prevents user from modifying another user\'s application', async () => {
+    it("prevents user from modifying another user's application", async () => {
       // Given: Application belongs to different user
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
       mockApplication.user_id = 'other-user-456';
@@ -452,7 +456,7 @@ describe('ApplicationService - Business Logic', () => {
       );
     });
 
-    it('prevents user from viewing another user\'s application', async () => {
+    it("prevents user from viewing another user's application", async () => {
       // Given: Application belongs to different user
       const mockApplication = createMockApplication();
       mockApplication.user_id = 'other-user-456';
@@ -673,11 +677,7 @@ describe('ApplicationService - Business Logic', () => {
       };
 
       await expect(
-        ApplicationService.updateApplicationStatus(
-          mockApplicationId,
-          updateRequest,
-          mockUserId
-        )
+        ApplicationService.updateApplicationStatus(mockApplicationId, updateRequest, mockUserId)
       ).rejects.toThrow('Cannot transition');
 
       expect(mockApplication.update).not.toHaveBeenCalled();
@@ -711,9 +711,9 @@ describe('ApplicationService - Business Logic', () => {
       MockedApplication.create = vi.fn().mockRejectedValue(new Error('Database error'));
 
       // When & Then: Error is propagated
-      await expect(
-        ApplicationService.createApplication(request, mockUserId)
-      ).rejects.toThrow('Database error');
+      await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
+        'Database error'
+      );
     });
   });
 });

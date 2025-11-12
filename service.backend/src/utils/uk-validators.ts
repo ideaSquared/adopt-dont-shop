@@ -87,7 +87,12 @@ export function validateUKPhoneNumber(phone: string): boolean {
   }
 
   // Also accept without + sign: 44 followed by 10-11 digits
-  if (cleaned.startsWith('44') && !cleaned.startsWith('440') && cleaned.length >= 12 && cleaned.length <= 13) {
+  if (
+    cleaned.startsWith('44') &&
+    !cleaned.startsWith('440') &&
+    cleaned.length >= 12 &&
+    cleaned.length <= 13
+  ) {
     return true;
   }
 

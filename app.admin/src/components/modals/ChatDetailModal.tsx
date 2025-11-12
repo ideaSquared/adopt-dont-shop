@@ -9,10 +9,7 @@ import {
   type Message,
   type Participant,
 } from '@adopt-dont-shop/lib-chat';
-import {
-  moderationService,
-  type Report,
-} from '@adopt-dont-shop/lib-moderation';
+import { moderationService, type Report } from '@adopt-dont-shop/lib-moderation';
 import {
   FiMessageSquare,
   FiUsers,
@@ -427,9 +424,12 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   const [flaggingConversation, setFlaggingConversation] = useState(false);
   const { confirm, confirmProps } = useConfirm();
 
-
   const { data: chat, isLoading: chatLoading } = useAdminChatById(chatId);
-  const { data: messagesData, isLoading: messagesLoading, refetch: refetchMessages } = useAdminChatMessages(chatId, page, 50);
+  const {
+    data: messagesData,
+    isLoading: messagesLoading,
+    refetch: refetchMessages,
+  } = useAdminChatMessages(chatId, page, 50);
   const { deleteChat, updateChatStatus, deleteMessage } = useAdminChatMutations();
 
   const fetchReports = async () => {
@@ -480,7 +480,6 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       fetchReports();
     }
   }, [chatId, activeTab]);
-
 
   if (!chatId) {
     return null;
@@ -615,13 +614,13 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'active':
-        return <Badge $variant="success">Active</Badge>;
+        return <Badge $variant='success'>Active</Badge>;
       case 'archived':
-        return <Badge $variant="neutral">Archived</Badge>;
+        return <Badge $variant='neutral'>Archived</Badge>;
       case 'blocked':
-        return <Badge $variant="danger">Blocked</Badge>;
+        return <Badge $variant='danger'>Blocked</Badge>;
       default:
-        return <Badge $variant="neutral">{status || 'Active'}</Badge>;
+        return <Badge $variant='neutral'>{status || 'Active'}</Badge>;
     }
   };
 
@@ -661,7 +660,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
                     <MessageActions>
                       <ActionButton
                         onClick={() => handleDeleteMessageClick(message.id)}
-                        title="Delete message"
+                        title='Delete message'
                       >
                         <FiTrash2 />
                       </ActionButton>
@@ -676,7 +675,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
         {hasMorePages && (
           <div style={{ textAlign: 'center', padding: '1rem' }}>
             <Button
-              variant="secondary"
+              variant='secondary'
               onClick={() => setPage(p => p + 1)}
               disabled={messagesLoading}
             >
@@ -801,7 +800,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
           <DetailValue>
             <Button
               onClick={handleFlagConversation}
-              variant="warning"
+              variant='warning'
               disabled={flaggingConversation}
             >
               {flaggingConversation ? 'Flagging...' : 'Report This Conversation'}
@@ -835,24 +834,36 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
                       border: '1px solid #e5e7eb',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.25rem',
+                      }}
+                    >
                       <strong style={{ textTransform: 'capitalize' }}>
                         {report.category.replace('_', ' ')}
                       </strong>
-                      <span style={{
-                        padding: '0.125rem 0.5rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        backgroundColor:
-                          report.status === 'resolved' ? '#d1fae5' :
-                          report.status === 'under_review' ? '#fef3c7' :
-                          '#fee2e2',
-                        color:
-                          report.status === 'resolved' ? '#065f46' :
-                          report.status === 'under_review' ? '#92400e' :
-                          '#991b1b',
-                      }}>
+                      <span
+                        style={{
+                          padding: '0.125rem 0.5rem',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          backgroundColor:
+                            report.status === 'resolved'
+                              ? '#d1fae5'
+                              : report.status === 'under_review'
+                                ? '#fef3c7'
+                                : '#fee2e2',
+                          color:
+                            report.status === 'resolved'
+                              ? '#065f46'
+                              : report.status === 'under_review'
+                                ? '#92400e'
+                                : '#991b1b',
+                        }}
+                      >
                         {report.status}
                       </span>
                     </div>
@@ -887,14 +898,14 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
                 textDecoration: 'none',
                 fontWeight: '500',
               }}
-              onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
-              onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
+              onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
+              onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}
             >
               View in Moderation Dashboard →
             </a>
             <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
-              View complete moderation history, take actions, and manage reports in the
-              dedicated moderation interface.
+              View complete moderation history, take actions, and manage reports in the dedicated
+              moderation interface.
             </p>
           </DetailValue>
         </DetailItem>
@@ -925,7 +936,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
                         alignItems: 'center',
                       }}
                     >
-                      <span>{participant.name} ({participant.type})</span>
+                      <span>
+                        {participant.name} ({participant.type})
+                      </span>
                       <a
                         href={`/moderation?user=${participant.id}`}
                         style={{ fontSize: '0.875rem', color: '#2563eb' }}
@@ -946,7 +959,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} size='xl'>
       <ModalContent>
         <ChatHeader>
           <ChatTitle>
@@ -997,18 +1010,18 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
 
         <ActionBar>
           <Button
-            variant="secondary"
-            icon={<FiArchive />}
+            variant='secondary'
+            leftIcon={<FiArchive />}
             onClick={handleArchiveChat}
             disabled={conversation?.status === 'archived'}
           >
             Archive
           </Button>
-          <Button variant="danger" icon={<FiTrash2 />} onClick={handleDeleteChat}>
+          <Button variant='danger' leftIcon={<FiTrash2 />} onClick={handleDeleteChat}>
             Delete
           </Button>
           <div style={{ marginLeft: 'auto' }}>
-            <Button variant="secondary" icon={<FiX />} onClick={onClose}>
+            <Button variant='secondary' leftIcon={<FiX />} onClick={onClose}>
               Close
             </Button>
           </div>
@@ -1017,7 +1030,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
 
       {showDeleteReasonPrompt && (
         <DeletePrompt onClick={handleCancelDelete}>
-          <DeletePromptContent onClick={(e) => e.stopPropagation()}>
+          <DeletePromptContent onClick={e => e.stopPropagation()}>
             <DeletePromptTitle>
               <FiAlertTriangle />
               Delete Message
@@ -1027,16 +1040,16 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
               optionally provide a reason for the deletion.
             </DeletePromptText>
             <TextArea
-              placeholder="Reason for deletion (optional)..."
+              placeholder='Reason for deletion (optional)...'
               value={deleteReason}
-              onChange={(e) => setDeleteReason(e.target.value)}
+              onChange={e => setDeleteReason(e.target.value)}
             />
             <DeletePromptActions>
-              <Button variant="secondary" onClick={handleCancelDelete}>
+              <Button variant='secondary' onClick={handleCancelDelete}>
                 Cancel
               </Button>
               <Button
-                variant="danger"
+                variant='danger'
                 onClick={handleDeleteMessage}
                 disabled={deleteMessage.isLoading}
               >

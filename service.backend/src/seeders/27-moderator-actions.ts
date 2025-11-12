@@ -23,7 +23,8 @@ export async function seedModeratorActions() {
         actionType: ActionType.WARNING_ISSUED,
         severity: ActionSeverity.LOW,
         reason: 'Inappropriate language in messages',
-        description: 'User used inappropriate language when communicating with rescue organization. First offense - warning issued.',
+        description:
+          'User used inappropriate language when communicating with rescue organization. First offense - warning issued.',
         metadata: {},
         isActive: true,
         evidence: [
@@ -46,7 +47,8 @@ export async function seedModeratorActions() {
         actionType: ActionType.CONTENT_REMOVED,
         severity: ActionSeverity.MEDIUM,
         reason: 'Listing violated platform policies',
-        description: 'Pet listing contained prohibited content and misleading information about the animal\'s health status.',
+        description:
+          "Pet listing contained prohibited content and misleading information about the animal's health status.",
         metadata: {
           policyViolation: 'misleading_health_info',
         },
@@ -66,7 +68,8 @@ export async function seedModeratorActions() {
         actionType: ActionType.USER_SUSPENDED,
         severity: ActionSeverity.HIGH,
         reason: 'Repeated policy violations',
-        description: 'User has violated platform policies multiple times despite warnings. Temporary suspension of 7 days.',
+        description:
+          'User has violated platform policies multiple times despite warnings. Temporary suspension of 7 days.',
         metadata: {
           previousWarnings: 2,
           violationType: 'harassment',
@@ -81,7 +84,8 @@ export async function seedModeratorActions() {
           },
         ],
         notificationSent: true,
-        internalNotes: 'User will be permanently banned if violations continue after suspension ends.',
+        internalNotes:
+          'User will be permanently banned if violations continue after suspension ends.',
       },
 
       // Account restricted
@@ -93,7 +97,8 @@ export async function seedModeratorActions() {
         actionType: ActionType.ACCOUNT_RESTRICTED,
         severity: ActionSeverity.MEDIUM,
         reason: 'Suspicious activity detected',
-        description: 'Account restricted due to unusual activity pattern. User can view but cannot message or apply until verification.',
+        description:
+          'Account restricted due to unusual activity pattern. User can view but cannot message or apply until verification.',
         metadata: {
           activityPattern: 'rapid_application_creation',
           flaggedCount: 15,
@@ -116,7 +121,8 @@ export async function seedModeratorActions() {
         actionType: ActionType.USER_BANNED,
         severity: ActionSeverity.CRITICAL,
         reason: 'Fraudulent activity',
-        description: 'User engaged in fraudulent scheme to scam adopters. Permanent ban issued immediately.',
+        description:
+          'User engaged in fraudulent scheme to scam adopters. Permanent ban issued immediately.',
         metadata: {
           fraudType: 'fake_adoption_fees',
           affectedUsers: 5,
@@ -135,7 +141,8 @@ export async function seedModeratorActions() {
           },
         ],
         notificationSent: true,
-        internalNotes: 'Legal team notified. May pursue criminal charges. All affected users have been contacted and refunded.',
+        internalNotes:
+          'Legal team notified. May pursue criminal charges. All affected users have been contacted and refunded.',
       },
 
       // Content flagged
@@ -166,7 +173,8 @@ export async function seedModeratorActions() {
         actionType: ActionType.ESCALATION,
         severity: ActionSeverity.CRITICAL,
         reason: 'Complex case requiring senior review',
-        description: 'Rescue organization showing multiple red flags. Case escalated to compliance team for full investigation.',
+        description:
+          'Rescue organization showing multiple red flags. Case escalated to compliance team for full investigation.',
         metadata: {
           redFlags: ['unlicensed', 'high_complaint_rate', 'financial_irregularities'],
           requiresLegalReview: true,
@@ -180,7 +188,8 @@ export async function seedModeratorActions() {
           },
         ],
         notificationSent: false,
-        internalNotes: 'Escalated to Sarah (Senior Moderator) and Legal team. Hold all new applications until investigation complete.',
+        internalNotes:
+          'Escalated to Sarah (Senior Moderator) and Legal team. Hold all new applications until investigation complete.',
       },
 
       // Report dismissed
@@ -192,14 +201,16 @@ export async function seedModeratorActions() {
         actionType: ActionType.REPORT_DISMISSED,
         severity: ActionSeverity.LOW,
         reason: 'Report unfounded after investigation',
-        description: 'After thorough review, the reported content did not violate any platform policies. Report dismissed.',
+        description:
+          'After thorough review, the reported content did not violate any platform policies. Report dismissed.',
         metadata: {
           reviewTime: 45, // minutes
         },
         isActive: false,
         evidence: [],
         notificationSent: true,
-        internalNotes: 'Reporter was filing frivolous reports. Warned about misuse of reporting system.',
+        internalNotes:
+          'Reporter was filing frivolous reports. Warned about misuse of reporting system.',
       },
 
       // Expired action (previously active, now expired)
@@ -211,7 +222,8 @@ export async function seedModeratorActions() {
         actionType: ActionType.USER_SUSPENDED,
         severity: ActionSeverity.MEDIUM,
         reason: 'Spam behavior',
-        description: 'User suspended for 24 hours due to sending spam messages. Suspension has now ended.',
+        description:
+          'User suspended for 24 hours due to sending spam messages. Suspension has now ended.',
         metadata: {},
         duration: 24,
         expiresAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // Expired 1 hour ago

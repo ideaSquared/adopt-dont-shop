@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Heading, Text, Button } from '@adopt-dont-shop/components';
-import { FiDownload, FiFileText, FiCalendar, FiUsers, FiBarChart2, FiTrendingUp, FiActivity, FiCheckCircle } from 'react-icons/fi';
+import {
+  FiDownload,
+  FiFileText,
+  FiCalendar,
+  FiUsers,
+  FiBarChart2,
+  FiTrendingUp,
+  FiActivity,
+  FiCheckCircle,
+} from 'react-icons/fi';
 import {
   PageContainer,
   PageHeader,
@@ -14,7 +23,7 @@ import {
   FilterGroup,
   FilterLabel,
   Select,
-  Badge
+  Badge,
 } from '../components/ui';
 
 const HeaderActions = styled.div`
@@ -239,11 +248,12 @@ const reportTemplates: ReportTemplate[] = [
   {
     id: 'user-activity',
     name: 'User Activity Report',
-    description: 'Comprehensive breakdown of user registrations, active users, and engagement metrics',
+    description:
+      'Comprehensive breakdown of user registrations, active users, and engagement metrics',
     icon: <FiUsers />,
     color: '#667eea',
     frequency: 'Daily/Weekly/Monthly',
-    category: 'operational'
+    category: 'operational',
   },
   {
     id: 'adoption-metrics',
@@ -252,7 +262,7 @@ const reportTemplates: ReportTemplate[] = [
     icon: <FiTrendingUp />,
     color: '#10b981',
     frequency: 'Weekly/Monthly',
-    category: 'analytics'
+    category: 'analytics',
   },
   {
     id: 'rescue-performance',
@@ -261,7 +271,7 @@ const reportTemplates: ReportTemplate[] = [
     icon: <FiBarChart2 />,
     color: '#f59e0b',
     frequency: 'Monthly/Quarterly',
-    category: 'analytics'
+    category: 'analytics',
   },
   {
     id: 'platform-health',
@@ -270,7 +280,7 @@ const reportTemplates: ReportTemplate[] = [
     icon: <FiActivity />,
     color: '#ec4899',
     frequency: 'Daily/Weekly',
-    category: 'operational'
+    category: 'operational',
   },
   {
     id: 'moderation-summary',
@@ -279,7 +289,7 @@ const reportTemplates: ReportTemplate[] = [
     icon: <FiCheckCircle />,
     color: '#8b5cf6',
     frequency: 'Weekly/Monthly',
-    category: 'compliance'
+    category: 'compliance',
   },
   {
     id: 'financial-overview',
@@ -288,8 +298,8 @@ const reportTemplates: ReportTemplate[] = [
     icon: <FiFileText />,
     color: '#14b8a6',
     frequency: 'Monthly/Quarterly',
-    category: 'financial'
-  }
+    category: 'financial',
+  },
 ];
 
 const scheduledReports: ScheduledReport[] = [
@@ -302,7 +312,7 @@ const scheduledReports: ScheduledReport[] = [
     nextRun: '2024-10-28T09:00:00Z',
     status: 'active',
     icon: <FiUsers />,
-    color: '#667eea'
+    color: '#667eea',
   },
   {
     id: 'sched-2',
@@ -313,7 +323,7 @@ const scheduledReports: ScheduledReport[] = [
     nextRun: '2024-11-01T08:00:00Z',
     status: 'active',
     icon: <FiTrendingUp />,
-    color: '#10b981'
+    color: '#10b981',
   },
   {
     id: 'sched-3',
@@ -324,8 +334,8 @@ const scheduledReports: ScheduledReport[] = [
     nextRun: '2024-10-22T06:00:00Z',
     status: 'active',
     icon: <FiActivity />,
-    color: '#ec4899'
-  }
+    color: '#ec4899',
+  },
 ];
 
 const Reports: React.FC = () => {
@@ -342,22 +352,22 @@ const Reports: React.FC = () => {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   const getCategoryBadge = (category: string) => {
     switch (category) {
       case 'operational':
-        return <Badge $variant="info">Operational</Badge>;
+        return <Badge $variant='info'>Operational</Badge>;
       case 'financial':
-        return <Badge $variant="success">Financial</Badge>;
+        return <Badge $variant='success'>Financial</Badge>;
       case 'analytics':
-        return <Badge $variant="warning">Analytics</Badge>;
+        return <Badge $variant='warning'>Analytics</Badge>;
       case 'compliance':
-        return <Badge $variant="danger">Compliance</Badge>;
+        return <Badge $variant='danger'>Compliance</Badge>;
       default:
-        return <Badge $variant="neutral">{category}</Badge>;
+        return <Badge $variant='neutral'>{category}</Badge>;
     }
   };
 
@@ -365,18 +375,18 @@ const Reports: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">Reports & Exports</Heading>
+          <Heading level='h1'>Reports & Exports</Heading>
           <Text>Generate custom reports and schedule automated exports</Text>
         </HeaderLeft>
         <HeaderActions>
           <FilterBar style={{ padding: '0.5rem 0.75rem', marginBottom: 0 }}>
             <FilterGroup style={{ minWidth: '140px', marginBottom: 0 }}>
-              <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
-                <option value="7days">Last 7 Days</option>
-                <option value="30days">Last 30 Days</option>
-                <option value="90days">Last 90 Days</option>
-                <option value="12months">Last 12 Months</option>
-                <option value="custom">Custom Range</option>
+              <Select value={dateRange} onChange={e => setDateRange(e.target.value)}>
+                <option value='7days'>Last 7 Days</option>
+                <option value='30days'>Last 30 Days</option>
+                <option value='90days'>Last 90 Days</option>
+                <option value='12months'>Last 12 Months</option>
+                <option value='custom'>Custom Range</option>
               </Select>
             </FilterGroup>
           </FilterBar>
@@ -385,7 +395,7 @@ const Reports: React.FC = () => {
 
       <QuickStatsGrid>
         <QuickStatCard>
-          <QuickStatIcon $color="#667eea">
+          <QuickStatIcon $color='#667eea'>
             <FiFileText />
           </QuickStatIcon>
           <QuickStatDetails>
@@ -395,7 +405,7 @@ const Reports: React.FC = () => {
         </QuickStatCard>
 
         <QuickStatCard>
-          <QuickStatIcon $color="#10b981">
+          <QuickStatIcon $color='#10b981'>
             <FiCalendar />
           </QuickStatIcon>
           <QuickStatDetails>
@@ -405,7 +415,7 @@ const Reports: React.FC = () => {
         </QuickStatCard>
 
         <QuickStatCard>
-          <QuickStatIcon $color="#f59e0b">
+          <QuickStatIcon $color='#f59e0b'>
             <FiDownload />
           </QuickStatIcon>
           <QuickStatDetails>
@@ -419,22 +429,20 @@ const Reports: React.FC = () => {
         <CardHeader>
           <CardTitle>Report Templates</CardTitle>
           <FilterGroup style={{ minWidth: '180px', marginBottom: 0 }}>
-            <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-              <option value="all">All Categories</option>
-              <option value="operational">Operational</option>
-              <option value="financial">Financial</option>
-              <option value="analytics">Analytics</option>
-              <option value="compliance">Compliance</option>
+            <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+              <option value='all'>All Categories</option>
+              <option value='operational'>Operational</option>
+              <option value='financial'>Financial</option>
+              <option value='analytics'>Analytics</option>
+              <option value='compliance'>Compliance</option>
             </Select>
           </FilterGroup>
         </CardHeader>
         <CardContent>
           <ReportsGrid>
-            {filteredReports.map((report) => (
+            {filteredReports.map(report => (
               <ReportCard key={report.id}>
-                <ReportIcon $color={report.color}>
-                  {report.icon}
-                </ReportIcon>
+                <ReportIcon $color={report.color}>{report.icon}</ReportIcon>
                 <ReportTitle>{report.name}</ReportTitle>
                 <ReportDescription>{report.description}</ReportDescription>
                 <ReportMeta>
@@ -442,15 +450,13 @@ const Reports: React.FC = () => {
                     <FiCalendar />
                     {report.frequency}
                   </ReportFrequency>
-                  <ReportActions>
-                    {getCategoryBadge(report.category)}
-                  </ReportActions>
+                  <ReportActions>{getCategoryBadge(report.category)}</ReportActions>
                 </ReportMeta>
                 <div style={{ marginTop: '1rem' }}>
                   <GenerateButton
-                    variant="primary"
-                    size="sm"
-                    onClick={(e) => {
+                    variant='primary'
+                    size='sm'
+                    onClick={e => {
                       e.stopPropagation();
                       console.log('Generate report:', report.id);
                     }}
@@ -468,34 +474,30 @@ const Reports: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Scheduled Reports</CardTitle>
-          <Button variant="outline" size="sm">
+          <Button variant='outline' size='sm'>
             <FiCalendar style={{ marginRight: '0.5rem' }} />
             Add Schedule
           </Button>
         </CardHeader>
         <CardContent>
           <ScheduledReportsSection>
-            {scheduledReports.map((report) => (
+            {scheduledReports.map(report => (
               <ScheduledReportItem key={report.id}>
                 <ScheduledReportInfo>
-                  <ScheduledReportIcon $color={report.color}>
-                    {report.icon}
-                  </ScheduledReportIcon>
+                  <ScheduledReportIcon $color={report.color}>{report.icon}</ScheduledReportIcon>
                   <ScheduledReportDetails>
                     <ScheduledReportName>{report.name}</ScheduledReportName>
                     <ScheduledReportSchedule>{report.schedule}</ScheduledReportSchedule>
                   </ScheduledReportDetails>
                 </ScheduledReportInfo>
                 <ScheduledReportStatus>
-                  <LastRun>
-                    Last run: {formatDate(report.lastRun)}
-                  </LastRun>
+                  <LastRun>Last run: {formatDate(report.lastRun)}</LastRun>
                   <Badge $variant={report.status === 'active' ? 'success' : 'neutral'}>
                     {report.status === 'active' ? 'Active' : 'Paused'}
                   </Badge>
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant='outline'
+                    size='sm'
                     onClick={() => console.log('Edit schedule:', report.id)}
                   >
                     Edit

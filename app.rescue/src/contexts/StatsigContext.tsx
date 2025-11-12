@@ -16,16 +16,19 @@ export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
     );
   }
 
-  const statsigUser = useMemo(() => ({
-    userID: user?.userId || 'anonymous',
-    email: user?.email,
-    custom: {
-      app: 'rescue',
-      userType: user?.userType,
-      rescueId: user?.rescueId,
-      isAuthenticated: !!user,
-    },
-  }), [user]);
+  const statsigUser = useMemo(
+    () => ({
+      userID: user?.userId || 'anonymous',
+      email: user?.email,
+      custom: {
+        app: 'rescue',
+        userType: user?.userType,
+        rescueId: user?.rescueId,
+        isAuthenticated: !!user,
+      },
+    }),
+    [user]
+  );
 
   const { client } = useClientAsyncInit(statsigClientKey || 'client-invalid-key', statsigUser);
 

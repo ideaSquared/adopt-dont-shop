@@ -63,10 +63,10 @@ import { MessageItemComponent } from './MessageItemComponent';
 
 export function MessageList({ messages }: MessageListProps) {
   const { user } = useAuth();
-  
+
   // Defensive check to ensure messages is an array
   const safeMessages = Array.isArray(messages) ? messages : [];
-  
+
   if (safeMessages.length === 0) {
     return (
       <EmptyMessages>

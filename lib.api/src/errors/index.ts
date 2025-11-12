@@ -12,7 +12,10 @@ export class ApiError extends Error {
 }
 
 export class NetworkError extends Error {
-  constructor(message: string, public originalError?: Error) {
+  constructor(
+    message: string,
+    public originalError?: Error
+  ) {
     super(message);
     this.name = 'NetworkError';
   }
@@ -26,7 +29,10 @@ export class TimeoutError extends Error {
 }
 
 export class ValidationError extends Error {
-  constructor(message: string, public errors?: Record<string, string[]>) {
+  constructor(
+    message: string,
+    public errors?: Record<string, string[]>
+  ) {
     super(message);
     this.name = 'ValidationError';
   }
@@ -47,7 +53,10 @@ export class AuthorizationError extends Error {
 }
 
 export class ConflictError extends Error {
-  constructor(message: string, public conflicts?: Record<string, unknown>) {
+  constructor(
+    message: string,
+    public conflicts?: Record<string, unknown>
+  ) {
     super(message);
     this.name = 'ConflictError';
   }

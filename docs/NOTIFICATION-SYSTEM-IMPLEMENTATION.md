@@ -9,6 +9,7 @@ A comprehensive notification system has been implemented for the Adopt Don't Sho
 ### Backend (`service.backend`)
 
 #### 1. NotificationChannelService (`src/services/notificationChannelService.ts`)
+
 - **Purpose**: Manages multi-channel notification delivery
 - **Features**:
   - Respects user preferences for email, push, SMS, and marketing notifications
@@ -17,6 +18,7 @@ A comprehensive notification system has been implemented for the Adopt Don't Sho
   - Intelligent channel selection based on user settings
 
 #### 2. Enhanced NotificationService (`src/services/notification.service.ts`)
+
 - **Purpose**: Core notification management with channel integration
 - **Features**:
   - Creates notifications in database
@@ -26,6 +28,7 @@ A comprehensive notification system has been implemented for the Adopt Don't Sho
 ### Frontend (`app.client`)
 
 #### 1. NotificationService (`src/services/notificationService.ts`)
+
 - **Purpose**: Client-side notification management
 - **Features**:
   - Fetches notifications from API
@@ -35,6 +38,7 @@ A comprehensive notification system has been implemented for the Adopt Don't Sho
   - Polling fallback for updates
 
 #### 2. NotificationCenter Component (`src/components/notifications/NotificationCenter.tsx`)
+
 - **Purpose**: Full-featured notification management UI
 - **Features**:
   - Responsive notification list with filtering
@@ -44,6 +48,7 @@ A comprehensive notification system has been implemented for the Adopt Don't Sho
   - Pagination support
 
 #### 3. Enhanced SettingsForm (`src/components/profile/SettingsForm.tsx`)
+
 - **Purpose**: Extended user settings with notification preferences
 - **Features**:
   - Email, Push, SMS, Marketing toggles
@@ -51,6 +56,7 @@ A comprehensive notification system has been implemented for the Adopt Don't Sho
   - Real-time preference updates
 
 #### 4. useNotifications Hook (`src/hooks/useNotifications.ts`)
+
 - **Purpose**: React hook for notification state management
 - **Features**:
   - Unread count tracking
@@ -60,6 +66,7 @@ A comprehensive notification system has been implemented for the Adopt Don't Sho
   - Permission handling
 
 #### 5. Demo Page (`src/pages/NotificationDemoPage.tsx`)
+
 - **Purpose**: Interactive demonstration of notification system
 - **Features**:
   - Live status dashboard
@@ -70,6 +77,7 @@ A comprehensive notification system has been implemented for the Adopt Don't Sho
 ## API Endpoints
 
 ### Existing Endpoints Enhanced
+
 - `GET /api/notifications` - List user notifications
 - `POST /api/notifications` - Create notification (enhanced with channel delivery)
 - `PUT /api/notifications/:id/read` - Mark as read
@@ -83,12 +91,12 @@ The system supports the following notification preferences:
 
 ```typescript
 interface NotificationPreferences {
-  email: boolean;           // Email notifications
-  push: boolean;            // Browser/mobile push notifications
-  sms: boolean;             // SMS notifications
-  marketing: boolean;       // Marketing/promotional messages
-  quietHoursStart: string;  // Start time (e.g., "22:00")
-  quietHoursEnd: string;    // End time (e.g., "08:00")
+  email: boolean; // Email notifications
+  push: boolean; // Browser/mobile push notifications
+  sms: boolean; // SMS notifications
+  marketing: boolean; // Marketing/promotional messages
+  quietHoursStart: string; // Start time (e.g., "22:00")
+  quietHoursEnd: string; // End time (e.g., "08:00")
 }
 ```
 
@@ -116,13 +124,8 @@ interface NotificationPreferences {
 import useNotifications from '@/hooks/useNotifications';
 
 function MyComponent() {
-  const {
-    unreadCount,
-    preferences,
-    updatePreferences,
-    requestPermission,
-    startPolling
-  } = useNotifications();
+  const { unreadCount, preferences, updatePreferences, requestPermission, startPolling } =
+    useNotifications();
 
   const handleEnableEmail = async () => {
     await updatePreferences({ email: true });
@@ -159,7 +162,7 @@ await NotificationService.createNotification({
   title: 'Application Approved',
   message: 'Your application for Luna has been approved!',
   type: 'application_update',
-  priority: 'high'
+  priority: 'high',
 });
 
 // Notification with custom data
@@ -171,8 +174,8 @@ await NotificationService.createNotification({
   priority: 'normal',
   data: {
     conversation_id: 'conv_456',
-    sender_name: 'Sunny Paws Rescue'
-  }
+    sender_name: 'Sunny Paws Rescue',
+  },
 });
 ```
 
@@ -191,7 +194,7 @@ Visit `/notifications-demo` in the client application to see an interactive demo
 ✅ Polling fallback for real-time updates  
 ✅ React hooks for easy integration  
 ✅ Responsive UI components  
-✅ Interactive demo page  
+✅ Interactive demo page
 
 ## Technical Stack
 

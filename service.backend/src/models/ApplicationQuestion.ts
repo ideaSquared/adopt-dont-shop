@@ -117,7 +117,11 @@ class ApplicationQuestion
         }
         break;
       case QuestionType.PHONE:
-        if (answer && typeof answer === 'string' && !/^\+?[1-9]\d{1,14}$/.test(answer.replace(/\s|-|\(|\)/g, ''))) {
+        if (
+          answer &&
+          typeof answer === 'string' &&
+          !/^\+?[1-9]\d{1,14}$/.test(answer.replace(/\s|-|\(|\)/g, ''))
+        ) {
           return { isValid: false, error: 'Please enter a valid phone number' };
         }
         break;
@@ -127,13 +131,20 @@ class ApplicationQuestion
         }
         break;
       case QuestionType.SELECT:
-        if (answer && typeof answer === 'string' && this.options && !this.options.includes(answer)) {
+        if (
+          answer &&
+          typeof answer === 'string' &&
+          this.options &&
+          !this.options.includes(answer)
+        ) {
           return { isValid: false, error: 'Please select a valid option' };
         }
         break;
       case QuestionType.MULTI_SELECT:
         if (answer && Array.isArray(answer) && this.options) {
-          const invalidOptions = answer.filter(opt => typeof opt === 'string' && !this.options!.includes(opt));
+          const invalidOptions = answer.filter(
+            opt => typeof opt === 'string' && !this.options!.includes(opt)
+          );
           if (invalidOptions.length > 0) {
             return { isValid: false, error: 'Some selected options are invalid' };
           }
@@ -154,7 +165,10 @@ class ApplicationQuestion
   public static async getCoreQuestions(
     category?: QuestionCategory
   ): Promise<ApplicationQuestion[]> {
-    const where: WhereOptions<ApplicationQuestionAttributes> = { scope: QuestionScope.CORE, is_enabled: true };
+    const where: WhereOptions<ApplicationQuestionAttributes> = {
+      scope: QuestionScope.CORE,
+      is_enabled: true,
+    };
     if (category) {
       where.category = category;
     }

@@ -213,4 +213,3 @@ export interface RescueServiceOptions {
    */
   retry?: boolean;
 }
-

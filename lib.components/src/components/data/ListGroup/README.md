@@ -11,7 +11,7 @@ import { ListGroup } from '@/components/data/ListGroup'
 <ListGroup items={items} />
 
 // With custom styling
-<ListGroup 
+<ListGroup
   items={items}
   variant="flush"
   className="custom-class"
@@ -30,4 +30,4 @@ import { ListGroup } from '@/components/data/ListGroup'
 - Flexible item rendering
 - Multiple styling variants
 - Accessible markup
-- TypeScript support 
+- TypeScript support

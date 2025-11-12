@@ -1,28 +1,17 @@
-import { vi } from 'vitest';
+// Store rate limit configurations for inspection
+const rateLimitConfigs: Array<Record<string, unknown>> = [];
 
-// Use vi.hoisted() to create variables that can be accessed in mocks
-const { mockConfigs } = vi.hoisted(() => {
-  return {
-    mockConfigs: [] as Array<Record<string, unknown>>,
-  };
-});
-
-// Mock express-rate-limit with a shared configs array
-vi.mock('express-rate-limit', async () => {
-  const mockRateLimit = vi.fn((options) => {
-    mockConfigs.push(options as Record<string, unknown>);
+// Mock express-rate-limit
+jest.mock('express-rate-limit', () => {
+  return jest.fn(options => {
+    rateLimitConfigs.push(options as Record<string, unknown>);
     // Return a mock middleware function
-    return vi.fn((req, res, next) => next());
+    return jest.fn((req, res, next) => next());
   });
-
-  return {
-    __esModule: true,
-    default: mockRateLimit,
-  };
 });
 
 // Mock config
-vi.mock('../../config', () => ({
+jest.mock('../../config', () => ({
   config: {
     nodeEnv: 'test',
     rateLimit: {
@@ -43,9 +32,6 @@ import {
   uploadLimiter,
 } from '../../middleware/rate-limiter';
 
-// Alias for the tests to use
-const rateLimitConfigs = mockConfigs;
-
 describe('Rate Limiter Middleware', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
@@ -57,13 +43,13 @@ describe('Rate Limiter Middleware', () => {
       path: '/api/test',
     };
     mockResponse = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn().mockReturnThis(),
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
     };
-    mockNext = vi.fn();
+    mockNext = jest.fn();
 
     // Clear all mocks
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('Rate limiter initialization', () => {
@@ -72,13 +58,13 @@ describe('Rate Limiter Middleware', () => {
     });
 
     it('should configure all limiters with standard headers', () => {
-      rateLimitConfigs.forEach((config) => {
+      rateLimitConfigs.forEach(config => {
         expect(config.standardHeaders).toBe(true);
       });
     });
 
     it('should disable legacy headers for all limiters', () => {
-      rateLimitConfigs.forEach((config) => {
+      rateLimitConfigs.forEach(config => {
         expect(config.legacyHeaders).toBe(false);
       });
     });
@@ -161,9 +147,7 @@ describe('Rate Limiter Middleware', () => {
 
       handler(mockRequest as Request, mockResponse as Response);
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Auth rate limit exceeded')
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Auth rate limit exceeded'));
     });
 
     it('should return 429 with auth-specific message', () => {
@@ -280,9 +264,7 @@ describe('Rate Limiter Middleware', () => {
 
       handler(mockRequest as Request, mockResponse as Response);
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('127.0.0.1')
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('127.0.0.1'));
     });
 
     it('should log path in rate limit violations', () => {
@@ -291,9 +273,7 @@ describe('Rate Limiter Middleware', () => {
 
       handler(mockRequest as Request, mockResponse as Response);
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('/api/test')
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('/api/test'));
     });
   });
 

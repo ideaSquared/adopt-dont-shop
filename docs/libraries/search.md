@@ -27,7 +27,7 @@ import { searchService } from '@adopt-dont-shop/lib-search';
 // Basic search
 const results = await searchService.search('friendly golden retriever', {
   types: ['pets'],
-  location: { city: 'Portland', radius: 25 }
+  location: { city: 'Portland', radius: 25 },
 });
 
 // Advanced search with filters
@@ -37,9 +37,9 @@ const advancedResults = await searchService.advancedSearch({
     species: 'dog',
     age: { min: 1, max: 5 },
     goodWithKids: true,
-    location: { city: 'Seattle', radius: 50 }
+    location: { city: 'Seattle', radius: 50 },
   },
-  sort: { field: 'adoptionPriority', order: 'desc' }
+  sort: { field: 'adoptionPriority', order: 'desc' },
 });
 
 // Advanced configuration
@@ -48,7 +48,7 @@ const service = new SearchService({
   elasticsearchUrl: 'https://elasticsearch.example.com',
   enableAI: true,
   cacheTtl: 300000,
-  debug: true
+  debug: true,
 });
 ```
 
@@ -56,14 +56,14 @@ const service = new SearchService({
 
 ### SearchServiceConfig
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Backend API URL |
-| `elasticsearchUrl` | `string` | `process.env.ELASTICSEARCH_URL` | Elasticsearch cluster URL |
-| `enableAI` | `boolean` | `true` | Enable AI-powered recommendations |
-| `cacheTtl` | `number` | `300000` | Cache TTL in milliseconds (5 min) |
-| `maxResults` | `number` | `100` | Maximum results per search |
-| `debug` | `boolean` | `false` | Enable debug logging |
+| Property           | Type      | Default                         | Description                       |
+| ------------------ | --------- | ------------------------------- | --------------------------------- |
+| `apiUrl`           | `string`  | `process.env.VITE_API_URL`      | Backend API URL                   |
+| `elasticsearchUrl` | `string`  | `process.env.ELASTICSEARCH_URL` | Elasticsearch cluster URL         |
+| `enableAI`         | `boolean` | `true`                          | Enable AI-powered recommendations |
+| `cacheTtl`         | `number`  | `300000`                        | Cache TTL in milliseconds (5 min) |
+| `maxResults`       | `number`  | `100`                           | Maximum results per search        |
+| `debug`            | `boolean` | `false`                         | Enable debug logging              |
 
 ### Environment Variables
 
@@ -100,12 +100,12 @@ const results = await searchService.search('golden retriever puppies', {
   location: {
     latitude: 45.5152,
     longitude: -122.6784,
-    radius: 25 // miles
+    radius: 25, // miles
   },
   limit: 20,
   offset: 0,
   highlight: true,
-  includeStats: true
+  includeStats: true,
 });
 
 // Returns:
@@ -139,18 +139,18 @@ const results = await searchService.advancedSearch({
     location: {
       city: 'Portland',
       state: 'OR',
-      radius: 50
-    }
+      radius: 50,
+    },
   },
   sort: [
     { field: 'adoptionPriority', order: 'desc' },
-    { field: 'dateAdded', order: 'desc' }
+    { field: 'dateAdded', order: 'desc' },
   ],
   facets: ['breed', 'age', 'size', 'location'],
   highlight: {
     fields: ['description', 'name'],
-    fragmentSize: 150
-  }
+    fragmentSize: 150,
+  },
 });
 ```
 
@@ -162,7 +162,7 @@ Get search suggestions and auto-complete.
 const suggestions = await searchService.searchSuggestions('golden ret', {
   types: ['pets', 'breeds'],
   maxSuggestions: 10,
-  includePopular: true
+  includePopular: true,
 });
 
 // Returns: ['golden retriever', 'golden retriever puppy', 'golden retriever mix']
@@ -179,8 +179,8 @@ const similarPets = await searchService.searchByImage(imageFile, {
   includeBreedPrediction: true,
   filters: {
     status: 'available',
-    location: { radius: 100 }
-  }
+    location: { radius: 100 },
+  },
 });
 ```
 
@@ -191,24 +191,27 @@ const similarPets = await searchService.searchByImage(imageFile, {
 Search specifically for pets with pet-focused filters.
 
 ```typescript
-const pets = await searchService.searchPets({
-  species: 'dog',
-  breed: 'golden-retriever',
-  ageRange: { min: 2, max: 6 },
-  characteristics: {
-    energyLevel: 'medium',
-    trainedLevel: 'house-trained',
-    goodWithKids: true
+const pets = await searchService.searchPets(
+  {
+    species: 'dog',
+    breed: 'golden-retriever',
+    ageRange: { min: 2, max: 6 },
+    characteristics: {
+      energyLevel: 'medium',
+      trainedLevel: 'house-trained',
+      goodWithKids: true,
+    },
+    location: {
+      coordinates: [45.5152, -122.6784],
+      radius: 30,
+    },
   },
-  location: {
-    coordinates: [45.5152, -122.6784],
-    radius: 30
+  {
+    sortBy: 'matchScore',
+    includeRecommendations: true,
+    personalizeFor: 'user_123',
   }
-}, {
-  sortBy: 'matchScore',
-  includeRecommendations: true,
-  personalizeFor: 'user_123'
-});
+);
 ```
 
 ##### `searchRescues(filters, options?)`
@@ -216,20 +219,23 @@ const pets = await searchService.searchPets({
 Search for rescue organizations.
 
 ```typescript
-const rescues = await searchService.searchRescues({
-  specialties: ['dogs', 'senior-pets'],
-  location: {
-    city: 'Seattle',
-    radius: 50
+const rescues = await searchService.searchRescues(
+  {
+    specialties: ['dogs', 'senior-pets'],
+    location: {
+      city: 'Seattle',
+      radius: 50,
+    },
+    verified: true,
+    capacity: { min: 10 },
+    services: ['veterinary-care', 'training'],
   },
-  verified: true,
-  capacity: { min: 10 },
-  services: ['veterinary-care', 'training']
-}, {
-  sortBy: 'rating',
-  includeDistance: true,
-  includeAvailability: true
-});
+  {
+    sortBy: 'rating',
+    includeDistance: true,
+    includeAvailability: true,
+  }
+);
 ```
 
 ##### `searchEvents(filters, options?)`
@@ -237,21 +243,24 @@ const rescues = await searchService.searchRescues({
 Search for adoption events and activities.
 
 ```typescript
-const events = await searchService.searchEvents({
-  type: 'adoption-event',
-  dateRange: {
-    start: '2024-01-01',
-    end: '2024-03-31'
+const events = await searchService.searchEvents(
+  {
+    type: 'adoption-event',
+    dateRange: {
+      start: '2024-01-01',
+      end: '2024-03-31',
+    },
+    location: {
+      city: 'Portland',
+      radius: 25,
+    },
+    hasAvailablePets: true,
   },
-  location: {
-    city: 'Portland',
-    radius: 25
-  },
-  hasAvailablePets: true
-}, {
-  sortBy: 'date',
-  includeEventDetails: true
-});
+  {
+    sortBy: 'date',
+    includeEventDetails: true,
+  }
+);
 ```
 
 #### AI-Powered Recommendations
@@ -267,8 +276,8 @@ const recommendations = await searchService.getPersonalizedRecommendations('user
   refreshUserModel: false,
   filters: {
     maxDistance: 50,
-    status: 'available'
-  }
+    status: 'available',
+  },
 });
 
 // Returns:
@@ -293,7 +302,7 @@ const similarPets = await searchService.getSimilarPets('pet_123', {
   count: 8,
   similarityFactors: ['breed', 'age', 'size', 'temperament'],
   excludeAdopted: true,
-  maxDistance: 100
+  maxDistance: 100,
 });
 ```
 
@@ -328,7 +337,7 @@ const analytics = await searchService.getSearchAnalytics({
   timeframe: 'last-30-days',
   includePopularTerms: true,
   includeConversions: true,
-  breakdownBy: ['location', 'device']
+  breakdownBy: ['location', 'device'],
 });
 
 // Returns:
@@ -349,7 +358,7 @@ Get trending search terms and patterns.
 const trends = await searchService.getSearchTrends({
   period: 'week',
   category: 'pets',
-  includeSeasonality: true
+  includeSeasonality: true,
 });
 ```
 
@@ -364,7 +373,7 @@ await searchService.logSearchEvent({
   results: 45,
   clicked: ['pet_456', 'pet_789'],
   converted: 'pet_456',
-  timestamp: new Date().toISOString()
+  timestamp: new Date().toISOString(),
 });
 ```
 
@@ -378,7 +387,7 @@ Trigger reindexing of specific content types.
 await searchService.reindexContent('pets', {
   batchSize: 1000,
   includeMedia: true,
-  updateMappings: false
+  updateMappings: false,
 });
 ```
 
@@ -447,7 +456,7 @@ export function useSearchResults(query: string, filters: any) {
 
   const performSearch = async (newQuery = query, newFilters = filters) => {
     if (!newQuery.trim()) return;
-    
+
     setLoading(true);
     try {
       const searchResults = await service.advancedSearch({
@@ -455,7 +464,7 @@ export function useSearchResults(query: string, filters: any) {
         filters: newFilters,
         facets: ['breed', 'age', 'size', 'location']
       });
-      
+
       setResults(searchResults.results);
       setFacets(searchResults.aggregations);
     } catch (error) {
@@ -518,15 +527,15 @@ function PetSearchPage() {
         suggestions={suggestions}
         placeholder="Search for pets..."
       />
-      
+
       <SearchFilters
         filters={filters}
         facets={facets}
         onChange={setFilters}
       />
-      
+
       {loading && <LoadingSpinner />}
-      
+
       <SearchResults results={results} />
     </div>
   );
@@ -557,8 +566,8 @@ function RecommendedPets({ userId }: { userId: string }) {
       <h2>Recommended for You</h2>
       <div className="recommendations-grid">
         {recommendations.map(rec => (
-          <PetCard 
-            key={rec.pet.id} 
+          <PetCard
+            key={rec.pet.id}
             pet={rec.pet}
             matchScore={rec.score}
             reasons={rec.reasons}
@@ -587,15 +596,15 @@ export const searchService = new SearchService({
 app.get('/api/search', async (req, res) => {
   try {
     const { q: query, type, ...filters } = req.query;
-    
+
     const results = await searchService.advancedSearch({
       query,
       filters,
       types: type ? [type] : undefined,
       facets: ['breed', 'age', 'size', 'location'],
-      highlight: true
+      highlight: true,
     });
-    
+
     res.json(results);
   } catch (error) {
     res.status(500).json({ error: 'Search failed' });
@@ -605,7 +614,7 @@ app.get('/api/search', async (req, res) => {
 app.get('/api/search/suggestions', async (req, res) => {
   try {
     const suggestions = await searchService.searchSuggestions(req.query.q, {
-      maxSuggestions: 10
+      maxSuggestions: 10,
     });
     res.json(suggestions);
   } catch (error) {
@@ -615,10 +624,9 @@ app.get('/api/search/suggestions', async (req, res) => {
 
 app.get('/api/users/:id/recommendations', async (req, res) => {
   try {
-    const recommendations = await searchService.getPersonalizedRecommendations(
-      req.params.id,
-      { count: parseInt(req.query.count) || 10 }
-    );
+    const recommendations = await searchService.getPersonalizedRecommendations(req.params.id, {
+      count: parseInt(req.query.count) || 10,
+    });
     res.json(recommendations);
   } catch (error) {
     res.status(500).json({ error: 'Failed to get recommendations' });
@@ -639,6 +647,7 @@ The library includes comprehensive Jest tests covering:
 - ✅ Index management operations
 
 Run tests:
+
 ```bash
 npm run test:lib-search
 ```
@@ -646,24 +655,28 @@ npm run test:lib-search
 ## 🚀 Key Features
 
 ### Advanced Search Capabilities
+
 - **Full-Text Search**: Elasticsearch-powered text search with relevance scoring
 - **Faceted Search**: Multi-dimensional filtering and aggregation
 - **Geolocation Search**: Distance-based search with radius filtering
 - **Image Search**: Visual similarity search using AI
 
 ### AI-Powered Intelligence
+
 - **Personalized Recommendations**: Machine learning-based pet matching
 - **Smart Suggestions**: Context-aware auto-complete and query suggestions
 - **Compatibility Scoring**: User-pet compatibility calculation
 - **Behavioral Learning**: Adaptive recommendations based on user interactions
 
 ### Performance & Scalability
+
 - **Elasticsearch Integration**: High-performance search infrastructure
 - **Intelligent Caching**: Multi-layer caching for faster response times
 - **Query Optimization**: Automatic query analysis and optimization
 - **Real-time Indexing**: Live content updates and search availability
 
 ### Analytics & Insights
+
 - **Search Analytics**: Comprehensive search usage tracking
 - **Trend Analysis**: Popular search terms and seasonal patterns
 - **Conversion Tracking**: Search-to-adoption success metrics
@@ -674,16 +687,19 @@ npm run test:lib-search
 ### Common Issues
 
 **Search results not updating**:
+
 - Check Elasticsearch connectivity and index health
 - Verify reindexing processes and content updates
 - Monitor index synchronization status
 
 **Poor search relevance**:
+
 - Review search query analysis and scoring
 - Optimize index mappings and field weights
 - Tune relevance parameters and boost factors
 
 **Slow search performance**:
+
 - Analyze query complexity and execution plans
 - Optimize index structure and field mappings
 - Implement appropriate caching strategies
@@ -692,7 +708,7 @@ npm run test:lib-search
 
 ```typescript
 const search = new SearchService({
-  debug: true // Enables detailed search query logging
+  debug: true, // Enables detailed search query logging
 });
 ```
 

@@ -22,14 +22,14 @@ const StyledAlert = styled(Alert)`
 `;
 
 const HelperText = styled.small`
-  color: ${props => props.theme?.text?.secondary || '#6b7280'};
+  color: ${(props) => props.theme?.text?.secondary || '#6b7280'};
   margin-top: 0.5rem;
   display: block;
   font-size: 0.875rem;
   line-height: 1.4;
 
   strong {
-    color: ${props => props.theme?.text?.primary || '#374151'};
+    color: ${(props) => props.theme?.text?.primary || '#374151'};
   }
 `;
 
@@ -84,7 +84,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     const result = loginSchema.safeParse(formData);
     if (!result.success) {
       const errors: Record<string, string> = {};
-      result.error.errors.forEach(err => {
+      result.error.errors.forEach((err) => {
         if (err.path[0]) {
           errors[err.path[0].toString()] = err.message;
         }
@@ -109,10 +109,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear field error when user starts typing
     if (fieldErrors[name]) {
-      setFieldErrors(prev => {
+      setFieldErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
@@ -122,15 +122,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   return (
     <>
-      {error && <StyledAlert variant='error'>{error}</StyledAlert>}
+      {error && <StyledAlert variant="error">{error}</StyledAlert>}
 
       <Form onSubmit={handleSubmit}>
         <FormGroup>
           <Input
-            label='Email Address'
-            type='email'
-            name='email'
-            placeholder='Enter your email'
+            label="Email Address"
+            type="email"
+            name="email"
+            placeholder="Enter your email"
             value={formData.email}
             onChange={handleChange}
             error={fieldErrors.email}
@@ -140,10 +140,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
         <FormGroup>
           <Input
-            label='Password'
-            type='password'
-            name='password'
-            placeholder='Enter your password'
+            label="Password"
+            type="password"
+            name="password"
+            placeholder="Enter your password"
             value={formData.password}
             onChange={handleChange}
             error={fieldErrors.password}
@@ -151,8 +151,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           />
           {showForgotPassword && onForgotPassword && (
             <a
-              href='#'
-              onClick={e => {
+              href="#"
+              onClick={(e) => {
                 e.preventDefault();
                 onForgotPassword();
               }}
@@ -168,7 +168,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           )}
         </FormGroup>
 
-        <Button type='submit' size='lg' variant='primary' disabled={isLoading} style={{ width: '100%' }}>
+        <Button
+          type="submit"
+          size="lg"
+          variant="primary"
+          disabled={isLoading}
+          style={{ width: '100%' }}
+        >
           {isLoading ? 'Signing In...' : 'Sign In'}
         </Button>
 

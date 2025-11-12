@@ -10,6 +10,7 @@ import type {
   BulkAction,
 } from '../types/applications';
 import type { ApplicationStage } from '../types/applicationStages';
+import type { ApplicationPriority } from '@adopt-dont-shop/lib-applications';
 
 /**
  * Application Service for Rescue App
@@ -722,27 +723,19 @@ export class RescueApplicationService {
   /**
    * Get application priority from backend data
    */
-  private getPriority(app: any): 'low' | 'medium' | 'high' | 'urgent' {
+  private getPriority(app: any): ApplicationPriority {
     // Use the actual priority field from the backend
     // Backend uses: LOW, NORMAL, HIGH, URGENT
-    // Frontend expects: low, medium, high, urgent
 
     if (!app.priority) {
-      return 'medium'; // Default to medium if no priority set
+      return 'normal'; // Default to normal if no priority set
     }
 
-    const backendPriority = app.priority.toLowerCase();
-
-    // Map NORMAL to medium for better UI representation
-    if (backendPriority === 'normal') {
-      return 'medium';
-    }
+    const backendPriority = app.priority.toLowerCase() as ApplicationPriority;
 
     // Validate that it's one of our expected values
-    const validPriorities = ['low', 'medium', 'high', 'urgent'];
-    return validPriorities.includes(backendPriority)
-      ? (backendPriority as 'low' | 'medium' | 'high' | 'urgent')
-      : 'medium';
+    const validPriorities: ApplicationPriority[] = ['low', 'normal', 'high', 'urgent'];
+    return validPriorities.includes(backendPriority) ? backendPriority : 'normal';
   }
 
   /**

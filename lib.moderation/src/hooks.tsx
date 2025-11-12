@@ -180,7 +180,10 @@ export const useReportMutations = () => {
     }
   };
 
-  const updateStatus = async (reportId: string, data: UpdateReportStatusRequest): Promise<Report> => {
+  const updateStatus = async (
+    reportId: string,
+    data: UpdateReportStatusRequest
+  ): Promise<Report> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -194,7 +197,11 @@ export const useReportMutations = () => {
     }
   };
 
-  const resolveReport = async (reportId: string, notes?: string, actionData?: CreateModeratorActionRequest): Promise<Report> => {
+  const resolveReport = async (
+    reportId: string,
+    notes?: string,
+    actionData?: CreateModeratorActionRequest
+  ): Promise<Report> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -236,7 +243,9 @@ export const useReportMutations = () => {
     }
   };
 
-  const bulkUpdate = async (data: BulkUpdateReportsRequest): Promise<{ success: boolean; updated: number }> => {
+  const bulkUpdate = async (
+    data: BulkUpdateReportsRequest
+  ): Promise<{ success: boolean; updated: number }> => {
     try {
       setIsLoading(true);
       setError(null);

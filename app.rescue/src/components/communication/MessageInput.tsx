@@ -345,14 +345,14 @@ export function MessageInput({
   return (
     <InputContainer>
       {attachments.length > 0 && (
-        <AttachmentPreview role='list' aria-label='Attached files'>
+        <AttachmentPreview role="list" aria-label="Attached files">
           {attachments.map((file, index) => (
-            <AttachmentItem key={`${file.name}-${index}`} role='listitem'>
+            <AttachmentItem key={`${file.name}-${index}`} role="listitem">
               <AttachmentName title={file.name}>{file.name}</AttachmentName>
               <RemoveButton
                 onClick={() => removeAttachment(index)}
                 aria-label={`Remove ${file.name}`}
-                type='button'
+                type="button"
               >
                 <MdClose />
               </RemoveButton>
@@ -371,31 +371,31 @@ export function MessageInput({
           disabled={disabled}
           maxLength={maxLength}
           fullWidth={true}
-          aria-label='Message input'
-          aria-describedby='char-count file-input-help'
+          aria-label="Message input"
+          aria-describedby="char-count file-input-help"
         />
 
         <AttachButton>
           <input
             ref={fileInputRef}
-            type='file'
+            type="file"
             multiple
             accept={acceptedFileTypes}
             onChange={handleFileSelect}
             disabled={disabled || attachments.length >= maxFiles}
-            aria-describedby='file-input-help'
+            aria-describedby="file-input-help"
           />
-          <MdAttachFile size={20} aria-hidden='true' />
+          <MdAttachFile size={20} aria-hidden="true" />
           <VisuallyHidden>Attach files</VisuallyHidden>
         </AttachButton>
 
         <SendButton
           onClick={handleSend}
           disabled={!canSend}
-          variant='primary'
-          aria-label='Send message'
+          variant="primary"
+          aria-label="Send message"
         >
-          <MdSend size={20} aria-hidden='true' />
+          <MdSend size={20} aria-hidden="true" />
         </SendButton>
       </InputRow>
 
@@ -408,9 +408,9 @@ export function MessageInput({
           color: '#666',
         }}
       >
-        <span id='file-input-help'>{maxFiles - attachments.length} file slots remaining</span>
+        <span id="file-input-help">{maxFiles - attachments.length} file slots remaining</span>
         <span
-          id='char-count'
+          id="char-count"
           style={{
             color: remainingChars < 100 ? '#ef4444' : '#666',
           }}

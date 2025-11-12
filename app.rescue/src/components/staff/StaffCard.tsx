@@ -115,7 +115,9 @@ const ActionButton = styled.button<{ variant: 'edit' | 'danger' }>`
   cursor: pointer;
   transition: all 0.2s ease;
 
-  ${props => props.variant === 'edit' && `
+  ${props =>
+    props.variant === 'edit' &&
+    `
     background: #f8f9fa;
     color: #495057;
     border: 1px solid #dee2e6;
@@ -126,7 +128,9 @@ const ActionButton = styled.button<{ variant: 'edit' | 'danger' }>`
     }
   `}
 
-  ${props => props.variant === 'danger' && `
+  ${props =>
+    props.variant === 'danger' &&
+    `
     background: #dc3545;
     color: white;
 
@@ -141,19 +145,19 @@ const ActionButton = styled.button<{ variant: 'edit' | 'danger' }>`
   }
 `;
 
-const StaffCard: React.FC<StaffCardProps> = ({ 
-  staffMember, 
-  onEdit, 
-  onRemove, 
-  canEdit = false, 
-  canRemove = false 
+const StaffCard: React.FC<StaffCardProps> = ({
+  staffMember,
+  onEdit,
+  onRemove,
+  canEdit = false,
+  canRemove = false,
 }) => {
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
-        day: 'numeric'
+        day: 'numeric',
       });
     } catch {
       return 'Unknown date';
@@ -167,9 +171,7 @@ const StaffCard: React.FC<StaffCardProps> = ({
   return (
     <CardContainer>
       <CardHeader>
-        <StaffAvatar>
-          {getInitials(staffMember.firstName, staffMember.lastName)}
-        </StaffAvatar>
+        <StaffAvatar>{getInitials(staffMember.firstName, staffMember.lastName)}</StaffAvatar>
         <StaffInfo>
           <StaffName>
             {staffMember.firstName} {staffMember.lastName}
@@ -178,9 +180,7 @@ const StaffCard: React.FC<StaffCardProps> = ({
           <StaffEmail>{staffMember.email}</StaffEmail>
         </StaffInfo>
         <StaffStatus>
-          <StatusBadge 
-            status={staffMember.isVerified ? 'verified' : 'pending'} 
-          />
+          <StatusBadge status={staffMember.isVerified ? 'verified' : 'pending'} />
         </StaffStatus>
       </CardHeader>
 
@@ -200,18 +200,12 @@ const StaffCard: React.FC<StaffCardProps> = ({
       {(canEdit || canRemove) && (
         <CardActions>
           {canEdit && (
-            <ActionButton 
-              variant="edit"
-              onClick={() => onEdit?.(staffMember)}
-            >
+            <ActionButton variant="edit" onClick={() => onEdit?.(staffMember)}>
               Edit
             </ActionButton>
           )}
           {canRemove && (
-            <ActionButton 
-              variant="danger"
-              onClick={() => onRemove?.(staffMember)}
-            >
+            <ActionButton variant="danger" onClick={() => onRemove?.(staffMember)}>
               Remove
             </ActionButton>
           )}

@@ -1,92 +1,103 @@
 import '@testing-library/jest-dom';
 import React from 'react';
+import { expect, afterEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import * as matchers from '@testing-library/jest-dom/matchers';
+
+// Extend Vitest's expect with @testing-library/jest-dom matchers
+expect.extend(matchers);
+
+// Cleanup after each test
+afterEach(() => {
+  cleanup();
+});
 
 // Mock IntersectionObserver
-const mockIntersectionObserver = jest.fn();
+const mockIntersectionObserver = vi.fn();
 mockIntersectionObserver.mockReturnValue({
   observe: () => null,
   unobserve: () => null,
   disconnect: () => null,
 });
-window.IntersectionObserver = mockIntersectionObserver;
+window.IntersectionObserver = mockIntersectionObserver as any;
 
 // Mock ResizeObserver
-const mockResizeObserver = jest.fn();
+const mockResizeObserver = vi.fn();
 mockResizeObserver.mockReturnValue({
   observe: () => null,
   unobserve: () => null,
   disconnect: () => null,
 });
-window.ResizeObserver = mockResizeObserver;
+window.ResizeObserver = mockResizeObserver as any;
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(), // deprecated
-    removeListener: jest.fn(), // deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 });
 
-// Mock import.meta for Jest
-Object.defineProperty(globalThis, 'import', {
+// Mock import.meta.env for Vite
+Object.defineProperty(import.meta, 'env', {
   value: {
-    meta: {
-      env: {
-        VITE_API_BASE_URL: 'http://localhost:5000',
-        NODE_ENV: 'test',
-      },
-    },
+    VITE_API_BASE_URL: 'http://localhost:5000',
+    NODE_ENV: 'test',
+    DEV: false,
+    PROD: false,
+    SSR: false,
   },
+  configurable: true,
 });
 
 // Mock environment utilities
-jest.mock('./utils/env', () => ({
+vi.mock('./utils/env', () => ({
   isDevelopment: () => false,
   getApiBaseUrl: () => 'http://localhost:5000',
   getEnvironmentVariable: (_key: string, defaultValue?: string) => defaultValue,
 }));
 
 // Mock library dependencies
-jest.mock('@adopt-dont-shop/lib-auth', () => ({
+vi.mock('@adopt-dont-shop/lib-auth', () => ({
   authService: {
-    login: jest.fn(),
-    register: jest.fn(),
-    logout: jest.fn(),
-    getCurrentUser: jest.fn(),
-    isAuthenticated: jest.fn(() => false),
-    getProfile: jest.fn(),
-    updateProfile: jest.fn(),
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    getCurrentUser: vi.fn(),
+    isAuthenticated: vi.fn(() => false),
+    getProfile: vi.fn(),
+    updateProfile: vi.fn(),
   },
-  AuthService: jest.fn(),
+  AuthService: vi.fn(),
 }));
 
-jest.mock('@adopt-dont-shop/lib-pets', () => ({
-  PetsService: jest.fn(),
+vi.mock('@adopt-dont-shop/lib-pets', () => ({
+  PetsService: vi.fn(),
   petManagementService: {
-    getPets: jest.fn(),
-    getPet: jest.fn(),
-    createPet: jest.fn(),
-    updatePet: jest.fn(),
-    deletePet: jest.fn(),
+    getPets: vi.fn(),
+    getPet: vi.fn(),
+    createPet: vi.fn(),
+    updatePet: vi.fn(),
+    deletePet: vi.fn(),
   },
 }));
 
-jest.mock('@adopt-dont-shop/lib-applications', () => ({
-  ApplicationsService: jest.fn(),
+vi.mock('@adopt-dont-shop/lib-applications', () => ({
+  ApplicationsService: vi.fn(),
 }));
 
-jest.mock('@adopt-dont-shop/lib-rescue', () => ({
-  RescueService: jest.fn(),
+vi.mock('@adopt-dont-shop/lib-rescue', () => ({
+  RescueService: vi.fn(),
 }));
 
-jest.mock('@adopt-dont-shop/components', () => ({
+vi.mock('@adopt-dont-shop/components', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
   Container: ({ children, ...props }: any) => React.createElement('div', props, children),
   Card: ({ children, ...props }: any) => React.createElement('div', props, children),

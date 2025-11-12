@@ -33,7 +33,7 @@ const StyledAlert = styled(Alert)`
 
 const PasswordRequirements = styled.div`
   font-size: 0.8rem;
-  color: ${props => props.theme?.text?.secondary || '#6b7280'};
+  color: ${(props) => props.theme?.text?.secondary || '#6b7280'};
   margin-top: 0.5rem;
 
   ul {
@@ -92,7 +92,7 @@ const TermsCheckbox = styled.div`
 
   label {
     font-size: 0.9rem;
-    color: ${props => props.theme?.text?.secondary || '#6b7280'};
+    color: ${(props) => props.theme?.text?.secondary || '#6b7280'};
     line-height: 1.4;
 
     a {
@@ -120,9 +120,11 @@ const registerSchema = z
       .regex(/[0-9]/, 'Password must contain at least one number')
       .regex(/[@$!%*?&]/, 'Password must contain at least one special character (@$!%*?&)'),
     confirmPassword: z.string(),
-    acceptTerms: z.boolean().refine(val => val === true, 'You must accept the terms and conditions'),
+    acceptTerms: z
+      .boolean()
+      .refine((val) => val === true, 'You must accept the terms and conditions'),
   })
-  .refine(data => data.password === data.confirmPassword, {
+  .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ['confirmPassword'],
   });
@@ -160,7 +162,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 }) => {
   const { register: registerUser, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<RegisterRequest & { confirmPassword: string; acceptTerms: boolean }>({
+  const [formData, setFormData] = useState<
+    RegisterRequest & { confirmPassword: string; acceptTerms: boolean }
+  >({
     email: '',
     password: '',
     confirmPassword: '',
@@ -182,7 +186,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   };
 
   const passwordRequirements = getPasswordRequirements();
-  const allRequirementsMet = passwordRequirements.every(req => req.valid);
+  const allRequirementsMet = passwordRequirements.every((req) => req.valid);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,7 +197,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     const result = registerSchema.safeParse(formData);
     if (!result.success) {
       const errors: Record<string, string> = {};
-      result.error.errors.forEach(err => {
+      result.error.errors.forEach((err) => {
         if (err.path[0]) {
           errors[err.path[0].toString()] = err.message;
         }
@@ -209,19 +213,21 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     } catch (err: unknown) {
       console.error('Registration error:', err);
       const error = err as Error & { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || error.message || 'Registration failed. Please try again.');
+      setError(
+        error.response?.data?.message || error.message || 'Registration failed. Please try again.'
+      );
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
     // Clear field error when user starts typing
     if (fieldErrors[name]) {
-      setFieldErrors(prev => {
+      setFieldErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
@@ -231,15 +237,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
   return (
     <>
-      {error && <StyledAlert variant='error'>{error}</StyledAlert>}
+      {error && <StyledAlert variant="error">{error}</StyledAlert>}
 
       <Form onSubmit={handleSubmit}>
         <FormRow>
           <FormGroup>
             <Input
-              label='First Name'
-              name='firstName'
-              placeholder='Enter your first name'
+              label="First Name"
+              name="firstName"
+              placeholder="Enter your first name"
               value={formData.firstName}
               onChange={handleChange}
               error={fieldErrors.firstName}
@@ -248,9 +254,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           </FormGroup>
           <FormGroup>
             <Input
-              label='Last Name'
-              name='lastName'
-              placeholder='Enter your last name'
+              label="Last Name"
+              name="lastName"
+              placeholder="Enter your last name"
               value={formData.lastName}
               onChange={handleChange}
               error={fieldErrors.lastName}
@@ -261,10 +267,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
         <FormGroup>
           <Input
-            label='Email Address'
-            type='email'
-            name='email'
-            placeholder='Enter your email'
+            label="Email Address"
+            type="email"
+            name="email"
+            placeholder="Enter your email"
             value={formData.email}
             onChange={handleChange}
             error={fieldErrors.email}
@@ -275,10 +281,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         {requirePhoneNumber && (
           <FormGroup>
             <Input
-              label='Phone Number'
-              type='tel'
-              name='phoneNumber'
-              placeholder='(555) 123-4567'
+              label="Phone Number"
+              type="tel"
+              name="phoneNumber"
+              placeholder="(555) 123-4567"
               value={formData.phoneNumber}
               onChange={handleChange}
               error={fieldErrors.phoneNumber}
@@ -289,10 +295,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
         <FormGroup>
           <Input
-            label='Password'
-            type='password'
-            name='password'
-            placeholder='Create a strong password'
+            label="Password"
+            type="password"
+            name="password"
+            placeholder="Create a strong password"
             value={formData.password}
             onChange={handleChange}
             error={fieldErrors.password}
@@ -305,7 +311,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               <ul>
                 {passwordRequirements.map((req, index) => (
                   <li key={index} className={req.valid ? 'valid' : 'invalid'}>
-                    <span className='check-icon'>{req.valid && '✓'}</span>
+                    <span className="check-icon">{req.valid && '✓'}</span>
                     {req.text}
                   </li>
                 ))}
@@ -316,10 +322,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
         <FormGroup>
           <Input
-            label='Confirm Password'
-            type='password'
-            name='confirmPassword'
-            placeholder='Confirm your password'
+            label="Confirm Password"
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm your password"
             value={formData.confirmPassword}
             onChange={handleChange}
             error={fieldErrors.confirmPassword}
@@ -329,19 +335,19 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
         <TermsCheckbox>
           <input
-            type='checkbox'
-            id='acceptTerms'
-            name='acceptTerms'
+            type="checkbox"
+            id="acceptTerms"
+            name="acceptTerms"
             checked={formData.acceptTerms}
             onChange={handleChange}
           />
-          <label htmlFor='acceptTerms'>
+          <label htmlFor="acceptTerms">
             I agree to the{' '}
-            <a href={termsUrl} target='_blank' rel='noopener noreferrer'>
+            <a href={termsUrl} target="_blank" rel="noopener noreferrer">
               Terms of Service
             </a>{' '}
             and{' '}
-            <a href={privacyUrl} target='_blank' rel='noopener noreferrer'>
+            <a href={privacyUrl} target="_blank" rel="noopener noreferrer">
               Privacy Policy
             </a>
           </label>
@@ -352,7 +358,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           </div>
         )}
 
-        <Button type='submit' size='lg' variant='primary' disabled={isLoading} style={{ width: '100%' }}>
+        <Button
+          type="submit"
+          size="lg"
+          variant="primary"
+          disabled={isLoading}
+          style={{ width: '100%' }}
+        >
           {isLoading ? 'Creating Account...' : 'Create Account'}
         </Button>
 

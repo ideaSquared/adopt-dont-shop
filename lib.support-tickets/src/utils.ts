@@ -130,7 +130,10 @@ export const formatRelativeTime = (date: Date | string): string => {
 /**
  * Calculate resolution time in hours
  */
-export const calculateResolutionTime = (createdAt: Date | string, resolvedAt?: Date | string | null): number | null => {
+export const calculateResolutionTime = (
+  createdAt: Date | string,
+  resolvedAt?: Date | string | null
+): number | null => {
   if (!resolvedAt) {
     return null;
   }

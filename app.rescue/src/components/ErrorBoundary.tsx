@@ -16,7 +16,9 @@ const ErrorCard = styled.div`
   width: 100%;
   background-color: white;
   border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   padding: 1.5rem;
   text-align: center;
 `;
@@ -139,10 +141,10 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error to console and potentially to error reporting service
     console.error('Error caught by boundary:', error, errorInfo);
-    
+
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     });
 
     // Here you could also send the error to an error reporting service
@@ -167,11 +169,7 @@ class ErrorBoundary extends Component<Props, State> {
         <ErrorContainer>
           <ErrorCard>
             <IconContainer>
-              <ErrorIcon
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <ErrorIcon fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -180,30 +178,22 @@ class ErrorBoundary extends Component<Props, State> {
                 />
               </ErrorIcon>
             </IconContainer>
-            
-            <ErrorTitle>
-              Oops! Something went wrong
-            </ErrorTitle>
-            
+
+            <ErrorTitle>Oops! Something went wrong</ErrorTitle>
+
             <ErrorMessage>
               We're sorry, but something unexpected happened. Don't worry, your data is safe.
             </ErrorMessage>
 
             <ButtonContainer>
-              <PrimaryButton onClick={this.handleReset}>
-                Try Again
-              </PrimaryButton>
-              
-              <SecondaryButton onClick={this.handleReload}>
-                Reload Page
-              </SecondaryButton>
+              <PrimaryButton onClick={this.handleReset}>Try Again</PrimaryButton>
+
+              <SecondaryButton onClick={this.handleReload}>Reload Page</SecondaryButton>
             </ButtonContainer>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <ErrorDetails>
-                <ErrorSummary>
-                  Show Error Details
-                </ErrorSummary>
+                <ErrorSummary>Show Error Details</ErrorSummary>
                 <ErrorContent>
                   <div style={{ marginBottom: '0.5rem' }}>
                     <strong>Error:</strong> {this.state.error.message}
@@ -211,9 +201,7 @@ class ErrorBoundary extends Component<Props, State> {
                   {this.state.error.stack && (
                     <div>
                       <strong>Stack:</strong>
-                      <ErrorStack>
-                        {this.state.error.stack}
-                      </ErrorStack>
+                      <ErrorStack>{this.state.error.stack}</ErrorStack>
                     </div>
                   )}
                 </ErrorContent>

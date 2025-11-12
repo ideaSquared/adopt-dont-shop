@@ -9,6 +9,7 @@ This library provides a complete analytics solution for the adopt-dont-shop plat
 ## Features
 
 ### 🎯 Real-time Event Tracking
+
 - User engagement events (clicks, views, interactions)
 - Custom conversion tracking (adoptions, applications, favorites)
 - Error tracking and debugging
@@ -16,6 +17,7 @@ This library provides a complete analytics solution for the adopt-dont-shop plat
 - Automatic page view tracking with SPA support
 
 ### 📊 Analytics & Insights
+
 - User engagement metrics (sessions, page views, bounce rate)
 - System performance monitoring (load times, error rates)
 - Conversion funnel analysis
@@ -23,6 +25,7 @@ This library provides a complete analytics solution for the adopt-dont-shop plat
 - User journey mapping and analysis
 
 ### ⚙️ Advanced Features
+
 - Event sampling for high-traffic scenarios
 - Batch processing with automatic queue management
 - Session management with configurable timeouts
@@ -30,6 +33,7 @@ This library provides a complete analytics solution for the adopt-dont-shop plat
 - Comprehensive error handling and retry logic
 
 ### 🔧 Configuration Options
+
 - Debug logging for development
 - Custom headers and API configuration
 - Automatic vs manual page view tracking
@@ -53,7 +57,7 @@ const analytics = new AnalyticsService({
   provider: 'internal',
   autoTrackPageViews: true,
   sessionTimeout: 30,
-  sampleRate: 100
+  sampleRate: 100,
 });
 
 // Track user interactions
@@ -63,19 +67,19 @@ await analytics.trackEvent({
   label: 'golden_retriever',
   value: 1,
   userId: 'user123',
-  properties: { petId: 'pet456', breed: 'Golden Retriever' }
+  properties: { petId: 'pet456', breed: 'Golden Retriever' },
 });
 
 // Track conversions
-await analytics.trackConversion('adoption_completed', 1, { 
+await analytics.trackConversion('adoption_completed', 1, {
   petId: 'pet456',
-  rescueId: 'rescue123' 
+  rescueId: 'rescue123',
 });
 
 // Track errors
-await analytics.trackError('API_TIMEOUT', { 
+await analytics.trackError('API_TIMEOUT', {
   endpoint: '/api/pets',
-  responseTime: 5000 
+  responseTime: 5000,
 });
 ```
 
@@ -93,8 +97,8 @@ await analytics.trackEvent({
   properties: {
     petId: 'pet456',
     petBreed: 'Labrador',
-    sessionDuration: 300
-  }
+    sessionDuration: 300,
+  },
 });
 
 // Page view tracking (automatic or manual)
@@ -102,7 +106,7 @@ await analytics.trackPageView({
   url: '/pets/golden-retriever-123',
   title: 'Max - Golden Retriever for Adoption',
   userId: 'user123',
-  timeOnPreviousPage: 45000
+  timeOnPreviousPage: 45000,
 });
 
 // User journey tracking
@@ -111,9 +115,11 @@ await analytics.trackUserJourney({
   userId: 'user123',
   sessionId: analytics.getSessionId(),
   startTime: new Date(),
-  steps: [/* journey steps */],
+  steps: [
+    /* journey steps */
+  ],
   outcome: 'conversion',
-  funnelStage: 'application_submitted'
+  funnelStage: 'application_submitted',
 });
 ```
 
@@ -123,7 +129,7 @@ await analytics.trackUserJourney({
 // Get engagement metrics
 const timeRange = {
   start: new Date('2024-01-01'),
-  end: new Date('2024-01-31')
+  end: new Date('2024-01-31'),
 };
 
 const engagement = await analytics.getEngagementMetrics(timeRange);
@@ -140,7 +146,7 @@ console.log('Error Rate:', performance.errorRate);
 const report = await analytics.generateReport('engagement', {
   timeRange,
   granularity: 'day',
-  format: 'json'
+  format: 'json',
 });
 console.log('Report ID:', report.id);
 ```
@@ -169,13 +175,13 @@ const analytics = new AnalyticsService({
   apiUrl: 'https://api.example.com',
   debug: process.env.NODE_ENV === 'development',
   headers: {
-    'Authorization': 'Bearer your-token'
+    Authorization: 'Bearer your-token',
   },
-  
+
   // Analytics Provider
   provider: 'internal', // 'internal' | 'google-analytics' | 'mixpanel' | 'custom'
   trackingId: 'GA-XXXXX-X', // For third-party providers
-  
+
   // Tracking Options
   autoTrackPageViews: true,
   sessionTimeout: 30, // minutes
@@ -185,7 +191,7 @@ const analytics = new AnalyticsService({
 // Runtime configuration updates
 analytics.updateConfig({
   debug: true,
-  sampleRate: 50
+  sampleRate: 50,
 });
 ```
 
@@ -221,8 +227,8 @@ await analytics.trackEvent({
     timeSpent: 120,
     formErrors: [],
     fieldsFilled: ['name', 'email', 'phone'],
-    userType: 'first_time_adopter'
-  }
+    userType: 'first_time_adopter',
+  },
 });
 ```
 
@@ -258,16 +264,16 @@ analytics.updateConfig({ sessionTimeout: 45 }); // 45 minutes
 // Application errors
 await analytics.trackError('PAYMENT_PROCESSING_FAILED', {
   paymentProvider: 'stripe',
-  amount: 50.00,
+  amount: 50.0,
   errorCode: 'card_declined',
-  userId: 'user123'
+  userId: 'user123',
 });
 
 // API errors
 await analytics.trackError('API_RATE_LIMIT', {
   endpoint: '/api/pets/search',
   rateLimitRemaining: 0,
-  resetTime: new Date(Date.now() + 3600000)
+  resetTime: new Date(Date.now() + 3600000),
 });
 ```
 
@@ -330,16 +336,16 @@ import { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
 
 const analytics = new AnalyticsService({
   apiUrl: process.env.ANALYTICS_API_URL,
-  debug: process.env.NODE_ENV === 'development'
+  debug: process.env.NODE_ENV === 'development',
 });
 
 // Track API usage
 app.use('/api/*', async (req, res, next) => {
   const start = Date.now();
-  
+
   res.on('finish', async () => {
     const duration = Date.now() - start;
-    
+
     await analytics.trackEvent({
       category: 'api_usage',
       action: req.method,
@@ -348,11 +354,11 @@ app.use('/api/*', async (req, res, next) => {
       properties: {
         statusCode: res.statusCode,
         userAgent: req.get('user-agent'),
-        userId: req.user?.id
-      }
+        userId: req.user?.id,
+      },
     });
   });
-  
+
   next();
 });
 ```
@@ -362,6 +368,7 @@ app.use('/api/*', async (req, res, next) => {
 ### Core Methods
 
 #### Event Tracking
+
 - `trackEvent(event)` - Track user engagement events
 - `trackPageView(pageView)` - Track page views
 - `trackUserJourney(journey)` - Track complete user journeys
@@ -370,6 +377,7 @@ app.use('/api/*', async (req, res, next) => {
 - `trackTiming(category, variable, time, label?)` - Track performance metrics
 
 #### Analytics Queries
+
 - `getEngagementMetrics(timeRange, options?)` - Get user engagement data
 - `getSystemPerformance(timeRange, options?)` - Get performance metrics
 - `generateReport(type, params, options?)` - Generate analytics reports
@@ -377,6 +385,7 @@ app.use('/api/*', async (req, res, next) => {
 - `getABTestResults(testId)` - Get A/B test results
 
 #### Configuration & Lifecycle
+
 - `getConfig()` - Get current configuration
 - `updateConfig(updates)` - Update service configuration
 - `getSessionId()` - Get current session ID
@@ -440,6 +449,7 @@ npm run test:coverage
 ```
 
 ### Test Categories
+
 - ✅ Initialization and configuration
 - ✅ Event tracking (engagement, page views, journeys)
 - ✅ Analytics queries (metrics, reports, funnels)
@@ -451,22 +461,27 @@ npm run test:coverage
 ## Performance & Scalability
 
 ### Event Batching
+
 Events are automatically batched and sent every 5 seconds to reduce API calls and improve performance.
 
 ### Sampling
+
 Configure sample rates to handle high-traffic scenarios:
+
 ```typescript
 const analytics = new AnalyticsService({
-  sampleRate: 10 // Only track 10% of events
+  sampleRate: 10, // Only track 10% of events
 });
 ```
 
 ### Caching
+
 Query results can be cached to improve performance:
+
 ```typescript
 const metrics = await analytics.getEngagementMetrics(timeRange, {
   useCache: true,
-  cacheTtl: 300 // 5 minutes
+  cacheTtl: 300, // 5 minutes
 });
 ```
 
@@ -476,7 +491,7 @@ Enable debug mode for development:
 
 ```typescript
 const analytics = new AnalyticsService({
-  debug: true
+  debug: true,
 });
 
 // Or enable at runtime
@@ -484,6 +499,7 @@ analytics.updateConfig({ debug: true });
 ```
 
 Debug mode provides:
+
 - Event tracking confirmations
 - API call logging
 - Error details
@@ -502,18 +518,22 @@ When extending the analytics library:
 ## Best Practices
 
 ### Event Naming
+
 Use consistent naming conventions:
+
 - Categories: `user_interaction`, `pet_discovery`, `adoption_process`
 - Actions: `click`, `view`, `favorite`, `apply`, `complete`
 - Labels: Specific identifiers or descriptions
 
 ### Data Privacy
+
 - Never track personally identifiable information (PII)
 - Use user IDs instead of names or emails
 - Implement data retention policies
 - Respect user privacy preferences
 
 ### Performance
+
 - Use appropriate sample rates for high-traffic events
 - Batch events when possible
 - Implement proper error handling
@@ -522,16 +542,17 @@ Use consistent naming conventions:
 ## License
 
 MIT License - see the LICENSE file for details.
-├── dist/                             # Built output (generated)
-├── docker-compose.lib.yml           # Docker compose for development
-├── Dockerfile                       # Multi-stage Docker build
-├── jest.config.js                   # Jest test configuration
-├── package.json                     # Package configuration
-├── tsconfig.json                    # TypeScript configuration
-├── .eslintrc.json                   # ESLint configuration
-├── .prettierrc.json                 # Prettier configuration
-└── README.md                        # This file
-```
+├── dist/ # Built output (generated)
+├── docker-compose.lib.yml # Docker compose for development
+├── Dockerfile # Multi-stage Docker build
+├── jest.config.js # Jest test configuration
+├── package.json # Package configuration
+├── tsconfig.json # TypeScript configuration
+├── .eslintrc.json # ESLint configuration
+├── .prettierrc.json # Prettier configuration
+└── README.md # This file
+
+````
 
 ## 🔗 Integration Examples
 
@@ -549,7 +570,7 @@ analyticsService.updateConfig({
     'Authorization': `Bearer ${authService.getToken()}`,
   },
 });
-```
+````
 
 ### Error Handling
 
@@ -629,6 +650,7 @@ analyticsService.updateConfig({ debug: true });
 ```
 
 Or set environment variable:
+
 ```bash
 NODE_ENV=development
 ```

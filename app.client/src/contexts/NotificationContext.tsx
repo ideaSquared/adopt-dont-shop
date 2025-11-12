@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { createAppContext, handleAsyncAction } from '@/contexts/base/BaseContext';
 import { useSubscription } from '@/contexts/base/hooks';
 import notificationService, {

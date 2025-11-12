@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Card, Heading, Text } from '@adopt-dont-shop/components';
+import { Card, Heading } from '@adopt-dont-shop/components';
 import {
   FiTrendingUp,
   FiUsers,
@@ -191,9 +191,9 @@ const EmptyState = styled.div`
 const ErrorState = styled.div`
   text-align: center;
   padding: 2rem;
-  color: ${props => props.theme.colors.error[600]};
-  background: ${props => props.theme.colors.error[50]};
-  border: 1px solid ${props => props.theme.colors.error[200]};
+  color: ${props => props.theme.colors.semantic.error[600]};
+  background: ${props => props.theme.colors.semantic.error[50]};
+  border: 1px solid ${props => props.theme.colors.semantic.error[200]};
   border-radius: 8px;
 
   p {
@@ -216,7 +216,9 @@ const Analytics: React.FC = () => {
 
   // Data state
   const [adoptionMetrics, setAdoptionMetrics] = useState<AdoptionMetrics | null>(null);
-  const [applicationAnalytics, setApplicationAnalytics] = useState<ApplicationAnalytics | null>(null);
+  const [applicationAnalytics, setApplicationAnalytics] = useState<ApplicationAnalytics | null>(
+    null
+  );
   const [petPerformance, setPetPerformance] = useState<PetPerformance | null>(null);
   const [responseTimeMetrics, setResponseTimeMetrics] = useState<ResponseTimeMetrics | null>(null);
   const [stageDistribution, setStageDistribution] = useState<StageDistribution[]>([]);
@@ -357,7 +359,7 @@ const Analytics: React.FC = () => {
         </HeaderTop>
 
         <FilterBar>
-          <FilterSelect value={petTypeFilter} onChange={(e) => setPetTypeFilter(e.target.value)}>
+          <FilterSelect value={petTypeFilter} onChange={e => setPetTypeFilter(e.target.value)}>
             <option value="all">All Pet Types</option>
             <option value="dog">Dogs</option>
             <option value="cat">Cats</option>
@@ -365,9 +367,9 @@ const Analytics: React.FC = () => {
             <option value="other">Other</option>
           </FilterSelect>
 
-          <FilterSelect value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)}>
+          <FilterSelect value={staffFilter} onChange={e => setStaffFilter(e.target.value)}>
             <option value="all">All Staff Members</option>
-            {responseTimeMetrics?.staffPerformance.map((staff) => (
+            {responseTimeMetrics?.staffPerformance.map(staff => (
               <option key={staff.staffId} value={staff.staffId}>
                 {staff.staffName}
               </option>

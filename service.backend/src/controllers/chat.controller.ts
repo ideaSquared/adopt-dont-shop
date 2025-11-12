@@ -183,19 +183,21 @@ export class ChatController {
         });
       }
 
-const chatObj = chat.toJSON();
+      const chatObj = chat.toJSON();
 
       // Log participants data for debugging
       logger.info('Chat participants data', {
         chatId: chatObj.chat_id,
         hasParticipants: !!chatObj.Participants,
         participantsCount: chatObj.Participants?.length || 0,
-        participantIds: (chatObj.Participants as ParticipantWithUser[] | undefined)?.map((p) => p.participant_id) || [],
+        participantIds:
+          (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => p.participant_id) ||
+          [],
       });
 
       // Transform participants to match frontend Participant interface
       const participants =
-        (chatObj.Participants as ParticipantWithUser[] | undefined)?.map((p) => {
+        (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => {
           if (!p.User) {
             logger.warn('Participant missing User association', {
               chatId: chatObj.chat_id,
@@ -207,7 +209,10 @@ const chatObj = chat.toJSON();
             id: p.participant_id,
             name: getUserFullName(p.User),
             type: p.role === 'admin' ? 'admin' : 'user',
-            avatarUrl: p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User ? p.User.profileImageUrl : undefined,
+            avatarUrl:
+              p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
+                ? p.User.profileImageUrl
+                : undefined,
             isOnline: false,
           };
         }) || [];
@@ -313,11 +318,14 @@ const chatObj = chat.toJSON();
 
         // Transform participants to match frontend Participant interface
         const participants =
-          (chatObj.Participants as ParticipantWithUser[] | undefined)?.map((p) => ({
+          (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => ({
             id: p.participant_id,
             name: getUserFullName(p.User),
             type: p.role === 'admin' ? 'admin' : 'user',
-            avatarUrl: p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User ? p.User.profileImageUrl : undefined,
+            avatarUrl:
+              p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
+                ? p.User.profileImageUrl
+                : undefined,
             isOnline: false, // TODO: Implement online status
           })) || [];
 
@@ -501,9 +509,10 @@ const chatObj = chat.toJSON();
 
       // Transform messages to match frontend Message interface
       const transformedMessages = result.messages.map(msg => {
-        const msgObj: SerializedMessage = typeof (msg as MessageWithSender).toJSON === 'function'
-          ? (msg as MessageWithSender).toJSON!()
-          : (msg as unknown as SerializedMessage);
+        const msgObj: SerializedMessage =
+          typeof (msg as MessageWithSender).toJSON === 'function'
+            ? (msg as MessageWithSender).toJSON!()
+            : (msg as unknown as SerializedMessage);
 
         // Get sender name using the helper function
         const senderName = getUserFullName(msgObj.Sender);

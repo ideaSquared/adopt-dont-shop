@@ -66,7 +66,8 @@ export const LoginPage = () => {
         onForgotPassword={handleForgotPassword}
         helperText={
           <HelperText>
-            <strong>Administrators Only:</strong> This app is for system administrators and moderators. <br />
+            <strong>Administrators Only:</strong> This app is for system administrators and
+            moderators. <br />
             Pet adopters should use the <strong>Client App</strong> (port 3000) <br />
             Rescue staff should use the <strong>Rescue App</strong> (port 3002)
           </HelperText>

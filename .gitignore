@@ -61,3 +61,7 @@ docker-compose.override.yml
 
 ### Tests ###
 */coverage
+
+### Build artifacts ###
+*.tsbuildinfo
+*.timestamp-*.mjs

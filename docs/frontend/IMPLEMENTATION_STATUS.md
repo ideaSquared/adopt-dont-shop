@@ -72,16 +72,19 @@
 ### Current State Analysis
 
 **Database**: Already supports 5-stage workflow
+
 - Stages: PENDING → REVIEWING → VISITING → DECIDING → RESOLVED
 - Field: `stage` (ENUM in Applications table)
 - Timestamps: `review_started_at`, `visit_scheduled_at`, `visit_completed_at`, `resolved_at`
 
 **Frontend Types**: Already defined
+
 - `app.rescue/src/types/applicationStages.ts` - Complete stage definitions
 - Stage actions and transitions mapped
 - Display configuration ready
 
 **Current Implementation**: Uses simplified statuses
+
 - Current: `submitted`, `approved`, `rejected`, `withdrawn`
 - Goal: Full 5-stage workflow with auto-progression
 
@@ -92,6 +95,7 @@
 **File**: `app.rescue/src/components/applications/ApplicationList.tsx`
 
 **Changes Needed**:
+
 - [ ] Update progress indicators to show 5 stages instead of 4
 - [ ] Map current `status` to appropriate `stage` for display
 - [ ] Add stage-based filtering options
@@ -101,6 +105,7 @@
 - [ ] Update getStepLabel() for all 5 stages
 
 **Current Code**:
+
 ```typescript
 const getApplicationProgress = (status: string) => {
   switch (status) {
@@ -117,14 +122,15 @@ const getApplicationProgress = (status: string) => {
 ```
 
 **Should Become**:
+
 ```typescript
 const getApplicationProgress = (stage: ApplicationStage) => {
   const stageMap = {
-    'PENDING': { current: 0, total: 4 },
-    'REVIEWING': { current: 1, total: 4 },
-    'VISITING': { current: 2, total: 4 },
-    'DECIDING': { current: 3, total: 4 },
-    'RESOLVED': { current: 4, total: 4 },
+    PENDING: { current: 0, total: 4 },
+    REVIEWING: { current: 1, total: 4 },
+    VISITING: { current: 2, total: 4 },
+    DECIDING: { current: 3, total: 4 },
+    RESOLVED: { current: 4, total: 4 },
   };
   return stageMap[stage] || { current: 0, total: 4 };
 };
@@ -135,6 +141,7 @@ const getApplicationProgress = (stage: ApplicationStage) => {
 **File**: `app.rescue/src/components/applications/ApplicationReview.tsx`
 
 **Changes Needed**:
+
 - [ ] Show current stage prominently in header
 - [ ] Update status transition dropdown to show stage transitions
 - [ ] Add stage-specific actions based on STAGE_ACTIONS
@@ -143,6 +150,7 @@ const getApplicationProgress = (stage: ApplicationStage) => {
 - [ ] Show only valid transitions for current stage
 
 **Logic to Add**:
+
 ```typescript
 const getValidTransitions = (currentStage: ApplicationStage) => {
   return STAGE_ACTIONS[currentStage] || [];
@@ -158,11 +166,10 @@ const handleStageTransition = async (action: StageAction) => {
   }
 
   // Transition to next stage
-  await applicationService.transitionStage(
-    application.id,
-    action.nextStage!,
-    { triggeredBy: 'manual', action: action.type }
-  );
+  await applicationService.transitionStage(application.id, action.nextStage!, {
+    triggeredBy: 'manual',
+    action: action.type,
+  });
 
   // Refresh application data
   refetch();
@@ -174,6 +181,7 @@ const handleStageTransition = async (action: StageAction) => {
 **File**: `app.rescue/src/services/applicationService.ts`
 
 **New Methods Needed**:
+
 ```typescript
 async transitionStage(
   applicationId: string,
@@ -215,22 +223,18 @@ const handleCompleteVisit = async (visitId: string) => {
       status: 'completed',
       outcome: completeForm.outcome,
       notes: completeForm.notes,
-      completedAt: new Date().toISOString()
+      completedAt: new Date().toISOString(),
     };
 
     await onUpdateVisit(visitId, updateData);
 
     // AUTO-PROGRESSION: If visit outcome is positive, move to DECIDING
     if (completeForm.outcome === 'approved' && application.stage === 'VISITING') {
-      await applicationService.transitionStage(
-        application.id,
-        'DECIDING',
-        {
-          triggeredBy: 'automatic',
-          action: 'COMPLETE_VISIT',
-          notes: 'Auto-progressed after successful home visit'
-        }
-      );
+      await applicationService.transitionStage(application.id, 'DECIDING', {
+        triggeredBy: 'automatic',
+        action: 'COMPLETE_VISIT',
+        notes: 'Auto-progressed after successful home visit',
+      });
     }
 
     // Reset and refresh
@@ -252,29 +256,27 @@ const handleCompleteVisit = async (visitId: string) => {
 **File**: `app.rescue/src/components/applications/BulkActions.tsx` - NEW
 
 **Features**:
+
 - Bulk stage transitions
 - Bulk message sending
 - Bulk home visit scheduling
 - Progress tracking for bulk operations
 
 **Component Structure**:
+
 ```typescript
 interface BulkActionsProps {
   selectedApplications: string[];
   onComplete: () => void;
 }
 
-const BulkActions: React.FC<BulkActionsProps> = ({
-  selectedApplications,
-  onComplete
-}) => {
+const BulkActions: React.FC<BulkActionsProps> = ({ selectedApplications, onComplete }) => {
   // Dropdown with actions:
   // - Move to REVIEWING
   // - Move to DECIDING
   // - Schedule Home Visits
   // - Send Message
   // - Reject Applications
-
   // Progress modal for tracking bulk operation
   // Success/error summary
 };
@@ -351,11 +353,13 @@ const BulkActions: React.FC<BulkActionsProps> = ({
 ## Summary
 
 **Immediate Priority (Rescue Configuration)**: ✅ 95% Complete
+
 - Forms and components built
 - Only file update needed for RescueSettings.tsx
 - Ready for testing
 
 **High Priority (Application Workflow)**: 🔄 30% Complete
+
 - Types and database support exist
 - UI updates needed
 - Auto-progression logic needed

@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
-import { FiSearch, FiAlertTriangle, FiCheckCircle, FiXCircle, FiEye, FiShield } from 'react-icons/fi';
+import {
+  FiSearch,
+  FiAlertTriangle,
+  FiCheckCircle,
+  FiXCircle,
+  FiEye,
+  FiShield,
+} from 'react-icons/fi';
 import { DataTable } from '../components/data';
 import type { Column } from '../components/data';
 import {
@@ -13,9 +20,12 @@ import {
   formatRelativeTime,
   type Report,
   type ReportStatus,
-  type ReportSeverity
+  type ReportSeverity,
 } from '@adopt-dont-shop/lib-moderation';
-import { ActionSelectionModal, type ActionSelectionData } from '../components/moderation/ActionSelectionModal';
+import {
+  ActionSelectionModal,
+  type ActionSelectionData,
+} from '../components/moderation/ActionSelectionModal';
 import { ReportDetailModal } from '../components/moderation/ReportDetailModal';
 
 const PageContainer = styled.div`
@@ -199,11 +209,16 @@ const PriorityIndicator = styled.div<{ $level: string }>`
   border-radius: 50%;
   background: ${props => {
     switch (props.$level) {
-      case 'critical': return '#dc2626';
-      case 'high': return '#ea580c';
-      case 'medium': return '#ca8a04';
-      case 'low': return '#2563eb';
-      default: return '#9ca3af';
+      case 'critical':
+        return '#dc2626';
+      case 'high':
+        return '#ea580c';
+      case 'medium':
+        return '#ca8a04';
+      case 'low':
+        return '#2563eb';
+      default:
+        return '#9ca3af';
     }
   }};
 `;
@@ -252,20 +267,30 @@ const ContentTypeTag = styled.span<{ $type: string }>`
   font-weight: 600;
   background: ${props => {
     switch (props.$type) {
-      case 'pet': return '#ede9fe';
-      case 'message': return '#dbeafe';
-      case 'user': return '#fce7f3';
-      case 'rescue': return '#fef3c7';
-      default: return '#f3f4f6';
+      case 'pet':
+        return '#ede9fe';
+      case 'message':
+        return '#dbeafe';
+      case 'user':
+        return '#fce7f3';
+      case 'rescue':
+        return '#fef3c7';
+      default:
+        return '#f3f4f6';
     }
   }};
   color: ${props => {
     switch (props.$type) {
-      case 'pet': return '#6b21a8';
-      case 'message': return '#1e40af';
-      case 'user': return '#9f1239';
-      case 'rescue': return '#92400e';
-      default: return '#374151';
+      case 'pet':
+        return '#6b21a8';
+      case 'message':
+        return '#1e40af';
+      case 'user':
+        return '#9f1239';
+      case 'rescue':
+        return '#92400e';
+      default:
+        return '#374151';
     }
   }};
 `;
@@ -282,10 +307,15 @@ const Moderation: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   // Use real hooks from lib.moderation
-  const { data: reportsData, isLoading, error, refetch } = useReports({
+  const {
+    data: reportsData,
+    isLoading,
+    error,
+    refetch,
+  } = useReports({
     status: statusFilter === 'all' ? undefined : statusFilter,
     severity: severityFilter === 'all' ? undefined : severityFilter,
-    reportedEntityType: entityTypeFilter === 'all' ? undefined : entityTypeFilter as any,
+    reportedEntityType: entityTypeFilter === 'all' ? undefined : (entityTypeFilter as any),
     search: searchQuery || undefined,
     page: currentPage,
     limit: pageSize,
@@ -308,15 +338,15 @@ const Moderation: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge $variant="danger">Pending Review</Badge>;
+        return <Badge $variant='danger'>Pending Review</Badge>;
       case 'under_review':
-        return <Badge $variant="info">Under Review</Badge>;
+        return <Badge $variant='info'>Under Review</Badge>;
       case 'resolved':
-        return <Badge $variant="success">Resolved</Badge>;
+        return <Badge $variant='success'>Resolved</Badge>;
       case 'dismissed':
-        return <Badge $variant="neutral">Dismissed</Badge>;
+        return <Badge $variant='neutral'>Dismissed</Badge>;
       default:
-        return <Badge $variant="neutral">{getStatusLabel(status as ReportStatus)}</Badge>;
+        return <Badge $variant='neutral'>{getStatusLabel(status as ReportStatus)}</Badge>;
     }
   };
 
@@ -388,7 +418,9 @@ const Moderation: React.FC = () => {
             </div>
           )}
           <div style={{ marginTop: '0.5rem' }}>
-            <ContentTypeTag $type={report.reportedEntityType}>{report.reportedEntityType}</ContentTypeTag>
+            <ContentTypeTag $type={report.reportedEntityType}>
+              {report.reportedEntityType}
+            </ContentTypeTag>
           </div>
         </div>
       ),
@@ -420,12 +452,12 @@ const Moderation: React.FC = () => {
       header: 'Actions',
       accessor: (report: Report) => (
         <ActionButtons>
-          <IconButton title="View Details" onClick={() => handleOpenDetailModal(report)}>
+          <IconButton title='View Details' onClick={() => handleOpenDetailModal(report)}>
             <FiEye />
           </IconButton>
           {report.status === 'pending' || report.status === 'under_review' ? (
             <IconButton
-              title="Take Action"
+              title='Take Action'
               onClick={() => handleOpenActionModal(report)}
               disabled={isActionLoading}
             >
@@ -458,7 +490,7 @@ const Moderation: React.FC = () => {
 
       <StatsBar>
         <StatCard>
-          <StatIcon $color="#dc2626">
+          <StatIcon $color='#dc2626'>
             <FiAlertTriangle />
           </StatIcon>
           <StatDetails>
@@ -468,7 +500,7 @@ const Moderation: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#3b82f6">
+          <StatIcon $color='#3b82f6'>
             <FiShield />
           </StatIcon>
           <StatDetails>
@@ -478,7 +510,7 @@ const Moderation: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#ea580c">
+          <StatIcon $color='#ea580c'>
             <FiAlertTriangle />
           </StatIcon>
           <StatDetails>
@@ -488,7 +520,7 @@ const Moderation: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#16a34a">
+          <StatIcon $color='#16a34a'>
             <FiCheckCircle />
           </StatIcon>
           <StatDetails>
@@ -504,44 +536,44 @@ const Moderation: React.FC = () => {
             <FiSearch />
           </SearchIcon>
           <SearchInput
-            placeholder="Search reports..."
+            placeholder='Search reports...'
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
           />
         </SearchWrapper>
 
         <FilterGroup>
           <Label>Status</Label>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="under_review">Under Review</option>
-            <option value="resolved">Resolved</option>
-            <option value="dismissed">Dismissed</option>
-            <option value="escalated">Escalated</option>
+          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
+            <option value='all'>All Statuses</option>
+            <option value='pending'>Pending</option>
+            <option value='under_review'>Under Review</option>
+            <option value='resolved'>Resolved</option>
+            <option value='dismissed'>Dismissed</option>
+            <option value='escalated'>Escalated</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
           <Label>Severity</Label>
-          <Select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value as any)}>
-            <option value="all">All Severities</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
+          <Select value={severityFilter} onChange={e => setSeverityFilter(e.target.value as any)}>
+            <option value='all'>All Severities</option>
+            <option value='critical'>Critical</option>
+            <option value='high'>High</option>
+            <option value='medium'>Medium</option>
+            <option value='low'>Low</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
           <Label>Content Type</Label>
-          <Select value={entityTypeFilter} onChange={(e) => setEntityTypeFilter(e.target.value)}>
-            <option value="all">All Types</option>
-            <option value="user">User</option>
-            <option value="rescue">Rescue</option>
-            <option value="pet">Pet</option>
-            <option value="message">Message</option>
-            <option value="application">Application</option>
+          <Select value={entityTypeFilter} onChange={e => setEntityTypeFilter(e.target.value)}>
+            <option value='all'>All Types</option>
+            <option value='user'>User</option>
+            <option value='rescue'>Rescue</option>
+            <option value='pet'>Pet</option>
+            <option value='message'>Message</option>
+            <option value='application'>Application</option>
           </Select>
         </FilterGroup>
       </FilterBar>
@@ -553,7 +585,7 @@ const Moderation: React.FC = () => {
         onRowClick={handleOpenDetailModal}
         currentPage={pagination?.page || 1}
         totalPages={pagination?.totalPages || 1}
-        onPageChange={(page) => setCurrentPage(page)}
+        onPageChange={page => setCurrentPage(page)}
       />
 
       <ReportDetailModal

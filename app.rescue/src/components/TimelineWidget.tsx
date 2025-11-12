@@ -39,7 +39,7 @@ const ViewAllButton = styled.button`
   font-size: 0.75rem;
   color: #6b7280;
   cursor: pointer;
-  
+
   &:hover {
     background: #f3f4f6;
     color: #374151;
@@ -133,7 +133,7 @@ function getEventColor(eventType: TimelineEventType): string {
     [TimelineEventType.SYSTEM_AUTO_PROGRESSION]: '#6b7280',
     [TimelineEventType.MANUAL_OVERRIDE]: '#f59e0b',
   };
-  
+
   return colors[eventType] || '#6b7280';
 }
 
@@ -162,7 +162,7 @@ function getEventIcon(eventType: TimelineEventType): string {
     [TimelineEventType.SYSTEM_AUTO_PROGRESSION]: '🤖',
     [TimelineEventType.MANUAL_OVERRIDE]: '⚙️',
   };
-  
+
   return icons[eventType] || '📋';
 }
 
@@ -181,9 +181,7 @@ export const TimelineWidget: React.FC<TimelineWidgetProps> = ({
         <WidgetHeader>
           <WidgetTitle>Recent Activity</WidgetTitle>
         </WidgetHeader>
-        <EmptyState>
-          No activity yet
-        </EmptyState>
+        <EmptyState>No activity yet</EmptyState>
       </WidgetContainer>
     );
   }
@@ -193,30 +191,22 @@ export const TimelineWidget: React.FC<TimelineWidgetProps> = ({
       <WidgetHeader>
         <WidgetTitle>Recent Activity</WidgetTitle>
         {showViewAll && onViewAll && (hasMoreEvents || events.length > 0) && (
-          <ViewAllButton onClick={onViewAll}>
-            View All ({events.length})
-          </ViewAllButton>
+          <ViewAllButton onClick={onViewAll}>View All ({events.length})</ViewAllButton>
         )}
       </WidgetHeader>
-      
+
       <CompactEventList>
-        {displayEvents.map((event) => (
+        {displayEvents.map(event => (
           <CompactEvent key={event.timeline_id}>
-            <EventIcon eventType={event.event_type}>
-              {getEventIcon(event.event_type)}
-            </EventIcon>
-            
+            <EventIcon eventType={event.event_type}>{getEventIcon(event.event_type)}</EventIcon>
+
             <EventInfo>
               <EventTitle>{event.title}</EventTitle>
-              <EventTime>
-                {formatDateTime(new Date(event.created_at))}
-              </EventTime>
+              <EventTime>{formatDateTime(new Date(event.created_at))}</EventTime>
             </EventInfo>
-            
+
             {event.created_by_system && (
-              <SystemIndicator title="Automated event">
-                🤖
-              </SystemIndicator>
+              <SystemIndicator title="Automated event">🤖</SystemIndicator>
             )}
           </CompactEvent>
         ))}

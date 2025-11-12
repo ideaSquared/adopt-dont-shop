@@ -32,7 +32,11 @@ export class ModerationService {
    */
   async getReports(filters?: ReportFilters): Promise<ReportsResponse> {
     const queryString = filters ? buildQueryString(filters as Record<string, unknown>) : '';
-    const response = await apiService.get<{ success: boolean; data: unknown[]; pagination: unknown }>(`${this.baseUrl}/reports${queryString}`);
+    const response = await apiService.get<{
+      success: boolean;
+      data: unknown[];
+      pagination: unknown;
+    }>(`${this.baseUrl}/reports${queryString}`);
     return ReportsResponseSchema.parse({ data: response.data, pagination: response.pagination });
   }
 
@@ -56,7 +60,10 @@ export class ModerationService {
    * Update report status
    */
   async updateReportStatus(reportId: string, data: UpdateReportStatusRequest): Promise<Report> {
-    const response = await apiService.patch<{ data: unknown }>(`${this.baseUrl}/reports/${reportId}/status`, data);
+    const response = await apiService.patch<{ data: unknown }>(
+      `${this.baseUrl}/reports/${reportId}/status`,
+      data
+    );
     return ReportSchema.parse(response.data);
   }
 
@@ -64,7 +71,10 @@ export class ModerationService {
    * Assign report to a moderator
    */
   async assignReport(reportId: string, data: AssignReportRequest): Promise<Report> {
-    const response = await apiService.post<{ data: unknown }>(`${this.baseUrl}/reports/${reportId}/assign`, data);
+    const response = await apiService.post<{ data: unknown }>(
+      `${this.baseUrl}/reports/${reportId}/assign`,
+      data
+    );
     return ReportSchema.parse(response.data);
   }
 
@@ -72,14 +82,19 @@ export class ModerationService {
    * Escalate a report
    */
   async escalateReport(reportId: string, data: EscalateReportRequest): Promise<Report> {
-    const response = await apiService.post<{ data: unknown }>(`${this.baseUrl}/reports/${reportId}/escalate`, data);
+    const response = await apiService.post<{ data: unknown }>(
+      `${this.baseUrl}/reports/${reportId}/escalate`,
+      data
+    );
     return ReportSchema.parse(response.data);
   }
 
   /**
    * Bulk update reports
    */
-  async bulkUpdateReports(data: BulkUpdateReportsRequest): Promise<{ success: boolean; updated: number }> {
+  async bulkUpdateReports(
+    data: BulkUpdateReportsRequest
+  ): Promise<{ success: boolean; updated: number }> {
     const response = await apiService.post(`${this.baseUrl}/reports/bulk-update`, data);
     return response as { success: boolean; updated: number };
   }
@@ -89,7 +104,11 @@ export class ModerationService {
    */
   async getActions(filters?: ActionFilters): Promise<ActionsResponse> {
     const queryString = filters ? buildQueryString(filters as Record<string, unknown>) : '';
-    const response = await apiService.get<{ success: boolean; data: unknown[]; pagination: unknown }>(`${this.baseUrl}/actions${queryString}`);
+    const response = await apiService.get<{
+      success: boolean;
+      data: unknown[];
+      pagination: unknown;
+    }>(`${this.baseUrl}/actions${queryString}`);
     return ActionsResponseSchema.parse({ data: response.data, pagination: response.pagination });
   }
 
@@ -113,14 +132,20 @@ export class ModerationService {
    * Get moderation metrics
    */
   async getMetrics(): Promise<ModerationMetrics> {
-    const response = await apiService.get<{ success: boolean; data: unknown }>(`${this.baseUrl}/metrics`);
+    const response = await apiService.get<{ success: boolean; data: unknown }>(
+      `${this.baseUrl}/metrics`
+    );
     return ModerationMetricsSchema.parse(response.data);
   }
 
   /**
    * Resolve a report with optional action
    */
-  async resolveReport(reportId: string, notes?: string, actionData?: CreateModeratorActionRequest): Promise<Report> {
+  async resolveReport(
+    reportId: string,
+    notes?: string,
+    actionData?: CreateModeratorActionRequest
+  ): Promise<Report> {
     // First update the report status
     const report = await this.updateReportStatus(reportId, {
       status: 'resolved',

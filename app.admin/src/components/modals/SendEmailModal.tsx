@@ -160,9 +160,12 @@ const TemplateCard = styled.button<{ $selected: boolean }>`
   flex-direction: column;
   align-items: flex-start;
   padding: 1rem;
-  border: 2px solid ${props => props.$selected ? props.theme.colors.primary[500] : props.theme.border.color.primary};
+  border: 2px solid
+    ${props =>
+      props.$selected ? props.theme.colors.primary[500] : props.theme.border.color.primary};
   border-radius: ${({ theme }) => theme.border.radius.md};
-  background: ${props => props.$selected ? props.theme.colors.primary[50] : props.theme.background.primary};
+  background: ${props =>
+    props.$selected ? props.theme.colors.primary[50] : props.theme.background.primary};
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.fast};
   text-align: left;
@@ -185,8 +188,10 @@ const TemplateIcon = styled.div<{ $selected: boolean }>`
   width: 40px;
   height: 40px;
   border-radius: ${({ theme }) => theme.border.radius.md};
-  background: ${props => props.$selected ? props.theme.colors.primary[100] : props.theme.background.tertiary};
-  color: ${props => props.$selected ? props.theme.colors.primary[600] : props.theme.text.tertiary};
+  background: ${props =>
+    props.$selected ? props.theme.colors.primary[100] : props.theme.background.tertiary};
+  color: ${props =>
+    props.$selected ? props.theme.colors.primary[600] : props.theme.text.tertiary};
   margin-bottom: 0.75rem;
 
   svg {
@@ -287,14 +292,15 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
       setLoading(true);
       setError(null);
 
-      const payload: RescueEmailPayload = selectedTemplate === 'custom'
-        ? {
-            subject: subject.trim(),
-            body: body.trim(),
-          }
-        : {
-            templateId: EMAIL_TEMPLATES.find(t => t.id === selectedTemplate)?.templateId,
-          };
+      const payload: RescueEmailPayload =
+        selectedTemplate === 'custom'
+          ? {
+              subject: subject.trim(),
+              body: body.trim(),
+            }
+          : {
+              templateId: EMAIL_TEMPLATES.find(t => t.id === selectedTemplate)?.templateId,
+            };
 
       await rescueService.sendEmail(rescue.rescueId, payload);
 
@@ -326,18 +332,13 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
 
   const modalFooter = (
     <FooterButtons>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onClose}
-        disabled={loading || success}
-      >
+      <Button type='button' variant='outline' onClick={onClose} disabled={loading || success}>
         {success ? 'Close' : 'Cancel'}
       </Button>
       {!success && (
         <Button
-          type="button"
-          variant="primary"
+          type='button'
+          variant='primary'
           onClick={handleSubmit}
           disabled={loading || !selectedTemplate}
         >
@@ -351,7 +352,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      size="lg"
+      size='lg'
       header={modalHeader}
       footer={modalFooter}
       closeOnOverlayClick={!loading}
@@ -379,10 +380,10 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
         <FormGroup>
           <Label>Select Email Template</Label>
           <TemplateGrid>
-            {EMAIL_TEMPLATES.map((template) => (
+            {EMAIL_TEMPLATES.map(template => (
               <TemplateCard
                 key={template.id}
-                type="button"
+                type='button'
                 $selected={selectedTemplate === template.id}
                 onClick={() => handleTemplateSelect(template.id)}
                 disabled={loading || success}
@@ -395,7 +396,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
               </TemplateCard>
             ))}
             <TemplateCard
-              type="button"
+              type='button'
               $selected={selectedTemplate === 'custom'}
               onClick={handleCustomSelect}
               disabled={loading || success}
@@ -407,9 +408,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
               <TemplateDescription>Write your own message</TemplateDescription>
             </TemplateCard>
           </TemplateGrid>
-          <HelpText>
-            Select a professional template or create a custom message
-          </HelpText>
+          <HelpText>Select a professional template or create a custom message</HelpText>
         </FormGroup>
 
         {selectedTemplateData && (
@@ -430,10 +429,10 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
                 <RequiredIndicator>*</RequiredIndicator>
               </Label>
               <Input
-                type="text"
+                type='text'
                 value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Email subject..."
+                onChange={e => setSubject(e.target.value)}
+                placeholder='Email subject...'
                 required
                 disabled={loading || success}
               />
@@ -446,8 +445,8 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
               </Label>
               <TextArea
                 value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="Type your message here..."
+                onChange={e => setBody(e.target.value)}
+                placeholder='Type your message here...'
                 required
                 disabled={loading || success}
               />

@@ -10,8 +10,8 @@ const Container = styled.div`
   padding: 2rem;
   background: linear-gradient(
     135deg,
-    ${props => props.theme?.background?.primary || '#f7fafc'} 0%,
-    ${props => props.theme?.background?.secondary || '#edf2f7'} 100%
+    ${(props) => props.theme?.background?.primary || '#f7fafc'} 0%,
+    ${(props) => props.theme?.background?.secondary || '#edf2f7'} 100%
   );
 `;
 
@@ -29,12 +29,12 @@ const Header = styled.div`
   h1 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
-    color: ${props => props.theme?.text?.primary || '#1a202c'};
+    color: ${(props) => props.theme?.text?.primary || '#1a202c'};
     font-weight: 600;
   }
 
   p {
-    color: ${props => props.theme?.text?.secondary || '#718096'};
+    color: ${(props) => props.theme?.text?.secondary || '#718096'};
     margin: 0;
     font-size: 0.95rem;
   }

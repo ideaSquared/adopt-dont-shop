@@ -68,16 +68,9 @@ describe('CSRF Middleware', () => {
         const generatedToken = 'test-csrf-token-123';
         mockGenerateToken.mockReturnValue(generatedToken);
 
-        csrfTokenGenerator(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfTokenGenerator(mockRequest as Request, mockResponse as Response, mockNext);
 
-        expect(mockGenerateToken).toHaveBeenCalledWith(
-          mockRequest,
-          mockResponse
-        );
+        expect(mockGenerateToken).toHaveBeenCalledWith(mockRequest, mockResponse);
         expect(mockResponse.locals).toEqual({
           csrfToken: generatedToken,
         });
@@ -88,26 +81,15 @@ describe('CSRF Middleware', () => {
         const generatedToken = 'test-csrf-token-456';
         mockGenerateToken.mockReturnValue(generatedToken);
 
-        csrfTokenGenerator(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfTokenGenerator(mockRequest as Request, mockResponse as Response, mockNext);
 
-        expect(mockResponse.setHeader).toHaveBeenCalledWith(
-          'X-CSRF-Token',
-          generatedToken
-        );
+        expect(mockResponse.setHeader).toHaveBeenCalledWith('X-CSRF-Token', generatedToken);
       });
 
       it('should call next without error', () => {
         mockGenerateToken.mockReturnValue('test-token');
 
-        csrfTokenGenerator(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfTokenGenerator(mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockNext).toHaveBeenCalledWith();
         expect(mockNext).toHaveBeenCalledTimes(1);
@@ -121,16 +103,9 @@ describe('CSRF Middleware', () => {
           throw error;
         });
 
-        csrfTokenGenerator(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfTokenGenerator(mockRequest as Request, mockResponse as Response, mockNext);
 
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to generate CSRF token',
-          { error }
-        );
+        expect(logger.error).toHaveBeenCalledWith('Failed to generate CSRF token', { error });
         expect(mockNext).toHaveBeenCalledWith(error);
       });
 
@@ -139,11 +114,7 @@ describe('CSRF Middleware', () => {
           throw new Error('Generation error');
         });
 
-        csrfTokenGenerator(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfTokenGenerator(mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockResponse.locals?.csrfToken).toBeUndefined();
       });
@@ -153,11 +124,7 @@ describe('CSRF Middleware', () => {
           throw new Error('Generation error');
         });
 
-        csrfTokenGenerator(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfTokenGenerator(mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockResponse.setHeader).not.toHaveBeenCalled();
       });
@@ -170,16 +137,9 @@ describe('CSRF Middleware', () => {
         const generatedToken = 'csrf-token-789';
         mockGenerateToken.mockReturnValue(generatedToken);
 
-        getCsrfToken(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        getCsrfToken(mockRequest as Request, mockResponse as Response, mockNext);
 
-        expect(mockGenerateToken).toHaveBeenCalledWith(
-          mockRequest,
-          mockResponse
-        );
+        expect(mockGenerateToken).toHaveBeenCalledWith(mockRequest, mockResponse);
         expect(mockResponse.json).toHaveBeenCalledWith({
           csrfToken: generatedToken,
         });
@@ -191,11 +151,7 @@ describe('CSRF Middleware', () => {
         const secondToken = 'token-2';
 
         mockGenerateToken.mockReturnValueOnce(firstToken);
-        getCsrfToken(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        getCsrfToken(mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockResponse.json).toHaveBeenCalledWith({
           csrfToken: firstToken,
@@ -204,11 +160,7 @@ describe('CSRF Middleware', () => {
         vi.clearAllMocks();
 
         mockGenerateToken.mockReturnValueOnce(secondToken);
-        getCsrfToken(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        getCsrfToken(mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockResponse.json).toHaveBeenCalledWith({
           csrfToken: secondToken,
@@ -223,16 +175,9 @@ describe('CSRF Middleware', () => {
           throw error;
         });
 
-        getCsrfToken(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        getCsrfToken(mockRequest as Request, mockResponse as Response, mockNext);
 
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to generate CSRF token',
-          { error }
-        );
+        expect(logger.error).toHaveBeenCalledWith('Failed to generate CSRF token', { error });
         expect(mockNext).toHaveBeenCalledWith(error);
       });
 
@@ -241,11 +186,7 @@ describe('CSRF Middleware', () => {
           throw new Error('Generation failed');
         });
 
-        getCsrfToken(
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        getCsrfToken(mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockResponse.json).not.toHaveBeenCalled();
       });
@@ -266,12 +207,7 @@ describe('CSRF Middleware', () => {
           code: 'EBADCSRFTOKEN',
         });
 
-        csrfErrorHandler(
-          error,
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfErrorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -284,12 +220,7 @@ describe('CSRF Middleware', () => {
       it('should handle error with CSRF in message', () => {
         const error = Object.assign(new Error('CSRF token mismatch'), {});
 
-        csrfErrorHandler(
-          error,
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfErrorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -303,33 +234,20 @@ describe('CSRF Middleware', () => {
           code: 'EBADCSRFTOKEN',
         });
 
-        csrfErrorHandler(
-          error,
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfErrorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-        expect(logger.warn).toHaveBeenCalledWith(
-          'CSRF token validation failed',
-          {
-            method: 'POST',
-            path: '/api/test',
-            ip: '127.0.0.1',
-            userAgent: 'test-agent',
-          }
-        );
+        expect(logger.warn).toHaveBeenCalledWith('CSRF token validation failed', {
+          method: 'POST',
+          path: '/api/test',
+          ip: '127.0.0.1',
+          userAgent: 'test-agent',
+        });
       });
 
       it('should handle CSRF keyword in error message', () => {
         const error = Object.assign(new Error('CSRF token invalid'), {});
 
-        csrfErrorHandler(
-          error,
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfErrorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -372,12 +290,7 @@ describe('CSRF Middleware', () => {
       it('should handle error without code or message', () => {
         const error = Object.assign(new Error(), {});
 
-        csrfErrorHandler(
-          error,
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfErrorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(mockNext).toHaveBeenCalledWith(error);
         expect(mockResponse.status).not.toHaveBeenCalled();
@@ -391,12 +304,7 @@ describe('CSRF Middleware', () => {
           code: 'EBADCSRFTOKEN',
         });
 
-        csrfErrorHandler(
-          error,
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfErrorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(logger.warn).toHaveBeenCalledWith(
           'CSRF token validation failed',
@@ -412,12 +320,7 @@ describe('CSRF Middleware', () => {
           code: 'EBADCSRFTOKEN',
         });
 
-        csrfErrorHandler(
-          error,
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfErrorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(logger.warn).toHaveBeenCalledWith(
           'CSRF token validation failed',
@@ -435,12 +338,7 @@ describe('CSRF Middleware', () => {
           code: 'EBADCSRFTOKEN',
         });
 
-        csrfErrorHandler(
-          error,
-          mockRequest as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfErrorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
         expect(logger.warn).toHaveBeenCalledWith(
           'CSRF token validation failed',
@@ -460,12 +358,7 @@ describe('CSRF Middleware', () => {
           code: 'EBADCSRFTOKEN',
         });
 
-        csrfErrorHandler(
-          error,
-          requestWithoutIp as Request,
-          mockResponse as Response,
-          mockNext
-        );
+        csrfErrorHandler(error, requestWithoutIp as Request, mockResponse as Response, mockNext);
 
         expect(logger.warn).toHaveBeenCalledWith(
           'CSRF token validation failed',

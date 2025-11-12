@@ -1,15 +1,20 @@
 import { StatsigContext } from '@statsig/react-bindings';
 import { useContext } from 'react';
-import { KnownConfig, ApplicationSettingsConfig, SystemSettingsConfig, ModerationSettingsConfig } from '../types';
+import {
+  KnownConfig,
+  ApplicationSettingsConfig,
+  SystemSettingsConfig,
+  ModerationSettingsConfig,
+} from '../types';
 
 type ConfigValue<T extends string> =
   T extends typeof import('../types').KNOWN_CONFIGS.APPLICATION_SETTINGS
     ? ApplicationSettingsConfig
     : T extends typeof import('../types').KNOWN_CONFIGS.SYSTEM_SETTINGS
-    ? SystemSettingsConfig
-    : T extends typeof import('../types').KNOWN_CONFIGS.MODERATION_SETTINGS
-    ? ModerationSettingsConfig
-    : Record<string, unknown>;
+      ? SystemSettingsConfig
+      : T extends typeof import('../types').KNOWN_CONFIGS.MODERATION_SETTINGS
+        ? ModerationSettingsConfig
+        : Record<string, unknown>;
 
 /**
  * Hook to get a dynamic configuration value
@@ -32,7 +37,9 @@ export const useDynamicConfig = <T extends KnownConfig | string>(
   const { client } = useContext(StatsigContext);
 
   if (!client) {
-    console.warn(`[useDynamicConfig] Statsig client not initialized, returning null for config: ${configName}`);
+    console.warn(
+      `[useDynamicConfig] Statsig client not initialized, returning null for config: ${configName}`
+    );
     return null;
   }
 
@@ -66,7 +73,9 @@ export const useConfigValue = <T = unknown>(
   const { client } = useContext(StatsigContext);
 
   if (!client) {
-    console.warn(`[useConfigValue] Statsig client not initialized, returning default for ${configName}.${key}`);
+    console.warn(
+      `[useConfigValue] Statsig client not initialized, returning default for ${configName}.${key}`
+    );
     return defaultValue;
   }
 

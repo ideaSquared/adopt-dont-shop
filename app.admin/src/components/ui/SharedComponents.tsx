@@ -1,7 +1,9 @@
 import styled from 'styled-components';
 
 // Shared Badge Component
-export const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }>`
+export const Badge = styled.span<{
+  $variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+}>`
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.75rem;
@@ -10,20 +12,30 @@ export const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 
   font-weight: 600;
   background: ${props => {
     switch (props.$variant) {
-      case 'success': return '#d1fae5';
-      case 'warning': return '#fef3c7';
-      case 'danger': return '#fee2e2';
-      case 'info': return '#dbeafe';
-      default: return '#f3f4f6';
+      case 'success':
+        return '#d1fae5';
+      case 'warning':
+        return '#fef3c7';
+      case 'danger':
+        return '#fee2e2';
+      case 'info':
+        return '#dbeafe';
+      default:
+        return '#f3f4f6';
     }
   }};
   color: ${props => {
     switch (props.$variant) {
-      case 'success': return '#065f46';
-      case 'warning': return '#92400e';
-      case 'danger': return '#991b1b';
-      case 'info': return '#1e40af';
-      default: return '#374151';
+      case 'success':
+        return '#065f46';
+      case 'warning':
+        return '#92400e';
+      case 'danger':
+        return '#991b1b';
+      case 'info':
+        return '#1e40af';
+      default:
+        return '#374151';
     }
   }};
 `;

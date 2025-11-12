@@ -5,7 +5,7 @@ import {
   ProfileCompletionResponse,
   QuickApplicationCapability,
 } from '../types';
-import { api } from './api';
+import { api } from '@/services';
 
 /**
  * Phase 1 - Application Profile Service (Frontend)

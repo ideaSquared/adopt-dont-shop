@@ -76,12 +76,7 @@ const ButtonGroup = styled.div`
   border-top: 1px solid #e5e7eb;
 `;
 
-export const EditUserModal: React.FC<EditUserModalProps> = ({
-  isOpen,
-  onClose,
-  user,
-  onSave,
-}) => {
+export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, onSave }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -96,8 +91,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   useEffect(() => {
     if (user) {
       setFormData({
-        firstName: user.firstName ?? "",
-        lastName: user.lastName ?? "",
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
         email: user.email,
         phoneNumber: user.phoneNumber ?? '',
         userType: user.userType,
@@ -120,8 +115,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       if (formData.firstName !== user.firstName) updates.firstName = formData.firstName;
       if (formData.lastName !== user.lastName) updates.lastName = formData.lastName;
       if (formData.email !== user.email) updates.email = formData.email;
-      if (formData.phoneNumber !== (user.phoneNumber ?? '')) updates.phoneNumber = formData.phoneNumber;
-      if (formData.userType !== user.userType) updates.userType = formData.userType as typeof user.userType;
+      if (formData.phoneNumber !== (user.phoneNumber ?? ''))
+        updates.phoneNumber = formData.phoneNumber;
+      if (formData.userType !== user.userType)
+        updates.userType = formData.userType as typeof user.userType;
       if (formData.status !== user.status) updates.status = formData.status;
 
       if (Object.keys(updates).length === 0) {
@@ -141,88 +138,88 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   if (!user) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit User">
+    <Modal isOpen={isOpen} onClose={onClose} title='Edit User'>
       <Form onSubmit={handleSubmit}>
         {error && <ErrorMessage>{error}</ErrorMessage>}
 
         <FormRow>
           <FormGroup>
-            <Label htmlFor="first_name">First Name</Label>
+            <Label htmlFor='first_name'>First Name</Label>
             <Input
-              id="first_name"
-              type="text"
+              id='first_name'
+              type='text'
               value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              onChange={e => setFormData({ ...formData, firstName: e.target.value })}
               required
             />
           </FormGroup>
 
           <FormGroup>
-            <Label htmlFor="last_name">Last Name</Label>
+            <Label htmlFor='last_name'>Last Name</Label>
             <Input
-              id="last_name"
-              type="text"
+              id='last_name'
+              type='text'
               value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              onChange={e => setFormData({ ...formData, lastName: e.target.value })}
               required
             />
           </FormGroup>
         </FormRow>
 
         <FormGroup>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor='email'>Email</Label>
           <Input
-            id="email"
-            type="email"
+            id='email'
+            type='email'
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            onChange={e => setFormData({ ...formData, email: e.target.value })}
             required
           />
         </FormGroup>
 
         <FormGroup>
-          <Label htmlFor="phone_number">Phone Number</Label>
+          <Label htmlFor='phone_number'>Phone Number</Label>
           <Input
-            id="phone_number"
-            type="tel"
+            id='phone_number'
+            type='tel'
             value={formData.phoneNumber}
-            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+            onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
           />
         </FormGroup>
 
         <FormRow>
           <FormGroup>
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor='role'>Role</Label>
             <Select
-              id="role"
+              id='role'
               value={formData.userType}
-              onChange={(e) => setFormData({ ...formData, userType: e.target.value as UserType })}
+              onChange={e => setFormData({ ...formData, userType: e.target.value as UserType })}
             >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-              <option value="moderator">Moderator</option>
-              <option value="super_admin">Super Admin</option>
+              <option value='user'>User</option>
+              <option value='admin'>Admin</option>
+              <option value='moderator'>Moderator</option>
+              <option value='super_admin'>Super Admin</option>
             </Select>
           </FormGroup>
 
           <FormGroup>
-            <Label htmlFor="is_active">Status</Label>
+            <Label htmlFor='is_active'>Status</Label>
             <Select
-              id="is_active"
-              value={formData.status === "active" ? 'active' : 'suspended'}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as UserStatus })}
+              id='is_active'
+              value={formData.status === 'active' ? 'active' : 'suspended'}
+              onChange={e => setFormData({ ...formData, status: e.target.value as UserStatus })}
             >
-              <option value="active">Active</option>
-              <option value="suspended">Suspended</option>
+              <option value='active'>Active</option>
+              <option value='suspended'>Suspended</option>
             </Select>
           </FormGroup>
         </FormRow>
 
         <ButtonGroup>
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+          <Button type='button' variant='outline' onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type='submit' variant='primary' disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>
         </ButtonGroup>

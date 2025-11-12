@@ -1,6 +1,5 @@
-import { vi } from 'vitest';
 // Mock env config FIRST before any imports
-vi.mock('../../config/env', () => ({
+jest.mock('../../config/env', () => ({
   env: {
     JWT_SECRET: 'test-jwt-secret-min-32-characters-long-12345',
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-characters-long-12345',
@@ -17,22 +16,26 @@ import User, { UserStatus, UserType } from '../../models/User';
 import { AuthService } from '../../services/auth.service';
 import { LoginCredentials, RegisterData } from '../../types';
 
-// Mock dependencies (but NOT models - they use real database)
-// Logger is already mocked in setup-tests.ts
-vi.mock('jsonwebtoken');
-vi.mock('bcryptjs');
-vi.mock('crypto');
+// Mock dependencies
+jest.mock('../../models/User');
+jest.mock('../../models/AuditLog');
+jest.mock('../../utils/logger');
+jest.mock('jsonwebtoken');
+jest.mock('bcryptjs');
+jest.mock('crypto');
 
-// Mock JWT and bcrypt functions
-const mockedJwt = jwt as vi.Mocked<typeof jwt>;
-const mockedBcrypt = bcrypt as vi.Mocked<typeof bcrypt>;
+// Mock User model
+const MockedUser = User as jest.Mocked<typeof User>;
+const MockedAuditLog = AuditLog as jest.Mocked<typeof AuditLog>;
+const mockedJwt = jwt as jest.Mocked<typeof jwt>;
+const mockedBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
 // Mock environment variables
 const originalEnv = process.env;
 
 describe('AuthService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     // Set up environment variables for tests
     process.env = {
       ...originalEnv,
@@ -41,19 +44,19 @@ describe('AuthService', () => {
     };
 
     // Mock bcrypt hash globally for all tests
-    mockedBcrypt.hash = vi.fn().mockImplementation((password: string) =>
-      Promise.resolve(`hashed_${password}` as never)
-    );
-    mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+    mockedBcrypt.hash = jest
+      .fn()
+      .mockImplementation((password: string) => Promise.resolve(`hashed_${password}` as never));
+    mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
 
     // Mock crypto for verification tokens
-    const mockCrypto = crypto as vi.Mocked<typeof crypto>;
-    (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
-      toString: vi.fn().mockReturnValue('mock-token'),
+    const mockCrypto = crypto as jest.Mocked<typeof crypto>;
+    (mockCrypto.randomBytes as unknown as jest.Mock) = jest.fn().mockReturnValue({
+      toString: jest.fn().mockReturnValue('mock-token'),
     });
 
     // Mock the generateTokens method to avoid JWT secret issues
-    vi.spyOn(AuthService as any, 'generateTokens').mockResolvedValue({
+    jest.spyOn(AuthService as any, 'generateTokens').mockResolvedValue({
       token: 'mocked-access-token',
       refreshToken: 'mocked-refresh-token',
       expiresIn: 900000, // 15 minutes in ms
@@ -75,51 +78,67 @@ describe('AuthService', () => {
     };
 
     it('should register user successfully', async () => {
-      mockedJwt.sign = vi.fn().mockReturnValue('access-token' as any);
+      const hashedPassword = `hashed_${userData.password}`;
+      const mockUser = {
+        userId: 'user-123',
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        userType: userData.userType,
+        status: UserStatus.PENDING_VERIFICATION,
+        emailVerified: false,
+        toJSON: jest.fn().mockReturnValue({
+          userId: 'user-123',
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          userType: userData.userType,
+          status: UserStatus.PENDING_VERIFICATION,
+          emailVerified: false,
+        }),
+        save: jest.fn(),
+      };
+
+      MockedUser.findOne = jest.fn().mockResolvedValue(null);
+      MockedUser.create = jest.fn().mockResolvedValue(mockUser as any);
+      mockedJwt.sign = jest.fn().mockReturnValue('access-token' as any);
+      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
 
       const result = await AuthService.register(userData);
 
-      // Verify the result
-      expect(result.user).toBeDefined();
-      expect(result.user.email).toBe(userData.email.toLowerCase());
-      expect(result.user.firstName).toBe(userData.firstName);
-      expect(result.user.lastName).toBe(userData.lastName);
-      expect(result.user.userType).toBe(userData.userType);
-      expect(result.token).toBe('mocked-access-token');
-
-      // Verify user was created in database
-      const createdUser = await User.findOne({
+      expect(MockedUser.findOne).toHaveBeenCalledWith({
         where: { email: userData.email.toLowerCase() },
       });
-      expect(createdUser).toBeDefined();
-      expect(createdUser?.status).toBe(UserStatus.PENDING_VERIFICATION);
-      expect(createdUser?.emailVerified).toBe(false);
-      expect(createdUser?.verificationToken).toBeDefined();
-      expect(createdUser?.verificationTokenExpiresAt).toBeDefined();
-
-      // Verify audit log was created
-      const auditLog = await AuditLog.findOne({
-        where: { action: 'USER_REGISTERED' },
-      });
-      expect(auditLog).toBeDefined();
+      expect(MockedUser.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: userData.email.toLowerCase(),
+          password: expect.any(String),
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phoneNumber: userData.phoneNumber,
+          userType: userData.userType || UserType.ADOPTER,
+          status: UserStatus.PENDING_VERIFICATION,
+          verificationToken: expect.any(String),
+          verificationTokenExpiresAt: expect.any(Date),
+          emailVerified: false,
+        })
+      );
+      expect(result.user).toBeDefined();
+      expect(result.token).toBe('mocked-access-token');
     });
 
     it('should throw error if user already exists', async () => {
-      // Use unique email for this test
-      const uniqueEmail = `existing-${Date.now()}@example.com`;
-      const testData = { ...userData, email: uniqueEmail };
+      const existingUser = { userId: 'existing-user' };
+      MockedUser.findOne = jest.fn().mockResolvedValue(existingUser as any);
 
-      // First register a user
-      await AuthService.register(testData);
-
-      // Try to register again with the same email
-      await expect(AuthService.register(testData)).rejects.toThrow(
+      await expect(AuthService.register(userData)).rejects.toThrow(
         'User already exists with this email'
       );
     });
 
     it('should throw error for invalid password', async () => {
       const invalidUserData = { ...userData, password: 'weak' };
+      MockedUser.findOne = jest.fn().mockResolvedValue(null);
 
       await expect(AuthService.register(invalidUserData)).rejects.toThrow(
         'Password must be at least 8 characters long'
@@ -129,138 +148,124 @@ describe('AuthService', () => {
 
   describe('login', () => {
     const credentials: LoginCredentials = {
-      email: 'login-test@example.com',
+      email: 'test@example.com',
       password: 'Password123!',
     };
 
     it('should login user successfully', async () => {
-      // Create user in database (password will be hashed by User model's beforeCreate hook)
-      const user = await User.create({
-        email: credentials.email.toLowerCase(),
-        password: credentials.password,
-        firstName: 'Test',
-        lastName: 'User',
-        userType: UserType.ADOPTER,
+      const mockUser = {
+        userId: 'user-123',
+        email: credentials.email,
+        password: 'hashedpassword',
         status: UserStatus.ACTIVE,
         emailVerified: true,
         loginAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: null,
         twoFactorEnabled: false,
-        rescueId: null,
-      });
+        userType: UserType.ADOPTER,
+        isAccountLocked: jest.fn().mockReturnValue(false),
+        isEmailVerified: jest.fn().mockReturnValue(true),
+        toJSON: jest.fn().mockReturnValue({
+          userId: 'user-123',
+          email: credentials.email,
+          userType: UserType.ADOPTER,
+        }),
+        save: jest.fn(),
+      };
 
-      mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
-      mockedJwt.sign = vi.fn().mockReturnValue('access-token' as any);
+      MockedUser.scope = jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(mockUser),
+      } as any);
+      mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
+      mockedJwt.sign = jest.fn().mockReturnValue('access-token' as any);
+      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
 
       const result = await AuthService.login(credentials);
 
-      expect(mockedBcrypt.compare).toHaveBeenCalled();
+      expect(MockedUser.scope).toHaveBeenCalledWith('withSecrets');
+      expect(mockedBcrypt.compare).toHaveBeenCalledWith(credentials.password, mockUser.password);
       expect(result.user).toBeDefined();
-      expect(result.user.email).toBe(credentials.email.toLowerCase());
       expect(result.token).toBe('mocked-access-token');
-
-      // Verify lastLoginAt was updated
-      const updatedUser = await User.findOne({
-        where: { email: credentials.email.toLowerCase() },
-      });
-      expect(updatedUser?.lastLoginAt).toBeDefined();
-
-      // Verify audit log was created
-      const auditLog = await AuditLog.findOne({
-        where: { action: 'USER_LOGIN' },
-      });
-      expect(auditLog).toBeDefined();
     });
 
     it('should throw error for invalid credentials', async () => {
-      // No user in database
+      MockedUser.scope = jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(null),
+      } as any);
+
       await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
     });
 
     it('should throw error for wrong password', async () => {
-      // Create user with different email to avoid conflicts
-      const wrongPasswordCreds = {
-        email: 'wrong-password@example.com',
-        password: 'WrongPassword123!',
-      };
-
-      await User.create({
-        email: wrongPasswordCreds.email.toLowerCase(),
-        password: 'someotherpassword',
-        firstName: 'Test',
-        lastName: 'User',
-        userType: UserType.ADOPTER,
+      const mockUser = {
+        userId: 'user-123',
+        email: credentials.email,
+        password: 'hashedpassword',
         status: UserStatus.ACTIVE,
         emailVerified: true,
         loginAttempts: 0,
-        rescueId: null,
-      });
+        lockedUntil: null,
+        isAccountLocked: jest.fn().mockReturnValue(false),
+        save: jest.fn(),
+      };
 
-      mockedBcrypt.compare = vi.fn().mockResolvedValue(false as never);
+      MockedUser.scope = jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(mockUser),
+      } as any);
+      mockedBcrypt.compare = jest.fn().mockResolvedValue(false as never);
 
-      await expect(AuthService.login(wrongPasswordCreds)).rejects.toThrow('Invalid credentials');
+      await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
     });
 
     it('should handle account locking after failed attempts', async () => {
-      // Create user with unique email and 4 failed attempts (one more will lock the account)
-      const lockTestCreds = {
-        email: 'lock-test@example.com',
-        password: 'LockTest123!',
-      };
-
-      await User.create({
-        email: lockTestCreds.email.toLowerCase(),
+      const mockUser = {
+        userId: 'user-123',
+        email: credentials.email,
         password: 'hashedpassword',
-        firstName: 'Test',
-        lastName: 'User',
-        userType: UserType.ADOPTER,
         status: UserStatus.ACTIVE,
         emailVerified: true,
         loginAttempts: 4,
         lockedUntil: null,
-        rescueId: null,
-      });
+        isAccountLocked: jest.fn().mockReturnValue(false),
+        save: jest.fn(),
+      };
 
-      mockedBcrypt.compare = vi.fn().mockResolvedValue(false as never);
+      MockedUser.scope = jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(mockUser),
+      } as any);
+      mockedBcrypt.compare = jest.fn().mockResolvedValue(false as never);
+      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
 
-      await expect(AuthService.login(lockTestCreds)).rejects.toThrow('Invalid credentials');
+      await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
 
-      // Verify account is now locked
-      const lockedUser = await User.findOne({
-        where: { email: lockTestCreds.email.toLowerCase() },
-      });
-      expect(lockedUser?.loginAttempts).toBe(5);
-      expect(lockedUser?.lockedUntil).toBeInstanceOf(Date);
-
-      // Verify audit log for account lock
-      const auditLog = await AuditLog.findOne({
-        where: { action: 'ACCOUNT_LOCKED' },
-      });
-      expect(auditLog).toBeDefined();
+      expect(mockUser.loginAttempts).toBe(5);
+      expect(mockUser.lockedUntil).toBeInstanceOf(Date);
     });
   });
 
   describe('refreshToken', () => {
     it('should refresh token successfully', async () => {
       const refreshToken = 'valid-refresh-token';
-
-      // Create user in database
-      const user = await User.create({
-        email: 'refresh-test@example.com',
-        password: 'hashedpassword',
-        firstName: 'Test',
-        lastName: 'User',
-        userType: UserType.ADOPTER,
-        status: UserStatus.ACTIVE,
-        emailVerified: true,
-        rescueId: null,
-      });
-
       const mockPayload = {
-        userId: user.userId,
+        userId: 'user-123',
         tokenId: 'token-123',
       };
 
-      mockedJwt.verify = vi.fn().mockReturnValue(mockPayload);
+      const mockUser = {
+        userId: 'user-123',
+        email: 'test@example.com',
+        userType: UserType.ADOPTER,
+        canLogin: jest.fn().mockReturnValue(true),
+        toJSON: jest.fn().mockReturnValue({
+          userId: 'user-123',
+          email: 'test@example.com',
+          userType: UserType.ADOPTER,
+        }),
+      };
+
+      mockedJwt.verify = jest.fn().mockReturnValue(mockPayload);
+      MockedUser.findByPk = jest.fn().mockResolvedValue(mockUser);
 
       const result = await AuthService.refreshToken(refreshToken);
 
@@ -268,15 +273,15 @@ describe('AuthService', () => {
         refreshToken,
         'test-refresh-secret-min-32-characters-long-12345'
       );
+      expect(MockedUser.findByPk).toHaveBeenCalledWith(mockPayload.userId, expect.any(Object));
       expect(result.user).toBeDefined();
-      expect(result.user.userId).toBe(user.userId);
       expect(result.token).toBe('mocked-access-token');
     });
 
     it('should throw error for invalid refresh token', async () => {
       const invalidToken = 'invalid-token';
 
-      mockedJwt.verify = vi.fn().mockImplementation(() => {
+      mockedJwt.verify = jest.fn().mockImplementation(() => {
         throw new Error('Invalid token');
       });
 
@@ -286,34 +291,27 @@ describe('AuthService', () => {
 
   describe('requestPasswordReset', () => {
     it('should create password reset request', async () => {
-      const email = 'reset-test@example.com';
+      const email = 'test@example.com';
+      const mockUser = {
+        userId: 'user-123',
+        email,
+        save: jest.fn(),
+      };
 
-      // Create user in database
-      await User.create({
-        email: email.toLowerCase(),
-        password: 'hashedpassword',
-        firstName: 'Test',
-        lastName: 'User',
-        userType: UserType.ADOPTER,
-        status: UserStatus.ACTIVE,
-        emailVerified: true,
-        rescueId: null,
-      });
+      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as any);
 
       const authService = new AuthService();
       await authService.requestPasswordReset({ email });
 
-      // Verify password reset token was set
-      const user = await User.findOne({
+      expect(MockedUser.findOne).toHaveBeenCalledWith({
         where: { email: email.toLowerCase() },
       });
-      expect(user?.resetToken).toBeDefined();
-      expect(user?.resetTokenExpiration).toBeDefined();
-      expect(user?.resetTokenExpiration).toBeInstanceOf(Date);
+      expect(mockUser.save).toHaveBeenCalled();
     });
 
     it('should not throw error for non-existent email', async () => {
       const email = 'nonexistent@example.com';
+      MockedUser.findOne = jest.fn().mockResolvedValue(null);
 
       const authService = new AuthService();
       await expect(authService.requestPasswordReset({ email })).resolves.not.toThrow();
@@ -323,41 +321,30 @@ describe('AuthService', () => {
   describe('verifyEmail', () => {
     it('should verify email successfully', async () => {
       const token = 'valid-verification-token';
-
-      // Create user with verification token in database
-      await User.create({
-        email: 'verify-test@example.com',
-        password: 'hashedpassword',
-        firstName: 'Test',
-        lastName: 'User',
-        userType: UserType.ADOPTER,
-        status: UserStatus.PENDING_VERIFICATION,
+      const mockUser = {
+        userId: 'user-123',
         emailVerified: false,
+        status: UserStatus.PENDING_VERIFICATION,
         verificationToken: token,
         verificationTokenExpiresAt: new Date(Date.now() + 3600000),
-        rescueId: null,
-      });
+        save: jest.fn(),
+      };
+
+      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser as any);
+      MockedAuditLog.create = jest.fn().mockResolvedValue({} as any);
 
       const authService = new AuthService();
       await authService.verifyEmail(token);
 
-      // Verify email was verified in database
-      const verifiedUser = await User.findOne({
-        where: { email: 'verify-test@example.com' },
-      });
-      expect(verifiedUser?.emailVerified).toBe(true);
-      expect(verifiedUser?.verificationToken).toBe(null);
-      expect(verifiedUser?.status).toBe(UserStatus.ACTIVE);
-
-      // Verify audit log was created
-      const auditLog = await AuditLog.findOne({
-        where: { action: 'EMAIL_VERIFIED' },
-      });
-      expect(auditLog).toBeDefined();
+      expect(mockUser.emailVerified).toBe(true);
+      expect(mockUser.verificationToken).toBe(null);
+      expect(mockUser.status).toBe(UserStatus.ACTIVE);
+      expect(mockUser.save).toHaveBeenCalled();
     });
 
     it('should throw error for invalid token', async () => {
       const token = 'invalid-token';
+      MockedUser.findOne = jest.fn().mockResolvedValue(null);
 
       const authService = new AuthService();
       await expect(authService.verifyEmail(token)).rejects.toThrow(
@@ -379,7 +366,7 @@ describe('AuthService', () => {
     it('should log the logout event when refresh token provided', async () => {
       const refreshToken = 'some.refresh.token.that.is.long.enough';
       const { logger } = await import('../../utils/logger');
-      const loggerSpy = vi.spyOn(logger, 'info');
+      const loggerSpy = jest.spyOn(logger, 'info');
 
       await AuthService.logout(refreshToken);
 

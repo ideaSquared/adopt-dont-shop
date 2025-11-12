@@ -33,7 +33,9 @@ const ModalContainer = styled.div`
   border-radius: 16px;
   width: 100%;
   max-width: 550px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 `;
 
 const ModalHeader = styled.div<{ $variant: 'approve' | 'reject' }>`
@@ -42,7 +44,7 @@ const ModalHeader = styled.div<{ $variant: 'approve' | 'reject' }>`
   gap: 1rem;
   padding: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
-  background: ${props => props.$variant === 'approve' ? '#d1fae5' : '#fee2e2'};
+  background: ${props => (props.$variant === 'approve' ? '#d1fae5' : '#fee2e2')};
   border-radius: 16px 16px 0 0;
 `;
 
@@ -54,7 +56,7 @@ const IconWrapper = styled.div<{ $variant: 'approve' | 'reject' }>`
   height: 48px;
   border-radius: 12px;
   background: #ffffff;
-  color: ${props => props.$variant === 'approve' ? '#10b981' : '#ef4444'};
+  color: ${props => (props.$variant === 'approve' ? '#10b981' : '#ef4444')};
 
   svg {
     font-size: 1.5rem;
@@ -225,14 +227,13 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
               {isApproval ? <FiCheckCircle /> : <FiXCircle />}
             </IconWrapper>
             <HeaderContent>
-              <Heading level="h3" style={{ margin: 0 }}>
+              <Heading level='h3' style={{ margin: 0 }}>
                 {isApproval ? 'Approve Rescue' : 'Reject Rescue'}
               </Heading>
               <Text style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
                 {isApproval
                   ? 'Verify this rescue organization for the platform'
-                  : 'Decline this rescue organization application'
-                }
+                  : 'Decline this rescue organization application'}
               </Text>
             </HeaderContent>
           </ModalHeader>
@@ -257,7 +258,9 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
 
             <InfoBox>
               <InfoLabel>Location</InfoLabel>
-              <InfoValue>{rescue.city}, {rescue.state}</InfoValue>
+              <InfoValue>
+                {rescue.city}, {rescue.state}
+              </InfoValue>
             </InfoBox>
 
             {!isApproval && (
@@ -268,8 +271,8 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
                 </Label>
                 <TextArea
                   value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Explain why this rescue is being rejected..."
+                  onChange={e => setRejectionReason(e.target.value)}
+                  placeholder='Explain why this rescue is being rejected...'
                   required={!isApproval}
                   disabled={loading}
                 />
@@ -283,27 +286,18 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
               </Label>
               <TextArea
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any internal notes about this decision..."
+                onChange={e => setNotes(e.target.value)}
+                placeholder='Add any internal notes about this decision...'
                 disabled={loading}
               />
             </FormGroup>
           </ModalBody>
 
           <ModalFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={loading}
-            >
+            <Button type='button' variant='outline' onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant={isApproval ? 'primary' : 'danger'}
-              disabled={loading}
-            >
+            <Button type='submit' variant={isApproval ? 'primary' : 'danger'} disabled={loading}>
               {loading ? 'Processing...' : isApproval ? 'Approve Rescue' : 'Reject Rescue'}
             </Button>
           </ModalFooter>

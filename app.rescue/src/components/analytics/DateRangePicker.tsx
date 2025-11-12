@@ -50,7 +50,7 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   min-width: 320px;
-  display: ${props => props.$isOpen ? 'block' : 'none'};
+  display: ${props => (props.$isOpen ? 'block' : 'none')};
 `;
 
 const PresetsSection = styled.div`
@@ -64,13 +64,13 @@ const PresetButton = styled.button<{ $active: boolean }>`
   padding: 0.625rem 0.75rem;
   text-align: left;
   font-size: 0.875rem;
-  background: ${props => props.$active ? props.theme.colors.primary[50] : 'transparent'};
-  color: ${props => props.$active ? props.theme.colors.primary[700] : props.theme.text.primary};
+  background: ${props => (props.$active ? props.theme.colors.primary[50] : 'transparent')};
+  color: ${props => (props.$active ? props.theme.colors.primary[700] : props.theme.text.primary)};
   border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-weight: ${props => props.$active ? '600' : '400'};
+  font-weight: ${props => (props.$active ? '600' : '400')};
 
   &:hover {
     background: ${props => props.theme.colors.primary[50]};
@@ -206,7 +206,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return `${formatter.format(range.start)} - ${formatter.format(range.end)}`;
   };
 
-  const handlePresetClick = (preset: typeof presets[0]) => {
+  const handlePresetClick = (preset: (typeof presets)[0]) => {
     const newRange = preset.getDates();
     onChange(newRange);
     setActivePreset(preset.label);
@@ -255,7 +255,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
       <Dropdown $isOpen={isOpen}>
         <PresetsSection>
-          {presets.map((preset) => (
+          {presets.map(preset => (
             <PresetButton
               key={preset.label}
               $active={activePreset === preset.label}
@@ -273,7 +273,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
               <DateInput
                 type="date"
                 value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
+                onChange={e => setCustomStart(e.target.value)}
               />
             </DateInputGroup>
 
@@ -282,7 +282,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
               <DateInput
                 type="date"
                 value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
+                onChange={e => setCustomEnd(e.target.value)}
               />
             </DateInputGroup>
           </DateInputs>

@@ -123,20 +123,30 @@ const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 'info' 
   font-weight: 600;
   background: ${props => {
     switch (props.$variant) {
-      case 'success': return '#d1fae5';
-      case 'warning': return '#fef3c7';
-      case 'danger': return '#fee2e2';
-      case 'info': return '#dbeafe';
-      default: return '#f3f4f6';
+      case 'success':
+        return '#d1fae5';
+      case 'warning':
+        return '#fef3c7';
+      case 'danger':
+        return '#fee2e2';
+      case 'info':
+        return '#dbeafe';
+      default:
+        return '#f3f4f6';
     }
   }};
   color: ${props => {
     switch (props.$variant) {
-      case 'success': return '#065f46';
-      case 'warning': return '#92400e';
-      case 'danger': return '#991b1b';
-      case 'info': return '#1e40af';
-      default: return '#374151';
+      case 'success':
+        return '#065f46';
+      case 'warning':
+        return '#92400e';
+      case 'danger':
+        return '#991b1b';
+      case 'info':
+        return '#1e40af';
+      default:
+        return '#374151';
     }
   }};
 `;
@@ -221,8 +231,8 @@ const Users: React.FC = () => {
 
   const { data, isLoading, error, refetch } = useUsers({
     search: searchQuery,
-    userType: userTypeFilter !== 'all' ? userTypeFilter as any : undefined,
-    status: statusFilter !== 'all' ? statusFilter as any : undefined,
+    userType: userTypeFilter !== 'all' ? (userTypeFilter as any) : undefined,
+    status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
     page: 1,
     limit: 20,
   });
@@ -342,23 +352,21 @@ const Users: React.FC = () => {
       <PageContainer>
         <PageHeader>
           <HeaderLeft>
-            <Heading level="h1">User Management</Heading>
+            <Heading level='h1'>User Management</Heading>
           </HeaderLeft>
         </PageHeader>
-        <div style={{
-          background: '#fee2e2',
-          border: '1px solid #fecaca',
-          borderRadius: '12px',
-          padding: '2rem',
-          textAlign: 'center',
-          color: '#991b1b'
-        }}>
-          <p style={{ margin: '0 0 1rem 0', fontWeight: 600 }}>
-            Failed to load users
-          </p>
-          <p style={{ margin: '0', fontSize: '0.875rem' }}>
-            {(error as Error).message}
-          </p>
+        <div
+          style={{
+            background: '#fee2e2',
+            border: '1px solid #fecaca',
+            borderRadius: '12px',
+            padding: '2rem',
+            textAlign: 'center',
+            color: '#991b1b',
+          }}
+        >
+          <p style={{ margin: '0 0 1rem 0', fontWeight: 600 }}>Failed to load users</p>
+          <p style={{ margin: '0', fontSize: '0.875rem' }}>{(error as Error).message}</p>
         </div>
       </PageContainer>
     );
@@ -368,9 +376,12 @@ const Users: React.FC = () => {
 
   // Filter users based on search and filters
   const filteredUsers = (users || []).filter((user: AdminUser) => {
-    const matchesSearch = searchQuery === '' ||
-      user.firstName?.toLowerCase() || "".includes(searchQuery.toLowerCase()) ||
-      user.lastName?.toLowerCase() || "".includes(searchQuery.toLowerCase()) ||
+    const matchesSearch =
+      searchQuery === '' ||
+      user.firstName?.toLowerCase() ||
+      ''.includes(searchQuery.toLowerCase()) ||
+      user.lastName?.toLowerCase() ||
+      ''.includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesUserType = userTypeFilter === 'all' || user.userType === userTypeFilter;
@@ -379,7 +390,10 @@ const Users: React.FC = () => {
     return matchesSearch && matchesUserType && matchesStatus;
   });
 
-  const getUserInitials = (firstName: string | null | undefined, lastName: string | null | undefined) => {
+  const getUserInitials = (
+    firstName: string | null | undefined,
+    lastName: string | null | undefined
+  ) => {
     const firstInitial = firstName?.charAt(0) || '';
     const lastInitial = lastName?.charAt(0) || '';
     return `${firstInitial}${lastInitial}`.toUpperCase() || '??';
@@ -388,26 +402,26 @@ const Users: React.FC = () => {
   const getUserTypeBadge = (userType: string) => {
     switch (userType) {
       case 'admin':
-        return <Badge $variant="danger">Admin</Badge>;
+        return <Badge $variant='danger'>Admin</Badge>;
       case 'moderator':
-        return <Badge $variant="warning">Moderator</Badge>;
+        return <Badge $variant='warning'>Moderator</Badge>;
       case 'rescue_staff':
-        return <Badge $variant="info">Rescue Staff</Badge>;
+        return <Badge $variant='info'>Rescue Staff</Badge>;
       case 'adopter':
-        return <Badge $variant="neutral">Adopter</Badge>;
+        return <Badge $variant='neutral'>Adopter</Badge>;
       default:
-        return <Badge $variant="neutral">{userType}</Badge>;
+        return <Badge $variant='neutral'>{userType}</Badge>;
     }
   };
 
   const getStatusBadge = (status: string, emailVerified: boolean) => {
     if (status === 'suspended') {
-      return <Badge $variant="danger">Suspended</Badge>;
+      return <Badge $variant='danger'>Suspended</Badge>;
     }
     if (status === 'pending' || !emailVerified) {
-      return <Badge $variant="warning">Pending</Badge>;
+      return <Badge $variant='warning'>Pending</Badge>;
     }
-    return <Badge $variant="success">Active</Badge>;
+    return <Badge $variant='success'>Active</Badge>;
   };
 
   const formatDate = (dateString: string) => {
@@ -415,7 +429,7 @@ const Users: React.FC = () => {
     return date.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
@@ -423,66 +437,62 @@ const Users: React.FC = () => {
     {
       id: 'user',
       header: 'User',
-      accessor: (row) => (
+      accessor: row => (
         <UserInfo>
           <UserAvatar>{getUserInitials(row.firstName, row.lastName)}</UserAvatar>
           <UserDetails>
-            <UserName>{row.firstName} {row.lastName}</UserName>
+            <UserName>
+              {row.firstName} {row.lastName}
+            </UserName>
             <UserEmail>{row.email}</UserEmail>
           </UserDetails>
         </UserInfo>
       ),
-      width: '300px'
+      width: '300px',
     },
     {
       id: 'userType',
       header: 'Type',
-      accessor: (row) => getUserTypeBadge(row.userType),
+      accessor: row => getUserTypeBadge(row.userType),
       width: '140px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'status',
       header: 'Status',
-      accessor: (row) => getStatusBadge(row.status, row.emailVerified),
+      accessor: row => getStatusBadge(row.status, row.emailVerified),
       width: '120px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'rescue',
       header: 'Rescue',
-      accessor: (row) => row.rescueName || '-',
-      width: '180px'
+      accessor: row => row.rescueName || '-',
+      width: '180px',
     },
     {
       id: 'createdAt',
       header: 'Joined',
-      accessor: (row) => formatDate(row.createdAt),
+      accessor: row => formatDate(row.createdAt),
       width: '120px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'lastLogin',
       header: 'Last Login',
-      accessor: (row) => row.lastLogin ? formatDate(row.lastLogin) : 'Never',
+      accessor: row => (row.lastLogin ? formatDate(row.lastLogin) : 'Never'),
       width: '120px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'actions',
       header: 'Actions',
-      accessor: (row) => (
-        <ActionButtons onClick={(e) => e.stopPropagation()}>
-          <IconButton
-            title="Edit user"
-            onClick={() => handleEditUser(row)}
-          >
+      accessor: row => (
+        <ActionButtons onClick={e => e.stopPropagation()}>
+          <IconButton title='Edit user' onClick={() => handleEditUser(row)}>
             <FiEdit2 />
           </IconButton>
-          <IconButton
-            title="Send message"
-            onClick={() => handleMessageUser(row)}
-          >
+          <IconButton title='Send message' onClick={() => handleMessageUser(row)}>
             <FiMail />
           </IconButton>
           <UserActionsMenu
@@ -495,23 +505,23 @@ const Users: React.FC = () => {
         </ActionButtons>
       ),
       width: '140px',
-      align: 'center'
-    }
+      align: 'center',
+    },
   ];
 
   return (
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">User Management</Heading>
+          <Heading level='h1'>User Management</Heading>
           <Text>Manage all platform users and permissions</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant="outline" size="md">
+          <Button variant='outline' size='md'>
             <FiFilter style={{ marginRight: '0.5rem' }} />
             Export
           </Button>
-          <Button variant="primary" size="md">
+          <Button variant='primary' size='md'>
             <FiUserPlus style={{ marginRight: '0.5rem' }} />
             Add User
           </Button>
@@ -522,31 +532,31 @@ const Users: React.FC = () => {
         <SearchInputWrapper>
           <FiSearch />
           <Input
-            type="text"
-            placeholder="Search by name or email..."
+            type='text'
+            placeholder='Search by name or email...'
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
           />
         </SearchInputWrapper>
 
         <FilterGroup>
           <FilterLabel>User Type</FilterLabel>
-          <Select value={userTypeFilter} onChange={(e) => setUserTypeFilter(e.target.value)}>
-            <option value="all">All Types</option>
-            <option value="admin">Admin</option>
-            <option value="moderator">Moderator</option>
-            <option value="rescue_staff">Rescue Staff</option>
-            <option value="adopter">Adopter</option>
+          <Select value={userTypeFilter} onChange={e => setUserTypeFilter(e.target.value)}>
+            <option value='all'>All Types</option>
+            <option value='admin'>Admin</option>
+            <option value='moderator'>Moderator</option>
+            <option value='rescue_staff'>Rescue Staff</option>
+            <option value='adopter'>Adopter</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
           <FilterLabel>Status</FilterLabel>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="pending">Pending</option>
-            <option value="suspended">Suspended</option>
+          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value='all'>All Statuses</option>
+            <option value='active'>Active</option>
+            <option value='pending'>Pending</option>
+            <option value='suspended'>Suspended</option>
           </Select>
         </FilterGroup>
       </FilterBar>
@@ -555,9 +565,9 @@ const Users: React.FC = () => {
         columns={columns}
         data={users}
         loading={isLoading}
-        emptyMessage="No users found matching your criteria"
+        emptyMessage='No users found matching your criteria'
         onRowClick={handleRowClick}
-        getRowId={(user) => user.userId}
+        getRowId={user => user.userId}
       />
 
       {/* Modals */}

@@ -15,7 +15,7 @@ import { Stack } from '@/components/layout/Stack'
 </Stack>
 
 // Horizontal stack with custom spacing
-<Stack 
+<Stack
   direction="horizontal"
   spacing="lg"
   align="center"
@@ -42,4 +42,4 @@ import { Stack } from '@/components/layout/Stack'
 - Alignment and justification controls
 - Responsive behavior
 - Accessible markup
-- TypeScript support 
+- TypeScript support

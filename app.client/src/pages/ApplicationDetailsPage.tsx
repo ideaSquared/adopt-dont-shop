@@ -165,12 +165,10 @@ export const ApplicationDetailsPage: React.FC = () => {
 
     setIsWithdrawing(true);
     try {
-      const updatedApplication = await applicationService.withdrawApplication(
-        application.id,
-        reason
-      );
+      await applicationService.withdrawApplication(application.id, reason);
 
-      setApplication(updatedApplication);
+      // Update local state to reflect withdrawn status
+      setApplication({ ...application, status: 'withdrawn' });
       setSuccessMessage('Application withdrawn successfully');
       setIsWithdrawModalOpen(false);
 

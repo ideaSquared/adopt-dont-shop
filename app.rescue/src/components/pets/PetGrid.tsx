@@ -26,17 +26,17 @@ const EmptyState = styled(Card)`
   padding: 3rem;
   text-align: center;
   grid-column: 1 / -1;
-  
+
   .empty-icon {
     font-size: 3rem;
     margin-bottom: 1rem;
   }
-  
+
   h3 {
     margin-bottom: 0.5rem;
     color: ${props => props.theme.text.primary};
   }
-  
+
   p {
     color: ${props => props.theme.text.secondary};
     margin-bottom: 1.5rem;
@@ -93,7 +93,9 @@ const PageButton = styled(Button)<{ active?: boolean }>`
   min-width: 40px;
   height: 40px;
   padding: 0.5rem;
-  ${props => props.active && `
+  ${props =>
+    props.active &&
+    `
     background-color: ${props.theme.colors.primary[600]};
     color: white;
   `}
@@ -224,7 +226,7 @@ const PetGrid: React.FC<PetGridProps> = ({
   return (
     <>
       <GridContainer>
-        {pets.map((pet) => (
+        {pets.map(pet => (
           <PetCard
             key={pet.pet_id}
             pet={pet}
@@ -234,7 +236,7 @@ const PetGrid: React.FC<PetGridProps> = ({
           />
         ))}
       </GridContainer>
-      
+
       {renderPagination()}
     </>
   );

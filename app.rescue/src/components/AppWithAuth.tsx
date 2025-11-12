@@ -10,10 +10,7 @@ interface AppWithAuthProps {
  */
 export const AppWithAuth = ({ children }: AppWithAuthProps) => {
   return (
-    <AuthProvider
-      allowedUserTypes={['rescue_staff']}
-      appType='rescue'
-    >
+    <AuthProvider allowedUserTypes={['rescue_staff']} appType="rescue">
       {children}
     </AuthProvider>
   );

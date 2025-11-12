@@ -13,6 +13,9 @@ export interface ApplicationData {
     city: string;
     state: string;
     zipCode: string;
+    county?: string;
+    postcode?: string;
+    country?: string;
     dateOfBirth?: string;
     occupation?: string;
   };
@@ -203,4 +206,3 @@ export interface PaginatedResponse<T> extends BaseResponse<T[]> {
     hasPrev: boolean;
   };
 }
-

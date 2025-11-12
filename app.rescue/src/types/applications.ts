@@ -1,4 +1,8 @@
-import { ApplicationStatus, ApplicationWithPetInfo } from '@adopt-dont-shop/lib-applications';
+import {
+  ApplicationStatus,
+  ApplicationWithPetInfo,
+  ApplicationPriority,
+} from '@adopt-dont-shop/lib-applications';
 import { ApplicationStage, FinalOutcome } from './applicationStages';
 
 // Timeline Event Types (matching backend enum)
@@ -31,7 +35,7 @@ export enum TimelineEventType {
 export interface ApplicationListItem extends ApplicationWithPetInfo {
   applicantName: string;
   submittedDaysAgo: number;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: ApplicationPriority;
   referencesStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
   homeVisitStatus: 'not_scheduled' | 'scheduled' | 'completed' | 'failed';
 

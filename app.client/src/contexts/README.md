@@ -12,13 +12,8 @@ The notification system provides real-time notifications with context-based stat
 import { useNotifications } from '@/contexts/NotificationContext';
 
 function MyComponent() {
-  const { 
-    unreadCount, 
-    recentNotifications, 
-    markAsRead, 
-    markAllAsRead,
-    isLoading 
-  } = useNotifications();
+  const { unreadCount, recentNotifications, markAsRead, markAllAsRead, isLoading } =
+    useNotifications();
 
   return (
     <div>
@@ -28,9 +23,7 @@ function MyComponent() {
           <h4>{notification.title}</h4>
           <p>{notification.message}</p>
           {!notification.read_at && (
-            <button onClick={() => markAsRead(notification.notification_id)}>
-              Mark as read
-            </button>
+            <button onClick={() => markAsRead(notification.notification_id)}>Mark as read</button>
           )}
         </div>
       ))}
@@ -47,9 +40,7 @@ The `NotificationProvider` is already set up in `App.tsx` and wraps the entire a
 <AuthProvider>
   <NotificationProvider>
     <ChatProvider>
-      <FavoritesProvider>
-        {/* Your app content */}
-      </FavoritesProvider>
+      <FavoritesProvider>{/* Your app content */}</FavoritesProvider>
     </ChatProvider>
   </NotificationProvider>
 </AuthProvider>
@@ -58,20 +49,24 @@ The `NotificationProvider` is already set up in `App.tsx` and wraps the entire a
 ## Features
 
 ### ✅ Real-time Updates
+
 - WebSocket/polling integration
 - Automatic state synchronization
 - Browser notification support
 
 ### ✅ Optimistic Updates
+
 - Instant UI feedback when marking as read
 - Automatic fallback on errors
 
 ### ✅ Centralized State
+
 - Single source of truth for notification data
 - Consistent across all components
 - No duplicate API calls
 
 ### ✅ Enhanced UX
+
 - Visual indicators for unread notifications
 - Smooth animations and transitions
 - Responsive design
@@ -79,11 +74,13 @@ The `NotificationProvider` is already set up in `App.tsx` and wraps the entire a
 ## Components
 
 ### NotificationBell
+
 - Shows unread count badge
 - Quick preview dropdown
 - Integrates with full notification center
 
 ### NotificationCenter (via context)
+
 - Full notification management
 - Filtering and sorting
 - Bulk operations
@@ -91,6 +88,7 @@ The `NotificationProvider` is already set up in `App.tsx` and wraps the entire a
 ## API Integration
 
 The context automatically handles:
+
 - Initial data loading
 - Real-time subscriptions
 - Error handling and retries

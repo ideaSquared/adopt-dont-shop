@@ -173,4 +173,3 @@ export interface ErrorResponse {
   details?: Record<string, unknown>;
   timestamp: string;
 }
-

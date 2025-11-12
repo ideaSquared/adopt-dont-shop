@@ -18,20 +18,21 @@ const Trigger = styled.button<{ $disabled?: boolean }>`
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1rem;
-  background: ${props => props.$disabled
-    ? props.theme.colors.neutral[300]
-    : props.theme.colors.primary[600]};
+  background: ${props =>
+    props.$disabled ? props.theme.colors.neutral[300] : props.theme.colors.primary[600]};
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
-  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+  cursor: ${props => (props.$disabled ? 'not-allowed' : 'pointer')};
   transition: all 0.2s ease;
-  opacity: ${props => props.$disabled ? 0.6 : 1};
+  opacity: ${props => (props.$disabled ? 0.6 : 1)};
 
   &:hover {
-    ${props => !props.$disabled && `
+    ${props =>
+      !props.$disabled &&
+      `
       background: ${props.theme.colors.primary[700]};
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
@@ -39,7 +40,9 @@ const Trigger = styled.button<{ $disabled?: boolean }>`
   }
 
   &:active {
-    ${props => !props.$disabled && `
+    ${props =>
+      !props.$disabled &&
+      `
       transform: translateY(0);
     `}
   }
@@ -55,7 +58,7 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   min-width: 200px;
-  display: ${props => props.$isOpen ? 'block' : 'none'};
+  display: ${props => (props.$isOpen ? 'block' : 'none')};
   padding: 0.5rem;
 `;
 
@@ -70,13 +73,15 @@ const ExportOption = styled.button<{ $loading?: boolean }>`
   border-radius: 6px;
   font-size: 0.875rem;
   color: ${props => props.theme.text.primary};
-  cursor: ${props => props.$loading ? 'wait' : 'pointer'};
+  cursor: ${props => (props.$loading ? 'wait' : 'pointer')};
   transition: all 0.2s ease;
   text-align: left;
-  opacity: ${props => props.$loading ? 0.6 : 1};
+  opacity: ${props => (props.$loading ? 0.6 : 1)};
 
   &:hover {
-    ${props => !props.$loading && `
+    ${props =>
+      !props.$loading &&
+      `
       background: ${props.theme.colors.neutral[100]};
       color: ${props.theme.colors.primary[700]};
     `}

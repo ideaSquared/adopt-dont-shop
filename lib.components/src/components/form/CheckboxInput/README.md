@@ -8,14 +8,14 @@ A checkbox input component with label, validation, and consistent styling across
 import { CheckboxInput } from '@/components/form/CheckboxInput'
 
 // Basic usage
-<CheckboxInput 
+<CheckboxInput
   checked={isChecked}
   onChange={handleChange}
   label="Accept terms and conditions"
 />
 
 // With validation and custom styling
-<CheckboxInput 
+<CheckboxInput
   checked={isChecked}
   onChange={handleChange}
   label="Enable notifications"
@@ -42,4 +42,4 @@ import { CheckboxInput } from '@/components/form/CheckboxInput'
 - Disabled state styling
 - Consistent form styling
 - TypeScript support
-- Touch-friendly design 
+- Touch-friendly design

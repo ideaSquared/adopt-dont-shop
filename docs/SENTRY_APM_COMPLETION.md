@@ -11,6 +11,7 @@
 Application Performance Monitoring (APM) and error tracking have been successfully implemented using Sentry. The implementation provides comprehensive error tracking, performance monitoring, and profiling capabilities for production observability.
 
 **Key Metrics:**
+
 - **Platform:** Sentry (industry-standard APM)
 - **SDK Version:** @sentry/node v8+ (latest)
 - **Features:** Error tracking, performance monitoring, profiling
@@ -25,6 +26,7 @@ Application Performance Monitoring (APM) and error tracking have been successful
 ### 1. Sentry SDK Installation ✅
 
 **Packages Installed:**
+
 ```json
 {
   "dependencies": {
@@ -39,6 +41,7 @@ Application Performance Monitoring (APM) and error tracking have been successful
 **File:** [service.backend/src/config/sentry.ts](service.backend/src/config/sentry.ts)
 
 #### Configuration Features:
+
 ```typescript
 const csrfConfig: DoubleCsrfConfigOptions = {
   dsn: process.env.SENTRY_DSN,
@@ -80,6 +83,7 @@ const csrfConfig: DoubleCsrfConfigOptions = {
 **File:** [service.backend/src/index.ts](service.backend/src/index.ts)
 
 #### Initialization (Lines 1-3):
+
 ```typescript
 // Initialize Sentry FIRST - must be before any other imports
 import { initializeSentry, Sentry } from './config/sentry';
@@ -89,6 +93,7 @@ initializeSentry();
 **Critical:** Sentry must be initialized before any other imports to properly instrument all modules.
 
 #### Error Handler Integration (Line 347):
+
 ```typescript
 // Apply error handler middleware
 // Order: CSRF errors -> Sentry errors -> general errors
@@ -107,6 +112,7 @@ SENTRY_DSN=your-sentry-dsn-url
 ```
 
 **Optional Environment Variables:**
+
 - `SENTRY_RELEASE` - Release version for tracking
 - `HOSTNAME` - Server identifier
 
@@ -117,12 +123,14 @@ SENTRY_DSN=your-sentry-dsn-url
 ### 1. Error Tracking ✅
 
 **Automatic Error Capture:**
+
 - All uncaught exceptions
 - Unhandled promise rejections
 - Express route errors
 - Middleware errors
 
 **Error Context:**
+
 - Request details (URL, method, headers)
 - User information (if authenticated)
 - Server environment
@@ -130,6 +138,7 @@ SENTRY_DSN=your-sentry-dsn-url
 - Breadcrumbs (event trail)
 
 **Example Captured Error:**
+
 ```typescript
 try {
   await someDatabaseOperation();
@@ -142,42 +151,49 @@ try {
 ### 2. Performance Monitoring ✅
 
 **Automatic Transaction Tracking:**
+
 - HTTP requests (all routes)
 - Database queries
 - External API calls
 - Custom operations
 
 **Metrics Collected:**
+
 - Response times
 - Throughput (requests/second)
 - Error rates
 - Apdex scores
 
 **Trace Sampling:**
+
 - Development: 100% of transactions
 - Production: 10% of transactions (configurable)
 
 ### 3. Performance Profiling ✅
 
 **CPU Profiling:**
+
 - Function-level performance data
 - Call stacks
 - Time spent in each function
 - Bottleneck identification
 
 **Profile Sampling:**
+
 - Development: 100% of profiles
 - Production: 10% of profiles (configurable)
 
 ### 4. Express Integration ✅
 
 **Automatic Instrumentation:**
+
 - All Express routes
 - Middleware execution
 - Request/response cycles
 - Error propagation
 
 **No Code Changes Required:**
+
 - Routes automatically tracked
 - Errors automatically captured
 - Performance automatically monitored
@@ -189,12 +205,14 @@ try {
 ### Error Tracking
 
 **Issue Grouping:**
+
 - Similar errors grouped together
 - Frequency tracking
 - First/last seen timestamps
 - Affected users count
 
 **Issue Details:**
+
 - Full stack trace
 - Request context
 - User context
@@ -204,12 +222,14 @@ try {
 ### Performance Monitoring
 
 **Transaction Summary:**
+
 - P50, P75, P95, P99 percentiles
 - Throughput graphs
 - Error rate trends
 - Slowest transactions
 
 **Transaction Details:**
+
 - Waterfall view
 - Span breakdown
 - Database query times
@@ -218,6 +238,7 @@ try {
 ### Profiling
 
 **Flame Graphs:**
+
 - Visual function call hierarchy
 - CPU time distribution
 - Bottleneck identification
@@ -248,16 +269,19 @@ HOSTNAME=server-01
 ### 3. Configure Sample Rates
 
 **Default (Recommended):**
+
 - Production: 10% trace/profile sampling
 - Saves costs while maintaining visibility
 
 **High-Traffic Adjustment:**
+
 ```typescript
 tracesSampleRate: environment === 'production' ? 0.01 : 1.0,  // 1%
 profilesSampleRate: environment === 'production' ? 0.01 : 1.0, // 1%
 ```
 
 **Low-Traffic:**
+
 ```typescript
 tracesSampleRate: environment === 'production' ? 0.5 : 1.0,  // 50%
 profilesSampleRate: environment === 'production' ? 0.5 : 1.0, // 50%
@@ -266,12 +290,14 @@ profilesSampleRate: environment === 'production' ? 0.5 : 1.0, // 50%
 ### 4. Set Up Alerts
 
 **Recommended Alerts:**
+
 1. **Error Rate:** Spike in errors
 2. **Response Time:** P95 > threshold
 3. **New Issues:** First occurrence of new error
 4. **Regression:** Performance degradation
 
 **Alert Channels:**
+
 - Email
 - Slack
 - PagerDuty
@@ -280,6 +306,7 @@ profilesSampleRate: environment === 'production' ? 0.5 : 1.0, // 50%
 ### 5. Release Tracking
 
 **With CI/CD:**
+
 ```bash
 # In deployment script
 export SENTRY_RELEASE=$(git rev-parse HEAD)
@@ -288,6 +315,7 @@ npm run deploy
 ```
 
 **Benefits:**
+
 - Track errors by release
 - Identify problematic deploys
 - Compare performance across releases
@@ -299,12 +327,14 @@ npm run deploy
 ### 1. Data Scrubbing ✅
 
 **Automatic Scrubbing:**
+
 - Sentry automatically scrubs sensitive data
 - Password fields
 - Credit card numbers
 - Authentication tokens
 
 **Custom Scrubbing:**
+
 ```typescript
 beforeSend(event) {
   // Remove sensitive headers
@@ -319,6 +349,7 @@ beforeSend(event) {
 ### 2. Error Filtering ✅
 
 **Implemented Filters:**
+
 ```typescript
 beforeSend(event, hint) {
   const error = hint.originalException;
@@ -335,6 +366,7 @@ beforeSend(event, hint) {
 ### 3. Data Retention
 
 **Sentry Retention:**
+
 - Free tier: 30 days
 - Paid tier: 90 days (configurable)
 - GDPR compliant
@@ -346,13 +378,15 @@ beforeSend(event, hint) {
 ### Sample Rate Strategy
 
 **Current Configuration:**
+
 ```typescript
 // 10% sampling in production
-tracesSampleRate: 0.1
-profilesSampleRate: 0.1
+tracesSampleRate: 0.1;
+profilesSampleRate: 0.1;
 ```
 
 **Monthly Volume Estimate:**
+
 - 100,000 requests/month
 - 10% sampled = 10,000 transactions
 - Well within free tier (100K events)
@@ -360,6 +394,7 @@ profilesSampleRate: 0.1
 ### Scaling Considerations
 
 **High Traffic (1M+ requests/month):**
+
 - Reduce to 1-5% sampling
 - Use dynamic sampling
 - Enable session replay only for errors
@@ -371,11 +406,13 @@ profilesSampleRate: 0.1
 ### 1. Regular Review ✅
 
 **Weekly:**
+
 - Review new issues
 - Check error trends
 - Identify performance regressions
 
 **Monthly:**
+
 - Review alert thresholds
 - Analyze performance trends
 - Update sample rates if needed
@@ -383,6 +420,7 @@ profilesSampleRate: 0.1
 ### 2. Issue Triage ✅
 
 **Priority Levels:**
+
 1. **Critical:** Breaks core functionality
 2. **High:** Affects many users
 3. **Medium:** Edge cases, minor issues
@@ -391,6 +429,7 @@ profilesSampleRate: 0.1
 ### 3. Performance Baselines ✅
 
 **Establish Baselines:**
+
 - P95 response time: < 500ms
 - Error rate: < 1%
 - Apdex score: > 0.9
@@ -402,6 +441,7 @@ profilesSampleRate: 0.1
 ### Sentry Not Capturing Errors
 
 **Check:**
+
 1. SENTRY_DSN is set correctly
 2. Sentry initialized before other imports
 3. Not running in test environment
@@ -410,6 +450,7 @@ profilesSampleRate: 0.1
 ### No Performance Data
 
 **Check:**
+
 1. tracesSampleRate > 0
 2. Request reaching error handler
 3. Sentry middleware properly configured
@@ -417,6 +458,7 @@ profilesSampleRate: 0.1
 ### High Event Volume
 
 **Solutions:**
+
 1. Reduce sample rates
 2. Add more filters to beforeSend
 3. Filter noisy errors (404s, etc.)
@@ -504,15 +546,15 @@ const response = await fetch(externalAPI);
 
 ## Impact Summary
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| Error Visibility | Console logs only | Centralized dashboard |
-| Performance Monitoring | None | Full APM |
-| Profiling | None | CPU profiling |
-| Error Context | Limited | Complete (request, user, trace) |
-| Alerting | Manual checking | Automated alerts |
-| Debugging | Local logs | Production traces |
-| Release Tracking | None | Per-release metrics |
+| Aspect                 | Before            | After                           |
+| ---------------------- | ----------------- | ------------------------------- |
+| Error Visibility       | Console logs only | Centralized dashboard           |
+| Performance Monitoring | None              | Full APM                        |
+| Profiling              | None              | CPU profiling                   |
+| Error Context          | Limited           | Complete (request, user, trace) |
+| Alerting               | Manual checking   | Automated alerts                |
+| Debugging              | Local logs        | Production traces               |
+| Release Tracking       | None              | Per-release metrics             |
 
 ---
 
@@ -521,6 +563,7 @@ const response = await fetch(externalAPI);
 ### 1. Source Maps
 
 Upload source maps for better stack traces:
+
 ```bash
 npm install @sentry/cli
 sentry-cli sourcemaps upload --org=org --project=project ./dist
@@ -529,6 +572,7 @@ sentry-cli sourcemaps upload --org=org --project=project ./dist
 ### 2. User Feedback
 
 Collect user feedback on errors:
+
 ```typescript
 Sentry.showReportDialog({
   eventId: lastEventId,
@@ -539,6 +583,7 @@ Sentry.showReportDialog({
 ### 3. Custom Instrumentation
 
 Add custom performance tracking:
+
 ```typescript
 const transaction = Sentry.startTransaction({
   name: 'processLargeDataset',
@@ -553,6 +598,7 @@ transaction.finish();
 ### 4. Session Replay
 
 Enable session replay for error reproduction:
+
 ```typescript
 integrations: [
   Sentry.replayIntegration({
@@ -580,6 +626,7 @@ Sentry APM and error tracking is now fully implemented and production-ready:
 This work directly addresses **DB-9** from the Production Readiness Plan, completing another critical deployment blocker and providing essential production observability.
 
 **Status Update for PRODUCTION_READINESS_PLAN.md:**
+
 - ✅ DB-9: APM (Sentry) Not Configured - COMPLETED
 
 **Progress:** 7/10 Deployment Blockers Resolved (70%)

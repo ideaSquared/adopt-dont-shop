@@ -225,18 +225,14 @@ describe('Security Headers', () => {
 
   describe('CORS Headers', () => {
     it('should set appropriate CORS headers', async () => {
-      const response = await request(app)
-        .get('/test')
-        .set('Origin', 'http://localhost:3000');
+      const response = await request(app).get('/test').set('Origin', 'http://localhost:3000');
 
       // CORS headers should be present
       expect(response.headers['access-control-allow-origin']).toBeDefined();
     });
 
     it('should allow credentials when configured', async () => {
-      const response = await request(app)
-        .get('/test')
-        .set('Origin', 'http://localhost:3000');
+      const response = await request(app).get('/test').set('Origin', 'http://localhost:3000');
 
       expect(response.headers['access-control-allow-credentials']).toBe('true');
     });

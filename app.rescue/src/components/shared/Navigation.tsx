@@ -7,7 +7,11 @@ const MainNavigation = styled.nav`
   width: 280px;
   min-width: 280px;
   height: 100vh;
-  background: linear-gradient(180deg, ${props => props.theme.colors.primary[600]} 0%, ${props => props.theme.colors.primary[800]} 100%);
+  background: linear-gradient(
+    180deg,
+    ${props => props.theme.colors.primary[600]} 0%,
+    ${props => props.theme.colors.primary[800]} 100%
+  );
   color: white;
   display: flex;
   flex-direction: column;
@@ -53,7 +57,9 @@ const NavLink = styled(Link)<{ $isActive: boolean }>`
     color: white;
   }
 
-  ${props => props.$isActive && `
+  ${props =>
+    props.$isActive &&
+    `
     background-color: rgba(255, 255, 255, 0.15);
     color: white;
     font-weight: 600;
@@ -178,14 +184,11 @@ const Navigation: React.FC = () => {
       <NavHeader>
         <h2>🏠 Rescue Portal</h2>
       </NavHeader>
-      
+
       <NavList>
-        {navItems.map((item) => (
+        {navItems.map(item => (
           <NavItem key={item.path}>
-            <NavLink
-              to={item.path}
-              $isActive={location.pathname === item.path}
-            >
+            <NavLink to={item.path} $isActive={location.pathname === item.path}>
               <NavIcon>{item.icon}</NavIcon>
               <NavLabel>{item.label}</NavLabel>
             </NavLink>
@@ -195,22 +198,15 @@ const Navigation: React.FC = () => {
 
       <NavFooter>
         <UserInfo>
-          <UserAvatar>
-            {getUserInitials(user?.firstName, user?.lastName)}
-          </UserAvatar>
+          <UserAvatar>{getUserInitials(user?.firstName, user?.lastName)}</UserAvatar>
           <UserDetails>
             <UserName>
               {user?.firstName} {user?.lastName}
             </UserName>
-            <UserRole>
-              {formatUserRole(user?.userType)}
-            </UserRole>
+            <UserRole>{formatUserRole(user?.userType)}</UserRole>
           </UserDetails>
         </UserInfo>
-        <LogoutButton 
-          onClick={handleLogout}
-          disabled={isLoading}
-        >
+        <LogoutButton onClick={handleLogout} disabled={isLoading}>
           {isLoading ? 'Signing Out...' : 'Sign Out'}
         </LogoutButton>
       </NavFooter>

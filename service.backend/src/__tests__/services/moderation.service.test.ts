@@ -1,47 +1,44 @@
-import { vi } from 'vitest';
+// Mock sequelize first
+const mockTransaction = {
+  commit: jest.fn().mockResolvedValue(undefined),
+  rollback: jest.fn().mockResolvedValue(undefined),
+};
 
-// Mock sequelize first - use importOriginal to preserve helper functions
-vi.mock('../../sequelize', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../sequelize')>();
-  const originalSequelize = actual.default;
+const mockSequelize = {
+  transaction: jest.fn().mockResolvedValue(mockTransaction),
+};
 
-  const mockTransaction = {
-    commit: vi.fn().mockResolvedValue(undefined),
-    rollback: vi.fn().mockResolvedValue(undefined),
-  };
-
-  // Mock transaction method but keep everything else
-  originalSequelize.transaction = vi.fn().mockResolvedValue(mockTransaction);
-
-  return {
-    ...actual,
-    default: originalSequelize,
-  };
-});
+jest.mock('../../sequelize', () => ({
+  __esModule: true,
+  default: mockSequelize,
+}));
 
 // Mock models
-vi.mock('../../models/Report');
-vi.mock('../../models/ModeratorAction');
-vi.mock('../../models/User');
-vi.mock('../../models/Pet');
-vi.mock('../../models/Rescue');
+jest.mock('../../models/Report');
+jest.mock('../../models/ModeratorAction');
+jest.mock('../../models/User');
+jest.mock('../../models/Pet');
+jest.mock('../../models/Rescue');
 
 // Mock audit log service
-vi.mock('../../services/auditLog.service', () => ({
+const mockAuditLogAction = jest.fn().mockResolvedValue(undefined);
+jest.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
-    log: vi.fn().mockResolvedValue(undefined),
+    log: mockAuditLogAction,
   },
 }));
 
 // Mock logger
-vi.mock('../../utils/logger', () => ({
+const mockLogger = {
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+};
+
+jest.mock('../../utils/logger', () => ({
   __esModule: true,
-  default: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  },
+  default: mockLogger,
 }));
 
 import Report, { ReportStatus, ReportCategory, ReportSeverity } from '../../models/Report';
@@ -50,20 +47,16 @@ import User from '../../models/User';
 import Pet from '../../models/Pet';
 import Rescue from '../../models/Rescue';
 import moderationService from '../../services/moderation.service';
-import { AuditLogService } from '../../services/auditLog.service';
-import logger from '../../utils/logger';
 
-const MockedReport = Report as vi.Mocked<typeof Report>;
-const MockedModeratorAction = ModeratorAction as vi.Mocked<typeof ModeratorAction>;
-const MockedUser = User as vi.Mocked<typeof User>;
-const MockedPet = Pet as vi.Mocked<typeof Pet>;
-const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
-const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
-const mockLogger = logger as vi.Mocked<typeof logger>;
+const MockedReport = Report as jest.Mocked<typeof Report>;
+const MockedModeratorAction = ModeratorAction as jest.Mocked<typeof ModeratorAction>;
+const MockedUser = User as jest.Mocked<typeof User>;
+const MockedPet = Pet as jest.Mocked<typeof Pet>;
+const MockedRescue = Rescue as jest.Mocked<typeof Rescue>;
 
 describe('ModerationService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('Report Management', () => {
@@ -96,8 +89,8 @@ describe('ModerationService', () => {
           createdAt: new Date(),
         };
 
-        (MockedReport.findOne as vi.Mock).mockResolvedValue(null); // No duplicate
-        (MockedReport.create as vi.Mock).mockResolvedValue(mockReport);
+        (MockedReport.findOne as jest.Mock).mockResolvedValue(null); // No duplicate
+        (MockedReport.create as jest.Mock).mockResolvedValue(mockReport);
 
         const result = await moderationService.submitReport(reporterId, reportData);
 
@@ -152,11 +145,11 @@ describe('ModerationService', () => {
           status: ReportStatus.PENDING,
         };
 
-        (MockedReport.findOne as vi.Mock).mockResolvedValue(existingReport);
+        (MockedReport.findOne as jest.Mock).mockResolvedValue(existingReport);
 
-        await expect(
-          moderationService.submitReport(reporterId, reportData)
-        ).rejects.toThrow('You have already submitted a report for this content');
+        await expect(moderationService.submitReport(reporterId, reportData)).rejects.toThrow(
+          'You have already submitted a report for this content'
+        );
 
         expect(MockedReport.create).not.toHaveBeenCalled();
       });
@@ -171,8 +164,8 @@ describe('ModerationService', () => {
           description: 'Pet description is misleading',
         };
 
-        (MockedReport.findOne as vi.Mock).mockResolvedValue(null);
-        (MockedReport.create as vi.Mock).mockResolvedValue({
+        (MockedReport.findOne as jest.Mock).mockResolvedValue(null);
+        (MockedReport.create as jest.Mock).mockResolvedValue({
           reportId: 'report-123',
           ...reportData,
           severity: ReportSeverity.MEDIUM,
@@ -213,7 +206,7 @@ describe('ModerationService', () => {
           },
         ];
 
-        (MockedReport.findAndCountAll as vi.Mock).mockResolvedValue({
+        (MockedReport.findAndCountAll as jest.Mock).mockResolvedValue({
           rows: mockReports,
           count: 2,
         });
@@ -240,7 +233,7 @@ describe('ModerationService', () => {
           severity: ReportSeverity.HIGH,
         };
 
-        (MockedReport.findAndCountAll as vi.Mock).mockResolvedValue({
+        (MockedReport.findAndCountAll as jest.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -261,7 +254,7 @@ describe('ModerationService', () => {
           assignedModerator: 'moderator-123',
         };
 
-        (MockedReport.findAndCountAll as vi.Mock).mockResolvedValue({
+        (MockedReport.findAndCountAll as jest.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -294,7 +287,7 @@ describe('ModerationService', () => {
           ],
         };
 
-        (MockedReport.findByPk as vi.Mock).mockResolvedValue(mockReport);
+        (MockedReport.findByPk as jest.Mock).mockResolvedValue(mockReport);
 
         const result = await moderationService.getReportById(reportId, true);
 
@@ -305,7 +298,7 @@ describe('ModerationService', () => {
       });
 
       it('should return null when report not found', async () => {
-        (MockedReport.findByPk as vi.Mock).mockResolvedValue(null);
+        (MockedReport.findByPk as jest.Mock).mockResolvedValue(null);
 
         const result = await moderationService.getReportById('nonexistent', false);
 
@@ -322,10 +315,10 @@ describe('ModerationService', () => {
         const mockReport = {
           reportId,
           status: ReportStatus.PENDING,
-          update: vi.fn().mockResolvedValue(undefined),
+          update: jest.fn().mockResolvedValue(undefined),
         };
 
-        (MockedReport.findByPk as vi.Mock).mockResolvedValue(mockReport);
+        (MockedReport.findByPk as jest.Mock).mockResolvedValue(mockReport);
 
         const result = await moderationService.assignReport(reportId, moderatorId, assignedBy);
 
@@ -349,7 +342,7 @@ describe('ModerationService', () => {
       });
 
       it('should throw error when report not found', async () => {
-        (MockedReport.findByPk as vi.Mock).mockResolvedValue(null);
+        (MockedReport.findByPk as jest.Mock).mockResolvedValue(null);
 
         await expect(
           moderationService.assignReport('nonexistent', 'mod-123', 'admin-456')
@@ -382,7 +375,7 @@ describe('ModerationService', () => {
           createdAt: new Date(),
         };
 
-        (MockedModeratorAction.create as vi.Mock).mockResolvedValue(mockAction);
+        (MockedModeratorAction.create as jest.Mock).mockResolvedValue(mockAction);
 
         const result = await moderationService.takeModerationAction(moderatorId, actionRequest);
 
@@ -420,7 +413,7 @@ describe('ModerationService', () => {
           duration: 7, // 7 days
         };
 
-        (MockedModeratorAction.create as vi.Mock).mockResolvedValue({
+        (MockedModeratorAction.create as jest.Mock).mockResolvedValue({
           actionId: 'action-123',
           ...actionRequest,
         });
@@ -446,7 +439,7 @@ describe('ModerationService', () => {
           reason: 'Severe policy violation',
         };
 
-        (MockedModeratorAction.create as vi.Mock).mockResolvedValue({
+        (MockedModeratorAction.create as jest.Mock).mockResolvedValue({
           actionId: 'action-123',
           ...actionRequest,
         });
@@ -472,11 +465,11 @@ describe('ModerationService', () => {
         const mockAction = {
           actionId,
           isActive: true,
-          canBeReversed: vi.fn().mockReturnValue(true),
-          update: vi.fn().mockResolvedValue(undefined),
+          canBeReversed: jest.fn().mockReturnValue(true),
+          update: jest.fn().mockResolvedValue(undefined),
         };
 
-        (MockedModeratorAction.findByPk as vi.Mock).mockResolvedValue(mockAction);
+        (MockedModeratorAction.findByPk as jest.Mock).mockResolvedValue(mockAction);
 
         const result = await moderationService.reverseAction(actionId, moderatorId, reason);
 
@@ -502,7 +495,7 @@ describe('ModerationService', () => {
       });
 
       it('should throw error when action not found', async () => {
-        (MockedModeratorAction.findByPk as vi.Mock).mockResolvedValue(null);
+        (MockedModeratorAction.findByPk as jest.Mock).mockResolvedValue(null);
 
         await expect(
           moderationService.reverseAction('nonexistent', 'mod-123', 'reason')
@@ -513,10 +506,10 @@ describe('ModerationService', () => {
         const mockAction = {
           actionId: 'action-123',
           isActive: false,
-          canBeReversed: vi.fn().mockReturnValue(false),
+          canBeReversed: jest.fn().mockReturnValue(false),
         };
 
-        (MockedModeratorAction.findByPk as vi.Mock).mockResolvedValue(mockAction);
+        (MockedModeratorAction.findByPk as jest.Mock).mockResolvedValue(mockAction);
 
         await expect(
           moderationService.reverseAction('action-123', 'mod-456', 'reason')
@@ -551,7 +544,7 @@ describe('ModerationService', () => {
         ];
 
         // Mock both findAll calls - first for never-expiring, second for future-expiring
-        (MockedModeratorAction.findAll as vi.Mock)
+        (MockedModeratorAction.findAll as jest.Mock)
           .mockResolvedValueOnce(neverExpiringActions)
           .mockResolvedValueOnce(futureExpiringActions);
 
@@ -566,7 +559,7 @@ describe('ModerationService', () => {
 
     describe('when expiring actions', () => {
       it('should mark expired actions as inactive', async () => {
-        (MockedModeratorAction.update as vi.Mock).mockResolvedValue([2]); // 2 rows updated
+        (MockedModeratorAction.update as jest.Mock).mockResolvedValue([2]); // 2 rows updated
 
         const count = await moderationService.expireActions();
 
@@ -582,7 +575,7 @@ describe('ModerationService', () => {
       });
 
       it('should return zero when no actions to expire', async () => {
-        (MockedModeratorAction.update as vi.Mock).mockResolvedValue([0]); // 0 rows updated
+        (MockedModeratorAction.update as jest.Mock).mockResolvedValue([0]); // 0 rows updated
 
         const count = await moderationService.expireActions();
 
@@ -595,20 +588,20 @@ describe('ModerationService', () => {
     describe('when getting moderation metrics', () => {
       it('should return comprehensive metrics', async () => {
         // Mock Report.findAll for grouped counts
-        (MockedReport.findAll as vi.Mock).mockResolvedValueOnce([
+        (MockedReport.findAll as jest.Mock).mockResolvedValueOnce([
           { status: 'pending', category: 'spam', severity: 'low', count: '10' },
           { status: 'under_review', category: 'spam', severity: 'medium', count: '15' },
           { status: 'resolved', category: 'harassment', severity: 'high', count: '5' },
         ]);
 
         // Mock ModeratorAction.findAll for grouped counts
-        (MockedModeratorAction.findAll as vi.Mock).mockResolvedValueOnce([
+        (MockedModeratorAction.findAll as jest.Mock).mockResolvedValueOnce([
           { actionType: 'warning_issued', isActive: true, count: '20' },
           { actionType: 'user_suspended', isActive: true, count: '10' },
         ]);
 
         // Mock response time calculations
-        (MockedReport.findAll as vi.Mock)
+        (MockedReport.findAll as jest.Mock)
           .mockResolvedValueOnce([]) // assignedAt data
           .mockResolvedValueOnce([]); // resolvedAt data
 
@@ -628,13 +621,13 @@ describe('ModerationService', () => {
         };
 
         // Mock Report.findAll
-        (MockedReport.findAll as vi.Mock)
+        (MockedReport.findAll as jest.Mock)
           .mockResolvedValueOnce([]) // grouped counts
           .mockResolvedValueOnce([]) // assignedAt
           .mockResolvedValueOnce([]); // resolvedAt
 
         // Mock ModeratorAction.findAll
-        (MockedModeratorAction.findAll as vi.Mock).mockResolvedValueOnce([]);
+        (MockedModeratorAction.findAll as jest.Mock).mockResolvedValueOnce([]);
 
         await moderationService.getModerationMetrics(dateRange);
 
@@ -661,12 +654,17 @@ describe('ModerationService', () => {
           reportId,
           severity: ReportSeverity.MEDIUM,
           status: ReportStatus.UNDER_REVIEW,
-          update: vi.fn().mockResolvedValue(undefined),
+          update: jest.fn().mockResolvedValue(undefined),
         };
 
-        (MockedReport.findByPk as vi.Mock).mockResolvedValue(mockReport);
+        (MockedReport.findByPk as jest.Mock).mockResolvedValue(mockReport);
 
-        const result = await moderationService.escalateReport(reportId, escalatedTo, escalatedBy, reason);
+        const result = await moderationService.escalateReport(
+          reportId,
+          escalatedTo,
+          escalatedBy,
+          reason
+        );
 
         expect(mockReport.update).toHaveBeenCalledWith(
           {
@@ -690,7 +688,7 @@ describe('ModerationService', () => {
       });
 
       it('should throw error when report not found', async () => {
-        (MockedReport.findByPk as vi.Mock).mockResolvedValue(null);
+        (MockedReport.findByPk as jest.Mock).mockResolvedValue(null);
 
         await expect(
           moderationService.escalateReport('nonexistent', 'senior-mod-789', 'mod-123', 'reason')
@@ -707,10 +705,10 @@ describe('ModerationService', () => {
         const mockReports = reportIds.map(id => ({
           reportId: id,
           status: ReportStatus.UNDER_REVIEW,
-          update: vi.fn().mockResolvedValue(undefined),
+          update: jest.fn().mockResolvedValue(undefined),
         }));
 
-        (MockedReport.findByPk as vi.Mock)
+        (MockedReport.findByPk as jest.Mock)
           .mockResolvedValueOnce(mockReports[0])
           .mockResolvedValueOnce(mockReports[1])
           .mockResolvedValueOnce(mockReports[2]);
@@ -737,11 +735,11 @@ describe('ModerationService', () => {
       it('should throw error if report not found', async () => {
         const reportIds = ['report-1', 'report-2'];
 
-        (MockedReport.findByPk as vi.Mock)
+        (MockedReport.findByPk as jest.Mock)
           .mockResolvedValueOnce({
             reportId: 'report-1',
             status: ReportStatus.UNDER_REVIEW,
-            update: vi.fn().mockResolvedValue(undefined),
+            update: jest.fn().mockResolvedValue(undefined),
           })
           .mockResolvedValueOnce(null); // Second report not found
 
@@ -758,9 +756,7 @@ describe('ModerationService', () => {
 
   describe('Error Handling', () => {
     it('should handle database errors when creating report', async () => {
-      (MockedReport.findOne as vi.Mock).mockRejectedValue(
-        new Error('Database connection error')
-      );
+      (MockedReport.findOne as jest.Mock).mockRejectedValue(new Error('Database connection error'));
 
       await expect(
         moderationService.submitReport('user-123', {
@@ -776,7 +772,7 @@ describe('ModerationService', () => {
     });
 
     it('should handle errors when taking moderation action', async () => {
-      (MockedModeratorAction.create as vi.Mock).mockRejectedValue(
+      (MockedModeratorAction.create as jest.Mock).mockRejectedValue(
         new Error('Failed to create action')
       );
 

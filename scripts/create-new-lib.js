@@ -53,7 +53,7 @@ function writeFile(filePath, content) {
  */
 function generatePackageJson(libName, libDescription, useLibApi = false, libType = 'service') {
   const isUtility = libType === 'utility';
-  
+
   const packageConfig = {
     name: `@adopt-dont-shop/lib-${libName}`,
     version: '1.0.0',
@@ -80,25 +80,34 @@ function generatePackageJson(libName, libDescription, useLibApi = false, libType
       'type-check': 'tsc --noEmit',
       prepublishOnly: 'npm run clean && npm run build',
     },
-    keywords: ['pet-adoption', 'library', 'typescript', ...(isUtility ? ['react', 'components'] : [])],
+    keywords: [
+      'pet-adoption',
+      'library',
+      'typescript',
+      ...(isUtility ? ['react', 'components'] : []),
+    ],
     author: "Adopt Don't Shop Team",
     license: 'MIT',
     dependencies: {
       '@types/node': '^20.0.0',
       ...(useLibApi ? { '@adopt-dont-shop/lib-api': 'file:../lib.api' } : {}),
-      ...(isUtility ? { 
-        'react': '^18.2.0',
-        'styled-components': '^6.1.8'
-      } : {}),
+      ...(isUtility
+        ? {
+            react: '^18.2.0',
+            'styled-components': '^6.1.8',
+          }
+        : {}),
     },
     devDependencies: {
       '@typescript-eslint/eslint-plugin': '^7.0.0',
       '@typescript-eslint/parser': '^7.0.0',
       '@types/jest': '^29.4.0',
-      ...(isUtility ? {
-        '@types/react': '^18.2.0',
-        '@types/styled-components': '^5.1.26',
-      } : {}),
+      ...(isUtility
+        ? {
+            '@types/react': '^18.2.0',
+            '@types/styled-components': '^5.1.26',
+          }
+        : {}),
       eslint: '^8.57.0',
       'eslint-config-prettier': '^9.1.0',
       'eslint-plugin-prettier': '^5.1.3',
@@ -110,10 +119,12 @@ function generatePackageJson(libName, libDescription, useLibApi = false, libType
     },
     peerDependencies: {
       typescript: '^5.0.0',
-      ...(isUtility ? {
-        'react': '>=18.0.0',
-        'styled-components': '>=5.0.0',
-      } : {}),
+      ...(isUtility
+        ? {
+            react: '>=18.0.0',
+            'styled-components': '>=5.0.0',
+          }
+        : {}),
     },
     repository: {
       type: 'git',
@@ -134,7 +145,7 @@ function generatePackageJson(libName, libDescription, useLibApi = false, libType
  */
 function generateTsConfig(libType = 'service') {
   const isUtility = libType === 'utility';
-  
+
   return JSON.stringify(
     {
       compilerOptions: {
@@ -164,7 +175,13 @@ function generateTsConfig(libType = 'service') {
         tsBuildInfoFile: './dist/.tsbuildinfo',
       },
       include: ['src/**/*'],
-      exclude: ['node_modules', 'dist', '**/*.test.ts', ...(isUtility ? ['**/*.test.tsx'] : []), '**/*.spec.ts'],
+      exclude: [
+        'node_modules',
+        'dist',
+        '**/*.test.ts',
+        ...(isUtility ? ['**/*.test.tsx'] : []),
+        '**/*.spec.ts',
+      ],
     },
     null,
     2
@@ -176,15 +193,15 @@ function generateTsConfig(libType = 'service') {
  */
 function generateJestConfig(useLibApi = false, libType = 'service') {
   const isUtility = libType === 'utility';
-  
+
   const jestConfig = {
     preset: 'ts-jest',
     testEnvironment: 'jsdom',
     roots: ['<rootDir>/src'],
     testMatch: [
-      '**/__tests__/**/*.test.ts', 
+      '**/__tests__/**/*.test.ts',
       '**/?(*.)+(spec|test).ts',
-      ...(isUtility ? ['**/__tests__/**/*.test.tsx', '**/?(*.)+(spec|test).tsx'] : [])
+      ...(isUtility ? ['**/__tests__/**/*.test.tsx', '**/?(*.)+(spec|test).tsx'] : []),
     ],
     transform: {
       '^.+\\.ts$': 'ts-jest',
@@ -283,7 +300,7 @@ export * from './hooks';
 export * from './utils';
 `;
   }
-  
+
   // Service library (original behavior)
   const camelCaseName = libName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
   const className = camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1);
@@ -1400,20 +1417,21 @@ async function updateAppOptimizedDockerfile(libName) {
 
     // Find the section where libraries are copied
     const newLibCopy = `COPY lib.${libName}/ ./lib.${libName}/`;
-    
+
     // Find the last COPY lib. line and add after it
     const libCopyRegex = /COPY lib\.[^/]+\/ \.\/lib\.[^/]+\/$/gm;
     const matches = [...dockerfileContent.matchAll(libCopyRegex)];
-    
+
     if (matches.length > 0) {
       const lastMatch = matches[matches.length - 1];
       const insertIndex = lastMatch.index + lastMatch[0].length;
-      
-      dockerfileContent = 
-        dockerfileContent.slice(0, insertIndex) + 
-        '\n' + newLibCopy + 
+
+      dockerfileContent =
+        dockerfileContent.slice(0, insertIndex) +
+        '\n' +
+        newLibCopy +
         dockerfileContent.slice(insertIndex);
-      
+
       fs.writeFileSync(dockerfilePath, dockerfileContent);
       log(`🐳 Updated Dockerfile.app.optimized with lib.${libName}`, 'green');
     } else {
@@ -1499,7 +1517,10 @@ async function createNewLibrary() {
 
   if (args.length === 0) {
     log('❌ Please provide a library name', 'red');
-    log('Usage: npm run new-lib <library-name> [description] [--type=service|utility] [--with-api]', 'yellow');
+    log(
+      'Usage: npm run new-lib <library-name> [description] [--type=service|utility] [--with-api]',
+      'yellow'
+    );
     log('Example: npm run new-lib chat "Real-time chat functionality" --type=service', 'cyan');
     log('Example: npm run new-lib dev-tools "Development utilities" --type=utility', 'cyan');
     log('Example: npm run new-lib auth "Authentication service" --type=service --with-api', 'cyan');
@@ -1510,13 +1531,13 @@ async function createNewLibrary() {
   const useLibApi = args.includes('--with-api');
   const typeArg = args.find(arg => arg.startsWith('--type='));
   const libType = typeArg ? typeArg.split('=')[1] : 'service'; // default to service for backward compatibility
-  
+
   // Validate library type
   if (!['service', 'utility'].includes(libType)) {
     log('❌ Invalid library type. Use --type=service or --type=utility', 'red');
     process.exit(1);
   }
-  
+
   const filteredArgs = args.filter(arg => !arg.startsWith('--'));
 
   const libName = filteredArgs[0].toLowerCase().replace(/[^a-z0-9-]/g, '-');
@@ -1547,7 +1568,7 @@ async function createNewLibrary() {
   try {
     // Create directory structure
     ensureDirectoryExists(libDir);
-    
+
     // Create different directory structures based on library type
     if (libType === 'service') {
       ensureDirectoryExists(path.join(libDir, 'src', 'services', '__tests__'));
@@ -1557,7 +1578,7 @@ async function createNewLibrary() {
       ensureDirectoryExists(path.join(libDir, 'src', 'hooks'));
       ensureDirectoryExists(path.join(libDir, 'src', 'utils'));
     }
-    
+
     ensureDirectoryExists(path.join(libDir, 'src', 'test-utils'));
 
     // Generate all files
@@ -1570,7 +1591,7 @@ async function createNewLibrary() {
     writeFile(path.join(libDir, '.eslintrc.json'), generateEslintConfig());
     writeFile(path.join(libDir, '.prettierrc.json'), generatePrettierConfig());
     writeFile(path.join(libDir, 'src', 'index.ts'), generateIndexFile(libName, libType));
-    
+
     // Generate files based on library type
     if (libType === 'service') {
       writeFile(path.join(libDir, 'src', 'types', 'index.ts'), generateTypesFile(libName));
@@ -1588,16 +1609,10 @@ async function createNewLibrary() {
         path.join(libDir, 'src', 'components', 'index.ts'),
         generateUtilityComponentsIndex(libName)
       );
-      writeFile(
-        path.join(libDir, 'src', 'hooks', 'index.ts'),
-        generateUtilityHooksIndex(libName)
-      );
-      writeFile(
-        path.join(libDir, 'src', 'utils', 'index.ts'),
-        generateUtilityUtilsIndex(libName)
-      );
+      writeFile(path.join(libDir, 'src', 'hooks', 'index.ts'), generateUtilityHooksIndex(libName));
+      writeFile(path.join(libDir, 'src', 'utils', 'index.ts'), generateUtilityUtilsIndex(libName));
     }
-    
+
     writeFile(path.join(libDir, 'src', 'test-utils', 'setup-tests.ts'), generateTestSetup());
     writeFile(path.join(libDir, 'Dockerfile'), generateDockerfile(libName));
     writeFile(path.join(libDir, 'docker-compose.lib.yml'), generateLibDockerCompose(libName));
@@ -1617,7 +1632,7 @@ async function createNewLibrary() {
     log(`   1. cd lib.${libName}`, 'cyan');
     log('   2. npm run dev     # Start development build', 'cyan');
     log('   3. npm test        # Run tests', 'cyan');
-    
+
     if (libType === 'service') {
       log(`   4. Edit src/services/${libName}-service.ts to implement your logic`, 'cyan');
     } else if (libType === 'utility') {
@@ -1625,7 +1640,7 @@ async function createNewLibrary() {
       log('   5. Add hooks to src/hooks/', 'cyan');
       log('   6. Add utilities to src/utils/', 'cyan');
     }
-    
+
     log('', 'reset');
     log('🐳 Standalone development:', 'bright');
     log(`   docker-compose -f lib.${libName}/docker-compose.lib.yml up`, 'cyan');

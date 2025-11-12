@@ -20,11 +20,7 @@ export const AppWithAuth = ({ children }: AppWithAuthProps) => {
   };
 
   return (
-    <AuthProvider
-      allowedUserTypes={['adopter']}
-      appType='client'
-      onAuthEvent={handleAuthEvent}
-    >
+    <AuthProvider allowedUserTypes={['adopter']} appType='client' onAuthEvent={handleAuthEvent}>
       {children}
     </AuthProvider>
   );

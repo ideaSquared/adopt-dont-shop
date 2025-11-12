@@ -45,7 +45,8 @@ const FilterGroup = styled.div`
     color: ${props => props.theme.text.primary};
   }
 
-  select, input {
+  select,
+  input {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid ${props => props.theme.colors.neutral[300]};
@@ -103,22 +104,26 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
 
       <FiltersGrid>
         <FilterGroup>
-          <label className="label" htmlFor="search">Search</label>
+          <label className="label" htmlFor="search">
+            Search
+          </label>
           <input
             id="search"
             type="text"
             placeholder="Applicant name or email..."
             value={filters.search}
-            onChange={(e) => onFilterChange('search', e.target.value)}
+            onChange={e => onFilterChange('search', e.target.value)}
           />
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="status">Status</label>
+          <label className="label" htmlFor="status">
+            Status
+          </label>
           <select
             id="status"
             value={filters.status}
-            onChange={(e) => onFilterChange('status', e.target.value)}
+            onChange={e => onFilterChange('status', e.target.value)}
           >
             <option value="">All Statuses</option>
             <option value="submitted">{formatStatusName('submitted')}</option>
@@ -129,11 +134,13 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="priority">Priority</label>
+          <label className="label" htmlFor="priority">
+            Priority
+          </label>
           <select
             id="priority"
             value={filters.priority}
-            onChange={(e) => onFilterChange('priority', e.target.value)}
+            onChange={e => onFilterChange('priority', e.target.value)}
           >
             <option value="">All Priorities</option>
             <option value="high">High</option>
@@ -143,11 +150,13 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="petType">Pet Type</label>
+          <label className="label" htmlFor="petType">
+            Pet Type
+          </label>
           <select
             id="petType"
             value={filters.petType}
-            onChange={(e) => onFilterChange('petType', e.target.value)}
+            onChange={e => onFilterChange('petType', e.target.value)}
           >
             <option value="">All Types</option>
             <option value="Dog">Dogs</option>
@@ -159,11 +168,13 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="referencesStatus">References</label>
+          <label className="label" htmlFor="referencesStatus">
+            References
+          </label>
           <select
             id="referencesStatus"
             value={filters.referencesStatus}
-            onChange={(e) => onFilterChange('referencesStatus', e.target.value)}
+            onChange={e => onFilterChange('referencesStatus', e.target.value)}
           >
             <option value="">All Reference Statuses</option>
             <option value="pending">Pending</option>
@@ -174,11 +185,13 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="homeVisitStatus">Home Visit</label>
+          <label className="label" htmlFor="homeVisitStatus">
+            Home Visit
+          </label>
           <select
             id="homeVisitStatus"
             value={filters.homeVisitStatus}
-            onChange={(e) => onFilterChange('homeVisitStatus', e.target.value)}
+            onChange={e => onFilterChange('homeVisitStatus', e.target.value)}
           >
             <option value="">All Visit Statuses</option>
             <option value="not_scheduled">Not Scheduled</option>
@@ -189,11 +202,13 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="dateRange">Date Range</label>
+          <label className="label" htmlFor="dateRange">
+            Date Range
+          </label>
           <select
             id="dateRange"
             value={filters.dateRange}
-            onChange={(e) => onFilterChange('dateRange', e.target.value)}
+            onChange={e => onFilterChange('dateRange', e.target.value)}
           >
             <option value="">All Dates</option>
             <option value="today">Today</option>
@@ -203,13 +218,15 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
         </FilterGroup>
 
         <FilterGroup>
-          <label className="label" htmlFor="petBreed">Pet Breed</label>
+          <label className="label" htmlFor="petBreed">
+            Pet Breed
+          </label>
           <input
             id="petBreed"
             type="text"
             placeholder="Search breed (e.g. golden, lab, persian)..."
             value={filters.petBreed}
-            onChange={(e) => onFilterChange('petBreed', e.target.value)}
+            onChange={e => onFilterChange('petBreed', e.target.value)}
           />
         </FilterGroup>
       </FiltersGrid>

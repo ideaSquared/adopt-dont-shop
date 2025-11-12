@@ -11,7 +11,7 @@ import { ImageGallery } from '@/components/ui/ImageGallery'
 <ImageGallery images={imageArray} />
 
 // With custom configuration
-<ImageGallery 
+<ImageGallery
   images={imageArray}
   showThumbnails={true}
   autoPlay={false}
@@ -35,4 +35,4 @@ import { ImageGallery } from '@/components/ui/ImageGallery'
 - Touch/swipe support
 - Lazy loading
 - Accessible markup
-- TypeScript support 
+- TypeScript support

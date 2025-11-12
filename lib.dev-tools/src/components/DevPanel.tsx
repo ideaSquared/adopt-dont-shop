@@ -78,7 +78,7 @@ const DevToggle = styled.button`
 const DevPanel = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   top: 0;
-  right: ${props => props.$isOpen ? '0' : '-420px'};
+  right: ${(props) => (props.$isOpen ? '0' : '-420px')};
   width: 420px;
   height: 100vh;
   background: linear-gradient(to bottom, #ffffff 0%, #f8fafc 100%);
@@ -109,7 +109,7 @@ const DevHeader = styled.div`
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   }
 `;
 
@@ -169,7 +169,7 @@ const UserCard = styled.button`
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     transform: translateY(-2px);
     box-shadow: 0 12px 25px -5px rgba(102, 126, 234, 0.25);
-    
+
     &::before {
       transform: scaleY(1);
     }
@@ -183,7 +183,7 @@ const UserCard = styled.button`
     opacity: 0.6;
     cursor: not-allowed;
     background: #f1f5f9;
-    
+
     &:hover {
       transform: none;
       box-shadow: none;
@@ -203,7 +203,11 @@ const UserEmail = styled.div`
   color: #64748b;
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Segoe UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 `;
 
 const UserDescription = styled.div`
@@ -288,7 +292,7 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
   authContext,
   isDevelopment: isDev = isDevelopmentMode,
   userTypes,
-  useApiData = false
+  useApiData = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, login, logout, isAuthenticated } = authContext;
@@ -297,13 +301,13 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
   const {
     users: apiUsers,
     loading: usersLoading,
-    error: usersError
+    error: usersError,
   } = useSeededUsers({
     userTypes,
-    fallbackToLocal: true
+    fallbackToLocal: true,
   });
 
-  const users = useApiData ? apiUsers : (propSeededUsers || []);
+  const users = useApiData ? apiUsers : propSeededUsers || [];
   const seededPassword = propSeededPassword;
 
   // Only show in development mode
@@ -338,17 +342,19 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
         <DevHeader>{title}</DevHeader>
 
         <DevContent>
-          <WarningBanner>⚠️ Development only - uses backend seeded users with real authentication</WarningBanner>
+          <WarningBanner>
+            ⚠️ Development only - uses backend seeded users with real authentication
+          </WarningBanner>
 
           {isAuthenticated && user && (
             <CurrentUserPanel>
               <h4>Currently Logged In:</h4>
-              <UserName>{user.firstName} {user.lastName}</UserName>
+              <UserName>
+                {user.firstName} {user.lastName}
+              </UserName>
               <UserEmail>{user.email}</UserEmail>
               <UserDescription>User Type: {user.userType}</UserDescription>
-              <LogoutButton onClick={handleLogout}>
-                🚪 Logout
-              </LogoutButton>
+              <LogoutButton onClick={handleLogout}>🚪 Logout</LogoutButton>
             </CurrentUserPanel>
           )}
 
@@ -360,13 +366,24 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
           </h4>
 
           {usersLoading && useApiData && (
-            <div style={{ color: '#6b7280', fontSize: '0.8rem', textAlign: 'center', padding: '1rem' }}>
+            <div
+              style={{ color: '#6b7280', fontSize: '0.8rem', textAlign: 'center', padding: '1rem' }}
+            >
               Loading users from database...
             </div>
           )}
 
           {usersError && useApiData && (
-            <div style={{ color: '#dc2626', fontSize: '0.8rem', marginBottom: '1rem', padding: '0.5rem', background: '#fef2f2', borderRadius: '4px' }}>
+            <div
+              style={{
+                color: '#dc2626',
+                fontSize: '0.8rem',
+                marginBottom: '1rem',
+                padding: '0.5rem',
+                background: '#fef2f2',
+                borderRadius: '4px',
+              }}
+            >
               ⚠️ {usersError}
             </div>
           )}

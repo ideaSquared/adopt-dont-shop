@@ -42,7 +42,9 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
 
       // Fetch timeline stats
       try {
-        const statsData = await apiService.get<any>(`/api/applications/${applicationId}/timeline/stats`);
+        const statsData = await apiService.get<any>(
+          `/api/applications/${applicationId}/timeline/stats`
+        );
         if (statsData.success) {
           setStats(statsData.data);
         }
@@ -65,10 +67,13 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
       if (!applicationId || !note.trim()) return;
 
       try {
-        const result = await apiService.post<any>(`/api/applications/${applicationId}/timeline/notes`, {
-          note_type: noteType,
-          content: note.trim(),
-        });
+        const result = await apiService.post<any>(
+          `/api/applications/${applicationId}/timeline/notes`,
+          {
+            note_type: noteType,
+            content: note.trim(),
+          }
+        );
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to add note');
@@ -114,16 +119,19 @@ export function useTimelineEvents() {
       metadata?: Record<string, any>
     ) => {
       try {
-        const result = await apiService.post<any>(`/api/applications/${applicationId}/timeline/events`, {
-          event_type: TimelineEventType.STAGE_CHANGE,
-          title: `Stage changed from ${previousStage || 'None'} to ${newStage}`,
-          description: `Application moved to ${newStage} stage`,
-          metadata: {
-            previous_stage: previousStage,
-            new_stage: newStage,
-            ...metadata,
-          },
-        });
+        const result = await apiService.post<any>(
+          `/api/applications/${applicationId}/timeline/events`,
+          {
+            event_type: TimelineEventType.STAGE_CHANGE,
+            title: `Stage changed from ${previousStage || 'None'} to ${newStage}`,
+            description: `Application moved to ${newStage} stage`,
+            metadata: {
+              previous_stage: previousStage,
+              new_stage: newStage,
+              ...metadata,
+            },
+          }
+        );
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to create stage change event');
@@ -161,19 +169,22 @@ export function useTimelineEvents() {
       };
 
       try {
-        const result = await apiService.post<any>(`/api/applications/${applicationId}/timeline/events`, {
-          event_type: eventMap[eventType],
-          title: titleMap[eventType],
-          description:
-            notes ||
-            `Home visit ${eventType}${visitDate ? ` for ${visitDate.toLocaleDateString()}` : ''}`,
-          metadata: {
-            event_type: eventType,
-            visit_date: visitDate?.toISOString(),
-            outcome,
-            notes,
-          },
-        });
+        const result = await apiService.post<any>(
+          `/api/applications/${applicationId}/timeline/events`,
+          {
+            event_type: eventMap[eventType],
+            title: titleMap[eventType],
+            description:
+              notes ||
+              `Home visit ${eventType}${visitDate ? ` for ${visitDate.toLocaleDateString()}` : ''}`,
+            metadata: {
+              event_type: eventType,
+              visit_date: visitDate?.toISOString(),
+              outcome,
+              notes,
+            },
+          }
+        );
 
         if (!result.success) {
           throw new Error(result.error || `Failed to create home visit ${eventType} event`);
@@ -201,15 +212,18 @@ export function useTimelineEvents() {
       };
 
       try {
-        const result = await apiService.post<any>(`/api/applications/${applicationId}/timeline/events`, {
-          event_type: eventTypeMap[decision],
-          title: `Application ${decision}`,
-          description: reason || `Application has been ${decision}`,
-          metadata: {
-            decision,
-            reason,
-          },
-        });
+        const result = await apiService.post<any>(
+          `/api/applications/${applicationId}/timeline/events`,
+          {
+            event_type: eventTypeMap[decision],
+            title: `Application ${decision}`,
+            description: reason || `Application has been ${decision}`,
+            metadata: {
+              decision,
+              reason,
+            },
+          }
+        );
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to create decision event');

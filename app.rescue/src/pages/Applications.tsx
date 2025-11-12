@@ -19,7 +19,7 @@ const Applications: React.FC = () => {
     updateFilter,
     updateSort,
     updateApplicationStatus,
-    refetch
+    refetch,
   } = useApplications();
 
   // Selected application details
@@ -35,7 +35,7 @@ const Applications: React.FC = () => {
     updateHomeVisit,
     addTimelineEvent,
     transitionStage,
-    refetch: refetchApplicationDetails
+    refetch: refetchApplicationDetails,
   } = useApplicationDetails(selectedApplication?.id || null);
 
   const handleApplicationSelect = (application: ApplicationListItem) => {
@@ -44,14 +44,6 @@ const Applications: React.FC = () => {
 
   const handleCloseReview = () => {
     setSelectedApplication(null);
-  };
-
-  const handleStatusUpdate = async (id: string, status: string, notes?: string) => {
-    await updateApplicationStatus(id, status, notes);
-    // If we're viewing this application in detail, close the review
-    if (selectedApplication?.id === id) {
-      setSelectedApplication(null);
-    }
   };
 
   const handleDetailStatusUpdate = async (status: string, notes?: string) => {
@@ -90,7 +82,6 @@ const Applications: React.FC = () => {
         onFilterChange={updateFilter}
         onSortChange={updateSort}
         onApplicationSelect={handleApplicationSelect}
-        onStatusUpdate={handleStatusUpdate}
         selectedApplications={selectedApplications}
         onSelectionChange={setSelectedApplications}
       />

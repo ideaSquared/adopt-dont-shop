@@ -6,18 +6,24 @@ import type { ApplicationListItem } from '../../types/applications';
 // Calculate statistics from application data
 const calculateApplicationStats = (applications: ApplicationListItem[]) => {
   const total = applications.length;
-  const byStatus = applications.reduce((acc, app) => {
-    acc[app.status] = (acc[app.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const byStatus = applications.reduce(
+    (acc, app) => {
+      acc[app.status] = (acc[app.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   // Calculate average processing time for completed applications
-  const completedApps = applications.filter(app => 
-    app.status === 'approved' || app.status === 'rejected'
+  const completedApps = applications.filter(
+    app => app.status === 'approved' || app.status === 'rejected'
   );
-  const avgProcessingTime = completedApps.length > 0 
-    ? Math.round(completedApps.reduce((sum, app) => sum + app.submittedDaysAgo, 0) / completedApps.length)
-    : 0;
+  const avgProcessingTime =
+    completedApps.length > 0
+      ? Math.round(
+          completedApps.reduce((sum, app) => sum + app.submittedDaysAgo, 0) / completedApps.length
+        )
+      : 0;
 
   return {
     total,
@@ -48,7 +54,9 @@ const StatsContainer = styled.div`
 const StatCard = styled.div`
   background: white;
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px 0 rgba(0, 0, 0, 0.06);
   overflow: hidden;
 `;
 
@@ -56,7 +64,8 @@ const LoadingCard = styled(StatCard)`
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
@@ -85,7 +94,7 @@ const Icon = styled.div<{ $color: string }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  
+
   ${props => {
     switch (props.$color) {
       case 'blue':
@@ -127,7 +136,7 @@ const StatChange = styled.div<{ $trend: 'up' | 'down' | 'neutral' }>`
   margin-top: 0.25rem;
   font-size: 0.75rem;
   font-weight: 500;
-  
+
   ${props => {
     switch (props.$trend) {
       case 'up':
@@ -205,7 +214,7 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch all applications without any filters for statistics
       const result = await applicationService.getApplications(
         {}, // No filters
@@ -275,7 +284,7 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
       change: 0, // Change tracking not implemented yet
       trend: 'neutral' as const,
       icon: '📄',
-      color: 'blue' as const
+      color: 'blue' as const,
     },
     {
       name: 'Submitted',
@@ -283,7 +292,7 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
       change: 0,
       trend: 'neutral' as const,
       icon: '⏳',
-      color: 'yellow' as const
+      color: 'yellow' as const,
     },
     {
       name: 'Approved',
@@ -291,7 +300,7 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
       change: 0,
       trend: 'neutral' as const,
       icon: '✅',
-      color: 'green' as const
+      color: 'green' as const,
     },
     {
       name: 'Avg. Processing Time',
@@ -299,28 +308,24 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
       change: 0,
       trend: 'neutral' as const,
       icon: '⏱️',
-      color: 'red' as const
-    }
+      color: 'red' as const,
+    },
   ];
 
   return (
     <StatsContainer>
-      {statCards.map((stat) => (
+      {statCards.map(stat => (
         <StatCard key={stat.name}>
           <CardContent>
             <CardHeader>
               <IconContainer>
-                <Icon $color={stat.color}>
-                  {stat.icon}
-                </Icon>
+                <Icon $color={stat.color}>{stat.icon}</Icon>
               </IconContainer>
               <CardBody>
                 <StatLabel>{stat.name}</StatLabel>
                 <StatValue>{stat.value}</StatValue>
                 {stat.change !== 0 && (
-                  <StatChange $trend={stat.trend}>
-                    → No change from last month
-                  </StatChange>
+                  <StatChange $trend={stat.trend}>→ No change from last month</StatChange>
                 )}
               </CardBody>
             </CardHeader>
