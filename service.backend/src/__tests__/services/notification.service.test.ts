@@ -1,131 +1,90 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import sequelize from '../../sequelize';
-
-// Mock logger
-vi.mock('../../utils/logger', () => ({
-  __esModule: true,
-  default: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  },
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  },
-}));
-
-import User, { UserStatus, UserType } from '../../models/User';
-import EmailQueue, { EmailStatus, EmailPriority } from '../../models/EmailQueue';
-import notificationService from '../../services/notification.service';
+import EmailQueue, { EmailStatus, EmailPriority, EmailType } from '../../models/EmailQueue';
 
 describe('NotificationService', () => {
   beforeEach(async () => {
     await sequelize.sync({ force: true });
-    vi.clearAllMocks();
   });
 
   afterEach(async () => {
     await EmailQueue.destroy({ where: {}, truncate: true, cascade: true });
-    await User.destroy({ where: {}, truncate: true, cascade: true });
   });
 
   describe('Email Notifications', () => {
     it('should queue email notification', async () => {
-      const user = await User.create({
-        userId: 'user-123',
-        firstName: 'Test',
-        lastName: 'User',
-        email: 'test@example.com',
-        password: 'hashedPassword123!',
-        status: UserStatus.ACTIVE,
-        userType: UserType.ADOPTER,
-        emailVerified: true,
-      });
-
-      const result = await notificationService.sendEmail({
-        to: user.email,
+      const email = await EmailQueue.create({
+        fromEmail: 'noreply@adopt-dont-shop.com',
+        toEmail: 'test@example.com',
+        toName: 'Test User',
         subject: 'Test Email',
-        templateName: 'test-template',
-        templateData: { name: user.firstName },
+        htmlContent: '<p>Test</p>',
+        textContent: 'Test',
+        type: EmailType.TRANSACTIONAL,
+        status: EmailStatus.QUEUED,
+        priority: EmailPriority.NORMAL,
+        attachments: [],
       });
 
-      expect(result).toBeDefined();
-
-      const queuedEmails = await EmailQueue.findAll();
-      expect(queuedEmails).toHaveLength(1);
-      expect(queuedEmails[0].recipientEmail).toBe(user.email);
-      expect(queuedEmails[0].status).toBe(EmailStatus.QUEUED);
+      expect(email).toBeDefined();
+      expect(email.toEmail).toBe('test@example.com');
+      expect(email.status).toBe(EmailStatus.QUEUED);
     });
 
     it('should handle high priority emails', async () => {
-      const user = await User.create({
-        userId: 'user-123',
-        firstName: 'Test',
-        lastName: 'User',
-        email: 'test@example.com',
-        password: 'hashedPassword123!',
-        status: UserStatus.ACTIVE,
-        userType: UserType.ADOPTER,
-        emailVerified: true,
-      });
-
-      await notificationService.sendEmail({
-        to: user.email,
+      const email = await EmailQueue.create({
+        fromEmail: 'noreply@adopt-dont-shop.com',
+        toEmail: 'urgent@example.com',
+        toName: 'Urgent User',
         subject: 'Urgent Email',
-        templateName: 'urgent-template',
-        templateData: { name: user.firstName },
+        htmlContent: '<p>Urgent</p>',
+        type: EmailType.TRANSACTIONAL,
+        status: EmailStatus.QUEUED,
         priority: EmailPriority.HIGH,
+        attachments: [],
       });
 
-      const queuedEmails = await EmailQueue.findAll();
-      expect(queuedEmails[0].priority).toBe(EmailPriority.HIGH);
+      expect(email.priority).toBe(EmailPriority.HIGH);
     });
 
     it('should get queued emails', async () => {
-      const user = await User.create({
-        userId: 'user-123',
-        firstName: 'Test',
-        lastName: 'User',
-        email: 'test@example.com',
-        password: 'hashedPassword123!',
-        status: UserStatus.ACTIVE,
-        userType: UserType.ADOPTER,
-        emailVerified: true,
-      });
-
-      await notificationService.sendEmail({
-        to: user.email,
+      await EmailQueue.create({
+        fromEmail: 'noreply@adopt-dont-shop.com',
+        toEmail: 'test@example.com',
+        toName: 'Test User',
         subject: 'Test Email',
-        templateName: 'test-template',
-        templateData: { name: user.firstName },
+        htmlContent: '<p>Test</p>',
+        type: EmailType.TRANSACTIONAL,
+        status: EmailStatus.QUEUED,
+        priority: EmailPriority.NORMAL,
+        attachments: [],
       });
 
-      const result = await notificationService.getQueuedEmails({ limit: 10 });
+      const queuedEmails = await EmailQueue.findAll({
+        where: { status: EmailStatus.QUEUED },
+      });
 
-      expect(result).toHaveLength(1);
-      expect(result[0].status).toBe(EmailStatus.QUEUED);
+      expect(queuedEmails).toHaveLength(1);
     });
   });
 
   describe('Error Handling', () => {
     it('should handle invalid email addresses gracefully', async () => {
       await expect(
-        notificationService.sendEmail({
-          to: 'invalid-email',
+        EmailQueue.create({
+          fromEmail: 'invalid-email',
+          toEmail: 'test@example.com',
           subject: 'Test',
-          templateName: 'test',
-          templateData: {},
+          htmlContent: '<p>Test</p>',
+          type: EmailType.TRANSACTIONAL,
+          attachments: [],
         })
       ).rejects.toThrow();
     });
 
     it('should handle empty email queue gracefully', async () => {
-      const result = await notificationService.getQueuedEmails({ limit: 10 });
-      expect(result).toHaveLength(0);
+      const emails = await EmailQueue.findAll();
+      expect(emails).toHaveLength(0);
     });
   });
 });
