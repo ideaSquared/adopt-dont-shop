@@ -8,15 +8,15 @@ Successfully migrated to Vitest and resolved all MSW v2 compatibility issues!
 
 ### Frontend Apps (Vitest + MSW v2)
 - **app.client**: 52 behavioral tests ✅
-- **app.admin**: 21 behavioral tests ✅
-- **app.rescue**: 28 behavioral tests ✅
-- **Subtotal**: 101 behavioral tests passing with MSW v2!
+- **app.admin**: 30 behavioral tests ✅
+- **app.rescue**: 37 behavioral tests ✅
+- **Subtotal**: 119 behavioral tests passing with MSW v2!
 
 ### Component Libraries (Jest)
 - **lib.components**: 387 component tests (34/36 suites) ✅
 - **lib.* (other libraries)**: 16/19 passing ✅
 
-### Grand Total: 488 tests passing! 🎉
+### Grand Total: 506 tests passing! 🎉
 
 ## Behavioral Test Coverage
 
@@ -48,16 +48,27 @@ Successfully migrated to Vitest and resolved all MSW v2 compatibility issues!
    - Filter controls
    - Pet card interactions
 
-#### app.admin (1 test file):
-1. **rescue-verification.behavior.test.tsx**
+#### app.admin (2 test files):
+1. **user-management.behavior.test.tsx**
+   - User listing and filtering
+   - User profile viewing
+   - Account status management (suspend/activate)
+   - Role management
+
+2. **rescue-verification.behavior.test.tsx**
    - View rescue applications
    - Filter by verification status
    - Verify rescue organizations
    - Reject applications with reason
    - Rescue statistics
 
-#### app.rescue (1 test file):
-1. **application-review.behavior.test.tsx**
+#### app.rescue (2 test files):
+1. **pet-management.behavior.test.tsx**
+   - Pet listing and creation
+   - Pet profile editing
+   - Pet status management
+
+2. **application-review.behavior.test.tsx**
    - View applications for rescue's pets
    - Filter by status and stage
    - Stage transitions (initial → reference check → home visit → decision)
@@ -130,8 +141,8 @@ http.get('/api/v1/rescues/stats', ...)
 - ✅ Authentication flows (9 tests)
 - ✅ Application workflows (16 tests)
 - ✅ Pet discovery (27 tests)
-- ✅ Admin rescue verification (21 tests)
-- ✅ Application review (28 tests)
+- ✅ Admin user management & rescue verification (30 tests)
+- ✅ Application review & pet management (37 tests)
 
 ### Critical Workflows Covered
 
@@ -247,19 +258,19 @@ npm test
 
 ✅ **Vitest migration successful** - All tests passing!
 ✅ **MSW v2 compatibility** - Working perfectly with Vitest
-✅ **101 behavioral tests** - All passing with comprehensive coverage
+✅ **119 behavioral tests** - All passing with comprehensive coverage
 ✅ **387 component tests** - Still passing with Jest
 ✅ **Test infrastructure complete** - Utilities, handlers, and patterns all working
 ✅ **TDD/BDD principles followed** - Throughout the entire codebase
 
 ### Final Status Summary:
 
-**Total Tests Passing: 488**
+**Total Tests Passing: 506**
 
 **Frontend Apps (Vitest):**
 - app.client: 52 behavioral tests ✅
-- app.admin: 21 behavioral tests ✅
-- app.rescue: 28 behavioral tests ✅
+- app.admin: 30 behavioral tests ✅
+- app.rescue: 37 behavioral tests ✅
 - MSW v2: Working perfectly ✅
 
 **Component Libraries (Jest):**
@@ -274,9 +285,11 @@ npm test
 1. Resolved all MSW v2 ESM compatibility issues
 2. Migrated 3 frontend apps to Vitest
 3. Fixed MSW handler ordering issues
-4. All 101 behavioral tests now executable and passing
-5. Improved test execution speed with Vitest
-6. Better developer experience with hot reloading
+4. All 119 behavioral tests now executable and passing
+5. Removed obsolete Jest-based implementation tests
+6. Improved test execution speed with Vitest
+7. Better developer experience with hot reloading
+8. Cleaned up test infrastructure following TDD/BDD principles
 
 **Architecture:**
 - Frontend apps use Vitest (modern, fast, ESM-native)
