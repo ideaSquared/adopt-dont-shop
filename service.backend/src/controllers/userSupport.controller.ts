@@ -93,8 +93,12 @@ export class UserSupportController {
       }
 
       const pagination: PaginationOptions = {};
-      if (page) pagination.page = parseInt(page as string, 10);
-      if (limit) pagination.limit = parseInt(limit as string, 10);
+      if (page) {
+        pagination.page = parseInt(page as string, 10);
+      }
+      if (limit) {
+        pagination.limit = parseInt(limit as string, 10);
+      }
 
       const result = await SupportTicketService.getUserTickets(userId, ticketFilters, pagination);
 

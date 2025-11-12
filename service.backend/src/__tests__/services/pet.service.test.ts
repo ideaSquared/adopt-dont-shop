@@ -349,9 +349,9 @@ describe('PetService', () => {
       const originalCreate = Pet.create;
       Pet.create = vi.fn().mockRejectedValue(new Error('Database error'));
 
-      await expect(
-        PetService.createPet(mockPetData, testRescue.rescueId, 'user1')
-      ).rejects.toThrow('Database error');
+      await expect(PetService.createPet(mockPetData, testRescue.rescueId, 'user1')).rejects.toThrow(
+        'Database error'
+      );
 
       // Restore
       Pet.create = originalCreate;
@@ -405,9 +405,9 @@ describe('PetService', () => {
     });
 
     it('should throw error for non-existent pet', async () => {
-      await expect(
-        PetService.updatePet('nonexistent', updateData, 'user1')
-      ).rejects.toThrow('Pet not found');
+      await expect(PetService.updatePet('nonexistent', updateData, 'user1')).rejects.toThrow(
+        'Pet not found'
+      );
     });
 
     it('should allow updates to adopted pets (service permits it)', async () => {
@@ -585,9 +585,9 @@ describe('PetService', () => {
     });
 
     it('should throw error for non-existent pet', async () => {
-      await expect(
-        PetService.addPetImages('nonexistent', newImages, 'user1')
-      ).rejects.toThrow('Pet not found');
+      await expect(PetService.addPetImages('nonexistent', newImages, 'user1')).rejects.toThrow(
+        'Pet not found'
+      );
     });
 
     it('should handle empty URL (service does not validate)', async () => {
@@ -1308,9 +1308,9 @@ describe('PetService', () => {
       const originalCreate = Report.create;
       Report.create = vi.fn().mockRejectedValue(new Error('Report creation failed'));
 
-      await expect(
-        PetService.reportPet(petId, 'user-456', 'spam')
-      ).rejects.toThrow('Failed to submit pet report');
+      await expect(PetService.reportPet(petId, 'user-456', 'spam')).rejects.toThrow(
+        'Failed to submit pet report'
+      );
 
       // Restore
       Report.create = originalCreate;

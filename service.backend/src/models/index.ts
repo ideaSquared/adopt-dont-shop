@@ -95,12 +95,28 @@ Pet.hasMany(Application, { foreignKey: 'pet_id', as: 'Applications' });
 Application.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
 
 // Application Timeline associations
-Application.hasMany(ApplicationTimeline, { foreignKey: 'application_id', as: 'Timeline', constraints: false });
-ApplicationTimeline.belongsTo(Application, { foreignKey: 'application_id', as: 'Application', constraints: false });
+Application.hasMany(ApplicationTimeline, {
+  foreignKey: 'application_id',
+  as: 'Timeline',
+  constraints: false,
+});
+ApplicationTimeline.belongsTo(Application, {
+  foreignKey: 'application_id',
+  as: 'Application',
+  constraints: false,
+});
 
 // Note: constraints: false allows timeline events to be created in tests without requiring user existence
-User.hasMany(ApplicationTimeline, { foreignKey: 'created_by', as: 'CreatedTimelineEvents', constraints: false });
-ApplicationTimeline.belongsTo(User, { foreignKey: 'created_by', as: 'CreatedBy', constraints: false });
+User.hasMany(ApplicationTimeline, {
+  foreignKey: 'created_by',
+  as: 'CreatedTimelineEvents',
+  constraints: false,
+});
+ApplicationTimeline.belongsTo(User, {
+  foreignKey: 'created_by',
+  as: 'CreatedBy',
+  constraints: false,
+});
 
 Rescue.hasMany(Application, { foreignKey: 'rescue_id', as: 'Applications' });
 Application.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
@@ -164,8 +180,18 @@ Permission.belongsToMany(Role, {
 
 // Audit and tracking associations
 // Note: constraints: false allows audit logs to exist even if user is deleted (for historical auditing)
-User.hasMany(AuditLog, { foreignKey: 'user', sourceKey: 'userId', as: 'AuditLogs', constraints: false });
-AuditLog.belongsTo(User, { foreignKey: 'user', targetKey: 'userId', as: 'userDetails', constraints: false });
+User.hasMany(AuditLog, {
+  foreignKey: 'user',
+  sourceKey: 'userId',
+  as: 'AuditLogs',
+  constraints: false,
+});
+AuditLog.belongsTo(User, {
+  foreignKey: 'user',
+  targetKey: 'userId',
+  as: 'userDetails',
+  constraints: false,
+});
 
 // Rating associations
 User.hasMany(Rating, { foreignKey: 'reviewer_id', as: 'GivenRatings' });

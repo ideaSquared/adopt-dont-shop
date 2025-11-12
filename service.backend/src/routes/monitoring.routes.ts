@@ -8,17 +8,39 @@ const router = Router();
 
 // Helper function to generate descriptions for dev users
 const getDevUserDescription = (userType: string, email: string): string => {
-  if (email.includes('superadmin')) return 'Super Administrator - Full system access';
-  if (email.includes('admin@adoptdontshop')) return 'System Administrator';
-  if (email.includes('moderator')) return 'Content Moderator';
-  if (email.includes('rescue.manager')) return 'Rescue Manager';
-  if (email.includes('sarah.johnson')) return 'Veterinary Technician';
-  if (email.includes('maria@happytailsrescue')) return 'Happy Tails Director';
-  if (email.includes('alex.thompson')) return 'Active Volunteer';
-  if (email.includes('john.smith')) return 'Family dog seeker';
-  if (email.includes('emily.davis')) return 'Cat lover';
-  if (email.includes('michael.brown')) return 'Active dog owner';
-  if (email.includes('jessica.wilson')) return 'First-time adopter';
+  if (email.includes('superadmin')) {
+    return 'Super Administrator - Full system access';
+  }
+  if (email.includes('admin@adoptdontshop')) {
+    return 'System Administrator';
+  }
+  if (email.includes('moderator')) {
+    return 'Content Moderator';
+  }
+  if (email.includes('rescue.manager')) {
+    return 'Rescue Manager';
+  }
+  if (email.includes('sarah.johnson')) {
+    return 'Veterinary Technician';
+  }
+  if (email.includes('maria@happytailsrescue')) {
+    return 'Happy Tails Director';
+  }
+  if (email.includes('alex.thompson')) {
+    return 'Active Volunteer';
+  }
+  if (email.includes('john.smith')) {
+    return 'Family dog seeker';
+  }
+  if (email.includes('emily.davis')) {
+    return 'Cat lover';
+  }
+  if (email.includes('michael.brown')) {
+    return 'Active dog owner';
+  }
+  if (email.includes('jessica.wilson')) {
+    return 'First-time adopter';
+  }
 
   // Fallback based on user type
   switch (userType) {

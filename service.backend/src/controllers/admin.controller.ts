@@ -883,11 +883,21 @@ export class AdminController {
       };
 
       // Update user fields
-      if (firstName !== undefined) user.firstName = firstName;
-      if (lastName !== undefined) user.lastName = lastName;
-      if (email !== undefined) user.email = email;
-      if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
-      if (userType !== undefined) user.userType = userType;
+      if (firstName !== undefined) {
+        user.firstName = firstName;
+      }
+      if (lastName !== undefined) {
+        user.lastName = lastName;
+      }
+      if (email !== undefined) {
+        user.email = email;
+      }
+      if (phoneNumber !== undefined) {
+        user.phoneNumber = phoneNumber;
+      }
+      if (userType !== undefined) {
+        user.userType = userType;
+      }
 
       await user.save();
 

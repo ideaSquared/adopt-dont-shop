@@ -223,9 +223,7 @@ describe('RescueService - Behavioral Testing', () => {
 
     it('should handle database errors', async () => {
       // Force a database error by passing invalid parameters
-      await expect(
-        RescueService.searchRescues({ page: -1, limit: 0 })
-      ).rejects.toThrow();
+      await expect(RescueService.searchRescues({ page: -1, limit: 0 })).rejects.toThrow();
     });
   });
 
@@ -283,16 +281,12 @@ describe('RescueService - Behavioral Testing', () => {
     });
 
     it('should throw error when rescue not found', async () => {
-      await expect(
-        RescueService.getRescueById('nonexistent-id')
-      ).rejects.toThrow();
+      await expect(RescueService.getRescueById('nonexistent-id')).rejects.toThrow();
     });
 
     it('should handle database errors', async () => {
       // Pass invalid UUID format
-      await expect(
-        RescueService.getRescueById('invalid-uuid-format')
-      ).rejects.toThrow();
+      await expect(RescueService.getRescueById('invalid-uuid-format')).rejects.toThrow();
     });
   });
 
@@ -458,9 +452,7 @@ describe('RescueService - Behavioral Testing', () => {
     });
 
     it('should throw error when rescue not found', async () => {
-      await expect(
-        RescueService.verifyRescue('nonexistent-id', 'admin-123')
-      ).rejects.toThrow();
+      await expect(RescueService.verifyRescue('nonexistent-id', 'admin-123')).rejects.toThrow();
     });
 
     it('should throw error when rescue already verified', async () => {
@@ -478,9 +470,7 @@ describe('RescueService - Behavioral Testing', () => {
         verifiedAt: new Date(),
       });
 
-      await expect(
-        RescueService.verifyRescue(rescue.rescueId, 'admin-123')
-      ).rejects.toThrow();
+      await expect(RescueService.verifyRescue(rescue.rescueId, 'admin-123')).rejects.toThrow();
     });
   });
 
@@ -602,7 +592,7 @@ describe('RescueService - Behavioral Testing', () => {
       await RescueService.removeStaffMember(rescue.rescueId, 'user-123', 'admin-123');
 
       const found = await StaffMember.findOne({
-        where: { rescueId: rescue.rescueId, userId: 'user-123' }
+        where: { rescueId: rescue.rescueId, userId: 'user-123' },
       });
       expect(found).toBeNull();
     });
@@ -682,9 +672,7 @@ describe('RescueService - Behavioral Testing', () => {
     });
 
     it('should handle database errors', async () => {
-      await expect(
-        RescueService.getRescueStatistics('invalid-uuid')
-      ).rejects.toThrow();
+      await expect(RescueService.getRescueStatistics('invalid-uuid')).rejects.toThrow();
     });
   });
 
@@ -760,16 +748,16 @@ describe('RescueService - Behavioral Testing', () => {
         videos: [],
       });
 
-      const result = await RescueService.getRescuePets(rescue.rescueId, { status: PetStatus.AVAILABLE });
+      const result = await RescueService.getRescuePets(rescue.rescueId, {
+        status: PetStatus.AVAILABLE,
+      });
 
       expect(result.pets).toHaveLength(1);
       expect(result.pets[0].status).toBe(PetStatus.AVAILABLE);
     });
 
     it('should handle database errors', async () => {
-      await expect(
-        RescueService.getRescuePets('invalid-uuid')
-      ).rejects.toThrow();
+      await expect(RescueService.getRescuePets('invalid-uuid')).rejects.toThrow();
     });
   });
 
@@ -795,9 +783,7 @@ describe('RescueService - Behavioral Testing', () => {
     });
 
     it('should throw error when rescue not found', async () => {
-      await expect(
-        RescueService.deleteRescue('nonexistent-id', 'admin-123')
-      ).rejects.toThrow();
+      await expect(RescueService.deleteRescue('nonexistent-id', 'admin-123')).rejects.toThrow();
     });
 
     it('should throw error when rescue already deleted', async () => {
@@ -816,9 +802,7 @@ describe('RescueService - Behavioral Testing', () => {
         deletedAt: new Date(),
       });
 
-      await expect(
-        RescueService.deleteRescue(rescue.rescueId, 'admin-123')
-      ).rejects.toThrow();
+      await expect(RescueService.deleteRescue(rescue.rescueId, 'admin-123')).rejects.toThrow();
     });
   });
 });

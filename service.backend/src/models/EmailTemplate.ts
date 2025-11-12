@@ -409,7 +409,7 @@ EmailTemplate.init(
         if (process.env.NODE_ENV === 'test') {
           this.setDataValue('tags', JSON.stringify(value || []) as any);
         } else {
-          this.setDataValue('tags', value || [] as any);
+          this.setDataValue('tags', value || ([] as any));
         }
       },
     },

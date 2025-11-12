@@ -1,6 +1,10 @@
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import sequelize from '../../sequelize';
-import EmailTemplate, { TemplateType, TemplateCategory, TemplateStatus } from '../../models/EmailTemplate';
+import EmailTemplate, {
+  TemplateType,
+  TemplateCategory,
+  TemplateStatus,
+} from '../../models/EmailTemplate';
 import EmailQueue, { EmailType, EmailPriority, EmailStatus } from '../../models/EmailQueue';
 import EmailPreference from '../../models/EmailPreference';
 import User, { UserType, UserStatus } from '../../models/User';
@@ -91,15 +95,17 @@ describe('EmailService - Real Database Testing', () => {
           description: 'Welcome new users',
           type: TemplateType.TRANSACTIONAL,
           category: TemplateCategory.WELCOME,
-          subject: 'Welcome to Adopt Don\'t Shop!',
+          subject: "Welcome to Adopt Don't Shop!",
           htmlContent: '<h1>Welcome {{firstName}}!</h1>',
           textContent: 'Welcome {{firstName}}!',
-          variables: [{
-            name: 'firstName',
-            type: 'string' as const,
-            required: true,
-            description: 'User first name'
-          }],
+          variables: [
+            {
+              name: 'firstName',
+              type: 'string' as const,
+              required: true,
+              description: 'User first name',
+            },
+          ],
           createdBy: 'admin',
         };
 
@@ -230,12 +236,14 @@ describe('EmailService - Real Database Testing', () => {
           htmlContent: '<h1>Welcome {{firstName}}!</h1>',
           textContent: 'Welcome {{firstName}}!',
           status: TemplateStatus.ACTIVE,
-          variables: [{
-            name: 'firstName',
-            type: 'string' as const,
-            required: true,
-            description: 'User first name'
-          }],
+          variables: [
+            {
+              name: 'firstName',
+              type: 'string' as const,
+              required: true,
+              description: 'User first name',
+            },
+          ],
           versions: [],
           currentVersion: 1,
           isDefault: false,

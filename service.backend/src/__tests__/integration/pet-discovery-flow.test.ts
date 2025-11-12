@@ -72,7 +72,8 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     special_needs: overrides.special_needs !== undefined ? overrides.special_needs : false,
     special_needs_description: overrides.special_needs_description || null,
     house_trained: overrides.house_trained !== undefined ? overrides.house_trained : true,
-    good_with_children: overrides.good_with_children !== undefined ? overrides.good_with_children : true,
+    good_with_children:
+      overrides.good_with_children !== undefined ? overrides.good_with_children : true,
     good_with_dogs: overrides.good_with_dogs !== undefined ? overrides.good_with_dogs : true,
     good_with_cats: overrides.good_with_cats !== undefined ? overrides.good_with_cats : false,
     good_with_small_animals: overrides.good_with_small_animals || null,
@@ -90,13 +91,15 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     spay_neuter_status: overrides.spay_neuter_status || SpayNeuterStatus.UNKNOWN,
     spay_neuter_date: overrides.spay_neuter_date || new Date(),
     last_vet_checkup: overrides.last_vet_checkup || new Date(),
-    images: overrides.images || [{
-      image_id: 'img-default',
-      url: 'https://example.com/pet.jpg',
-      is_primary: true,
-      order_index: 0,
-      uploaded_at: new Date(),
-    }],
+    images: overrides.images || [
+      {
+        image_id: 'img-default',
+        url: 'https://example.com/pet.jpg',
+        is_primary: true,
+        order_index: 0,
+        uploaded_at: new Date(),
+      },
+    ],
     videos: overrides.videos || [],
     location: overrides.location || { type: 'Point', coordinates: [-122.4194, 37.7749] },
     available_since: overrides.available_since || new Date('2024-01-01'),
@@ -115,7 +118,9 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
 
   return {
     ...petData,
-    isAvailable: vi.fn().mockReturnValue(petData.status === PetStatus.AVAILABLE && !petData.archived),
+    isAvailable: vi
+      .fn()
+      .mockReturnValue(petData.status === PetStatus.AVAILABLE && !petData.archived),
     canBeAdopted: vi.fn().mockReturnValue(petData.status === PetStatus.AVAILABLE),
     getPrimaryImage: vi.fn().mockReturnValue('https://example.com/pet.jpg'),
     getAgeDisplay: vi.fn().mockReturnValue(`${petData.age_years} years`),
@@ -125,19 +130,20 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
 };
 
 // Helper to create mock user
-const createMockUser = (overrides = {}): User => ({
-  user_id: 'user-123',
-  email: 'adopter@example.com',
-  first_name: 'John',
-  last_name: 'Adopter',
-  status: UserStatus.ACTIVE,
-  type: UserType.ADOPTER,
-  toJSON: vi.fn().mockReturnValue({
+const createMockUser = (overrides = {}): User =>
+  ({
     user_id: 'user-123',
     email: 'adopter@example.com',
-  }),
-  ...overrides,
-} as unknown as User);
+    first_name: 'John',
+    last_name: 'Adopter',
+    status: UserStatus.ACTIVE,
+    type: UserType.ADOPTER,
+    toJSON: vi.fn().mockReturnValue({
+      user_id: 'user-123',
+      email: 'adopter@example.com',
+    }),
+    ...overrides,
+  }) as unknown as User;
 
 describe('Pet Discovery & Matching Flow Integration Tests', () => {
   const userId = 'user-123';
@@ -168,9 +174,7 @@ describe('Pet Discovery & Matching Flow Integration Tests', () => {
       });
 
       it('should return cats when filtering by cat type', async () => {
-        const mockCats = [
-          createMockPet({ pet_id: 'cat-1', name: 'Whiskers', type: PetType.CAT }),
-        ];
+        const mockCats = [createMockPet({ pet_id: 'cat-1', name: 'Whiskers', type: PetType.CAT })];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockCats,
@@ -198,7 +202,10 @@ describe('Pet Discovery & Matching Flow Integration Tests', () => {
           count: 1,
         } as never);
 
-        const result = await PetService.searchPets({ ageGroup: AgeGroup.BABY }, { page: 1, limit: 20 });
+        const result = await PetService.searchPets(
+          { ageGroup: AgeGroup.BABY },
+          { page: 1, limit: 20 }
+        );
 
         expect(result.pets[0].age_group).toBe(AgeGroup.BABY);
       });
@@ -215,7 +222,10 @@ describe('Pet Discovery & Matching Flow Integration Tests', () => {
           count: 1,
         } as never);
 
-        const result = await PetService.searchPets({ ageGroup: AgeGroup.SENIOR }, { page: 1, limit: 20 });
+        const result = await PetService.searchPets(
+          { ageGroup: AgeGroup.SENIOR },
+          { page: 1, limit: 20 }
+        );
 
         expect(result.pets[0].age_group).toBe(AgeGroup.SENIOR);
       });
@@ -497,7 +507,10 @@ describe('Pet Discovery & Matching Flow Integration Tests', () => {
           count: 2,
         } as never);
 
-        const result = await PetService.searchPets({ type: PetType.DOG, size: Size.MEDIUM }, { page: 1, limit: 20 });
+        const result = await PetService.searchPets(
+          { type: PetType.DOG, size: Size.MEDIUM },
+          { page: 1, limit: 20 }
+        );
 
         expect(result.pets.every(pet => pet.type === PetType.DOG)).toBe(true);
         expect(result.pets.every(pet => pet.size === Size.MEDIUM)).toBe(true);
@@ -514,10 +527,7 @@ describe('Pet Discovery & Matching Flow Integration Tests', () => {
           count: 2,
         } as never);
 
-        const result = await PetService.searchPets(
-          { type: PetType.DOG },
-          { page: 1, limit: 20 }
-        );
+        const result = await PetService.searchPets({ type: PetType.DOG }, { page: 1, limit: 20 });
 
         expect(result.pets.every(pet => pet.type === PetType.DOG)).toBe(true);
       });
@@ -566,7 +576,11 @@ describe('Pet Discovery & Matching Flow Integration Tests', () => {
     describe('when user completes the matching journey', () => {
       it('should search, view details, and add to favorites', async () => {
         // Step 1: Search for pets
-        const mockPet = createMockPet({ pet_id: 'journey-1', name: 'Journey Pet', type: PetType.DOG });
+        const mockPet = createMockPet({
+          pet_id: 'journey-1',
+          name: 'Journey Pet',
+          type: PetType.DOG,
+        });
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: [mockPet],
@@ -712,9 +726,13 @@ describe('Pet Discovery & Matching Flow Integration Tests', () => {
           createMockPet({ pet_id: 'page1-2' }),
         ];
 
-        MockedPet.findAndCountAll = vi.fn()
+        MockedPet.findAndCountAll = vi
+          .fn()
           .mockResolvedValueOnce({ rows: mockPage1, count: 10 } as never)
-          .mockResolvedValueOnce({ rows: [createMockPet({ pet_id: 'page2-1' })], count: 10 } as never);
+          .mockResolvedValueOnce({
+            rows: [createMockPet({ pet_id: 'page2-1' })],
+            count: 10,
+          } as never);
 
         const page1 = await PetService.searchPets({}, { page: 1, limit: 2 });
         expect(page1.pets).toHaveLength(2);

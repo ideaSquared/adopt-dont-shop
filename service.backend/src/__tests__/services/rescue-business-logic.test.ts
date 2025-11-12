@@ -66,7 +66,7 @@ describe('RescueService - Business Logic Tests', () => {
     deletedBy: null as string | null,
     createdAt: new Date(),
     updatedAt: new Date(),
-    update: vi.fn().mockImplementation(function(this: any, data: any) {
+    update: vi.fn().mockImplementation(function (this: any, data: any) {
       Object.assign(this, data);
       return Promise.resolve(this);
     }),
@@ -107,7 +107,7 @@ describe('RescueService - Business Logic Tests', () => {
     addedBy: mockUserId,
     addedAt: new Date(),
     user: createMockUser(),
-    update: vi.fn().mockImplementation(function(this: any, data: any) {
+    update: vi.fn().mockImplementation(function (this: any, data: any) {
       Object.assign(this, data);
       return Promise.resolve(this);
     }),
@@ -462,11 +462,14 @@ describe('RescueService - Business Logic Tests', () => {
 
       MockedRescue.findByPk = vi.fn().mockResolvedValue(mockRescue as any);
       MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as any);
-      MockedStaffMember.findOne = vi.fn()
+      MockedStaffMember.findOne = vi
+        .fn()
         .mockResolvedValueOnce(null) // First check for active staff
         .mockResolvedValueOnce(softDeletedStaff as any); // Second check for soft-deleted
       MockedRole.findOne = vi.fn().mockResolvedValue(mockRole as any);
-      MockedUserRole.findOne = vi.fn().mockResolvedValue({ userId: mockUserId, roleId: mockRoleId } as any);
+      MockedUserRole.findOne = vi
+        .fn()
+        .mockResolvedValue({ userId: mockUserId, roleId: mockRoleId } as any);
       (MockedRescue as any).sequelize = {
         transaction: jest.fn().mockResolvedValue(mockTransaction),
       };
@@ -786,13 +789,15 @@ describe('RescueService - Business Logic Tests', () => {
   describe('Rescue Statistics', () => {
     it('should calculate rescue statistics', async () => {
       // Given: A rescue with pets and applications
-      MockedPet.count = vi.fn()
+      MockedPet.count = vi
+        .fn()
         .mockResolvedValueOnce(10) // totalPets
         .mockResolvedValueOnce(6) // availablePets
         .mockResolvedValueOnce(3) // adoptedPets
         .mockResolvedValueOnce(1); // monthlyAdoptions
 
-      MockedApplication.count = vi.fn()
+      MockedApplication.count = vi
+        .fn()
         .mockResolvedValueOnce(15) // totalApplications
         .mockResolvedValueOnce(5); // pendingApplications
 
@@ -893,7 +898,8 @@ describe('RescueService - Business Logic Tests', () => {
         rollback: jest.fn().mockResolvedValue(undefined),
       };
 
-      MockedRescue.findOne = vi.fn()
+      MockedRescue.findOne = vi
+        .fn()
         .mockResolvedValueOnce(null) // First rescue creation succeeds
         .mockResolvedValueOnce(mockRescue1 as any); // Second rescue creation fails
 

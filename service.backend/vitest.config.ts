@@ -32,19 +32,11 @@ export default defineConfig({
       reporter: ['text', 'lcov', 'html'],
       reportsDirectory: './coverage',
       include: ['src/**/*.{ts,js}'],
-      exclude: [
-        'src/**/*.d.ts',
-        'src/**/*.test.{ts,js}',
-        'src/**/*.spec.{ts,js}',
-        'src/index.ts',
-      ],
+      exclude: ['src/**/*.d.ts', 'src/**/*.test.{ts,js}', 'src/**/*.spec.{ts,js}', 'src/index.ts'],
     },
 
     // Test file patterns
-    include: [
-      'src/**/__tests__/**/*.{ts,js}',
-      'src/**/*.{test,spec}.{ts,js}',
-    ],
+    include: ['src/**/__tests__/**/*.{ts,js}', 'src/**/*.{test,spec}.{ts,js}'],
 
     // Exclude helper files
     exclude: [

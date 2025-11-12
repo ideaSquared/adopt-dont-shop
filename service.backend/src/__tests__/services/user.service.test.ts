@@ -134,7 +134,7 @@ describe('UserService', () => {
       expect(result.page).toBe(1);
 
       // Verify the search found the correct user
-      const johnUser = result.users.find((u) => u.firstName === 'John');
+      const johnUser = result.users.find(u => u.firstName === 'John');
       expect(johnUser).toBeDefined();
       expect(johnUser?.email).toBe('john@example.com');
     });

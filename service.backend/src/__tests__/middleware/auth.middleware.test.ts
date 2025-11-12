@@ -139,8 +139,12 @@ describe('Authentication Middleware', () => {
       ip: '127.0.0.1',
       originalUrl: '/api/test',
       get: ((header: string) => {
-        if (header === 'User-Agent') return 'test-agent';
-        if (header === 'set-cookie') return undefined;
+        if (header === 'User-Agent') {
+          return 'test-agent';
+        }
+        if (header === 'set-cookie') {
+          return undefined;
+        }
         return undefined;
       }) as AuthenticatedRequest['get'],
     };

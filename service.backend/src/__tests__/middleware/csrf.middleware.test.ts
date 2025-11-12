@@ -33,8 +33,9 @@ import { logger } from '../../utils/logger';
 import { doubleCsrf } from 'csrf-csrf';
 
 // Get references to the mocked functions
-const { generateCsrfToken: mockGenerateToken, doubleCsrfProtection: mockDoubleCsrfProtection } =
-  (doubleCsrf as ReturnType<typeof vi.fn>)();
+const { generateCsrfToken: mockGenerateToken, doubleCsrfProtection: mockDoubleCsrfProtection } = (
+  doubleCsrf as ReturnType<typeof vi.fn>
+)();
 
 describe('CSRF Middleware', () => {
   let mockRequest: Partial<Request>;

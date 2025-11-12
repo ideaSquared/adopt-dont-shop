@@ -756,9 +756,7 @@ describe('ModerationService', () => {
 
   describe('Error Handling', () => {
     it('should handle database errors when creating report', async () => {
-      (MockedReport.findOne as vi.Mock).mockRejectedValue(
-        new Error('Database connection error')
-      );
+      (MockedReport.findOne as vi.Mock).mockRejectedValue(new Error('Database connection error'));
 
       await expect(
         moderationService.submitReport('user-123', {

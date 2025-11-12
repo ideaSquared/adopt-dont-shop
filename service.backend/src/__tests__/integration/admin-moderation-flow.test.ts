@@ -9,7 +9,7 @@ vi.mock('../../config/env', () => ({
   },
 }));
 
-vi.mock('../../sequelize', async (importOriginal) => {
+vi.mock('../../sequelize', async importOriginal => {
   const actual = await importOriginal<typeof import('../../sequelize')>();
   const originalSequelize = actual.default;
 
@@ -318,7 +318,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           assignedAt: new Date() as Date | undefined,
         });
 
-        mockReport.update = vi.fn().mockImplementation(async (values) => {
+        mockReport.update = vi.fn().mockImplementation(async values => {
           Object.assign(mockReport, values);
           return mockReport;
         });
@@ -516,7 +516,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
         });
 
         mockAction.canBeReversed = vi.fn().mockReturnValue(true);
-        mockAction.update = vi.fn().mockImplementation(async (values) => {
+        mockAction.update = vi.fn().mockImplementation(async values => {
           Object.assign(mockAction, values);
           return mockAction;
         });
@@ -549,7 +549,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           assignedModerator: moderatorId as string | undefined,
         });
 
-        report.update = vi.fn().mockImplementation(async (values) => {
+        report.update = vi.fn().mockImplementation(async values => {
           Object.assign(report, values);
           return report;
         });
@@ -591,18 +591,18 @@ describe('Admin Moderation Workflow Integration Tests', () => {
     describe('when performing bulk actions', () => {
       it('should bulk assign multiple reports', async () => {
         const reportIds = ['report-1', 'report-2', 'report-3'];
-        const reports = reportIds.map((id) =>
+        const reports = reportIds.map(id =>
           createMockReport({
             reportId: id,
             status: ReportStatus.PENDING,
           })
         );
 
-        MockedReport.findByPk = vi.fn((id) =>
-          Promise.resolve(reports.find((r) => r.reportId === id) as never)
+        MockedReport.findByPk = vi.fn(id =>
+          Promise.resolve(reports.find(r => r.reportId === id) as never)
         );
 
-        reports.forEach((report) => {
+        reports.forEach(report => {
           report.update = vi.fn().mockResolvedValue(
             createMockReport({
               ...report,
@@ -625,18 +625,18 @@ describe('Admin Moderation Workflow Integration Tests', () => {
 
       it('should bulk dismiss reports', async () => {
         const reportIds = ['report-dismiss-1', 'report-dismiss-2'];
-        const reports = reportIds.map((id) =>
+        const reports = reportIds.map(id =>
           createMockReport({
             reportId: id,
             status: ReportStatus.UNDER_REVIEW,
           })
         );
 
-        MockedReport.findByPk = vi.fn((id) =>
-          Promise.resolve(reports.find((r) => r.reportId === id) as never)
+        MockedReport.findByPk = vi.fn(id =>
+          Promise.resolve(reports.find(r => r.reportId === id) as never)
         );
 
-        reports.forEach((report) => {
+        reports.forEach(report => {
           report.update = vi.fn().mockResolvedValue(
             createMockReport({
               ...report,
@@ -659,18 +659,18 @@ describe('Admin Moderation Workflow Integration Tests', () => {
 
       it('should bulk escalate reports', async () => {
         const reportIds = ['report-escalate-1', 'report-escalate-2'];
-        const reports = reportIds.map((id) =>
+        const reports = reportIds.map(id =>
           createMockReport({
             reportId: id,
             status: ReportStatus.UNDER_REVIEW,
           })
         );
 
-        MockedReport.findByPk = vi.fn((id) =>
-          Promise.resolve(reports.find((r) => r.reportId === id) as never)
+        MockedReport.findByPk = vi.fn(id =>
+          Promise.resolve(reports.find(r => r.reportId === id) as never)
         );
 
-        reports.forEach((report) => {
+        reports.forEach(report => {
           report.update = vi.fn().mockResolvedValue(
             createMockReport({
               ...report,
@@ -741,9 +741,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           .mockResolvedValueOnce(responseTimeResult as never)
           .mockResolvedValueOnce(resolutionTimeResult as never);
 
-        MockedModeratorAction.findAll = vi
-          .fn()
-          .mockResolvedValueOnce(actionCountsResult as never);
+        MockedModeratorAction.findAll = vi.fn().mockResolvedValueOnce(actionCountsResult as never);
 
         const metrics = await ModerationService.getModerationMetrics();
 
@@ -794,9 +792,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           .mockResolvedValueOnce(responseTimeResult as never)
           .mockResolvedValueOnce(resolutionTimeResult as never);
 
-        MockedModeratorAction.findAll = vi
-          .fn()
-          .mockResolvedValueOnce(actionCountsResult as never);
+        MockedModeratorAction.findAll = vi.fn().mockResolvedValueOnce(actionCountsResult as never);
 
         const metrics = await ModerationService.getModerationMetrics(dateRange);
 
@@ -855,9 +851,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           .mockResolvedValueOnce(responseTimeResult as never)
           .mockResolvedValueOnce(resolutionTimeResult as never);
 
-        MockedModeratorAction.findAll = vi
-          .fn()
-          .mockResolvedValueOnce(actionCountsResult as never);
+        MockedModeratorAction.findAll = vi.fn().mockResolvedValueOnce(actionCountsResult as never);
 
         const metrics = await ModerationService.getModerationMetrics();
 
@@ -891,7 +885,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           { page: 1, limit: 20 }
         );
 
-        expect(result.reports.filter((r) => !r.assignedModerator).length).toBeGreaterThanOrEqual(0);
+        expect(result.reports.filter(r => !r.assignedModerator).length).toBeGreaterThanOrEqual(0);
       });
     });
   });
@@ -922,7 +916,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
         const result = await ModerationService.getActiveActionsForUser(reportedUserId);
 
         expect(result).toBeDefined();
-        expect(result.every((a) => a.isActive)).toBe(true);
+        expect(result.every(a => a.isActive)).toBe(true);
       });
 
       it('should return empty array if no active actions for user', async () => {
@@ -1060,7 +1054,9 @@ function createMockReport(overrides: Partial<Report> = {}): vi.Mocked<Report> {
   return defaultReport as vi.Mocked<Report>;
 }
 
-function createMockModeratorAction(overrides: Partial<ModeratorAction> = {}): vi.Mocked<ModeratorAction> {
+function createMockModeratorAction(
+  overrides: Partial<ModeratorAction> = {}
+): vi.Mocked<ModeratorAction> {
   const defaultAction = {
     actionId: 'mock-action-123',
     moderatorId: 'moderator-123',

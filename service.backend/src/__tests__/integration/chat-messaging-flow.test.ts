@@ -89,7 +89,10 @@ vi.mock('../../models', () => {
 // Import from the mocked models module
 import { Chat, ChatParticipant, Message, User, Rescue } from '../../models';
 import { ChatService } from '../../services/chat.service';
-import { MessageReadStatusService, MessageReadStatus } from '../../services/message-read-status.service';
+import {
+  MessageReadStatusService,
+  MessageReadStatus,
+} from '../../services/message-read-status.service';
 import { AuditLogService } from '../../services/auditLog.service';
 import { NotificationService } from '../../services/notification.service';
 import {
@@ -382,9 +385,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
           content: 'Hello',
         };
 
-        await expect(ChatService.sendMessage(messageData)).rejects.toThrow(
-          'Rate limit exceeded'
-        );
+        await expect(ChatService.sendMessage(messageData)).rejects.toThrow('Rate limit exceeded');
       });
 
       it('should validate message content is not empty', async () => {
@@ -1007,9 +1008,9 @@ describe('Chat Messaging Flow Integration Tests', () => {
       it('should prevent non-rescue staff from removing other participants', async () => {
         MockedChatParticipant.findOne = vi.fn().mockResolvedValue(null);
 
-        await expect(
-          ChatService.removeParticipant(chatId, otherUserId, adopterId)
-        ).rejects.toThrow('Only rescue staff can remove other participants');
+        await expect(ChatService.removeParticipant(chatId, otherUserId, adopterId)).rejects.toThrow(
+          'Only rescue staff can remove other participants'
+        );
       });
 
       it('should log participant removal in audit trail', async () => {

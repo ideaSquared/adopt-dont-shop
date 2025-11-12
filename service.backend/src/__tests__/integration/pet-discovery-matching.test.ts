@@ -63,7 +63,7 @@ vi.mock('../../models/Report', () => ({
 }));
 vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
-vi.mock('../../sequelize', async (importOriginal) => {
+vi.mock('../../sequelize', async importOriginal => {
   const actual = await importOriginal<typeof import('../../sequelize')>();
   const originalSequelize = actual.default;
 
@@ -95,7 +95,8 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     name: overrides.name || 'Test Pet',
     rescue_id: overrides.rescue_id || 'rescue-123',
     short_description: overrides.short_description || 'A lovely pet',
-    long_description: overrides.long_description || 'This is a detailed description of a lovely pet.',
+    long_description:
+      overrides.long_description || 'This is a detailed description of a lovely pet.',
     age_years: overrides.age_years !== undefined ? overrides.age_years : 2,
     age_months: overrides.age_months !== undefined ? overrides.age_months : 6,
     age_group: overrides.age_group || AgeGroup.ADULT,
@@ -116,7 +117,8 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     special_needs: overrides.special_needs !== undefined ? overrides.special_needs : false,
     special_needs_description: overrides.special_needs_description || null,
     house_trained: overrides.house_trained !== undefined ? overrides.house_trained : true,
-    good_with_children: overrides.good_with_children !== undefined ? overrides.good_with_children : true,
+    good_with_children:
+      overrides.good_with_children !== undefined ? overrides.good_with_children : true,
     good_with_dogs: overrides.good_with_dogs !== undefined ? overrides.good_with_dogs : true,
     good_with_cats: overrides.good_with_cats !== undefined ? overrides.good_with_cats : false,
     good_with_small_animals: overrides.good_with_small_animals || null,
@@ -163,11 +165,17 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
 
   return {
     ...petData,
-    isAvailable: vi.fn().mockReturnValue(petData.status === PetStatus.AVAILABLE && !petData.archived),
+    isAvailable: vi
+      .fn()
+      .mockReturnValue(petData.status === PetStatus.AVAILABLE && !petData.archived),
     isAdopted: vi.fn().mockReturnValue(petData.status === PetStatus.ADOPTED),
     getPrimaryImage: vi.fn().mockReturnValue(petData.images[0]?.url || null),
-    getAgeInMonths: vi.fn().mockReturnValue((petData.age_years || 0) * 12 + (petData.age_months || 0)),
-    getAgeDisplay: vi.fn().mockReturnValue(`${petData.age_years} years, ${petData.age_months} months`),
+    getAgeInMonths: vi
+      .fn()
+      .mockReturnValue((petData.age_years || 0) * 12 + (petData.age_months || 0)),
+    getAgeDisplay: vi
+      .fn()
+      .mockReturnValue(`${petData.age_years} years, ${petData.age_months} months`),
     incrementViewCount: vi.fn(),
     canBeAdopted: vi
       .fn()
@@ -219,7 +227,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 3,
         } as never);
 
-        const result = await PetService.searchPets({ status: PetStatus.AVAILABLE }, { page: 1, limit: 20 });
+        const result = await PetService.searchPets(
+          { status: PetStatus.AVAILABLE },
+          { page: 1, limit: 20 }
+        );
 
         expect(result.pets).toHaveLength(3);
         expect(result.total).toBe(3);
@@ -335,7 +346,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 1,
         } as never);
 
-        const result = await PetService.searchPets({ ageGroup: AgeGroup.BABY }, { page: 1, limit: 20 });
+        const result = await PetService.searchPets(
+          { ageGroup: AgeGroup.BABY },
+          { page: 1, limit: 20 }
+        );
 
         expect(result.pets).toHaveLength(1);
         expect(MockedPet.findAndCountAll).toHaveBeenCalledWith(
@@ -353,7 +367,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 1,
         } as never);
 
-        const result = await PetService.searchPets({ gender: Gender.FEMALE }, { page: 1, limit: 20 });
+        const result = await PetService.searchPets(
+          { gender: Gender.FEMALE },
+          { page: 1, limit: 20 }
+        );
 
         expect(result.pets).toHaveLength(1);
         expect(MockedPet.findAndCountAll).toHaveBeenCalledWith(
@@ -386,7 +403,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 1,
         } as never);
 
-        const result = await PetService.searchPets({ goodWithChildren: true }, { page: 1, limit: 20 });
+        const result = await PetService.searchPets(
+          { goodWithChildren: true },
+          { page: 1, limit: 20 }
+        );
 
         expect(result.pets).toHaveLength(1);
         expect(MockedPet.findAndCountAll).toHaveBeenCalledWith(
@@ -440,7 +460,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 1,
         } as never);
 
-        const result = await PetService.searchPets({ energyLevel: EnergyLevel.HIGH }, { page: 1, limit: 20 });
+        const result = await PetService.searchPets(
+          { energyLevel: EnergyLevel.HIGH },
+          { page: 1, limit: 20 }
+        );
 
         expect(result.pets).toHaveLength(1);
         expect(MockedPet.findAndCountAll).toHaveBeenCalledWith(
@@ -512,7 +535,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 1,
         } as never);
 
-        const result = await PetService.searchPets({ weightMin: 10, weightMax: 30 }, { page: 1, limit: 20 });
+        const result = await PetService.searchPets(
+          { weightMin: 10, weightMax: 30 },
+          { page: 1, limit: 20 }
+        );
 
         expect(result.pets).toHaveLength(1);
         const callArgs = (MockedPet.findAndCountAll as vi.Mock).mock.calls[0][0];
@@ -580,7 +606,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 1,
         } as never);
 
-        await PetService.searchPets({}, { page: 1, limit: 20, sortBy: 'created_at', sortOrder: 'DESC' });
+        await PetService.searchPets(
+          {},
+          { page: 1, limit: 20, sortBy: 'created_at', sortOrder: 'DESC' }
+        );
 
         expect(MockedPet.findAndCountAll).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -948,7 +977,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
 
       it('should filter out pets with no images', async () => {
         const mockPets = [
-          createMockPet({ pet_id: 'pet-2', images: [{ image_id: 'img_1', url: 'test.jpg' } as never] }),
+          createMockPet({
+            pet_id: 'pet-2',
+            images: [{ image_id: 'img_1', url: 'test.jpg' } as never],
+          }),
         ];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
@@ -1001,7 +1033,9 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       it('should throw error when reference pet not found', async () => {
         MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
-        await expect(PetService.getSimilarPets('non-existent-pet', 6)).rejects.toThrow('Pet not found');
+        await expect(PetService.getSimilarPets('non-existent-pet', 6)).rejects.toThrow(
+          'Pet not found'
+        );
       });
 
       it('should exclude the reference pet from results', async () => {
@@ -1241,7 +1275,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 2,
         } as never);
 
-        const searchResults = await PetService.searchPets({ type: PetType.DOG }, { page: 1, limit: 20 });
+        const searchResults = await PetService.searchPets(
+          { type: PetType.DOG },
+          { page: 1, limit: 20 }
+        );
 
         expect(searchResults.pets).toHaveLength(2);
 
@@ -1443,7 +1480,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 2,
         } as never);
 
-        const searchResult = await PetService.searchPets({ type: PetType.DOG }, { page: 1, limit: 20 });
+        const searchResult = await PetService.searchPets(
+          { type: PetType.DOG },
+          { page: 1, limit: 20 }
+        );
 
         expect(searchResult.pets).toHaveLength(2);
 
@@ -1480,7 +1520,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
           count: 1,
         } as never);
 
-        const searchResults = await PetService.searchPets({ search: 'Buddy' }, { page: 1, limit: 20 });
+        const searchResults = await PetService.searchPets(
+          { search: 'Buddy' },
+          { page: 1, limit: 20 }
+        );
 
         expect(searchResults.pets).toHaveLength(1);
 

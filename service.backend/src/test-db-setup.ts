@@ -27,7 +27,6 @@ export async function initializeTestDatabase(): Promise<void> {
     // alter: true allows schema changes without dropping data
     // force: false means don't drop existing tables
     await testDb.sync({ force: true });
-
   } catch (error) {
     console.error('Failed to initialize test database:', error);
     throw error;

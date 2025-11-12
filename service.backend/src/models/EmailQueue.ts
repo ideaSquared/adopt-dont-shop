@@ -339,7 +339,7 @@ EmailQueue.init(
         if (process.env.NODE_ENV === 'test') {
           this.setDataValue('ccEmails', JSON.stringify(value || []) as any);
         } else {
-          this.setDataValue('ccEmails', value || [] as any);
+          this.setDataValue('ccEmails', value || ([] as any));
         }
       },
     },
@@ -363,7 +363,7 @@ EmailQueue.init(
         if (process.env.NODE_ENV === 'test') {
           this.setDataValue('bccEmails', JSON.stringify(value || []) as any);
         } else {
-          this.setDataValue('bccEmails', value || [] as any);
+          this.setDataValue('bccEmails', value || ([] as any));
         }
       },
     },
@@ -520,7 +520,7 @@ EmailQueue.init(
         if (process.env.NODE_ENV === 'test') {
           this.setDataValue('tags', JSON.stringify(value || []) as any);
         } else {
-          this.setDataValue('tags', value || [] as any);
+          this.setDataValue('tags', value || ([] as any));
         }
       },
     },

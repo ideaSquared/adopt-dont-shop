@@ -426,7 +426,7 @@ describe('NotificationService', () => {
           message: 'Check out our new feature!',
         };
 
-        (MockedNotification.create as vi.Mock).mockImplementation((data) =>
+        (MockedNotification.create as vi.Mock).mockImplementation(data =>
           Promise.resolve({
             notificationId: `notif-${data.user_id}`,
             ...data,

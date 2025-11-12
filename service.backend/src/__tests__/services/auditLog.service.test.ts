@@ -158,7 +158,7 @@ describe('AuditLogService', () => {
       const result = await service.getAuditLogs({ userId: 'user-1' });
 
       expect(result.logs).toHaveLength(2);
-      expect(result.logs.every((log) => log.user === 'user-1')).toBe(true);
+      expect(result.logs.every(log => log.user === 'user-1')).toBe(true);
     });
 
     it('should filter by action', async () => {
@@ -275,7 +275,7 @@ describe('AuditLogService', () => {
       const result = await service.getAuditLogs({ userId: 'user-1' });
 
       expect(result.logs).toHaveLength(2);
-      expect(result.logs.every((log) => log.user === 'user-1')).toBe(true);
+      expect(result.logs.every(log => log.user === 'user-1')).toBe(true);
     });
 
     it('should filter by action', async () => {

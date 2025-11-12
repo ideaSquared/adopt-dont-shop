@@ -44,8 +44,9 @@ const MockedApplication = Application as vi.Mocked<typeof Application>;
 const MockedPet = Pet as vi.Mocked<typeof Pet>;
 const MockedUser = User as vi.Mocked<typeof User>;
 const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
-const MockedApplicationTimelineService =
-  ApplicationTimelineService as vi.Mocked<typeof ApplicationTimelineService>;
+const MockedApplicationTimelineService = ApplicationTimelineService as vi.Mocked<
+  typeof ApplicationTimelineService
+>;
 
 describe('Application Submission Workflow Integration Tests', () => {
   const adopterId = 'adopter-123';
@@ -126,9 +127,7 @@ describe('Application Submission Workflow Integration Tests', () => {
       });
 
       it('should exclude adopted and pending pets from available listings', async () => {
-        const mockAvailablePets = [
-          createMockPet({ pet_id: 'pet-1', status: PetStatus.AVAILABLE }),
-        ];
+        const mockAvailablePets = [createMockPet({ pet_id: 'pet-1', status: PetStatus.AVAILABLE })];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockAvailablePets,
@@ -1352,10 +1351,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           ],
         };
 
-        const createResult = await ApplicationService.createApplication(
-          applicationData,
-          adopterId
-        );
+        const createResult = await ApplicationService.createApplication(applicationData, adopterId);
 
         expect(createResult.status).toBe(ApplicationStatus.SUBMITTED);
 

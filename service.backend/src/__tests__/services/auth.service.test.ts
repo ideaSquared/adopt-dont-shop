@@ -44,9 +44,9 @@ describe('AuthService', () => {
     };
 
     // Mock bcrypt hash globally for all tests
-    mockedBcrypt.hash = vi.fn().mockImplementation((password: string) =>
-      Promise.resolve(`hashed_${password}` as never)
-    );
+    mockedBcrypt.hash = vi
+      .fn()
+      .mockImplementation((password: string) => Promise.resolve(`hashed_${password}` as never));
     mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
     // Mock crypto for verification tokens

@@ -152,16 +152,32 @@ export class SupportTicketController {
             ? (categoryArray[0] as TicketCategory)
             : (categoryArray as TicketCategory[]);
       }
-      if (assignedTo) filters.assignedTo = assignedTo as string;
-      if (userId) filters.userId = userId as string;
-      if (search) filters.search = search as string;
-      if (dateFrom) filters.dateFrom = new Date(dateFrom as string);
-      if (dateTo) filters.dateTo = new Date(dateTo as string);
+      if (assignedTo) {
+        filters.assignedTo = assignedTo as string;
+      }
+      if (userId) {
+        filters.userId = userId as string;
+      }
+      if (search) {
+        filters.search = search as string;
+      }
+      if (dateFrom) {
+        filters.dateFrom = new Date(dateFrom as string);
+      }
+      if (dateTo) {
+        filters.dateTo = new Date(dateTo as string);
+      }
 
       const pagination: PaginationOptions = {};
-      if (page) pagination.page = parseInt(page as string, 10);
-      if (limit) pagination.limit = parseInt(limit as string, 10);
-      if (sortBy) pagination.sortBy = sortBy as string;
+      if (page) {
+        pagination.page = parseInt(page as string, 10);
+      }
+      if (limit) {
+        pagination.limit = parseInt(limit as string, 10);
+      }
+      if (sortBy) {
+        pagination.sortBy = sortBy as string;
+      }
       // Validate and cast sortOrder to ensure it's "ASC" | "DESC"
       if (sortOrder) {
         const upperOrder = (sortOrder as string).toUpperCase();

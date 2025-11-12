@@ -1128,7 +1128,7 @@ export class PetService {
       const dialect = sequelize.getDialect();
       const dateDiffExpression =
         dialect === 'sqlite'
-          ? literal("julianday(adopted_date) - julianday(available_since)")
+          ? literal('julianday(adopted_date) - julianday(available_since)')
           : literal('EXTRACT(epoch FROM (adopted_date - available_since)) / 86400');
 
       const result = await Pet.findOne({
