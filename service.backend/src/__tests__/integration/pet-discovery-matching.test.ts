@@ -82,11 +82,11 @@ vi.mock('../../sequelize', async importOriginal => {
   };
 });
 
-const MockedPet = Pet as vi.Mocked<typeof Pet>;
-const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
-const MockedUser = User as vi.Mocked<typeof User>;
-const MockedUserFavorite = UserFavorite as vi.Mocked<typeof UserFavorite>;
-const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
+const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedRescue = Rescue as vi.MockedObject<Rescue>;
+const MockedUser = User as vi.MockedObject<User>;
+const MockedUserFavorite = UserFavorite as vi.MockedObject<UserFavorite>;
+const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
 
 // Helper function to create mock pet
 const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {

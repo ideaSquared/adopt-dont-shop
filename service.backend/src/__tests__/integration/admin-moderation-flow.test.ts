@@ -41,11 +41,11 @@ vi.mock('../../models/Rescue');
 vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
 
-const MockedReport = Report as vi.Mocked<typeof Report>;
-const MockedModeratorAction = ModeratorAction as vi.Mocked<typeof ModeratorAction>;
-const MockedUser = User as vi.Mocked<typeof User>;
-const MockedRescue = Rescue as vi.Mocked<typeof Rescue>;
-const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
+const MockedReport = Report as vi.MockedObject<Report>;
+const MockedModeratorAction = ModeratorAction as vi.MockedObject<ModeratorAction>;
+const MockedUser = User as vi.MockedObject<User>;
+const MockedRescue = Rescue as vi.MockedObject<Rescue>;
+const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
 
 describe('Admin Moderation Workflow Integration Tests', () => {
   const reporterId = 'reporter-user-123';

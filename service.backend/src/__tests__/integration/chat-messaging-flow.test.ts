@@ -114,8 +114,8 @@ const MockedMessage = Message as unknown;
 const MockedUser = User as unknown;
 const MockedRescue = Rescue as unknown;
 
-const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
-const MockedNotificationService = NotificationService as vi.Mocked<typeof NotificationService>;
+const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
+const MockedNotificationService = NotificationService as vi.MockedObject<NotificationService>;
 
 describe('Chat Messaging Flow Integration Tests', () => {
   const adopterId = 'adopter-123';

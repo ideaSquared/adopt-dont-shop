@@ -15,7 +15,7 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
-const MockedPet = Pet as vi.Mocked<typeof Pet>;
+const MockedPet = Pet as vi.MockedObject<Pet>;
 
 describe('DiscoveryService', () => {
   let discoveryService: DiscoveryService;

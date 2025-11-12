@@ -558,7 +558,7 @@ describe('UserService', () => {
       const reason = 'Test deletion';
 
       // Mock AuditLogService to throw an error
-      const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
+      const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
       MockedAuditLogService.log = vi.fn().mockRejectedValue(new Error('Audit log error'));
 
       // Should throw if audit logging fails (current implementation)

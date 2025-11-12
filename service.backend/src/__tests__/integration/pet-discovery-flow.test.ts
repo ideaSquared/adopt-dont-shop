@@ -39,10 +39,10 @@ vi.mock('../../services/email.service', () => ({
   },
 }));
 
-const MockedPet = Pet as vi.Mocked<typeof Pet>;
-const MockedUser = User as vi.Mocked<typeof User>;
-const MockedUserFavorite = UserFavorite as vi.Mocked<typeof UserFavorite>;
-const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
+const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedUser = User as vi.MockedObject<User>;
+const MockedUserFavorite = UserFavorite as vi.MockedObject<UserFavorite>;
+const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
 
 // Helper to create mock pet
 const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {

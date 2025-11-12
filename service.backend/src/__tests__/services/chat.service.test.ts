@@ -89,10 +89,10 @@ import { ChatStatus, ParticipantRole, MessageContentFormat } from '../../types/c
 import { AuditLogService } from '../../services/auditLog.service';
 import { NotificationService } from '../../services/notification.service';
 
-const MockedChat = Chat as vi.Mocked<typeof Chat>;
-const MockedChatParticipant = ChatParticipant as vi.Mocked<typeof ChatParticipant>;
-const MockedMessage = Message as vi.Mocked<typeof Message>;
-const MockedUser = User as vi.Mocked<typeof User>;
+const MockedChat = Chat as vi.MockedObject<Chat>;
+const MockedChatParticipant = ChatParticipant as vi.MockedObject<ChatParticipant>;
+const MockedMessage = Message as vi.MockedObject<Message>;
+const MockedUser = User as vi.MockedObject<User>;
 const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
 const mockCreateNotification = NotificationService.createNotification as vi.MockedFunction<
   typeof NotificationService.createNotification

@@ -40,11 +40,11 @@ vi.mock('../../services/email.service', () => ({
   },
 }));
 
-const MockedUser = User as vi.Mocked<typeof User>;
-const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
-const mockedJwt = jwt as vi.Mocked<typeof jwt>;
-const mockedBcrypt = bcrypt as vi.Mocked<typeof bcrypt>;
-const mockedCrypto = crypto as vi.Mocked<typeof crypto>;
+const MockedUser = User as vi.MockedObject<User>;
+const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
+const mockedJwt = jwt as vi.MockedObject<jwt>;
+const mockedBcrypt = bcrypt as vi.MockedObject<bcrypt>;
+const mockedCrypto = crypto as vi.MockedObject<crypto>;
 
 describe('Authentication Flow Integration Tests', () => {
   const validPassword = 'SecurePass123!';

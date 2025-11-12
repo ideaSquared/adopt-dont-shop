@@ -12,7 +12,7 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
-const mockSequelize = sequelize as vi.Mocked<typeof sequelize>;
+const mockSequelize = sequelize as vi.MockedObject<sequelize>;
 
 describe('SwipeService', () => {
   let swipeService: SwipeService;

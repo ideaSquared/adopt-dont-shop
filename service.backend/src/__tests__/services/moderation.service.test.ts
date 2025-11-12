@@ -1,28 +1,30 @@
+import { vi, describe, it, expect, beforeEach, afterEach, afterAll, Mock } from 'vitest';
+
 // Mock sequelize first
 const mockTransaction = {
-  commit: jest.fn().mockResolvedValue(undefined),
-  rollback: jest.fn().mockResolvedValue(undefined),
+  commit: vi.fn().mockResolvedValue(undefined),
+  rollback: vi.fn().mockResolvedValue(undefined),
 };
 
 const mockSequelize = {
-  transaction: jest.fn().mockResolvedValue(mockTransaction),
+  transaction: vi.fn().mockResolvedValue(mockTransaction),
 };
 
-jest.mock('../../sequelize', () => ({
+vi.mock('../../sequelize', () => ({
   __esModule: true,
   default: mockSequelize,
 }));
 
 // Mock models
-jest.mock('../../models/Report');
-jest.mock('../../models/ModeratorAction');
-jest.mock('../../models/User');
-jest.mock('../../models/Pet');
-jest.mock('../../models/Rescue');
+vi.mock('../../models/Report');
+vi.mock('../../models/ModeratorAction');
+vi.mock('../../models/User');
+vi.mock('../../models/Pet');
+vi.mock('../../models/Rescue');
 
 // Mock audit log service
-const mockAuditLogAction = jest.fn().mockResolvedValue(undefined);
-jest.mock('../../services/auditLog.service', () => ({
+const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
+vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: mockAuditLogAction,
   },
@@ -30,13 +32,13 @@ jest.mock('../../services/auditLog.service', () => ({
 
 // Mock logger
 const mockLogger = {
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
 };
 
-jest.mock('../../utils/logger', () => ({
+vi.mock('../../utils/logger', () => ({
   __esModule: true,
   default: mockLogger,
 }));
@@ -48,15 +50,15 @@ import Pet from '../../models/Pet';
 import Rescue from '../../models/Rescue';
 import moderationService from '../../services/moderation.service';
 
-const MockedReport = Report as jest.Mocked<typeof Report>;
-const MockedModeratorAction = ModeratorAction as jest.Mocked<typeof ModeratorAction>;
-const MockedUser = User as jest.Mocked<typeof User>;
-const MockedPet = Pet as jest.Mocked<typeof Pet>;
-const MockedRescue = Rescue as jest.Mocked<typeof Rescue>;
+const MockedReport = Report as Mock<typeof Report>;
+const MockedModeratorAction = ModeratorAction as Mock<typeof ModeratorAction>;
+const MockedUser = User as Mock<typeof User>;
+const MockedPet = Pet as Mock<typeof Pet>;
+const MockedRescue = Rescue as Mock<typeof Rescue>;
 
 describe('ModerationService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Report Management', () => {
@@ -89,8 +91,8 @@ describe('ModerationService', () => {
           createdAt: new Date(),
         };
 
-        (MockedReport.findOne as jest.Mock).mockResolvedValue(null); // No duplicate
-        (MockedReport.create as jest.Mock).mockResolvedValue(mockReport);
+        (MockedReport.findOne as Mock).mockResolvedValue(null); // No duplicate
+        (MockedReport.create as Mock).mockResolvedValue(mockReport);
 
         const result = await moderationService.submitReport(reporterId, reportData);
 
@@ -145,7 +147,7 @@ describe('ModerationService', () => {
           status: ReportStatus.PENDING,
         };
 
-        (MockedReport.findOne as jest.Mock).mockResolvedValue(existingReport);
+        (MockedReport.findOne as Mock).mockResolvedValue(existingReport);
 
         await expect(moderationService.submitReport(reporterId, reportData)).rejects.toThrow(
           'You have already submitted a report for this content'
@@ -164,8 +166,8 @@ describe('ModerationService', () => {
           description: 'Pet description is misleading',
         };
 
-        (MockedReport.findOne as jest.Mock).mockResolvedValue(null);
-        (MockedReport.create as jest.Mock).mockResolvedValue({
+        (MockedReport.findOne as Mock).mockResolvedValue(null);
+        (MockedReport.create as Mock).mockResolvedValue({
           reportId: 'report-123',
           ...reportData,
           severity: ReportSeverity.MEDIUM,
@@ -206,7 +208,7 @@ describe('ModerationService', () => {
           },
         ];
 
-        (MockedReport.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedReport.findAndCountAll as Mock).mockResolvedValue({
           rows: mockReports,
           count: 2,
         });
@@ -233,7 +235,7 @@ describe('ModerationService', () => {
           severity: ReportSeverity.HIGH,
         };
 
-        (MockedReport.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedReport.findAndCountAll as Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -254,7 +256,7 @@ describe('ModerationService', () => {
           assignedModerator: 'moderator-123',
         };
 
-        (MockedReport.findAndCountAll as jest.Mock).mockResolvedValue({
+        (MockedReport.findAndCountAll as Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
@@ -287,7 +289,7 @@ describe('ModerationService', () => {
           ],
         };
 
-        (MockedReport.findByPk as jest.Mock).mockResolvedValue(mockReport);
+        (MockedReport.findByPk as Mock).mockResolvedValue(mockReport);
 
         const result = await moderationService.getReportById(reportId, true);
 
@@ -298,7 +300,7 @@ describe('ModerationService', () => {
       });
 
       it('should return null when report not found', async () => {
-        (MockedReport.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedReport.findByPk as Mock).mockResolvedValue(null);
 
         const result = await moderationService.getReportById('nonexistent', false);
 
@@ -315,10 +317,10 @@ describe('ModerationService', () => {
         const mockReport = {
           reportId,
           status: ReportStatus.PENDING,
-          update: jest.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedReport.findByPk as jest.Mock).mockResolvedValue(mockReport);
+        (MockedReport.findByPk as Mock).mockResolvedValue(mockReport);
 
         const result = await moderationService.assignReport(reportId, moderatorId, assignedBy);
 
@@ -342,7 +344,7 @@ describe('ModerationService', () => {
       });
 
       it('should throw error when report not found', async () => {
-        (MockedReport.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedReport.findByPk as Mock).mockResolvedValue(null);
 
         await expect(
           moderationService.assignReport('nonexistent', 'mod-123', 'admin-456')
@@ -375,7 +377,7 @@ describe('ModerationService', () => {
           createdAt: new Date(),
         };
 
-        (MockedModeratorAction.create as jest.Mock).mockResolvedValue(mockAction);
+        (MockedModeratorAction.create as Mock).mockResolvedValue(mockAction);
 
         const result = await moderationService.takeModerationAction(moderatorId, actionRequest);
 
@@ -413,7 +415,7 @@ describe('ModerationService', () => {
           duration: 7, // 7 days
         };
 
-        (MockedModeratorAction.create as jest.Mock).mockResolvedValue({
+        (MockedModeratorAction.create as Mock).mockResolvedValue({
           actionId: 'action-123',
           ...actionRequest,
         });
@@ -439,7 +441,7 @@ describe('ModerationService', () => {
           reason: 'Severe policy violation',
         };
 
-        (MockedModeratorAction.create as jest.Mock).mockResolvedValue({
+        (MockedModeratorAction.create as Mock).mockResolvedValue({
           actionId: 'action-123',
           ...actionRequest,
         });
@@ -465,11 +467,11 @@ describe('ModerationService', () => {
         const mockAction = {
           actionId,
           isActive: true,
-          canBeReversed: jest.fn().mockReturnValue(true),
-          update: jest.fn().mockResolvedValue(undefined),
+          canBeReversed: vi.fn().mockReturnValue(true),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedModeratorAction.findByPk as jest.Mock).mockResolvedValue(mockAction);
+        (MockedModeratorAction.findByPk as Mock).mockResolvedValue(mockAction);
 
         const result = await moderationService.reverseAction(actionId, moderatorId, reason);
 
@@ -495,7 +497,7 @@ describe('ModerationService', () => {
       });
 
       it('should throw error when action not found', async () => {
-        (MockedModeratorAction.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedModeratorAction.findByPk as Mock).mockResolvedValue(null);
 
         await expect(
           moderationService.reverseAction('nonexistent', 'mod-123', 'reason')
@@ -506,10 +508,10 @@ describe('ModerationService', () => {
         const mockAction = {
           actionId: 'action-123',
           isActive: false,
-          canBeReversed: jest.fn().mockReturnValue(false),
+          canBeReversed: vi.fn().mockReturnValue(false),
         };
 
-        (MockedModeratorAction.findByPk as jest.Mock).mockResolvedValue(mockAction);
+        (MockedModeratorAction.findByPk as Mock).mockResolvedValue(mockAction);
 
         await expect(
           moderationService.reverseAction('action-123', 'mod-456', 'reason')
@@ -544,7 +546,7 @@ describe('ModerationService', () => {
         ];
 
         // Mock both findAll calls - first for never-expiring, second for future-expiring
-        (MockedModeratorAction.findAll as jest.Mock)
+        (MockedModeratorAction.findAll as Mock)
           .mockResolvedValueOnce(neverExpiringActions)
           .mockResolvedValueOnce(futureExpiringActions);
 
@@ -559,7 +561,7 @@ describe('ModerationService', () => {
 
     describe('when expiring actions', () => {
       it('should mark expired actions as inactive', async () => {
-        (MockedModeratorAction.update as jest.Mock).mockResolvedValue([2]); // 2 rows updated
+        (MockedModeratorAction.update as Mock).mockResolvedValue([2]); // 2 rows updated
 
         const count = await moderationService.expireActions();
 
@@ -575,7 +577,7 @@ describe('ModerationService', () => {
       });
 
       it('should return zero when no actions to expire', async () => {
-        (MockedModeratorAction.update as jest.Mock).mockResolvedValue([0]); // 0 rows updated
+        (MockedModeratorAction.update as Mock).mockResolvedValue([0]); // 0 rows updated
 
         const count = await moderationService.expireActions();
 
@@ -588,20 +590,20 @@ describe('ModerationService', () => {
     describe('when getting moderation metrics', () => {
       it('should return comprehensive metrics', async () => {
         // Mock Report.findAll for grouped counts
-        (MockedReport.findAll as jest.Mock).mockResolvedValueOnce([
+        (MockedReport.findAll as Mock).mockResolvedValueOnce([
           { status: 'pending', category: 'spam', severity: 'low', count: '10' },
           { status: 'under_review', category: 'spam', severity: 'medium', count: '15' },
           { status: 'resolved', category: 'harassment', severity: 'high', count: '5' },
         ]);
 
         // Mock ModeratorAction.findAll for grouped counts
-        (MockedModeratorAction.findAll as jest.Mock).mockResolvedValueOnce([
+        (MockedModeratorAction.findAll as Mock).mockResolvedValueOnce([
           { actionType: 'warning_issued', isActive: true, count: '20' },
           { actionType: 'user_suspended', isActive: true, count: '10' },
         ]);
 
         // Mock response time calculations
-        (MockedReport.findAll as jest.Mock)
+        (MockedReport.findAll as Mock)
           .mockResolvedValueOnce([]) // assignedAt data
           .mockResolvedValueOnce([]); // resolvedAt data
 
@@ -621,13 +623,13 @@ describe('ModerationService', () => {
         };
 
         // Mock Report.findAll
-        (MockedReport.findAll as jest.Mock)
+        (MockedReport.findAll as Mock)
           .mockResolvedValueOnce([]) // grouped counts
           .mockResolvedValueOnce([]) // assignedAt
           .mockResolvedValueOnce([]); // resolvedAt
 
         // Mock ModeratorAction.findAll
-        (MockedModeratorAction.findAll as jest.Mock).mockResolvedValueOnce([]);
+        (MockedModeratorAction.findAll as Mock).mockResolvedValueOnce([]);
 
         await moderationService.getModerationMetrics(dateRange);
 
@@ -654,10 +656,10 @@ describe('ModerationService', () => {
           reportId,
           severity: ReportSeverity.MEDIUM,
           status: ReportStatus.UNDER_REVIEW,
-          update: jest.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedReport.findByPk as jest.Mock).mockResolvedValue(mockReport);
+        (MockedReport.findByPk as Mock).mockResolvedValue(mockReport);
 
         const result = await moderationService.escalateReport(
           reportId,
@@ -688,7 +690,7 @@ describe('ModerationService', () => {
       });
 
       it('should throw error when report not found', async () => {
-        (MockedReport.findByPk as jest.Mock).mockResolvedValue(null);
+        (MockedReport.findByPk as Mock).mockResolvedValue(null);
 
         await expect(
           moderationService.escalateReport('nonexistent', 'senior-mod-789', 'mod-123', 'reason')
@@ -705,10 +707,10 @@ describe('ModerationService', () => {
         const mockReports = reportIds.map(id => ({
           reportId: id,
           status: ReportStatus.UNDER_REVIEW,
-          update: jest.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         }));
 
-        (MockedReport.findByPk as jest.Mock)
+        (MockedReport.findByPk as Mock)
           .mockResolvedValueOnce(mockReports[0])
           .mockResolvedValueOnce(mockReports[1])
           .mockResolvedValueOnce(mockReports[2]);
@@ -735,11 +737,11 @@ describe('ModerationService', () => {
       it('should throw error if report not found', async () => {
         const reportIds = ['report-1', 'report-2'];
 
-        (MockedReport.findByPk as jest.Mock)
+        (MockedReport.findByPk as Mock)
           .mockResolvedValueOnce({
             reportId: 'report-1',
             status: ReportStatus.UNDER_REVIEW,
-            update: jest.fn().mockResolvedValue(undefined),
+            update: vi.fn().mockResolvedValue(undefined),
           })
           .mockResolvedValueOnce(null); // Second report not found
 
@@ -772,7 +774,7 @@ describe('ModerationService', () => {
     });
 
     it('should handle errors when taking moderation action', async () => {
-      (MockedModeratorAction.create as jest.Mock).mockRejectedValue(
+      (MockedModeratorAction.create as Mock).mockRejectedValue(
         new Error('Failed to create action')
       );
 
