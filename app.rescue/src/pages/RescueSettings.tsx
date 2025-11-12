@@ -161,9 +161,7 @@ const RescueSettings: React.FC = () => {
     } catch (err) {
       console.error('Error loading rescue data:', err);
       setError(
-        err instanceof Error
-          ? err.message
-          : 'Failed to load rescue settings. Please try again.'
+        err instanceof Error ? err.message : 'Failed to load rescue settings. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -173,10 +171,7 @@ const RescueSettings: React.FC = () => {
   const handleSaveProfile = async (profileData: Partial<RescueProfile>) => {
     if (!rescue) return;
 
-    await apiService.put(
-      `http://localhost:5000/api/v1/rescues/${rescue.rescueId}`,
-      profileData
-    );
+    await apiService.put(`http://localhost:5000/api/v1/rescues/${rescue.rescueId}`, profileData);
 
     await loadRescueData();
   };
@@ -245,10 +240,7 @@ const RescueSettings: React.FC = () => {
           <Tab $active={activeTab === 'questions'} onClick={() => setActiveTab('questions')}>
             Application Questions
           </Tab>
-          <Tab
-            $active={activeTab === 'preferences'}
-            onClick={() => setActiveTab('preferences')}
-          >
+          <Tab $active={activeTab === 'preferences'} onClick={() => setActiveTab('preferences')}>
             Preferences
           </Tab>
         </TabList>
@@ -270,8 +262,8 @@ const RescueSettings: React.FC = () => {
         <PlaceholderSection>
           <h2>📝 Custom Application Questions</h2>
           <p>
-            This feature is coming soon. You'll be able to create custom questions for
-            your adoption applications.
+            This feature is coming soon. You'll be able to create custom questions for your adoption
+            applications.
           </p>
         </PlaceholderSection>
       </TabPanel>
@@ -280,8 +272,8 @@ const RescueSettings: React.FC = () => {
         <PlaceholderSection>
           <h2>⚙️ System Preferences</h2>
           <p>
-            This feature is coming soon. You'll be able to configure notification
-            settings, auto-responses, and workflow preferences.
+            This feature is coming soon. You'll be able to configure notification settings,
+            auto-responses, and workflow preferences.
           </p>
         </PlaceholderSection>
       </TabPanel>

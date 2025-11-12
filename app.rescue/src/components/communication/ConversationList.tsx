@@ -171,9 +171,7 @@ export function ConversationList() {
       {!conversations || conversations.length === 0 ? (
         <EmptyState>
           <h4>No conversations yet</h4>
-          <p>
-            Conversations will appear here when adopters contact you about pets.
-          </p>
+          <p>Conversations will appear here when adopters contact you about pets.</p>
         </EmptyState>
       ) : (
         <ConversationsList>

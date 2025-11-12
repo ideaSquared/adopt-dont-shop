@@ -65,7 +65,7 @@ export const STAFF_PERMISSIONS = {
   MANAGE_ADOPTION_POLICIES: 'manage_adoption_policies',
 } as const;
 
-export type StaffPermission = typeof STAFF_PERMISSIONS[keyof typeof STAFF_PERMISSIONS];
+export type StaffPermission = (typeof STAFF_PERMISSIONS)[keyof typeof STAFF_PERMISSIONS];
 
 // Default roles
 export const DEFAULT_ROLES: StaffRole[] = [

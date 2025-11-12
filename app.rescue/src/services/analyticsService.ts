@@ -259,7 +259,11 @@ export class AnalyticsService {
   /**
    * Email a report to specified recipients
    */
-  async emailReport(reportType: string, filters: ReportFilters, recipients: string[]): Promise<void> {
+  async emailReport(
+    reportType: string,
+    filters: ReportFilters,
+    recipients: string[]
+  ): Promise<void> {
     try {
       await apiService.post('/api/v1/analytics/email-report', {
         reportType,
@@ -320,7 +324,9 @@ export class AnalyticsService {
   // Mock data methods for development
 
   private getMockAdoptionMetrics(dateRange: DateRange): AdoptionMetrics {
-    const days = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+    const days = Math.ceil(
+      (dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24)
+    );
     const trends = Array.from({ length: Math.min(days, 30) }, (_, i) => {
       const date = new Date(dateRange.start);
       date.setDate(date.getDate() + i);

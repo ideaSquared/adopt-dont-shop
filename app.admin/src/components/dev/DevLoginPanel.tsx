@@ -8,7 +8,7 @@ const DevLoginPanel: React.FC = () => {
 
   return (
     <DevPanelComponent
-      title="Admin Dev Login Panel"
+      title='Admin Dev Login Panel'
       authContext={authContext}
       isDevelopment={isDevelopment}
       userTypes={['admin', 'moderator']}

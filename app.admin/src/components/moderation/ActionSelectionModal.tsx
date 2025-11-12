@@ -33,7 +33,7 @@ const Overlay = styled.div<{ $isOpen: boolean }>`
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  display: ${props => props.$isOpen ? 'flex' : 'none'};
+  display: ${props => (props.$isOpen ? 'flex' : 'none')};
   align-items: center;
   justify-content: center;
   z-index: 1000;
@@ -47,7 +47,9 @@ const Modal = styled.div`
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 `;
 
 const ModalHeader = styled.div`
@@ -201,14 +203,17 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
   transition: all 0.2s ease;
   border: none;
 
-  ${props => props.$variant === 'primary' ? `
+  ${props =>
+    props.$variant === 'primary'
+      ? `
     background: ${props.theme.colors.primary[600]};
     color: #ffffff;
 
     &:hover:not(:disabled) {
       background: ${props.theme.colors.primary[700]};
     }
-  ` : `
+  `
+      : `
     background: #ffffff;
     color: #374151;
     border: 1px solid #d1d5db;
@@ -285,7 +290,7 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
 
   return (
     <Overlay $isOpen={isOpen} onClick={handleClose}>
-      <Modal onClick={(e) => e.stopPropagation()}>
+      <Modal onClick={e => e.stopPropagation()}>
         <ModalHeader>
           <ModalTitle>Take Moderation Action</ModalTitle>
           <CloseButton onClick={handleClose} disabled={isLoading}>
@@ -301,11 +306,11 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
             </ReportInfo>
 
             <FormGroup>
-              <Label htmlFor="actionType">Action Type *</Label>
+              <Label htmlFor='actionType'>Action Type *</Label>
               <Select
-                id="actionType"
+                id='actionType'
                 value={actionType}
-                onChange={(e) => setActionType(e.target.value as ActionType)}
+                onChange={e => setActionType(e.target.value as ActionType)}
                 disabled={isLoading}
               >
                 {Object.entries(actionTypeLabels).map(([value, label]) => (
@@ -319,14 +324,14 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
 
             {actionType === 'user_suspended' && (
               <FormGroup>
-                <Label htmlFor="duration">Suspension Duration (hours) *</Label>
+                <Label htmlFor='duration'>Suspension Duration (hours) *</Label>
                 <Input
-                  id="duration"
-                  type="number"
-                  min="1"
-                  max="8760"
+                  id='duration'
+                  type='number'
+                  min='1'
+                  max='8760'
                   value={duration}
-                  onChange={(e) => setDuration(parseInt(e.target.value) || 24)}
+                  onChange={e => setDuration(parseInt(e.target.value) || 24)}
                   disabled={isLoading}
                 />
                 <HelpText>
@@ -336,12 +341,12 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
             )}
 
             <FormGroup>
-              <Label htmlFor="reason">Reason (visible to user) *</Label>
+              <Label htmlFor='reason'>Reason (visible to user) *</Label>
               <TextArea
-                id="reason"
+                id='reason'
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Explain why this action is being taken. This will be shown to the user."
+                onChange={e => setReason(e.target.value)}
+                placeholder='Explain why this action is being taken. This will be shown to the user.'
                 disabled={isLoading}
                 required
               />
@@ -349,12 +354,12 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
             </FormGroup>
 
             <FormGroup>
-              <Label htmlFor="internalNotes">Internal Notes (optional)</Label>
+              <Label htmlFor='internalNotes'>Internal Notes (optional)</Label>
               <TextArea
-                id="internalNotes"
+                id='internalNotes'
                 value={internalNotes}
-                onChange={(e) => setInternalNotes(e.target.value)}
-                placeholder="Add any internal notes for other moderators (not visible to users)"
+                onChange={e => setInternalNotes(e.target.value)}
+                placeholder='Add any internal notes for other moderators (not visible to users)'
                 disabled={isLoading}
               />
               <HelpText>These notes are only visible to moderators</HelpText>
@@ -362,10 +367,10 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
           </ModalBody>
 
           <ModalFooter>
-            <Button type="button" $variant="secondary" onClick={handleClose} disabled={isLoading}>
+            <Button type='button' $variant='secondary' onClick={handleClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" $variant="primary" disabled={isLoading}>
+            <Button type='submit' $variant='primary' disabled={isLoading}>
               {isLoading ? 'Processing...' : 'Take Action'}
             </Button>
           </ModalFooter>

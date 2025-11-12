@@ -18,23 +18,22 @@ export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
     );
   }
 
-  const statsigUser = useMemo(() => ({
-    userID: user?.userId || 'anonymous',
-    email: user?.email,
-    custom: {
-      app: 'client',
-      userType: user?.userType,
-      isAuthenticated: !!user,
-    },
-  }), [user]);
-
-  const { client } = useClientAsyncInit(
-    statsigClientKey || 'client-invalid-key',
-    statsigUser,
-    {
-      plugins: [new StatsigAutoCapturePlugin(), new StatsigSessionReplayPlugin()],
-    }
+  const statsigUser = useMemo(
+    () => ({
+      userID: user?.userId || 'anonymous',
+      email: user?.email,
+      custom: {
+        app: 'client',
+        userType: user?.userType,
+        isAuthenticated: !!user,
+      },
+    }),
+    [user]
   );
+
+  const { client } = useClientAsyncInit(statsigClientKey || 'client-invalid-key', statsigUser, {
+    plugins: [new StatsigAutoCapturePlugin(), new StatsigSessionReplayPlugin()],
+  });
 
   return (
     <StatsigProvider

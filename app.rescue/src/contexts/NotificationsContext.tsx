@@ -29,10 +29,10 @@ interface NotificationsProviderProps {
 export const NotificationsProvider = ({ children, userId }: NotificationsProviderProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const notificationsService = useMemo(() => {
     return new NotificationsService({
-      debug: import.meta.env.NODE_ENV === 'development'
+      debug: import.meta.env.NODE_ENV === 'development',
     });
   }, []);
 
@@ -51,7 +51,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
         const response = await notificationsService.getUserNotifications(userId, {
           page: 1,
           limit: 50,
-          isRead: false
+          isRead: false,
         });
         setNotifications(response.data || []);
       } catch (error) {
@@ -68,8 +68,8 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   const markAsRead = async (id: string) => {
     try {
       await notificationsService.markAsRead([id]);
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, readAt: new Date().toISOString() } : n)
+      setNotifications(prev =>
+        prev.map(n => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n))
       );
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
@@ -80,9 +80,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   const markAllAsRead = async (currentUserId: string) => {
     try {
       await notificationsService.markAllAsRead(currentUserId);
-      setNotifications(prev => 
-        prev.map(n => ({ ...n, readAt: new Date().toISOString() }))
-      );
+      setNotifications(prev => prev.map(n => ({ ...n, readAt: new Date().toISOString() })));
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
       throw error;
@@ -92,9 +90,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   const clearAll = async (currentUserId: string) => {
     try {
       // Delete all notifications for the user
-      const deletePromises = notifications.map(n => 
-        notificationsService.deleteNotification(n.id)
-      );
+      const deletePromises = notifications.map(n => notificationsService.deleteNotification(n.id));
       await Promise.all(deletePromises);
       setNotifications([]);
     } catch (error) {
@@ -103,19 +99,26 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     }
   };
 
-  const value = useMemo(() => ({
-    notificationsService,
-    notifications,
-    unreadCount,
-    markAsRead,
-    markAllAsRead,
-    clearAll,
-    isLoading,
-  }), [notificationsService, notifications, unreadCount, isLoading, markAsRead, markAllAsRead, clearAll]);
-
-  return (
-    <NotificationsContext.Provider value={value}>
-      {children}
-    </NotificationsContext.Provider>
+  const value = useMemo(
+    () => ({
+      notificationsService,
+      notifications,
+      unreadCount,
+      markAsRead,
+      markAllAsRead,
+      clearAll,
+      isLoading,
+    }),
+    [
+      notificationsService,
+      notifications,
+      unreadCount,
+      isLoading,
+      markAsRead,
+      markAllAsRead,
+      clearAll,
+    ]
   );
+
+  return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 };

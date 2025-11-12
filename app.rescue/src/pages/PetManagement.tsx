@@ -24,7 +24,7 @@ const ContentWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  
+
   @media (min-width: 768px) {
     gap: 1.25rem;
   }
@@ -67,7 +67,7 @@ const HeaderActions = styled.div`
   @media (max-width: 768px) {
     width: 100%;
     justify-content: stretch;
-    
+
     button {
       flex: 1;
     }
@@ -144,7 +144,7 @@ const PetManagement: React.FC = () => {
   const handleCreateDemoRescue = async () => {
     try {
       setLoading(true);
-      
+
       // Create a demo rescue
       const demoRescueData = {
         name: `${user?.firstName}'s Demo Rescue`,
@@ -159,15 +159,18 @@ const PetManagement: React.FC = () => {
         contactPerson: `${user?.firstName} ${user?.lastName}` || 'Demo Contact',
         contactTitle: 'Rescue Manager',
         contactEmail: user?.email || 'demo@rescue.com',
-        contactPhone: '555-0123'
+        contactPhone: '555-0123',
       };
 
       // Call the API using lib.api
-      const result = await apiService.post<any>('http://localhost:5000/api/v1/rescues', demoRescueData);
+      const result = await apiService.post<any>(
+        'http://localhost:5000/api/v1/rescues',
+        demoRescueData
+      );
 
       // Now update the user with the rescue ID
       await apiService.patch<any>(`http://localhost:5000/api/v1/users/${user?.userId}`, {
-        rescueId: result.data.rescueId
+        rescueId: result.data.rescueId,
       });
 
       // Refresh the user data
@@ -189,7 +192,7 @@ const PetManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
-  
+
   // Filter states
   const [statusFilter, setStatusFilter] = useState<PetStatus | 'all'>('all');
   const [searchFilter, setSearchFilter] = useState('');
@@ -198,7 +201,7 @@ const PetManagement: React.FC = () => {
   const [breedFilter, setBreedFilter] = useState<string>('');
   const [ageGroupFilter, setAgeGroupFilter] = useState<string>('');
   const [genderFilter, setGenderFilter] = useState<string>('');
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -246,7 +249,7 @@ const PetManagement: React.FC = () => {
 
       // Use getMyRescuePets which automatically determines the rescue ID from authentication
       const response = await petManagementService.getMyRescuePets(filters);
-      
+
       setPets(response.pets);
       setCurrentPage(response.pagination.page);
       setTotalPages(response.pagination.totalPages);
@@ -254,7 +257,7 @@ const PetManagement: React.FC = () => {
       setHasPrev(response.pagination.hasPrev);
     } catch (err) {
       console.error('Failed to fetch pets:', err);
-      
+
       // If the error is about not being associated with a rescue, show setup
       if (err instanceof Error && err.message.includes('not associated with a rescue')) {
         setShowRescueSetup(true);
@@ -270,15 +273,17 @@ const PetManagement: React.FC = () => {
   const fetchStats = async () => {
     try {
       // Try to get stats using the dashboard endpoint which works
-      const dashboardData = await apiService.get<any>('http://localhost:5000/api/v1/dashboard/rescue');
-      
+      const dashboardData = await apiService.get<any>(
+        'http://localhost:5000/api/v1/dashboard/rescue'
+      );
+
       // Map dashboard data to our stats format
       setStats({
         total: dashboardData.data.totalAnimals || 0,
         available: dashboardData.data.availableForAdoption || 0,
         pending: dashboardData.data.pendingApplications || 0,
         adopted: dashboardData.data.adoptedPets || 0,
-        onHold: 0 // Not available in dashboard data
+        onHold: 0, // Not available in dashboard data
       });
     } catch (err) {
       console.error('Failed to fetch pet statistics:', err);
@@ -287,7 +292,16 @@ const PetManagement: React.FC = () => {
 
   useEffect(() => {
     fetchPets();
-  }, [currentPage, statusFilter, searchFilter, typeFilter, sizeFilter, breedFilter, ageGroupFilter, genderFilter]);
+  }, [
+    currentPage,
+    statusFilter,
+    searchFilter,
+    typeFilter,
+    sizeFilter,
+    breedFilter,
+    ageGroupFilter,
+    genderFilter,
+  ]);
 
   useEffect(() => {
     fetchStats();
@@ -317,17 +331,17 @@ const PetManagement: React.FC = () => {
 
   const handleDeletePet = async (petId: string, reason?: string) => {
     setLoading(true);
-    
+
     try {
       // Optimistically remove the pet from the UI immediately
       setPets(prevPets => prevPets.filter(pet => pet.pet_id !== petId));
-      
+
       await petManagementService.deletePet(petId, reason);
-      
+
       // Refresh data to ensure consistency
       await fetchPets();
       await fetchStats();
-      
+
       // Clear any previous errors
       setError(null);
     } catch (err) {
@@ -384,23 +398,21 @@ const PetManagement: React.FC = () => {
           </HeaderContent>
         </PageHeader>
 
-        <Card style={{ padding: '2rem', textAlign: 'center', maxWidth: '600px', margin: '1rem auto' }}>
+        <Card
+          style={{ padding: '2rem', textAlign: 'center', maxWidth: '600px', margin: '1rem auto' }}
+        >
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏠</div>
           <h2>Create Your Rescue Organization</h2>
           <p style={{ marginBottom: '1.5rem', color: '#6b7280' }}>
-            To start managing pets, you first need to create or join a rescue organization. 
-            This will allow you to add pets, manage applications, and track adoptions.
+            To start managing pets, you first need to create or join a rescue organization. This
+            will allow you to add pets, manage applications, and track adoptions.
           </p>
-          
+
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button 
-              variant="primary"
-              onClick={handleCreateDemoRescue}
-              disabled={loading}
-            >
+            <Button variant="primary" onClick={handleCreateDemoRescue} disabled={loading}>
               {loading ? 'Creating...' : 'Create Demo Rescue (Dev)'}
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => {
                 // Navigate to rescue creation form
@@ -411,7 +423,14 @@ const PetManagement: React.FC = () => {
             </Button>
           </div>
 
-          <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f3f4f6', borderRadius: '8px' }}>
+          <div
+            style={{
+              marginTop: '1.5rem',
+              padding: '1rem',
+              background: '#f3f4f6',
+              borderRadius: '8px',
+            }}
+          >
             <strong>Development Note:</strong>
             <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}>
               To test the pet management system, you need to:
@@ -436,10 +455,7 @@ const PetManagement: React.FC = () => {
             <p>Manage your rescue's pet inventory, medical records, and adoption status.</p>
           </HeaderContent>
           <HeaderActions>
-            <Button 
-              variant="primary" 
-              onClick={() => setShowAddModal(true)}
-            >
+            <Button variant="primary" onClick={() => setShowAddModal(true)}>
               Add New Pet
             </Button>
           </HeaderActions>
@@ -476,16 +492,20 @@ const PetManagement: React.FC = () => {
           <StatusFilterSection>
             <PetStatusFilter
               activeStatus={statusFilter === 'all' ? '' : statusFilter}
-              statusCounts={stats ? {
-                available: stats.available,
-                pending: stats.pending,
-                adopted: stats.adopted,
-                foster: 0, // Not available in dashboard data
-                medical_hold: 0, // Not available in dashboard data
-                behavioral_hold: 0, // Not available in dashboard data
-                not_available: 0, // Not available in dashboard data
-              } : {}}
-              onStatusChange={(status) => {
+              statusCounts={
+                stats
+                  ? {
+                      available: stats.available,
+                      pending: stats.pending,
+                      adopted: stats.adopted,
+                      foster: 0, // Not available in dashboard data
+                      medical_hold: 0, // Not available in dashboard data
+                      behavioral_hold: 0, // Not available in dashboard data
+                      not_available: 0, // Not available in dashboard data
+                    }
+                  : {}
+              }
+              onStatusChange={status => {
                 setStatusFilter(status as any);
               }}
             />
@@ -534,7 +554,12 @@ const PetManagement: React.FC = () => {
         {error && (
           <ErrorContainer>
             <Text>{error}</Text>
-            <Button onClick={() => setError(null)} variant="outline" size="sm" style={{ marginTop: '0.5rem' }}>
+            <Button
+              onClick={() => setError(null)}
+              variant="outline"
+              size="sm"
+              style={{ marginTop: '0.5rem' }}
+            >
               Dismiss
             </Button>
           </ErrorContainer>
@@ -568,7 +593,7 @@ const PetManagement: React.FC = () => {
             setShowAddModal(false);
             setEditingPet(null);
           }}
-          onSubmit={async (data) => {
+          onSubmit={async data => {
             try {
               if (editingPet) {
                 await petManagementService.updatePet(editingPet.pet_id, data as any);

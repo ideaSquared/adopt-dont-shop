@@ -37,14 +37,26 @@ export default defineConfig({
       '@adopt-dont-shop/components': path.resolve(__dirname, '../lib.components/src/index.ts'),
       '@adopt-dont-shop/lib-auth': path.resolve(__dirname, '../lib.auth/src/index.ts'),
       '@adopt-dont-shop/lib-pets': path.resolve(__dirname, '../lib.pets/src/index.ts'),
-      '@adopt-dont-shop/lib-applications': path.resolve(__dirname, '../lib.applications/src/index.ts'),
+      '@adopt-dont-shop/lib-applications': path.resolve(
+        __dirname,
+        '../lib.applications/src/index.ts'
+      ),
       '@adopt-dont-shop/lib-rescue': path.resolve(__dirname, '../lib.rescue/src/index.ts'),
       '@adopt-dont-shop/lib-api': path.resolve(__dirname, '../lib.api/src/index.ts'),
       '@adopt-dont-shop/lib-chat': path.resolve(__dirname, '../lib.chat/src/index.ts'),
       '@adopt-dont-shop/lib-analytics': path.resolve(__dirname, '../lib.analytics/src/index.ts'),
-      '@adopt-dont-shop/lib-notifications': path.resolve(__dirname, '../lib.notifications/src/index.ts'),
-      '@adopt-dont-shop/lib-feature-flags': path.resolve(__dirname, '../lib.feature-flags/src/index.ts'),
-      '@adopt-dont-shop/lib-permissions': path.resolve(__dirname, '../lib.permissions/src/index.ts'),
+      '@adopt-dont-shop/lib-notifications': path.resolve(
+        __dirname,
+        '../lib.notifications/src/index.ts'
+      ),
+      '@adopt-dont-shop/lib-feature-flags': path.resolve(
+        __dirname,
+        '../lib.feature-flags/src/index.ts'
+      ),
+      '@adopt-dont-shop/lib-permissions': path.resolve(
+        __dirname,
+        '../lib.permissions/src/index.ts'
+      ),
       '@adopt-dont-shop/lib-search': path.resolve(__dirname, '../lib.search/src/index.ts'),
       '@adopt-dont-shop/lib-discovery': path.resolve(__dirname, '../lib.discovery/src/index.ts'),
       '@adopt-dont-shop/lib-validation': path.resolve(__dirname, '../lib.validation/src/index.ts'),

@@ -1,7 +1,11 @@
 import React from 'react';
 import styled from 'styled-components';
 import StatusBadge from '../common/StatusBadge';
-import type { ApplicationListItem, ApplicationFilter, ApplicationSort } from '../../types/applications';
+import type {
+  ApplicationListItem,
+  ApplicationFilter,
+  ApplicationSort,
+} from '../../types/applications';
 import ApplicationStats from './ApplicationStats';
 import ApplicationFilters from './ApplicationFilters';
 
@@ -61,7 +65,9 @@ const SortSelect = styled.select`
 
 const TableContainer = styled.div`
   background: white;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px 0 rgba(0, 0, 0, 0.06);
   border-radius: 0.375rem;
   overflow: hidden;
 
@@ -85,8 +91,12 @@ const Spinner = styled.div`
   animation: spin 1s linear infinite;
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -122,7 +132,7 @@ const TableRow = styled.tr`
   &:hover {
     background: #f9fafb;
   }
-  
+
   cursor: pointer;
 `;
 
@@ -199,7 +209,7 @@ const PriorityBadge = styled.span<{ $priority: string }>`
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 9999px;
-  
+
   ${props => {
     switch (props.$priority) {
       case 'urgent':
@@ -214,9 +224,10 @@ const PriorityBadge = styled.span<{ $priority: string }>`
         return 'background: #f3f4f6; color: #374151;';
     }
   }}
-  
+
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
@@ -239,12 +250,15 @@ const ProgressBar = styled.div`
   flex: 1;
 `;
 
-const ProgressStep = styled.div<{ $status: 'completed' | 'current' | 'pending'; $isLast?: boolean }>`
+const ProgressStep = styled.div<{
+  $status: 'completed' | 'current' | 'pending';
+  $isLast?: boolean;
+}>`
   height: 4px;
   flex: 1;
   border-radius: 2px;
   position: relative;
-  
+
   ${props => {
     switch (props.$status) {
       case 'completed':
@@ -255,7 +269,7 @@ const ProgressStep = styled.div<{ $status: 'completed' | 'current' | 'pending'; 
         return 'background: #e5e7eb;';
     }
   }}
-  
+
   &::after {
     content: '';
     position: absolute;
@@ -301,7 +315,7 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
-  
+
   ${props => {
     switch (props.$variant) {
       case 'primary':
@@ -327,7 +341,7 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
         `;
     }
   }}
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -368,18 +382,18 @@ const getApplicationProgress = (application: ApplicationListItem) => {
   const stage = application.stage || 'PENDING';
 
   const stageToStep: Record<string, number> = {
-    'PENDING': 0,
-    'REVIEWING': 1,
-    'VISITING': 2,
-    'DECIDING': 3,
-    'RESOLVED': 4,
+    PENDING: 0,
+    REVIEWING: 1,
+    VISITING: 2,
+    DECIDING: 3,
+    RESOLVED: 4,
   };
 
   return {
     current: stageToStep[stage] || 0,
     total: 4,
     stage,
-    finalOutcome: application.finalOutcome
+    finalOutcome: application.finalOutcome,
   };
 };
 
@@ -407,20 +421,24 @@ const getStepStatus = (
 
 const getStepLabel = (stepIndex: number, stage: string, finalOutcome?: string): string => {
   const labels = [
-    'Pending',      // Step 0 - PENDING
-    'Reviewing',    // Step 1 - REVIEWING
-    'Visiting',     // Step 2 - VISITING
-    'Deciding',     // Step 3 - DECIDING
-    'Resolved'      // Step 4 - RESOLVED
+    'Pending', // Step 0 - PENDING
+    'Reviewing', // Step 1 - REVIEWING
+    'Visiting', // Step 2 - VISITING
+    'Deciding', // Step 3 - DECIDING
+    'Resolved', // Step 4 - RESOLVED
   ];
 
   // For resolved stage, show the final outcome
   if (stepIndex === 4 && stage === 'RESOLVED') {
     switch (finalOutcome) {
-      case 'APPROVED': return 'Approved';
-      case 'REJECTED': return 'Rejected';
-      case 'WITHDRAWN': return 'Withdrawn';
-      default: return 'Resolved';
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      case 'WITHDRAWN':
+        return 'Withdrawn';
+      default:
+        return 'Resolved';
     }
   }
 
@@ -437,30 +455,20 @@ const getActionButtons = (
   // Stage-based actions
   switch (stage) {
     case 'PENDING':
-      actions.push(
-        { label: 'Start Review', action: () => {}, variant: 'primary' as const }
-      );
+      actions.push({ label: 'Start Review', action: () => {}, variant: 'primary' as const });
       break;
     case 'REVIEWING':
-      actions.push(
-        { label: 'Schedule Visit', action: () => {}, variant: 'primary' as const }
-      );
+      actions.push({ label: 'Schedule Visit', action: () => {}, variant: 'primary' as const });
       break;
     case 'VISITING':
     case 'DECIDING':
-      actions.push(
-        { label: 'View Details', action: () => {}, variant: 'secondary' as const }
-      );
+      actions.push({ label: 'View Details', action: () => {}, variant: 'secondary' as const });
       break;
     case 'RESOLVED':
-      actions.push(
-        { label: 'View Details', action: () => {}, variant: 'secondary' as const }
-      );
+      actions.push({ label: 'View Details', action: () => {}, variant: 'secondary' as const });
       break;
     default:
-      actions.push(
-        { label: 'View', action: () => {}, variant: 'secondary' as const }
-      );
+      actions.push({ label: 'View', action: () => {}, variant: 'secondary' as const });
   }
 
   return actions.slice(0, 2);
@@ -498,26 +506,26 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
   onApplicationSelect,
   onStatusUpdate,
   selectedApplications,
-  onSelectionChange
+  onSelectionChange,
 }) => {
   // Convert complex ApplicationFilter to simple string-based filters for UI
   const getDateRangeValue = () => {
     if (!filter.dateRange) return '';
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const week = new Date();
     week.setDate(week.getDate() - 7);
     const month = new Date();
     month.setMonth(month.getMonth() - 1);
-    
+
     const filterStart = filter.dateRange.start;
-    
+
     // Check if it matches predefined ranges
     if (filterStart.getTime() === today.getTime()) return 'today';
     if (Math.abs(filterStart.getTime() - week.getTime()) < 86400000) return 'week'; // within 1 day
     if (Math.abs(filterStart.getTime() - month.getTime()) < 86400000 * 2) return 'month'; // within 2 days
-    
+
     return 'custom';
   };
 
@@ -536,7 +544,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
   // Only search and status filters actually work for filtering data
   const handleFilterChange = (key: string, value: string) => {
     const newFilter = { ...filter };
-    
+
     switch (key) {
       case 'search':
         newFilter.searchQuery = value || undefined;
@@ -579,7 +587,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
         newFilter.petBreed = value || undefined;
         break;
     }
-    
+
     onFilterChange(newFilter);
   };
 
@@ -636,14 +644,12 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
 
         <HeaderRight>
           {selectedApplications.length > 0 && (
-            <SelectionCount>
-              {selectedApplications.length} selected
-            </SelectionCount>
+            <SelectionCount>{selectedApplications.length} selected</SelectionCount>
           )}
-          
+
           <SortSelect
             value={`${sort.field}-${sort.direction}`}
-            onChange={(e) => {
+            onChange={e => {
               const [field, direction] = e.target.value.split('-');
               onSortChange({ field: field as any, direction: direction as 'asc' | 'desc' });
             }}
@@ -680,7 +686,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                         applications.length > 0 &&
                         applications.every(app => selectedApplications.includes(app.id))
                       }
-                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      onChange={e => handleSelectAll(e.target.checked)}
                     />
                   </TableHeader>
                   <TableHeader>Applicant</TableHeader>
@@ -693,28 +699,29 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                 </tr>
               </TableHead>
               <TableBody>
-                {applications.map((application) => (
-                  <TableRow
-                    key={application.id}
-                    onClick={() => onApplicationSelect(application)}
-                  >
-                    <CheckboxCell onClick={(e) => e.stopPropagation()}>
+                {applications.map(application => (
+                  <TableRow key={application.id} onClick={() => onApplicationSelect(application)}>
+                    <CheckboxCell onClick={e => e.stopPropagation()}>
                       <Checkbox
                         type="checkbox"
                         checked={selectedApplications.includes(application.id)}
-                        onChange={(e) => handleSelectApplication(application.id, e.target.checked)}
+                        onChange={e => handleSelectApplication(application.id, e.target.checked)}
                       />
                     </CheckboxCell>
                     <TableCell>
                       <ApplicantInfo>
                         <ApplicantName>{application.applicantName}</ApplicantName>
-                        <ApplicantEmail>{application.data?.personalInfo?.email || 'No email provided'}</ApplicantEmail>
+                        <ApplicantEmail>
+                          {application.data?.personalInfo?.email || 'No email provided'}
+                        </ApplicantEmail>
                       </ApplicantInfo>
                     </TableCell>
                     <TableCell>
                       <PetInfo>
                         <PetName>{application.petName || 'Unknown Pet'}</PetName>
-                        <PetDetails>{application.petType} • {application.petBreed}</PetDetails>
+                        <PetDetails>
+                          {application.petType} • {application.petBreed}
+                        </PetDetails>
                       </PetInfo>
                     </TableCell>
                     <TableCell>
@@ -726,12 +733,14 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                       </PriorityBadge>
                     </TableCell>
                     <TableCell>
-                      {application.submittedDaysAgo === 0 ? 'Today' : `${application.submittedDaysAgo} days ago`}
+                      {application.submittedDaysAgo === 0
+                        ? 'Today'
+                        : `${application.submittedDaysAgo} days ago`}
                     </TableCell>
                     <TableCell>
                       <ProgressIndicators>
                         <ProgressBar>
-                          {[0, 1, 2, 3, 4].map((stepIndex) => {
+                          {[0, 1, 2, 3, 4].map(stepIndex => {
                             const progress = getApplicationProgress(application);
                             const stepStatus = getStepStatus(
                               stepIndex,
@@ -757,13 +766,13 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                         </ProgressLabel>
                       </ProgressIndicators>
                     </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
+                    <TableCell onClick={e => e.stopPropagation()}>
                       <ActionsContainer>
                         {getActionButtons(application, onStatusUpdate).map((action, index) => (
                           <ActionButton
                             key={index}
                             $variant={action.variant}
-                            onClick={(e) => {
+                            onClick={e => {
                               e.stopPropagation();
                               action.action();
                             }}

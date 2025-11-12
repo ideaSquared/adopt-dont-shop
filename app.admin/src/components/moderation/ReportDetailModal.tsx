@@ -1,7 +1,19 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FiX, FiAlertTriangle, FiUser, FiCalendar, FiFileText, FiExternalLink } from 'react-icons/fi';
-import { Report, getSeverityLabel, getStatusLabel, formatRelativeTime } from '@adopt-dont-shop/lib-moderation';
+import {
+  FiX,
+  FiAlertTriangle,
+  FiUser,
+  FiCalendar,
+  FiFileText,
+  FiExternalLink,
+} from 'react-icons/fi';
+import {
+  Report,
+  getSeverityLabel,
+  getStatusLabel,
+  formatRelativeTime,
+} from '@adopt-dont-shop/lib-moderation';
 
 const Overlay = styled.div<{ $isOpen: boolean }>`
   position: fixed;
@@ -10,7 +22,7 @@ const Overlay = styled.div<{ $isOpen: boolean }>`
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  display: ${props => props.$isOpen ? 'flex' : 'none'};
+  display: ${props => (props.$isOpen ? 'flex' : 'none')};
   align-items: center;
   justify-content: center;
   z-index: 1000;
@@ -24,7 +36,9 @@ const ModalContainer = styled.div`
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 `;
 
 const ModalHeader = styled.div`
@@ -263,7 +277,9 @@ export interface ReportDetailModalProps {
   report: Report | null;
 }
 
-const getStatusBadgeVariant = (status: string): 'success' | 'danger' | 'info' | 'neutral' | 'warning' => {
+const getStatusBadgeVariant = (
+  status: string
+): 'success' | 'danger' | 'info' | 'neutral' | 'warning' => {
   switch (status) {
     case 'pending':
       return 'danger';
@@ -280,7 +296,9 @@ const getStatusBadgeVariant = (status: string): 'success' | 'danger' | 'info' | 
   }
 };
 
-const getSeverityBadgeVariant = (severity: string): 'success' | 'danger' | 'info' | 'neutral' | 'warning' => {
+const getSeverityBadgeVariant = (
+  severity: string
+): 'success' | 'danger' | 'info' | 'neutral' | 'warning' => {
   switch (severity) {
     case 'critical':
       return 'danger';
@@ -367,7 +385,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               Reported {formatRelativeTime(report.createdAt)}
             </Subtitle>
           </HeaderContent>
-          <CloseButton onClick={onClose} aria-label="Close">
+          <CloseButton onClick={onClose} aria-label='Close'>
             <FiX size={20} />
           </CloseButton>
         </ModalHeader>
@@ -434,9 +452,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                     {entityContext.deleted && ' (Deleted)'}
                     {entityContext.error && ' (Error Loading)'}
                   </EntityName>
-                  {entityContext.email && (
-                    <EntityDetail>{entityContext.email}</EntityDetail>
-                  )}
+                  {entityContext.email && <EntityDetail>{entityContext.email}</EntityDetail>}
                   {entityContext.userType && (
                     <EntityDetail>Type: {entityContext.userType}</EntityDetail>
                   )}

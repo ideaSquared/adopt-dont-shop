@@ -215,21 +215,21 @@ export function ChatProvider({ children }: ChatProviderProps) {
         setLoading: setIsLoading,
         onError: error => console.error('Failed to load messages:', error),
       }
+    );
 
-      if (!messageData.data) {
-        console.warn('No data array in response, using empty array');
-        setMessages([]);
-        return;
-      }
+    if (!messageData.data) {
+      console.warn('No data array in response, using empty array');
+      setMessages([]);
+      return;
+    }
 
-      // Ensure messageData.data is an array
-      const messagesArray = Array.isArray(messageData.data) ? messageData.data : [];
-      setMessages(messagesArray);
+    // Ensure messageData.data is an array
+    const messagesArray = Array.isArray(messageData.data) ? messageData.data : [];
+    setMessages(messagesArray);
 
-      // Check if there are more messages to load
-      if (messageData.data.length < 50) {
-        setHasMoreMessages(false);
-      }
+    // Check if there are more messages to load
+    if (messageData.data.length < 50) {
+      setHasMoreMessages(false);
     }
   };
 
@@ -254,7 +254,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
       // Ensure messageData.data is an array
       const messagesArray = Array.isArray(messageData.data) ? messageData.data : [];
-      
+
       if (messagesArray.length === 0) {
         setHasMoreMessages(false);
       } else {
@@ -281,17 +281,17 @@ export function ChatProvider({ children }: ChatProviderProps) {
     if (!isOnline) {
       const tempId = queueMessageForOffline(activeConversation.id, content);
 
-        // Add temporary message to UI for immediate feedback
-        const tempMessage: Message = {
-          id: tempId,
-          conversationId: activeConversation.id,
-          senderId: user.userId,
-          senderName: user.firstName,
-          content,
-          timestamp: new Date().toISOString(),
-          type: 'text',
-          status: 'sending',
-        };
+      // Add temporary message to UI for immediate feedback
+      const tempMessage: Message = {
+        id: tempId,
+        conversationId: activeConversation.id,
+        senderId: user.userId,
+        senderName: user.firstName,
+        content,
+        timestamp: new Date().toISOString(),
+        type: 'text',
+        status: 'sending',
+      };
 
       setMessages(prev => [...(prev || []), tempMessage]);
       setError("📡 Message queued for when you're back online");
@@ -354,8 +354,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
         petId,
       });
 
-    setConversations(prev => [conversation, ...(prev || [])]);
-    return conversation;
+      setConversations(prev => [conversation, ...(prev || [])]);
+      return conversation;
+    } catch (error) {
+      setError(error as Error);
+      throw error;
+    }
   };
 
   const startTyping = useCallback((conversationId: string) => {
@@ -434,10 +438,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       // Process pending messages
       for (const message of messages) {
         try {
-          await chatService.sendMessage(
-            message.conversationId,
-            message.content
-          );
+          await chatService.sendMessage(message.conversationId, message.content);
           offlineManager.removeQueuedMessage(message.id);
         } catch (error) {
           console.error('Failed to sync message:', error);

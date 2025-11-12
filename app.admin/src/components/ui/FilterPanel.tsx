@@ -162,7 +162,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   values,
   onChange,
   onClear,
-  onApply
+  onApply,
 }) => {
   const renderFilter = (filter: FilterOption) => {
     switch (filter.type) {
@@ -170,10 +170,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         return (
           <Select
             value={values[filter.id] || ''}
-            onChange={(e) => onChange(filter.id, e.target.value)}
+            onChange={e => onChange(filter.id, e.target.value)}
           >
-            <option value="">{filter.placeholder || 'Select...'}</option>
-            {filter.options?.map((option) => (
+            <option value=''>{filter.placeholder || 'Select...'}</option>
+            {filter.options?.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -184,9 +184,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       case 'text':
         return (
           <Input
-            type="text"
+            type='text'
             value={values[filter.id] || ''}
-            onChange={(e) => onChange(filter.id, e.target.value)}
+            onChange={e => onChange(filter.id, e.target.value)}
             placeholder={filter.placeholder}
           />
         );
@@ -194,9 +194,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       case 'date':
         return (
           <Input
-            type="date"
+            type='date'
             value={values[filter.id] || ''}
-            onChange={(e) => onChange(filter.id, e.target.value)}
+            onChange={e => onChange(filter.id, e.target.value)}
           />
         );
 
@@ -219,7 +219,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       </Header>
 
       <FiltersGrid>
-        {filters.map((filter) => (
+        {filters.map(filter => (
           <FilterGroup key={filter.id}>
             <FilterLabel>{filter.label}</FilterLabel>
             {renderFilter(filter)}
@@ -227,11 +227,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         ))}
       </FiltersGrid>
 
-      {onApply && (
-        <ApplyButton onClick={onApply}>
-          Apply Filters
-        </ApplyButton>
-      )}
+      {onApply && <ApplyButton onClick={onApply}>Apply Filters</ApplyButton>}
     </PanelContainer>
   );
 };

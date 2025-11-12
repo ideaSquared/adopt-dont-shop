@@ -26,14 +26,16 @@ const AdminApp: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        fontSize: '1rem',
-        color: '#6b7280'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          fontSize: '1rem',
+          color: '#6b7280',
+        }}
+      >
         Loading...
       </div>
     );
@@ -44,11 +46,11 @@ const AdminApp: React.FC = () => {
     return (
       <>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path='/login' element={<LoginPage />} />
+          <Route path='/register' element={<RegisterPage />} />
+          <Route path='*' element={<Navigate to='/login' replace />} />
         </Routes>
-        
+
         <DevLoginPanel />
       </>
     );
@@ -61,59 +63,59 @@ const AdminApp: React.FC = () => {
         <AdminLayout>
           <Routes>
             {/* Main Dashboard */}
-            <Route path="/" element={<Dashboard />} />
+            <Route path='/' element={<Dashboard />} />
 
-          {/* User Management */}
-          <Route path="/users" element={<Users />} />
-          <Route path="/users/:userId" element={<Users />} />
+            {/* User Management */}
+            <Route path='/users' element={<Users />} />
+            <Route path='/users/:userId' element={<Users />} />
 
-          {/* Rescue Management */}
-          <Route path="/rescues" element={<Rescues />} />
-          <Route path="/rescues/:rescueId" element={<Rescues />} />
+            {/* Rescue Management */}
+            <Route path='/rescues' element={<Rescues />} />
+            <Route path='/rescues/:rescueId' element={<Rescues />} />
 
-          {/* Pet Management */}
-          <Route path="/pets" element={<Pets />} />
-          <Route path="/pets/:petId" element={<Pets />} />
+            {/* Pet Management */}
+            <Route path='/pets' element={<Pets />} />
+            <Route path='/pets/:petId' element={<Pets />} />
 
-          {/* Application Management */}
-          <Route path="/applications" element={<Applications />} />
-          <Route path="/applications/:applicationId" element={<Applications />} />
+            {/* Application Management */}
+            <Route path='/applications' element={<Applications />} />
+            <Route path='/applications/:applicationId' element={<Applications />} />
 
-          {/* Content Moderation & Safety */}
-          <Route path="/moderation" element={<Moderation />} />
-          <Route path="/moderation/queue" element={<Moderation />} />
-          <Route path="/moderation/reports" element={<Moderation />} />
-          <Route path="/moderation/sanctions" element={<Moderation />} />
+            {/* Content Moderation & Safety */}
+            <Route path='/moderation' element={<Moderation />} />
+            <Route path='/moderation/queue' element={<Moderation />} />
+            <Route path='/moderation/reports' element={<Moderation />} />
+            <Route path='/moderation/sanctions' element={<Moderation />} />
 
-          {/* Support System */}
-          <Route path="/support" element={<Support />} />
-          <Route path="/support/:ticketId" element={<Support />} />
+            {/* Support System */}
+            <Route path='/support' element={<Support />} />
+            <Route path='/support/:ticketId' element={<Support />} />
 
-          {/* Communication */}
-          <Route path="/messages" element={<Messages />} />
+            {/* Communication */}
+            <Route path='/messages' element={<Messages />} />
 
-          {/* Analytics & Reporting */}
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/reports" element={<Reports />} />
+            {/* Analytics & Reporting */}
+            <Route path='/analytics' element={<Analytics />} />
+            <Route path='/reports' element={<Reports />} />
 
-          {/* System Configuration */}
-          <Route path="/configuration" element={<Configuration />} />
-          <Route path="/configuration/features" element={<Configuration />} />
-          <Route path="/configuration/settings" element={<Configuration />} />
-          <Route path="/configuration/questions" element={<Configuration />} />
+            {/* System Configuration */}
+            <Route path='/configuration' element={<Configuration />} />
+            <Route path='/configuration/features' element={<Configuration />} />
+            <Route path='/configuration/settings' element={<Configuration />} />
+            <Route path='/configuration/questions' element={<Configuration />} />
 
-          {/* Audit & Monitoring */}
-          <Route path="/audit" element={<Audit />} />
+            {/* Audit & Monitoring */}
+            <Route path='/audit' element={<Audit />} />
 
-          {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AdminLayout>
-    </ProtectedRoute>
+            {/* Catch-all redirect */}
+            <Route path='*' element={<Navigate to='/' replace />} />
+          </Routes>
+        </AdminLayout>
+      </ProtectedRoute>
 
-    {/* Dev Login Panel - only shows in development */}
-    <DevLoginPanel />
-  </>
+      {/* Dev Login Panel - only shows in development */}
+      <DevLoginPanel />
+    </>
   );
 };
 

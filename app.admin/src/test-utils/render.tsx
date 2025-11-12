@@ -14,9 +14,7 @@ type AllProvidersProps = {
 
 const AllProviders = ({ children }: AllProvidersProps) => (
   <BrowserRouter>
-    <ThemeProvider theme={lightTheme}>
-      {children}
-    </ThemeProvider>
+    <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>
   </BrowserRouter>
 );
 
@@ -28,10 +26,7 @@ const AllProviders = ({ children }: AllProvidersProps) => (
  * renderWithProviders(<MyComponent />);
  * renderWithProviders(<MyComponent />, { route: '/admin/users' });
  */
-export const renderWithProviders = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>,
-) => {
+export const renderWithProviders = (ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) => {
   return render(ui, { wrapper: AllProviders, ...options });
 };
 

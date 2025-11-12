@@ -108,7 +108,11 @@ export class RescueStaffService {
   /**
    * Update a staff member's information
    */
-  async updateStaffMember(userId: string, staffData: { title?: string }, rescueId: string): Promise<StaffMember> {
+  async updateStaffMember(
+    userId: string,
+    staffData: { title?: string },
+    rescueId: string
+  ): Promise<StaffMember> {
     try {
       const response = await this.apiService.put<{
         success: boolean;

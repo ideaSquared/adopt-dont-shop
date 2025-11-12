@@ -94,10 +94,7 @@ const BackButton = styled.button`
   }
 `;
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  children,
-  requiredRole
-}) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   // Show loading state while checking authentication
@@ -112,7 +109,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to='/login' replace />;
   }
 
   // Check if user has admin privileges
@@ -126,12 +123,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           <UnauthorizedIcon>🔒</UnauthorizedIcon>
           <UnauthorizedTitle>Access Denied</UnauthorizedTitle>
           <UnauthorizedMessage>
-            You don't have permission to access the admin panel.
-            This area is restricted to platform administrators only.
+            You don't have permission to access the admin panel. This area is restricted to platform
+            administrators only.
           </UnauthorizedMessage>
-          <BackButton onClick={() => window.location.href = '/'}>
-            Return to Home
-          </BackButton>
+          <BackButton onClick={() => (window.location.href = '/')}>Return to Home</BackButton>
         </UnauthorizedCard>
       </UnauthorizedContainer>
     );
@@ -147,12 +142,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <UnauthorizedIcon>⚠️</UnauthorizedIcon>
             <UnauthorizedTitle>Insufficient Permissions</UnauthorizedTitle>
             <UnauthorizedMessage>
-              This section requires {requiredRole} privileges.
-              Please contact your system administrator if you need access.
+              This section requires {requiredRole} privileges. Please contact your system
+              administrator if you need access.
             </UnauthorizedMessage>
-            <BackButton onClick={() => window.history.back()}>
-              Go Back
-            </BackButton>
+            <BackButton onClick={() => window.history.back()}>Go Back</BackButton>
           </UnauthorizedCard>
         </UnauthorizedContainer>
       );

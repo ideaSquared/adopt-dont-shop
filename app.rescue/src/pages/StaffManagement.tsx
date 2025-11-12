@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { StaffList, StaffForm, StaffOverview, InviteStaffModal, PendingInvitations } from '../components/staff';
+import {
+  StaffList,
+  StaffForm,
+  StaffOverview,
+  InviteStaffModal,
+  PendingInvitations,
+} from '../components/staff';
 import { StaffMember, NewStaffMember } from '../types/staff';
 import { useStaff } from '../hooks/useStaff';
 import { useAuth } from '@adopt-dont-shop/lib-auth';
@@ -50,7 +56,7 @@ const HeaderActions = styled.div`
 `;
 
 const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
-  background: ${props => props.variant === 'secondary' ? '#6c757d' : '#1976d2'};
+  background: ${props => (props.variant === 'secondary' ? '#6c757d' : '#1976d2')};
   color: white;
   border: none;
   border-radius: 8px;
@@ -61,7 +67,7 @@ const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
   transition: background-color 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: ${props => props.variant === 'secondary' ? '#5a6268' : '#1565c0'};
+    background: ${props => (props.variant === 'secondary' ? '#5a6268' : '#1565c0')};
   }
 
   &:disabled {
@@ -71,9 +77,9 @@ const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
 `;
 
 const Alert = styled.div<{ type?: 'error' | 'success' }>`
-  background: ${props => props.type === 'success' ? '#d4edda' : '#f8d7da'};
-  color: ${props => props.type === 'success' ? '#155724' : '#721c24'};
-  border: 1px solid ${props => props.type === 'success' ? '#c3e6cb' : '#f5c6cb'};
+  background: ${props => (props.type === 'success' ? '#d4edda' : '#f8d7da')};
+  color: ${props => (props.type === 'success' ? '#155724' : '#721c24')};
+  border: 1px solid ${props => (props.type === 'success' ? '#c3e6cb' : '#f5c6cb')};
   border-radius: 8px;
   padding: 1rem 1.5rem;
   margin-bottom: 2rem;
@@ -155,7 +161,8 @@ const RetryButton = styled.button`
 const StaffManagement: React.FC = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
-  const { staff, loading, error, refetch, addStaffMember, removeStaffMember, updateStaffMember } = useStaff();
+  const { staff, loading, error, refetch, addStaffMember, removeStaffMember, updateStaffMember } =
+    useStaff();
 
   // State for modals
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -278,7 +285,9 @@ const StaffManagement: React.FC = () => {
 
   const handleEditStaff = (staffMember: StaffMember) => {
     if (staffMember.userId === user?.userId) {
-      setActionError('You cannot edit your own profile. Please ask another admin to make changes to your account.');
+      setActionError(
+        'You cannot edit your own profile. Please ask another admin to make changes to your account.'
+      );
       return;
     }
 
@@ -307,11 +316,17 @@ const StaffManagement: React.FC = () => {
 
   const handleRemoveStaff = async (staffMember: StaffMember) => {
     if (staffMember.userId === user?.userId) {
-      setActionError('You cannot remove yourself from the rescue. Please ask another admin to remove you.');
+      setActionError(
+        'You cannot remove yourself from the rescue. Please ask another admin to remove you.'
+      );
       return;
     }
 
-    if (!confirm(`Are you sure you want to remove ${staffMember.firstName} ${staffMember.lastName} from your staff?`)) {
+    if (
+      !confirm(
+        `Are you sure you want to remove ${staffMember.firstName} ${staffMember.lastName} from your staff?`
+      )
+    ) {
       return;
     }
 
@@ -350,9 +365,7 @@ const StaffManagement: React.FC = () => {
           <ErrorIcon>⚠️</ErrorIcon>
           <ErrorTitle>Unable to Load Staff</ErrorTitle>
           <ErrorText>{error}</ErrorText>
-          <RetryButton onClick={refetch}>
-            Try Again
-          </RetryButton>
+          <RetryButton onClick={refetch}>Try Again</RetryButton>
         </ErrorState>
       </PageContainer>
     );
@@ -388,19 +401,19 @@ const StaffManagement: React.FC = () => {
 
       {actionError && (
         <Alert type="error">
-          <span><strong>Error:</strong> {actionError}</span>
-          <AlertClose onClick={() => setActionError(null)}>
-            ✕
-          </AlertClose>
+          <span>
+            <strong>Error:</strong> {actionError}
+          </span>
+          <AlertClose onClick={() => setActionError(null)}>✕</AlertClose>
         </Alert>
       )}
 
       {actionSuccess && (
         <Alert type="success">
-          <span><strong>Success:</strong> {actionSuccess}</span>
-          <AlertClose onClick={() => setActionSuccess(null)}>
-            ✕
-          </AlertClose>
+          <span>
+            <strong>Success:</strong> {actionSuccess}
+          </span>
+          <AlertClose onClick={() => setActionSuccess(null)}>✕</AlertClose>
         </Alert>
       )}
 
@@ -446,11 +459,7 @@ const StaffManagement: React.FC = () => {
       )}
 
       {showAddForm && (
-        <StaffForm
-          onSubmit={handleAddStaff}
-          onCancel={handleCloseForm}
-          loading={actionLoading}
-        />
+        <StaffForm onSubmit={handleAddStaff} onCancel={handleCloseForm} loading={actionLoading} />
       )}
 
       {editingStaff && (

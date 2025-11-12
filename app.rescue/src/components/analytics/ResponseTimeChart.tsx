@@ -43,9 +43,8 @@ const StageName = styled.div`
 const TimeValue = styled.div<{ $isCompliant: boolean }>`
   font-size: 0.875rem;
   font-weight: 600;
-  color: ${props => props.$isCompliant
-    ? props.theme.colors.success[600]
-    : props.theme.colors.error[600]};
+  color: ${props =>
+    props.$isCompliant ? props.theme.colors.success[600] : props.theme.colors.error[600]};
 `;
 
 const BarsContainer = styled.div`
@@ -66,8 +65,8 @@ const Bar = styled.div<{
   border-radius: 8px;
   transition: all 0.3s ease;
   z-index: ${props => props.$zIndex};
-  transform: ${props => props.$active ? 'scaleY(1.1)' : 'scaleY(1)'};
-  box-shadow: ${props => props.$active ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none'};
+  transform: ${props => (props.$active ? 'scaleY(1.1)' : 'scaleY(1)')};
+  box-shadow: ${props => (props.$active ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none')};
 `;
 
 const TargetBar = styled(Bar)`
@@ -76,9 +75,10 @@ const TargetBar = styled(Bar)`
 `;
 
 const ActualBar = styled(Bar)<{ $isCompliant: boolean }>`
-  background: ${props => props.$isCompliant
-    ? `linear-gradient(135deg, ${props.theme.colors.success[500]}, ${props.theme.colors.success[600]})`
-    : `linear-gradient(135deg, ${props.theme.colors.error[500]}, ${props.theme.colors.error[600]})`};
+  background: ${props =>
+    props.$isCompliant
+      ? `linear-gradient(135deg, ${props.theme.colors.success[500]}, ${props.theme.colors.success[600]})`
+      : `linear-gradient(135deg, ${props.theme.colors.error[500]}, ${props.theme.colors.error[600]})`};
   display: flex;
   align-items: center;
   padding: 0 0.75rem;
@@ -97,9 +97,8 @@ const ComplianceIndicator = styled.div<{ $isCompliant: boolean }>`
   align-items: center;
   gap: 0.375rem;
   font-size: 0.75rem;
-  color: ${props => props.$isCompliant
-    ? props.theme.colors.success[600]
-    : props.theme.colors.error[600]};
+  color: ${props =>
+    props.$isCompliant ? props.theme.colors.success[600] : props.theme.colors.error[600]};
   margin-top: 0.375rem;
 `;
 
@@ -216,12 +215,7 @@ const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({ data, loading = f
             </StageLabel>
 
             <BarsContainer>
-              <TargetBar
-                $width={targetWidth}
-                $isCompliant={true}
-                $active={false}
-                $zIndex={1}
-              />
+              <TargetBar $width={targetWidth} $isCompliant={true} $active={false} $zIndex={1} />
               <ActualBar
                 $width={actualWidth}
                 $isCompliant={isCompliant}

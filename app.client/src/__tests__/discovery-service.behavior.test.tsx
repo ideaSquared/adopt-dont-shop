@@ -77,7 +77,7 @@ const server = setupServer(
 
   // Record swipe action
   http.post('/api/v1/discovery/swipe/action', async ({ request }) => {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       sessionId: string;
       petId: string;
       action: string;
@@ -112,7 +112,7 @@ const server = setupServer(
 
   // Load more pets
   http.post('/api/v1/discovery/pets/more', async ({ request }) => {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       sessionId: string;
       lastPetId: string;
       limit?: number;

@@ -59,8 +59,8 @@ export const RegisterPage = () => {
         privacyUrl='/privacy'
         helperText={
           <HelperText>
-            <strong>Note:</strong> Admin accounts require approval from existing administrators.
-            You will be notified once your account is activated.
+            <strong>Note:</strong> Admin accounts require approval from existing administrators. You
+            will be notified once your account is activated.
           </HelperText>
         }
       />

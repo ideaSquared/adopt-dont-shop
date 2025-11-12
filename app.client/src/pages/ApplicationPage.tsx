@@ -186,9 +186,9 @@ export const ApplicationPage: React.FC = () => {
       setIsLoading(true);
       if (!petId) throw new Error('Pet ID is required');
 
-        // Load pet data
-        const petData = await petService.getPetById(petId);
-        setPet(petData);
+      // Load pet data
+      const petData = await petService.getPetById(petId);
+      setPet(petData);
 
       // Phase 1: Check quick application capability
       const quickAppCapability = await applicationProfileService.canUseQuickApplication(petId);

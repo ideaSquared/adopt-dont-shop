@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Card } from '@adopt-dont-shop/components';
-import {
-  FiCalendar,
-  FiPlus,
-  FiList,
-  FiGrid,
-} from 'react-icons/fi';
+import { FiCalendar, FiPlus, FiList, FiGrid } from 'react-icons/fi';
 
 // Event Components
 import EventList from '../components/events/EventList';
@@ -313,18 +308,13 @@ const Events: React.FC = () => {
     if (filters.dateRange) {
       filtered = filtered.filter(event => {
         const eventDate = new Date(event.startDate);
-        return (
-          eventDate >= filters.dateRange!.start &&
-          eventDate <= filters.dateRange!.end
-        );
+        return eventDate >= filters.dateRange!.start && eventDate <= filters.dateRange!.end;
       });
     }
 
     // Filter by assigned staff
     if (filters.assignedStaff) {
-      filtered = filtered.filter(event =>
-        event.assignedStaff?.includes(filters.assignedStaff!)
-      );
+      filtered = filtered.filter(event => event.assignedStaff?.includes(filters.assignedStaff!));
     }
 
     // Filter by public/private
@@ -366,9 +356,7 @@ const Events: React.FC = () => {
         ...eventData,
       };
       const updatedEvent = await eventsService.updateEvent(eventToEdit.id, updates);
-      setEvents(prev =>
-        prev.map(event => (event.id === updatedEvent.id ? updatedEvent : event))
-      );
+      setEvents(prev => prev.map(event => (event.id === updatedEvent.id ? updatedEvent : event)));
       setShowEditModal(false);
       setEventToEdit(null);
 
@@ -416,9 +404,7 @@ const Events: React.FC = () => {
     setActionLoading(true);
     try {
       const updatedEvent = await eventsService.updateEventStatus(eventId, status);
-      setEvents(prev =>
-        prev.map(event => (event.id === updatedEvent.id ? updatedEvent : event))
-      );
+      setEvents(prev => prev.map(event => (event.id === updatedEvent.id ? updatedEvent : event)));
 
       // Update selected event
       if (selectedEvent?.id === updatedEvent.id) {
@@ -568,16 +554,9 @@ const Events: React.FC = () => {
             </EmptyState>
           </Card>
         ) : view === 'list' ? (
-          <EventList
-            events={filteredEvents}
-            onEventClick={handleEventClick}
-            loading={loading}
-          />
+          <EventList events={filteredEvents} onEventClick={handleEventClick} loading={loading} />
         ) : (
-          <EventCalendar
-            events={filteredEvents}
-            onEventClick={handleEventClick}
-          />
+          <EventCalendar events={filteredEvents} onEventClick={handleEventClick} />
         )}
       </ContentArea>
 

@@ -20,7 +20,7 @@ import { setupServer } from 'msw/node';
 const server = setupServer(
   // Login endpoint
   http.post('/api/v1/auth/login', async ({ request }) => {
-    const body = await request.json() as { email: string; password: string };
+    const body = (await request.json()) as { email: string; password: string };
 
     if (body.email === 'test@example.com' && body.password === 'password123') {
       return HttpResponse.json({
@@ -49,7 +49,12 @@ const server = setupServer(
 
   // Register endpoint
   http.post('/api/v1/auth/register', async ({ request }) => {
-    const body = await request.json() as { email: string; password: string; firstName: string; lastName: string };
+    const body = (await request.json()) as {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+    };
 
     if (body.email === 'existing@example.com') {
       return HttpResponse.json(
@@ -78,7 +83,7 @@ const server = setupServer(
 
   // Forgot password endpoint
   http.post('/api/v1/auth/forgot-password', async ({ request }) => {
-    const body = await request.json() as { email: string };
+    const body = (await request.json()) as { email: string };
 
     return HttpResponse.json({
       success: true,
@@ -88,7 +93,7 @@ const server = setupServer(
 
   // Reset password endpoint
   http.post('/api/v1/auth/reset-password', async ({ request }) => {
-    const body = await request.json() as { token: string; password: string };
+    const body = (await request.json()) as { token: string; password: string };
 
     if (body.token === 'invalid-token') {
       return HttpResponse.json(

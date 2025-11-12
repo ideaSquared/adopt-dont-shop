@@ -85,15 +85,15 @@ const BarFill = styled.div<{ $width: number; $index: number; $active: boolean }>
       return `${start}, ${end}`;
     }}
   );
-  border-radius: ${props => props.$width === 100 ? '8px' : '8px 0 0 8px'};
+  border-radius: ${props => (props.$width === 100 ? '8px' : '8px 0 0 8px')};
   width: ${props => props.$width}%;
   transition: all 0.5s ease;
   display: flex;
   align-items: center;
   padding: 0 1rem;
   position: relative;
-  box-shadow: ${props => props.$active ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none'};
-  transform: ${props => props.$active ? 'scaleY(1.05)' : 'scaleY(1)'};
+  box-shadow: ${props => (props.$active ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none')};
+  transform: ${props => (props.$active ? 'scaleY(1.05)' : 'scaleY(1)')};
 
   &::after {
     content: '';
@@ -219,16 +219,17 @@ const ConversionFunnelChart: React.FC<ConversionFunnelChartProps> = ({ data, loa
 
   const totalApplications = data[0]?.applicationsCount || 0;
   const finalAdoptions = data[data.length - 1]?.applicationsCount || 0;
-  const overallConversionRate = totalApplications > 0
-    ? ((finalAdoptions / totalApplications) * 100).toFixed(1)
-    : '0.0';
+  const overallConversionRate =
+    totalApplications > 0 ? ((finalAdoptions / totalApplications) * 100).toFixed(1) : '0.0';
 
   return (
     <ChartContainer>
       {data.map((stage, index) => {
-        const previousCount = index > 0 ? data[index - 1].applicationsCount : stage.applicationsCount;
+        const previousCount =
+          index > 0 ? data[index - 1].applicationsCount : stage.applicationsCount;
         const dropOff = previousCount - stage.applicationsCount;
-        const dropOffPercentage = previousCount > 0 ? ((dropOff / previousCount) * 100).toFixed(1) : '0.0';
+        const dropOffPercentage =
+          previousCount > 0 ? ((dropOff / previousCount) * 100).toFixed(1) : '0.0';
 
         return (
           <FunnelStage
@@ -248,11 +249,7 @@ const ConversionFunnelChart: React.FC<ConversionFunnelChartProps> = ({ data, loa
             </StageHeader>
 
             <BarContainer>
-              <BarFill
-                $width={stage.conversionRate}
-                $index={index}
-                $active={activeIndex === index}
-              >
+              <BarFill $width={stage.conversionRate} $index={index} $active={activeIndex === index}>
                 <BarLabel>{stage.applicationsCount}</BarLabel>
               </BarFill>
             </BarContainer>

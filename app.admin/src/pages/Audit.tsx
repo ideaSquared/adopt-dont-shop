@@ -2,7 +2,17 @@ import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { useQuery } from 'react-query';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
-import { FiSearch, FiDownload, FiUser, FiEdit, FiTrash, FiShield, FiCheckCircle, FiXCircle, FiRefreshCw } from 'react-icons/fi';
+import {
+  FiSearch,
+  FiDownload,
+  FiUser,
+  FiEdit,
+  FiTrash,
+  FiShield,
+  FiCheckCircle,
+  FiXCircle,
+  FiRefreshCw,
+} from 'react-icons/fi';
 import {
   PageContainer,
   PageHeader,
@@ -12,11 +22,16 @@ import {
   FilterLabel,
   SearchInputWrapper,
   Select,
-  Badge
+  Badge,
 } from '../components/ui';
 import { DataTable } from '../components/data';
 import type { Column } from '../components/data';
-import { AuditLogsService, AuditLogLevel, AuditLogStatus, type AuditLog } from '@adopt-dont-shop/lib-audit-logs';
+import {
+  AuditLogsService,
+  AuditLogLevel,
+  AuditLogStatus,
+  type AuditLog,
+} from '@adopt-dont-shop/lib-audit-logs';
 
 const HeaderActions = styled.div`
   display: flex;
@@ -81,22 +96,34 @@ const ActionIcon = styled.div<{ $type: string }>`
   border-radius: 6px;
   background: ${props => {
     switch (props.$type) {
-      case 'create': return '#d1fae5';
-      case 'update': return '#dbeafe';
-      case 'delete': return '#fee2e2';
-      case 'login': return '#fef3c7';
-      case 'logout': return '#f3f4f6';
-      default: return '#e0e7ff';
+      case 'create':
+        return '#d1fae5';
+      case 'update':
+        return '#dbeafe';
+      case 'delete':
+        return '#fee2e2';
+      case 'login':
+        return '#fef3c7';
+      case 'logout':
+        return '#f3f4f6';
+      default:
+        return '#e0e7ff';
     }
   }};
   color: ${props => {
     switch (props.$type) {
-      case 'create': return '#065f46';
-      case 'update': return '#1e40af';
-      case 'delete': return '#991b1b';
-      case 'login': return '#92400e';
-      case 'logout': return '#374151';
-      default: return '#3730a3';
+      case 'create':
+        return '#065f46';
+      case 'update':
+        return '#1e40af';
+      case 'delete':
+        return '#991b1b';
+      case 'login':
+        return '#92400e';
+      case 'logout':
+        return '#374151';
+      default:
+        return '#3730a3';
     }
   }};
 
@@ -150,7 +177,9 @@ const ModalContent = styled.div`
   max-width: 600px;
   max-height: 80vh;
   overflow: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 `;
 
 const ModalHeader = styled.div`
@@ -222,15 +251,16 @@ const Audit: React.FC = () => {
   // Fetch audit logs using React Query
   const { data, isLoading, isError, error, refetch } = useQuery(
     ['auditLogs', page, actionFilter, resourceFilter, statusFilter],
-    () => AuditLogsService.getAuditLogs({
-      action: actionFilter !== 'all' ? actionFilter : undefined,
-      entity: resourceFilter !== 'all' ? resourceFilter : undefined,
-      status: statusFilter !== 'all' ? (statusFilter as 'success' | 'failure') : undefined,
-      page,
-      limit: 50,
-      startDate: sevenDaysAgo,
-      endDate: now,
-    }),
+    () =>
+      AuditLogsService.getAuditLogs({
+        action: actionFilter !== 'all' ? actionFilter : undefined,
+        entity: resourceFilter !== 'all' ? resourceFilter : undefined,
+        status: statusFilter !== 'all' ? (statusFilter as 'success' | 'failure') : undefined,
+        page,
+        limit: 50,
+        startDate: sevenDaysAgo,
+        endDate: now,
+      }),
     {
       keepPreviousData: true,
       refetchOnWindowFocus: false,
@@ -295,16 +325,16 @@ const Audit: React.FC = () => {
         day: '2-digit',
         month: 'short',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     }
   };
 
   const getStatusBadge = (status: string) => {
     return status === 'success' ? (
-      <Badge $variant="success">Success</Badge>
+      <Badge $variant='success'>Success</Badge>
     ) : (
-      <Badge $variant="danger">Failed</Badge>
+      <Badge $variant='danger'>Failed</Badge>
     );
   };
 
@@ -319,7 +349,7 @@ const Audit: React.FC = () => {
     {
       id: 'action',
       header: 'Action',
-      accessor: (row) => (
+      accessor: row => (
         <LogDetails>
           <LogAction>
             <ActionIcon $type={row.action.toLowerCase()}>
@@ -327,17 +357,15 @@ const Audit: React.FC = () => {
             </ActionIcon>
             {row.action} {formatResourceName(row.category)}
           </LogAction>
-          {row.metadata?.entityId && (
-            <LogResource>ID: {row.metadata.entityId}</LogResource>
-          )}
+          {row.metadata?.entityId && <LogResource>ID: {row.metadata.entityId}</LogResource>}
         </LogDetails>
       ),
-      width: '280px'
+      width: '280px',
     },
     {
       id: 'user',
       header: 'User',
-      accessor: (row) => (
+      accessor: row => (
         <UserInfo>
           <UserAvatar>{row.userName ? getUserInitials(row.userName) : 'NA'}</UserAvatar>
           <div>
@@ -346,57 +374,58 @@ const Audit: React.FC = () => {
           </div>
         </UserInfo>
       ),
-      width: '180px'
+      width: '180px',
     },
     {
       id: 'changes',
       header: 'Changes',
-      accessor: (row) => (
+      accessor: row =>
         row.metadata?.details ? (
-          <ChangesButton onClick={(e) => {
-            e.stopPropagation();
-            setSelectedLog(row);
-          }}>
+          <ChangesButton
+            onClick={e => {
+              e.stopPropagation();
+              setSelectedLog(row);
+            }}
+          >
             View Details
           </ChangesButton>
         ) : (
           <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>—</span>
-        )
-      ),
+        ),
       width: '100px',
-      align: 'center'
+      align: 'center',
     },
     {
       id: 'ipAddress',
       header: 'IP Address',
-      accessor: (row) => row.ip_address ? <IpAddress>{row.ip_address}</IpAddress> : '—',
-      width: '140px'
+      accessor: row => (row.ip_address ? <IpAddress>{row.ip_address}</IpAddress> : '—'),
+      width: '140px',
     },
     {
       id: 'status',
       header: 'Status',
-      accessor: (row) => getStatusBadge(row.status || 'success'),
+      accessor: row => getStatusBadge(row.status || 'success'),
       width: '100px',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'timestamp',
       header: 'Time',
-      accessor: (row) => formatTimestamp(row.timestamp.toString()),
+      accessor: row => formatTimestamp(row.timestamp.toString()),
       width: '120px',
-      sortable: true
-    }
+      sortable: true,
+    },
   ];
 
   return (
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">Audit Logs</Heading>
+          <Heading level='h1'>Audit Logs</Heading>
           <Text>System activity tracking and security monitoring (Last 7 days)</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant="outline" size="md" onClick={() => refetch()} disabled={isLoading}>
+          <Button variant='outline' size='md' onClick={() => refetch()} disabled={isLoading}>
             <FiRefreshCw style={{ marginRight: '0.5rem' }} />
             Refresh
           </Button>
@@ -407,51 +436,59 @@ const Audit: React.FC = () => {
         <SearchInputWrapper>
           <FiSearch />
           <Input
-            type="text"
-            placeholder="Search by user, action, or resource..."
+            type='text'
+            placeholder='Search by user, action, or resource...'
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
           />
         </SearchInputWrapper>
 
         <FilterGroup>
           <FilterLabel>Action</FilterLabel>
-          <Select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}>
-            <option value="all">All Actions</option>
-            <option value="create">Create</option>
-            <option value="update">Update</option>
-            <option value="delete">Delete</option>
-            <option value="login">Login</option>
-            <option value="logout">Logout</option>
+          <Select value={actionFilter} onChange={e => setActionFilter(e.target.value)}>
+            <option value='all'>All Actions</option>
+            <option value='create'>Create</option>
+            <option value='update'>Update</option>
+            <option value='delete'>Delete</option>
+            <option value='login'>Login</option>
+            <option value='logout'>Logout</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
           <FilterLabel>Resource</FilterLabel>
-          <Select value={resourceFilter} onChange={(e) => setResourceFilter(e.target.value)}>
-            <option value="all">All Resources</option>
-            <option value="user">User</option>
-            <option value="rescue">Rescue</option>
-            <option value="feature_flag">Feature Flag</option>
-            <option value="system_setting">System Setting</option>
-            <option value="support_ticket">Support Ticket</option>
-            <option value="user_sanction">User Sanction</option>
-            <option value="auth">Authentication</option>
+          <Select value={resourceFilter} onChange={e => setResourceFilter(e.target.value)}>
+            <option value='all'>All Resources</option>
+            <option value='user'>User</option>
+            <option value='rescue'>Rescue</option>
+            <option value='feature_flag'>Feature Flag</option>
+            <option value='system_setting'>System Setting</option>
+            <option value='support_ticket'>Support Ticket</option>
+            <option value='user_sanction'>User Sanction</option>
+            <option value='auth'>Authentication</option>
           </Select>
         </FilterGroup>
 
         <FilterGroup>
           <FilterLabel>Status</FilterLabel>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All Statuses</option>
-            <option value="success">Success</option>
-            <option value="failure">Failed</option>
+          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value='all'>All Statuses</option>
+            <option value='success'>Success</option>
+            <option value='failure'>Failed</option>
           </Select>
         </FilterGroup>
       </FilterBar>
 
       {isError && (
-        <div style={{ padding: '1rem', color: '#dc2626', background: '#fee2e2', borderRadius: '8px', margin: '1rem 0' }}>
+        <div
+          style={{
+            padding: '1rem',
+            color: '#dc2626',
+            background: '#fee2e2',
+            borderRadius: '8px',
+            margin: '1rem 0',
+          }}
+        >
           Error loading audit logs: {error instanceof Error ? error.message : 'Unknown error'}
         </div>
       )}
@@ -460,41 +497,45 @@ const Audit: React.FC = () => {
         columns={columns}
         data={filteredLogs}
         loading={isLoading}
-        emptyMessage="No audit logs found matching your criteria"
-        onRowClick={(log) => setSelectedLog(log)}
-        getRowId={(log) => log.id.toString()}
+        emptyMessage='No audit logs found matching your criteria'
+        onRowClick={log => setSelectedLog(log)}
+        getRowId={log => log.id.toString()}
       />
 
       {selectedLog && (
         <Modal onClick={() => setSelectedLog(null)}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalContent onClick={e => e.stopPropagation()}>
             <ModalHeader>
               <ModalTitle>Audit Log Details</ModalTitle>
               <CloseButton onClick={() => setSelectedLog(null)}>×</CloseButton>
             </ModalHeader>
             <JsonBlock>
-              {JSON.stringify({
-                id: selectedLog.id,
-                action: selectedLog.action,
-                level: selectedLog.level,
-                status: selectedLog.status,
-                timestamp: selectedLog.timestamp,
-                user: {
-                  id: selectedLog.user,
-                  name: selectedLog.userName,
-                  email: selectedLog.userEmail,
-                  type: selectedLog.userType,
+              {JSON.stringify(
+                {
+                  id: selectedLog.id,
+                  action: selectedLog.action,
+                  level: selectedLog.level,
+                  status: selectedLog.status,
+                  timestamp: selectedLog.timestamp,
+                  user: {
+                    id: selectedLog.user,
+                    name: selectedLog.userName,
+                    email: selectedLog.userEmail,
+                    type: selectedLog.userType,
+                  },
+                  entity: {
+                    category: selectedLog.category,
+                    entityId: selectedLog.metadata?.entityId,
+                  },
+                  details: selectedLog.metadata?.details || null,
+                  network: {
+                    ipAddress: selectedLog.ip_address,
+                    userAgent: selectedLog.user_agent,
+                  },
                 },
-                entity: {
-                  category: selectedLog.category,
-                  entityId: selectedLog.metadata?.entityId,
-                },
-                details: selectedLog.metadata?.details || null,
-                network: {
-                  ipAddress: selectedLog.ip_address,
-                  userAgent: selectedLog.user_agent,
-                },
-              }, null, 2)}
+                null,
+                2
+              )}
             </JsonBlock>
           </ModalContent>
         </Modal>

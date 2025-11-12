@@ -41,12 +41,14 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       include: ['styled-components'],
-      exclude: ['@testing-library/dom', '@testing-library/react', '@testing-library/user-event', '@testing-library/jest-dom'],
-      // Include library source files in dependency optimization for HMR
-      entries: [
-        './src/**/!(*.test|*.spec).{ts,tsx}',
-        '../lib.*/src/**/!(*.test|*.spec).{ts,tsx}',
+      exclude: [
+        '@testing-library/dom',
+        '@testing-library/react',
+        '@testing-library/user-event',
+        '@testing-library/jest-dom',
       ],
+      // Include library source files in dependency optimization for HMR
+      entries: ['./src/**/!(*.test|*.spec).{ts,tsx}', '../lib.*/src/**/!(*.test|*.spec).{ts,tsx}'],
     },
     server: {
       host: '0.0.0.0',

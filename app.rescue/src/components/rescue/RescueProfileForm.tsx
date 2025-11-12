@@ -7,7 +7,7 @@ import {
   SelectInput,
   TextArea as LibTextArea,
   Alert,
-  type SelectOption
+  type SelectOption,
 } from '@adopt-dont-shop/components';
 import type { RescueProfile, RescueAddress } from '../../types/rescue';
 import { getPhonePlaceholder, getPostcodePlaceholder } from '@adopt-dont-shop/lib-utils';
@@ -127,10 +127,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
     }
   }, [rescue]);
 
-  const handleChange = (
-    field: keyof RescueProfile | string,
-    value: any
-  ) => {
+  const handleChange = (field: keyof RescueProfile | string, value: any) => {
     setHasChanges(true);
     setSuccessMessage(null);
     setErrorMessage(null);
@@ -165,9 +162,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
     } catch (error) {
       console.error('Error saving rescue profile:', error);
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to save rescue profile. Please try again.'
+        error instanceof Error ? error.message : 'Failed to save rescue profile. Please try again.'
       );
     } finally {
       setSaving(false);
@@ -210,7 +205,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <TextInput
                 label="Rescue Name *"
                 value={formData.name || ''}
-                onChange={(e) => handleChange('name', e.target.value)}
+                onChange={e => handleChange('name', e.target.value)}
                 required
                 placeholder="Enter rescue organisation name"
                 fullWidth
@@ -221,7 +216,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <SelectInput
                 label="Rescue Type *"
                 value={formData.rescue_type || 'animal_shelter'}
-                onChange={(value) => handleChange('rescue_type', value)}
+                onChange={value => handleChange('rescue_type', value)}
                 options={rescueTypeOptions}
                 required
                 fullWidth
@@ -235,7 +230,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 label="Email Address *"
                 type="email"
                 value={formData.email || ''}
-                onChange={(e) => handleChange('email', e.target.value)}
+                onChange={e => handleChange('email', e.target.value)}
                 required
                 placeholder="contact@rescue.org.uk"
                 helperText="Primary contact email for your rescue"
@@ -248,7 +243,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 label="Phone Number *"
                 type="tel"
                 value={formData.phone || ''}
-                onChange={(e) => handleChange('phone', e.target.value)}
+                onChange={e => handleChange('phone', e.target.value)}
                 required
                 placeholder="(555) 123-4567"
                 helperText="Main phone number for enquiries"
@@ -263,7 +258,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 label="Website"
                 type="url"
                 value={formData.website || ''}
-                onChange={(e) => handleChange('website', e.target.value)}
+                onChange={e => handleChange('website', e.target.value)}
                 placeholder="https://www.rescue.org.uk"
                 fullWidth
               />
@@ -275,7 +270,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <LibTextArea
                 label="Description"
                 value={formData.description || ''}
-                onChange={(e) => handleChange('description', e.target.value)}
+                onChange={e => handleChange('description', e.target.value)}
                 placeholder="Tell adopters about your rescue organisation..."
                 rows={4}
                 helperText="This description will be visible to potential adopters"
@@ -292,7 +287,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <TextInput
                 label="Street Address *"
                 value={formData.address?.street || ''}
-                onChange={(e) => handleChange('street', e.target.value)}
+                onChange={e => handleChange('street', e.target.value)}
                 required
                 placeholder="123 High Street"
                 fullWidth
@@ -305,7 +300,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <TextInput
                 label="Town/City *"
                 value={formData.address?.city || ''}
-                onChange={(e) => handleChange('city', e.target.value)}
+                onChange={e => handleChange('city', e.target.value)}
                 required
                 placeholder="London"
                 fullWidth
@@ -316,7 +311,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <TextInput
                 label="County"
                 value={formData.address?.county || ''}
-                onChange={(e) => handleChange('address.county', e.target.value)}
+                onChange={e => handleChange('address.county', e.target.value)}
                 placeholder="Greater London"
                 fullWidth
               />
@@ -328,7 +323,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <TextInput
                 label="Postcode *"
                 value={formData.address?.postcode || ''}
-                onChange={(e) => handleChange('address.postcode', e.target.value.toUpperCase())}
+                onChange={e => handleChange('address.postcode', e.target.value.toUpperCase())}
                 required
                 placeholder="SW1A 1AA"
                 fullWidth
@@ -339,7 +334,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <SelectInput
                 label="Country *"
                 value={formData.address?.country || 'United Kingdom'}
-                onChange={(value) => handleChange('country', value)}
+                onChange={value => handleChange('country', value)}
                 options={countryOptions}
                 required
                 fullWidth
@@ -357,11 +352,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
           >
             Reset
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={!hasChanges || saving || loading}
-          >
+          <Button type="submit" variant="primary" disabled={!hasChanges || saving || loading}>
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </ButtonGroup>

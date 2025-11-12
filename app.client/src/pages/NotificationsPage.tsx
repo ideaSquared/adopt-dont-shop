@@ -25,8 +25,9 @@ const Header = styled.div`
 const NotificationCard = styled(Card)<{ $isRead: boolean }>`
   margin-bottom: 1rem;
   cursor: pointer;
-  opacity: ${props => props.$isRead ? 0.6 : 1};
-  border-left: 4px solid ${props => props.$isRead ? 'transparent' : props.theme.colors.primary[500]};
+  opacity: ${props => (props.$isRead ? 0.6 : 1)};
+  border-left: 4px solid
+    ${props => (props.$isRead ? 'transparent' : props.theme.colors.primary[500])};
 
   &:hover {
     transform: translateY(-2px);
@@ -80,7 +81,7 @@ export const NotificationsPage: React.FC = () => {
       properties: {
         total_notifications: notifications.length,
         unread_count: unreadCount,
-      }
+      },
     });
   }, [trackPageView, trackEvent, notifications.length, unreadCount]);
 
@@ -95,7 +96,7 @@ export const NotificationsPage: React.FC = () => {
         timestamp: new Date(),
         properties: {
           notification_id: notificationId,
-        }
+        },
       });
     }
   };
@@ -110,7 +111,7 @@ export const NotificationsPage: React.FC = () => {
       timestamp: new Date(),
       properties: {
         notifications_marked: unreadCount,
-      }
+      },
     });
   };
 
@@ -137,7 +138,7 @@ export const NotificationsPage: React.FC = () => {
       <Header>
         <h1>Notifications</h1>
         {unreadCount > 0 && (
-          <Button variant="outline" onClick={handleMarkAllAsRead}>
+          <Button variant='outline' onClick={handleMarkAllAsRead}>
             Mark All Read ({unreadCount})
           </Button>
         )}
@@ -145,21 +146,25 @@ export const NotificationsPage: React.FC = () => {
 
       {notifications.length === 0 ? (
         <EmptyState>
-          <div className="icon">🔔</div>
+          <div className='icon'>🔔</div>
           <h3>No notifications yet</h3>
-          <p>You'll see notifications about your adoption applications, favorite pets, and more here.</p>
+          <p>
+            You'll see notifications about your adoption applications, favorite pets, and more here.
+          </p>
         </EmptyState>
       ) : (
-        notifications.map((notification) => (
+        notifications.map(notification => (
           <NotificationCard
             key={notification.id}
             $isRead={isNotificationRead(notification)}
-            onClick={() => handleNotificationClick(notification.id, isNotificationRead(notification))}
+            onClick={() =>
+              handleNotificationClick(notification.id, isNotificationRead(notification))
+            }
           >
             <NotificationContent>
-              <div className="title">{notification.title}</div>
-              <div className="message">{notification.message}</div>
-              <div className="timestamp">{formatTimestamp(notification.createdAt)}</div>
+              <div className='title'>{notification.title}</div>
+              <div className='message'>{notification.message}</div>
+              <div className='timestamp'>{formatTimestamp(notification.createdAt)}</div>
             </NotificationContent>
           </NotificationCard>
         ))

@@ -137,7 +137,7 @@ const server = setupServer(
 
   // Reject rescue
   http.patch('/api/v1/admin/rescues/:rescueId/reject', async ({ params, request }) => {
-    const body = await request.json() as { reason: string };
+    const body = (await request.json()) as { reason: string };
     const rescue = mockRescues.find(r => r.rescueId === params.rescueId);
 
     if (!rescue) {

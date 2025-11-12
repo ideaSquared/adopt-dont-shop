@@ -282,21 +282,23 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
             <MdNotifications className='nav-icon' />
             Notifications
             {unreadCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-2px',
-                right: '8px',
-                background: '#ff4081',
-                color: 'white',
-                borderRadius: '50%',
-                width: '18px',
-                height: '18px',
-                fontSize: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold'
-              }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '8px',
+                  background: '#ff4081',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '18px',
+                  height: '18px',
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                }}
+              >
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}

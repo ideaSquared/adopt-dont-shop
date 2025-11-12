@@ -1,7 +1,12 @@
 // User type definitions matching the backend API structure
 
 export type UserType = 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
-export type UserStatus = 'active' | 'inactive' | 'suspended' | 'pending_verification' | 'deactivated';
+export type UserStatus =
+  | 'active'
+  | 'inactive'
+  | 'suspended'
+  | 'pending_verification'
+  | 'deactivated';
 
 export interface User {
   userId: string;

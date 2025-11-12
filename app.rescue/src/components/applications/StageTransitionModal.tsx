@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { ApplicationStage, STAGE_CONFIG, STAGE_ACTIONS, StageAction } from '../../types/applicationStages';
+import {
+  ApplicationStage,
+  STAGE_CONFIG,
+  STAGE_ACTIONS,
+  StageAction,
+} from '../../types/applicationStages';
 
 // Styled Components
 const Overlay = styled.div`
@@ -16,7 +21,9 @@ const Overlay = styled.div`
 const Modal = styled.div`
   background: white;
   border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
   max-width: 28rem;
   width: 90%;
   padding: 1.5rem;
@@ -117,9 +124,9 @@ const ActionList = styled.div`
 
 const ActionOption = styled.button<{ $selected: boolean }>`
   padding: 0.75rem;
-  border: 2px solid ${props => props.$selected ? '#3b82f6' : '#e5e7eb'};
+  border: 2px solid ${props => (props.$selected ? '#3b82f6' : '#e5e7eb')};
   border-radius: 0.375rem;
-  background: ${props => props.$selected ? '#eff6ff' : 'white'};
+  background: ${props => (props.$selected ? '#eff6ff' : 'white')};
   text-align: left;
   cursor: pointer;
   transition: all 0.2s;
@@ -189,7 +196,7 @@ interface StageTransitionModalProps {
 const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
   currentStage,
   onClose,
-  onTransition
+  onTransition,
 }) => {
   const [selectedAction, setSelectedAction] = useState<StageAction | null>(null);
   const [notes, setNotes] = useState('');
@@ -206,7 +213,9 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Failed to transition stage:', error);
-      alert(`Failed to transition stage: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(
+        `Failed to transition stage: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -214,31 +223,31 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
 
   const getActionLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      'START_REVIEW': 'Start Review',
-      'SCHEDULE_VISIT': 'Schedule Home Visit',
-      'COMPLETE_VISIT': 'Complete Visit',
-      'MAKE_DECISION': 'Make Final Decision',
-      'REJECT': 'Reject Application',
-      'WITHDRAW': 'Withdraw Application',
+      START_REVIEW: 'Start Review',
+      SCHEDULE_VISIT: 'Schedule Home Visit',
+      COMPLETE_VISIT: 'Complete Visit',
+      MAKE_DECISION: 'Make Final Decision',
+      REJECT: 'Reject Application',
+      WITHDRAW: 'Withdraw Application',
     };
     return labels[type] || type;
   };
 
   const getActionDescription = (action: StageAction): string => {
     const descriptions: Record<string, string> = {
-      'START_REVIEW': 'Begin reviewing the application and checking references',
-      'SCHEDULE_VISIT': 'Move to home visit stage and schedule a visit',
-      'COMPLETE_VISIT': 'Mark home visit as complete and proceed to decision',
-      'MAKE_DECISION': 'Make the final approval or rejection decision',
-      'REJECT': 'Reject this application and close it',
-      'WITHDRAW': 'Mark this application as withdrawn by the applicant',
+      START_REVIEW: 'Begin reviewing the application and checking references',
+      SCHEDULE_VISIT: 'Move to home visit stage and schedule a visit',
+      COMPLETE_VISIT: 'Mark home visit as complete and proceed to decision',
+      MAKE_DECISION: 'Make the final approval or rejection decision',
+      REJECT: 'Reject this application and close it',
+      WITHDRAW: 'Mark this application as withdrawn by the applicant',
     };
     return descriptions[action.type] || '';
   };
 
   return (
     <Overlay onClick={onClose}>
-      <Modal onClick={(e) => e.stopPropagation()}>
+      <Modal onClick={e => e.stopPropagation()}>
         <Header>
           <Title>Transition Application Stage</Title>
           <Subtitle>Move this application to a new stage</Subtitle>
@@ -251,15 +260,24 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
             </StageBox>
             <Arrow>→</Arrow>
             <StageBox $color={STAGE_CONFIG[selectedAction.nextStage]?.color || '#9ca3af'}>
-              {STAGE_CONFIG[selectedAction.nextStage]?.emoji} {STAGE_CONFIG[selectedAction.nextStage]?.label}
+              {STAGE_CONFIG[selectedAction.nextStage]?.emoji}{' '}
+              {STAGE_CONFIG[selectedAction.nextStage]?.label}
             </StageBox>
           </StageDisplay>
         )}
 
         {availableActions.length === 0 ? (
           <FormField>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', textAlign: 'center', padding: '1rem' }}>
-              No stage transitions available for {STAGE_CONFIG[currentStage]?.label || currentStage}.
+            <p
+              style={{
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                textAlign: 'center',
+                padding: '1rem',
+              }}
+            >
+              No stage transitions available for {STAGE_CONFIG[currentStage]?.label || currentStage}
+              .
             </p>
           </FormField>
         ) : (
@@ -267,7 +285,7 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
             <FormField>
               <Label>Select Action</Label>
               <ActionList>
-                {availableActions.map((action) => (
+                {availableActions.map(action => (
                   <ActionOption
                     key={action.type}
                     $selected={selectedAction?.type === action.type}
@@ -286,7 +304,7 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
                 <Label>Notes (optional)</Label>
                 <TextArea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={e => setNotes(e.target.value)}
                   placeholder="Add any notes about this stage transition..."
                 />
               </FormField>

@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { FiChevronUp, FiChevronDown, FiChevronsLeft, FiChevronsRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import {
+  FiChevronUp,
+  FiChevronDown,
+  FiChevronsLeft,
+  FiChevronsRight,
+  FiChevronLeft,
+  FiChevronRight,
+} from 'react-icons/fi';
 
 export interface Column<T> {
   id: string;
@@ -54,7 +61,11 @@ const Thead = styled.thead`
   border-bottom: 2px solid #e5e7eb;
 `;
 
-const Th = styled.th<{ $width?: string; $align?: 'left' | 'center' | 'right'; $sortable?: boolean }>`
+const Th = styled.th<{
+  $width?: string;
+  $align?: 'left' | 'center' | 'right';
+  $sortable?: boolean;
+}>`
   padding: 1rem;
   text-align: ${props => props.$align || 'left'};
   font-size: 0.875rem;
@@ -64,12 +75,12 @@ const Th = styled.th<{ $width?: string; $align?: 'left' | 'center' | 'right'; $s
   letter-spacing: 0.025em;
   white-space: nowrap;
   width: ${props => props.$width || 'auto'};
-  cursor: ${props => props.$sortable ? 'pointer' : 'default'};
+  cursor: ${props => (props.$sortable ? 'pointer' : 'default')};
   user-select: none;
   transition: background 0.2s ease;
 
   &:hover {
-    background: ${props => props.$sortable ? '#f3f4f6' : 'transparent'};
+    background: ${props => (props.$sortable ? '#f3f4f6' : 'transparent')};
   }
 `;
 
@@ -94,11 +105,11 @@ const Tbody = styled.tbody``;
 
 const Tr = styled.tr<{ $clickable?: boolean }>`
   border-bottom: 1px solid #e5e7eb;
-  cursor: ${props => props.$clickable ? 'pointer' : 'default'};
+  cursor: ${props => (props.$clickable ? 'pointer' : 'default')};
   transition: background 0.2s ease;
 
   &:hover {
-    background: ${props => props.$clickable ? '#f9fafb' : 'transparent'};
+    background: ${props => (props.$clickable ? '#f9fafb' : 'transparent')};
   }
 
   &:last-child {
@@ -163,16 +174,16 @@ const PageButton = styled.button<{ $active?: boolean }>`
   min-width: 32px;
   height: 32px;
   padding: 0 0.5rem;
-  background: ${props => props.$active ? props.theme.colors.primary[600] : '#ffffff'};
-  color: ${props => props.$active ? '#ffffff' : '#374151'};
-  border: 1px solid ${props => props.$active ? props.theme.colors.primary[600] : '#d1d5db'};
+  background: ${props => (props.$active ? props.theme.colors.primary[600] : '#ffffff')};
+  color: ${props => (props.$active ? '#ffffff' : '#374151')};
+  border: 1px solid ${props => (props.$active ? props.theme.colors.primary[600] : '#d1d5db')};
   border-radius: 6px;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: ${props => props.$active ? props.theme.colors.primary[700] : '#f9fafb'};
+    background: ${props => (props.$active ? props.theme.colors.primary[700] : '#f9fafb')};
   }
 
   &:disabled {
@@ -200,9 +211,11 @@ export function DataTable<T extends Record<string, any>>({
   selectable = false,
   selectedRows = new Set(),
   onSelectionChange,
-  getRowId = (row) => row.id || String(Math.random())
+  getRowId = row => row.id || String(Math.random()),
 }: DataTableProps<T>) {
-  const [localSort, setLocalSort] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(null);
+  const [localSort, setLocalSort] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(
+    null
+  );
 
   const handleSort = (columnId: string) => {
     const newDirection =
@@ -257,14 +270,14 @@ export function DataTable<T extends Record<string, any>>({
           <Thead>
             <tr>
               {selectable && (
-                <Th $width="48px" $align="center">
+                <Th $width='48px' $align='center'>
                   <Checkbox
                     checked={allSelected}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    onChange={e => handleSelectAll(e.target.checked)}
                   />
                 </Th>
               )}
-              {columns.map((column) => (
+              {columns.map(column => (
                 <Th
                   key={column.id}
                   $width={column.width}
@@ -295,18 +308,14 @@ export function DataTable<T extends Record<string, any>>({
           <Tbody>
             {loading ? (
               <LoadingRow>
-                <td colSpan={columns.length + (selectable ? 1 : 0)}>
-                  Loading...
-                </td>
+                <td colSpan={columns.length + (selectable ? 1 : 0)}>Loading...</td>
               </LoadingRow>
             ) : data.length === 0 ? (
               <EmptyRow>
-                <td colSpan={columns.length + (selectable ? 1 : 0)}>
-                  {emptyMessage}
-                </td>
+                <td colSpan={columns.length + (selectable ? 1 : 0)}>{emptyMessage}</td>
               </EmptyRow>
             ) : (
-              data.map((row) => {
+              data.map(row => {
                 const rowId = getRowId(row);
                 return (
                   <Tr
@@ -315,14 +324,14 @@ export function DataTable<T extends Record<string, any>>({
                     onClick={() => onRowClick && onRowClick(row)}
                   >
                     {selectable && (
-                      <Td $align="center" onClick={(e) => e.stopPropagation()}>
+                      <Td $align='center' onClick={e => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedRows.has(rowId)}
-                          onChange={(e) => handleSelectRow(rowId, e.target.checked)}
+                          onChange={e => handleSelectRow(rowId, e.target.checked)}
                         />
                       </Td>
                     )}
-                    {columns.map((column) => (
+                    {columns.map(column => (
                       <Td key={column.id} $align={column.align}>
                         {getCellValue(row, column)}
                       </Td>
@@ -344,14 +353,14 @@ export function DataTable<T extends Record<string, any>>({
             <PageButton
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
-              aria-label="First page"
+              aria-label='First page'
             >
               <FiChevronsLeft />
             </PageButton>
             <PageButton
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              aria-label="Previous page"
+              aria-label='Previous page'
             >
               <FiChevronLeft />
             </PageButton>
@@ -372,14 +381,14 @@ export function DataTable<T extends Record<string, any>>({
             <PageButton
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              aria-label="Next page"
+              aria-label='Next page'
             >
               <FiChevronRight />
             </PageButton>
             <PageButton
               onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages}
-              aria-label="Last page"
+              aria-label='Last page'
             >
               <FiChevronsRight />
             </PageButton>

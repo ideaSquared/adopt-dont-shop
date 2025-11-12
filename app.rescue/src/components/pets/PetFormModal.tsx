@@ -54,7 +54,9 @@ const FormGroup = styled.div<{ fullWidth?: boolean }>`
     color: ${props => props.theme.text.primary};
   }
 
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid ${props => props.theme.colors.neutral[300]};
@@ -87,7 +89,7 @@ const CheckboxGroup = styled.div`
   gap: 0.5rem;
   margin-top: 0.5rem;
 
-  input[type="checkbox"] {
+  input[type='checkbox'] {
     width: auto;
   }
 
@@ -117,12 +119,7 @@ interface PetFormModalProps {
   onSubmit: (data: PetCreateData | PetUpdateData) => Promise<void>;
 }
 
-const PetFormModal: React.FC<PetFormModalProps> = ({
-  isOpen,
-  pet,
-  onClose,
-  onSubmit,
-}) => {
+const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSubmit }) => {
   const [formData, setFormData] = useState<PetCreateData>({
     name: '',
     type: 'dog',
@@ -234,7 +231,11 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
       newErrors.shortDescription = 'Short description is required';
     }
 
-    if ((formData.ageYears || 0) < 0 || (formData.ageMonths || 0) < 0 || (formData.ageMonths || 0) > 11) {
+    if (
+      (formData.ageYears || 0) < 0 ||
+      (formData.ageMonths || 0) < 0 ||
+      (formData.ageMonths || 0) > 11
+    ) {
       newErrors.age = 'Please enter a valid age';
     }
 
@@ -244,7 +245,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -265,7 +266,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
 
   return (
     <ModalOverlay onClick={onClose}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
+      <ModalContent onClick={e => e.stopPropagation()}>
         <h2>{pet ? 'Edit Pet' : 'Add New Pet'}</h2>
 
         <form onSubmit={handleSubmit}>
@@ -276,7 +277,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                 id="name"
                 type="text"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={e => handleInputChange('name', e.target.value)}
                 placeholder="Enter pet's name"
               />
               {errors.name && <div className="error">{errors.name}</div>}
@@ -287,7 +288,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <select
                 id="type"
                 value={formData.type}
-                onChange={(e) => handleInputChange('type', e.target.value)}
+                onChange={e => handleInputChange('type', e.target.value)}
               >
                 <option value="dog">Dog</option>
                 <option value="cat">Cat</option>
@@ -303,7 +304,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                 id="breed"
                 type="text"
                 value={formData.breed}
-                onChange={(e) => handleInputChange('breed', e.target.value)}
+                onChange={e => handleInputChange('breed', e.target.value)}
                 placeholder="Enter primary breed"
               />
               {errors.breed && <div className="error">{errors.breed}</div>}
@@ -315,7 +316,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                 id="secondaryBreed"
                 type="text"
                 value={formData.secondaryBreed || ''}
-                onChange={(e) => handleInputChange('secondaryBreed', e.target.value)}
+                onChange={e => handleInputChange('secondaryBreed', e.target.value)}
                 placeholder="Enter secondary breed (if mix)"
               />
             </FormGroup>
@@ -328,7 +329,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                 min="0"
                 max="30"
                 value={formData.ageYears}
-                onChange={(e) => handleInputChange('ageYears', parseInt(e.target.value) || 0)}
+                onChange={e => handleInputChange('ageYears', parseInt(e.target.value) || 0)}
               />
             </FormGroup>
 
@@ -340,7 +341,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                 min="0"
                 max="11"
                 value={formData.ageMonths}
-                onChange={(e) => handleInputChange('ageMonths', parseInt(e.target.value) || 0)}
+                onChange={e => handleInputChange('ageMonths', parseInt(e.target.value) || 0)}
               />
               {errors.age && <div className="error">{errors.age}</div>}
             </FormGroup>
@@ -350,7 +351,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <select
                 id="gender"
                 value={formData.gender}
-                onChange={(e) => handleInputChange('gender', e.target.value)}
+                onChange={e => handleInputChange('gender', e.target.value)}
               >
                 <option value="male">Male</option>
                 <option value="female">Female</option>
@@ -362,7 +363,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <select
                 id="size"
                 value={formData.size}
-                onChange={(e) => handleInputChange('size', e.target.value)}
+                onChange={e => handleInputChange('size', e.target.value)}
               >
                 <option value="small">Small</option>
                 <option value="medium">Medium</option>
@@ -377,7 +378,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                 id="color"
                 type="text"
                 value={formData.color}
-                onChange={(e) => handleInputChange('color', e.target.value)}
+                onChange={e => handleInputChange('color', e.target.value)}
                 placeholder="Enter primary color"
               />
               {errors.color && <div className="error">{errors.color}</div>}
@@ -389,7 +390,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                 id="adoptionFee"
                 type="text"
                 value={formData.adoptionFee || ''}
-                onChange={(e) => handleInputChange('adoptionFee', e.target.value)}
+                onChange={e => handleInputChange('adoptionFee', e.target.value)}
                 placeholder="Enter adoption fee (e.g., 150.00)"
               />
             </FormGroup>
@@ -399,7 +400,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <textarea
                 id="shortDescription"
                 value={formData.shortDescription || ''}
-                onChange={(e) => handleInputChange('shortDescription', e.target.value)}
+                onChange={e => handleInputChange('shortDescription', e.target.value)}
                 placeholder="Brief description for listings (1-2 sentences)"
                 rows={2}
               />
@@ -411,7 +412,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <textarea
                 id="longDescription"
                 value={formData.longDescription || ''}
-                onChange={(e) => handleInputChange('longDescription', e.target.value)}
+                onChange={e => handleInputChange('longDescription', e.target.value)}
                 placeholder="Detailed description of the pet's personality, history, and needs"
                 rows={4}
               />
@@ -422,7 +423,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <select
                 id="energyLevel"
                 value={formData.energyLevel}
-                onChange={(e) => handleInputChange('energyLevel', e.target.value)}
+                onChange={e => handleInputChange('energyLevel', e.target.value)}
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -437,7 +438,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                   type="checkbox"
                   id="specialNeeds"
                   checked={formData.specialNeeds}
-                  onChange={(e) => handleInputChange('specialNeeds', e.target.checked)}
+                  onChange={e => handleInputChange('specialNeeds', e.target.checked)}
                 />
                 <label htmlFor="specialNeeds">Special Needs</label>
               </CheckboxGroup>
@@ -449,7 +450,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                   type="checkbox"
                   id="houseTrained"
                   checked={formData.houseTrained}
-                  onChange={(e) => handleInputChange('houseTrained', e.target.checked)}
+                  onChange={e => handleInputChange('houseTrained', e.target.checked)}
                 />
                 <label htmlFor="houseTrained">House Trained</label>
               </CheckboxGroup>
@@ -459,8 +460,15 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <label htmlFor="goodWithChildren">Good with Children</label>
               <select
                 id="goodWithChildren"
-                value={formData.goodWithChildren == null ? '' : formData.goodWithChildren.toString()}
-                onChange={(e) => handleInputChange('goodWithChildren', e.target.value === '' ? undefined : e.target.value === 'true')}
+                value={
+                  formData.goodWithChildren == null ? '' : formData.goodWithChildren.toString()
+                }
+                onChange={e =>
+                  handleInputChange(
+                    'goodWithChildren',
+                    e.target.value === '' ? undefined : e.target.value === 'true'
+                  )
+                }
               >
                 <option value="">Unknown</option>
                 <option value="true">Yes</option>
@@ -473,7 +481,12 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <select
                 id="goodWithDogs"
                 value={formData.goodWithDogs == null ? '' : formData.goodWithDogs.toString()}
-                onChange={(e) => handleInputChange('goodWithDogs', e.target.value === '' ? undefined : e.target.value === 'true')}
+                onChange={e =>
+                  handleInputChange(
+                    'goodWithDogs',
+                    e.target.value === '' ? undefined : e.target.value === 'true'
+                  )
+                }
               >
                 <option value="">Unknown</option>
                 <option value="true">Yes</option>
@@ -486,7 +499,12 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <select
                 id="goodWithCats"
                 value={formData.goodWithCats == null ? '' : formData.goodWithCats.toString()}
-                onChange={(e) => handleInputChange('goodWithCats', e.target.value === '' ? undefined : e.target.value === 'true')}
+                onChange={e =>
+                  handleInputChange(
+                    'goodWithCats',
+                    e.target.value === '' ? undefined : e.target.value === 'true'
+                  )
+                }
               >
                 <option value="">Unknown</option>
                 <option value="true">Yes</option>
@@ -496,25 +514,14 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
           </FormGrid>
 
           {errors.submit && (
-            <div style={{ color: '#ef4444', marginBottom: '1rem' }}>
-              {errors.submit}
-            </div>
+            <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{errors.submit}</div>
           )}
 
           <ModalActions>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting ? 'Saving...' : pet ? 'Update Pet' : 'Add Pet'}
             </Button>
           </ModalActions>

@@ -1,9 +1,22 @@
 import React from 'react';
 import styled from 'styled-components';
-import { useFeatureGate, useConfigValue, KNOWN_GATES, KNOWN_CONFIGS } from '@adopt-dont-shop/lib-feature-flags';
+import {
+  useFeatureGate,
+  useConfigValue,
+  KNOWN_GATES,
+  KNOWN_CONFIGS,
+} from '@adopt-dont-shop/lib-feature-flags';
 import { Heading, Text, Button } from '@adopt-dont-shop/components';
 import { FiRefreshCw, FiSettings, FiFlag, FiExternalLink, FiInfo } from 'react-icons/fi';
-import { PageContainer, PageHeader, HeaderLeft, Card, CardHeader, CardTitle, CardContent } from '../components/ui';
+import {
+  PageContainer,
+  PageHeader,
+  HeaderLeft,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '../components/ui';
 
 const HeaderActions = styled.div`
   display: flex;
@@ -98,8 +111,8 @@ const StatusBadge = styled.div<{ $enabled: boolean }>`
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: ${props => props.$enabled ? '#d1fae5' : '#f3f4f6'};
-  color: ${props => props.$enabled ? '#065f46' : '#6b7280'};
+  background: ${props => (props.$enabled ? '#d1fae5' : '#f3f4f6')};
+  color: ${props => (props.$enabled ? '#065f46' : '#6b7280')};
 `;
 
 const SettingItem = styled.div`
@@ -187,7 +200,10 @@ const GATE_METADATA: Record<string, { name: string; description: string }> = {
 // Component for each gate
 const GateDisplay: React.FC<{ gateName: string }> = ({ gateName }) => {
   const { value: isEnabled } = useFeatureGate(gateName);
-  const metadata = GATE_METADATA[gateName] || { name: gateName, description: 'No description available' };
+  const metadata = GATE_METADATA[gateName] || {
+    name: gateName,
+    description: 'No description available',
+  };
 
   return (
     <GateItem>
@@ -196,32 +212,82 @@ const GateDisplay: React.FC<{ gateName: string }> = ({ gateName }) => {
         <GateDescription>{metadata.description}</GateDescription>
         <GateKey>{gateName}</GateKey>
       </GateInfo>
-      <StatusBadge $enabled={isEnabled}>
-        {isEnabled ? 'Enabled' : 'Disabled'}
-      </StatusBadge>
+      <StatusBadge $enabled={isEnabled}>{isEnabled ? 'Enabled' : 'Disabled'}</StatusBadge>
     </GateItem>
   );
 };
 
 const Configuration: React.FC = () => {
   // Application Settings
-  const maxApplicationsPerUser = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'max_applications_per_user', 5);
-  const autoApproveVerifiedRescues = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'auto_approve_verified_rescues', false);
-  const maintenanceMode = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'maintenance_mode', false);
-  const newRegistrationsEnabled = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'new_registrations_enabled', true);
-  const adoptionApprovalWorkflowEnabled = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'adoption_approval_workflow_enabled', true);
+  const maxApplicationsPerUser = useConfigValue(
+    KNOWN_CONFIGS.APPLICATION_SETTINGS,
+    'max_applications_per_user',
+    5
+  );
+  const autoApproveVerifiedRescues = useConfigValue(
+    KNOWN_CONFIGS.APPLICATION_SETTINGS,
+    'auto_approve_verified_rescues',
+    false
+  );
+  const maintenanceMode = useConfigValue(
+    KNOWN_CONFIGS.APPLICATION_SETTINGS,
+    'maintenance_mode',
+    false
+  );
+  const newRegistrationsEnabled = useConfigValue(
+    KNOWN_CONFIGS.APPLICATION_SETTINGS,
+    'new_registrations_enabled',
+    true
+  );
+  const adoptionApprovalWorkflowEnabled = useConfigValue(
+    KNOWN_CONFIGS.APPLICATION_SETTINGS,
+    'adoption_approval_workflow_enabled',
+    true
+  );
 
   // System Settings
-  const maxFileUploadSizeMb = useConfigValue(KNOWN_CONFIGS.SYSTEM_SETTINGS, 'max_file_upload_size_mb', 10);
-  const sessionTimeoutMinutes = useConfigValue(KNOWN_CONFIGS.SYSTEM_SETTINGS, 'session_timeout_minutes', 120);
-  const enableDebugLogging = useConfigValue(KNOWN_CONFIGS.SYSTEM_SETTINGS, 'enable_debug_logging', false);
-  const apiRateLimitPerMinute = useConfigValue(KNOWN_CONFIGS.SYSTEM_SETTINGS, 'api_rate_limit_per_minute', 100);
+  const maxFileUploadSizeMb = useConfigValue(
+    KNOWN_CONFIGS.SYSTEM_SETTINGS,
+    'max_file_upload_size_mb',
+    10
+  );
+  const sessionTimeoutMinutes = useConfigValue(
+    KNOWN_CONFIGS.SYSTEM_SETTINGS,
+    'session_timeout_minutes',
+    120
+  );
+  const enableDebugLogging = useConfigValue(
+    KNOWN_CONFIGS.SYSTEM_SETTINGS,
+    'enable_debug_logging',
+    false
+  );
+  const apiRateLimitPerMinute = useConfigValue(
+    KNOWN_CONFIGS.SYSTEM_SETTINGS,
+    'api_rate_limit_per_minute',
+    100
+  );
 
   // Moderation Settings
-  const autoModerateEnabled = useConfigValue(KNOWN_CONFIGS.MODERATION_SETTINGS, 'auto_moderate_enabled', true);
-  const profanityFilterEnabled = useConfigValue(KNOWN_CONFIGS.MODERATION_SETTINGS, 'profanity_filter_enabled', true);
-  const requireManualReviewThreshold = useConfigValue(KNOWN_CONFIGS.MODERATION_SETTINGS, 'require_manual_review_threshold', 0.7);
-  const maxWarningsBeforeSuspension = useConfigValue(KNOWN_CONFIGS.MODERATION_SETTINGS, 'max_warnings_before_suspension', 3);
+  const autoModerateEnabled = useConfigValue(
+    KNOWN_CONFIGS.MODERATION_SETTINGS,
+    'auto_moderate_enabled',
+    true
+  );
+  const profanityFilterEnabled = useConfigValue(
+    KNOWN_CONFIGS.MODERATION_SETTINGS,
+    'profanity_filter_enabled',
+    true
+  );
+  const requireManualReviewThreshold = useConfigValue(
+    KNOWN_CONFIGS.MODERATION_SETTINGS,
+    'require_manual_review_threshold',
+    0.7
+  );
+  const maxWarningsBeforeSuspension = useConfigValue(
+    KNOWN_CONFIGS.MODERATION_SETTINGS,
+    'max_warnings_before_suspension',
+    3
+  );
 
   const handleRefresh = () => {
     window.location.reload();
@@ -231,17 +297,17 @@ const Configuration: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">System Configuration</Heading>
+          <Heading level='h1'>System Configuration</Heading>
           <Text>View feature gates and settings managed through Statsig</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant="outline" size="md" onClick={handleRefresh}>
+          <Button variant='outline' size='md' onClick={handleRefresh}>
             <FiRefreshCw style={{ marginRight: '0.5rem' }} />
             Reload
           </Button>
           <Button
-            variant="primary"
-            size="md"
+            variant='primary'
+            size='md'
             onClick={() => window.open('https://console.statsig.com', '_blank')}
           >
             <FiExternalLink style={{ marginRight: '0.5rem' }} />
@@ -253,13 +319,13 @@ const Configuration: React.FC = () => {
       <InfoBanner>
         <FiInfo size={20} />
         <div>
-          This page displays read-only configuration from Statsig.
-          To modify feature gates or settings, use the{' '}
-          <StatsigLink href="https://console.statsig.com" target="_blank" rel="noopener noreferrer">
+          This page displays read-only configuration from Statsig. To modify feature gates or
+          settings, use the{' '}
+          <StatsigLink href='https://console.statsig.com' target='_blank' rel='noopener noreferrer'>
             Statsig Console
             <FiExternalLink size={14} />
-          </StatsigLink>.
-          Changes will be reflected here after refresh.
+          </StatsigLink>
+          . Changes will be reflected here after refresh.
         </div>
       </InfoBanner>
 
@@ -273,7 +339,7 @@ const Configuration: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {Object.values(KNOWN_GATES).map((gateName) => (
+            {Object.values(KNOWN_GATES).map(gateName => (
               <GateDisplay key={gateName} gateName={gateName} />
             ))}
           </CardContent>

@@ -182,11 +182,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
     }));
   };
 
-  const updateListItem = (
-    field: 'requirements' | 'policies',
-    index: number,
-    value: string
-  ) => {
+  const updateListItem = (field: 'requirements' | 'policies', index: number, value: string) => {
     setHasChanges(true);
     setFormData(prev => ({
       ...prev,
@@ -253,7 +249,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
             <CheckboxInput
               label="Require home visit for all adoptions"
               checked={formData.requireHomeVisit}
-              onChange={(e) => handleChange('requireHomeVisit', e.target.checked)}
+              onChange={e => handleChange('requireHomeVisit', e.target.checked)}
             />
           </CheckboxWrapper>
 
@@ -261,7 +257,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
             <CheckboxInput
               label="Require personal references"
               checked={formData.requireReferences}
-              onChange={(e) => handleChange('requireReferences', e.target.checked)}
+              onChange={e => handleChange('requireReferences', e.target.checked)}
             />
           </CheckboxWrapper>
 
@@ -274,7 +270,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                   min={0}
                   max={10}
                   value={formData.minimumReferenceCount.toString()}
-                  onChange={(e) =>
+                  onChange={e =>
                     handleChange('minimumReferenceCount', parseInt(e.target.value) || 0)
                   }
                   fullWidth
@@ -286,9 +282,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                   <CheckboxInput
                     label="Require veterinarian reference"
                     checked={formData.requireVeterinarianReference}
-                    onChange={(e) =>
-                      handleChange('requireVeterinarianReference', e.target.checked)
-                    }
+                    onChange={e => handleChange('requireVeterinarianReference', e.target.checked)}
                   />
                 </CheckboxWrapper>
               </FormGroup>
@@ -306,7 +300,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                 min={0}
                 step={0.01}
                 value={formData.adoptionFeeRange.min.toString()}
-                onChange={(e) => handleFeeChange('min', e.target.value)}
+                onChange={e => handleFeeChange('min', e.target.value)}
                 fullWidth
               />
             </FormGroup>
@@ -318,7 +312,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                 min={0}
                 step={0.01}
                 value={formData.adoptionFeeRange.max.toString()}
-                onChange={(e) => handleFeeChange('max', e.target.value)}
+                onChange={e => handleFeeChange('max', e.target.value)}
                 helperText="Set the range for your adoption fees"
                 fullWidth
               />
@@ -334,15 +328,10 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                 <ListItemInput
                   type="text"
                   value={req}
-                  onChange={(e) =>
-                    updateListItem('requirements', index, e.target.value)
-                  }
+                  onChange={e => updateListItem('requirements', index, e.target.value)}
                   placeholder="e.g., Must be 21 years or older"
                 />
-                <RemoveButton
-                  type="button"
-                  onClick={() => removeListItem('requirements', index)}
-                >
+                <RemoveButton type="button" onClick={() => removeListItem('requirements', index)}>
                   Remove
                 </RemoveButton>
               </ListItem>
@@ -361,13 +350,10 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                 <ListItemInput
                   type="text"
                   value={policy}
-                  onChange={(e) => updateListItem('policies', index, e.target.value)}
+                  onChange={e => updateListItem('policies', index, e.target.value)}
                   placeholder="e.g., All pets must be spayed/neutered"
                 />
-                <RemoveButton
-                  type="button"
-                  onClick={() => removeListItem('policies', index)}
-                >
+                <RemoveButton type="button" onClick={() => removeListItem('policies', index)}>
                   Remove
                 </RemoveButton>
               </ListItem>
@@ -384,7 +370,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
             <LibTextArea
               label="Return Policy"
               value={formData.returnPolicy || ''}
-              onChange={(e) => handleChange('returnPolicy', e.target.value)}
+              onChange={e => handleChange('returnPolicy', e.target.value)}
               placeholder="Describe your policy for returning adopted pets..."
               fullWidth
             />
@@ -394,7 +380,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
             <LibTextArea
               label="Spay/Neuter Policy"
               value={formData.spayNeuterPolicy || ''}
-              onChange={(e) => handleChange('spayNeuterPolicy', e.target.value)}
+              onChange={e => handleChange('spayNeuterPolicy', e.target.value)}
               placeholder="Describe your spay/neuter requirements..."
               fullWidth
             />
@@ -404,7 +390,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
             <LibTextArea
               label="Follow-up Policy"
               value={formData.followUpPolicy || ''}
-              onChange={(e) => handleChange('followUpPolicy', e.target.value)}
+              onChange={e => handleChange('followUpPolicy', e.target.value)}
               placeholder="Describe your follow-up procedures after adoption..."
               fullWidth
             />
@@ -420,11 +406,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
           >
             Reset
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={!hasChanges || saving || loading}
-          >
+          <Button type="submit" variant="primary" disabled={!hasChanges || saving || loading}>
             {saving ? 'Saving...' : 'Save Policies'}
           </Button>
         </ButtonGroup>

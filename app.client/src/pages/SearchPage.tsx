@@ -241,7 +241,7 @@ export const SearchPage: React.FC = () => {
       timestamp: new Date(),
       properties: {
         variant: advancedFiltersEnabled ? 'advanced_filters' : 'basic_filters',
-      }
+      },
     });
 
     // Track with new analytics service
@@ -256,7 +256,7 @@ export const SearchPage: React.FC = () => {
         has_initial_query: !!searchQuery,
         initial_type_filter: filters.type || 'none',
         page_number: filters.page || 1,
-      }
+      },
     });
 
     // Existing Statsig tracking
@@ -301,7 +301,7 @@ export const SearchPage: React.FC = () => {
           sort_order: filters.sortOrder || 'desc',
           page: filters.page || 1,
           has_filters: Object.values(filters).some(v => v && v !== '' && v !== 1),
-        }
+        },
       });
 
       // Log search execution (existing Statsig tracking)
@@ -337,7 +337,7 @@ export const SearchPage: React.FC = () => {
           results_on_page: (response.data || []).length,
           has_filters: Object.values(filters).some(v => v && v !== '' && v !== 1),
           search_query: searchQuery || 'none',
-        }
+        },
       });
 
       // Log search results (existing Statsig tracking)

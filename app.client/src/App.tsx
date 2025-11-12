@@ -36,33 +36,33 @@ function App() {
         <NotificationsProvider>
           <ChatProvider>
             <FavoritesProvider>
-                <div className='app'>
-                  <AppNavbar />
-                  <main>
-                    <Routes>
-                      <Route path='/' element={<HomePage />} />
-                      <Route path='/discover' element={<DiscoveryPage />} />
-                      <Route path='/search' element={<SearchPage />} />
-                      <Route path='/pets/:id' element={<PetDetailsPage />} />
-                      <Route path='/rescues/:id' element={<RescueDetailsPage />} />
-                      <Route path='/apply/:petId' element={<ApplicationPage />} />
-                      <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
-                      <Route path='/profile' element={<ProfilePage />} />
-                      <Route path='/favorites' element={<FavoritesPage />} />
-                      <Route path='/notifications' element={<NotificationsPage />} />
-                      <Route path='/chat' element={<ChatPage />} />
-                      <Route path='/chat/:conversationId' element={<ChatPage />} />
-                      <Route path='/login' element={<LoginPage />} />
-                      <Route path='/register' element={<RegisterPage />} />
-                      <Route path='/forgot-password' element={<ForgotPasswordPage />} />
-                      <Route path='/reset-password' element={<ResetPasswordPage />} />
-                    </Routes>
-                  </main>
-                  <SwipeFloatingButton />
-                  <DevLoginPanel />
-                  {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
-                  <Footer />
-                </div>
+              <div className='app'>
+                <AppNavbar />
+                <main>
+                  <Routes>
+                    <Route path='/' element={<HomePage />} />
+                    <Route path='/discover' element={<DiscoveryPage />} />
+                    <Route path='/search' element={<SearchPage />} />
+                    <Route path='/pets/:id' element={<PetDetailsPage />} />
+                    <Route path='/rescues/:id' element={<RescueDetailsPage />} />
+                    <Route path='/apply/:petId' element={<ApplicationPage />} />
+                    <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
+                    <Route path='/profile' element={<ProfilePage />} />
+                    <Route path='/favorites' element={<FavoritesPage />} />
+                    <Route path='/notifications' element={<NotificationsPage />} />
+                    <Route path='/chat' element={<ChatPage />} />
+                    <Route path='/chat/:conversationId' element={<ChatPage />} />
+                    <Route path='/login' element={<LoginPage />} />
+                    <Route path='/register' element={<RegisterPage />} />
+                    <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+                    <Route path='/reset-password' element={<ResetPasswordPage />} />
+                  </Routes>
+                </main>
+                <SwipeFloatingButton />
+                <DevLoginPanel />
+                {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
+                <Footer />
+              </div>
             </FavoritesProvider>
           </ChatProvider>
         </NotificationsProvider>

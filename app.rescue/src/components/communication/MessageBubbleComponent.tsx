@@ -1,12 +1,7 @@
 import { Message } from '@adopt-dont-shop/lib-chat';
 import { safeFormatDistanceToNow } from '@/utils/dateHelpers';
 import { useState } from 'react';
-import {
-  MdDownload,
-  MdImage,
-  MdInsertDriveFile,
-  MdPictureAsPdf,
-} from 'react-icons/md';
+import { MdDownload, MdImage, MdInsertDriveFile, MdPictureAsPdf } from 'react-icons/md';
 import styled from 'styled-components';
 import { resolveFileUrl } from '../../utils/fileUtils';
 
@@ -29,9 +24,7 @@ const MessageBubble = styled.div<{ $isOwn: boolean }>`
   padding: 0.5rem 0.875rem 0.375rem 0.875rem;
   border-radius: ${props => (props.$isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px')};
   background: ${props =>
-    props.$isOwn
-      ? props.theme.colors.primary[500]
-      : props.theme.background.secondary};
+    props.$isOwn ? props.theme.colors.primary[500] : props.theme.background.secondary};
   color: ${props => (props.$isOwn ? 'white' : props.theme.text.primary)};
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -132,11 +125,8 @@ const FileIcon = styled.div<{ $isOwn: boolean }>`
   justify-content: center;
   border-radius: 4px;
   background: ${props =>
-    props.$isOwn
-      ? 'rgba(255, 255, 255, 0.2)'
-      : props.theme.colors.primary[100]};
-  color: ${props =>
-    props.$isOwn ? 'white' : props.theme.colors.primary[800]};
+    props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.primary[100]};
+  color: ${props => (props.$isOwn ? 'white' : props.theme.colors.primary[800])};
 `;
 
 const FileInfo = styled.div`
@@ -166,18 +156,14 @@ const DownloadButton = styled.a<{ $isOwn: boolean }>`
   height: 32px;
   border-radius: 4px;
   background: ${props =>
-    props.$isOwn
-      ? 'rgba(255, 255, 255, 0.2)'
-      : props.theme.colors.primary[500]};
+    props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.colors.primary[500]};
   color: ${props => (props.$isOwn ? 'white' : 'white')};
   text-decoration: none;
   transition: all 0.2s ease;
 
   &:hover {
     background: ${props =>
-      props.$isOwn
-        ? 'rgba(255, 255, 255, 0.3)'
-        : props.theme.colors.primary[600]};
+      props.$isOwn ? 'rgba(255, 255, 255, 0.3)' : props.theme.colors.primary[600]};
     transform: scale(1.05);
   }
 `;
@@ -234,11 +220,13 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
                     <ImageAttachment
                       src={resolveFileUrl(attachment.url) || attachment.url}
                       alt={attachment.filename}
-                      onClick={() => handleImageClick(resolveFileUrl(attachment.url) || attachment.url)}
+                      onClick={() =>
+                        handleImageClick(resolveFileUrl(attachment.url) || attachment.url)
+                      }
                       onError={() => {
                         setImageError(prev => ({ ...prev, [attachment.id]: true }));
                       }}
-                      loading='lazy'
+                      loading="lazy"
                       title={`Click to view ${attachment.filename}`}
                     />
                   </div>
@@ -253,8 +241,8 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
                       $isOwn={isOwn}
                       href={resolveFileUrl(attachment.url)}
                       download={attachment.filename}
-                      target='_blank'
-                      rel='noopener noreferrer'
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
                       <MdDownload size={16} />
                     </DownloadButton>

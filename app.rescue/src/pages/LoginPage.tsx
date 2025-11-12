@@ -22,8 +22,8 @@ const LoginPage = () => {
 
   return (
     <AuthLayout
-      title='Rescue Staff Sign In'
-      subtitle='Welcome back to the Rescue Management System'
+      title="Rescue Staff Sign In"
+      subtitle="Welcome back to the Rescue Management System"
     >
       <LoginForm
         onSuccess={handleSuccess}

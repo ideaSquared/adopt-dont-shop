@@ -5,7 +5,7 @@ import React from 'react';
 
 const DevLoginPanel: React.FC = () => {
   const authContext = useAuth();
-  
+
   return (
     <DevPanelComponent
       title="Rescue Dev Login Panel"

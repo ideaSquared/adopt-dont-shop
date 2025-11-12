@@ -19,7 +19,7 @@ const Applications: React.FC = () => {
     updateFilter,
     updateSort,
     updateApplicationStatus,
-    refetch
+    refetch,
   } = useApplications();
 
   // Selected application details
@@ -35,7 +35,7 @@ const Applications: React.FC = () => {
     updateHomeVisit,
     addTimelineEvent,
     transitionStage,
-    refetch: refetchApplicationDetails
+    refetch: refetchApplicationDetails,
   } = useApplicationDetails(selectedApplication?.id || null);
 
   const handleApplicationSelect = (application: ApplicationListItem) => {

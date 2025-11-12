@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Heading, Text, Button } from '@adopt-dont-shop/components';
-import { FiTrendingUp, FiTrendingDown, FiDownload, FiCalendar, FiUsers, FiHeart, FiMessageSquare, FiCheckCircle } from 'react-icons/fi';
+import {
+  FiTrendingUp,
+  FiTrendingDown,
+  FiDownload,
+  FiCalendar,
+  FiUsers,
+  FiHeart,
+  FiMessageSquare,
+  FiCheckCircle,
+} from 'react-icons/fi';
 import {
   PageContainer,
   PageHeader,
@@ -19,7 +28,7 @@ import {
   FilterBar,
   FilterGroup,
   FilterLabel,
-  Select
+  Select,
 } from '../components/ui';
 
 const HeaderActions = styled.div`
@@ -194,7 +203,7 @@ const MetricChange = styled.div<{ $positive: boolean }>`
   align-items: center;
   gap: 0.25rem;
   font-size: 0.875rem;
-  color: ${props => props.$positive ? '#059669' : '#dc2626'};
+  color: ${props => (props.$positive ? '#059669' : '#dc2626')};
   font-weight: 600;
 
   svg {
@@ -267,7 +276,7 @@ const userGrowthData = [
   { month: 'Mar', adopters: 680, rescues: 51 },
   { month: 'Apr', adopters: 790, rescues: 58 },
   { month: 'May', adopters: 920, rescues: 67 },
-  { month: 'Jun', adopters: 1050, rescues: 74 }
+  { month: 'Jun', adopters: 1050, rescues: 74 },
 ];
 
 const adoptionData = [
@@ -277,7 +286,7 @@ const adoptionData = [
   { day: 'Thu', adoptions: 22 },
   { day: 'Fri', adoptions: 28 },
   { day: 'Sat', adoptions: 35 },
-  { day: 'Sun', adoptions: 30 }
+  { day: 'Sun', adoptions: 30 },
 ];
 
 const petTypeDistribution = [
@@ -285,7 +294,7 @@ const petTypeDistribution = [
   { type: 'Cats', count: 980, color: '#f59e0b' },
   { type: 'Rabbits', count: 234, color: '#ec4899' },
   { type: 'Birds', count: 156, color: '#14b8a6' },
-  { type: 'Other', count: 89, color: '#8b5cf6' }
+  { type: 'Other', count: 89, color: '#8b5cf6' },
 ];
 
 const topRescues = [
@@ -293,7 +302,7 @@ const topRescues = [
   { name: 'Happy Tails Haven', location: 'Manchester', adoptions: 198, listings: 38 },
   { name: 'Second Chance Animals', location: 'Birmingham', adoptions: 176, listings: 42 },
   { name: 'Forever Home Rescue', location: 'Leeds', adoptions: 154, listings: 31 },
-  { name: 'Animal Angels UK', location: 'Bristol', adoptions: 142, listings: 29 }
+  { name: 'Animal Angels UK', location: 'Bristol', adoptions: 142, listings: 29 },
 ];
 
 const Analytics: React.FC = () => {
@@ -317,31 +326,53 @@ const Analytics: React.FC = () => {
         ...item,
         percentage: (percentage * 100).toFixed(1),
         startAngle: currentAngle,
-        endAngle: currentAngle + angle
+        endAngle: currentAngle + angle,
       };
       currentAngle += angle;
       return slice;
     });
   };
 
-  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
-    const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+  const polarToCartesian = (
+    centerX: number,
+    centerY: number,
+    radius: number,
+    angleInDegrees: number
+  ) => {
+    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
     return {
-      x: centerX + (radius * Math.cos(angleInRadians)),
-      y: centerY + (radius * Math.sin(angleInRadians))
+      x: centerX + radius * Math.cos(angleInRadians),
+      y: centerY + radius * Math.sin(angleInRadians),
     };
   };
 
-  const describePieArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
+  const describePieArc = (
+    x: number,
+    y: number,
+    radius: number,
+    startAngle: number,
+    endAngle: number
+  ) => {
     const start = polarToCartesian(x, y, radius, endAngle);
     const end = polarToCartesian(x, y, radius, startAngle);
     const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
 
     return [
-      'M', start.x, start.y,
-      'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y,
-      'L', x, y,
-      'Z'
+      'M',
+      start.x,
+      start.y,
+      'A',
+      radius,
+      radius,
+      0,
+      largeArcFlag,
+      0,
+      end.x,
+      end.y,
+      'L',
+      x,
+      y,
+      'Z',
     ].join(' ');
   };
 
@@ -351,21 +382,21 @@ const Analytics: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <Heading level="h1">Platform Analytics</Heading>
+          <Heading level='h1'>Platform Analytics</Heading>
           <Text>Comprehensive analytics and data insights</Text>
         </HeaderLeft>
         <HeaderActions>
           <FilterBar style={{ padding: '0.5rem 0.75rem', marginBottom: 0 }}>
             <FilterGroup style={{ minWidth: '140px', marginBottom: 0 }}>
-              <Select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
-                <option value="7days">Last 7 Days</option>
-                <option value="30days">Last 30 Days</option>
-                <option value="90days">Last 90 Days</option>
-                <option value="12months">Last 12 Months</option>
+              <Select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
+                <option value='7days'>Last 7 Days</option>
+                <option value='30days'>Last 30 Days</option>
+                <option value='90days'>Last 90 Days</option>
+                <option value='12months'>Last 12 Months</option>
               </Select>
             </FilterGroup>
           </FilterBar>
-          <Button variant="outline" size="md">
+          <Button variant='outline' size='md'>
             <FiDownload style={{ marginRight: '0.5rem' }} />
             Export Report
           </Button>
@@ -374,7 +405,7 @@ const Analytics: React.FC = () => {
 
       <StatsBar>
         <StatCard>
-          <StatIcon $color="#667eea">
+          <StatIcon $color='#667eea'>
             <FiUsers />
           </StatIcon>
           <StatDetails>
@@ -388,7 +419,7 @@ const Analytics: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#10b981">
+          <StatIcon $color='#10b981'>
             <FiHeart />
           </StatIcon>
           <StatDetails>
@@ -402,7 +433,7 @@ const Analytics: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#f59e0b">
+          <StatIcon $color='#f59e0b'>
             <FiCheckCircle />
           </StatIcon>
           <StatDetails>
@@ -416,7 +447,7 @@ const Analytics: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $color="#ec4899">
+          <StatIcon $color='#ec4899'>
             <FiMessageSquare />
           </StatIcon>
           <StatDetails>
@@ -439,7 +470,7 @@ const Analytics: React.FC = () => {
             <ChartContainer>
               <LineChart>
                 <LineChartGrid>
-                  {[1000, 750, 500, 250, 0].map((value) => (
+                  {[1000, 750, 500, 250, 0].map(value => (
                     <GridLine key={value}>
                       <span>{value}</span>
                     </GridLine>
@@ -447,38 +478,34 @@ const Analytics: React.FC = () => {
                 </LineChartGrid>
                 <LineChartSVG>
                   <polyline
-                    fill="none"
-                    stroke="#667eea"
-                    strokeWidth="3"
-                    points={userGrowthData.map((d, i) => {
-                      const x = (i / (userGrowthData.length - 1)) * 100;
-                      const y = 100 - (d.adopters / 1000) * 100;
-                      return `${x}%,${y}%`;
-                    }).join(' ')}
+                    fill='none'
+                    stroke='#667eea'
+                    strokeWidth='3'
+                    points={userGrowthData
+                      .map((d, i) => {
+                        const x = (i / (userGrowthData.length - 1)) * 100;
+                        const y = 100 - (d.adopters / 1000) * 100;
+                        return `${x}%,${y}%`;
+                      })
+                      .join(' ')}
                   />
                   {userGrowthData.map((d, i) => {
                     const x = (i / (userGrowthData.length - 1)) * 100;
                     const y = 100 - (d.adopters / 1000) * 100;
-                    return (
-                      <circle
-                        key={i}
-                        cx={`${x}%`}
-                        cy={`${y}%`}
-                        r="4"
-                        fill="#667eea"
-                      />
-                    );
+                    return <circle key={i} cx={`${x}%`} cy={`${y}%`} r='4' fill='#667eea' />;
                   })}
                   <polyline
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="3"
-                    strokeDasharray="5,5"
-                    points={userGrowthData.map((d, i) => {
-                      const x = (i / (userGrowthData.length - 1)) * 100;
-                      const y = 100 - (d.rescues / 100) * 100;
-                      return `${x}%,${y}%`;
-                    }).join(' ')}
+                    fill='none'
+                    stroke='#10b981'
+                    strokeWidth='3'
+                    strokeDasharray='5,5'
+                    points={userGrowthData
+                      .map((d, i) => {
+                        const x = (i / (userGrowthData.length - 1)) * 100;
+                        const y = 100 - (d.rescues / 100) * 100;
+                        return `${x}%,${y}%`;
+                      })
+                      .join(' ')}
                   />
                 </LineChartSVG>
                 <LineChartLabels>
@@ -498,7 +525,7 @@ const Analytics: React.FC = () => {
           <CardContent>
             <ChartContainer>
               <BarChart>
-                {adoptionData.map((day) => (
+                {adoptionData.map(day => (
                   <Bar
                     key={day.day}
                     $height={(day.adoptions / maxAdoptionValue) * 100}
@@ -519,19 +546,19 @@ const Analytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <PieChartContainer>
-              <PieChart viewBox="0 0 200 200">
+              <PieChart viewBox='0 0 200 200'>
                 {pieSlices.map((slice, i) => (
                   <path
                     key={i}
                     d={describePieArc(100, 100, 80, slice.startAngle, slice.endAngle)}
                     fill={slice.color}
-                    stroke="#ffffff"
-                    strokeWidth="2"
+                    stroke='#ffffff'
+                    strokeWidth='2'
                   />
                 ))}
               </PieChart>
               <PieLegend>
-                {pieSlices.map((slice) => (
+                {pieSlices.map(slice => (
                   <LegendItem key={slice.type}>
                     <LegendColor $color={slice.color} />
                     <LegendLabel>{slice.type}</LegendLabel>
@@ -554,7 +581,9 @@ const Analytics: React.FC = () => {
                   <TopItemRank>{index + 1}</TopItemRank>
                   <TopItemInfo>
                     <TopItemName>{rescue.name}</TopItemName>
-                    <TopItemMeta>{rescue.location} • {rescue.listings} active listings</TopItemMeta>
+                    <TopItemMeta>
+                      {rescue.location} • {rescue.listings} active listings
+                    </TopItemMeta>
                   </TopItemInfo>
                   <TopItemValue>{rescue.adoptions}</TopItemValue>
                 </TopItem>

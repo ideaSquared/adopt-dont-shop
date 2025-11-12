@@ -13,7 +13,7 @@ export { RescueApplicationService } from './applicationService';
 export { SearchService } from '@adopt-dont-shop/lib-search';
 export { DiscoveryService } from '@adopt-dont-shop/lib-discovery';
 export { ValidationService } from '@adopt-dont-shop/lib-validation';
-export { InvitationsService } from '@adopt-dont-shop/lib-invitations'
+export { InvitationsService } from '@adopt-dont-shop/lib-invitations';
 
 // Export legacy library services instances for compatibility
 export {

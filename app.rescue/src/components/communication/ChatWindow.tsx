@@ -267,7 +267,7 @@ export function ChatWindow() {
                 onKeyPress={handleKeyPress}
                 onTyping={handleTyping}
                 disabled={isSending}
-                placeholder='Type your message...'
+                placeholder="Type your message..."
               />
             </InputArea>
           </>

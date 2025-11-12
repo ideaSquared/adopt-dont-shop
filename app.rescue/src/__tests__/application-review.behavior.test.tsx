@@ -180,7 +180,7 @@ const server = setupServer(
 
   // Update application stage
   http.patch('/api/v1/applications/:applicationId/stage', async ({ params, request }) => {
-    const body = await request.json() as { stage: string; notes?: string };
+    const body = (await request.json()) as { stage: string; notes?: string };
     const application = mockApplications.find(a => a.applicationId === params.applicationId);
 
     if (!application) {
@@ -204,24 +204,27 @@ const server = setupServer(
   }),
 
   // Update reference check status
-  http.patch('/api/v1/applications/:applicationId/references/:referenceId', async ({ params, request }) => {
-    const body = await request.json() as { status: string; notes?: string };
+  http.patch(
+    '/api/v1/applications/:applicationId/references/:referenceId',
+    async ({ params, request }) => {
+      const body = (await request.json()) as { status: string; notes?: string };
 
-    return HttpResponse.json({
-      success: true,
-      message: 'Reference check updated successfully',
-      data: {
-        referenceId: params.referenceId,
-        status: body.status,
-        notes: body.notes,
-        updatedAt: new Date().toISOString(),
-      },
-    });
-  }),
+      return HttpResponse.json({
+        success: true,
+        message: 'Reference check updated successfully',
+        data: {
+          referenceId: params.referenceId,
+          status: body.status,
+          notes: body.notes,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    }
+  ),
 
   // Schedule home visit
   http.post('/api/v1/applications/:applicationId/home-visit', async ({ params, request }) => {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       scheduledDate: string;
       staffMemberId: string;
       notes?: string;
@@ -242,7 +245,7 @@ const server = setupServer(
 
   // Approve application
   http.patch('/api/v1/applications/:applicationId/approve', async ({ params, request }) => {
-    const body = await request.json() as { notes?: string };
+    const body = (await request.json()) as { notes?: string };
     const application = mockApplications.find(a => a.applicationId === params.applicationId);
 
     if (!application) {
@@ -269,7 +272,7 @@ const server = setupServer(
 
   // Reject application
   http.patch('/api/v1/applications/:applicationId/reject', async ({ params, request }) => {
-    const body = await request.json() as { reason: string; notes?: string };
+    const body = (await request.json()) as { reason: string; notes?: string };
     const application = mockApplications.find(a => a.applicationId === params.applicationId);
 
     if (!application) {
@@ -306,7 +309,7 @@ const server = setupServer(
 
   // Add timeline event
   http.post('/api/v1/applications/:applicationId/timeline', async ({ params, request }) => {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       type: string;
       title: string;
       description: string;
