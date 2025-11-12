@@ -1,9 +1,12 @@
 import { Request, Response } from 'express';
 import SupportTicketService from '../services/supportTicket.service';
-import { TicketStatus, TicketPriority, TicketCategory } from '../models/SupportTicket';
+import SupportTicket, {
+  TicketStatus,
+  TicketPriority,
+  TicketCategory,
+} from '../models/SupportTicket';
 import { logger } from '../utils/logger';
 import { AuthenticatedRequest } from '../types/api';
-import SupportTicket from '../models/SupportTicket';
 
 // Type for serialized ticket data
 type SerializedTicket = {

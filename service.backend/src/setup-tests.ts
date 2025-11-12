@@ -151,6 +151,7 @@ async function initializeTestDatabase(): Promise<void> {
     await sequelize.authenticate();
     await sequelize.sync({ force: true });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to initialize test database:', error);
     throw error;
   }

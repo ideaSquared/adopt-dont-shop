@@ -1,6 +1,7 @@
 import {
   CreateOptions,
   DestroyOptions,
+  FindOptions,
   Includeable,
   Op,
   Order,
@@ -56,7 +57,7 @@ export interface CountQuery {
 
 // Repository Pattern Types
 export interface BaseRepository<T> {
-  findById(id: string, options?: any): Promise<T | null>;
+  findById(id: string, options?: FindOptions): Promise<T | null>;
   findAll(filters?: WhereOptions): Promise<T[]>;
   findOne(query: BaseQuery): Promise<T | null>;
   create(data: Partial<T>, options?: CreateOptions): Promise<T>;

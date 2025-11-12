@@ -1,4 +1,11 @@
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
+
+// Mock services and models before importing
+vi.mock('../../services/chat.service');
+vi.mock('../../services/file-upload.service');
+vi.mock('../../models/User');
+vi.mock('../../utils/logger');
+
 import { Request, Response } from 'express';
 import { ChatController } from '../../controllers/chat.controller';
 import { ChatService } from '../../services/chat.service';
@@ -99,8 +106,8 @@ describe('ChatController', () => {
           updated_at: new Date().toISOString(),
         };
 
-        (User.findAll as jest.Mock).mockResolvedValue(rescueStaff);
-        (ChatService.createChat as jest.Mock).mockResolvedValue(mockChat);
+        (User.findAll as Mock).mockResolvedValue(rescueStaff);
+        (ChatService.createChat as Mock).mockResolvedValue(mockChat);
 
         await ChatController.createChat(
           mockRequest as AuthenticatedRequest,
@@ -121,11 +128,11 @@ describe('ChatController', () => {
           initialMessage: 'Hello',
         };
 
-        (User.findAll as jest.Mock).mockResolvedValue([]);
-        (ChatService.createChat as jest.Mock).mockResolvedValue({
+        (User.findAll as Mock).mockResolvedValue([]);
+        (ChatService.createChat as Mock).mockResolvedValue({
           chatId: 'chat-001',
         });
-        (ChatService.sendMessage as jest.Mock).mockResolvedValue({
+        (ChatService.sendMessage as Mock).mockResolvedValue({
           messageId: 'msg-001',
         });
 
@@ -155,8 +162,8 @@ describe('ChatController', () => {
           rescueId: 'invalid-rescue',
         };
 
-        (User.findAll as jest.Mock).mockRejectedValue(new Error('Rescue not found'));
-        (ChatService.createChat as jest.Mock).mockResolvedValue({
+        (User.findAll as Mock).mockRejectedValue(new Error('Rescue not found'));
+        (ChatService.createChat as Mock).mockResolvedValue({
           chatId: 'chat-001',
         });
 
@@ -237,7 +244,7 @@ describe('ChatController', () => {
           }),
         };
 
-        (ChatService.getChatById as jest.Mock).mockResolvedValue(mockChat);
+        (ChatService.getChatById as Mock).mockResolvedValue(mockChat);
 
         await ChatController.getChatById(
           mockRequest as AuthenticatedRequest,
@@ -278,15 +285,15 @@ describe('ChatController', () => {
           }),
         };
 
-        (ChatService.getChatById as jest.Mock).mockResolvedValue(mockChat);
+        (ChatService.getChatById as Mock).mockResolvedValue(mockChat);
 
         await ChatController.getChatById(
           mockRequest as AuthenticatedRequest,
           mockResponse as Response
         );
 
-        const responseData = (mockResponse.json as jest.Mock).mock.calls[0][0];
-        expect(responseData.chat.participants[0].name).toBe('Alice Smith');
+        const responseData = (mockResponse.json as Mock).mock.calls[0][0];
+        expect(responseData.data.participants[0].name).toBe('Alice Smith');
       });
     });
 
@@ -294,7 +301,7 @@ describe('ChatController', () => {
       it('should return 404 error', async () => {
         mockRequest.params = { chatId: 'nonexistent' };
 
-        (ChatService.getChatById as jest.Mock).mockResolvedValue(null);
+        (ChatService.getChatById as Mock).mockResolvedValue(null);
 
         await ChatController.getChatById(
           mockRequest as AuthenticatedRequest,
@@ -329,7 +336,7 @@ describe('ChatController', () => {
           }),
         };
 
-        (ChatService.getChatById as jest.Mock).mockResolvedValue(mockChat);
+        (ChatService.getChatById as Mock).mockResolvedValue(mockChat);
 
         await ChatController.getChatById(
           mockRequest as AuthenticatedRequest,
@@ -369,7 +376,7 @@ describe('ChatController', () => {
           Sender: { userId: 'user-123', firstName: 'John', lastName: 'Doe' },
         };
 
-        (ChatService.sendMessage as jest.Mock).mockResolvedValue(mockMessage);
+        (ChatService.sendMessage as Mock).mockResolvedValue(mockMessage);
 
         await ChatController.sendMessage(
           mockRequest as AuthenticatedRequest,
@@ -404,7 +411,7 @@ describe('ChatController', () => {
           Sender: { userId: 'user-123', firstName: 'John', lastName: 'Doe' },
         };
 
-        (ChatService.sendMessage as jest.Mock).mockResolvedValue({});
+        (ChatService.sendMessage as Mock).mockResolvedValue({});
 
         await ChatController.sendMessage(
           mockRequest as AuthenticatedRequest,
@@ -470,7 +477,7 @@ describe('ChatController', () => {
           totalPages: 1,
         };
 
-        (ChatService.getMessages as jest.Mock).mockResolvedValue(mockMessages);
+        (ChatService.getMessages as Mock).mockResolvedValue(mockMessages);
 
         await ChatController.getMessages(
           mockRequest as AuthenticatedRequest,
@@ -516,15 +523,15 @@ describe('ChatController', () => {
           totalPages: 1,
         };
 
-        (ChatService.getMessages as jest.Mock).mockResolvedValue(mockMessages);
+        (ChatService.getMessages as Mock).mockResolvedValue(mockMessages);
 
         await ChatController.getMessages(
           mockRequest as AuthenticatedRequest,
           mockResponse as Response
         );
 
-        const responseData = (mockResponse.json as jest.Mock).mock.calls[0][0];
-        expect(responseData.messages[0].sender_name).toBe('Jane Smith');
+        const responseData = (mockResponse.json as Mock).mock.calls[0][0];
+        expect(responseData.data.messages[0].senderName).toBe('Jane Smith');
       });
     });
 
@@ -532,7 +539,7 @@ describe('ChatController', () => {
       it('should return empty array with 200 status', async () => {
         mockRequest.params = { chatId: 'chat-001' };
 
-        (ChatService.getMessages as jest.Mock).mockResolvedValue({
+        (ChatService.getMessages as Mock).mockResolvedValue({
           messages: [],
           page: 1,
           total: 0,
@@ -565,7 +572,7 @@ describe('ChatController', () => {
       it('should update read status and return 200', async () => {
         mockRequest.params = { chatId: 'chat-001' };
 
-        (ChatService.markMessagesAsRead as jest.Mock).mockResolvedValue(undefined);
+        (ChatService.markMessagesAsRead as Mock).mockResolvedValue(undefined);
 
         await ChatController.markAsRead(
           mockRequest as AuthenticatedRequest,
@@ -584,7 +591,7 @@ describe('ChatController', () => {
       it('should call service with correct parameters', async () => {
         mockRequest.params = { chatId: 'chat-001' };
 
-        (ChatService.markMessagesAsRead as jest.Mock).mockResolvedValue(undefined);
+        (ChatService.markMessagesAsRead as Mock).mockResolvedValue(undefined);
 
         await ChatController.markAsRead(
           mockRequest as AuthenticatedRequest,
@@ -599,7 +606,7 @@ describe('ChatController', () => {
   describe('getUnreadCount - Get unread message count', () => {
     describe('when user has unread messages', () => {
       it('should return count with 200 status', async () => {
-        (ChatService.getUnreadMessageCount as jest.Mock).mockResolvedValue(5);
+        (ChatService.getUnreadMessageCount as Mock).mockResolvedValue(5);
 
         await ChatController.getUnreadCount(
           mockRequest as AuthenticatedRequest,
@@ -620,7 +627,7 @@ describe('ChatController', () => {
 
     describe('when user has no unread messages', () => {
       it('should return zero count', async () => {
-        (ChatService.getUnreadMessageCount as jest.Mock).mockResolvedValue(0);
+        (ChatService.getUnreadMessageCount as Mock).mockResolvedValue(0);
 
         await ChatController.getUnreadCount(
           mockRequest as AuthenticatedRequest,
@@ -646,7 +653,7 @@ describe('ChatController', () => {
         mockRequest.params = { chatId: 'chat-001' };
         mockRequest.body = { userId: 'new-user-456' };
 
-        (ChatService.addParticipant as jest.Mock).mockResolvedValue(undefined);
+        (ChatService.addParticipant as Mock).mockResolvedValue(undefined);
 
         await ChatController.addParticipant(
           mockRequest as AuthenticatedRequest,
@@ -666,7 +673,7 @@ describe('ChatController', () => {
         mockRequest.params = { chatId: 'chat-001' };
         mockRequest.body = { userId: 'new-user-456' };
 
-        (ChatService.addParticipant as jest.Mock).mockResolvedValue(undefined);
+        (ChatService.addParticipant as Mock).mockResolvedValue(undefined);
 
         await ChatController.addParticipant(
           mockRequest as AuthenticatedRequest,
@@ -687,7 +694,7 @@ describe('ChatController', () => {
         mockRequest.params = { chatId: 'chat-001' };
         mockRequest.body = { userId: 'existing-user' };
 
-        (ChatService.addParticipant as jest.Mock).mockRejectedValue(
+        (ChatService.addParticipant as Mock).mockRejectedValue(
           new Error('User is already a participant')
         );
 
@@ -706,7 +713,7 @@ describe('ChatController', () => {
       it('should remove participant and return 200', async () => {
         mockRequest.params = { chatId: 'chat-001', userId: 'user-456' };
 
-        (ChatService.removeParticipant as jest.Mock).mockResolvedValue(undefined);
+        (ChatService.removeParticipant as Mock).mockResolvedValue(undefined);
 
         await ChatController.removeParticipant(
           mockRequest as AuthenticatedRequest,
@@ -729,7 +736,7 @@ describe('ChatController', () => {
       it('should soft delete and return 200', async () => {
         mockRequest.params = { chatId: 'chat-001' };
 
-        (ChatService.deleteChat as jest.Mock).mockResolvedValue(undefined);
+        (ChatService.deleteChat as Mock).mockResolvedValue(undefined);
 
         await ChatController.deleteChat(
           mockRequest as AuthenticatedRequest,
@@ -748,7 +755,7 @@ describe('ChatController', () => {
       it('should call service with correct parameters', async () => {
         mockRequest.params = { chatId: 'chat-001' };
 
-        (ChatService.deleteChat as jest.Mock).mockResolvedValue(undefined);
+        (ChatService.deleteChat as Mock).mockResolvedValue(undefined);
 
         await ChatController.deleteChat(
           mockRequest as AuthenticatedRequest,
@@ -771,7 +778,7 @@ describe('ChatController', () => {
           content: 'Hello',
         };
 
-        (ChatService.addMessageReaction as jest.Mock).mockResolvedValue(mockReaction);
+        (ChatService.addMessageReaction as Mock).mockResolvedValue(mockMessage);
 
         await ChatController.addReaction(
           mockRequest as AuthenticatedRequest,
@@ -801,7 +808,7 @@ describe('ChatController', () => {
           content: 'Hello',
         };
 
-        (ChatService.removeMessageReaction as jest.Mock).mockResolvedValue(undefined);
+        (ChatService.removeMessageReaction as Mock).mockResolvedValue(mockMessage);
 
         await ChatController.removeReaction(
           mockRequest as AuthenticatedRequest,
@@ -848,7 +855,8 @@ describe('ChatController', () => {
           },
         };
 
-        (FileUploadService.uploadFile as jest.Mock).mockResolvedValue(mockUpload);
+        (ChatService.getChatById as Mock).mockResolvedValue(mockChat);
+        (FileUploadService.uploadFile as Mock).mockResolvedValue(mockUploadResult);
 
         await ChatController.uploadAttachment(
           mockRequest as AuthenticatedRequest,
@@ -884,6 +892,7 @@ describe('ChatController', () => {
           Participants: [{ participant_id: 'user-123' }],
         };
 
+        (ChatService.getChatById as Mock).mockResolvedValue(mockChat);
         (FileUploadService.uploadFile as vi.Mock).mockRejectedValue(new Error('Upload failed'));
 
         await ChatController.uploadAttachment(
@@ -899,7 +908,7 @@ describe('ChatController', () => {
   describe('Error handling and logging', () => {
     it('should log performance metrics', async () => {
       mockRequest.params = { chatId: 'chat-001' };
-      (ChatService.getUnreadMessageCount as jest.Mock).mockResolvedValue(0);
+      (ChatService.getUnreadMessageCount as Mock).mockResolvedValue(0);
 
       await ChatController.getMessages(
         mockRequest as AuthenticatedRequest,

@@ -20,15 +20,15 @@ import { AuthService } from '../../services/auth.service';
 import { LoginCredentials, RegisterData } from '../../types/auth';
 
 // Mocked dependencies
-const MockedUser = User as vi.Mocked<typeof User>;
+const MockedUser = User as vi.MockedObject<User>;
 
 // Mock bcrypt
 vi.mock('bcryptjs');
-const MockedBcrypt = bcrypt as vi.Mocked<typeof bcrypt>;
+const MockedBcrypt = bcrypt as vi.MockedObject<bcrypt>;
 
 // Mock jwt
 vi.mock('jsonwebtoken');
-const MockedJwt = jwt as vi.Mocked<typeof jwt>;
+const MockedJwt = jwt as vi.MockedObject<jwt>;
 
 // Mock crypto
 vi.mock('crypto');
@@ -304,7 +304,7 @@ describe('AuthService - Security Business Logic', () => {
       MockedUser.create = vi.fn().mockResolvedValue(mockCreatedUser);
 
       // Mock crypto for token generation
-      const mockCrypto = crypto as vi.Mocked<typeof crypto>;
+      const mockCrypto = crypto as vi.MockedObject<crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
         toString: vi.fn().mockReturnValue('mock-verification-token'),
       });
@@ -367,7 +367,7 @@ describe('AuthService - Security Business Logic', () => {
       });
       MockedUser.create = vi.fn().mockResolvedValue(mockCreatedUser);
 
-      const mockCrypto = crypto as vi.Mocked<typeof crypto>;
+      const mockCrypto = crypto as vi.MockedObject<crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
         toString: vi.fn().mockReturnValue('verification-token'),
       });
@@ -456,7 +456,7 @@ describe('AuthService - Security Business Logic', () => {
       const mockCreatedUser = createMockUser();
       MockedUser.create = vi.fn().mockResolvedValue(mockCreatedUser);
 
-      const mockCrypto = crypto as vi.Mocked<typeof crypto>;
+      const mockCrypto = crypto as vi.MockedObject<crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
         toString: vi.fn().mockReturnValue('token'),
       });
@@ -665,7 +665,7 @@ describe('AuthService - Security Business Logic', () => {
       const mockUser = createMockUser();
       MockedUser.findOne = vi.fn().mockResolvedValue(mockUser);
 
-      const mockCrypto = crypto as vi.Mocked<typeof crypto>;
+      const mockCrypto = crypto as vi.MockedObject<crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
         toString: vi.fn().mockReturnValue('secure-reset-token'),
       });
@@ -687,7 +687,7 @@ describe('AuthService - Security Business Logic', () => {
       const mockUser = createMockUser();
       MockedUser.findOne = vi.fn().mockResolvedValue(mockUser);
 
-      const mockCrypto = crypto as vi.Mocked<typeof crypto>;
+      const mockCrypto = crypto as vi.MockedObject<crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
         toString: vi.fn().mockReturnValue('reset-token'),
       });
@@ -834,7 +834,7 @@ describe('AuthService - Security Business Logic', () => {
       const mockCreatedUser = createMockUser();
       MockedUser.create = vi.fn().mockResolvedValue(mockCreatedUser);
 
-      const mockCrypto = crypto as vi.Mocked<typeof crypto>;
+      const mockCrypto = crypto as vi.MockedObject<crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
         toString: vi.fn().mockReturnValue('token'),
       });
@@ -857,7 +857,7 @@ describe('AuthService - Security Business Logic', () => {
       const mockCreatedUser = createMockUser();
       MockedUser.create = vi.fn().mockResolvedValue(mockCreatedUser);
 
-      const mockCrypto = crypto as vi.Mocked<typeof crypto>;
+      const mockCrypto = crypto as vi.MockedObject<crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
         toString: vi.fn().mockReturnValue('token'),
       });

@@ -1,7 +1,5 @@
-import { Router } from 'express';
-import { body, param } from 'express-validator';
-import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
+import { Router, Request, Response } from 'express';
+import { body, param, validationResult } from 'express-validator';
 import { InvitationService } from '../services/invitation.service';
 import { logger } from '../utils/logger';
 

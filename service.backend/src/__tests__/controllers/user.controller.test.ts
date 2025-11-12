@@ -16,7 +16,7 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
-const MockedUserService = UserService as vi.Mocked<typeof UserService>;
+const MockedUserService = UserService as vi.MockedObject<UserService>;
 
 describe('UserController', () => {
   let req: Partial<AuthenticatedRequest>;

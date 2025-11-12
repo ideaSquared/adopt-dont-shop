@@ -40,7 +40,13 @@ export interface SystemStatistics {
   verifiedRescues: number;
   availablePets: number;
   pendingApplications: number;
-  recentActivity: any[];
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    description: string;
+    timestamp: Date;
+    [key: string]: unknown; // Allow additional properties
+  }>;
 }
 
 export interface AdminDashboardData {

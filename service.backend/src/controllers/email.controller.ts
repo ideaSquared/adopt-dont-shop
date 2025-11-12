@@ -11,12 +11,12 @@ export const getTemplates = async (req: AuthenticatedRequest, res: Response): Pr
     const { type, category, status, locale, limit, offset } = req.query;
 
     const result = await emailService.getTemplates({
-      type: type as any,
-      category: category as any,
-      status: status as any,
-      locale: locale as string,
-      limit: limit ? parseInt(limit as string) : undefined,
-      offset: offset ? parseInt(offset as string) : undefined,
+      type: typeof type === 'string' ? type : undefined,
+      category: typeof category === 'string' ? category : undefined,
+      status: typeof status === 'string' ? status : undefined,
+      locale: typeof locale === 'string' ? locale : undefined,
+      limit: typeof limit === 'string' ? parseInt(limit, 10) : undefined,
+      offset: typeof offset === 'string' ? parseInt(offset, 10) : undefined,
     });
 
     res.json({
@@ -125,6 +125,8 @@ export const previewTemplate = async (req: AuthenticatedRequest, res: Response):
     }
 
     // Process template with provided data
+    // Accessing private processTemplate method for preview functionality
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const processedContent = await (emailService as any).processTemplate(
       template,
       templateData || {}
@@ -227,6 +229,8 @@ export const getQueueStatus = async (req: AuthenticatedRequest, res: Response): 
 export const processQueue = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     // Start queue processing
+    // Accessing private startQueueProcessor method
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (emailService as any).startQueueProcessor();
 
     res.json({
@@ -269,11 +273,11 @@ export const getEmailAnalytics = async (
     const { templateId, campaignId, dateFrom, dateTo, type } = req.query;
 
     const analytics = await emailService.getEmailAnalytics({
-      templateId: templateId as string,
-      campaignId: campaignId as string,
-      dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
-      dateTo: dateTo ? new Date(dateTo as string) : undefined,
-      type: type as any,
+      templateId: typeof templateId === 'string' ? templateId : undefined,
+      campaignId: typeof campaignId === 'string' ? campaignId : undefined,
+      dateFrom: typeof dateFrom === 'string' ? new Date(dateFrom) : undefined,
+      dateTo: typeof dateTo === 'string' ? new Date(dateTo) : undefined,
+      type: typeof type === 'string' ? type : undefined,
     });
 
     res.json({

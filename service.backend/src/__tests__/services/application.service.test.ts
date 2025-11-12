@@ -13,9 +13,9 @@ import User, { UserType } from '../../models/User';
 import { CreateApplicationRequest, ApplicationStatusUpdateRequest } from '../../types/application';
 
 // Cast models to mocked versions
-const MockedApplication = Application as vi.Mocked<typeof Application>;
-const MockedPet = Pet as vi.Mocked<typeof Pet>;
-const MockedUser = User as vi.Mocked<typeof User>;
+const MockedApplication = Application as vi.MockedObject<Application>;
+const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedUser = User as vi.MockedObject<User>;
 
 describe('ApplicationService - Business Logic', () => {
   // Test data

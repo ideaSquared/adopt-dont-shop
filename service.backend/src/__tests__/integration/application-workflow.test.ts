@@ -40,10 +40,10 @@ vi.mock('../../services/email.service', () => ({
   },
 }));
 
-const MockedApplication = Application as vi.Mocked<typeof Application>;
-const MockedPet = Pet as vi.Mocked<typeof Pet>;
-const MockedUser = User as vi.Mocked<typeof User>;
-const MockedAuditLogService = AuditLogService as vi.Mocked<typeof AuditLogService>;
+const MockedApplication = Application as vi.MockedObject<Application>;
+const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedUser = User as vi.MockedObject<User>;
+const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
 const MockedApplicationTimelineService = ApplicationTimelineService as vi.Mocked<
   typeof ApplicationTimelineService
 >;

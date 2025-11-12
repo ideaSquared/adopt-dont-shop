@@ -1,17 +1,25 @@
-// Store rate limit configurations for inspection
-const rateLimitConfigs: Array<Record<string, unknown>> = [];
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
+
+// Store rate limit configurations for inspection - must use vi.hoisted() for use in vi.mock()
+const { rateLimitConfigs } = vi.hoisted(() => {
+  return {
+    rateLimitConfigs: [] as Array<Record<string, unknown>>,
+  };
+});
 
 // Mock express-rate-limit
 vi.mock('express-rate-limit', () => {
-  return vi.fn(options => {
-    rateLimitConfigs.push(options as Record<string, unknown>);
-    // Return a mock middleware function
-    return jest.fn((req, res, next) => next());
-  });
+  return {
+    default: vi.fn(options => {
+      rateLimitConfigs.push(options as Record<string, unknown>);
+      // Return a mock middleware function
+      return vi.fn((req, res, next) => next());
+    }),
+  };
 });
 
 // Mock config
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     nodeEnv: 'test',
     rateLimit: {
@@ -43,13 +51,13 @@ describe('Rate Limiter Middleware', () => {
       path: '/api/test',
     };
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
 
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Rate limiter initialization', () => {

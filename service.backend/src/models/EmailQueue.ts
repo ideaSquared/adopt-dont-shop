@@ -337,8 +337,12 @@ EmailQueue.init(
       },
       set(value: string[]) {
         if (process.env.NODE_ENV === 'test') {
+          // In test mode (SQLite), store as JSON string
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.setDataValue('ccEmails', JSON.stringify(value || []) as any);
         } else {
+          // In production (PostgreSQL), store as native array
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.setDataValue('ccEmails', value || ([] as any));
         }
       },
@@ -361,8 +365,12 @@ EmailQueue.init(
       },
       set(value: string[]) {
         if (process.env.NODE_ENV === 'test') {
+          // In test mode (SQLite), store as JSON string
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.setDataValue('bccEmails', JSON.stringify(value || []) as any);
         } else {
+          // In production (PostgreSQL), store as native array
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.setDataValue('bccEmails', value || ([] as any));
         }
       },
@@ -518,8 +526,12 @@ EmailQueue.init(
       },
       set(value: string[]) {
         if (process.env.NODE_ENV === 'test') {
+          // In test mode (SQLite), store as JSON string
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.setDataValue('tags', JSON.stringify(value || []) as any);
         } else {
+          // In production (PostgreSQL), store as native array
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.setDataValue('tags', value || ([] as any));
         }
       },

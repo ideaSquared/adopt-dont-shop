@@ -15,7 +15,7 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
-const MockedPet = Pet as vi.Mocked<typeof Pet>;
+const MockedPet = Pet as vi.MockedObject<Pet>;
 
 describe('DiscoveryService', () => {
   let discoveryService: DiscoveryService;
@@ -72,8 +72,8 @@ describe('DiscoveryService', () => {
       const filteredPets = mockPets.filter(pet => pet.images && pet.images.length > 0);
 
       // Spy on private methods to avoid complex mocking
-      vi.spyOn(discoveryService as any, 'getSmartSortedPets').mockResolvedValue(filteredPets);
-      vi.spyOn(discoveryService as any, 'transformToDiscoveryPets').mockResolvedValue([
+      vi.spyOn(discoveryService as unknown, 'getSmartSortedPets').mockResolvedValue(filteredPets);
+      vi.spyOn(discoveryService as unknown, 'transformToDiscoveryPets').mockResolvedValue([
         {
           petId: 'pet1',
           name: 'Buddy',
@@ -194,8 +194,8 @@ describe('DiscoveryService', () => {
 
   describe('generateSessionId', () => {
     it('should generate unique session IDs', () => {
-      const sessionId1 = (discoveryService as any).generateSessionId();
-      const sessionId2 = (discoveryService as any).generateSessionId();
+      const sessionId1 = (discoveryService as unknown).generateSessionId();
+      const sessionId2 = (discoveryService as unknown).generateSessionId();
 
       expect(sessionId1).toBeDefined();
       expect(sessionId2).toBeDefined();
@@ -216,7 +216,7 @@ describe('DiscoveryService', () => {
         good_with_cats: false,
       } as Pet;
 
-      const score = (discoveryService as any).calculateCompatibilityScore(mockPet);
+      const score = (discoveryService as unknown).calculateCompatibilityScore(mockPet);
 
       expect(score).toBe(50); // Base score only
     });
@@ -232,7 +232,7 @@ describe('DiscoveryService', () => {
         good_with_cats: true,
       } as Pet;
 
-      const score = (discoveryService as any).calculateCompatibilityScore(mockPet);
+      const score = (discoveryService as unknown).calculateCompatibilityScore(mockPet);
 
       // Base 50 + 15 (photos) + 10 (description) + 10 (young) + 5 (children) + 5 (dogs) + 5 (cats) = 100
       expect(score).toBe(100);
@@ -248,7 +248,7 @@ describe('DiscoveryService', () => {
         good_with_cats: true,
       } as Pet;
 
-      const score = (discoveryService as any).calculateCompatibilityScore(mockPet);
+      const score = (discoveryService as unknown).calculateCompatibilityScore(mockPet);
 
       expect(score).toBeLessThanOrEqual(100);
     });

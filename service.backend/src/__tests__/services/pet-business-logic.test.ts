@@ -25,8 +25,8 @@ import { PetService } from '../../services/pet.service';
 import { PetCreateData, PetStatusUpdate, PetUpdateData } from '../../types/pet';
 
 // Mocked dependencies
-const MockedPet = Pet as vi.Mocked<typeof Pet>;
-const MockedApplication = Application as vi.Mocked<typeof Application>;
+const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedApplication = Application as vi.MockedObject<Application>;
 
 // Test constants
 const mockRescueId = 'rescue-123';
