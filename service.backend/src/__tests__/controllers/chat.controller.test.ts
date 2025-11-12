@@ -1,3 +1,57 @@
+// Mock sequelize first
+jest.mock('../../sequelize', () => ({
+  __esModule: true,
+  default: {
+    define: jest.fn(),
+    transaction: jest.fn(),
+  },
+}));
+
+// Mock EmailQueue to prevent initialization errors
+jest.mock('../../models/EmailQueue', () => ({
+  __esModule: true,
+  default: {
+    create: jest.fn(),
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    build: jest.fn(),
+  },
+  EmailStatus: {
+    QUEUED: 'queued',
+    SENDING: 'sending',
+    SENT: 'sent',
+    FAILED: 'failed',
+  },
+  EmailPriority: {
+    NORMAL: 'normal',
+    HIGH: 'high',
+  },
+  EmailType: {
+    TRANSACTIONAL: 'transactional',
+    NOTIFICATION: 'notification',
+  },
+}));
+
+// Mock EmailTemplate to prevent initialization errors
+jest.mock('../../models/EmailTemplate', () => ({
+  __esModule: true,
+  default: {
+    create: jest.fn(),
+    findByPk: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+  },
+  TemplateType: {
+    TRANSACTIONAL: 'transactional',
+    NOTIFICATION: 'notification',
+  },
+  TemplateStatus: {
+    ACTIVE: 'active',
+    DRAFT: 'draft',
+  },
+}));
+
 // Mock config first
 jest.mock('../../config', () => ({
   config: {
@@ -23,16 +77,26 @@ jest.mock('fs', () => ({
 jest.mock('../../services/chat.service');
 jest.mock('../../services/file-upload.service');
 jest.mock('../../models/User');
-jest.mock('../../utils/logger', () => ({
-  logger: {
+jest.mock('../../utils/logger', () => {
+  const mockLogger = {
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-  },
-  loggerHelpers: {
-    logRequest: jest.fn(),
-  },
-}));
+    debug: jest.fn(),
+  };
+  return {
+    __esModule: true,
+    default: mockLogger,
+    logger: mockLogger,
+    loggerHelpers: {
+      logRequest: jest.fn(),
+      logBusiness: jest.fn(),
+      logDatabase: jest.fn(),
+      logPerformance: jest.fn(),
+      logExternalService: jest.fn(),
+    },
+  };
+});
 
 import { Request, Response } from 'express';
 import { ChatController } from '../../controllers/chat.controller';
