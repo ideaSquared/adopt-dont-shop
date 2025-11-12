@@ -1,4 +1,11 @@
 import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
+
+// Mock services and models before importing
+vi.mock('../../services/chat.service');
+vi.mock('../../services/file-upload.service');
+vi.mock('../../models/User');
+vi.mock('../../utils/logger');
+
 import { Request, Response } from 'express';
 import { ChatController } from '../../controllers/chat.controller';
 import { ChatService } from '../../services/chat.service';

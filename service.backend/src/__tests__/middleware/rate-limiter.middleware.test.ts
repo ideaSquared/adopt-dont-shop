@@ -5,11 +5,13 @@ const rateLimitConfigs: Array<Record<string, unknown>> = [];
 
 // Mock express-rate-limit
 vi.mock('express-rate-limit', () => {
-  return vi.fn(options => {
-    rateLimitConfigs.push(options as Record<string, unknown>);
-    // Return a mock middleware function
-    return vi.fn((req, res, next) => next());
-  });
+  return {
+    default: vi.fn(options => {
+      rateLimitConfigs.push(options as Record<string, unknown>);
+      // Return a mock middleware function
+      return vi.fn((req, res, next) => next());
+    }),
+  };
 });
 
 // Mock config

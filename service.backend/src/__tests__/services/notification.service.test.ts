@@ -1,12 +1,25 @@
 import { vi, describe, it, expect, beforeEach, afterEach, afterAll, Mock } from 'vitest';
 
+// Use vi.hoisted to define shared mocks
+const { mockTransaction, mockSequelize } = vi.hoisted(() => {
+  const mockTransaction = {
+    commit: vi.fn().mockResolvedValue(undefined),
+    rollback: vi.fn().mockResolvedValue(undefined),
+  };
+
+  return {
+    mockTransaction,
+    mockSequelize: {
+      define: vi.fn(),
+      transaction: vi.fn().mockResolvedValue(mockTransaction),
+    },
+  };
+});
+
 // Mock sequelize first
 vi.mock('../../sequelize', () => ({
   __esModule: true,
-  default: {
-    define: vi.fn(),
-    transaction: vi.fn(),
-  },
+  default: mockSequelize,
 }));
 
 // Mock EmailQueue to prevent initialization errors
@@ -106,15 +119,6 @@ vi.mock('../../models/DeviceToken', () => {
 });
 
 // Mock User model with sequelize transaction support
-const mockTransaction = {
-  commit: vi.fn().mockResolvedValue(undefined),
-  rollback: vi.fn().mockResolvedValue(undefined),
-};
-
-const mockSequelize = {
-  transaction: vi.fn().mockResolvedValue(mockTransaction),
-};
-
 vi.mock('../../models/User', () => {
   const mockUser = {
     findByPk: vi.fn(),

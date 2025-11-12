@@ -1,15 +1,28 @@
 import { vi, describe, it, expect, beforeEach, afterEach, afterAll, Mock } from 'vitest';
 
+// Use vi.hoisted to define mocks
+const { mockTransaction, mockSequelize, mockAuditLogAction, mockLogger } = vi.hoisted(() => {
+  const mockTransaction = {
+    commit: vi.fn().mockResolvedValue(undefined),
+    rollback: vi.fn().mockResolvedValue(undefined),
+  };
+
+  return {
+    mockTransaction,
+    mockSequelize: {
+      transaction: vi.fn().mockResolvedValue(mockTransaction),
+    },
+    mockAuditLogAction: vi.fn().mockResolvedValue(undefined),
+    mockLogger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    },
+  };
+});
+
 // Mock sequelize first
-const mockTransaction = {
-  commit: vi.fn().mockResolvedValue(undefined),
-  rollback: vi.fn().mockResolvedValue(undefined),
-};
-
-const mockSequelize = {
-  transaction: vi.fn().mockResolvedValue(mockTransaction),
-};
-
 vi.mock('../../sequelize', () => ({
   __esModule: true,
   default: mockSequelize,
@@ -23,7 +36,6 @@ vi.mock('../../models/Pet');
 vi.mock('../../models/Rescue');
 
 // Mock audit log service
-const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: mockAuditLogAction,
@@ -31,13 +43,6 @@ vi.mock('../../services/auditLog.service', () => ({
 }));
 
 // Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
-};
-
 vi.mock('../../utils/logger', () => ({
   __esModule: true,
   default: mockLogger,

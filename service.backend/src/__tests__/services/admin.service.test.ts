@@ -1,7 +1,21 @@
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 
+// Use vi.hoisted to define mocks that will be used in vi.mock factories
+const { mockSequelizeQuery, mockAuditLogFindAll, mockAuditLogAction, mockGetLogs, mockLogger } =
+  vi.hoisted(() => ({
+    mockSequelizeQuery: vi.fn().mockResolvedValue([]),
+    mockAuditLogFindAll: vi.fn().mockResolvedValue([]),
+    mockAuditLogAction: vi.fn().mockResolvedValue(undefined),
+    mockGetLogs: vi.fn().mockResolvedValue({ rows: [], count: 0 }),
+    mockLogger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    },
+  }));
+
 // Mock sequelize first
-const mockSequelizeQuery = vi.fn().mockResolvedValue([]);
 vi.mock('../../sequelize', () => ({
   __esModule: true,
   default: {
@@ -11,26 +25,20 @@ vi.mock('../../sequelize', () => ({
 }));
 
 // Mock models
-const mockAuditLogFindAll = vi.fn().mockResolvedValue([]);
 vi.mock('../../models/User');
 vi.mock('../../models/Rescue');
 vi.mock('../../models/Pet');
 vi.mock('../../models/Application');
-vi.mock('../../models/AuditLog', () => {
-  const mockModel = {
+vi.mock('../../models/AuditLog', () => ({
+  __esModule: true,
+  default: {
     findAll: mockAuditLogFindAll,
     findAndCountAll: vi.fn(),
     count: vi.fn(),
-  };
-  return {
-    __esModule: true,
-    default: mockModel,
-  };
-});
+  },
+}));
 
 // Mock audit log service
-const mockAuditLogAction = vi.fn().mockResolvedValue(undefined);
-const mockGetLogs = vi.fn().mockResolvedValue({ rows: [], count: 0 });
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: mockAuditLogAction,
@@ -39,13 +47,6 @@ vi.mock('../../services/auditLog.service', () => ({
 }));
 
 // Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
-};
-
 vi.mock('../../utils/logger', () => ({
   __esModule: true,
   default: mockLogger,
