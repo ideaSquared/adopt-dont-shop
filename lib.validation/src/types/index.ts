@@ -6,12 +6,12 @@ export interface ValidationServiceConfig {
    * API base URL
    */
   apiUrl?: string;
-  
+
   /**
    * Enable debug logging
    */
   debug?: boolean;
-  
+
   /**
    * Custom headers to include with requests
    */
@@ -26,12 +26,12 @@ export interface ValidationServiceOptions {
    * Timeout in milliseconds
    */
   timeout?: number;
-  
+
   /**
    * Whether to use caching
    */
   useCache?: boolean;
-  
+
   /**
    * Custom metadata
    */

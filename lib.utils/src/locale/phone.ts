@@ -10,10 +10,7 @@
  * @param international - Whether to use international format (+44)
  * @returns Formatted phone number
  */
-export function formatPhoneNumber(
-  phone: string,
-  international: boolean = false
-): string {
+export function formatPhoneNumber(phone: string, international: boolean = false): string {
   // Remove all non-digit characters
   const digits = phone.replace(/\D/g, '');
 
@@ -104,9 +101,7 @@ export function validatePhoneNumber(phone: string): boolean {
  * @param type - 'mobile' | 'landline' | 'any'
  * @returns Placeholder string
  */
-export function getPhonePlaceholder(
-  type: 'mobile' | 'landline' | 'any' = 'any'
-): string {
+export function getPhonePlaceholder(type: 'mobile' | 'landline' | 'any' = 'any'): string {
   switch (type) {
     case 'mobile':
       return '07123 456 789';

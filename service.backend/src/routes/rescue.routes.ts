@@ -21,7 +21,11 @@ const validateCreateRescue = [
     .isLength({ min: 5, max: 255 })
     .withMessage('Address must be 5-255 characters'),
   body('city').trim().isLength({ min: 2, max: 100 }).withMessage('City must be 2-100 characters'),
-  body('county').optional().trim().isLength({ min: 2, max: 100 }).withMessage('County must be 2-100 characters'),
+  body('county')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('County must be 2-100 characters'),
   body('postcode').trim().custom(isUKPostcode).withMessage('Please enter a valid UK postcode'),
   body('country')
     .trim()
@@ -50,7 +54,10 @@ const validateCreateRescue = [
     .isLength({ max: 100 })
     .withMessage('Contact title must be max 100 characters'),
   body('contactEmail').optional().isEmail().withMessage('Valid contact email required'),
-  body('contactPhone').optional().custom(isUKPhoneNumber).withMessage('Valid contact phone required'),
+  body('contactPhone')
+    .optional()
+    .custom(isUKPhoneNumber)
+    .withMessage('Valid contact phone required'),
 ];
 
 const validateUpdateRescue = [
@@ -110,7 +117,10 @@ const validateUpdateRescue = [
     .isLength({ max: 100 })
     .withMessage('Contact title must be max 100 characters'),
   body('contactEmail').optional().isEmail().withMessage('Valid contact email required'),
-  body('contactPhone').optional().custom(isUKPhoneNumber).withMessage('Valid contact phone required'),
+  body('contactPhone')
+    .optional()
+    .custom(isUKPhoneNumber)
+    .withMessage('Valid contact phone required'),
 ];
 
 const validateSearchQuery = [
@@ -150,7 +160,6 @@ const validateVerification = [
   body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be max 500 characters'),
 ];
 
-
 const validateRejection = [
   body('reason').optional().isLength({ max: 500 }).withMessage('Reason must be max 500 characters'),
   body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be max 500 characters'),
@@ -158,7 +167,6 @@ const validateRejection = [
 const validateDeletion = [
   body('reason').optional().isLength({ max: 500 }).withMessage('Reason must be max 500 characters'),
 ];
-
 
 const validateSendEmail = [
   body('templateId')
@@ -992,15 +1000,35 @@ router.put(
   [
     body('requireHomeVisit').isBoolean().withMessage('requireHomeVisit must be a boolean'),
     body('requireReferences').isBoolean().withMessage('requireReferences must be a boolean'),
-    body('minimumReferenceCount').isInt({ min: 0, max: 10 }).withMessage('minimumReferenceCount must be 0-10'),
-    body('requireVeterinarianReference').isBoolean().withMessage('requireVeterinarianReference must be a boolean'),
-    body('adoptionFeeRange.min').isFloat({ min: 0 }).withMessage('Minimum fee must be 0 or greater'),
-    body('adoptionFeeRange.max').isFloat({ min: 0 }).withMessage('Maximum fee must be 0 or greater'),
+    body('minimumReferenceCount')
+      .isInt({ min: 0, max: 10 })
+      .withMessage('minimumReferenceCount must be 0-10'),
+    body('requireVeterinarianReference')
+      .isBoolean()
+      .withMessage('requireVeterinarianReference must be a boolean'),
+    body('adoptionFeeRange.min')
+      .isFloat({ min: 0 })
+      .withMessage('Minimum fee must be 0 or greater'),
+    body('adoptionFeeRange.max')
+      .isFloat({ min: 0 })
+      .withMessage('Maximum fee must be 0 or greater'),
     body('requirements').isArray().withMessage('requirements must be an array'),
     body('policies').isArray().withMessage('policies must be an array'),
-    body('returnPolicy').optional().isString().isLength({ max: 1000 }).withMessage('returnPolicy must be max 1000 characters'),
-    body('spayNeuterPolicy').optional().isString().isLength({ max: 1000 }).withMessage('spayNeuterPolicy must be max 1000 characters'),
-    body('followUpPolicy').optional().isString().isLength({ max: 1000 }).withMessage('followUpPolicy must be max 1000 characters'),
+    body('returnPolicy')
+      .optional()
+      .isString()
+      .isLength({ max: 1000 })
+      .withMessage('returnPolicy must be max 1000 characters'),
+    body('spayNeuterPolicy')
+      .optional()
+      .isString()
+      .isLength({ max: 1000 })
+      .withMessage('spayNeuterPolicy must be max 1000 characters'),
+    body('followUpPolicy')
+      .optional()
+      .isString()
+      .isLength({ max: 1000 })
+      .withMessage('followUpPolicy must be max 1000 characters'),
   ],
   requirePermission('rescues.update'),
   rescueController.updateAdoptionPolicies
@@ -1030,7 +1058,6 @@ router.delete(
   requirePermission('rescues.delete'),
   rescueController.deleteRescue
 );
-
 
 // Send email to rescue organization (admin only)
 router.post(

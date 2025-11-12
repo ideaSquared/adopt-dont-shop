@@ -97,16 +97,18 @@ interface EtherealCredentialsPanelProps {
  * Automatically hidden in production builds
  */
 export const EtherealCredentialsPanel: React.FC<EtherealCredentialsPanelProps> = ({
-  className
+  className,
 }) => {
   const { credentials, loading } = useEtherealCredentials();
 
   // Hide in production
-  if (typeof window !== 'undefined' &&
-      window.location &&
-      window.location.hostname !== 'localhost' &&
-      window.location.hostname !== '127.0.0.1' &&
-      process.env.NODE_ENV === 'production') {
+  if (
+    typeof window !== 'undefined' &&
+    window.location &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1' &&
+    process.env.NODE_ENV === 'production'
+  ) {
     return null;
   }
 
@@ -122,9 +124,7 @@ export const EtherealCredentialsPanel: React.FC<EtherealCredentialsPanelProps> =
 
   return (
     <EtherealSection className={className}>
-      <EtherealHeader>
-        📧 Ethereal Email Testing
-      </EtherealHeader>
+      <EtherealHeader>📧 Ethereal Email Testing</EtherealHeader>
       {loading ? (
         <div style={{ color: '#64748b', fontSize: '0.8rem' }}>Loading credentials...</div>
       ) : credentials ? (
@@ -148,14 +148,10 @@ export const EtherealCredentialsPanel: React.FC<EtherealCredentialsPanelProps> =
             </CredentialValue>
           </CredentialRow>
           <div style={{ marginTop: '0.75rem' }}>
-            <EtherealButton
-              onClick={() => window.open(credentials.loginUrl, '_blank')}
-            >
+            <EtherealButton onClick={() => window.open(credentials.loginUrl, '_blank')}>
               🔐 Login to Ethereal
             </EtherealButton>
-            <EtherealButton
-              onClick={() => window.open(credentials.messagesUrl, '_blank')}
-            >
+            <EtherealButton onClick={() => window.open(credentials.messagesUrl, '_blank')}>
               📬 View Messages
             </EtherealButton>
           </div>

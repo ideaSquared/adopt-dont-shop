@@ -244,7 +244,12 @@ export class ModerationController {
       const { escalatedTo, reason } = req.body;
       const escalatedBy = req.user!.userId;
 
-      const report = await ModerationService.escalateReport(reportId, escalatedTo, escalatedBy, reason);
+      const report = await ModerationService.escalateReport(
+        reportId,
+        escalatedTo,
+        escalatedBy,
+        reason
+      );
 
       res.json({
         success: true,
@@ -263,7 +268,8 @@ export class ModerationController {
   // Bulk operations
   async bulkUpdateReports(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { reportIds, action, resolutionNotes, assignTo, escalateTo, escalationReason } = req.body;
+      const { reportIds, action, resolutionNotes, assignTo, escalateTo, escalationReason } =
+        req.body;
       const moderatorId = req.user!.userId;
 
       // Validate input

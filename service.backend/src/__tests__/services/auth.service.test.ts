@@ -44,9 +44,9 @@ describe('AuthService', () => {
     };
 
     // Mock bcrypt hash globally for all tests
-    mockedBcrypt.hash = jest.fn().mockImplementation((password: string) =>
-      Promise.resolve(`hashed_${password}` as never)
-    );
+    mockedBcrypt.hash = jest
+      .fn()
+      .mockImplementation((password: string) => Promise.resolve(`hashed_${password}` as never));
     mockedBcrypt.compare = jest.fn().mockResolvedValue(true as never);
 
     // Mock crypto for verification tokens
@@ -269,7 +269,10 @@ describe('AuthService', () => {
 
       const result = await AuthService.refreshToken(refreshToken);
 
-      expect(mockedJwt.verify).toHaveBeenCalledWith(refreshToken, 'test-refresh-secret-min-32-characters-long-12345');
+      expect(mockedJwt.verify).toHaveBeenCalledWith(
+        refreshToken,
+        'test-refresh-secret-min-32-characters-long-12345'
+      );
       expect(MockedUser.findByPk).toHaveBeenCalledWith(mockPayload.userId, expect.any(Object));
       expect(result.user).toBeDefined();
       expect(result.token).toBe('mocked-access-token');

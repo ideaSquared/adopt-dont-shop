@@ -5,4 +5,3 @@ export * from './types';
 
 // Export rescue-specific permissions
 export * from './types/rescue-permissions';
-

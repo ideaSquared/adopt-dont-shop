@@ -863,7 +863,7 @@ jest.mock('./models/Invitation', () => ({
 
 // Update sequelize.transaction mock to support callback pattern
 const originalSequelizeMock = jest.requireMock('./sequelize');
-originalSequelizeMock.default.transaction = jest.fn(async (callback) => {
+originalSequelizeMock.default.transaction = jest.fn(async callback => {
   if (typeof callback === 'function') {
     const t = { commit: jest.fn(), rollback: jest.fn() };
     return await callback(t);

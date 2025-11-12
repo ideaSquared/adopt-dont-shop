@@ -427,7 +427,8 @@ export class RescueController {
       if (userId === currentUserId) {
         return res.status(400).json({
           success: false,
-          message: 'You cannot remove yourself from the rescue. Please ask another admin to remove you.',
+          message:
+            'You cannot remove yourself from the rescue. Please ask another admin to remove you.',
         });
       }
 
@@ -478,11 +479,17 @@ export class RescueController {
       if (userId === currentUserId) {
         return res.status(400).json({
           success: false,
-          message: 'You cannot edit your own profile. Please ask another admin to make changes to your account.',
+          message:
+            'You cannot edit your own profile. Please ask another admin to make changes to your account.',
         });
       }
 
-      const result = await RescueService.updateStaffMember(rescueId, userId, { title }, currentUserId);
+      const result = await RescueService.updateStaffMember(
+        rescueId,
+        userId,
+        { title },
+        currentUserId
+      );
 
       res.status(200).json({
         success: true,
@@ -649,17 +656,15 @@ export class RescueController {
       const { email, title } = req.body;
       const invitedBy = req.user!.userId;
 
-      const result = await InvitationService.inviteStaffMember(
-        rescueId,
-        email,
-        title,
-        invitedBy
-      );
+      const result = await InvitationService.inviteStaffMember(rescueId, email, title, invitedBy);
 
       res.status(201).json(result);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error inviting staff member:', { error: errorMessage, rescueId: req.params.rescueId });
+      logger.error('Error inviting staff member:', {
+        error: errorMessage,
+        rescueId: req.params.rescueId,
+      });
 
       res.status(500).json({
         success: false,
@@ -690,7 +695,10 @@ export class RescueController {
       res.json(result);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error getting pending invitations:', { error: errorMessage, rescueId: req.params.rescueId });
+      logger.error('Error getting pending invitations:', {
+        error: errorMessage,
+        rescueId: req.params.rescueId,
+      });
 
       res.status(500).json({
         success: false,
@@ -717,15 +725,15 @@ export class RescueController {
       const { rescueId, invitationId } = req.params;
       const cancelledBy = req.user!.userId;
 
-      const result = await InvitationService.cancelInvitation(
-        parseInt(invitationId),
-        cancelledBy
-      );
+      const result = await InvitationService.cancelInvitation(parseInt(invitationId), cancelledBy);
 
       res.json(result);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error cancelling invitation:', { error: errorMessage, invitationId: req.params.invitationId });
+      logger.error('Error cancelling invitation:', {
+        error: errorMessage,
+        invitationId: req.params.invitationId,
+      });
 
       res.status(500).json({
         success: false,

@@ -117,11 +117,9 @@ class SupportTicket
 
   // Instance methods
   public isOpen(): boolean {
-    return [
-      TicketStatus.OPEN,
-      TicketStatus.IN_PROGRESS,
-      TicketStatus.WAITING_FOR_USER,
-    ].includes(this.status);
+    return [TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.WAITING_FOR_USER].includes(
+      this.status
+    );
   }
 
   public isClosed(): boolean {

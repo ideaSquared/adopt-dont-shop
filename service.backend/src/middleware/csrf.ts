@@ -8,7 +8,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const csrfConfig: DoubleCsrfConfigOptions = {
   getSecret: () => config.security.csrfSecret, // Validated at startup (minimum 32 characters)
-  getSessionIdentifier: (req) => {
+  getSessionIdentifier: req => {
     // Use user ID if authenticated, otherwise use IP address
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = (req as any).user;
@@ -27,10 +27,7 @@ const csrfConfig: DoubleCsrfConfigOptions = {
 };
 
 // Initialize CSRF protection
-const {
-  generateCsrfToken,
-  doubleCsrfProtection,
-} = doubleCsrf(csrfConfig);
+const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf(csrfConfig);
 
 /**
  * Middleware to generate and attach CSRF token to response

@@ -4,4 +4,3 @@ export { PetManagementService, petManagementService } from './services/pets-mana
 export type { PetsServiceConfig } from './types';
 export * from './types';
 export * from './constants';
-

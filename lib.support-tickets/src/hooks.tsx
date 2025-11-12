@@ -180,7 +180,10 @@ export const useTicketMutations = () => {
     }
   };
 
-  const updateTicket = async (ticketId: string, data: UpdateTicketRequest): Promise<SupportTicket> => {
+  const updateTicket = async (
+    ticketId: string,
+    data: UpdateTicketRequest
+  ): Promise<SupportTicket> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -194,7 +197,10 @@ export const useTicketMutations = () => {
     }
   };
 
-  const assignTicket = async (ticketId: string, data: AssignTicketRequest): Promise<SupportTicket> => {
+  const assignTicket = async (
+    ticketId: string,
+    data: AssignTicketRequest
+  ): Promise<SupportTicket> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -208,7 +214,10 @@ export const useTicketMutations = () => {
     }
   };
 
-  const addResponse = async (ticketId: string, data: AddResponseRequest): Promise<SupportTicket> => {
+  const addResponse = async (
+    ticketId: string,
+    data: AddResponseRequest
+  ): Promise<SupportTicket> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -222,7 +231,10 @@ export const useTicketMutations = () => {
     }
   };
 
-  const escalateTicket = async (ticketId: string, data: EscalateTicketRequest): Promise<SupportTicket> => {
+  const escalateTicket = async (
+    ticketId: string,
+    data: EscalateTicketRequest
+  ): Promise<SupportTicket> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -278,7 +290,10 @@ export const useTicketMutations = () => {
     }
   };
 
-  const setPriority = async (ticketId: string, priority: 'low' | 'normal' | 'high' | 'urgent' | 'critical'): Promise<SupportTicket> => {
+  const setPriority = async (
+    ticketId: string,
+    priority: 'low' | 'normal' | 'high' | 'urgent' | 'critical'
+  ): Promise<SupportTicket> => {
     try {
       setIsLoading(true);
       setError(null);

@@ -208,4 +208,3 @@ export interface FacetedSearchResponse {
   totalPages: number;
   queryTime: number;
 }
-

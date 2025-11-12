@@ -98,9 +98,7 @@ describe('ChatController', () => {
           updated_at: new Date().toISOString(),
         };
 
-        (User.findAll as jest.Mock).mockResolvedValue([
-          { userId: 'rescue-staff-1' },
-        ]);
+        (User.findAll as jest.Mock).mockResolvedValue([{ userId: 'rescue-staff-1' }]);
         (ChatService.createChat as jest.Mock).mockResolvedValue(mockChat);
 
         await ChatController.createChat(
@@ -125,10 +123,7 @@ describe('ChatController', () => {
           type: 'inquiry',
         };
 
-        const rescueStaff = [
-          { userId: 'staff-1' },
-          { userId: 'staff-2' },
-        ];
+        const rescueStaff = [{ userId: 'staff-1' }, { userId: 'staff-2' }];
 
         const mockChat = {
           chat_id: 'chat-001',
@@ -210,9 +205,7 @@ describe('ChatController', () => {
         };
 
         (User.findAll as jest.Mock).mockResolvedValue([]);
-        (ChatService.createChat as jest.Mock).mockRejectedValue(
-          new Error('Database error')
-        );
+        (ChatService.createChat as jest.Mock).mockRejectedValue(new Error('Database error'));
 
         await ChatController.createChat(
           mockRequest as AuthenticatedRequest,
@@ -232,9 +225,7 @@ describe('ChatController', () => {
         mockRequest.body = { type: 'inquiry' };
 
         (User.findAll as jest.Mock).mockResolvedValue([]);
-        (ChatService.createChat as jest.Mock).mockRejectedValue(
-          new Error('Creation failed')
-        );
+        (ChatService.createChat as jest.Mock).mockRejectedValue(new Error('Creation failed'));
 
         await ChatController.createChat(
           mockRequest as AuthenticatedRequest,
@@ -259,9 +250,7 @@ describe('ChatController', () => {
         const mockChat = {
           chatId: 'chat-001',
           type: 'application',
-          participants: [
-            { User: { userId: 'user-123', firstName: 'John', lastName: 'Doe' } },
-          ],
+          participants: [{ User: { userId: 'user-123', firstName: 'John', lastName: 'Doe' } }],
           messages: [],
         };
 
@@ -340,9 +329,7 @@ describe('ChatController', () => {
 
         const mockChat = {
           chatId: 'chat-001',
-          participants: [
-            { User: { userId: 'other-user' } },
-          ],
+          participants: [{ User: { userId: 'other-user' } }],
         };
 
         (ChatService.getChatById as jest.Mock).mockResolvedValue(mockChat);
@@ -422,9 +409,7 @@ describe('ChatController', () => {
         mockRequest.params = { chatId: 'chat-001' };
         mockRequest.body = { content: 'Test' };
 
-        (ChatService.sendMessage as jest.Mock).mockRejectedValue(
-          new Error('Rate limit exceeded')
-        );
+        (ChatService.sendMessage as jest.Mock).mockRejectedValue(new Error('Rate limit exceeded'));
 
         await ChatController.sendMessage(
           mockRequest as AuthenticatedRequest,
@@ -564,10 +549,7 @@ describe('ChatController', () => {
           mockResponse as Response
         );
 
-        expect(ChatService.markMessagesAsRead).toHaveBeenCalledWith(
-          'chat-001',
-          'user-123'
-        );
+        expect(ChatService.markMessagesAsRead).toHaveBeenCalledWith('chat-001', 'user-123');
       });
     });
   });
@@ -818,9 +800,7 @@ describe('ChatController', () => {
         mockRequest.params = { chatId: 'chat-001' };
         mockRequest.body = { file: 'invalid-data' };
 
-        (FileUploadService.uploadFile as jest.Mock).mockRejectedValue(
-          new Error('Upload failed')
-        );
+        (FileUploadService.uploadFile as jest.Mock).mockRejectedValue(new Error('Upload failed'));
 
         await ChatController.uploadAttachment(
           mockRequest as AuthenticatedRequest,
@@ -848,9 +828,7 @@ describe('ChatController', () => {
     it('should handle service errors gracefully', async () => {
       mockRequest.body = { type: 'inquiry' };
       (User.findAll as jest.Mock).mockResolvedValue([]);
-      (ChatService.createChat as jest.Mock).mockRejectedValue(
-        new Error('Unexpected error')
-      );
+      (ChatService.createChat as jest.Mock).mockRejectedValue(new Error('Unexpected error'));
 
       await ChatController.createChat(
         mockRequest as AuthenticatedRequest,

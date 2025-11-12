@@ -588,9 +588,9 @@ describe('ChatService', () => {
         // Mock returns null (user is not rescue staff)
         (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(null);
 
-        await expect(
-          ChatService.addParticipant(chatId, userId, addedBy)
-        ).rejects.toThrow('Only rescue staff can add participants');
+        await expect(ChatService.addParticipant(chatId, userId, addedBy)).rejects.toThrow(
+          'Only rescue staff can add participants'
+        );
 
         expect(MockedChatParticipant.create).not.toHaveBeenCalled();
       });
@@ -613,9 +613,9 @@ describe('ChatService', () => {
           .mockResolvedValueOnce(mockAdder)
           .mockResolvedValueOnce(mockExisting); // User already exists
 
-        await expect(
-          ChatService.addParticipant(chatId, userId, addedBy)
-        ).rejects.toThrow('User is already a participant');
+        await expect(ChatService.addParticipant(chatId, userId, addedBy)).rejects.toThrow(
+          'User is already a participant'
+        );
 
         expect(MockedChatParticipant.create).not.toHaveBeenCalled();
       });
@@ -674,9 +674,9 @@ describe('ChatService', () => {
         // Mock returns null (remover is not rescue staff)
         (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(null);
 
-        await expect(
-          ChatService.removeParticipant(chatId, userId, removedBy)
-        ).rejects.toThrow('Only rescue staff can remove other participants');
+        await expect(ChatService.removeParticipant(chatId, userId, removedBy)).rejects.toThrow(
+          'Only rescue staff can remove other participants'
+        );
 
         expect(MockedChatParticipant.destroy).not.toHaveBeenCalled();
       });
@@ -726,9 +726,9 @@ describe('ChatService', () => {
         (MockedMessage.findByPk as jest.Mock).mockResolvedValue(mockMessage);
         (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(null);
 
-        await expect(
-          ChatService.addMessageReaction(messageId, userId, emoji)
-        ).rejects.toThrow('User is not a participant in this chat');
+        await expect(ChatService.addMessageReaction(messageId, userId, emoji)).rejects.toThrow(
+          'User is not a participant in this chat'
+        );
 
         expect(MockedMessage.findByPk).toHaveBeenCalledWith(messageId);
       });
@@ -740,9 +740,9 @@ describe('ChatService', () => {
 
         (MockedMessage.findByPk as jest.Mock).mockResolvedValue(null);
 
-        await expect(
-          ChatService.addMessageReaction(messageId, userId, emoji)
-        ).rejects.toThrow('Message not found');
+        await expect(ChatService.addMessageReaction(messageId, userId, emoji)).rejects.toThrow(
+          'Message not found'
+        );
       });
     });
 
@@ -972,9 +972,9 @@ describe('ChatService', () => {
 
         (MockedMessage.findByPk as jest.Mock).mockResolvedValue(null);
 
-        await expect(
-          ChatService.deleteMessage(messageId, deletedBy)
-        ).rejects.toThrow('Message not found');
+        await expect(ChatService.deleteMessage(messageId, deletedBy)).rejects.toThrow(
+          'Message not found'
+        );
       });
     });
 
@@ -1031,9 +1031,9 @@ describe('ChatService', () => {
         (MockedMessage.findByPk as jest.Mock).mockResolvedValue(mockMessage);
         (MockedChatParticipant.findOne as jest.Mock).mockResolvedValue(null);
 
-        await expect(
-          ChatService.moderateMessage(moderatorId, messageId, reason)
-        ).rejects.toThrow('User is not a participant in this chat');
+        await expect(ChatService.moderateMessage(moderatorId, messageId, reason)).rejects.toThrow(
+          'User is not a participant in this chat'
+        );
       });
     });
 

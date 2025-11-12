@@ -35,21 +35,21 @@ describe('InvitationsService', () => {
       const mockResponse = {
         success: true,
         message: 'Invitation sent successfully',
-        invitationId: 123
+        invitationId: 123,
       };
 
       mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
 
       const result = await service.sendInvitation('rescue-1', {
         email: 'test@example.com',
-        title: 'Volunteer'
+        title: 'Volunteer',
       });
 
       expect(result).toEqual(mockResponse);
-      expect(mockApiService.post).toHaveBeenCalledWith(
-        '/api/v1/rescues/rescue-1/invitations',
-        { email: 'test@example.com', title: 'Volunteer' }
-      );
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/rescues/rescue-1/invitations', {
+        email: 'test@example.com',
+        title: 'Volunteer',
+      });
     });
   });
 
@@ -61,13 +61,13 @@ describe('InvitationsService', () => {
           email: 'test@example.com',
           title: 'Volunteer',
           created_at: '2025-01-01',
-          expiration: '2025-01-08'
-        }
+          expiration: '2025-01-08',
+        },
       ];
 
       mockApiService.get = jest.fn().mockResolvedValue({
         success: true,
-        invitations: mockInvitations
+        invitations: mockInvitations,
       });
 
       const result = await service.getPendingInvitations('rescue-1');
@@ -91,7 +91,9 @@ describe('InvitationsService', () => {
 
       await service.cancelInvitation('rescue-1', 123);
 
-      expect(mockApiService.delete).toHaveBeenCalledWith('/api/v1/rescues/rescue-1/invitations/123');
+      expect(mockApiService.delete).toHaveBeenCalledWith(
+        '/api/v1/rescues/rescue-1/invitations/123'
+      );
     });
   });
 
@@ -99,12 +101,12 @@ describe('InvitationsService', () => {
     it('should get invitation details successfully', async () => {
       const mockDetails = {
         email: 'test@example.com',
-        expiresAt: '2025-01-08'
+        expiresAt: '2025-01-08',
       };
 
       mockApiService.get = jest.fn().mockResolvedValue({
         success: true,
-        invitation: mockDetails
+        invitation: mockDetails,
       });
 
       const result = await service.getInvitationDetails('token123');
@@ -127,7 +129,7 @@ describe('InvitationsService', () => {
       const mockResponse = {
         success: true,
         message: 'Invitation accepted',
-        userId: 'user-123'
+        userId: 'user-123',
       };
 
       mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
@@ -137,7 +139,7 @@ describe('InvitationsService', () => {
         firstName: 'John',
         lastName: 'Doe',
         password: 'password123',
-        title: 'Volunteer'
+        title: 'Volunteer',
       };
 
       const result = await service.acceptInvitation(payload);

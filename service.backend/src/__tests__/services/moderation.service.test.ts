@@ -147,9 +147,9 @@ describe('ModerationService', () => {
 
         (MockedReport.findOne as jest.Mock).mockResolvedValue(existingReport);
 
-        await expect(
-          moderationService.submitReport(reporterId, reportData)
-        ).rejects.toThrow('You have already submitted a report for this content');
+        await expect(moderationService.submitReport(reporterId, reportData)).rejects.toThrow(
+          'You have already submitted a report for this content'
+        );
 
         expect(MockedReport.create).not.toHaveBeenCalled();
       });
@@ -659,7 +659,12 @@ describe('ModerationService', () => {
 
         (MockedReport.findByPk as jest.Mock).mockResolvedValue(mockReport);
 
-        const result = await moderationService.escalateReport(reportId, escalatedTo, escalatedBy, reason);
+        const result = await moderationService.escalateReport(
+          reportId,
+          escalatedTo,
+          escalatedBy,
+          reason
+        );
 
         expect(mockReport.update).toHaveBeenCalledWith(
           {
@@ -751,9 +756,7 @@ describe('ModerationService', () => {
 
   describe('Error Handling', () => {
     it('should handle database errors when creating report', async () => {
-      (MockedReport.findOne as jest.Mock).mockRejectedValue(
-        new Error('Database connection error')
-      );
+      (MockedReport.findOne as jest.Mock).mockRejectedValue(new Error('Database connection error'));
 
       await expect(
         moderationService.submitReport('user-123', {

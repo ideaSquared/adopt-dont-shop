@@ -86,9 +86,10 @@ export class UserSupportController {
       if (status) {
         const statusArray = typeof status === 'string' ? status.split(',') : (status as string[]);
         // Type assertion safe: we're passing validated status strings to the service
-        ticketFilters.status = statusArray.length === 1
-          ? statusArray[0] as TicketStatus
-          : statusArray as TicketStatus[];
+        ticketFilters.status =
+          statusArray.length === 1
+            ? (statusArray[0] as TicketStatus)
+            : (statusArray as TicketStatus[]);
       }
 
       const pagination: PaginationOptions = {};
@@ -232,7 +233,7 @@ export class UserSupportController {
 
       // Filter out internal messages (staff notes)
       const allResponses = ticket.Responses || ticket.responses || [];
-      const publicResponses = allResponses.filter((r) => !r.isInternal);
+      const publicResponses = allResponses.filter(r => !r.isInternal);
 
       res.json({
         success: true,

@@ -3,7 +3,7 @@ const rateLimitConfigs: Array<Record<string, unknown>> = [];
 
 // Mock express-rate-limit
 jest.mock('express-rate-limit', () => {
-  return jest.fn((options) => {
+  return jest.fn(options => {
     rateLimitConfigs.push(options as Record<string, unknown>);
     // Return a mock middleware function
     return jest.fn((req, res, next) => next());
@@ -58,13 +58,13 @@ describe('Rate Limiter Middleware', () => {
     });
 
     it('should configure all limiters with standard headers', () => {
-      rateLimitConfigs.forEach((config) => {
+      rateLimitConfigs.forEach(config => {
         expect(config.standardHeaders).toBe(true);
       });
     });
 
     it('should disable legacy headers for all limiters', () => {
-      rateLimitConfigs.forEach((config) => {
+      rateLimitConfigs.forEach(config => {
         expect(config.legacyHeaders).toBe(false);
       });
     });
@@ -147,9 +147,7 @@ describe('Rate Limiter Middleware', () => {
 
       handler(mockRequest as Request, mockResponse as Response);
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Auth rate limit exceeded')
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Auth rate limit exceeded'));
     });
 
     it('should return 429 with auth-specific message', () => {
@@ -266,9 +264,7 @@ describe('Rate Limiter Middleware', () => {
 
       handler(mockRequest as Request, mockResponse as Response);
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('127.0.0.1')
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('127.0.0.1'));
     });
 
     it('should log path in rate limit violations', () => {
@@ -277,9 +273,7 @@ describe('Rate Limiter Middleware', () => {
 
       handler(mockRequest as Request, mockResponse as Response);
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('/api/test')
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('/api/test'));
     });
   });
 

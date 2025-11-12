@@ -35,4 +35,3 @@ export type {
 } from './types';
 
 export { KNOWN_GATES, KNOWN_CONFIGS } from './types';
-

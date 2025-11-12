@@ -5,15 +5,8 @@
     "sourceType": "module",
     "project": "./tsconfig.json"
   },
-  "plugins": [
-    "@typescript-eslint",
-    "prettier"
-  ],
-  "extends": [
-    "eslint:recommended",
-    "@typescript-eslint/recommended",
-    "prettier"
-  ],
+  "plugins": ["@typescript-eslint", "prettier"],
+  "extends": ["eslint:recommended", "@typescript-eslint/recommended", "prettier"],
   "env": {
     "node": true,
     "es2020": true,
@@ -26,9 +19,5 @@
     "@typescript-eslint/no-unused-vars": "error",
     "@typescript-eslint/prefer-const": "error"
   },
-  "ignorePatterns": [
-    "dist/",
-    "node_modules/",
-    "*.js"
-  ]
+  "ignorePatterns": ["dist/", "node_modules/", "*.js"]
 }
