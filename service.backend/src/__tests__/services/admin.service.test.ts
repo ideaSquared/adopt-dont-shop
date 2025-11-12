@@ -615,9 +615,7 @@ describe('AdminService', () => {
           save: vi.fn().mockResolvedValue(undefined),
         };
 
-        (MockedUser.findByPk as Mock)
-          .mockResolvedValueOnce(mockUser)
-          .mockResolvedValueOnce(null); // Second user not found
+        (MockedUser.findByPk as Mock).mockResolvedValueOnce(mockUser).mockResolvedValueOnce(null); // Second user not found
 
         const result = await AdminService.bulkUserOperation(
           ['user-1', 'user-999'],
