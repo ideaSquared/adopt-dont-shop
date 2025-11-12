@@ -349,7 +349,9 @@ export const ApplicationPage: React.FC = () => {
       };
 
       // Type assertion needed because backend expects different structure than ApplicationData type
-      const result = await applicationService.submitApplication(submissionData as unknown as ApplicationData);
+      const result = await applicationService.submitApplication(
+        submissionData as unknown as ApplicationData
+      );
 
       // Phase 1: Mark progress as completed
       // await applicationProgressService.completeProgress(petId!);
