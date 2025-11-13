@@ -23,6 +23,7 @@
     "@adopt-dont-shop/lib-api": "*"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-base": "*",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.19",
     "jest": "^29.7.0",

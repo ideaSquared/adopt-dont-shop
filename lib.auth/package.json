@@ -45,6 +45,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-base": "*",
     "@types/jest": "^29.4.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",

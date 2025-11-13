@@ -72,6 +72,7 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-node": "*",
     "@types/cookie-parser": "^1.4.10",
     "@types/dompurify": "^3.2.0",
     "@types/fs-extra": "^11.0.4",

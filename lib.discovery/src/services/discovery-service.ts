@@ -313,16 +313,30 @@ export class DiscoveryService {
   private buildFilterParams(filters: PetSearchFilters): Record<string, string> {
     const params: Record<string, string> = {};
 
-    if (filters.type) params.type = filters.type;
-    if (filters.breed) params.breed = filters.breed;
-    if (filters.ageGroup) params.ageGroup = filters.ageGroup;
-    if (filters.size) params.size = filters.size;
-    if (filters.gender) params.gender = filters.gender;
-    if (filters.location) params.location = filters.location;
+    if (filters.type) {
+      params.type = filters.type;
+    }
+    if (filters.breed) {
+      params.breed = filters.breed;
+    }
+    if (filters.ageGroup) {
+      params.ageGroup = filters.ageGroup;
+    }
+    if (filters.size) {
+      params.size = filters.size;
+    }
+    if (filters.gender) {
+      params.gender = filters.gender;
+    }
+    if (filters.location) {
+      params.location = filters.location;
+    }
     if (filters.maxDistance !== undefined) {
       params.maxDistance = filters.maxDistance.toString();
     }
-    if (filters.search) params.search = filters.search;
+    if (filters.search) {
+      params.search = filters.search;
+    }
 
     return params;
   }

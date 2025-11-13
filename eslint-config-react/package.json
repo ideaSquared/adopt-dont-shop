@@ -5,6 +5,9 @@
   "main": "index.js",
   "private": true,
   "keywords": ["eslint", "eslintconfig", "react"],
+  "dependencies": {
+    "@adopt-dont-shop/eslint-config-base": "*"
+  },
   "peerDependencies": {
     "eslint": "^8.57.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",

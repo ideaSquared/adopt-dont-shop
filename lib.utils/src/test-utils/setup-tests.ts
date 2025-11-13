@@ -3,7 +3,9 @@
 
 // Type declarations for global variables
 declare global {
+  // eslint-disable-next-line no-var
   var mockFetch: jest.Mock;
+  // eslint-disable-next-line no-var
   var mockLocalStorage: {
     getItem: jest.Mock;
     setItem: jest.Mock;

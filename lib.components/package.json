@@ -50,6 +50,7 @@
     "react-world-flags": "^1.6.0"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-react": "*",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.2.19",
     "@types/react-world-flags": "^1.4.5",
