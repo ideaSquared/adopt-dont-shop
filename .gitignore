@@ -52,7 +52,6 @@ uploads
 .turbo
 
 ### Docker ###
-.dockerignore
 docker-compose.override.yml
 
 ### Development ###

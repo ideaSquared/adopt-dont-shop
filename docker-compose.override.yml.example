@@ -1,0 +1,63 @@
+# ============================================================================
+# Docker Compose Override Example
+# ============================================================================
+#
+# This file demonstrates how to override default docker-compose.yml settings
+# for local development. Copy this file to docker-compose.override.yml and
+# customize for your local environment.
+#
+# Usage:
+#   1. cp docker-compose.override.yml.example docker-compose.override.yml
+#   2. Edit docker-compose.override.yml with your local settings
+#   3. docker-compose up (automatically includes override file)
+#
+# Note: docker-compose.override.yml is gitignored by default
+# ============================================================================
+
+services:
+  # Example: Increase memory for frontend apps during development
+  # app-client:
+  #   mem_limit: 4g
+  #   environment:
+  #     NODE_OPTIONS: '--max-old-space-size=4096'
+
+  # Example: Disable file watching if not needed (improves performance)
+  # app-admin:
+  #   environment:
+  #     CHOKIDAR_USEPOLLING: false
+
+  # Example: Add volume for backend uploads during development
+  # service-backend:
+  #   volumes:
+  #     - ./local-uploads:/app/uploads
+
+  # Example: Expose additional ports for debugging
+  # service-backend:
+  #   ports:
+  #     - "9229:9229"  # Node.js debugger
+  #   command: npm run dev:debug
+
+  # Example: Override database settings for local testing
+  # database:
+  #   environment:
+  #     POSTGRES_DB: my_local_db
+  #   ports:
+  #     - "5433:5432"  # Use different host port to avoid conflicts
+
+  # Example: Add PgAdmin for database management
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@local.dev
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #   ports:
+  #     - "5050:80"
+  #   depends_on:
+  #     - database
+
+  # Example: Add Mailhog for email testing
+  # mailhog:
+  #   image: mailhog/mailhog:latest
+  #   ports:
+  #     - "1025:1025"  # SMTP
+  #     - "8025:8025"  # Web UI

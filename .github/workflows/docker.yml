@@ -4,97 +4,248 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - '**/Dockerfile'
+      - '**/Dockerfile*'
       - 'service.backend/**'
       - 'app.client/**'
       - 'app.admin/**'
       - 'app.rescue/**'
-      - 'lib.components/**'
+      - 'lib.*/**'
       - 'docker-compose*.yml'
+      - '.dockerignore'
   pull_request:
     branches: [main, develop]
     paths:
-      - '**/Dockerfile'
+      - '**/Dockerfile*'
       - 'service.backend/**'
       - 'app.client/**'
       - 'app.admin/**'
       - 'app.rescue/**'
-      - 'lib.components/**'
+      - 'lib.*/**'
       - 'docker-compose*.yml'
+      - '.dockerignore'
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
-  # Temporarily commented out Docker image building
-  # build-images:
-  #   name: Build Docker Images
-  #   runs-on: ubuntu-latest
-
-  #   strategy:
-  #     matrix:
-  #       service: [service.backend, app.client, app.admin, app.rescue, lib.components]
-
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v3
-
-  #     - name: Build Docker image
-  #       uses: docker/build-push-action@v5
-  #       with:
-  #         context: ./${{ matrix.service }}
-  #         file: ./${{ matrix.service }}/Dockerfile
-  #         push: false
-  #         tags: adopt-dont-shop/${{ matrix.service }}:test
-  #         cache-from: type=gha
-  #         cache-to: type=gha,mode=max
-
-  # test-compose:
-  #   name: Test Docker Compose
-  #   runs-on: ubuntu-latest
-  #   needs: build-images
-
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: Create test environment file
-  #       run: |
-  #         cat << EOF > .env
-  #         NODE_ENV=development
-  #         DATABASE_URL=postgresql://postgres:password@postgres:5432/adopt_dont_shop
-  #         JWT_SECRET=test-secret-key
-  #         JWT_REFRESH_SECRET=test-refresh-secret-key
-  #         EMAIL_PROVIDER=console
-  #         FRONTEND_URL=http://localhost:3004
-  #         EOF
-
-  #     - name: Start services with Docker Compose
-  #       run: docker-compose up -d --build
-
-  #     - name: Wait for services to be ready
-  #       run: sleep 30
-
-  #     - name: Test backend health
-  #       run: |
-  #         timeout 30 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done' || true
-
-  #     - name: Test frontend accessibility
-  #       run: |
-  #         timeout 30 bash -c 'until curl -f http://localhost:3001; do sleep 2; done' || true
-
-  #     - name: Show service logs
-  #       if: failure()
-  #       run: docker-compose logs
-
-  #     - name: Cleanup
-  #       if: always()
-  #       run: docker-compose down -v
-
-  # Placeholder job to keep the workflow valid
-  placeholder:
-    name: Docker builds disabled
+  # ============================================================================
+  # Build Backend Image
+  # ============================================================================
+  build-backend:
+    name: Build Backend Image
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
-      - name: Info
-        run: echo "Docker image building is currently disabled"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-backend-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-backend-
+
+      - name: Build backend development image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./service.backend
+          file: ./service.backend/Dockerfile
+          target: development
+          push: false
+          tags: adopt-dont-shop/backend:dev-${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Build backend production image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./service.backend
+          file: ./service.backend/Dockerfile
+          target: production
+          push: false
+          tags: adopt-dont-shop/backend:prod-${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      # Temp fix for cache growth
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  # ============================================================================
+  # Build Frontend App Images
+  # ============================================================================
+  build-apps:
+    name: Build Frontend Apps
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        app: [app.client, app.admin, app.rescue]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache-${{ matrix.app }}
+          key: ${{ runner.os }}-buildx-${{ matrix.app }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-${{ matrix.app }}-
+
+      - name: Build ${{ matrix.app }} development image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.app.optimized
+          target: development
+          build-args: |
+            APP_NAME=${{ matrix.app }}
+            BUILDKIT_INLINE_CACHE=1
+          push: false
+          tags: adopt-dont-shop/${{ matrix.app }}:dev-${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.app }}
+          cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.app }}-new,mode=max
+
+      - name: Build ${{ matrix.app }} production image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.app.optimized
+          target: production
+          build-args: |
+            APP_NAME=${{ matrix.app }}
+            BUILDKIT_INLINE_CACHE=1
+          push: false
+          tags: adopt-dont-shop/${{ matrix.app }}:prod-${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.app }}
+          cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.app }}-new,mode=max
+
+      # Temp fix for cache growth
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache-${{ matrix.app }}
+          mv /tmp/.buildx-cache-${{ matrix.app }}-new /tmp/.buildx-cache-${{ matrix.app }}
+
+  # ============================================================================
+  # Test Docker Compose Stack
+  # ============================================================================
+  test-compose:
+    name: Test Docker Compose Stack
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-apps]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create environment file
+        run: |
+          cat << EOF > .env
+          NODE_ENV=development
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=password
+          POSTGRES_DB=adopt_dont_shop_dev
+          JWT_SECRET=test-secret-key-for-ci
+          CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
+          EOF
+
+      - name: Start services with Docker Compose
+        run: docker-compose up -d --build
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
+
+      - name: Wait for database to be ready
+        run: |
+          timeout 60 bash -c 'until docker-compose exec -T database pg_isready -U postgres; do sleep 2; done'
+
+      - name: Wait for backend to be ready
+        run: |
+          timeout 90 bash -c 'until curl -f http://localhost:5000/health; do sleep 3; done'
+
+      - name: Test backend API health
+        run: |
+          curl -f http://localhost:5000/health || exit 1
+
+      - name: Test frontend apps are accessible
+        run: |
+          timeout 60 bash -c 'until curl -s http://localhost:3000 | grep -q "html"; do sleep 3; done'
+          timeout 60 bash -c 'until curl -s http://localhost:3001 | grep -q "html"; do sleep 3; done'
+          timeout 60 bash -c 'until curl -s http://localhost:3002 | grep -q "html"; do sleep 3; done'
+
+      - name: Show container status
+        if: always()
+        run: docker-compose ps
+
+      - name: Show service logs on failure
+        if: failure()
+        run: |
+          echo "=== Backend logs ==="
+          docker-compose logs service-backend
+          echo "=== Database logs ==="
+          docker-compose logs database
+          echo "=== App Client logs ==="
+          docker-compose logs app-client
+
+      - name: Cleanup
+        if: always()
+        run: docker-compose down -v
+
+  # ============================================================================
+  # Security Scanning (Optional - requires Trivy)
+  # ============================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [build-backend]
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build backend image for scanning
+        run: |
+          cd service.backend
+          docker build -t adopt-dont-shop/backend:scan .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: adopt-dont-shop/backend:scan
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'

@@ -1,48 +1,114 @@
-# Multi-stage build for service.backend
+# syntax=docker/dockerfile:1.4
+# Enable BuildKit features: cache mounts, bind mounts, and advanced layer caching
+
+# ============================================================================
+# BASE STAGE - Shared foundation for all stages
+# ============================================================================
 FROM node:20-alpine AS base
 
 # Install security updates and necessary packages
+# hadolint ignore=DL3018
 RUN apk update && apk upgrade && apk add --no-cache \
-    curl \
-    netcat-openbsd \
+    curl=~8 \
+    netcat-openbsd=~1 \
+    dumb-init=~1 \
     && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files for dependency installation
 COPY package*.json ./
 
-# Install dependencies
+# ============================================================================
+# DEPENDENCIES STAGE - Install production dependencies with cache mount
+# ============================================================================
 FROM base AS dependencies
-RUN npm install --only=production && npm cache clean --force
 
-# Development stage
+# Use BuildKit cache mount for npm cache (industry standard optimization)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --prefer-offline && \
+    npm cache clean --force
+
+# ============================================================================
+# DEVELOPMENT STAGE - Include dev dependencies and source code
+# ============================================================================
 FROM base AS development
-RUN npm install
+
+# Install all dependencies (including dev dependencies) with cache mount
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
+
+# Copy source code (volumes will override in docker-compose)
 COPY . .
+
+# Expose application port
 EXPOSE 5000
+
+# Use dumb-init to handle signals properly (industry best practice)
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+# Development command with hot reload
 CMD ["npm", "run", "dev"]
 
-# Build stage
+# ============================================================================
+# BUILD STAGE - Compile TypeScript and prepare for production
+# ============================================================================
 FROM base AS build
-RUN npm install
+
+# Install all dependencies for building
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
+
+# Copy source code
 COPY . .
-RUN npm run build && npm prune --production
 
-# Production stage
-FROM base AS production
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package*.json ./
+# Build the application
+RUN npm run build && \
+    npm prune --omit=dev
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
+# ============================================================================
+# PRODUCTION STAGE - Minimal image with only runtime dependencies
+# ============================================================================
+FROM node:20-alpine AS production
+
+# Install only runtime essentials + security updates
+# hadolint ignore=DL3018
+RUN apk update && apk upgrade && apk add --no-cache \
+    curl=~8 \
+    dumb-init=~1 \
+    && rm -rf /var/cache/apk/* && \
+    # Create non-root user for security (OWASP recommendation)
+    addgroup -g 1001 -S nodejs && \
     adduser -S backend -u 1001
+
+WORKDIR /app
+
+# Copy built application and production dependencies from build stage
+COPY --from=build --chown=backend:nodejs /app/dist ./dist
+COPY --from=build --chown=backend:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=backend:nodejs /app/package*.json ./
+
+# Switch to non-root user (security best practice)
 USER backend
 
+# Expose application port
 EXPOSE 5000
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# Health check (CNCF cloud-native best practice)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-CMD ["npm", "start"] 
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+# Production start command
+CMD ["node", "dist/index.js"]
+
+# ============================================================================
+# METADATA - Labels following OCI image-spec standard
+# ============================================================================
+LABEL org.opencontainers.image.title="Adopt Don't Shop - Backend Service"
+LABEL org.opencontainers.image.description="Express.js backend API for Adopt Don't Shop platform"
+LABEL org.opencontainers.image.vendor="Adopt Don't Shop"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/ideaSquared/adopt-dont-shop"
