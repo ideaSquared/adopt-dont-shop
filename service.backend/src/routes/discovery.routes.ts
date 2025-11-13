@@ -245,7 +245,7 @@ router.get('/db-test', async (req, res) => {
       success: true,
       message: 'Database connection successful',
       data: {
-        petCount: (result[0] as unknown).count,
+        petCount: (result[0] as any).count,
         timestamp: new Date().toISOString(),
       },
     });

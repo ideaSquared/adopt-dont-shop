@@ -254,7 +254,7 @@ export async function seedUserSanctions() {
       },
     ];
 
-    await UserSanction.bulkCreate(sanctions as unknown);
+    await UserSanction.bulkCreate(sanctions as any);
     console.log(`✅ Created ${sanctions.length} user sanctions`);
   } catch (error) {
     console.error('Error seeding user sanctions:', error);

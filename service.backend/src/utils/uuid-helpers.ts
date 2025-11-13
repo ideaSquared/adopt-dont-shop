@@ -86,7 +86,7 @@ export const createWithSequelizeModel = async <T extends Model>(
   for (const row of data) {
     // Type assertion needed: Sequelize's complex generic constraints don't allow
     // Record<string, unknown> even though it's compatible at runtime
-    const instance = await SequelizeModel.create(row as unknown);
+    const instance = await SequelizeModel.create(row as any);
     results.push(instance);
   }
   return results;

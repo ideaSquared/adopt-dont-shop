@@ -234,7 +234,7 @@ export async function seedModeratorActions() {
       },
     ];
 
-    await ModeratorAction.bulkCreate(actions as unknown);
+    await ModeratorAction.bulkCreate(actions as any);
     console.log(`✅ Created ${actions.length} moderator actions`);
   } catch (error) {
     console.error('Error seeding moderator actions:', error);

@@ -305,7 +305,7 @@ export async function seedSupportTickets() {
       },
     ];
 
-    await SupportTicket.bulkCreate(tickets as unknown);
+    await SupportTicket.bulkCreate(tickets as any);
     console.log(`✅ Created ${tickets.length} support tickets`);
   } catch (error) {
     console.error('Error seeding support tickets:', error);

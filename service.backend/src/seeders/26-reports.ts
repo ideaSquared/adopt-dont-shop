@@ -279,7 +279,7 @@ export async function seedReports() {
       return;
     }
 
-    await Report.bulkCreate(validReports as unknown);
+    await Report.bulkCreate(validReports as any);
     console.log(`✅ Created ${validReports.length} moderation reports`);
   } catch (error) {
     console.error('Error seeding reports:', error);

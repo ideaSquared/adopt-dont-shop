@@ -304,7 +304,7 @@ export class ChatService {
       }
 
       // Build includes array
-      const includes: unknown[] = [
+      const includes: any[] = [
         {
           model: Message,
           as: 'Messages',
@@ -746,7 +746,7 @@ export class ChatService {
 
       // Return messages without using convertMessageToInterface to preserve Sender association
       return {
-        messages: messages as unknown, // Cast to any to preserve Sequelize model with associations
+        messages: messages as any, // Cast to any to preserve Sequelize model with associations
         total,
         page,
         totalPages: Math.ceil(total / limit),

@@ -425,8 +425,8 @@ export class UserService {
         throw new Error('User not found');
       }
 
-      const notificationPrefs = (user.notificationPreferences as unknown) || {};
-      const privacySettings = (user.privacySettings as unknown) || {};
+      const notificationPrefs = (user.notificationPreferences as any) || {};
+      const privacySettings = (user.privacySettings as any) || {};
 
       if (loggerHelpers && loggerHelpers.logDatabase) {
         loggerHelpers.logDatabase('READ', {
@@ -487,8 +487,8 @@ export class UserService {
       };
 
       await user.update({
-        notificationPreferences: defaultNotificationPrefs as unknown,
-        privacySettings: defaultPreferences.privacySettings as unknown,
+        notificationPreferences: defaultNotificationPrefs as any,
+        privacySettings: defaultPreferences.privacySettings as any,
       });
 
       // Log the preference reset
@@ -1367,7 +1367,7 @@ export class UserService {
         for (const role of user.Roles) {
           if (role.Permissions) {
             for (const permission of role.Permissions) {
-              permissions.add((permission as unknown).permissionName);
+              permissions.add((permission as any).permissionName);
             }
           }
         }
@@ -1428,7 +1428,7 @@ export class UserService {
         for (const role of user.Roles) {
           if (role.Permissions) {
             for (const permission of role.Permissions) {
-              permissions.add((permission as unknown).permissionName);
+              permissions.add((permission as any).permissionName);
             }
           }
         }

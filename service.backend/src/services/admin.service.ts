@@ -82,7 +82,7 @@ class AdminService {
       }
 
       if (search) {
-        whereConditions[Op.or as unknown] = [
+        whereConditions[Op.or as any] = [
           { firstName: { [Op.iLike]: `%${search}%` } },
           { lastName: { [Op.iLike]: `%${search}%` } },
           { email: { [Op.iLike]: `%${search}%` } },
@@ -390,7 +390,7 @@ class AdminService {
       }
 
       if (search) {
-        whereConditions[Op.or as unknown] = [
+        whereConditions[Op.or as any] = [
           { name: { [Op.iLike]: `%${search}%` } },
           { description: { [Op.iLike]: `%${search}%` } },
           { email: { [Op.iLike]: `%${search}%` } },
@@ -998,7 +998,7 @@ class AdminService {
         verifiedRescues,
         availablePets,
         pendingApplications,
-        recentActivity,
+        recentActivity: recentActivity as any,
       };
     } catch (error) {
       logger.error('Error fetching system statistics:', {

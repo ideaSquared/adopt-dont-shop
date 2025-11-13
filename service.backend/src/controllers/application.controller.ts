@@ -328,7 +328,7 @@ export class ApplicationController extends BaseController {
         references,
         answers: answers,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as unknown,
+      } as any,
       documents:
         (applicationModel.documents as ApplicationDocument[])?.map(doc => ({
           id: doc.document_id,

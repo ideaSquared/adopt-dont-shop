@@ -52,7 +52,7 @@ export const requirePermission = (requiredPermission: string) => {
     // Check if user has the required permission through roles
     const hasPermission = req.user.Roles?.some(role =>
       role.Permissions?.some(
-        permission => (permission as unknown).permissionName === requiredPermission
+        permission => (permission as any).permissionName === requiredPermission
       )
     );
 
