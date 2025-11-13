@@ -27,7 +27,9 @@ Object.defineProperty(import.meta, 'env', {
 global.Image = class MockImage {
   constructor() {
     setTimeout(() => {
-      if (this.onload) this.onload(new Event('load'));
+      if (this.onload) {
+        this.onload(new Event('load'));
+      }
     }, 100);
   }
   onload: ((ev: Event) => void) | null = null;

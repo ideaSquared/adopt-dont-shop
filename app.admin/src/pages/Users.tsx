@@ -3,11 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
 import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail, FiShield } from 'react-icons/fi';
-import { DataTable } from '../components/data';
-import type { Column } from '../components/data';
+import { DataTable, type Column } from '../components/data';
 import { useUsers, useSuspendUser, useUnsuspendUser, useVerifyUser, useDeleteUser } from '../hooks';
-import type { AdminUser } from '../services/libraryServices';
-import { apiService } from '../services/libraryServices';
+import { apiService, type AdminUser } from '../services/libraryServices';
 import {
   UserDetailModal,
   EditUserModal,

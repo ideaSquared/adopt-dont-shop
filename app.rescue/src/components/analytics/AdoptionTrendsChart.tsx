@@ -265,7 +265,9 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
           {data.map((point, index) => {
             // Show fewer labels on x-axis for readability
             const showLabel = data.length <= 7 || index % Math.ceil(data.length / 7) === 0;
-            if (!showLabel) return null;
+            if (!showLabel) {
+              return null;
+            }
 
             return (
               <AxisLabel

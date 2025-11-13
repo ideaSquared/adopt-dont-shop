@@ -131,7 +131,9 @@ export const NotificationDemoPage: React.FC = () => {
   };
 
   const handleToggleNotifications = async (type: 'email' | 'push' | 'sms' | 'marketing') => {
-    if (!preferences) return;
+    if (!preferences) {
+      return;
+    }
 
     try {
       await updatePreferences({

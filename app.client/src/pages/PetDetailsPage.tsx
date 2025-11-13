@@ -2,8 +2,7 @@ import { useAuth } from '@adopt-dont-shop/lib-auth';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
-import { petService } from '@/services';
-import { Pet } from '@/services';
+import { petService, Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -461,7 +460,9 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   }, [id, isAuthenticated, logEvent, trackPageView, trackEvent]);
 
   const handleFavoriteToggle = async () => {
-    if (!isAuthenticated || !pet) return;
+    if (!isAuthenticated || !pet) {
+      return;
+    }
 
     setFavoriteLoading(true);
     try {
@@ -508,7 +509,9 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   };
 
   const handleContactRescue = async () => {
-    if (!pet?.rescue_id || !isAuthenticated) return;
+    if (!pet?.rescue_id || !isAuthenticated) {
+      return;
+    }
 
     // Log contact attempt
     logEvent('rescue_contact_attempted', 1, {
@@ -627,9 +630,15 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   };
 
   const formatAge = (ageYears?: number, ageMonths?: number) => {
-    if (!ageYears && !ageMonths) return 'Unknown';
-    if (!ageYears && ageMonths) return `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
-    if (ageYears && !ageMonths) return `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+    if (!ageYears && !ageMonths) {
+      return 'Unknown';
+    }
+    if (!ageYears && ageMonths) {
+      return `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
+    }
+    if (ageYears && !ageMonths) {
+      return `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+    }
     return `${ageYears} year${ageYears !== 1 ? 's' : ''} ${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
   };
 

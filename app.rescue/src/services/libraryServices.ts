@@ -15,8 +15,7 @@ import { ValidationService } from '@adopt-dont-shop/lib-validation';
 import { InvitationsService } from '@adopt-dont-shop/lib-invitations';
 
 // Configure the global apiService FIRST
-import { apiService as globalApiService } from '@adopt-dont-shop/lib-api';
-import { AuthenticationError } from '@adopt-dont-shop/lib-api';
+import { apiService as globalApiService, AuthenticationError } from '@adopt-dont-shop/lib-api';
 
 // Configure with the proper base URL
 import { getApiBaseUrl, isDevelopment } from '../utils/env';

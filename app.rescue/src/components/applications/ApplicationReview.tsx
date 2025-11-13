@@ -1,8 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import { formatStatusName } from '../../utils/statusUtils';
-import type { ReferenceCheck, HomeVisit, ApplicationTimeline } from '../../types/applications';
-import { TimelineEventType } from '../../types/applications';
+import {
+  TimelineEventType,
+  type ReferenceCheck,
+  type HomeVisit,
+  type ApplicationTimeline,
+} from '../../types/applications';
 import { useStaff } from '../../hooks/useStaff';
 import StageTransitionModal from './StageTransitionModal';
 import { ApplicationStage, STAGE_CONFIG, StageAction } from '../../types/applicationStages';
@@ -1118,7 +1122,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   };
 
   const handleAddEvent = async () => {
-    if (!newEventDescription.trim()) return;
+    if (!newEventDescription.trim()) {
+      return;
+    }
 
     try {
       setIsAddingEvent(true);
@@ -1195,7 +1201,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   const getData = (path: string) => {
     // Try current flat structure first: application.data.personalInfo
     const flatPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data);
-    if (flatPath !== undefined) return flatPath;
+    if (flatPath !== undefined) {
+      return flatPath;
+    }
 
     // Fallback to legacy nested structure: application.data.data.personalInfo
     const nestedPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data?.data);
@@ -2491,7 +2499,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
             <div style={{ padding: '1rem' }}>
               {(() => {
                 const visit = homeVisits.find(v => v.id === viewingVisit);
-                if (!visit) return null;
+                if (!visit) {
+                  return null;
+                }
 
                 return (
                   <>

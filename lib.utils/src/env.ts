@@ -64,8 +64,12 @@ function getEnvVar(key: string): string | undefined {
 export function getEnvironmentMode(): 'development' | 'production' | 'test' {
   const mode = getEnvVar('MODE') || getEnvVar('NODE_ENV') || 'development';
 
-  if (mode === 'production' || mode === 'prod') return 'production';
-  if (mode === 'test' || mode === 'testing') return 'test';
+  if (mode === 'production' || mode === 'prod') {
+    return 'production';
+  }
+  if (mode === 'test' || mode === 'testing') {
+    return 'test';
+  }
   return 'development';
 }
 

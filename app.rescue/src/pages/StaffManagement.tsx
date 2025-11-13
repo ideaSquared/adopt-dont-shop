@@ -200,7 +200,9 @@ const StaffManagement: React.FC = () => {
   // Load pending invitations
   useEffect(() => {
     const loadPendingInvitations = async () => {
-      if (staff.length === 0) return;
+      if (staff.length === 0) {
+        return;
+      }
 
       try {
         setInvitationsLoading(true);
@@ -295,7 +297,9 @@ const StaffManagement: React.FC = () => {
   };
 
   const handleUpdateStaff = async (staffData: NewStaffMember) => {
-    if (!editingStaff) return;
+    if (!editingStaff) {
+      return;
+    }
 
     setActionLoading(true);
     setActionError(null);

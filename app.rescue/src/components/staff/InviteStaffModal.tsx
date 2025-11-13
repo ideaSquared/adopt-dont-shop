@@ -288,7 +288,9 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
   return (
     <FormOverlay
       onClick={e => {
-        if (e.target === e.currentTarget) onCancel();
+        if (e.target === e.currentTarget) {
+          onCancel();
+        }
       }}
     >
       <FormModal>

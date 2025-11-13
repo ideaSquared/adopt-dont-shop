@@ -262,7 +262,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <ModalOverlay onClick={onClose}>

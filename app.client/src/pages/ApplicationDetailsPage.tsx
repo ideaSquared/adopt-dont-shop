@@ -1,5 +1,4 @@
-import { applicationService } from '@/services';
-import { Application } from '@/services';
+import { applicationService, Application } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -161,7 +160,9 @@ export const ApplicationDetailsPage: React.FC = () => {
   }, [id]);
 
   const handleWithdraw = async (reason?: string) => {
-    if (!application) return;
+    if (!application) {
+      return;
+    }
 
     setIsWithdrawing(true);
     try {
@@ -183,7 +184,9 @@ export const ApplicationDetailsPage: React.FC = () => {
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Not available';
+    if (!dateString) {
+      return 'Not available';
+    }
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',

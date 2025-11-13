@@ -294,7 +294,9 @@ export const ProfileSetupPage: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) {
+      return;
+    }
 
     if (!isAuthenticated) {
       navigate('/login');

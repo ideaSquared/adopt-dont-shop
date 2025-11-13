@@ -344,7 +344,9 @@ const Events: React.FC = () => {
    * Handle event update
    */
   const handleUpdateEvent = async (eventData: CreateEventInput) => {
-    if (!eventToEdit) return;
+    if (!eventToEdit) {
+      return;
+    }
 
     try {
       const updates: UpdateEventInput = {
@@ -441,7 +443,9 @@ const Events: React.FC = () => {
    * Handle attendee check-in
    */
   const handleCheckInAttendee = async (userId: string) => {
-    if (!selectedEvent) return;
+    if (!selectedEvent) {
+      return;
+    }
 
     try {
       await eventsService.checkInAttendee(selectedEvent.id, userId);

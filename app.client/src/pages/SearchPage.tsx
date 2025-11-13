@@ -2,8 +2,7 @@ import { PetCard } from '@/components/PetCard';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib-feature-flags';
-import { petService } from '@/services';
-import { PaginatedResponse, Pet, PetSearchFilters } from '@/services';
+import { petService, PaginatedResponse, Pet, PetSearchFilters } from '@/services';
 import {
   Button,
   Card,
@@ -367,17 +366,39 @@ export const SearchPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams();
 
-    if (searchQuery) params.set('q', searchQuery);
-    if (filters.type) params.set('type', filters.type);
-    if (filters.breed) params.set('breed', filters.breed);
-    if (filters.size) params.set('size', filters.size);
-    if (filters.gender) params.set('gender', filters.gender);
-    if (filters.ageGroup) params.set('ageGroup', filters.ageGroup);
-    if (filters.status) params.set('status', filters.status);
-    if (filters.location) params.set('location', filters.location);
-    if (filters.page && filters.page > 1) params.set('page', filters.page.toString());
-    if (filters.sortBy) params.set('sortBy', filters.sortBy);
-    if (filters.sortOrder) params.set('sortOrder', filters.sortOrder);
+    if (searchQuery) {
+      params.set('q', searchQuery);
+    }
+    if (filters.type) {
+      params.set('type', filters.type);
+    }
+    if (filters.breed) {
+      params.set('breed', filters.breed);
+    }
+    if (filters.size) {
+      params.set('size', filters.size);
+    }
+    if (filters.gender) {
+      params.set('gender', filters.gender);
+    }
+    if (filters.ageGroup) {
+      params.set('ageGroup', filters.ageGroup);
+    }
+    if (filters.status) {
+      params.set('status', filters.status);
+    }
+    if (filters.location) {
+      params.set('location', filters.location);
+    }
+    if (filters.page && filters.page > 1) {
+      params.set('page', filters.page.toString());
+    }
+    if (filters.sortBy) {
+      params.set('sortBy', filters.sortBy);
+    }
+    if (filters.sortOrder) {
+      params.set('sortOrder', filters.sortOrder);
+    }
 
     setSearchParams(params);
   }, [filters, searchQuery, setSearchParams]);

@@ -72,7 +72,9 @@ class SearchCache {
    * Evict oldest entries if cache is full
    */
   private evictOldest(): void {
-    if (this.cache.size < this.maxSize) return;
+    if (this.cache.size < this.maxSize) {
+      return;
+    }
 
     // Find oldest entry
     let oldestKey: string | null = null;

@@ -293,7 +293,9 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
   }, [id]);
 
   const loadMorePets = async () => {
-    if (!id || !hasMorePets || petsLoading) return;
+    if (!id || !hasMorePets || petsLoading) {
+      return;
+    }
 
     try {
       setPetsLoading(true);

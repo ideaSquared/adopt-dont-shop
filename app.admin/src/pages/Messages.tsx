@@ -27,8 +27,7 @@ import {
   StatLabel,
   StatValue,
 } from '../components/ui';
-import { DataTable } from '../components/data';
-import type { Column } from '../components/data';
+import { DataTable, type Column } from '../components/data';
 import {
   useAdminChats,
   useAdminChatStats,

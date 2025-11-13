@@ -1,7 +1,6 @@
 import { ProfileEditForm, SettingsForm } from '@/components/profile';
 import { useAuth } from '@adopt-dont-shop/lib-auth';
-import { applicationService, authService } from '@/services';
-import { Application, User } from '@/services';
+import { applicationService, authService, Application, User } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -247,7 +246,9 @@ export const ProfilePage: React.FC = () => {
   }, [isAuthenticated, navigate, activeTab, loadApplications]);
 
   const handleProfileSave = async (updatedData: Partial<User>) => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     try {
       setIsSavingProfile(true);

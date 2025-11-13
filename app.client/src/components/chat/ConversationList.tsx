@@ -199,7 +199,9 @@ export function ConversationList() {
               const rescueParticipant = conversation.participants.find(p => p.type === 'rescue');
               rescueName = rescueParticipant?.name || '';
             }
-            if (!rescueName) rescueName = 'Rescue Organization';
+            if (!rescueName) {
+              rescueName = 'Rescue Organization';
+            }
 
             return (
               <ConversationItem

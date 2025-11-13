@@ -8,7 +8,9 @@
  * @returns The resolved absolute URL or undefined if input is invalid
  */
 export const resolveFileUrl = (url: string | undefined): string | undefined => {
-  if (!url) return undefined;
+  if (!url) {
+    return undefined;
+  }
 
   // If it's a placeholder URL, return undefined to use fallback
   if (url.includes('via.placeholder.com') || url.includes('placeholder')) {
@@ -38,7 +40,9 @@ export const resolveFileUrl = (url: string | undefined): string | undefined => {
  * @returns True if the URL appears to be valid
  */
 export const isValidFileUrl = (url: string | undefined): boolean => {
-  if (!url) return false;
+  if (!url) {
+    return false;
+  }
 
   // Check if it's a valid HTTP/HTTPS URL or a relative path
   return (

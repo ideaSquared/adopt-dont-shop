@@ -173,7 +173,9 @@ const Navigation: React.FC = () => {
   };
 
   const getUserInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName && !lastName) return '👤';
+    if (!firstName && !lastName) {
+      return '👤';
+    }
     const first = firstName?.[0] || '';
     const last = lastName?.[0] || '';
     return (first + last).toUpperCase() || '👤';

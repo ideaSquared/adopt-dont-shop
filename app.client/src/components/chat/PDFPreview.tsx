@@ -194,7 +194,9 @@ Localhost: ${isLocalhost}`);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
+      if (!isOpen) {
+        return;
+      }
 
       switch (e.key) {
         case 'Escape':
@@ -213,7 +215,9 @@ Localhost: ${isLocalhost}`);
         case '4': {
           const methods = ['embed', 'iframe', 'google', 'error'] as const;
           const method = methods[parseInt(e.key) - 1];
-          if (method) setViewMethod(method);
+          if (method) {
+            setViewMethod(method);
+          }
           break;
         }
       }
@@ -235,7 +239,9 @@ Localhost: ${isLocalhost}`);
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {

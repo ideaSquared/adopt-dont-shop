@@ -24,8 +24,7 @@ import {
   Select,
   Badge,
 } from '../components/ui';
-import { DataTable } from '../components/data';
-import type { Column } from '../components/data';
+import { DataTable, type Column } from '../components/data';
 import {
   AuditLogsService,
   AuditLogLevel,

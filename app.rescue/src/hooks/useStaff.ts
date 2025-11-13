@@ -54,30 +54,18 @@ export const useStaff = () => {
       }
     },
     addStaffMember: async (staffData: NewStaffMember, rescueId: string) => {
-      try {
-        const newStaff = await staffService.addStaffMember(staffData, rescueId);
-        setStaff(prev => [...prev, newStaff]);
-        return newStaff;
-      } catch (error) {
-        throw error;
-      }
+      const newStaff = await staffService.addStaffMember(staffData, rescueId);
+      setStaff(prev => [...prev, newStaff]);
+      return newStaff;
     },
     removeStaffMember: async (userId: string, rescueId: string) => {
-      try {
-        await staffService.removeStaffMember(userId, rescueId);
-        setStaff(prev => prev.filter(member => member.userId !== userId));
-      } catch (error) {
-        throw error;
-      }
+      await staffService.removeStaffMember(userId, rescueId);
+      setStaff(prev => prev.filter(member => member.userId !== userId));
     },
     updateStaffMember: async (userId: string, staffData: { title?: string }, rescueId: string) => {
-      try {
-        const updatedStaff = await staffService.updateStaffMember(userId, staffData, rescueId);
-        setStaff(prev => prev.map(member => (member.userId === userId ? updatedStaff : member)));
-        return updatedStaff;
-      } catch (error) {
-        throw error;
-      }
+      const updatedStaff = await staffService.updateStaffMember(userId, staffData, rescueId);
+      setStaff(prev => prev.map(member => (member.userId === userId ? updatedStaff : member)));
+      return updatedStaff;
     },
   };
 };

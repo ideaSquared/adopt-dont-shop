@@ -190,7 +190,9 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
   const availableActions = STAGE_ACTIONS[currentStage] || [];
 
   const handleSubmit = async () => {
-    if (!selectedAction) return;
+    if (!selectedAction) {
+      return;
+    }
 
     try {
       setIsSubmitting(true);

@@ -105,14 +105,24 @@ export class UtilsService {
       const diffHours = Math.floor(diffMinutes / 60);
       const diffDays = Math.floor(diffHours / 24);
 
-      if (diffSeconds < 60) return 'just now';
-      if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
-      if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-      if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-      if (diffDays < 30)
+      if (diffSeconds < 60) {
+        return 'just now';
+      }
+      if (diffMinutes < 60) {
+        return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
+      }
+      if (diffHours < 24) {
+        return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+      }
+      if (diffDays < 7) {
+        return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+      }
+      if (diffDays < 30) {
         return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) !== 1 ? 's' : ''} ago`;
-      if (diffDays < 365)
+      }
+      if (diffDays < 365) {
         return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) !== 1 ? 's' : ''} ago`;
+      }
 
       return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) !== 1 ? 's' : ''} ago`;
     } catch (error) {
@@ -542,7 +552,9 @@ export class UtilsService {
    * Format file size
    */
   public formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
 
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
@@ -576,11 +588,21 @@ export class UtilsService {
   public formatAddress(address: AddressObject): string {
     const parts = [];
 
-    if (address.street) parts.push(address.street);
-    if (address.city) parts.push(address.city);
-    if (address.state) parts.push(address.state);
-    if (address.zipCode) parts.push(address.zipCode);
-    if (address.country && address.country !== 'US') parts.push(address.country);
+    if (address.street) {
+      parts.push(address.street);
+    }
+    if (address.city) {
+      parts.push(address.city);
+    }
+    if (address.state) {
+      parts.push(address.state);
+    }
+    if (address.zipCode) {
+      parts.push(address.zipCode);
+    }
+    if (address.country && address.country !== 'US') {
+      parts.push(address.country);
+    }
 
     return parts.join(', ');
   }

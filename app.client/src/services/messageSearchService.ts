@@ -182,7 +182,9 @@ class MessageSearchService {
    */
   private addToHistory(query: string): void {
     const trimmedQuery = query.trim();
-    if (!trimmedQuery) return;
+    if (!trimmedQuery) {
+      return;
+    }
 
     // Remove if already exists
     this.searchHistory = this.searchHistory.filter(q => q !== trimmedQuery);

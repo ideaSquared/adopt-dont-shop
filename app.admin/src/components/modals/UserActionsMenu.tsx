@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { ActionMenu } from '../ui/ActionMenu';
-import type { ActionMenuItem } from '../ui/ActionMenu';
+import { ActionMenu, type ActionMenuItem } from '../ui/ActionMenu';
 import type { AdminUser } from '@/types';
 import {
   FiCheckCircle,

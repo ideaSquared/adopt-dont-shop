@@ -253,12 +253,18 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
   };
 
   const getActivitySummaryText = () => {
-    if (summaryLoading) return 'Loading activity...';
-    if (!summary) return 'No activity data';
+    if (summaryLoading) {
+      return 'Loading activity...';
+    }
+    if (!summary) {
+      return 'No activity data';
+    }
 
     const { totalEvents, lastActivity, hasRecentActivity } = summary;
 
-    if (totalEvents === 0) return 'No activity yet';
+    if (totalEvents === 0) {
+      return 'No activity yet';
+    }
 
     const lastActivityText = lastActivity ? formatDateTime(lastActivity) : 'Unknown';
 

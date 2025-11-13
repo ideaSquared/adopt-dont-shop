@@ -56,7 +56,9 @@ export function useTimelineWidget({
 
   // Auto refresh
   useEffect(() => {
-    if (!autoRefresh || refreshInterval <= 0) return;
+    if (!autoRefresh || refreshInterval <= 0) {
+      return;
+    }
 
     const interval = setInterval(fetchEvents, refreshInterval);
     return () => clearInterval(interval);

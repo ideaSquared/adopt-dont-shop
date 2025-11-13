@@ -204,7 +204,9 @@ export const SwipeFloatingButton: React.FC<SwipeFloatingButtonProps> = ({ classN
     }
   }, []);
 
-  if (!show) return null;
+  if (!show) {
+    return null;
+  }
 
   return (
     <FloatingContainer $show={show} className={className}>

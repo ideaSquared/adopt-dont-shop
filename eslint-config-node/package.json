@@ -1,0 +1,18 @@
+{
+  "name": "@adopt-dont-shop/eslint-config-node",
+  "version": "1.0.0",
+  "description": "Shared ESLint configuration for Node.js backend services",
+  "main": "index.js",
+  "private": true,
+  "keywords": ["eslint", "eslintconfig", "node"],
+  "dependencies": {
+    "@adopt-dont-shop/eslint-config-base": "*"
+  },
+  "peerDependencies": {
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3"
+  }
+}

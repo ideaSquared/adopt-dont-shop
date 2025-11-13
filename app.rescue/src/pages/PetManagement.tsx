@@ -522,17 +522,27 @@ const PetManagement: React.FC = () => {
                 gender: genderFilter,
               }}
               onFilterChange={(key, value) => {
-                if (key === 'search') handleSearch(value);
-                if (key === 'type') setTypeFilter(value);
+                if (key === 'search') {
+                  handleSearch(value);
+                }
+                if (key === 'type') {
+                  setTypeFilter(value);
+                }
                 if (key === 'status') {
                   setStatusFilter(value as any);
                 }
-                if (key === 'size') setSizeFilter(value);
+                if (key === 'size') {
+                  setSizeFilter(value);
+                }
                 if (key === 'breed') {
                   setBreedFilter(value);
                 }
-                if (key === 'ageGroup') setAgeGroupFilter(value);
-                if (key === 'gender') setGenderFilter(value);
+                if (key === 'ageGroup') {
+                  setAgeGroupFilter(value);
+                }
+                if (key === 'gender') {
+                  setGenderFilter(value);
+                }
               }}
               onClearFilters={() => {
                 setSearchFilter('');
