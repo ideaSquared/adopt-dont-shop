@@ -5,15 +5,15 @@
  */
 
 // Import library services (removed unused ApiService import)
-import { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
-import { ApplicationsService } from '@adopt-dont-shop/lib-applications';
-import { DiscoveryService } from '@adopt-dont-shop/lib-discovery';
-import { PetsService } from '@adopt-dont-shop/lib-pets';
-import { RescueService } from '@adopt-dont-shop/lib-rescue';
-import { ChatService } from '@adopt-dont-shop/lib-chat';
-import { SearchService } from '@adopt-dont-shop/lib-search';
-import { NotificationsService } from '@adopt-dont-shop/lib-notifications';
-import { PermissionsService } from '@adopt-dont-shop/lib-permissions';
+import { AnalyticsService } from '@adopt-dont-shop/lib.analytics';
+import { ApplicationsService } from '@adopt-dont-shop/lib.applications';
+import { DiscoveryService } from '@adopt-dont-shop/lib.discovery';
+import { PetsService } from '@adopt-dont-shop/lib.pets';
+import { RescueService } from '@adopt-dont-shop/lib.rescue';
+import { ChatService } from '@adopt-dont-shop/lib.chat';
+import { SearchService } from '@adopt-dont-shop/lib.search';
+import { NotificationsService } from '@adopt-dont-shop/lib.notifications';
+import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
 
 // 🔧 DEBUG: Log environment variables
 console.log('🔧 DEBUG: VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
@@ -22,7 +22,7 @@ console.log('🔧 DEBUG: DEV =', import.meta.env.DEV);
 
 // ✅ INDUSTRY STANDARD: Configure the global apiService FIRST
 // This is critical because domain services (like AuthService) use the global apiService
-import { apiService as globalApiService } from '@adopt-dont-shop/lib-api';
+import { apiService as globalApiService } from '@adopt-dont-shop/lib.api';
 
 // Configure with the proper base URL (no '/api' path - that's added by services)
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -35,7 +35,7 @@ console.log('🔧 DEBUG: Global ApiService configured with baseUrl:', baseUrl);
 console.log('🔧 DEBUG: Global ApiService config:', globalApiService.getConfig());
 
 // Now import domain services AFTER configuring the global apiService
-import { AuthService } from '@adopt-dont-shop/lib-auth';
+import { AuthService } from '@adopt-dont-shop/lib.auth';
 
 // ✅ CENTRALIZED: Use consistent base URL for all services
 const serviceConfig = {
@@ -84,22 +84,22 @@ export const permissionsService = new PermissionsService({
 });
 
 // Re-export types for convenience
-export type { UserEngagementEvent, PageViewEvent } from '@adopt-dont-shop/lib-analytics';
+export type { UserEngagementEvent, PageViewEvent } from '@adopt-dont-shop/lib.analytics';
 
 export type {
   Application,
   ApplicationData,
   ApplicationStatus,
-} from '@adopt-dont-shop/lib-applications';
+} from '@adopt-dont-shop/lib.applications';
 
 export type {
   DiscoveryPet,
   SwipeAction,
   SwipeStats,
   SwipeSession,
-} from '@adopt-dont-shop/lib-discovery';
+} from '@adopt-dont-shop/lib.discovery';
 
-export type { Pet, PetSearchFilters, PaginatedResponse } from '@adopt-dont-shop/lib-pets';
+export type { Pet, PetSearchFilters, PaginatedResponse } from '@adopt-dont-shop/lib.pets';
 
 export type {
   Rescue,
@@ -107,19 +107,19 @@ export type {
   RescueStatus,
   RescueType,
   RescueLocation,
-} from '@adopt-dont-shop/lib-rescue';
+} from '@adopt-dont-shop/lib.rescue';
 
-export type { User, AuthResponse, LoginRequest, RegisterRequest } from '@adopt-dont-shop/lib-auth';
+export type { User, AuthResponse, LoginRequest, RegisterRequest } from '@adopt-dont-shop/lib.auth';
 
 export type {
   ChatServiceConfig,
   Conversation,
   Message,
   TypingIndicator,
-} from '@adopt-dont-shop/lib-chat';
+} from '@adopt-dont-shop/lib.chat';
 
-export type { SearchServiceConfig, SearchServiceOptions } from '@adopt-dont-shop/lib-search';
+export type { SearchServiceConfig, SearchServiceOptions } from '@adopt-dont-shop/lib.search';
 
-export type { Notification, NotificationPreferences } from '@adopt-dont-shop/lib-notifications';
+export type { Notification, NotificationPreferences } from '@adopt-dont-shop/lib.notifications';
 
-export type { Permission, UserWithPermissions } from '@adopt-dont-shop/lib-permissions';
+export type { Permission, UserWithPermissions } from '@adopt-dont-shop/lib.permissions';

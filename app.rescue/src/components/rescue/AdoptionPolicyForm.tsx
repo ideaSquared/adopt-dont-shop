@@ -7,7 +7,7 @@ import {
   TextArea as LibTextArea,
   Alert,
   CheckboxInput,
-} from '@adopt-dont-shop/components';
+} from '@adopt-dont-shop/lib.components';
 import type { AdoptionPolicy } from '../../types/rescue';
 
 const FormContainer = styled(Card)`

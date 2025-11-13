@@ -1,8 +1,8 @@
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { Pet } from '@/services';
-import { Badge, Button, Card } from '@adopt-dont-shop/components';
+import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';

@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/lib-audit-logs",
+  "name": "@adopt-dont-shop/lib.audit-logs",
   "version": "1.0.0",
   "description": "Audit logs functionality for Adopt Don't Shop platform",
   "type": "module",
@@ -20,7 +20,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@adopt-dont-shop/lib-api": "*"
+    "@adopt-dont-shop/lib.api": "*"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",

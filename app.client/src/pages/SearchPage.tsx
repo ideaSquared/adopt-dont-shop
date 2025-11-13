@@ -1,7 +1,7 @@
 import { PetCard } from '@/components/PetCard';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useStatsig } from '@/hooks/useStatsig';
-import { useFeatureGate } from '@adopt-dont-shop/lib-feature-flags';
+import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService, PaginatedResponse, Pet, PetSearchFilters } from '@/services';
 import {
   Button,
@@ -10,7 +10,7 @@ import {
   SelectInput,
   Spinner,
   TextInput,
-} from '@adopt-dont-shop/components';
+} from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';

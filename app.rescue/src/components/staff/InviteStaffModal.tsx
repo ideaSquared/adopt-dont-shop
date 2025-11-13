@@ -1,4 +1,4 @@
-import { InvitationPayload } from '@adopt-dont-shop/lib-invitations';
+import { InvitationPayload } from '@adopt-dont-shop/lib.invitations';
 import React, { useState } from 'react';
 import styled from 'styled-components';
 

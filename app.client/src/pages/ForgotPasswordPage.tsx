@@ -1,6 +1,6 @@
 import { useStatsig } from '@/hooks/useStatsig';
 import { authService } from '@/services';
-import { Alert, Button, Card, Input } from '@adopt-dont-shop/components';
+import { Alert, Button, Card, Input } from '@adopt-dont-shop/lib.components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';

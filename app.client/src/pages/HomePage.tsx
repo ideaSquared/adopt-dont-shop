@@ -1,11 +1,11 @@
 import { PetCard } from '@/components/PetCard';
 import { SwipeHero } from '@/components/hero/SwipeHero';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useStatsig } from '@/hooks/useStatsig';
-import { useFeatureGate } from '@adopt-dont-shop/lib-feature-flags';
+import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService, Pet } from '@/services';
-import { Button, Spinner } from '@adopt-dont-shop/components';
+import { Button, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';

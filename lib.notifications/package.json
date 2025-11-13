@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/lib-notifications",
+  "name": "@adopt-dont-shop/lib.notifications",
   "version": "1.0.0",
   "description": "Real-time notification system for user alerts and updates",
   "type": "module",
@@ -38,7 +38,7 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^20.0.0",
-    "@adopt-dont-shop/lib-api": "file:../lib.api"
+    "@adopt-dont-shop/lib.api": "file:../lib.api"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",

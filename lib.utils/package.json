@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/lib-utils",
+  "name": "@adopt-dont-shop/lib.utils",
   "version": "1.0.0",
   "description": "Shared utility functions and helpers for common operations",
   "type": "module",

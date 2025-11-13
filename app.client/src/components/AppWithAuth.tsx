@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { AuthProvider } from '@adopt-dont-shop/lib-auth';
+import { AuthProvider } from '@adopt-dont-shop/lib.auth';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 interface AppWithAuthProps {

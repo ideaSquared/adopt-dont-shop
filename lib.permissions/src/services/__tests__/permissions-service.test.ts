@@ -1,9 +1,9 @@
 import { PermissionsService } from '../permissions-service';
-import { ApiService } from '@adopt-dont-shop/lib-api';
+import { ApiService } from '@adopt-dont-shop/lib.api';
 import { Permission, UserWithPermissions } from '../../types';
 
 // Mock the ApiService
-jest.mock('@adopt-dont-shop/lib-api');
+jest.mock('@adopt-dont-shop/lib.api');
 const MockedApiService = ApiService as jest.MockedClass<typeof ApiService>;
 
 describe('PermissionsService', () => {

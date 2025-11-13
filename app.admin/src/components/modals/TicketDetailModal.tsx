@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Modal, Button } from '@adopt-dont-shop/components';
+import { Modal, Button } from '@adopt-dont-shop/lib.components';
 import {
   type SupportTicket,
   type TicketResponse,
@@ -12,7 +12,7 @@ import {
   formatRelativeTime,
   formatDate,
   formatTicketId,
-} from '@adopt-dont-shop/lib-support-tickets';
+} from '@adopt-dont-shop/lib.support-tickets';
 import {
   FiUser,
   FiClock,

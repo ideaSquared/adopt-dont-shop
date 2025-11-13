@@ -1,5 +1,5 @@
-import { useAuth } from '@adopt-dont-shop/lib-auth';
-import { DevPanelComponent } from '@adopt-dont-shop/lib-dev-tools';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { DevPanelComponent } from '@adopt-dont-shop/lib.dev-tools';
 import { isDevelopment } from '@/utils/env';
 import React from 'react';
 

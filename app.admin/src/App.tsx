@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
 import DevLoginPanel from './components/dev/DevLoginPanel';

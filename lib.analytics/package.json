@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/lib-analytics",
+  "name": "@adopt-dont-shop/lib.analytics",
   "version": "1.0.0",
   "description": "User behavior tracking and analytics for adoption insights",
   "type": "module",
@@ -38,7 +38,7 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^20.0.0",
-    "@adopt-dont-shop/lib-api": "file:../lib.api"
+    "@adopt-dont-shop/lib.api": "file:../lib.api"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",

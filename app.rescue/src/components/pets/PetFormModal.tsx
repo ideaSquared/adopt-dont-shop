@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Card, Button } from '@adopt-dont-shop/components';
-import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib-pets';
+import { Card, Button } from '@adopt-dont-shop/lib.components';
+import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
 
 const ModalOverlay = styled.div`
   position: fixed;

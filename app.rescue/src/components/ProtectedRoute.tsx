@@ -1,7 +1,7 @@
 import React from 'react';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import LoginPage from '../pages/LoginPage';
-import { Text, Card } from '@adopt-dont-shop/components';
+import { Text, Card } from '@adopt-dont-shop/lib.components';
 import styled from 'styled-components';
 
 const LoadingContainer = styled.div`

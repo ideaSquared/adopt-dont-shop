@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Card, Button } from '@adopt-dont-shop/components';
-import { Pet, PetStatus } from '@adopt-dont-shop/lib-pets';
-import { formatRelativeDate } from '@adopt-dont-shop/lib-utils';
+import { Card, Button } from '@adopt-dont-shop/lib.components';
+import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
+import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 
 const StyledCard = styled(Card)`
   padding: 0;

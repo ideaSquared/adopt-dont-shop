@@ -1,6 +1,6 @@
 import { useChat } from '@/contexts/ChatContext';
 import { Conversation } from '@/services';
-import { Button, Spinner } from '@adopt-dont-shop/components';
+import { Button, Spinner } from '@adopt-dont-shop/lib.components';
 import { safeFormatDistanceToNow } from '@/utils/dateHelpers';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';

@@ -65,7 +65,7 @@ vi.mock('./utils/env', () => ({
 }));
 
 // Mock library dependencies
-vi.mock('@adopt-dont-shop/lib-auth', () => ({
+vi.mock('@adopt-dont-shop/lib.auth', () => ({
   authService: {
     login: vi.fn(),
     register: vi.fn(),
@@ -78,7 +78,7 @@ vi.mock('@adopt-dont-shop/lib-auth', () => ({
   AuthService: vi.fn(),
 }));
 
-vi.mock('@adopt-dont-shop/lib-pets', () => ({
+vi.mock('@adopt-dont-shop/lib.pets', () => ({
   PetsService: vi.fn(),
   petManagementService: {
     getPets: vi.fn(),
@@ -89,15 +89,15 @@ vi.mock('@adopt-dont-shop/lib-pets', () => ({
   },
 }));
 
-vi.mock('@adopt-dont-shop/lib-applications', () => ({
+vi.mock('@adopt-dont-shop/lib.applications', () => ({
   ApplicationsService: vi.fn(),
 }));
 
-vi.mock('@adopt-dont-shop/lib-rescue', () => ({
+vi.mock('@adopt-dont-shop/lib.rescue', () => ({
   RescueService: vi.fn(),
 }));
 
-vi.mock('@adopt-dont-shop/components', () => ({
+vi.mock('@adopt-dont-shop/lib.components', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
   Container: ({ children, ...props }: any) => React.createElement('div', props, children),
   Card: ({ children, ...props }: any) => React.createElement('div', props, children),

@@ -31,8 +31,8 @@ const TEMPLATES = {
       react: '^18.3.1',
       'react-dom': '^18.3.1',
       'react-router-dom': '^6.8.1',
-      '@adopt-dont-shop/components': '*',
-      '@adopt-dont-shop/lib-auth': '*',
+      '@adopt-dont-shop/lib.components': '*',
+      '@adopt-dont-shop/lib.auth': '*',
       'styled-components': '^6.1.8',
     },
     contexts: ['Auth'],
@@ -45,10 +45,10 @@ const TEMPLATES = {
       react: '^18.3.1',
       'react-dom': '^18.3.1',
       'react-router-dom': '^6.8.1',
-      '@adopt-dont-shop/components': '*',
-      '@adopt-dont-shop/lib-auth': '*',
-      '@adopt-dont-shop/lib-analytics': '*',
-      '@adopt-dont-shop/lib-api': '*',
+      '@adopt-dont-shop/lib.components': '*',
+      '@adopt-dont-shop/lib.auth': '*',
+      '@adopt-dont-shop/lib.analytics': '*',
+      '@adopt-dont-shop/lib.api': '*',
       'react-query': '^3.39.3',
       'styled-components': '^6.1.8',
     },
@@ -62,15 +62,15 @@ const TEMPLATES = {
       react: '^18.3.1',
       'react-dom': '^18.3.1',
       'react-router-dom': '^6.8.1',
-      '@adopt-dont-shop/components': '*',
-      '@adopt-dont-shop/lib-auth': '*',
-      '@adopt-dont-shop/lib-analytics': '*',
-      '@adopt-dont-shop/lib-api': '*',
-      '@adopt-dont-shop/lib-feature-flags': '*',
-      '@adopt-dont-shop/lib-notifications': '*',
-      '@adopt-dont-shop/lib-permissions': '*',
-      '@adopt-dont-shop/lib-discovery': '*',
-      '@adopt-dont-shop/lib-search': '*',
+      '@adopt-dont-shop/lib.components': '*',
+      '@adopt-dont-shop/lib.auth': '*',
+      '@adopt-dont-shop/lib.analytics': '*',
+      '@adopt-dont-shop/lib.api': '*',
+      '@adopt-dont-shop/lib.feature-flags': '*',
+      '@adopt-dont-shop/lib.notifications': '*',
+      '@adopt-dont-shop/lib.permissions': '*',
+      '@adopt-dont-shop/lib.discovery': '*',
+      '@adopt-dont-shop/lib.search': '*',
       '@statsig/react-bindings': '^3.18.2',
       'react-query': '^3.39.3',
       'styled-components': '^6.1.8',
@@ -233,7 +233,7 @@ function generateMain(template) {
   const templateConfig = TEMPLATES[template];
 
   let imports = [
-    "import { ThemeProvider } from '@adopt-dont-shop/components';",
+    "import { ThemeProvider } from '@adopt-dont-shop/lib.components';",
     "import React from 'react';",
     "import ReactDOM from 'react-dom/client';",
     "import { BrowserRouter } from 'react-router-dom';",
@@ -316,7 +316,7 @@ function generateApp(template) {
     "import { Route, Routes } from 'react-router-dom';",
     "import { HomePage } from '@/pages/HomePage';",
     "import { DevLoginPanel } from '@/components/dev/DevLoginPanel';",
-    "import { Footer } from '@adopt-dont-shop/components';",
+    "import { Footer } from '@adopt-dont-shop/lib.components';",
   ];
 
   let providers = ['<div className="app">'];
@@ -383,7 +383,7 @@ export default App;`;
  * Generate AuthContext
  */
 function generateAuthContext() {
-  return `import { AuthService, User, LoginRequest } from '@adopt-dont-shop/lib-auth';
+  return `import { AuthService, User, LoginRequest } from '@adopt-dont-shop/lib.auth';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface AuthContextType {
@@ -476,7 +476,7 @@ function generateDevLoginPanel() {
   return `import { useState } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, RescueRole } from '@adopt-dont-shop/lib-auth';
+import { User, RescueRole } from '@adopt-dont-shop/lib.auth';
 
 const DevPanel = styled.div\`
   position: fixed;
@@ -753,7 +753,7 @@ function generateContextFiles(appDir, template) {
  * Generate AnalyticsContext
  */
 function generateAnalyticsContext() {
-  return `import { AnalyticsService, UserEngagementEvent, PageViewEvent } from '@adopt-dont-shop/lib-analytics';
+  return `import { AnalyticsService, UserEngagementEvent, PageViewEvent } from '@adopt-dont-shop/lib.analytics';
 import { createContext, useContext, ReactNode, useMemo } from 'react';
 
 interface AnalyticsContextType {
@@ -816,7 +816,7 @@ export const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
  * Generate simplified contexts for enterprise template
  */
 function generateFeatureFlagsContext() {
-  return `import { FeatureFlagsService } from '@adopt-dont-shop/lib-feature-flags';
+  return `import { FeatureFlagsService } from '@adopt-dont-shop/lib.feature-flags';
 import { createContext, useContext, ReactNode, useMemo, useState } from 'react';
 
 interface FeatureFlagsContextType {
@@ -870,7 +870,7 @@ export const FeatureFlagsProvider = ({ children }: FeatureFlagsProviderProps) =>
 }
 
 function generateNotificationsContext() {
-  return `import { NotificationsService, Notification } from '@adopt-dont-shop/lib-notifications';
+  return `import { NotificationsService, Notification } from '@adopt-dont-shop/lib.notifications';
 import { createContext, useContext, ReactNode, useMemo, useState } from 'react';
 
 interface NotificationsContextType {
@@ -934,7 +934,7 @@ export const NotificationsProvider = ({ children }: NotificationsProviderProps) 
 }
 
 function generatePermissionsContext() {
-  return `import { PermissionsService, Permission, UserRole } from '@adopt-dont-shop/lib-permissions';
+  return `import { PermissionsService, Permission, UserRole } from '@adopt-dont-shop/lib.permissions';
 import { createContext, useContext, ReactNode, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
 

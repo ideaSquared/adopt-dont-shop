@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 
 const MainNavigation = styled.nav`
   width: 280px;

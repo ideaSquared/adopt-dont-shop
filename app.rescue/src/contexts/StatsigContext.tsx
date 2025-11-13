@@ -1,6 +1,6 @@
 import { StatsigProvider, useClientAsyncInit } from '@statsig/react-bindings';
 import React, { useMemo } from 'react';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 
 interface StatsigWrapperProps {
   children: React.ReactNode;

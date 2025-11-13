@@ -1,4 +1,4 @@
-import { ThemeProvider } from '@adopt-dont-shop/components';
+import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';

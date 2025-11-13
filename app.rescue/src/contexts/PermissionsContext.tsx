@@ -1,6 +1,6 @@
 import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
-import { Permission, UserRole } from '@adopt-dont-shop/lib-permissions';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { Permission, UserRole } from '@adopt-dont-shop/lib.permissions';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { permissionsService } from '../services/libraryServices';
 
 interface PermissionsContextType {

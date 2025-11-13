@@ -11,7 +11,7 @@ import {
   FiMail,
   FiShield,
 } from 'react-icons/fi';
-import { Modal, Button } from '@adopt-dont-shop/components';
+import { Modal, Button } from '@adopt-dont-shop/lib.components';
 
 type UserActionsMenuProps = {
   user: AdminUser;

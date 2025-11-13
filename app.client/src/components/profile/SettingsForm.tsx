@@ -1,6 +1,6 @@
 import notificationService from '@/services/notificationService';
 import { User } from '@/types';
-import { Button } from '@adopt-dont-shop/components';
+import { Button } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 

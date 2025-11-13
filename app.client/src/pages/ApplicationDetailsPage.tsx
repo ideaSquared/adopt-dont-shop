@@ -1,5 +1,5 @@
 import { applicationService, Application } from '@/services';
-import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
+import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';

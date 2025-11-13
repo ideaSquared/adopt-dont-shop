@@ -1,8 +1,8 @@
-import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
+import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationProfileService } from '@/services/applicationProfileService';
 import { ApplicationDefaults, ProfileCompletionResponse } from '@/types';
 

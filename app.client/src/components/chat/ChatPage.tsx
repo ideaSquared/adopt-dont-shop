@@ -1,6 +1,6 @@
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useChat } from '@/contexts/ChatContext';
-import { Spinner } from '@adopt-dont-shop/components';
+import { Spinner } from '@adopt-dont-shop/lib.components';
 import { useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';

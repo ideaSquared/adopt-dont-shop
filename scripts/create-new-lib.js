@@ -90,7 +90,7 @@ function generatePackageJson(libName, libDescription, useLibApi = false, libType
     license: 'MIT',
     dependencies: {
       '@types/node': '^20.0.0',
-      ...(useLibApi ? { '@adopt-dont-shop/lib-api': 'file:../lib.api' } : {}),
+      ...(useLibApi ? { '@adopt-dont-shop/lib.api': 'file:../lib.api' } : {}),
       ...(isUtility
         ? {
             react: '^18.2.0',
@@ -411,7 +411,7 @@ function generateServiceFile(libName, useLibApi = false) {
   const serviceName = `${className}Service`;
 
   if (useLibApi) {
-    return `import { ApiService } from '@adopt-dont-shop/lib-api';
+    return `import { ApiService } from '@adopt-dont-shop/lib.api';
 import { ${serviceName}Config } from '../types';
 
 /**
@@ -615,10 +615,10 @@ function generateTestFile(libName, useLibApi = false) {
 
   if (useLibApi) {
     return `import { ${serviceName} } from '../${libName}-service';
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib-api', () => ({
+jest.mock('@adopt-dont-shop/lib.api', () => ({
   apiService: {
     post: jest.fn(),
     get: jest.fn(),
@@ -1183,8 +1183,8 @@ lib.${libName}/
 ### With Other Libraries
 
 \`\`\`typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
 import { ${libName}Service } from '@adopt-dont-shop/lib-${libName}';
 
 // Configure with shared dependencies

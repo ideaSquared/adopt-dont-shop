@@ -1,5 +1,5 @@
 /**
- * @adopt-dont-shop/lib-feature-flags
+ * @adopt-dont-shop/lib.feature-flags
  *
  * Feature flag library providing a unified interface for Statsig integration.
  *

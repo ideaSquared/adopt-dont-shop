@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/lib-pets",
+  "name": "@adopt-dont-shop/lib.pets",
   "version": "1.0.0",
   "description": "Pet data management and search functionality",
   "type": "module",
@@ -37,7 +37,7 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@adopt-dont-shop/lib-api": "*",
+    "@adopt-dont-shop/lib.api": "*",
     "@types/node": "^20.0.0"
   },
   "devDependencies": {

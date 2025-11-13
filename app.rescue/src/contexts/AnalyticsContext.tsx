@@ -2,7 +2,7 @@ import {
   AnalyticsService,
   UserEngagementEvent,
   PageViewEvent,
-} from '@adopt-dont-shop/lib-analytics';
+} from '@adopt-dont-shop/lib.analytics';
 import { createContext, useContext, ReactNode, useMemo } from 'react';
 
 interface AnalyticsContextType {

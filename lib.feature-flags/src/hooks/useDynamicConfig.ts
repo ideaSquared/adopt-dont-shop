@@ -21,7 +21,7 @@ type ConfigValue<T extends string> =
  *
  * @example
  * ```tsx
- * import { useDynamicConfig, KNOWN_CONFIGS } from '@adopt-dont-shop/lib-feature-flags';
+ * import { useDynamicConfig, KNOWN_CONFIGS } from '@adopt-dont-shop/lib.feature-flags';
  *
  * function MyComponent() {
  *   const config = useDynamicConfig(KNOWN_CONFIGS.APPLICATION_SETTINGS);
@@ -52,7 +52,7 @@ export const useDynamicConfig = <T extends KnownConfig | string>(
  *
  * @example
  * ```tsx
- * import { useConfigValue, KNOWN_CONFIGS } from '@adopt-dont-shop/lib-feature-flags';
+ * import { useConfigValue, KNOWN_CONFIGS } from '@adopt-dont-shop/lib.feature-flags';
  *
  * function MyComponent() {
  *   const maxApps = useConfigValue(

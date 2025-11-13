@@ -10,7 +10,7 @@ import type {
   BulkAction,
 } from '../types/applications';
 import type { ApplicationStage } from '../types/applicationStages';
-import type { ApplicationPriority } from '@adopt-dont-shop/lib-applications';
+import type { ApplicationPriority } from '@adopt-dont-shop/lib.applications';
 
 /**
  * Application Service for Rescue App

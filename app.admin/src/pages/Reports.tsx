@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Heading, Text, Button } from '@adopt-dont-shop/components';
+import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import {
   FiDownload,
   FiFileText,

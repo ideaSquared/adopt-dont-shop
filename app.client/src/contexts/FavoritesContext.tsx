@@ -1,6 +1,6 @@
 import { petService, Pet } from '@/services';
 import React, { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { createAppContext, handleAsyncAction } from './base/BaseContext';
 
 interface FavoritesContextType {

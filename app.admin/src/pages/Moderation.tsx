@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
+import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
   FiAlertTriangle,
@@ -20,7 +20,7 @@ import {
   type Report,
   type ReportStatus,
   type ReportSeverity,
-} from '@adopt-dont-shop/lib-moderation';
+} from '@adopt-dont-shop/lib.moderation';
 import {
   ActionSelectionModal,
   type ActionSelectionData,

@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/lib-moderation",
+  "name": "@adopt-dont-shop/lib.moderation",
   "version": "1.0.0",
   "description": "Content moderation and reporting functionality",
   "type": "module",
@@ -39,7 +39,7 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@adopt-dont-shop/lib-api": "*",
+    "@adopt-dont-shop/lib.api": "*",
     "@types/node": "^20.0.0",
     "react": "^18.3.1",
     "zod": "^3.25.76"

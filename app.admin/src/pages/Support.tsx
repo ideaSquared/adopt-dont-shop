@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
+import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import {
@@ -15,7 +15,7 @@ import {
   getPriorityLabel,
   getCategoryLabel,
   formatRelativeTime,
-} from '@adopt-dont-shop/lib-support-tickets';
+} from '@adopt-dont-shop/lib.support-tickets';
 import { TicketDetailModal } from '../components/modals/TicketDetailModal';
 
 const PageContainer = styled.div`

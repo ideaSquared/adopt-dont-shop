@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Event, EventType } from '../../types/events';
-import { formatDate, formatTime } from '@adopt-dont-shop/lib-utils';
+import { formatDate, formatTime } from '@adopt-dont-shop/lib.utils';
 import StatusBadge from '../common/StatusBadge';
 
 interface EventCardProps {

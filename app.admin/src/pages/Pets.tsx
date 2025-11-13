@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { Heading, Text } from '@adopt-dont-shop/components';
+import { Heading, Text } from '@adopt-dont-shop/lib.components';
 import { FiAlertCircle } from 'react-icons/fi';
 
 const PageContainer = styled.div`

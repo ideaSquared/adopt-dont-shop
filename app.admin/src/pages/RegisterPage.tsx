@@ -1,4 +1,4 @@
-import { AuthLayout, RegisterForm } from '@adopt-dont-shop/lib-auth';
+import { AuthLayout, RegisterForm } from '@adopt-dont-shop/lib.auth';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 

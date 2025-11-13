@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/components",
+  "name": "@adopt-dont-shop/lib.components",
   "version": "1.0.0",
   "description": "Shared component library for Adopt Don't Shop applications",
   "main": "dist/adopt-dont-shop-components.umd.js",

@@ -1,9 +1,9 @@
 import { AuthService } from '../services/auth-service';
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 import { AuthResponse, LoginRequest, RegisterRequest, User, STORAGE_KEYS } from '../types';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib-api', () => ({
+jest.mock('@adopt-dont-shop/lib.api', () => ({
   apiService: {
     post: jest.fn(),
     get: jest.fn(),

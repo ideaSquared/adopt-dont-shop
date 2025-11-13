@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Modal, Button, useConfirm, ConfirmDialog } from '@adopt-dont-shop/components';
+import { Modal, Button, useConfirm, ConfirmDialog } from '@adopt-dont-shop/lib.components';
 import {
   useAdminChatById,
   useAdminChatMessages,
@@ -8,8 +8,8 @@ import {
   type Conversation,
   type Message,
   type Participant,
-} from '@adopt-dont-shop/lib-chat';
-import { moderationService, type Report } from '@adopt-dont-shop/lib-moderation';
+} from '@adopt-dont-shop/lib.chat';
+import { moderationService, type Report } from '@adopt-dont-shop/lib.moderation';
 import {
   FiMessageSquare,
   FiUsers,

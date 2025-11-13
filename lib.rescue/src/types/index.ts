@@ -1,5 +1,5 @@
 /**
- * Types for @adopt-dont-shop/lib-rescue
+ * Types for @adopt-dont-shop/lib.rescue
  */
 
 /**

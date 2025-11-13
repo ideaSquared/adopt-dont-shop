@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { TimelineEvent, TimelineEventType } from './ApplicationTimeline';
-import { formatDateTime } from '@adopt-dont-shop/lib-utils';
+import { formatDateTime } from '@adopt-dont-shop/lib.utils';
 
 interface TimelineWidgetProps {
   events: TimelineEvent[];

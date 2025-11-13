@@ -1,7 +1,7 @@
 /**
  * ApplicationsService - Handles applications operations
  */
-import { ApiService } from '@adopt-dont-shop/lib-api';
+import { ApiService } from '@adopt-dont-shop/lib.api';
 import {
   Application,
   ApplicationData,

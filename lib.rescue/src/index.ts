@@ -1,4 +1,4 @@
-// Main exports for @adopt-dont-shop/lib-rescue
+// Main exports for @adopt-dont-shop/lib.rescue
 export { RescueService, rescueService } from './services/rescue-service';
 export type {
   Rescue,

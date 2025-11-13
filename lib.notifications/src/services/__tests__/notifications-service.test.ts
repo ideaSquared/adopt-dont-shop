@@ -1,5 +1,5 @@
 import { NotificationsService } from '../notifications-service';
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 import {
   NotificationRequest,
   BulkNotificationRequest,
@@ -8,7 +8,7 @@ import {
 } from '../../types';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib-api', () => ({
+jest.mock('@adopt-dont-shop/lib.api', () => ({
   apiService: {
     post: jest.fn(),
     get: jest.fn(),

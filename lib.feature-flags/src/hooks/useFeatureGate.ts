@@ -7,7 +7,7 @@ import { KnownGate } from '../types';
  *
  * @example
  * ```tsx
- * import { useFeatureGate, KNOWN_GATES } from '@adopt-dont-shop/lib-feature-flags';
+ * import { useFeatureGate, KNOWN_GATES } from '@adopt-dont-shop/lib.feature-flags';
  *
  * function MyComponent() {
  *   const { value: isEnabled } = useFeatureGate(KNOWN_GATES.ENABLE_REAL_TIME_MESSAGING);

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
-import { Heading, Text, Input, useConfirm, ConfirmDialog } from '@adopt-dont-shop/components';
+import { Heading, Text, Input, useConfirm, ConfirmDialog } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
   FiMessageSquare,
@@ -33,7 +33,7 @@ import {
   useAdminChatStats,
   useAdminChatMutations,
   type Conversation,
-} from '@adopt-dont-shop/lib-chat';
+} from '@adopt-dont-shop/lib.chat';
 import { ChatDetailModal } from '../components/modals';
 
 const MessagePreview = styled.div`

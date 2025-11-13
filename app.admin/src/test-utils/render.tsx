@@ -2,7 +2,7 @@ import { render, RenderOptions } from '@testing-library/react';
 import { ReactElement } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
-import { lightTheme } from '@adopt-dont-shop/components';
+import { lightTheme } from '@adopt-dont-shop/lib.components';
 
 /**
  * All providers wrapper for tests

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { useQuery } from 'react-query';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
+import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
   FiDownload,
@@ -30,7 +30,7 @@ import {
   AuditLogLevel,
   AuditLogStatus,
   type AuditLog,
-} from '@adopt-dont-shop/lib-audit-logs';
+} from '@adopt-dont-shop/lib.audit-logs';
 
 const HeaderActions = styled.div`
   display: flex;

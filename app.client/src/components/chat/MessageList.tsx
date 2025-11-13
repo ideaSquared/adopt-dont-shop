@@ -1,4 +1,4 @@
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Message } from '@/services';
 import styled from 'styled-components';
 // import { formatDistanceToNow } from 'date-fns';

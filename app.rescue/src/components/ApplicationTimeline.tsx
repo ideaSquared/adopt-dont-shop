@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { formatDateTime } from '@adopt-dont-shop/lib-utils';
+import { formatDateTime } from '@adopt-dont-shop/lib.utils';
 
 // Timeline Event Types (matching backend)
 export enum TimelineEventType {

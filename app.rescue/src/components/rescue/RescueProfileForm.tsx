@@ -8,7 +8,7 @@ import {
   TextArea as LibTextArea,
   Alert,
   type SelectOption,
-} from '@adopt-dont-shop/components';
+} from '@adopt-dont-shop/lib.components';
 import type { RescueProfile, RescueAddress } from '../../types/rescue';
 
 const FormContainer = styled(Card)`

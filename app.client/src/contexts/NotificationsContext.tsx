@@ -1,4 +1,4 @@
-import { NotificationsService, Notification } from '@adopt-dont-shop/lib-notifications';
+import { NotificationsService, Notification } from '@adopt-dont-shop/lib.notifications';
 import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 
 interface NotificationsContextType {

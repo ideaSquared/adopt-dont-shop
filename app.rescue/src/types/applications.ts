@@ -2,7 +2,7 @@ import {
   ApplicationStatus,
   ApplicationWithPetInfo,
   ApplicationPriority,
-} from '@adopt-dont-shop/lib-applications';
+} from '@adopt-dont-shop/lib.applications';
 import { ApplicationStage, FinalOutcome } from './applicationStages';
 
 // Timeline Event Types (matching backend enum)

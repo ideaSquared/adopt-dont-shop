@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Modal, Button, Input } from '@adopt-dont-shop/components';
+import { Modal, Button, Input } from '@adopt-dont-shop/lib.components';
 import type { AdminUser } from '@/types';
 
 type CreateSupportTicketModalProps = {

@@ -1,4 +1,4 @@
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 import {
   TicketsResponseSchema,
   SupportTicketSchema,
