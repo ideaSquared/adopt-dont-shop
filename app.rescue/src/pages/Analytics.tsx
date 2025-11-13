@@ -306,7 +306,9 @@ const Analytics: React.FC = () => {
   const handleEmailReport = async () => {
     try {
       const email = prompt('Enter email address to send report:');
-      if (!email) return;
+      if (!email) {
+        return;
+      }
 
       await analyticsService.emailReport(
         'full-analytics',

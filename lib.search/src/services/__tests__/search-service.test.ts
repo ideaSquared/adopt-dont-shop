@@ -81,12 +81,12 @@ describe('SearchService', () => {
     },
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     jest.clearAllTimers();
 
     // Get the mocked constructor and create a mock instance
-    const { ApiService } = require('@adopt-dont-shop/lib-api');
+    const { ApiService } = await import('@adopt-dont-shop/lib-api');
     mockApiService = {
       get: jest.fn(),
       post: jest.fn(),

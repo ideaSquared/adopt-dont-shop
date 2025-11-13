@@ -169,7 +169,9 @@ const RescueSettings: React.FC = () => {
   };
 
   const handleSaveProfile = async (profileData: Partial<RescueProfile>) => {
-    if (!rescue) return;
+    if (!rescue) {
+      return;
+    }
 
     await apiService.put(`http://localhost:5000/api/v1/rescues/${rescue.rescueId}`, profileData);
 
@@ -177,7 +179,9 @@ const RescueSettings: React.FC = () => {
   };
 
   const handleSavePolicies = async (policies: AdoptionPolicy) => {
-    if (!rescue) return;
+    if (!rescue) {
+      return;
+    }
 
     await rescueService.updateAdoptionPolicies(rescue.rescueId, policies);
 

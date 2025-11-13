@@ -26,7 +26,9 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
   const [error, setError] = useState<string | null>(null);
 
   const fetchTimeline = useCallback(async () => {
-    if (!applicationId) return;
+    if (!applicationId) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -64,7 +66,9 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
 
   const addNote = useCallback(
     async (note: string, noteType: string = 'general') => {
-      if (!applicationId || !note.trim()) return;
+      if (!applicationId || !note.trim()) {
+        return;
+      }
 
       try {
         const result = await apiService.post<any>(

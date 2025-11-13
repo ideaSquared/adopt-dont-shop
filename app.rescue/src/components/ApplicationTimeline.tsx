@@ -303,7 +303,9 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
 
   const handleSubmitNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!noteText.trim() || !onAddNote) return;
+    if (!noteText.trim() || !onAddNote) {
+      return;
+    }
 
     setSubmitting(true);
     try {

@@ -9,8 +9,7 @@ import {
   FiEye,
   FiShield,
 } from 'react-icons/fi';
-import { DataTable } from '../components/data';
-import type { Column } from '../components/data';
+import { DataTable, type Column } from '../components/data';
 import {
   useReports,
   useModerationMetrics,

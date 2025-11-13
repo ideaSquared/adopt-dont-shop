@@ -114,7 +114,9 @@ export const useApplicationDetails = (applicationId: string | null) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchApplicationDetails = useCallback(async () => {
-    if (!applicationId) return;
+    if (!applicationId) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -140,7 +142,9 @@ export const useApplicationDetails = (applicationId: string | null) => {
 
   const updateReferenceCheck = useCallback(
     async (referenceId: string, status: string, notes?: string) => {
-      if (!applicationId) return;
+      if (!applicationId) {
+        return;
+      }
 
       try {
         await applicationService.updateReferenceCheck(applicationId, referenceId, status, notes);
@@ -159,7 +163,9 @@ export const useApplicationDetails = (applicationId: string | null) => {
       assignedStaff: string;
       notes?: string;
     }) => {
-      if (!applicationId) return;
+      if (!applicationId) {
+        return;
+      }
 
       try {
         await applicationService.scheduleHomeVisit(applicationId, visitData);
@@ -173,7 +179,9 @@ export const useApplicationDetails = (applicationId: string | null) => {
 
   const updateHomeVisit = useCallback(
     async (visitId: string, updateData: Partial<HomeVisit>) => {
-      if (!applicationId) return;
+      if (!applicationId) {
+        return;
+      }
 
       try {
         await applicationService.updateHomeVisit(applicationId, visitId, updateData);
@@ -187,7 +195,9 @@ export const useApplicationDetails = (applicationId: string | null) => {
 
   const addTimelineEvent = useCallback(
     async (event: string, description: string, data?: Record<string, any>) => {
-      if (!applicationId) return;
+      if (!applicationId) {
+        return;
+      }
 
       try {
         await applicationService.addTimelineEvent(applicationId, event, description, data);
@@ -201,7 +211,9 @@ export const useApplicationDetails = (applicationId: string | null) => {
 
   const transitionStage = useCallback(
     async (action: StageAction, notes?: string) => {
-      if (!applicationId) return;
+      if (!applicationId) {
+        return;
+      }
 
       try {
         await applicationService.transitionStage(applicationId, action.type, notes);

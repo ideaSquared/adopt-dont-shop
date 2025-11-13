@@ -256,7 +256,9 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events, onEventClick, onD
                 $color={getEventColor(event.type)}
                 onClick={e => {
                   e.stopPropagation();
-                  if (onEventClick) onEventClick(event);
+                  if (onEventClick) {
+                    onEventClick(event);
+                  }
                 }}
                 title={event.name}
               >

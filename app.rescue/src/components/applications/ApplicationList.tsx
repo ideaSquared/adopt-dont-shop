@@ -280,7 +280,9 @@ const ProgressStep = styled.div<{
     height: 6px;
     border-radius: 50%;
     ${props => {
-      if (props.$isLast) return 'display: none;';
+      if (props.$isLast) {
+        return 'display: none;';
+      }
       switch (props.$status) {
         case 'completed':
           return 'background: #10b981; border: 2px solid white; box-shadow: 0 0 0 2px #10b981;';
@@ -405,7 +407,9 @@ const getStepStatus = (
 ): 'completed' | 'current' | 'pending' => {
   // For resolved applications, check the outcome
   if (stage === 'RESOLVED') {
-    if (stepIndex < currentProgress) return 'completed';
+    if (stepIndex < currentProgress) {
+      return 'completed';
+    }
     if (stepIndex === currentProgress) {
       // Show completed for approved, current for others
       return finalOutcome === 'APPROVED' ? 'completed' : 'current';
@@ -414,8 +418,12 @@ const getStepStatus = (
   }
 
   // For in-progress applications
-  if (stepIndex < currentProgress) return 'completed';
-  if (stepIndex === currentProgress) return 'current';
+  if (stepIndex < currentProgress) {
+    return 'completed';
+  }
+  if (stepIndex === currentProgress) {
+    return 'current';
+  }
   return 'pending';
 };
 
@@ -505,7 +513,9 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
 }) => {
   // Convert complex ApplicationFilter to simple string-based filters for UI
   const getDateRangeValue = () => {
-    if (!filter.dateRange) return '';
+    if (!filter.dateRange) {
+      return '';
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -517,9 +527,15 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
     const filterStart = filter.dateRange.start;
 
     // Check if it matches predefined ranges
-    if (filterStart.getTime() === today.getTime()) return 'today';
-    if (Math.abs(filterStart.getTime() - week.getTime()) < 86400000) return 'week'; // within 1 day
-    if (Math.abs(filterStart.getTime() - month.getTime()) < 86400000 * 2) return 'month'; // within 2 days
+    if (filterStart.getTime() === today.getTime()) {
+      return 'today';
+    }
+    if (Math.abs(filterStart.getTime() - week.getTime()) < 86400000) {
+      return 'week';
+    } // within 1 day
+    if (Math.abs(filterStart.getTime() - month.getTime()) < 86400000 * 2) {
+      return 'month';
+    } // within 2 days
 
     return 'custom';
   };

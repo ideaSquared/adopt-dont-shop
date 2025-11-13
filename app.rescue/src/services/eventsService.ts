@@ -116,20 +116,45 @@ export class RescueEventsService {
     try {
       const payload: any = {};
 
-      if (updates.name !== undefined) payload.name = updates.name;
-      if (updates.description !== undefined) payload.description = updates.description;
-      if (updates.type !== undefined) payload.type = updates.type;
-      if (updates.startDate !== undefined) payload.start_date = updates.startDate;
-      if (updates.endDate !== undefined) payload.end_date = updates.endDate;
-      if (updates.location !== undefined) payload.location = updates.location;
-      if (updates.capacity !== undefined) payload.capacity = updates.capacity;
-      if (updates.registrationRequired !== undefined)
+      if (updates.name !== undefined) {
+        payload.name = updates.name;
+      }
+      if (updates.description !== undefined) {
+        payload.description = updates.description;
+      }
+      if (updates.type !== undefined) {
+        payload.type = updates.type;
+      }
+      if (updates.startDate !== undefined) {
+        payload.start_date = updates.startDate;
+      }
+      if (updates.endDate !== undefined) {
+        payload.end_date = updates.endDate;
+      }
+      if (updates.location !== undefined) {
+        payload.location = updates.location;
+      }
+      if (updates.capacity !== undefined) {
+        payload.capacity = updates.capacity;
+      }
+      if (updates.registrationRequired !== undefined) {
         payload.registration_required = updates.registrationRequired;
-      if (updates.featuredPets !== undefined) payload.featured_pets = updates.featuredPets;
-      if (updates.assignedStaff !== undefined) payload.assigned_staff = updates.assignedStaff;
-      if (updates.isPublic !== undefined) payload.is_public = updates.isPublic;
-      if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl;
-      if (updates.status !== undefined) payload.status = updates.status;
+      }
+      if (updates.featuredPets !== undefined) {
+        payload.featured_pets = updates.featuredPets;
+      }
+      if (updates.assignedStaff !== undefined) {
+        payload.assigned_staff = updates.assignedStaff;
+      }
+      if (updates.isPublic !== undefined) {
+        payload.is_public = updates.isPublic;
+      }
+      if (updates.imageUrl !== undefined) {
+        payload.image_url = updates.imageUrl;
+      }
+      if (updates.status !== undefined) {
+        payload.status = updates.status;
+      }
 
       const response = await this.apiService.put<any>(`/api/v1/events/${eventId}`, payload);
       return this.transformEvent(response.data || response);

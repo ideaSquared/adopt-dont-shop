@@ -106,7 +106,9 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   };
 
   const sendMessage = async (content: string, conversationId: string) => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      return;
+    }
 
     try {
       const newMessage = await chatService.sendMessage(conversationId, content);

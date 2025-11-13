@@ -156,7 +156,9 @@ const PetGrid: React.FC<PetGridProps> = ({
   }
 
   const renderPagination = () => {
-    if (!pagination || pagination.totalPages <= 1) return null;
+    if (!pagination || pagination.totalPages <= 1) {
+      return null;
+    }
 
     const { currentPage, totalPages, hasNext, hasPrev, onPageChange } = pagination;
     const pages = [];

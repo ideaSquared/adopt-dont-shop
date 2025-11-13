@@ -126,7 +126,9 @@ export class RescueApplicationService {
    * Normalize status values to the format expected by the backend
    */
   private normalizeStatusForBackend(status: string): string {
-    if (!status) return status;
+    if (!status) {
+      return status;
+    }
     const key = status.trim().toUpperCase();
     const map: Record<string, string> = {
       // Simple status mappings for small charities (aligned with simplified backend)
@@ -146,7 +148,9 @@ export class RescueApplicationService {
    * Map application status to appropriate stage for display
    */
   private mapStatusToStage(status: string): ApplicationStage {
-    if (!status) return 'PENDING';
+    if (!status) {
+      return 'PENDING';
+    }
 
     const normalizedStatus = status.toLowerCase();
 
@@ -455,20 +459,44 @@ export class RescueApplicationService {
       // Convert camelCase to snake_case for API
       const apiData: Record<string, any> = {};
 
-      if (updateData.status) apiData.status = updateData.status;
-      if (updateData.scheduledDate) apiData.scheduled_date = updateData.scheduledDate;
-      if (updateData.scheduledTime) apiData.scheduled_time = updateData.scheduledTime;
-      if (updateData.assignedStaff) apiData.assigned_staff = updateData.assignedStaff;
-      if (updateData.notes) apiData.notes = updateData.notes;
-      if (updateData.outcome) apiData.outcome = updateData.outcome;
-      if (updateData.completedAt) apiData.completed_at = updateData.completedAt;
+      if (updateData.status) {
+        apiData.status = updateData.status;
+      }
+      if (updateData.scheduledDate) {
+        apiData.scheduled_date = updateData.scheduledDate;
+      }
+      if (updateData.scheduledTime) {
+        apiData.scheduled_time = updateData.scheduledTime;
+      }
+      if (updateData.assignedStaff) {
+        apiData.assigned_staff = updateData.assignedStaff;
+      }
+      if (updateData.notes) {
+        apiData.notes = updateData.notes;
+      }
+      if (updateData.outcome) {
+        apiData.outcome = updateData.outcome;
+      }
+      if (updateData.completedAt) {
+        apiData.completed_at = updateData.completedAt;
+      }
 
       // Add any custom fields for different update types
-      if ('startedAt' in updateData) apiData.started_at = updateData.startedAt;
-      if ('rescheduledAt' in updateData) apiData.rescheduled_at = updateData.rescheduledAt;
-      if ('rescheduleReason' in updateData) apiData.reschedule_reason = updateData.rescheduleReason;
-      if ('cancelledAt' in updateData) apiData.cancelled_at = updateData.cancelledAt;
-      if ('conditions' in updateData) apiData.conditions = updateData.conditions;
+      if ('startedAt' in updateData) {
+        apiData.started_at = updateData.startedAt;
+      }
+      if ('rescheduledAt' in updateData) {
+        apiData.rescheduled_at = updateData.rescheduledAt;
+      }
+      if ('rescheduleReason' in updateData) {
+        apiData.reschedule_reason = updateData.rescheduleReason;
+      }
+      if ('cancelledAt' in updateData) {
+        apiData.cancelled_at = updateData.cancelledAt;
+      }
+      if ('conditions' in updateData) {
+        apiData.conditions = updateData.conditions;
+      }
 
       const response = await this.apiService.put<{
         success: boolean;
@@ -513,8 +541,6 @@ export class RescueApplicationService {
         timelineArray = response.timeline;
       } else if (response && Array.isArray(response.data)) {
         timelineArray = response.data;
-      } else if (response && response.success && Array.isArray(response.timeline)) {
-        timelineArray = response.timeline;
       } else {
         console.warn('Unexpected timeline response format:', response);
         timelineArray = [];
@@ -743,9 +769,15 @@ export class RescueApplicationService {
    */
   private calculateReferencesStatus(app: any): 'pending' | 'in_progress' | 'completed' | 'failed' {
     // Simple logic based on simplified statuses
-    if (app.status === 'submitted') return 'pending';
-    if (app.status === 'approved') return 'completed';
-    if (app.status === 'rejected') return 'failed';
+    if (app.status === 'submitted') {
+      return 'pending';
+    }
+    if (app.status === 'approved') {
+      return 'completed';
+    }
+    if (app.status === 'rejected') {
+      return 'failed';
+    }
     return 'pending';
   }
 
@@ -756,9 +788,15 @@ export class RescueApplicationService {
     app: any
   ): 'not_scheduled' | 'scheduled' | 'completed' | 'failed' {
     // Simple logic based on simplified statuses
-    if (app.status === 'submitted') return 'not_scheduled';
-    if (app.status === 'approved') return 'completed';
-    if (app.status === 'rejected') return 'failed';
+    if (app.status === 'submitted') {
+      return 'not_scheduled';
+    }
+    if (app.status === 'approved') {
+      return 'completed';
+    }
+    if (app.status === 'rejected') {
+      return 'failed';
+    }
     return 'not_scheduled';
   }
 
@@ -780,9 +818,15 @@ export class RescueApplicationService {
     let progress = stageProgress[stage] || 0;
 
     // Add bonus progress based on completed tasks
-    if (app.referencesCompleted) progress += 10;
-    if (app.homeVisitCompleted) progress += 10;
-    if (app.interviewCompleted) progress += 5;
+    if (app.referencesCompleted) {
+      progress += 10;
+    }
+    if (app.homeVisitCompleted) {
+      progress += 10;
+    }
+    if (app.interviewCompleted) {
+      progress += 5;
+    }
 
     return Math.min(progress, 100);
   }

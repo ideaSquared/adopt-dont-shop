@@ -188,7 +188,9 @@ export function ConversationList() {
               );
               adopterName = adopterParticipant?.name || '';
             }
-            if (!adopterName) adopterName = 'Adopter';
+            if (!adopterName) {
+              adopterName = 'Adopter';
+            }
 
             return (
               <ConversationItem

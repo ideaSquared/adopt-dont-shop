@@ -132,8 +132,12 @@ const EmptyState = styled.div`
 `;
 
 const getAttendanceColor = (rate: number): string => {
-  if (rate >= 80) return '#10b981'; // Green
-  if (rate >= 60) return '#f59e0b'; // Amber
+  if (rate >= 80) {
+    return '#10b981';
+  } // Green
+  if (rate >= 60) {
+    return '#f59e0b';
+  } // Amber
   return '#ef4444'; // Red
 };
 

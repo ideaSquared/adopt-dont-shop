@@ -11,8 +11,7 @@ import {
   FiMapPin,
   FiAlertCircle,
 } from 'react-icons/fi';
-import { DataTable } from '../components/data';
-import type { Column } from '../components/data';
+import { DataTable, type Column } from '../components/data';
 import type { AdminRescue } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import { RescueDetailModal, RescueVerificationModal, SendEmailModal } from '@/components/modals';

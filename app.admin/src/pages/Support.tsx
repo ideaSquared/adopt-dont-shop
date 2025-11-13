@@ -2,8 +2,7 @@ import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/components';
 import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
-import { DataTable } from '../components/data';
-import type { Column } from '../components/data';
+import { DataTable, type Column } from '../components/data';
 import {
   useTickets,
   useTicketStats,

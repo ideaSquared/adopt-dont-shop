@@ -50,8 +50,12 @@ const StageStats = styled.div`
 const ConversionRate = styled.span<{ $rate: number }>`
   font-weight: 600;
   color: ${props => {
-    if (props.$rate >= 80) return props.theme.colors.semantic.success[600];
-    if (props.$rate >= 60) return props.theme.colors.semantic.warning[600];
+    if (props.$rate >= 80) {
+      return props.theme.colors.semantic.success[600];
+    }
+    if (props.$rate >= 60) {
+      return props.theme.colors.semantic.warning[600];
+    }
     return props.theme.colors.semantic.error[600];
   }};
 `;
