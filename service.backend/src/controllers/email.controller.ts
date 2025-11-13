@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { NotificationType } from '../models/EmailPreference';
 import { EmailPriority, EmailType } from '../models/EmailQueue';
+import { TemplateType, TemplateCategory, TemplateStatus } from '../models/EmailTemplate';
 import emailService from '../services/email.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
@@ -11,9 +12,9 @@ export const getTemplates = async (req: AuthenticatedRequest, res: Response): Pr
     const { type, category, status, locale, limit, offset } = req.query;
 
     const result = await emailService.getTemplates({
-      type: typeof type === 'string' ? type : undefined,
-      category: typeof category === 'string' ? category : undefined,
-      status: typeof status === 'string' ? status : undefined,
+      type: typeof type === 'string' ? (type as TemplateType) : undefined,
+      category: typeof category === 'string' ? (category as TemplateCategory) : undefined,
+      status: typeof status === 'string' ? (status as TemplateStatus) : undefined,
       locale: typeof locale === 'string' ? locale : undefined,
       limit: typeof limit === 'string' ? parseInt(limit, 10) : undefined,
       offset: typeof offset === 'string' ? parseInt(offset, 10) : undefined,
@@ -277,7 +278,7 @@ export const getEmailAnalytics = async (
       campaignId: typeof campaignId === 'string' ? campaignId : undefined,
       dateFrom: typeof dateFrom === 'string' ? new Date(dateFrom) : undefined,
       dateTo: typeof dateTo === 'string' ? new Date(dateTo) : undefined,
-      type: typeof type === 'string' ? type : undefined,
+      type: typeof type === 'string' ? (type as EmailType) : undefined,
     });
 
     res.json({

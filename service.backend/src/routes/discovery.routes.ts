@@ -237,7 +237,8 @@ router.get('/health', (req, res) => {
 router.get('/db-test', async (req, res) => {
   try {
     // Test database connection by counting pets
-    const result = await sequelize.query('SELECT COUNT(*) as count FROM pets', {
+    type CountResult = { count: string | number };
+    const result = await sequelize.query<CountResult>('SELECT COUNT(*) as count FROM pets', {
       type: QueryTypes.SELECT,
     });
 
@@ -245,7 +246,7 @@ router.get('/db-test', async (req, res) => {
       success: true,
       message: 'Database connection successful',
       data: {
-        petCount: (result[0] as unknown).count,
+        petCount: result[0]?.count || 0,
         timestamp: new Date().toISOString(),
       },
     });

@@ -1,6 +1,7 @@
 import ModeratorAction, { ActionType, ActionSeverity } from '../models/ModeratorAction';
 import User from '../models/User';
 import Report from '../models/Report';
+import { JsonObject, JsonValue } from '../types/common';
 
 export async function seedModeratorActions() {
   try {
@@ -234,7 +235,24 @@ export async function seedModeratorActions() {
       },
     ];
 
-    await ModeratorAction.bulkCreate(actions as unknown);
+    // Clean metadata by removing undefined values
+    const cleanMetadata = (obj: Record<string, unknown>): JsonObject => {
+      const cleaned: JsonObject = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          cleaned[key] = value as JsonValue;
+        }
+      }
+      return cleaned;
+    };
+
+    await ModeratorAction.bulkCreate(
+      actions.map(action => ({
+        ...action,
+        evidence: action.evidence || [],
+        metadata: cleanMetadata(action.metadata || {}),
+      }))
+    );
     console.log(`✅ Created ${actions.length} moderator actions`);
   } catch (error) {
     console.error('Error seeding moderator actions:', error);

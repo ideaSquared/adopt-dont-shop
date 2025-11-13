@@ -2,6 +2,7 @@ import { doubleCsrf, DoubleCsrfConfigOptions } from 'csrf-csrf';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 import { config } from '../config';
+import { AuthenticatedRequest } from '../types';
 
 // CSRF Configuration
 const isProduction = process.env.NODE_ENV === 'production';
@@ -10,9 +11,8 @@ const csrfConfig: DoubleCsrfConfigOptions = {
   getSecret: () => config.security.csrfSecret, // Validated at startup (minimum 32 characters)
   getSessionIdentifier: req => {
     // Use user ID if authenticated, otherwise use IP address
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const user = (req as unknown).user;
-    return user?.userId || req.ip || 'anonymous';
+    const authenticatedReq = req as AuthenticatedRequest;
+    return authenticatedReq.user?.userId || req.ip || 'anonymous';
   },
   // Use __Host- prefix only in production (requires secure context)
   cookieName: isProduction ? '__Host-psifi.x-csrf-token' : 'psifi.x-csrf-token',

@@ -809,14 +809,20 @@ const applicationData = [
 
 export async function seedApplications() {
   for (const appData of applicationData) {
+    // Type assertion justified: Application form data structure is intentionally flexible
+    // to support various rescue organization requirements
+    const defaults = {
+      ...appData,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
     await Application.findOrCreate({
       where: { application_id: appData.application_id },
-      defaults: {
-        ...appData,
-        created_at: new Date(),
-        updated_at: new Date(),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as unknown,
+      // Type assertion justified: Application form data structure is intentionally flexible
+      // to support various rescue organization requirements and nested JSON structures
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      defaults: defaults as any,
     });
   }
 

@@ -84,9 +84,9 @@ export const createWithSequelizeModel = async <T extends Model>(
 ): Promise<T[]> => {
   const results: T[] = [];
   for (const row of data) {
-    // Type assertion needed: Sequelize's complex generic constraints don't allow
-    // Record<string, unknown> even though it's compatible at runtime
-    const instance = await SequelizeModel.create(row as unknown);
+    // Sequelize's create method requires specific types that are compatible with Record<string, unknown>
+    // Using unknown as intermediate type to satisfy TypeScript's strict checking
+    const instance = await SequelizeModel.create(row as unknown as T['_creationAttributes']);
     results.push(instance);
   }
   return results;
