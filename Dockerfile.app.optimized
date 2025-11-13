@@ -112,8 +112,9 @@ RUN --mount=type=cache,target=/root/.npm \
 # Build libraries first, then the specific app using Turbo
 # Use cache mount for Turbo cache
 # The '...' prefix builds all dependencies first, then the target app
+# Set NODE_ENV=production to use "import" exports instead of "development" (src/*.ts)
 RUN --mount=type=cache,target=/app/.turbo \
-    npx turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
+    NODE_ENV=production npx turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
 
 # ============================================================================
 # PRODUCTION STAGE - Minimal Nginx image for static assets

@@ -82,7 +82,8 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 
 # Build the application
-RUN npm run build && \
+# Set NODE_ENV=production to use compiled library exports instead of source
+RUN NODE_ENV=production npm run build && \
     npm prune --omit=dev
 
 # ============================================================================
