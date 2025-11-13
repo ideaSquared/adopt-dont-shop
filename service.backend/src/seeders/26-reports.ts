@@ -4,6 +4,7 @@ import Pet from '../models/Pet';
 import Rescue from '../models/Rescue';
 import Chat from '../models/Chat';
 import Message from '../models/Message';
+import { JsonObject, JsonValue } from '../types/common';
 
 export async function seedReports() {
   try {
@@ -279,7 +280,24 @@ export async function seedReports() {
       return;
     }
 
-    await Report.bulkCreate(validReports as any);
+    // Clean metadata by removing undefined values
+    const cleanMetadata = (obj: Record<string, unknown>): JsonObject => {
+      const cleaned: JsonObject = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          cleaned[key] = value as JsonValue;
+        }
+      }
+      return cleaned;
+    };
+
+    await Report.bulkCreate(
+      validReports.map(report => ({
+        ...report,
+        evidence: report.evidence || [],
+        metadata: cleanMetadata(report.metadata || {}),
+      }))
+    );
     console.log(`✅ Created ${validReports.length} moderation reports`);
   } catch (error) {
     console.error('Error seeding reports:', error);

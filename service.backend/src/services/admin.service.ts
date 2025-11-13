@@ -82,11 +82,13 @@ class AdminService {
       }
 
       if (search) {
-        whereConditions[Op.or as any] = [
-          { firstName: { [Op.iLike]: `%${search}%` } },
-          { lastName: { [Op.iLike]: `%${search}%` } },
-          { email: { [Op.iLike]: `%${search}%` } },
-        ];
+        Object.assign(whereConditions, {
+          [Op.or]: [
+            { firstName: { [Op.iLike]: `%${search}%` } },
+            { lastName: { [Op.iLike]: `%${search}%` } },
+            { email: { [Op.iLike]: `%${search}%` } },
+          ],
+        });
       }
 
       const { rows: users, count: total } = await User.findAndCountAll({
@@ -390,11 +392,13 @@ class AdminService {
       }
 
       if (search) {
-        whereConditions[Op.or as any] = [
-          { name: { [Op.iLike]: `%${search}%` } },
-          { description: { [Op.iLike]: `%${search}%` } },
-          { email: { [Op.iLike]: `%${search}%` } },
-        ];
+        Object.assign(whereConditions, {
+          [Op.or]: [
+            { name: { [Op.iLike]: `%${search}%` } },
+            { description: { [Op.iLike]: `%${search}%` } },
+            { email: { [Op.iLike]: `%${search}%` } },
+          ],
+        });
       }
 
       const { rows: rescues, count: total } = await Rescue.findAndCountAll({
@@ -998,7 +1002,16 @@ class AdminService {
         verifiedRescues,
         availablePets,
         pendingApplications,
-        recentActivity: recentActivity as any,
+        recentActivity: recentActivity.map(activity => ({
+          id: String(activity.id),
+          type: activity.action || 'unknown',
+          description: activity.category || 'Activity',
+          timestamp: activity.timestamp,
+          service: activity.service,
+          user: activity.user,
+          level: activity.level,
+          status: activity.status,
+        })),
       };
     } catch (error) {
       logger.error('Error fetching system statistics:', {

@@ -2,6 +2,7 @@ import UserSanction, { SanctionType, SanctionReason } from '../models/UserSancti
 import User from '../models/User';
 import Report from '../models/Report';
 import ModeratorAction from '../models/ModeratorAction';
+import { JsonObject, JsonValue } from '../types/common';
 
 export async function seedUserSanctions() {
   try {
@@ -254,7 +255,23 @@ export async function seedUserSanctions() {
       },
     ];
 
-    await UserSanction.bulkCreate(sanctions as any);
+    // Clean metadata by removing undefined values
+    const cleanMetadata = (obj: Record<string, unknown>): JsonObject => {
+      const cleaned: JsonObject = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          cleaned[key] = value as JsonValue;
+        }
+      }
+      return cleaned;
+    };
+
+    await UserSanction.bulkCreate(
+      sanctions.map(sanction => ({
+        ...sanction,
+        metadata: cleanMetadata(sanction.metadata || {}),
+      }))
+    );
     console.log(`✅ Created ${sanctions.length} user sanctions`);
   } catch (error) {
     console.error('Error seeding user sanctions:', error);

@@ -4,6 +4,7 @@ import SupportTicket, {
   TicketCategory,
 } from '../models/SupportTicket';
 import User from '../models/User';
+import { JsonObject, JsonValue } from '../types/common';
 
 export async function seedSupportTickets() {
   try {
@@ -305,7 +306,24 @@ export async function seedSupportTickets() {
       },
     ];
 
-    await SupportTicket.bulkCreate(tickets as any);
+    // Clean metadata by removing undefined values
+    const cleanMetadata = (obj: Record<string, unknown>): JsonObject => {
+      const cleaned: JsonObject = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          cleaned[key] = value as JsonValue;
+        }
+      }
+      return cleaned;
+    };
+
+    await SupportTicket.bulkCreate(
+      tickets.map(ticket => ({
+        ...ticket,
+        responses: ticket.responses || [],
+        metadata: cleanMetadata(ticket.metadata || {}),
+      }))
+    );
     console.log(`✅ Created ${tickets.length} support tickets`);
   } catch (error) {
     console.error('Error seeding support tickets:', error);

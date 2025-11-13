@@ -39,9 +39,16 @@ export class ModerationController {
   async getReports(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const filters: ReportFilters = {
-        status: typeof req.query.status === 'string' ? (req.query.status as ReportStatus) : undefined,
-        category: typeof req.query.category === 'string' ? (req.query.category as ReportCategory) : undefined,
-        severity: typeof req.query.severity === 'string' ? (req.query.severity as ReportSeverity) : undefined,
+        status:
+          typeof req.query.status === 'string' ? (req.query.status as ReportStatus) : undefined,
+        category:
+          typeof req.query.category === 'string'
+            ? (req.query.category as ReportCategory)
+            : undefined,
+        severity:
+          typeof req.query.severity === 'string'
+            ? (req.query.severity as ReportSeverity)
+            : undefined,
         reporterId: typeof req.query.reporterId === 'string' ? req.query.reporterId : undefined,
         reportedUserId:
           typeof req.query.reportedUserId === 'string' ? req.query.reportedUserId : undefined,

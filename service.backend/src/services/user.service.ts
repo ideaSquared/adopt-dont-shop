@@ -4,6 +4,7 @@ import Application from '../models/Application';
 import { AuditLog } from '../models/AuditLog';
 import Chat from '../models/Chat';
 import ChatParticipant from '../models/ChatParticipant';
+import Permission from '../models/Permission';
 import User, { UserStatus, UserType } from '../models/User';
 import UserFavorite from '../models/UserFavorite';
 import sequelize from '../sequelize';
@@ -425,8 +426,9 @@ export class UserService {
         throw new Error('User not found');
       }
 
-      const notificationPrefs = (user.notificationPreferences as any) || {};
-      const privacySettings = (user.privacySettings as any) || {};
+      const notificationPrefs =
+        (user.notificationPreferences as Record<string, unknown> | null) || {};
+      const privacySettings = (user.privacySettings as Record<string, unknown> | null) || {};
 
       if (loggerHelpers && loggerHelpers.logDatabase) {
         loggerHelpers.logDatabase('READ', {
@@ -437,13 +439,14 @@ export class UserService {
       }
 
       return {
-        emailNotifications: notificationPrefs.emailNotifications,
-        pushNotifications: notificationPrefs.pushNotifications,
-        smsNotifications: notificationPrefs.smsNotifications,
+        emailNotifications: Boolean(notificationPrefs.emailNotifications),
+        pushNotifications: Boolean(notificationPrefs.pushNotifications),
+        smsNotifications: Boolean(notificationPrefs.smsNotifications),
         privacySettings: {
-          profileVisibility: privacySettings.profileVisibility || 'public',
-          showLocation: privacySettings.showLocation || false,
-          showContactInfo: privacySettings.showContactInfo || false,
+          profileVisibility:
+            (privacySettings.profileVisibility as 'public' | 'private' | 'friends') || 'public',
+          showLocation: Boolean(privacySettings.showLocation),
+          showContactInfo: Boolean(privacySettings.showContactInfo),
         },
       };
     } catch (error) {
@@ -487,8 +490,8 @@ export class UserService {
       };
 
       await user.update({
-        notificationPreferences: defaultNotificationPrefs as any,
-        privacySettings: defaultPreferences.privacySettings as any,
+        notificationPreferences: JSON.parse(JSON.stringify(defaultNotificationPrefs)),
+        privacySettings: JSON.parse(JSON.stringify(defaultPreferences.privacySettings)),
       });
 
       // Log the preference reset
@@ -1367,7 +1370,9 @@ export class UserService {
         for (const role of user.Roles) {
           if (role.Permissions) {
             for (const permission of role.Permissions) {
-              permissions.add((permission as any).permissionName);
+              // Type assertion needed: Sequelize associations don't always infer correctly
+              const perm = permission as unknown as Permission;
+              permissions.add(perm.permissionName);
             }
           }
         }
@@ -1428,7 +1433,9 @@ export class UserService {
         for (const role of user.Roles) {
           if (role.Permissions) {
             for (const permission of role.Permissions) {
-              permissions.add((permission as any).permissionName);
+              // Type assertion needed: Sequelize associations don't always infer correctly
+              const perm = permission as unknown as Permission;
+              permissions.add(perm.permissionName);
             }
           }
         }

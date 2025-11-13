@@ -311,6 +311,8 @@ export class ApplicationController extends BaseController {
         : undefined,
     };
 
+    // Type assertion justified: The data structure is intentionally flexible to accommodate
+    // varying application form schemas across different rescues
     const transformed: FrontendApplication = {
       id: applicationModel.application_id as string,
       petId: applicationModel.pet_id as string,
@@ -323,12 +325,12 @@ export class ApplicationController extends BaseController {
       reviewNotes: applicationModel.notes as string,
       data: {
         personalInfo,
-        livingsituation,
-        petExperience,
-        references,
+        livingConditions:
+          livingsituation as unknown as FrontendApplication['data']['livingConditions'],
+        petExperience: petExperience as unknown as FrontendApplication['data']['petExperience'],
+        references: references as unknown as FrontendApplication['data']['references'],
         answers: answers,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
+      },
       documents:
         (applicationModel.documents as ApplicationDocument[])?.map(doc => ({
           id: doc.document_id,

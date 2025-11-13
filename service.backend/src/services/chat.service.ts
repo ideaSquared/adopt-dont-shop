@@ -304,7 +304,21 @@ export class ChatService {
       }
 
       // Build includes array
-      const includes: any[] = [
+      const includes: Array<{
+        model?: typeof Message | typeof ChatParticipant;
+        as?: string;
+        association?: string;
+        attributes?: string[];
+        limit?: number;
+        order?: [string, string][];
+        where?: Record<string, unknown>;
+        required?: boolean;
+        include?: Array<{
+          model: typeof User;
+          as: string;
+          attributes: string[];
+        }>;
+      }> = [
         {
           model: Message,
           as: 'Messages',
@@ -744,9 +758,27 @@ export class ChatService {
         page,
       });
 
-      // Return messages without using convertMessageToInterface to preserve Sender association
+      // Transform messages to ChatMessage format
+      const transformedMessages: ChatMessage[] = messages.map(msg => ({
+        message_id: msg.message_id,
+        chat_id: msg.chat_id,
+        sender_id: msg.sender_id,
+        content: msg.content,
+        content_format: msg.content_format,
+        type: 'text' as MessageType, // Default to 'text' type
+        attachments: (msg.attachments || []).map(att => ({
+          id: att.attachment_id,
+          filename: att.filename,
+          url: att.url,
+          mimeType: att.mimeType,
+          size: att.size,
+        })),
+        created_at: msg.created_at.toISOString(),
+        updated_at: msg.updated_at.toISOString(),
+      }));
+
       return {
-        messages: messages as any, // Cast to any to preserve Sequelize model with associations
+        messages: transformedMessages,
         total,
         page,
         totalPages: Math.ceil(total / limit),

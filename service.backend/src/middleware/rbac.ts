@@ -50,10 +50,12 @@ export const requirePermission = (requiredPermission: string) => {
     }
 
     // Check if user has the required permission through roles
+    // Type assertion justified: Sequelize associations don't always properly infer Permission type
     const hasPermission = req.user.Roles?.some(role =>
-      role.Permissions?.some(
-        permission => (permission as any).permissionName === requiredPermission
-      )
+      role.Permissions?.some(permission => {
+        const perm = permission as unknown as Permission;
+        return perm.permissionName === requiredPermission;
+      })
     );
 
     if (!hasPermission) {
