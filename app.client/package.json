@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/app-client",
+  "name": "@adopt-dont-shop/app.client",
   "version": "1.0.0",
   "description": "Public-facing React application for pet adoption",
   "license": "MIT",
