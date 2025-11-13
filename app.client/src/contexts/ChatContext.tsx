@@ -83,7 +83,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const lastLoadedMessagesRef = useRef<string | null>(null);
 
   const loadConversations = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      return;
+    }
 
     const result = await handleAsyncAction(() => chatService.getConversations(), {
       setError,
@@ -139,7 +141,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
         // Add user to typing users when we receive a typing indicator
         setTypingUsers(prev => {
           const currentUsers = prev || [];
-          if (currentUsers.includes(data.userName)) return currentUsers;
+          if (currentUsers.includes(data.userName)) {
+            return currentUsers;
+          }
           return [...currentUsers, data.userName];
         });
 
@@ -235,7 +239,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
   };
 
   const loadMoreMessages = async () => {
-    if (!activeConversation || !hasMoreMessages || isLoadingMoreMessages) return;
+    if (!activeConversation || !hasMoreMessages || isLoadingMoreMessages) {
+      return;
+    }
 
     try {
       setIsLoadingMoreMessages(true);
@@ -276,7 +282,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
   };
 
   const sendMessage = async (content: string, attachments?: File[]) => {
-    if (!activeConversation || !user) return;
+    if (!activeConversation || !user) {
+      return;
+    }
 
     // Handle offline case first
     if (!isOnline) {

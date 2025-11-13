@@ -143,7 +143,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
+      if (!isOpen) {
+        return;
+      }
 
       switch (e.key) {
         case 'Escape':
@@ -189,7 +191,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     };
   }, [isOpen]);
 
-  if (!isOpen || !currentImage || images.length === 0) return null;
+  if (!isOpen || !currentImage || images.length === 0) {
+    return null;
+  }
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {

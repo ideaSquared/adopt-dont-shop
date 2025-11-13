@@ -322,7 +322,9 @@ class PerformanceMonitor {
 
   // Calculate average
   private average(numbers: number[]): number {
-    if (numbers.length === 0) return 0;
+    if (numbers.length === 0) {
+      return 0;
+    }
     return numbers.reduce((sum, num) => sum + num, 0) / numbers.length;
   }
 

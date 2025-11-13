@@ -179,7 +179,9 @@ export function ChatWindow() {
   // Detect if user is at the bottom
   const handleScroll = () => {
     const container = messagesContainerRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const threshold = 80; // px
     const atBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
@@ -192,8 +194,12 @@ export function ChatWindow() {
   };
 
   const handleSendMessage = async (attachments?: File[]) => {
-    if (!messageText.trim() && (!attachments || attachments.length === 0)) return;
-    if (isSending) return;
+    if (!messageText.trim() && (!attachments || attachments.length === 0)) {
+      return;
+    }
+    if (isSending) {
+      return;
+    }
 
     try {
       setIsSending(true);
@@ -277,7 +283,9 @@ export function ChatWindow() {
     const rescueParticipant = conversationTyped.participants.find(p => p.type === 'rescue');
     rescueName = rescueParticipant?.name || '';
   }
-  if (!rescueName) rescueName = 'Rescue Organization';
+  if (!rescueName) {
+    rescueName = 'Rescue Organization';
+  }
 
   return (
     <ChatContainer>

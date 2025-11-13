@@ -180,7 +180,9 @@ export const ApplicationPage: React.FC = () => {
   const loadApplicationData = useCallback(async () => {
     try {
       setIsLoading(true);
-      if (!petId) throw new Error('Pet ID is required');
+      if (!petId) {
+        throw new Error('Pet ID is required');
+      }
 
       // Load pet data
       const petData = await petService.getPetById(petId);
@@ -216,7 +218,9 @@ export const ApplicationPage: React.FC = () => {
   }, [petId, usePrePopulation, populateFormWithData]);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) {
+      return;
+    }
 
     if (!isAuthenticated) {
       navigate(`/login?redirect=/apply/${petId}`);

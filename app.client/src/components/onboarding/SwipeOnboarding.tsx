@@ -243,7 +243,9 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
     onClose();
   };
 
-  if (!show) return null;
+  if (!show) {
+    return null;
+  }
 
   return (
     <Overlay $show={show} onClick={handleClose}>

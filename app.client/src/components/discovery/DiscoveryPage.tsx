@@ -1,10 +1,15 @@
-import { DiscoveryPet, PetSearchFilters, SwipeAction, SwipeSession } from '@/services';
+import {
+  DiscoveryPet,
+  PetSearchFilters,
+  SwipeAction,
+  SwipeSession,
+  discoveryService,
+} from '@/services';
 import { Container } from '@adopt-dont-shop/components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { MdWarning } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { discoveryService } from '@/services';
 import { SwipeControls } from '../swipe/SwipeControls';
 import { SwipeStack } from '../swipe/SwipeStack';
 
@@ -329,7 +334,9 @@ export const DiscoveryPage: React.FC = () => {
   const handleControlAction = useCallback(
     (action: 'pass' | 'info' | 'like' | 'super_like') => {
       const currentPet = pets[currentPetIndex];
-      if (!currentPet) return;
+      if (!currentPet) {
+        return;
+      }
 
       // Handle info action differently - navigate to pet details
       if (action === 'info') {

@@ -69,7 +69,9 @@ export const personalInfoSchema = z.object({
     .string()
     .optional()
     .refine(date => {
-      if (!date) return true;
+      if (!date) {
+        return true;
+      }
       const birthDate = new Date(date);
       const today = new Date();
       const age = today.getFullYear() - birthDate.getFullYear();
@@ -93,7 +95,9 @@ export const livingSituationSchema = z
       .string()
       .optional()
       .refine(size => {
-        if (!size) return true;
+        if (!size) {
+          return true;
+        }
         return ['small', 'medium', 'large'].includes(size);
       }, 'Please select a valid yard size'),
 

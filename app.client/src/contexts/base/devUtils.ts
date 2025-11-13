@@ -22,7 +22,9 @@ const AUTH_TOKEN_KEY = 'authToken';
  * Get development user from localStorage
  */
 export const getDevUser = (): User | null => {
-  if (!import.meta.env.DEV) return null;
+  if (!import.meta.env.DEV) {
+    return null;
+  }
 
   try {
     const devUser = localStorage.getItem(DEV_USER_KEY);
@@ -37,7 +39,9 @@ export const getDevUser = (): User | null => {
  * Set development user in localStorage with mock token
  */
 export const setDevUser = (user: User): void => {
-  if (!import.meta.env.DEV) return;
+  if (!import.meta.env.DEV) {
+    return;
+  }
 
   // Store dev user
   localStorage.setItem(DEV_USER_KEY, JSON.stringify(user));
@@ -52,7 +56,9 @@ export const setDevUser = (user: User): void => {
  * Clear development user and tokens
  */
 export const clearDevUser = (): void => {
-  if (!import.meta.env.DEV) return;
+  if (!import.meta.env.DEV) {
+    return;
+  }
 
   localStorage.removeItem(DEV_USER_KEY);
   clearDevTokens();
@@ -69,7 +75,9 @@ export const createMockToken = (userId: string): string => {
  * Check if a token is a valid dev token
  */
 export const isDevTokenValid = (token: string | null): boolean => {
-  if (!import.meta.env.DEV || !token) return false;
+  if (!import.meta.env.DEV || !token) {
+    return false;
+  }
   return token.startsWith('dev-token-');
 };
 
@@ -77,7 +85,9 @@ export const isDevTokenValid = (token: string | null): boolean => {
  * Clear development tokens
  */
 export const clearDevTokens = (): void => {
-  if (!import.meta.env.DEV) return;
+  if (!import.meta.env.DEV) {
+    return;
+  }
 
   const token = localStorage.getItem(ACCESS_TOKEN_KEY);
   if (isDevTokenValid(token)) {
@@ -91,10 +101,14 @@ export const clearDevTokens = (): void => {
  * Returns true if dev user was found and initialized
  */
 export const initializeDevAuth = (): User | null => {
-  if (!import.meta.env.DEV) return null;
+  if (!import.meta.env.DEV) {
+    return null;
+  }
 
   const devUser = getDevUser();
-  if (!devUser) return null;
+  if (!devUser) {
+    return null;
+  }
 
   // Ensure dev user has a mock token
   const existingToken = localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -111,7 +125,9 @@ export const initializeDevAuth = (): User | null => {
  * Update development user profile
  */
 export const updateDevUserProfile = (user: User, profileData: Partial<User>): User => {
-  if (!import.meta.env.DEV) return user;
+  if (!import.meta.env.DEV) {
+    return user;
+  }
 
   const updatedUser = { ...user, ...profileData };
   setDevUser(updatedUser);

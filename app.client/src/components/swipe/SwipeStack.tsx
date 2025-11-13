@@ -74,7 +74,9 @@ export const SwipeStack: React.FC<SwipeStackProps> = ({
   const handleSwipe = useCallback(
     (action: 'like' | 'pass' | 'super_like' | 'info', petId: string) => {
       const pet = pets.find(p => p.petId === petId);
-      if (!pet) return;
+      if (!pet) {
+        return;
+      }
 
       const swipeAction: SwipeAction = {
         action,

@@ -324,25 +324,33 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   // Keyboard navigation handler
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
-      if (!isTop) return;
+      if (!isTop) {
+        return;
+      }
 
       let action: string = '';
       switch (event.key) {
         case 'ArrowLeft':
           event.preventDefault();
-          if (disabled) return;
+          if (disabled) {
+            return;
+          }
           action = 'pass';
           onSwipe('pass', pet.petId);
           break;
         case 'ArrowRight':
           event.preventDefault();
-          if (disabled) return;
+          if (disabled) {
+            return;
+          }
           action = 'like';
           onSwipe('like', pet.petId);
           break;
         case 'ArrowUp':
           event.preventDefault();
-          if (disabled) return;
+          if (disabled) {
+            return;
+          }
           action = 'super_like';
           onSwipe('super_like', pet.petId);
           break;
@@ -362,7 +370,9 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
           break;
         case 'Escape':
           event.preventDefault();
-          if (disabled) return;
+          if (disabled) {
+            return;
+          }
           action = 'pass';
           onSwipe('pass', pet.petId);
           break;
@@ -410,15 +420,20 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
       direction: [number, number];
       cancel?: () => void;
     }) => {
-      if (!isTop || disabled) return;
+      if (!isTop || disabled) {
+        return;
+      }
 
       const trigger = Math.abs(mx) > SWIPE_THRESHOLD;
       const isFlick = Math.abs(vx) > 0.5;
 
       let action = '';
       if (Math.abs(mx) > 50) {
-        if (mx > 0) action = 'like';
-        else action = 'pass';
+        if (mx > 0) {
+          action = 'like';
+        } else {
+          action = 'pass';
+        }
       } else if (my < -50) {
         action = 'super_like';
       } else if (my > 50) {
@@ -506,7 +521,9 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             onSwipe(finalAction, pet.petId);
           }, 100);
 
-          if (cancel) cancel();
+          if (cancel) {
+            cancel();
+          }
         } else {
           // Return to center
           api.start({

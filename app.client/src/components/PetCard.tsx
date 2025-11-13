@@ -282,9 +282,15 @@ export const PetCard: React.FC<PetCardProps> = ({
   };
 
   const formatAge = (ageYears: number, ageMonths: number) => {
-    if (ageYears === 0 && ageMonths === 0) return 'Unknown';
-    if (ageYears === 0) return `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
-    if (ageMonths === 0) return `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+    if (ageYears === 0 && ageMonths === 0) {
+      return 'Unknown';
+    }
+    if (ageYears === 0) {
+      return `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
+    }
+    if (ageMonths === 0) {
+      return `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+    }
     return `${ageYears} year${ageYears !== 1 ? 's' : ''}, ${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
   };
 

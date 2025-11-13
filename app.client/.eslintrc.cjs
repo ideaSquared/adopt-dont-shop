@@ -1,54 +1,6 @@
 /** @type {import('eslint').Linter.Config} */
+// Client app ESLint configuration
+// Extends the shared React config
 module.exports = {
-  root: true,
-  env: {
-    browser: true,
-    es2020: true,
-    node: true,
-  },
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:react/recommended',
-    'plugin:react-hooks/recommended',
-    'plugin:jsx-a11y/recommended',
-    'prettier',
-  ],
-  ignorePatterns: ['dist', '.eslintrc.cjs', 'node_modules', 'coverage'],
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    ecmaFeatures: {
-      jsx: true,
-    },
-  },
-  plugins: [
-    '@typescript-eslint',
-    'react',
-    'react-hooks',
-    'react-refresh',
-    'jsx-a11y',
-    'prettier',
-  ],
-  rules: {
-    'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-    'react/react-in-jsx-scope': 'off',
-    'react/prop-types': 'off',
-    'react/no-unescaped-entities': 'warn',
-    'react-hooks/exhaustive-deps': 'warn',
-    '@typescript-eslint/no-unused-vars': 'warn',
-    '@typescript-eslint/no-explicit-any': 'warn',
-    'no-duplicate-imports': 'warn',
-    'no-useless-catch': 'warn',
-    'no-dupe-else-if': 'warn',
-    'jsx-a11y/no-autofocus': 'warn',
-    'jsx-a11y/mouse-events-have-key-events': 'warn',
-    'prettier/prettier': 'error',
-  },
-  settings: {
-    react: {
-      version: 'detect',
-    },
-  },
+  extends: ['@adopt-dont-shop/eslint-config-react'],
 };

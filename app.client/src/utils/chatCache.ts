@@ -51,7 +51,9 @@ export class ChatCache<T = unknown> {
 
   get(key: string): T | null {
     const item = this.cache.get(key);
-    if (!item) return null;
+    if (!item) {
+      return null;
+    }
 
     const now = Date.now();
 
@@ -86,7 +88,9 @@ export class ChatCache<T = unknown> {
 
   has(key: string): boolean {
     const item = this.cache.get(key);
-    if (!item) return false;
+    if (!item) {
+      return false;
+    }
 
     // Check if expired
     if (Date.now() - item.timestamp > this.ttl) {
