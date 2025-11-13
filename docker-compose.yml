@@ -52,8 +52,8 @@ services:
   # Main backend service - Connects to single database
   service-backend:
     build:
-      context: ./service.backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./service.backend/Dockerfile
       target: development
     ports:
       - '5000:5000'

@@ -16,13 +16,20 @@ RUN apk update && apk upgrade && apk add --no-cache \
 
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY package*.json ./
-
 # ============================================================================
 # DEPENDENCIES STAGE - Install production dependencies with cache mount
 # ============================================================================
 FROM base AS dependencies
+
+# Copy workspace configuration from monorepo root
+COPY package.json package-lock.json ./
+COPY eslint-config-node/ eslint-config-node/
+
+# Copy backend service package files
+COPY service.backend/package*.json service.backend/
+
+# Install dependencies from backend directory
+WORKDIR /app/service.backend
 
 # Use BuildKit cache mount for npm cache (industry standard optimization)
 RUN --mount=type=cache,target=/root/.npm \
@@ -34,12 +41,18 @@ RUN --mount=type=cache,target=/root/.npm \
 # ============================================================================
 FROM base AS development
 
+# Copy workspace configuration from monorepo root
+COPY package.json package-lock.json ./
+COPY eslint-config-node/ eslint-config-node/
+
+# Copy backend service
+COPY service.backend/ service.backend/
+
+WORKDIR /app/service.backend
+
 # Install all dependencies (including dev dependencies) with cache mount
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
-
-# Copy source code (volumes will override in docker-compose)
-COPY . .
 
 # Expose application port
 EXPOSE 5000
@@ -55,12 +68,18 @@ CMD ["npm", "run", "dev"]
 # ============================================================================
 FROM base AS build
 
+# Copy workspace configuration from monorepo root
+COPY package.json package-lock.json ./
+COPY eslint-config-node/ eslint-config-node/
+
+# Copy backend service
+COPY service.backend/ service.backend/
+
+WORKDIR /app/service.backend
+
 # Install all dependencies for building
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
-
-# Copy source code
-COPY . .
 
 # Build the application
 RUN npm run build && \
@@ -84,9 +103,9 @@ RUN apk update && apk upgrade && apk add --no-cache \
 WORKDIR /app
 
 # Copy built application and production dependencies from build stage
-COPY --from=build --chown=backend:nodejs /app/dist ./dist
-COPY --from=build --chown=backend:nodejs /app/node_modules ./node_modules
-COPY --from=build --chown=backend:nodejs /app/package*.json ./
+COPY --from=build --chown=backend:nodejs /app/service.backend/dist ./dist
+COPY --from=build --chown=backend:nodejs /app/service.backend/node_modules ./node_modules
+COPY --from=build --chown=backend:nodejs /app/service.backend/package*.json ./
 
 # Switch to non-root user (security best practice)
 USER backend

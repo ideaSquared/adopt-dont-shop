@@ -34,7 +34,8 @@ services:
   # Backend Service - Production
   service-backend:
     build:
-      context: ./service.backend
+      context: .
+      dockerfile: ./service.backend/Dockerfile
       target: production
     restart: always
     environment:

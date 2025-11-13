@@ -59,7 +59,7 @@ jobs:
       - name: Build backend development image
         uses: docker/build-push-action@v5
         with:
-          context: ./service.backend
+          context: .
           file: ./service.backend/Dockerfile
           target: development
           push: false
@@ -72,7 +72,7 @@ jobs:
       - name: Build backend production image
         uses: docker/build-push-action@v5
         with:
-          context: ./service.backend
+          context: .
           file: ./service.backend/Dockerfile
           target: production
           push: false
@@ -233,8 +233,7 @@ jobs:
 
       - name: Build backend image for scanning
         run: |
-          cd service.backend
-          docker build -t adopt-dont-shop/backend:scan .
+          docker build -f service.backend/Dockerfile -t adopt-dont-shop/backend:scan .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
