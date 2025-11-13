@@ -233,6 +233,70 @@ validate-env: ## Validate environment variables
 	@echo "✅ Validating environment variables..."
 	npm run validate:env
 
+##@ Secrets Management
+
+generate-secrets: ## Generate strong random secrets for .env file
+	@echo "🔐 Generating secure secrets..."
+	@echo ""
+	@echo "Copy these values to your .env file:"
+	@echo ""
+	@echo "# Database Password"
+	@echo "POSTGRES_PASSWORD=$$(openssl rand -base64 32)"
+	@echo ""
+	@echo "# JWT Secrets (use different values for each)"
+	@echo "JWT_SECRET=$$(openssl rand -base64 32)"
+	@echo "JWT_REFRESH_SECRET=$$(openssl rand -base64 32)"
+	@echo ""
+	@echo "# Session & CSRF Secrets"
+	@echo "SESSION_SECRET=$$(openssl rand -base64 32)"
+	@echo "CSRF_SECRET=$$(openssl rand -base64 32)"
+	@echo ""
+	@echo "# Encryption Key (hex format)"
+	@echo "ENCRYPTION_KEY=$$(openssl rand -hex 32)"
+	@echo ""
+	@echo "# Redis Password"
+	@echo "REDIS_PASSWORD=$$(openssl rand -base64 32)"
+	@echo ""
+
+check-secrets: ## Check if required secrets are set in .env
+	@echo "🔍 Checking required secrets..."
+	@if [ ! -f .env ]; then \
+		echo "❌ .env file not found. Run: cp .env.example .env"; \
+		exit 1; \
+	fi
+	@missing=0; \
+	for secret in POSTGRES_PASSWORD JWT_SECRET; do \
+		if ! grep -q "^$$secret=" .env || grep -q "^$$secret=CHANGE_THIS" .env || grep -q "^$$secret=$$" .env; then \
+			echo "❌ $$secret is not set or uses default value"; \
+			missing=$$((missing + 1)); \
+		else \
+			echo "✅ $$secret is set"; \
+		fi \
+	done; \
+	if [ $$missing -gt 0 ]; then \
+		echo ""; \
+		echo "⚠️  $$missing secret(s) need to be set."; \
+		echo "Run: make generate-secrets"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "✅ All required secrets are set"
+
+create-docker-secrets: ## Create Docker secrets from .env (for Docker Swarm)
+	@echo "🔐 Creating Docker secrets..."
+	@if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
+	@grep "^POSTGRES_PASSWORD=" .env | cut -d '=' -f2 | docker secret create postgres_password - 2>/dev/null || echo "postgres_password already exists"
+	@grep "^JWT_SECRET=" .env | cut -d '=' -f2 | docker secret create jwt_secret - 2>/dev/null || echo "jwt_secret already exists"
+	@grep "^REDIS_PASSWORD=" .env | cut -d '=' -f2 | docker secret create redis_password - 2>/dev/null || echo "redis_password already exists"
+	@echo "✅ Docker secrets created"
+
+list-docker-secrets: ## List all Docker secrets
+	@echo "📋 Docker secrets:"
+	@docker secret ls
+
 ##@ Information
 
 info: ## Show Docker and system information

@@ -1,61 +1,174 @@
-# Production Docker Compose configuration
+# ============================================================================
+# Production Docker Compose Configuration
+# ============================================================================
+# ⚠️ CRITICAL SECURITY REQUIREMENTS:
+# 1. All secrets MUST be provided via environment variables or Docker secrets
+# 2. No default values are provided - you MUST set them explicitly
+# 3. Use strong, randomly generated passwords and secrets
+# 4. Consider using external secrets management (AWS Secrets Manager, Vault)
+# ============================================================================
+
 services:
+  # Database - Production configuration
+  database:
+    environment:
+      # NO DEFAULTS - Must be explicitly set
+      POSTGRES_USER: ${POSTGRES_USER:?Error: POSTGRES_USER required in production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required in production}
+      POSTGRES_DB: ${POSTGRES_DB:?Error: POSTGRES_DB required in production}
+    restart: always
+    # Production: Don't expose database port to host
+    ports: []
+    # Optional: Use Docker secrets instead of environment variables
+    # secrets:
+    #   - postgres_password
+    # environment:
+    #   POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+
+  # Redis - Production configuration
+  redis:
+    restart: always
+    ports: []  # Don't expose Redis port to host in production
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required in production}
+
+  # Backend Service - Production
   service-backend:
     build:
+      context: ./service.backend
       target: production
     restart: always
     environment:
       NODE_ENV: production
+      PORT: 5000
+      # Database - NO DEFAULTS
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:?Error: POSTGRES_USER required}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}
+      PROD_DB_NAME: ${POSTGRES_DB:?Error: POSTGRES_DB required}
+      DB_POOL_MAX: ${DB_POOL_MAX:-20}
+      DB_POOL_MIN: ${DB_POOL_MIN:-5}
+      # Redis - NO DEFAULTS
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}
+      # Security - REQUIRED
+      JWT_SECRET: ${JWT_SECRET:?Error: JWT_SECRET required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}
+      SESSION_SECRET: ${SESSION_SECRET:?Error: SESSION_SECRET required}
+      CSRF_SECRET: ${CSRF_SECRET:?Error: CSRF_SECRET required}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Error: ENCRYPTION_KEY required}
+      # URLs
+      API_URL: ${API_URL:?Error: API_URL required}
+      CORS_ORIGIN: ${CORS_ORIGIN:?Error: CORS_ORIGIN required}
+      # Email (required for production)
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:?Error: EMAIL_PROVIDER required}
+      EMAIL_FROM: ${EMAIL_FROM:?Error: EMAIL_FROM required}
+      # Disable development features
+      FORCE_SEED: false
+      DB_LOGGING: false
     volumes:
-      - ./uploads:/app/uploads
-    command: null
+      # Only mount uploads directory in production
+      - uploads:/app/uploads
+    # Don't expose port directly - use nginx
+    expose:
+      - "5000"
+    # Optional: Use Docker secrets
+    # secrets:
+    #   - db_password
+    #   - jwt_secret
+    #   - redis_password
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
+  # Frontend Apps - Production
   app-admin:
     build:
+      context: .
+      dockerfile: Dockerfile.app.optimized
       target: production
+      args:
+        APP_NAME: app.admin
     restart: always
-    environment:
-      NODE_ENV: production
-      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
-      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
-    volumes: []
-    depends_on:
-      - service-backend
+    volumes: []  # No volumes in production
+    expose:
+      - "80"
     stdin_open: false
     tty: false
 
   app-client:
     build:
+      context: .
+      dockerfile: Dockerfile.app.optimized
       target: production
+      args:
+        APP_NAME: app.client
     restart: always
-    environment:
-      NODE_ENV: production
-      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
-      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
-    volumes: []
-    depends_on:
-      - service-backend
+    volumes: []  # No volumes in production
+    expose:
+      - "80"
     stdin_open: false
     tty: false
 
   app-rescue:
     build:
+      context: .
+      dockerfile: Dockerfile.app.optimized
       target: production
+      args:
+        APP_NAME: app.rescue
     restart: always
-    environment:
-      NODE_ENV: production
-      VITE_API_URL: ${VITE_API_URL:-http://api.localhost}
-      VITE_WS_URL: ${VITE_WS_URL:-ws://api.localhost}
-    volumes: []
-    depends_on:
-      - service-backend
+    volumes: []  # No volumes in production
+    expose:
+      - "80"
     stdin_open: false
     tty: false
 
+  # Nginx - Production with SSL
   nginx:
     restart: always
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      # Let's Encrypt certificates (if using)
+      - letsencrypt:/etc/letsencrypt:ro
+    ports:
+      - "80:80"
+      - "443:443"
 
-  # Disable lib-components in production as it's built into the apps
-  lib-components:
-    deploy:
-      replicas: 0
+# ============================================================================
+# Production Volumes
+# ============================================================================
+volumes:
+  uploads:
+    driver: local
+  letsencrypt:
+    driver: local
+
+# ============================================================================
+# Docker Secrets (Optional but Recommended)
+# ============================================================================
+# Uncomment to use Docker secrets instead of environment variables
+# More secure as secrets are only available to containers that need them
+# and are never stored in container images or visible in docker inspect
+#
+# secrets:
+#   postgres_password:
+#     external: true  # Created with: echo "password" | docker secret create postgres_password -
+#   jwt_secret:
+#     external: true
+#   redis_password:
+#     external: true
+#   db_password:
+#     external: true
+#
+# Usage in services:
+# services:
+#   database:
+#     secrets:
+#       - postgres_password
+#     environment:
+#       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
