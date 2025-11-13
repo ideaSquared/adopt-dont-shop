@@ -9,7 +9,6 @@
   "type": "module",
   "exports": {
     ".": {
-      "development": "./src/index.ts",
       "import": "./dist/adopt-dont-shop-components.es.js",
       "require": "./dist/adopt-dont-shop-components.umd.js",
       "types": "./dist/index.d.ts"
