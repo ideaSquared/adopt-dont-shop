@@ -1,5 +1,5 @@
-import { ThemeProvider } from '@adopt-dont-shop/components';
-import { AuthProvider } from '@adopt-dont-shop/lib-auth';
+import { ThemeProvider } from '@adopt-dont-shop/lib.components';
+import { AuthProvider } from '@adopt-dont-shop/lib.auth';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';

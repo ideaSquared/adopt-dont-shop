@@ -1,4 +1,4 @@
-import { Button, TextArea } from '@adopt-dont-shop/components';
+import { Button, TextArea } from '@adopt-dont-shop/lib.components';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MdAttachFile, MdClose, MdSend } from 'react-icons/md';
 import styled from 'styled-components';

@@ -1,6 +1,6 @@
-import { ChatService, Conversation, Message } from '@adopt-dont-shop/lib-chat';
+import { ChatService, Conversation, Message } from '@adopt-dont-shop/lib.chat';
 import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 
 interface ChatContextType {
   chatService: ChatService;

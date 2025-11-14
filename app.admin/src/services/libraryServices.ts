@@ -1,4 +1,4 @@
-import { ApiService, AuthenticationError } from '@adopt-dont-shop/lib-api';
+import { ApiService, AuthenticationError } from '@adopt-dont-shop/lib.api';
 
 // Create the global API service instance with auth token function
 export const globalApiService = new ApiService({

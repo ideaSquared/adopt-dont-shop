@@ -5,7 +5,7 @@ import {
   SwipeSession,
   discoveryService,
 } from '@/services';
-import { Container } from '@adopt-dont-shop/components';
+import { Container } from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { MdWarning } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';

@@ -1,5 +1,5 @@
 import { PetsService } from '../pets-service';
-import { ApiService } from '@adopt-dont-shop/lib-api';
+import { ApiService } from '@adopt-dont-shop/lib.api';
 
 // Mock the API service
 const mockApiService = {

@@ -3,7 +3,7 @@ import notificationService, {
   NotificationFilters,
 } from '@/services/notificationService';
 import { NotificationType, getNotificationTypeLabel } from '@/types/notifications';
-import { Button } from '@adopt-dont-shop/components';
+import { Button } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';

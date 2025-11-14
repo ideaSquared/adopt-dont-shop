@@ -1,4 +1,4 @@
-import { AuthLayout, LoginForm } from '@adopt-dont-shop/lib-auth';
+import { AuthLayout, LoginForm } from '@adopt-dont-shop/lib.auth';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 

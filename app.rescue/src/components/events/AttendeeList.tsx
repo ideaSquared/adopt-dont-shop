@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { EventAttendee } from '../../types/events';
-import { formatDate } from '@adopt-dont-shop/lib-utils';
+import { formatDate } from '@adopt-dont-shop/lib.utils';
 
 interface AttendeeListProps {
   attendees: EventAttendee[];

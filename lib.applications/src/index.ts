@@ -1,4 +1,4 @@
-// Main exports for @adopt-dont-shop/lib-applications
+// Main exports for @adopt-dont-shop/lib.applications
 export { ApplicationsService, applicationsService } from './services/applications-service';
 export type {
   Application,

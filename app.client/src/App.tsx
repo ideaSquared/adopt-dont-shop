@@ -20,7 +20,7 @@ import {
   RescueDetailsPage,
   SearchPage,
 } from '@/pages';
-import { Footer } from '@adopt-dont-shop/components';
+import { Footer } from '@adopt-dont-shop/lib.components';
 import { ChatPage } from './components/chat/ChatPage';
 import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { DiscoveryPage } from './components/discovery/DiscoveryPage';

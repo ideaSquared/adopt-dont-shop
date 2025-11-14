@@ -1,7 +1,7 @@
 import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import type { Conversation } from '@/services';
-import { Button, Spinner } from '@adopt-dont-shop/components';
+import { Button, Spinner } from '@adopt-dont-shop/lib.components';
 import { useEffect, useRef, useState } from 'react';
 import { MdArrowBack } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';

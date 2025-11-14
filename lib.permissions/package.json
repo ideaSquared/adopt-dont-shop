@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/lib-permissions",
+  "name": "@adopt-dont-shop/lib.permissions",
   "version": "1.0.0",
   "description": "Role-based access control and permissions management",
   "type": "module",
@@ -7,7 +7,6 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
@@ -38,7 +37,7 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^20.0.0",
-    "@adopt-dont-shop/lib-api": "file:../lib.api"
+    "@adopt-dont-shop/lib.api": "file:../lib.api"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",

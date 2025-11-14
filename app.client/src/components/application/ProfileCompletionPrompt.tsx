@@ -1,4 +1,4 @@
-import { Button } from '@adopt-dont-shop/components';
+import { Button } from '@adopt-dont-shop/lib.components';
 import React from 'react';
 import styled from 'styled-components';
 

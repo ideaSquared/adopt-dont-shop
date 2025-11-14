@@ -1,4 +1,4 @@
-import { ApiService } from '@adopt-dont-shop/lib-api';
+import { ApiService } from '@adopt-dont-shop/lib.api';
 import {
   Rescue,
   RescueAPIResponse,

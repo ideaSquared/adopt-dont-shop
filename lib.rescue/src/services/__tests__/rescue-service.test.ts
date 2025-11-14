@@ -1,5 +1,5 @@
 import { RescueService } from '../rescue-service';
-import { ApiService } from '@adopt-dont-shop/lib-api';
+import { ApiService } from '@adopt-dont-shop/lib.api';
 import {
   Rescue,
   RescueAPIResponse,
@@ -11,7 +11,7 @@ import {
 } from '../../types';
 
 // Mock the ApiService
-jest.mock('@adopt-dont-shop/lib-api');
+jest.mock('@adopt-dont-shop/lib.api');
 
 describe('RescueService', () => {
   let rescueService: RescueService;

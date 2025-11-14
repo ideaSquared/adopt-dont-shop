@@ -1,4 +1,4 @@
-import { ApiService, ApiResponse } from '@adopt-dont-shop/lib-api';
+import { ApiService, ApiResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData, PetStatus, PetsServiceConfig } from '../types';
 import { PETS_ENDPOINTS } from '../constants/endpoints';
 

@@ -4,18 +4,18 @@
  */
 
 // Import library services
-import { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
-import { ApplicationsService } from '@adopt-dont-shop/lib-applications';
-import { PetsService } from '@adopt-dont-shop/lib-pets';
-import { RescueService } from '@adopt-dont-shop/lib-rescue';
-import { ChatService } from '@adopt-dont-shop/lib-chat';
-import { NotificationsService } from '@adopt-dont-shop/lib-notifications';
-import { PermissionsService } from '@adopt-dont-shop/lib-permissions';
-import { ValidationService } from '@adopt-dont-shop/lib-validation';
-import { InvitationsService } from '@adopt-dont-shop/lib-invitations';
+import { AnalyticsService } from '@adopt-dont-shop/lib.analytics';
+import { ApplicationsService } from '@adopt-dont-shop/lib.applications';
+import { PetsService } from '@adopt-dont-shop/lib.pets';
+import { RescueService } from '@adopt-dont-shop/lib.rescue';
+import { ChatService } from '@adopt-dont-shop/lib.chat';
+import { NotificationsService } from '@adopt-dont-shop/lib.notifications';
+import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
+import { ValidationService } from '@adopt-dont-shop/lib.validation';
+import { InvitationsService } from '@adopt-dont-shop/lib.invitations';
 
 // Configure the global apiService FIRST
-import { apiService as globalApiService, AuthenticationError } from '@adopt-dont-shop/lib-api';
+import { apiService as globalApiService, AuthenticationError } from '@adopt-dont-shop/lib.api';
 
 // Configure with the proper base URL
 import { getApiBaseUrl, isDevelopment } from '../utils/env';
@@ -49,7 +49,7 @@ globalApiService.interceptors.addErrorInterceptor(async error => {
 });
 
 // Now import AuthService AFTER configuring the global apiService
-import { AuthService } from '@adopt-dont-shop/lib-auth';
+import { AuthService } from '@adopt-dont-shop/lib.auth';
 
 // Centralized service configuration
 const serviceConfig = {

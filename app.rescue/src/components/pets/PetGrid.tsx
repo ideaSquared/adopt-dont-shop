@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Card, Button, Text } from '@adopt-dont-shop/components';
-import { Pet, PetStatus } from '@adopt-dont-shop/lib-pets';
+import { Card, Button, Text } from '@adopt-dont-shop/lib.components';
+import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import PetCard from './PetCard.tsx';
 
 const GridContainer = styled.div`

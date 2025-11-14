@@ -1,4 +1,4 @@
-import { Alert, Button, Modal, Spinner } from '@adopt-dont-shop/components';
+import { Alert, Button, Modal, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import styled from 'styled-components';
 

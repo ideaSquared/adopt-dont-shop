@@ -1,4 +1,4 @@
-// Main exports for @adopt-dont-shop/lib-api
+// Main exports for @adopt-dont-shop/lib.api
 
 // Services
 export { ApiService, apiService, api } from './services/api-service';

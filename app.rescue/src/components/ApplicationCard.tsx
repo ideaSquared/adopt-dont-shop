@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { TimelineWidget } from './TimelineWidget';
 import { useTimelineWidget, useTimelineSummary } from '../hooks/useTimelineWidget';
-import { formatDate, formatDateTime } from '@adopt-dont-shop/lib-utils';
+import { formatDate, formatDateTime } from '@adopt-dont-shop/lib.utils';
 
 interface ApplicationCardProps {
   application: {

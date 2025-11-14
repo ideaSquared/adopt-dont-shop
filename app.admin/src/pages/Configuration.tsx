@@ -5,8 +5,8 @@ import {
   useConfigValue,
   KNOWN_GATES,
   KNOWN_CONFIGS,
-} from '@adopt-dont-shop/lib-feature-flags';
-import { Heading, Text, Button } from '@adopt-dont-shop/components';
+} from '@adopt-dont-shop/lib.feature-flags';
+import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import { FiRefreshCw, FiSettings, FiFlag, FiExternalLink, FiInfo } from 'react-icons/fi';
 import {
   PageContainer,

@@ -1,8 +1,8 @@
-import { Button, Card } from '@adopt-dont-shop/components';
+import { Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, petService, Application, Pet } from '@/services';
 
 interface ApplicationWithPet extends Application {

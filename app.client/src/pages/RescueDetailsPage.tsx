@@ -1,6 +1,6 @@
 import { PetCard } from '@/components/PetCard';
 import { rescueService, petService, Rescue, Pet } from '@/services';
-import { Badge, Button, Card } from '@adopt-dont-shop/components';
+import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import {
   MdEmail,

@@ -1,4 +1,4 @@
-import { Message } from '@adopt-dont-shop/lib-chat';
+import { Message } from '@adopt-dont-shop/lib.chat';
 import { safeFormatDistanceToNow } from '@/utils/dateHelpers';
 import { useState } from 'react';
 import { MdDownload, MdImage, MdInsertDriveFile, MdPictureAsPdf } from 'react-icons/md';

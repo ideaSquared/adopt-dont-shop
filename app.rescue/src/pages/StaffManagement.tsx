@@ -9,10 +9,10 @@ import {
 } from '../components/staff';
 import { StaffMember, NewStaffMember } from '../types/staff';
 import { useStaff } from '../hooks/useStaff';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { usePermissions } from '../contexts/PermissionsContext';
-import { STAFF_CREATE, STAFF_DELETE, STAFF_UPDATE } from '@adopt-dont-shop/lib-permissions';
-import { InvitationPayload, PendingInvitation } from '@adopt-dont-shop/lib-invitations';
+import { STAFF_CREATE, STAFF_DELETE, STAFF_UPDATE } from '@adopt-dont-shop/lib.permissions';
+import { InvitationPayload, PendingInvitation } from '@adopt-dont-shop/lib.invitations';
 import { invitationService } from '../services/libraryServices';
 
 const PageContainer = styled.div`

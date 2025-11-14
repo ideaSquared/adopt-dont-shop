@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Card } from '@adopt-dont-shop/components';
+import { Card } from '@adopt-dont-shop/lib.components';
 import { MdCheckCircle, MdHome, MdPeople, MdPets, MdAttachMoney } from 'react-icons/md';
 
 interface AdoptionPolicy {

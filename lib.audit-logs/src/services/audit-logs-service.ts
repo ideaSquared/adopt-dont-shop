@@ -1,4 +1,4 @@
-import { api } from '@adopt-dont-shop/lib-api';
+import { api } from '@adopt-dont-shop/lib.api';
 import type { AuditLogFilters, PaginatedAuditLogsResponse } from '../types';
 
 export class AuditLogsService {

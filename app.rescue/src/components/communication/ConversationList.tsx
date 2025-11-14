@@ -1,6 +1,6 @@
 import { useChat } from '@/contexts/ChatContext';
-import { Conversation } from '@adopt-dont-shop/lib-chat';
-import { Spinner } from '@adopt-dont-shop/components';
+import { Conversation } from '@adopt-dont-shop/lib.chat';
+import { Spinner } from '@adopt-dont-shop/lib.components';
 import { safeFormatDistanceToNow } from '@/utils/dateHelpers';
 import styled from 'styled-components';
 

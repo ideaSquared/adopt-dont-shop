@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { Card } from '@adopt-dont-shop/components';
+import { Card } from '@adopt-dont-shop/lib.components';
 import styled from 'styled-components';
 
 const Container = styled.div`

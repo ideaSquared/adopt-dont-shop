@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Heading, Text } from '@adopt-dont-shop/components';
+import { Heading, Text } from '@adopt-dont-shop/lib.components';
 
 const DashboardContainer = styled.div`
   display: flex;

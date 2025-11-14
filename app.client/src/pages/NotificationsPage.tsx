@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { Button, Card } from '@adopt-dont-shop/components';
+import { Button, Card } from '@adopt-dont-shop/lib.components';
 import styled from 'styled-components';
 
 const Container = styled.div`

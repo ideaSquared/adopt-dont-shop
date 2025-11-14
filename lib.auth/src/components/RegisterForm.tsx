@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Button, Input } from '@adopt-dont-shop/components';
+import { Alert, Button, Input } from '@adopt-dont-shop/lib.components';
 import styled from 'styled-components';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';

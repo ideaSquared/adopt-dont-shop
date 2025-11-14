@@ -22,7 +22,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { handleAsyncAction } from './base/BaseContext';
 
 interface ChatContextType {

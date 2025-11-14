@@ -1,5 +1,5 @@
 import { ApplicationData } from '@/services';
-import { Input } from '@adopt-dont-shop/components';
+import { Input } from '@adopt-dont-shop/lib.components';
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import styled from 'styled-components';

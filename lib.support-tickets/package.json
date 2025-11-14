@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/lib-support-tickets",
+  "name": "@adopt-dont-shop/lib.support-tickets",
   "version": "1.0.0",
   "description": "Support ticket management functionality",
   "type": "module",
@@ -7,7 +7,6 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
@@ -39,7 +38,7 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@adopt-dont-shop/lib-api": "*",
+    "@adopt-dont-shop/lib.api": "*",
     "@types/node": "^20.0.0",
     "react": "^18.3.1",
     "zod": "^3.25.76"

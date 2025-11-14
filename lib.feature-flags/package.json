@@ -1,5 +1,5 @@
 {
-  "name": "@adopt-dont-shop/lib-feature-flags",
+  "name": "@adopt-dont-shop/lib.feature-flags",
   "version": "1.0.0",
   "description": "Feature flags and A/B testing",
   "type": "module",
@@ -7,7 +7,6 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }

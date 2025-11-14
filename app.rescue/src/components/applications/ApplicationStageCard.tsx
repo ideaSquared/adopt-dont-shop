@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { ApplicationListItem } from '../../types/applications';
 import { ApplicationStage, StageAction, OUTCOME_CONFIG } from '../../types/applicationStages';
-import { formatRelativeDate } from '@adopt-dont-shop/lib-utils';
+import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 
 interface ApplicationStageCardProps {
   application: ApplicationListItem;

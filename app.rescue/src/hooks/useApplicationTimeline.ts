@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TimelineEvent, TimelineEventType } from '../components/ApplicationTimeline';
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
 interface TimelineStats {
   total_events: number;

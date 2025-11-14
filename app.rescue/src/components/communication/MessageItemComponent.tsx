@@ -1,4 +1,4 @@
-import { Message } from '@adopt-dont-shop/lib-chat';
+import { Message } from '@adopt-dont-shop/lib.chat';
 import styled from 'styled-components';
 import { AvatarComponent } from './AvatarComponent';
 import { MessageBubbleComponent } from './MessageBubbleComponent';

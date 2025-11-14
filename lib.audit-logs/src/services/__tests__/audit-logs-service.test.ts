@@ -1,8 +1,8 @@
 import { AuditLogsService } from '../audit-logs-service';
-import { api } from '@adopt-dont-shop/lib-api';
+import { api } from '@adopt-dont-shop/lib.api';
 import { AuditLogLevel, AuditLogStatus } from '../../types';
 
-jest.mock('@adopt-dont-shop/lib-api');
+jest.mock('@adopt-dont-shop/lib.api');
 
 describe('AuditLogsService', () => {
   const mockApi = api as jest.Mocked<typeof api>;

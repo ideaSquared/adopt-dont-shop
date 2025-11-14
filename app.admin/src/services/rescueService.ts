@@ -11,7 +11,7 @@
  * - Clear error handling
  */
 
-import { RescueService as LibRescueService } from '@adopt-dont-shop/lib-rescue';
+import { RescueService as LibRescueService } from '@adopt-dont-shop/lib.rescue';
 import { apiService } from './libraryServices';
 import type {
   AdminRescue,

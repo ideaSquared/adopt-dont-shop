@@ -4,7 +4,7 @@ import {
   ProfileCompletionPrompt,
   QuickApplicationPrompt,
 } from '@/components/application';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, petService, ApplicationData, Pet } from '@/services';
 import { applicationProfileService } from '@/services/applicationProfileService';
 import {
@@ -12,7 +12,7 @@ import {
   ApplicationPrePopulationData,
   QuickApplicationCapability,
 } from '@/types';
-import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
+import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';

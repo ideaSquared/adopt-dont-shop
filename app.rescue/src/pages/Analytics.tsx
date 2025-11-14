@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Card, Heading } from '@adopt-dont-shop/components';
+import { Card, Heading } from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
   FiUsers,

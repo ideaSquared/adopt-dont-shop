@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Modal } from '@adopt-dont-shop/components';
+import { Modal } from '@adopt-dont-shop/lib.components';
 import type { AdminUser } from '@/types';
 import { FiMail, FiPhone, FiCalendar, FiClock, FiUser, FiShield } from 'react-icons/fi';
 

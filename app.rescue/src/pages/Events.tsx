@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Card } from '@adopt-dont-shop/components';
+import { Card } from '@adopt-dont-shop/lib.components';
 import { FiCalendar, FiPlus } from 'react-icons/fi';
 
 // Event Components

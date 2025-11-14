@@ -13,7 +13,7 @@ import {
   getSeverityLabel,
   getStatusLabel,
   formatRelativeTime,
-} from '@adopt-dont-shop/lib-moderation';
+} from '@adopt-dont-shop/lib.moderation';
 
 const Overlay = styled.div<{ $isOpen: boolean }>`
   position: fixed;

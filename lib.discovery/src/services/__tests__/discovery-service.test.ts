@@ -10,7 +10,7 @@ import {
 } from '../../types';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib-api', () => ({
+jest.mock('@adopt-dont-shop/lib.api', () => ({
   ApiService: jest.fn().mockImplementation(() => ({
     get: jest.fn(),
     post: jest.fn(),
@@ -65,7 +65,7 @@ describe('DiscoveryService', () => {
     jest.clearAllMocks();
 
     // Get the mocked constructor and create a mock instance
-    const { ApiService } = await import('@adopt-dont-shop/lib-api');
+    const { ApiService } = await import('@adopt-dont-shop/lib.api');
     mockApiService = {
       get: jest.fn(),
       post: jest.fn(),

@@ -1,8 +1,8 @@
 import { InvitationsService } from '../invitations-service';
-import { ApiService } from '@adopt-dont-shop/lib-api';
+import { ApiService } from '@adopt-dont-shop/lib.api';
 
 // Mock the ApiService
-jest.mock('@adopt-dont-shop/lib-api');
+jest.mock('@adopt-dont-shop/lib.api');
 
 describe('InvitationsService', () => {
   let service: InvitationsService;

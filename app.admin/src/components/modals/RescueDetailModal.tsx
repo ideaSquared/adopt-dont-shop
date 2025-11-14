@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Button, Heading, Text, DateTime } from '@adopt-dont-shop/components';
+import { Button, Heading, Text, DateTime } from '@adopt-dont-shop/lib.components';
 import {
   FiX,
   FiMail,

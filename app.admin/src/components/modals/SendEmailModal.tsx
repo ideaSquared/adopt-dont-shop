@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Button, Input, Modal } from '@adopt-dont-shop/components';
+import { Button, Input, Modal } from '@adopt-dont-shop/lib.components';
 import { FiMail, FiAlertCircle, FiFileText } from 'react-icons/fi';
 import type { AdminRescue, RescueEmailPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';

@@ -1,5 +1,5 @@
 import { useChat } from '@/contexts/ChatContext';
-import { Spinner } from '@adopt-dont-shop/components';
+import { Spinner } from '@adopt-dont-shop/lib.components';
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { MessageInput } from './MessageInput';

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Button, Input, Heading, Text } from '@adopt-dont-shop/components';
+import { Button, Input, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { FiX, FiCheckCircle, FiXCircle, FiAlertCircle } from 'react-icons/fi';
 import type { AdminRescue, RescueVerificationPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';

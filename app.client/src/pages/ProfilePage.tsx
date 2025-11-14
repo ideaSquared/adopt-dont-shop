@@ -1,7 +1,7 @@
 import { ProfileEditForm, SettingsForm } from '@/components/profile';
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, authService, Application, User } from '@/services';
-import { Alert, Button, Spinner } from '@adopt-dont-shop/components';
+import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';

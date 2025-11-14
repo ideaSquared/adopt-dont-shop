@@ -12,21 +12,25 @@ services:
   # - Development: adopt_dont_shop_dev (default in Docker)
   # - Test: adopt_dont_shop_test (CI/CD creates separately)
   # - Production: adopt_dont_shop_prod (separate infrastructure)
+  #
+  # ⚠️ SECURITY: Requires POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB in .env file
+  # Development uses sensible defaults, production MUST override
   database:
     image: postgis/postgis:16-3.4
     restart: always
     ports:
       - '5432:5432'
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      # Development defaults - MUST be overridden for production
+      POSTGRES_USER: ${POSTGRES_USER:-adopt_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set in .env file}
       POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop_dev}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
     healthcheck:
       test:
-        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-adopt_dont_shop_dev}']
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-adopt_user} -d ${POSTGRES_DB:-adopt_dont_shop_dev}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -48,8 +52,8 @@ services:
   # Main backend service - Connects to single database
   service-backend:
     build:
-      context: ./service.backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./service.backend/Dockerfile
       target: development
     ports:
       - '5000:5000'
@@ -61,17 +65,26 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 5000
       # Database configuration - using backend's expected variable names
-      DB_HOST: database
-      DB_PORT: 5432
-      DB_USERNAME: ${POSTGRES_USER:-user}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      DB_HOST: ${DB_HOST:-database}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USERNAME: ${POSTGRES_USER:-adopt_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set in .env file}
       DEV_DB_NAME: ${POSTGRES_DB:-adopt_dont_shop_dev}
-      DB_LOGGING: false
+      DB_LOGGING: ${DB_LOGGING:-false}
       # Development mode configuration
       FORCE_SEED: ${FORCE_SEED:-false}
-      # Other services
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      # Redis configuration
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      # Security - JWT tokens (REQUIRED)
+      JWT_SECRET: ${JWT_SECRET:?Error: JWT_SECRET must be set in .env file}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-${JWT_SECRET}}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      # Security - Session & CSRF
+      SESSION_SECRET: ${SESSION_SECRET:-${JWT_SECRET}}
+      CSRF_SECRET: ${CSRF_SECRET:-${JWT_SECRET}}
       API_URL: ${API_URL:-http://api.localhost}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5000}
       # File watching for hot reload (critical for Windows/Docker)

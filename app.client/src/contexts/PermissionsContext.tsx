@@ -2,7 +2,7 @@ import {
   PermissionsService,
   Permission,
   UserWithPermissions,
-} from '@adopt-dont-shop/lib-permissions';
+} from '@adopt-dont-shop/lib.permissions';
 import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 
 interface PermissionsContextType {

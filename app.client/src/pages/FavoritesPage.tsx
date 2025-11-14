@@ -1,6 +1,6 @@
-import { useAuth } from '@adopt-dont-shop/lib-auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { petService, Pet } from '@/services';
-import { Alert, Container, Spinner } from '@adopt-dont-shop/components';
+import { Alert, Container, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';

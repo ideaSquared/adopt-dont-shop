@@ -1,8 +1,8 @@
 import { AnalyticsService } from '../analytics-service';
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib-api', () => ({
+jest.mock('@adopt-dont-shop/lib.api', () => ({
   apiService: {
     post: jest.fn(),
     get: jest.fn(),

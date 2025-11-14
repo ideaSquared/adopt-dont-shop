@@ -1,5 +1,5 @@
 import { User } from '@/services';
-import { Button, Input, TextArea } from '@adopt-dont-shop/components';
+import { Button, Input, TextArea } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 

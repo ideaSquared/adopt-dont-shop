@@ -1,4 +1,4 @@
-// Main exports for @adopt-dont-shop/lib-pets
+// Main exports for @adopt-dont-shop/lib.pets
 export { PetsService } from './services/pets-service';
 export { PetManagementService, petManagementService } from './services/pets-management-service';
 export type { PetsServiceConfig } from './types';

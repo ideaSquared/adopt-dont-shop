@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TimelineEvent } from '../components/ApplicationTimeline';
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
 interface UseTimelineWidgetProps {
   applicationId: string;

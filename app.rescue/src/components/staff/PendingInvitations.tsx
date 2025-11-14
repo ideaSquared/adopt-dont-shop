@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { PendingInvitation } from '@adopt-dont-shop/lib-invitations';
+import { PendingInvitation } from '@adopt-dont-shop/lib.invitations';
 
 interface PendingInvitationsProps {
   invitations: PendingInvitation[];
