@@ -23,7 +23,7 @@ services:
     environment:
       # Development defaults - MUST be overridden for production
       POSTGRES_USER: ${POSTGRES_USER:-adopt_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set in .env file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-adopt_dont_shop_dev}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -68,7 +68,7 @@ services:
       DB_HOST: ${DB_HOST:-database}
       DB_PORT: ${DB_PORT:-5432}
       DB_USERNAME: ${POSTGRES_USER:-adopt_user}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set in .env file}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       DEV_DB_NAME: ${POSTGRES_DB:-adopt_dont_shop_dev}
       DB_LOGGING: ${DB_LOGGING:-false}
       # Development mode configuration
@@ -78,7 +78,7 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       # Security - JWT tokens (REQUIRED)
-      JWT_SECRET: ${JWT_SECRET:?Error: JWT_SECRET must be set in .env file}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-${JWT_SECRET}}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
