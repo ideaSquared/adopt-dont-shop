@@ -23,6 +23,7 @@ FROM base AS dependencies
 
 # Copy workspace configuration from monorepo root
 COPY package.json package-lock.json ./
+COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
 # Copy backend service package files
@@ -43,6 +44,7 @@ FROM base AS development
 
 # Copy workspace configuration from monorepo root
 COPY package.json package-lock.json ./
+COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
 # Copy backend service
@@ -70,6 +72,7 @@ FROM base AS build
 
 # Copy workspace configuration from monorepo root
 COPY package.json package-lock.json ./
+COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
 # Copy backend service

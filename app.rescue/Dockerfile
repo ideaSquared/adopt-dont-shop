@@ -8,6 +8,10 @@ RUN apk add --no-cache git
 
 # Development stage
 FROM base AS development
+# Copy eslint-config packages (workspace dependencies needed for npm install)
+COPY eslint-config-base/ ./eslint-config-base/
+COPY eslint-config-react/ ./eslint-config-react/
+
 # Copy package files and source code for both app.rescue and lib.components
 COPY app.rescue/package*.json ./app.rescue/
 COPY lib.components/package*.json ./lib.components/
@@ -36,8 +40,12 @@ WORKDIR /app/app.rescue
 EXPOSE 3002
 CMD ["npm", "run", "dev"]
 
-# Build stage  
+# Build stage
 FROM base AS build
+# Copy eslint-config packages (workspace dependencies needed for npm install)
+COPY eslint-config-base/ ./eslint-config-base/
+COPY eslint-config-react/ ./eslint-config-react/
+
 # Copy package files and source code for both app.rescue and lib.components
 COPY app.rescue/package*.json ./app.rescue/
 COPY lib.components/package*.json ./lib.components/
