@@ -63,7 +63,7 @@ jobs:
           file: ./service.backend/Dockerfile
           target: development
           push: false
-          tags: paragonjenko/adoptdontshop/backend:dev-${{ github.sha }}
+          tags: paragonjenko/adoptdontshop:service-backend-dev-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           build-args: |
@@ -76,7 +76,7 @@ jobs:
           file: ./service.backend/Dockerfile
           target: production
           push: false
-          tags: paragonjenko/adoptdontshop/backend:prod-${{ github.sha }}
+          tags: paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           build-args: |
@@ -128,7 +128,7 @@ jobs:
             APP_NAME=${{ matrix.app }}
             BUILDKIT_INLINE_CACHE=1
           push: false
-          tags: paragonjenko/adoptdontshop/${{ matrix.app }}:dev-${{ github.sha }}
+          tags: paragonjenko/adoptdontshop:${{ matrix.app }}-dev-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.app }}
           cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.app }}-new,mode=max
 
@@ -142,7 +142,7 @@ jobs:
             APP_NAME=${{ matrix.app }}
             BUILDKIT_INLINE_CACHE=1
           push: false
-          tags: paragonjenko/adoptdontshop/${{ matrix.app }}:prod-${{ github.sha }}
+          tags: paragonjenko/adoptdontshop:${{ matrix.app }}-prod-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.app }}
           cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.app }}-new,mode=max
 
@@ -233,12 +233,12 @@ jobs:
 
       - name: Build backend image for scanning
         run: |
-          docker build -f service.backend/Dockerfile -t paragonjenko/adoptdontshop/backend:scan .
+          docker build -f service.backend/Dockerfile -t paragonjenko/adoptdontshop:service-backend-scan .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: paragonjenko/adoptdontshop/backend:scan
+          image-ref: paragonjenko/adoptdontshop:service-backend-scan
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'

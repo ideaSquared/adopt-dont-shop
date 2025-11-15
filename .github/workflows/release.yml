@@ -75,7 +75,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: paragonjenko/adoptdontshop/service.backend
+          images: paragonjenko/adoptdontshop
+          flavor: |
+            prefix=service-backend-
           tags: |
             type=ref,event=branch
             type=ref,event=tag
@@ -125,7 +127,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: paragonjenko/adoptdontshop/${{ matrix.app }}
+          images: paragonjenko/adoptdontshop
+          flavor: |
+            prefix=${{ matrix.app }}-
           tags: |
             type=ref,event=branch
             type=ref,event=tag
