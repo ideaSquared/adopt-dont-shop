@@ -1,4 +1,55 @@
 /**
+ * Socket.IO connection status
+ */
+export type ConnectionStatus =
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'error';
+
+/**
+ * Socket.IO reconnection configuration
+ */
+export interface ReconnectionConfig {
+  /**
+   * Enable automatic reconnection
+   */
+  enabled: boolean;
+
+  /**
+   * Initial delay in milliseconds
+   */
+  initialDelay: number;
+
+  /**
+   * Maximum delay in milliseconds
+   */
+  maxDelay: number;
+
+  /**
+   * Maximum number of reconnection attempts
+   */
+  maxAttempts: number;
+
+  /**
+   * Exponential backoff multiplier
+   */
+  backoffMultiplier: number;
+}
+
+/**
+ * Queued message for sending when connection is restored
+ */
+export interface QueuedMessage {
+  conversationId: string;
+  content: string;
+  attachments?: File[];
+  timestamp: string;
+  retryCount: number;
+}
+
+/**
  * Configuration options for ChatService
  */
 export interface ChatServiceConfig {
@@ -6,6 +57,11 @@ export interface ChatServiceConfig {
    * API base URL
    */
   apiUrl?: string;
+
+  /**
+   * WebSocket URL (defaults to apiUrl if not provided)
+   */
+  socketUrl?: string;
 
   /**
    * Enable debug logging
@@ -17,6 +73,21 @@ export interface ChatServiceConfig {
    * Can be static strings or dynamic functions/objects for auth tokens
    */
   headers?: Record<string, string | (() => string) | { Authorization?: string }>;
+
+  /**
+   * Reconnection configuration
+   */
+  reconnection?: Partial<ReconnectionConfig>;
+
+  /**
+   * Enable message queuing during disconnection
+   */
+  enableMessageQueue?: boolean;
+
+  /**
+   * Maximum number of messages to queue
+   */
+  maxQueueSize?: number;
 }
 
 /**

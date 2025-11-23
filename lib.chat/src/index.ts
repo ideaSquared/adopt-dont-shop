@@ -11,8 +11,14 @@ export type {
   BaseResponse,
   ErrorResponse,
   PaginatedResponse,
+  ConnectionStatus,
+  ReconnectionConfig,
+  QueuedMessage,
 } from './types';
 export * from './types';
+
+// Hooks
+export { useConnectionStatus } from './hooks';
 
 // Admin hooks
 export {
