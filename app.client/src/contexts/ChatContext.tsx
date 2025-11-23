@@ -3,6 +3,7 @@ import {
   chatService,
   Message as LibMessage,
   TypingIndicator,
+  useConnectionStatus,
 } from '@/services';
 import {
   getConnectionQuality,
@@ -36,6 +37,11 @@ interface ChatContextType {
   hasMoreMessages: boolean;
   isLoadingMoreMessages: boolean;
 
+  // Socket.IO connection status
+  connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+  isReconnecting: boolean;
+  reconnectionAttempts: number;
+
   // Offline state
   isOnline: boolean;
   connectionQuality: 'excellent' | 'good' | 'poor' | 'offline';
@@ -65,13 +71,20 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMoreMessages, setIsLoadingMoreMessages] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Use Socket.IO connection status hook
+  const {
+    status: connectionStatus,
+    isConnected,
+    isReconnecting,
+    reconnectionAttempts,
+  } = useConnectionStatus(chatService);
 
   // Offline state
   const [isOnline, setIsOnline] = useState(isCurrentlyOnline());
@@ -112,7 +125,6 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
       const token = localStorage.getItem('accessToken') || '';
       chatService.connect(user.userId, token);
-      setIsConnected(true);
 
       // Set up socket event listeners
       const handleMessage = (message: Message) => {
@@ -192,13 +204,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
         chatService.off('message');
         chatService.off('typing');
         chatService.disconnect();
-        setIsConnected(false);
         initializedRef.current = null;
       };
     } else if (!isAuthenticated) {
       // Reset when user logs out
       initializedRef.current = null;
-      setIsConnected(false);
       setConversations([]);
       setMessages([]);
       setError(null);
@@ -491,6 +501,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
     typingUsers,
     hasMoreMessages,
     isLoadingMoreMessages,
+    connectionStatus,
+    isReconnecting,
+    reconnectionAttempts,
     isOnline,
     connectionQuality,
     pendingMessageCount,
