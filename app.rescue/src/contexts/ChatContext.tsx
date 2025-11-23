@@ -1,9 +1,9 @@
-import { ChatService, Conversation, Message } from '@adopt-dont-shop/lib.chat';
-import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import { Conversation, Message, TypingIndicator } from '@adopt-dont-shop/lib.chat';
+import { createContext, useContext, ReactNode, useState, useEffect, useRef } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { chatService, useConnectionStatus } from '../services/libraryServices';
 
 interface ChatContextType {
-  chatService: ChatService;
   conversations: Conversation[];
   activeConversation: Conversation | null;
   messages: Message[];
@@ -12,8 +12,14 @@ interface ChatContextType {
   isLoading: boolean;
   error: string | null;
   typingUsers: string[];
-  startTyping?: (conversationId: string) => void;
-  stopTyping?: (conversationId: string) => void;
+  startTyping: (conversationId: string) => void;
+  stopTyping: (conversationId: string) => void;
+
+  // Socket.IO connection status
+  connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+  isConnected: boolean;
+  isReconnecting: boolean;
+  reconnectionAttempts: number;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -38,20 +44,70 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const initializedRef = useRef<string | null>(null);
 
-  const chatService = useMemo(() => {
-    return new ChatService({
-      apiUrl: import.meta.env.VITE_API_BASE_URL,
-      debug: import.meta.env.NODE_ENV === 'development',
-      headers: {
-        get Authorization() {
-          const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-          return token ? `Bearer ${token}` : '';
-        },
-      },
-    });
-  }, []);
+  // Use Socket.IO connection status hook
+  const {
+    status: connectionStatus,
+    isConnected,
+    isReconnecting,
+    reconnectionAttempts,
+  } = useConnectionStatus(chatService);
 
+  // Initialize Socket.IO connection when user is authenticated
+  useEffect(() => {
+    if (user?.userId && initializedRef.current !== user.userId) {
+      initializedRef.current = user.userId;
+
+      const token =
+        localStorage.getItem('accessToken') || localStorage.getItem('authToken') || '';
+      chatService.connect(user.userId, token);
+
+      // Set up Socket.IO event listeners
+      const handleMessage = (message: Message) => {
+        setMessages(prev => {
+          const messageExists = prev.some(msg => msg.id === message.id);
+          if (messageExists) return prev;
+          return [...prev, message];
+        });
+
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === message.conversationId
+              ? { ...conv, lastMessage: message, updatedAt: message.timestamp }
+              : conv
+          )
+        );
+      };
+
+      const handleTyping = (data: TypingIndicator) => {
+        setTypingUsers(prev => {
+          if (prev.includes(data.userName)) return prev;
+          return [...prev, data.userName];
+        });
+
+        setTimeout(() => {
+          setTypingUsers(prev => prev.filter(name => name !== data.userName));
+        }, 3000);
+      };
+
+      chatService.onMessage(handleMessage);
+      chatService.onTyping(handleTyping);
+
+      return () => {
+        chatService.off('message');
+        chatService.off('typing');
+        chatService.disconnect();
+        initializedRef.current = null;
+      };
+    } else if (!user) {
+      initializedRef.current = null;
+      setConversations([]);
+      setMessages([]);
+    }
+  }, [user?.userId]);
+
+  // Load conversations
   useEffect(() => {
     const loadConversations = async () => {
       if (!user?.email) {
@@ -72,7 +128,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     };
 
     loadConversations();
-  }, [chatService, user?.email]);
+  }, [user?.email]);
 
   // Load messages when active conversation changes
   useEffect(() => {
@@ -98,7 +154,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     };
 
     loadMessages();
-  }, [activeConversation, chatService]);
+  }, [activeConversation]);
 
   const setActiveConversation = (conversation: Conversation | null) => {
     setActiveConversationState(conversation);
@@ -131,31 +187,29 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   };
 
   const startTyping = (conversationId: string) => {
-    // In a real implementation, this would send a WebSocket event
-    console.log('Start typing in conversation:', conversationId);
+    chatService.startTyping(conversationId);
   };
 
   const stopTyping = (conversationId: string) => {
-    // In a real implementation, this would send a WebSocket event
-    console.log('Stop typing in conversation:', conversationId);
+    chatService.stopTyping(conversationId);
   };
 
-  const value = useMemo(
-    () => ({
-      chatService,
-      conversations,
-      activeConversation,
-      messages,
-      setActiveConversation,
-      sendMessage,
-      isLoading,
-      error,
-      typingUsers,
-      startTyping,
-      stopTyping,
-    }),
-    [chatService, conversations, activeConversation, messages, isLoading, error, typingUsers]
-  );
+  const value = {
+    conversations,
+    activeConversation,
+    messages,
+    setActiveConversation,
+    sendMessage,
+    isLoading,
+    error,
+    typingUsers,
+    startTyping,
+    stopTyping,
+    connectionStatus,
+    isConnected,
+    isReconnecting,
+    reconnectionAttempts,
+  };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };

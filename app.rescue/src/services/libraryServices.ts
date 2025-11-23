@@ -62,7 +62,20 @@ export const analyticsService = new AnalyticsService(serviceConfig);
 export const applicationService = new ApplicationsService(globalApiService, serviceConfig);
 export const petService = new PetsService(globalApiService);
 export const rescueService = new RescueService(globalApiService, serviceConfig);
-export const chatService = new ChatService(serviceConfig);
+
+// ✅ Configure chatService with Socket.IO URL and authentication headers
+export const chatService = new ChatService({
+  ...serviceConfig,
+  socketUrl: baseUrl, // Socket.IO connects directly to base URL
+  headers: {
+    Authorization: () => {
+      const token =
+        localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+      return token ? `Bearer ${token}` : '';
+    },
+  },
+});
+
 export const notificationsService = new NotificationsService(serviceConfig);
 export const permissionsService = new PermissionsService(serviceConfig, globalApiService);
 export const validationService = new ValidationService(serviceConfig);
@@ -73,3 +86,11 @@ export const authService = new AuthService();
 
 // Export the configured API service for direct use
 export const apiService = globalApiService;
+
+// Export Socket.IO hooks and types
+export { useConnectionStatus } from '@adopt-dont-shop/lib.chat';
+export type {
+  ConnectionStatus,
+  ReconnectionConfig,
+  QueuedMessage,
+} from '@adopt-dont-shop/lib.chat';

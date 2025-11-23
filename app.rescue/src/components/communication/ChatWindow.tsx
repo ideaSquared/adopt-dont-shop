@@ -2,6 +2,7 @@ import { useChat } from '@/contexts/ChatContext';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
+import { ConnectionStatusBanner } from './ConnectionStatusBanner';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
 import { TypingIndicator } from './TypingIndicator';
@@ -249,6 +250,8 @@ export function ChatWindow() {
           </p>
         </ConversationInfo>
       </ChatHeader>
+
+      <ConnectionStatusBanner />
 
       <ChatBody>
         {isLoading && (!messages || messages.length === 0) ? (
