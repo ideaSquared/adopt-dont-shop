@@ -12,6 +12,7 @@ export {
   permissionsService,
   api,
   apiService,
+  useConnectionStatus,
 } from './libraryServices';
 
 // Re-export types
@@ -41,6 +42,9 @@ export type {
   Conversation,
   Message,
   TypingIndicator,
+  ConnectionStatus,
+  ReconnectionConfig,
+  QueuedMessage,
   SearchServiceConfig,
   SearchServiceOptions,
   Notification,

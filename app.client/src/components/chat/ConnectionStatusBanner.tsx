@@ -21,12 +21,12 @@ const Banner = styled.div<{ variant: 'info' | 'warning' | 'error' }>`
   background: ${props => {
     switch (props.variant) {
       case 'warning':
-        return props.theme.colors?.warning || '#f59e0b';
+        return props.theme.colors.semantic.warning?.[500] || '#f59e0b';
       case 'error':
-        return props.theme.colors?.error || '#ef4444';
+        return props.theme.colors.semantic.error[500] || '#ef4444';
       case 'info':
       default:
-        return props.theme.colors?.info || '#3b82f6';
+        return props.theme.colors.primary[500] || '#3b82f6';
     }
   }};
   color: white;
@@ -63,7 +63,7 @@ const StatusText = styled.span`
 `;
 
 export function ConnectionStatusBanner() {
-  const { connectionStatus, isReconnecting, reconnectionAttempts } = useChat();
+  const { connectionStatus, reconnectionAttempts } = useChat();
 
   // Don't show banner if connected
   if (connectionStatus === 'connected') {
@@ -85,9 +85,10 @@ export function ConnectionStatusBanner() {
       break;
     case 'error':
       variant = 'error';
-      message = reconnectionAttempts > 0
-        ? `Connection error. Retrying... (attempt ${reconnectionAttempts})`
-        : 'Connection error. Please check your internet connection.';
+      message =
+        reconnectionAttempts > 0
+          ? `Connection error. Retrying... (attempt ${reconnectionAttempts})`
+          : 'Connection error. Please check your internet connection.';
       break;
     case 'disconnected':
       variant = 'warning';
