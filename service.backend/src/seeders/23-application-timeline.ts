@@ -1,5 +1,5 @@
 import ApplicationTimeline, { TimelineEventType } from '../models/ApplicationTimeline';
-import { v4 as uuidv4 } from 'uuid';
+import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 
 const timelineData = [
   // Timeline events for John's application (VISITING stage)
