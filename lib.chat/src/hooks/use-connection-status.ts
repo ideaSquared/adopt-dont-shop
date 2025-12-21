@@ -15,9 +15,7 @@ import { ConnectionStatus } from '../types';
  * ```
  */
 export const useConnectionStatus = (chatService: ChatService) => {
-  const [status, setStatus] = useState<ConnectionStatus>(
-    chatService.getConnectionStatus()
-  );
+  const [status, setStatus] = useState<ConnectionStatus>(chatService.getConnectionStatus());
   const [reconnectionAttempts, setReconnectionAttempts] = useState(0);
 
   useEffect(() => {

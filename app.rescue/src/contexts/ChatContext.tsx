@@ -59,15 +59,16 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     if (user?.userId && initializedRef.current !== user.userId) {
       initializedRef.current = user.userId;
 
-      const token =
-        localStorage.getItem('accessToken') || localStorage.getItem('authToken') || '';
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken') || '';
       chatService.connect(user.userId, token);
 
       // Set up Socket.IO event listeners
       const handleMessage = (message: Message) => {
         setMessages(prev => {
           const messageExists = prev.some(msg => msg.id === message.id);
-          if (messageExists) return prev;
+          if (messageExists) {
+            return prev;
+          }
           return [...prev, message];
         });
 
@@ -82,7 +83,9 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
 
       const handleTyping = (data: TypingIndicator) => {
         setTypingUsers(prev => {
-          if (prev.includes(data.userName)) return prev;
+          if (prev.includes(data.userName)) {
+            return prev;
+          }
           return [...prev, data.userName];
         });
 

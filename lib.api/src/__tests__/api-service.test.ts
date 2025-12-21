@@ -243,8 +243,12 @@ describe('ApiService', () => {
 
       // Mock localStorage.getItem to return a token
       mockLocalStorage.getItem.mockImplementation((key: string) => {
-        if (key === 'authToken') return 'localStorage-token';
-        if (key === 'accessToken') return 'localStorage-token';
+        if (key === 'authToken') {
+          return 'localStorage-token';
+        }
+        if (key === 'accessToken') {
+          return 'localStorage-token';
+        }
         return null;
       });
 

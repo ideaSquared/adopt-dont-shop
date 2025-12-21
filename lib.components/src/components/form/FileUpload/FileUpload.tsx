@@ -230,7 +230,9 @@ const HelperText = styled.div<{ $state: FileUploadState }>`
 `;
 
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) {
+    return '0 Bytes';
+  }
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -335,7 +337,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const handleFileSelect = useCallback(
     (fileList: FileList | null) => {
-      if (!fileList || fileList.length === 0) return;
+      if (!fileList || fileList.length === 0) {
+        return;
+      }
 
       const validFiles = validateFiles(fileList);
       if (validFiles.length > 0 && onFilesSelect) {

@@ -261,7 +261,9 @@ const TextAreaComponent = forwardRef<HTMLTextAreaElement, TextAreaProps>(
     // Auto-resize functionality
     const adjustHeight = React.useCallback(() => {
       const textArea = textAreaRef.current;
-      if (!textArea || !autoResize) return;
+      if (!textArea || !autoResize) {
+        return;
+      }
 
       // Reset height to calculate scrollHeight
       textArea.style.height = 'auto';

@@ -416,7 +416,9 @@ export const Table = <T,>({
     }
 
     const column = columns.find(col => col.key === effectiveSortBy);
-    if (!column) return data;
+    if (!column) {
+      return data;
+    }
 
     const accessor = column.accessor || column.key;
 
@@ -424,12 +426,16 @@ export const Table = <T,>({
       const aValue = getValue(a, accessor);
       const bValue = getValue(b, accessor);
 
-      if (aValue === bValue) return 0;
+      if (aValue === bValue) {
+        return 0;
+      }
 
       let comparison = 0;
-      if (aValue === null || aValue === undefined) comparison = 1;
-      else if (bValue === null || bValue === undefined) comparison = -1;
-      else if (typeof aValue === 'string' && typeof bValue === 'string') {
+      if (aValue === null || aValue === undefined) {
+        comparison = 1;
+      } else if (bValue === null || bValue === undefined) {
+        comparison = -1;
+      } else if (typeof aValue === 'string' && typeof bValue === 'string') {
         comparison = aValue.localeCompare(bValue);
       } else {
         comparison = aValue < bValue ? -1 : 1;
@@ -440,7 +446,9 @@ export const Table = <T,>({
   }, [data, columns, effectiveSortBy, effectiveSortDirection]);
 
   const handleSort = (column: TableColumn<T>) => {
-    if (!column.sortable && !sortable) return;
+    if (!column.sortable && !sortable) {
+      return;
+    }
 
     const isCurrentColumn = column.key === effectiveSortBy;
     let newDirection: SortDirection = 'asc';
@@ -474,8 +482,12 @@ export const Table = <T,>({
       return rowKey(row, index);
     }
     const value = getValue(row, rowKey);
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number') return value.toString();
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      return value.toString();
+    }
     return index.toString();
   };
 

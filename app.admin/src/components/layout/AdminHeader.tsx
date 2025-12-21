@@ -212,12 +212,16 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed }) =>
   };
 
   const getInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName && !lastName) return 'A';
+    if (!firstName && !lastName) {
+      return 'A';
+    }
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
 
   const getUserRole = () => {
-    if (!user?.userType) return 'Admin';
+    if (!user?.userType) {
+      return 'Admin';
+    }
     return user.userType.replace('_', ' ');
   };
 

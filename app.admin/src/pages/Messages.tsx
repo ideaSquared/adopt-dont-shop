@@ -151,8 +151,12 @@ const Messages: React.FC = () => {
       limit?: number;
     } = {};
 
-    if (statusFilter !== 'all') apiFilters.status = statusFilter;
-    if (searchQuery) apiFilters.search = searchQuery;
+    if (statusFilter !== 'all') {
+      apiFilters.status = statusFilter;
+    }
+    if (searchQuery) {
+      apiFilters.search = searchQuery;
+    }
 
     return apiFilters;
   }, [statusFilter, searchQuery]);

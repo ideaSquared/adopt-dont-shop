@@ -134,7 +134,9 @@ const EmptyValue = styled.span`
 `;
 
 export const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, user }) => {
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   const getUserInitials = (firstName: string | null, lastName: string | null) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase() || '??';

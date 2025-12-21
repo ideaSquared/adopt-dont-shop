@@ -144,15 +144,18 @@ export class ChatService {
     });
 
     // Typing indicator
-    this.socket.on('user_typing', (data: { userId: string; firstName: string; lastName: string; chatId: string }) => {
-      const typing: TypingIndicator = {
-        conversationId: data.chatId,
-        userId: data.userId,
-        userName: `${data.firstName} ${data.lastName}`,
-        startedAt: new Date().toISOString(),
-      };
-      this.typingListeners.forEach((listener) => listener(typing));
-    });
+    this.socket.on(
+      'user_typing',
+      (data: { userId: string; firstName: string; lastName: string; chatId: string }) => {
+        const typing: TypingIndicator = {
+          conversationId: data.chatId,
+          userId: data.userId,
+          userName: `${data.firstName} ${data.lastName}`,
+          startedAt: new Date().toISOString(),
+        };
+        this.typingListeners.forEach((listener) => listener(typing));
+      }
+    );
 
     // User stopped typing
     this.socket.on('user_stopped_typing', () => {
@@ -214,11 +217,7 @@ export class ChatService {
     this.connectionErrorListeners.forEach((listener) => listener(error));
 
     // Attempt reconnection if enabled
-    if (
-      this.config.reconnection?.enabled &&
-      this.currentUserId &&
-      this.currentToken
-    ) {
+    if (this.config.reconnection?.enabled && this.currentUserId && this.currentToken) {
       this.attemptReconnection();
     }
   }
@@ -485,10 +484,7 @@ export class ChatService {
     attachments?: File[]
   ): Promise<Message> {
     // Queue message if disconnected and queuing is enabled
-    if (
-      this.config.enableMessageQueue &&
-      this.connectionStatus !== 'connected'
-    ) {
+    if (this.config.enableMessageQueue && this.connectionStatus !== 'connected') {
       if (this.messageQueue.length < this.config.maxQueueSize) {
         this.messageQueue.push({
           conversationId,

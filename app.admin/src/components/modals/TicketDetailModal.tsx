@@ -283,7 +283,9 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyContent.trim()) return;
+    if (!replyContent.trim()) {
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -298,7 +300,9 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     }
   };
 
-  if (!ticket) return null;
+  if (!ticket) {
+    return null;
+  }
 
   // Use responses length as key to force re-render when responses change
   const responsesKey = ticket.responses?.length || 0;

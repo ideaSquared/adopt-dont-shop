@@ -76,7 +76,9 @@ class AuthService {
   // Get current admin user from localStorage
   getCurrentUser(): User | null {
     const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
+    if (!userStr) {
+      return null;
+    }
 
     try {
       return JSON.parse(userStr);

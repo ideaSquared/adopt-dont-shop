@@ -357,7 +357,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onClose,
   report,
 }) => {
-  if (!report) return null;
+  if (!report) {
+    return null;
+  }
 
   const entityContext = (report as any).entityContext;
   const viewUrl = getEntityViewUrl(report.reportedEntityType, report.reportedEntityId);

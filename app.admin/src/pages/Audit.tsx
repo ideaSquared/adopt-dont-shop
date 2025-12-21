@@ -275,7 +275,9 @@ const Audit: React.FC = () => {
 
   // Filter logs by search query (client-side filtering)
   const filteredLogs = useMemo(() => {
-    if (!searchQuery) return logs;
+    if (!searchQuery) {
+      return logs;
+    }
 
     return logs.filter(log => {
       const searchLower = searchQuery.toLowerCase();

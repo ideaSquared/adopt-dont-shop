@@ -433,7 +433,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   const { deleteChat, updateChatStatus, deleteMessage } = useAdminChatMutations();
 
   const fetchReports = async () => {
-    if (!chat) return;
+    if (!chat) {
+      return;
+    }
 
     setLoadingReports(true);
     try {
@@ -454,7 +456,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   };
 
   const handleFlagConversation = async () => {
-    if (!chat || !chatId) return;
+    if (!chat || !chatId) {
+      return;
+    }
 
     setFlaggingConversation(true);
     try {

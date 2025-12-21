@@ -69,8 +69,7 @@ export const chatService = new ChatService({
   socketUrl: baseUrl, // Socket.IO connects directly to base URL
   headers: {
     Authorization: () => {
-      const token =
-        localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
       return token ? `Bearer ${token}` : '';
     },
   },

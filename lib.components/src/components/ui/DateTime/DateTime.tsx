@@ -14,7 +14,9 @@ const DateTime: React.FC<DateTimeProps> = ({
   localeOption = 'en-GB',
   showTooltip = false,
 }) => {
-  if (!timestamp) return;
+  if (!timestamp) {
+    return;
+  }
 
   const date = new Date(timestamp);
 
@@ -23,8 +25,12 @@ const DateTime: React.FC<DateTimeProps> = ({
 
   // Function to get the ordinal suffix for a day
   const getOrdinalSuffix = (day: number): string => {
-    if (localeOption === 'en-US') return '';
-    if (day > 3 && day < 21) return 'th';
+    if (localeOption === 'en-US') {
+      return '';
+    }
+    if (day > 3 && day < 21) {
+      return 'th';
+    }
     switch (day % 10) {
       case 1:
         return 'st';
@@ -124,7 +130,9 @@ const Clock: React.FC<{
   timestamp: string | Date;
   localeOption: 'en-GB' | 'en-US';
 }> = ({ timezone, label, timestamp, localeOption }) => {
-  if (!timestamp) return;
+  if (!timestamp) {
+    return;
+  }
 
   const date = new Date(timestamp);
 

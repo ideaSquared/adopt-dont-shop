@@ -465,7 +465,9 @@ export const SelectInput = forwardRef<HTMLButtonElement, SelectInputProps>(
         originalValue: option.value,
       }));
 
-      if (!searchable || !searchQuery) return processedOptions;
+      if (!searchable || !searchQuery) {
+        return processedOptions;
+      }
       return processedOptions.filter(option =>
         option.label.toLowerCase().includes(searchQuery.toLowerCase())
       );

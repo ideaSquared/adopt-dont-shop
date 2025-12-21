@@ -14,7 +14,9 @@ import {
  * Transform rescue data from API format to frontend format
  */
 const transformRescueFromAPI = (rescue: RescueAPIResponse): Rescue => {
-  if (!rescue) return rescue as unknown as Rescue;
+  if (!rescue) {
+    return rescue as unknown as Rescue;
+  }
 
   return {
     // Map all backend fields

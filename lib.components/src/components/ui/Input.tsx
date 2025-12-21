@@ -40,8 +40,12 @@ const StyledInput = styled.input<StyledInputWrapperProps>`
   color: ${({ theme }) => theme.text.primary};
   border: ${({ theme }) => theme.border.width.thin} solid
     ${({ theme, $hasError, $variant }) => {
-      if ($hasError || $variant === 'error') return theme.border.color.error;
-      if ($variant === 'success') return theme.colors.semantic.success[500];
+      if ($hasError || $variant === 'error') {
+        return theme.border.color.error;
+      }
+      if ($variant === 'success') {
+        return theme.colors.semantic.success[500];
+      }
       return theme.border.color.secondary;
     }};
   border-radius: ${({ theme }) => theme.border.radius.md};
@@ -51,14 +55,22 @@ const StyledInput = styled.input<StyledInputWrapperProps>`
 
   &:focus {
     border-color: ${({ theme, $hasError, $variant }) => {
-      if ($hasError || $variant === 'error') return theme.border.color.error;
-      if ($variant === 'success') return theme.colors.semantic.success[500];
+      if ($hasError || $variant === 'error') {
+        return theme.border.color.error;
+      }
+      if ($variant === 'success') {
+        return theme.colors.semantic.success[500];
+      }
       return theme.border.color.focus;
     }};
     box-shadow: 0 0 0 2px
       ${({ theme, $hasError, $variant }) => {
-        if ($hasError || $variant === 'error') return `${theme.background.error}40`;
-        if ($variant === 'success') return `${theme.colors.semantic.success[500]}40`;
+        if ($hasError || $variant === 'error') {
+          return `${theme.background.error}40`;
+        }
+        if ($variant === 'success') {
+          return `${theme.colors.semantic.success[500]}40`;
+        }
         return `${theme.background.secondary}40`;
       }};
   }

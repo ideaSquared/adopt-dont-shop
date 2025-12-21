@@ -184,7 +184,9 @@ const getColorStyles = (color: HeadingColor, theme: Theme) => {
 };
 
 const getMarginStyles = (level: HeadingLevel, noMargin: boolean, theme: Theme) => {
-  if (noMargin) return `margin: 0;`;
+  if (noMargin) {
+    return `margin: 0;`;
+  }
 
   switch (level) {
     case 'h1':

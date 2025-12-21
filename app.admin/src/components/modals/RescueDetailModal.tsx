@@ -440,7 +440,9 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   }, [rescueId]);
 
   const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {
+      return 'N/A';
+    }
     return new Date(dateString).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
@@ -449,7 +451,9 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   };
 
   const fetchStaff = async (showLoading = true) => {
-    if (!rescueId) return;
+    if (!rescueId) {
+      return;
+    }
 
     try {
       if (showLoading) {

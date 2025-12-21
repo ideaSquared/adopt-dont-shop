@@ -320,11 +320,21 @@ export class ApplicationsService {
     try {
       const params = new URLSearchParams();
 
-      if (rescueId) params.append('rescueId', rescueId);
-      if (options?.status) params.append('status', options.status);
-      if (options?.search) params.append('search', options.search);
-      if (options?.limit) params.append('limit', options.limit.toString());
-      if (options?.offset) params.append('offset', options.offset.toString());
+      if (rescueId) {
+        params.append('rescueId', rescueId);
+      }
+      if (options?.status) {
+        params.append('status', options.status);
+      }
+      if (options?.search) {
+        params.append('search', options.search);
+      }
+      if (options?.limit) {
+        params.append('limit', options.limit.toString());
+      }
+      if (options?.offset) {
+        params.append('offset', options.offset.toString());
+      }
 
       const queryString = params.toString();
       const url = `${this.baseUrl}${queryString ? `?${queryString}` : ''}`;

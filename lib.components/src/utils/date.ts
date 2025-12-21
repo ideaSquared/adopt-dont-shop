@@ -26,10 +26,18 @@ export function formatRelativeTime(date: Date | string | number): string {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-  if (diffInMins < 1) return 'Just now';
-  if (diffInMins < 60) return `${diffInMins}m ago`;
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  if (diffInDays < 7) return `${diffInDays}d ago`;
+  if (diffInMins < 1) {
+    return 'Just now';
+  }
+  if (diffInMins < 60) {
+    return `${diffInMins}m ago`;
+  }
+  if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  }
+  if (diffInDays < 7) {
+    return `${diffInDays}d ago`;
+  }
 
   return formatDate(date);
 }
