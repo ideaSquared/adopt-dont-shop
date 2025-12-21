@@ -320,6 +320,7 @@ export async function seedSupportTickets() {
     await SupportTicket.bulkCreate(
       tickets.map(ticket => ({
         ...ticket,
+        attachments: ticket.attachments || [],
         responses: ticket.responses || [],
         metadata: cleanMetadata(ticket.metadata || {}),
       }))
