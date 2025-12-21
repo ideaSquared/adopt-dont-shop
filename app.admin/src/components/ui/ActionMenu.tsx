@@ -76,8 +76,12 @@ const MenuItem = styled.button<{ $danger?: boolean; $disabled?: boolean }>`
   text-align: left;
   font-size: 0.875rem;
   color: ${props => {
-    if (props.$disabled) return '#9ca3af';
-    if (props.$danger) return '#ef4444';
+    if (props.$disabled) {
+      return '#9ca3af';
+    }
+    if (props.$danger) {
+      return '#ef4444';
+    }
     return '#111827';
   }};
   cursor: ${props => (props.$disabled ? 'not-allowed' : 'pointer')};
@@ -86,8 +90,12 @@ const MenuItem = styled.button<{ $danger?: boolean; $disabled?: boolean }>`
 
   &:hover {
     background: ${props => {
-      if (props.$disabled) return 'transparent';
-      if (props.$danger) return '#fef2f2';
+      if (props.$disabled) {
+        return 'transparent';
+      }
+      if (props.$danger) {
+        return '#fef2f2';
+      }
       return '#f9fafb';
     }};
   }

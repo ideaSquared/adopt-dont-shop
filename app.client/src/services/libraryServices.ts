@@ -61,9 +61,10 @@ export const authService = new AuthService();
 export const apiService = globalApiService;
 export const api = globalApiService;
 
-// ✅ Configure chatService with authentication headers
+// ✅ Configure chatService with authentication headers and Socket.IO URL
 export const chatService = new ChatService({
   ...serviceConfig,
+  socketUrl: baseUrl, // Socket.IO connects directly to base URL
   headers: {
     Authorization: () => {
       const token = authService.getToken();
@@ -116,7 +117,12 @@ export type {
   Conversation,
   Message,
   TypingIndicator,
+  ConnectionStatus,
+  ReconnectionConfig,
+  QueuedMessage,
 } from '@adopt-dont-shop/lib.chat';
+
+export { useConnectionStatus } from '@adopt-dont-shop/lib.chat';
 
 export type { SearchServiceConfig, SearchServiceOptions } from '@adopt-dont-shop/lib.search';
 

@@ -379,7 +379,9 @@ const Moderation: React.FC = () => {
   };
 
   const handleActionSubmit = async (actionData: ActionSelectionData) => {
-    if (!selectedReport) return;
+    if (!selectedReport) {
+      return;
+    }
 
     try {
       // Map action types to the appropriate mutations

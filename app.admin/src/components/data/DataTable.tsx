@@ -232,7 +232,9 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   const handleSelectAll = (checked: boolean) => {
-    if (!onSelectionChange) return;
+    if (!onSelectionChange) {
+      return;
+    }
 
     if (checked) {
       const allIds = new Set(data.map(row => getRowId(row)));
@@ -243,7 +245,9 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   const handleSelectRow = (rowId: string, checked: boolean) => {
-    if (!onSelectionChange) return;
+    if (!onSelectionChange) {
+      return;
+    }
 
     const newSelection = new Set(selectedRows);
     if (checked) {

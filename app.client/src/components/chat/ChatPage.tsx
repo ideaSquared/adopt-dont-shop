@@ -6,6 +6,7 @@ import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { ChatWindow } from './ChatWindow';
 import { ConversationList } from './ConversationList';
+import { ConnectionStatusBanner } from './ConnectionStatusBanner';
 
 const ChatContainer = styled.div`
   display: flex;
@@ -238,6 +239,8 @@ export function ChatPage() {
         <h1>Messages</h1>
         <p>Connect with rescue organizations about pet adoptions</p>
       </Header>
+
+      <ConnectionStatusBanner />
 
       {isLoading && (!conversations || conversations.length === 0) ? (
         <LoadingContainer>

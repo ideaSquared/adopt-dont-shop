@@ -156,15 +156,33 @@ export class SearchService {
       const queryParams = new URLSearchParams();
       queryParams.set('q', options.query);
 
-      if (options.conversationId) queryParams.set('conversationId', options.conversationId);
-      if (options.senderId) queryParams.set('senderId', options.senderId);
-      if (options.startDate) queryParams.set('startDate', options.startDate.toISOString());
-      if (options.endDate) queryParams.set('endDate', options.endDate.toISOString());
-      if (options.messageType) queryParams.set('messageType', options.messageType);
-      if (options.page) queryParams.set('page', options.page.toString());
-      if (options.limit) queryParams.set('limit', options.limit.toString());
-      if (options.sortBy) queryParams.set('sortBy', options.sortBy);
-      if (options.sortOrder) queryParams.set('sortOrder', options.sortOrder);
+      if (options.conversationId) {
+        queryParams.set('conversationId', options.conversationId);
+      }
+      if (options.senderId) {
+        queryParams.set('senderId', options.senderId);
+      }
+      if (options.startDate) {
+        queryParams.set('startDate', options.startDate.toISOString());
+      }
+      if (options.endDate) {
+        queryParams.set('endDate', options.endDate.toISOString());
+      }
+      if (options.messageType) {
+        queryParams.set('messageType', options.messageType);
+      }
+      if (options.page) {
+        queryParams.set('page', options.page.toString());
+      }
+      if (options.limit) {
+        queryParams.set('limit', options.limit.toString());
+      }
+      if (options.sortBy) {
+        queryParams.set('sortBy', options.sortBy);
+      }
+      if (options.sortOrder) {
+        queryParams.set('sortOrder', options.sortOrder);
+      }
 
       const response = await this.apiService.get<MessageSearchResponse>(
         `${this.API_BASE_URL}/messages?${queryParams.toString()}`

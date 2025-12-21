@@ -278,10 +278,18 @@ const Support: React.FC = () => {
       sortOrder: 'desc',
     };
 
-    if (statusFilter !== 'all') apiFilters.status = statusFilter as TicketStatus;
-    if (priorityFilter !== 'all') apiFilters.priority = priorityFilter as TicketPriority;
-    if (categoryFilter !== 'all') apiFilters.category = categoryFilter as TicketCategory;
-    if (searchQuery) apiFilters.search = searchQuery;
+    if (statusFilter !== 'all') {
+      apiFilters.status = statusFilter as TicketStatus;
+    }
+    if (priorityFilter !== 'all') {
+      apiFilters.priority = priorityFilter as TicketPriority;
+    }
+    if (categoryFilter !== 'all') {
+      apiFilters.category = categoryFilter as TicketCategory;
+    }
+    if (searchQuery) {
+      apiFilters.search = searchQuery;
+    }
 
     return apiFilters;
   }, [statusFilter, priorityFilter, categoryFilter, searchQuery]);
@@ -340,7 +348,9 @@ const Support: React.FC = () => {
   };
 
   const handleReply = async (content: string, isInternal: boolean) => {
-    if (!selectedTicket) return;
+    if (!selectedTicket) {
+      return;
+    }
 
     // addResponse returns the updated ticket with the new response
     const updatedTicket = await addResponse(selectedTicket.ticketId, { content, isInternal });

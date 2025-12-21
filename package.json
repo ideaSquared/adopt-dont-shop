@@ -48,6 +48,7 @@
     "test": "turbo run test",
     "test:libs": "turbo run test --filter='@adopt-dont-shop/lib.*'",
     "test:apps": "turbo run test --filter='@adopt-dont-shop/app.*'",
+    "lint:fix": "turbo run lint -- --fix",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules",

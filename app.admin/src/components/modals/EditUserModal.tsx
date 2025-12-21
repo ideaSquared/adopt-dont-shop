@@ -104,7 +104,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -112,14 +114,24 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
     try {
       // Only send changed fields
       const updates: Partial<AdminUser> = {};
-      if (formData.firstName !== user.firstName) updates.firstName = formData.firstName;
-      if (formData.lastName !== user.lastName) updates.lastName = formData.lastName;
-      if (formData.email !== user.email) updates.email = formData.email;
-      if (formData.phoneNumber !== (user.phoneNumber ?? ''))
+      if (formData.firstName !== user.firstName) {
+        updates.firstName = formData.firstName;
+      }
+      if (formData.lastName !== user.lastName) {
+        updates.lastName = formData.lastName;
+      }
+      if (formData.email !== user.email) {
+        updates.email = formData.email;
+      }
+      if (formData.phoneNumber !== (user.phoneNumber ?? '')) {
         updates.phoneNumber = formData.phoneNumber;
-      if (formData.userType !== user.userType)
+      }
+      if (formData.userType !== user.userType) {
         updates.userType = formData.userType as typeof user.userType;
-      if (formData.status !== user.status) updates.status = formData.status;
+      }
+      if (formData.status !== user.status) {
+        updates.status = formData.status;
+      }
 
       if (Object.keys(updates).length === 0) {
         onClose();
@@ -135,7 +147,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
     }
   };
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title='Edit User'>

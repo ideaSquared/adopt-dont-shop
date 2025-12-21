@@ -141,7 +141,9 @@ export class AnalyticsService {
    * Flush queued events to server
    */
   private async flushEventQueue(): Promise<void> {
-    if (this.eventQueue.length === 0) return;
+    if (this.eventQueue.length === 0) {
+      return;
+    }
 
     const events = [...this.eventQueue];
     this.eventQueue = [];
@@ -196,7 +198,9 @@ export class AnalyticsService {
   public async trackEvent(
     event: Omit<UserEngagementEvent, 'sessionId' | 'timestamp'>
   ): Promise<void> {
-    if (!this.shouldSampleEvent()) return;
+    if (!this.shouldSampleEvent()) {
+      return;
+    }
 
     const fullEvent: UserEngagementEvent = {
       ...event,
@@ -226,7 +230,9 @@ export class AnalyticsService {
   public async trackPageView(
     pageView: Omit<PageViewEvent, 'sessionId' | 'timestamp'> | PageViewEvent
   ): Promise<void> {
-    if (!this.shouldSampleEvent()) return;
+    if (!this.shouldSampleEvent()) {
+      return;
+    }
 
     const fullPageView: PageViewEvent = {
       sessionId: this.sessionId,

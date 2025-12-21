@@ -30,7 +30,9 @@ const getDirectionStyles = (direction: StackDirection) => {
 };
 
 const getSpacingStyles = (spacing: StackSpacing, theme: DefaultTheme) => {
-  if (spacing === 'none') return css``;
+  if (spacing === 'none') {
+    return css``;
+  }
 
   const spacingValue = theme.spacing[spacing];
 

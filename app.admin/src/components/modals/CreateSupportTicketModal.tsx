@@ -174,7 +174,9 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -221,7 +223,9 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
     }
   };
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   return (
     <Modal

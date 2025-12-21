@@ -175,7 +175,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
   };
 
   const handleDelete = (fileName: string) => {
-    if (fileName === noImage) return;
+    if (fileName === noImage) {
+      return;
+    }
 
     const updatedImages = galleryImages.filter(image => !image.endsWith(fileName));
     const updatedLoading = updatedImages.map((_, i) => loadingImages[i]);
@@ -198,7 +200,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
       alert('Maximum limit of 3 images reached.');
       return;
     }
-    if (onUpload) onUpload(file);
+    if (onUpload) {
+      onUpload(file);
+    }
   };
 
   return (
@@ -245,7 +249,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
                     const currentImage = galleryImages[currentImageIndex];
                     const fileName =
                       typeof currentImage === 'string' ? currentImage.split('/').pop() : '';
-                    if (fileName) handleDelete(fileName);
+                    if (fileName) {
+                      handleDelete(fileName);
+                    }
                   }}
                   aria-label={`delete image ${currentImageIndex + 1}`}
                 >

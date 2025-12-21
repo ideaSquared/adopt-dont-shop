@@ -33,15 +33,33 @@ import type {
 const buildQueryParams = (filters: AdminRescueFilters): Record<string, string> => {
   const params: Record<string, string> = {};
 
-  if (filters.page) params.page = String(filters.page);
-  if (filters.limit) params.limit = String(filters.limit);
-  if (filters.search) params.search = filters.search;
-  if (filters.status) params.status = filters.status;
-  if (filters.state) params.location = filters.state;
-  if (filters.sortBy) params.sortBy = filters.sortBy;
-  if (filters.sortOrder) params.sortOrder = filters.sortOrder.toUpperCase();
-  if (filters.dateFrom) params.dateFrom = filters.dateFrom;
-  if (filters.dateTo) params.dateTo = filters.dateTo;
+  if (filters.page) {
+    params.page = String(filters.page);
+  }
+  if (filters.limit) {
+    params.limit = String(filters.limit);
+  }
+  if (filters.search) {
+    params.search = filters.search;
+  }
+  if (filters.status) {
+    params.status = filters.status;
+  }
+  if (filters.state) {
+    params.location = filters.state;
+  }
+  if (filters.sortBy) {
+    params.sortBy = filters.sortBy;
+  }
+  if (filters.sortOrder) {
+    params.sortOrder = filters.sortOrder.toUpperCase();
+  }
+  if (filters.dateFrom) {
+    params.dateFrom = filters.dateFrom;
+  }
+  if (filters.dateTo) {
+    params.dateTo = filters.dateTo;
+  }
 
   return params;
 };
@@ -152,8 +170,12 @@ class AdminRescueService {
    */
   async getStaff(rescueId: string, page = 1, limit = 20): Promise<PaginatedResponse<StaffMember>> {
     const params: Record<string, string> = {};
-    if (page) params.page = String(page);
-    if (limit) params.limit = String(limit);
+    if (page) {
+      params.page = String(page);
+    }
+    if (limit) {
+      params.limit = String(limit);
+    }
 
     const response = await apiService.get<{
       success: boolean;
