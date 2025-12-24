@@ -3,8 +3,57 @@ import SupportTicket, {
   TicketPriority,
   TicketCategory,
 } from '../models/SupportTicket';
+import SupportTicketResponse, { ResponderType } from '../models/SupportTicketResponse';
 import User from '../models/User';
 import { JsonObject, JsonValue } from '../types/common';
+
+type TicketResponseData = {
+  responseId: string;
+  responderId: string;
+  responderType: 'staff' | 'user';
+  content: string;
+  attachments: Array<{
+    filename: string;
+    url: string;
+    fileSize: number;
+    mimeType: string;
+    uploadedAt?: Date;
+  }>;
+  isInternal: boolean;
+  createdAt: Date;
+};
+
+type TicketData = {
+  userId?: string;
+  userEmail: string;
+  userName?: string;
+  assignedTo?: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  category: TicketCategory;
+  subject: string;
+  description: string;
+  tags?: string[];
+  attachments?: Array<{
+    filename: string;
+    url: string;
+    fileSize: number;
+    mimeType: string;
+    uploadedAt: Date;
+  }>;
+  metadata?: Record<string, unknown>;
+  firstResponseAt?: Date;
+  lastResponseAt?: Date;
+  resolvedAt?: Date;
+  closedAt?: Date;
+  escalatedAt?: Date;
+  escalatedTo?: string;
+  escalationReason?: string;
+  satisfactionRating?: number;
+  satisfactionFeedback?: string;
+  internalNotes?: string;
+  responses?: TicketResponseData[];
+};
 
 export async function seedSupportTickets() {
   try {
@@ -20,7 +69,7 @@ export async function seedSupportTickets() {
       return;
     }
 
-    const tickets = [
+    const ticketsData: TicketData[] = [
       // Open tickets
       {
         userId: users[0]?.userId,
@@ -33,7 +82,7 @@ export async function seedSupportTickets() {
         description:
           "I'm trying to upload photos of my rescue dog but keep getting an error message. The page just refreshes and nothing happens.",
         tags: ['upload', 'photos', 'technical'],
-        responses: [],
+        attachments: [],
         metadata: {
           userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
           errorCode: 'UPLOAD_FAILED',
@@ -50,7 +99,7 @@ export async function seedSupportTickets() {
         description:
           "I've been locked out of my account after too many login attempts. I need access ASAP as I have pending adoption applications.",
         tags: ['account', 'locked', 'urgent'],
-        responses: [],
+        attachments: [],
         metadata: {},
       },
       {
@@ -64,7 +113,7 @@ export async function seedSupportTickets() {
         description:
           "How long does the typical adoption process take? I submitted my application 2 weeks ago and haven't heard back yet.",
         tags: ['adoption', 'timeline', 'process'],
-        responses: [],
+        attachments: [],
         metadata: {},
       },
 
@@ -81,6 +130,10 @@ export async function seedSupportTickets() {
         description:
           "I'm not receiving any email notifications about my application status or messages from rescues.",
         tags: ['email', 'notifications', 'settings'],
+        attachments: [],
+        firstResponseAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        lastResponseAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+        metadata: {},
         responses: [
           {
             responseId: `response_${Date.now()}_1`,
@@ -103,9 +156,6 @@ export async function seedSupportTickets() {
             createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
           },
         ],
-        firstResponseAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        lastResponseAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-        metadata: {},
       },
       {
         userId: users[4]?.userId,
@@ -119,6 +169,10 @@ export async function seedSupportTickets() {
         description:
           'It would be really helpful to have a filter option to search for specific dog breeds instead of just scrolling through all pets.',
         tags: ['feature-request', 'search', 'filters'],
+        attachments: [],
+        firstResponseAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        lastResponseAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        metadata: {},
         responses: [
           {
             responseId: `response_${Date.now()}_3`,
@@ -131,9 +185,6 @@ export async function seedSupportTickets() {
             createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
           },
         ],
-        firstResponseAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        lastResponseAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        metadata: {},
       },
 
       // Waiting for user
@@ -148,6 +199,10 @@ export async function seedSupportTickets() {
         subject: "Can't update my profile information",
         description: "The save button doesn't work when I try to update my address.",
         tags: ['profile', 'update', 'bug'],
+        attachments: [],
+        firstResponseAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        lastResponseAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        metadata: {},
         responses: [
           {
             responseId: `response_${Date.now()}_4`,
@@ -160,9 +215,6 @@ export async function seedSupportTickets() {
             createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
           },
         ],
-        firstResponseAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        lastResponseAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        metadata: {},
       },
 
       // Resolved tickets
@@ -178,6 +230,13 @@ export async function seedSupportTickets() {
         description:
           "I want to save some pets to look at later but can't find the favorite button.",
         tags: ['favorites', 'how-to', 'question'],
+        attachments: [],
+        firstResponseAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        lastResponseAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
+        resolvedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000),
+        satisfactionRating: 5,
+        satisfactionFeedback: 'Very helpful and quick response!',
+        metadata: {},
         responses: [
           {
             responseId: `response_${Date.now()}_5`,
@@ -199,12 +258,6 @@ export async function seedSupportTickets() {
             createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000), // 5 days ago + 30 min
           },
         ],
-        firstResponseAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        lastResponseAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
-        resolvedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000),
-        satisfactionRating: 5,
-        satisfactionFeedback: 'Very helpful and quick response!',
-        metadata: {},
       },
       {
         userId: users[7]?.userId,
@@ -217,6 +270,12 @@ export async function seedSupportTickets() {
         subject: 'Request for my personal data',
         description: 'I would like to request a copy of all my personal data per GDPR.',
         tags: ['gdpr', 'data-request', 'privacy'],
+        attachments: [],
+        firstResponseAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        lastResponseAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        resolvedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000),
+        satisfactionRating: 4,
+        metadata: {},
         responses: [
           {
             responseId: `response_${Date.now()}_7`,
@@ -229,11 +288,6 @@ export async function seedSupportTickets() {
             createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
           },
         ],
-        firstResponseAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        lastResponseAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        resolvedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000),
-        satisfactionRating: 4,
-        metadata: {},
       },
 
       // Escalated ticket
@@ -249,6 +303,17 @@ export async function seedSupportTickets() {
         description:
           "I believe one of the rescue organizations on your platform may be operating fraudulently. They're asking for large upfront fees and their address doesn't exist.",
         tags: ['fraud', 'compliance', 'investigation'],
+        attachments: [],
+        firstResponseAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        lastResponseAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        escalatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+        escalatedTo: staffUsers[2]?.userId,
+        escalationReason: 'Potential fraud requires immediate investigation by compliance team',
+        internalNotes: 'Customer provided screenshots and detailed evidence. Needs urgent review.',
+        metadata: {
+          severity: 'critical',
+          rescueId: 'rescue_suspicious_001',
+        },
         responses: [
           {
             responseId: `response_${Date.now()}_8`,
@@ -261,16 +326,6 @@ export async function seedSupportTickets() {
             createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
           },
         ],
-        firstResponseAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        lastResponseAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        escalatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-        escalatedTo: staffUsers[2]?.userId,
-        escalationReason: 'Potential fraud requires immediate investigation by compliance team',
-        internalNotes: 'Customer provided screenshots and detailed evidence. Needs urgent review.',
-        metadata: {
-          severity: 'critical',
-          rescueId: 'rescue_suspicious_001',
-        },
       },
 
       // Closed ticket
@@ -285,6 +340,13 @@ export async function seedSupportTickets() {
         subject: 'What are your operating hours?',
         description: 'When is support available to answer questions?',
         tags: ['hours', 'support', 'info'],
+        attachments: [],
+        firstResponseAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        lastResponseAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        resolvedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000 + 10 * 60 * 1000),
+        closedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
+        satisfactionRating: 5,
+        metadata: {},
         responses: [
           {
             responseId: `response_${Date.now()}_9`,
@@ -297,12 +359,6 @@ export async function seedSupportTickets() {
             createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
           },
         ],
-        firstResponseAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        lastResponseAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        resolvedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000 + 10 * 60 * 1000),
-        closedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
-        satisfactionRating: 5,
-        metadata: {},
       },
     ];
 
@@ -317,15 +373,38 @@ export async function seedSupportTickets() {
       return cleaned;
     };
 
-    await SupportTicket.bulkCreate(
-      tickets.map(ticket => ({
-        ...ticket,
-        attachments: ticket.attachments || [],
-        responses: ticket.responses || [],
-        metadata: cleanMetadata(ticket.metadata || {}),
-      }))
+    // Create tickets without responses (responses are associations)
+    const createdTickets = await SupportTicket.bulkCreate(
+      ticketsData.map(ticketData => {
+        const { responses, ...ticketWithoutResponses } = ticketData;
+        return {
+          ...ticketWithoutResponses,
+          metadata: cleanMetadata(ticketWithoutResponses.metadata || {}),
+        };
+      })
     );
-    console.log(`✅ Created ${tickets.length} support tickets`);
+
+    // Create responses separately for tickets that have them
+    let responseCount = 0;
+    for (let i = 0; i < ticketsData.length; i++) {
+      const ticketData = ticketsData[i];
+      if (ticketData?.responses && ticketData.responses.length > 0) {
+        const ticket = createdTickets[i];
+        if (ticket) {
+          await SupportTicketResponse.bulkCreate(
+            ticketData.responses.map(response => ({
+              ...response,
+              ticketId: ticket.ticketId,
+              responderType:
+                response.responderType === 'staff' ? ResponderType.STAFF : ResponderType.USER,
+            }))
+          );
+          responseCount += ticketData.responses.length;
+        }
+      }
+    }
+
+    console.log(`✅ Created ${createdTickets.length} support tickets with ${responseCount} responses`);
   } catch (error) {
     console.error('Error seeding support tickets:', error);
     throw error;
