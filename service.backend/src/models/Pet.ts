@@ -139,7 +139,7 @@ export interface PetAttributes {
     order_index: number;
     uploaded_at: Date;
   }>;
-  videos?: Array<{
+  videos: Array<{
     video_id: string;
     url: string;
     thumbnail_url?: string;
@@ -171,6 +171,7 @@ export interface PetCreationAttributes
     | 'priority_listing'
     | 'special_needs'
     | 'house_trained'
+    | 'videos'
     | 'view_count'
     | 'favorite_count'
     | 'application_count'
@@ -583,6 +584,7 @@ Pet.init(
     videos: {
       type: getJsonType(),
       allowNull: false,
+      defaultValue: [],
     },
     location: {
       type: getGeometryType('POINT'),

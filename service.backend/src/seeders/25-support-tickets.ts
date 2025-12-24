@@ -82,7 +82,6 @@ export async function seedSupportTickets() {
         description:
           "I'm trying to upload photos of my rescue dog but keep getting an error message. The page just refreshes and nothing happens.",
         tags: ['upload', 'photos', 'technical'],
-        attachments: [],
         metadata: {
           userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
           errorCode: 'UPLOAD_FAILED',
@@ -99,7 +98,6 @@ export async function seedSupportTickets() {
         description:
           "I've been locked out of my account after too many login attempts. I need access ASAP as I have pending adoption applications.",
         tags: ['account', 'locked', 'urgent'],
-        attachments: [],
         metadata: {},
       },
       {
@@ -113,7 +111,6 @@ export async function seedSupportTickets() {
         description:
           "How long does the typical adoption process take? I submitted my application 2 weeks ago and haven't heard back yet.",
         tags: ['adoption', 'timeline', 'process'],
-        attachments: [],
         metadata: {},
       },
 
@@ -130,7 +127,6 @@ export async function seedSupportTickets() {
         description:
           "I'm not receiving any email notifications about my application status or messages from rescues.",
         tags: ['email', 'notifications', 'settings'],
-        attachments: [],
         firstResponseAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
         lastResponseAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
         metadata: {},
@@ -169,7 +165,6 @@ export async function seedSupportTickets() {
         description:
           'It would be really helpful to have a filter option to search for specific dog breeds instead of just scrolling through all pets.',
         tags: ['feature-request', 'search', 'filters'],
-        attachments: [],
         firstResponseAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
         lastResponseAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
         metadata: {},
@@ -199,7 +194,6 @@ export async function seedSupportTickets() {
         subject: "Can't update my profile information",
         description: "The save button doesn't work when I try to update my address.",
         tags: ['profile', 'update', 'bug'],
-        attachments: [],
         firstResponseAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
         lastResponseAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
         metadata: {},
@@ -230,7 +224,6 @@ export async function seedSupportTickets() {
         description:
           "I want to save some pets to look at later but can't find the favorite button.",
         tags: ['favorites', 'how-to', 'question'],
-        attachments: [],
         firstResponseAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
         lastResponseAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
         resolvedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000),
@@ -270,7 +263,6 @@ export async function seedSupportTickets() {
         subject: 'Request for my personal data',
         description: 'I would like to request a copy of all my personal data per GDPR.',
         tags: ['gdpr', 'data-request', 'privacy'],
-        attachments: [],
         firstResponseAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         lastResponseAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         resolvedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000),
@@ -303,7 +295,6 @@ export async function seedSupportTickets() {
         description:
           "I believe one of the rescue organizations on your platform may be operating fraudulently. They're asking for large upfront fees and their address doesn't exist.",
         tags: ['fraud', 'compliance', 'investigation'],
-        attachments: [],
         firstResponseAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
         lastResponseAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
         escalatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
@@ -340,7 +331,6 @@ export async function seedSupportTickets() {
         subject: 'What are your operating hours?',
         description: 'When is support available to answer questions?',
         tags: ['hours', 'support', 'info'],
-        attachments: [],
         firstResponseAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
         lastResponseAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
         resolvedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000 + 10 * 60 * 1000),
