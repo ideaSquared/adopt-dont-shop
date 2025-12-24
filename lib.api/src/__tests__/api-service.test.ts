@@ -719,9 +719,7 @@ describe('ApiService', () => {
       await apiService.post('/test2', { data: 'test2' });
 
       // Should have fetched CSRF token twice (once for each POST after clear)
-      const csrfTokenCalls = mockFetch.mock.calls.filter((call) =>
-        call[0].includes('/csrf-token')
-      );
+      const csrfTokenCalls = mockFetch.mock.calls.filter((call) => call[0].includes('/csrf-token'));
       expect(csrfTokenCalls).toHaveLength(2);
     });
   });

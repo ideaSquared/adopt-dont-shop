@@ -70,7 +70,10 @@ interface SupportTicketAttributes {
 }
 
 interface SupportTicketCreationAttributes
-  extends Optional<SupportTicketAttributes, 'ticketId' | 'attachments' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<
+    SupportTicketAttributes,
+    'ticketId' | 'attachments' | 'createdAt' | 'updatedAt'
+  > {}
 
 class SupportTicket
   extends Model<SupportTicketAttributes, SupportTicketCreationAttributes>

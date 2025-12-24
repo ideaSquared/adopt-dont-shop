@@ -394,7 +394,9 @@ export async function seedSupportTickets() {
       }
     }
 
-    console.log(`✅ Created ${createdTickets.length} support tickets with ${responseCount} responses`);
+    console.log(
+      `✅ Created ${createdTickets.length} support tickets with ${responseCount} responses`
+    );
   } catch (error) {
     console.error('Error seeding support tickets:', error);
     throw error;
