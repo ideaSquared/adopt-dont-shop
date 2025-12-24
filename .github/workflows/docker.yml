@@ -186,7 +186,10 @@ jobs:
           POSTGRES_USER=postgres
           POSTGRES_PASSWORD=password
           POSTGRES_DB=adopt_dont_shop_dev
-          JWT_SECRET=test-secret-key-for-ci
+          JWT_SECRET=test-jwt-secret-key-for-ci-32chars-min
+          JWT_REFRESH_SECRET=test-jwt-refresh-secret-key-ci-32chars
+          SESSION_SECRET=test-session-secret-key-for-ci-32chars
+          CSRF_SECRET=test-csrf-secret-key-for-ci-32chars-min
           CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
           EOF
 
