@@ -76,7 +76,9 @@ const emilyConversation4Data = {
 
       content_format: MessageContentFormat.PLAIN,
 
-      is_read: true,
+      attachments: [],
+      reactions: [],
+      read_status: [],
 
       created_at: new Date('2024-07-18T13:15:00Z'),
 
@@ -95,7 +97,9 @@ const emilyConversation4Data = {
 
       content_format: MessageContentFormat.PLAIN,
 
-      is_read: true,
+      attachments: [],
+      reactions: [],
+      read_status: [],
 
       created_at: new Date('2024-07-18T15:30:00Z'),
 
@@ -114,7 +118,9 @@ const emilyConversation4Data = {
 
       content_format: MessageContentFormat.PLAIN,
 
-      is_read: true,
+      attachments: [],
+      reactions: [],
+      read_status: [],
 
       created_at: new Date('2024-07-18T17:45:00Z'),
 
@@ -133,7 +139,9 @@ const emilyConversation4Data = {
 
       content_format: MessageContentFormat.PLAIN,
 
-      is_read: true,
+      attachments: [],
+      reactions: [],
+      read_status: [],
 
       created_at: new Date('2024-07-18T19:20:00Z'),
 
@@ -152,7 +160,9 @@ const emilyConversation4Data = {
 
       content_format: MessageContentFormat.PLAIN,
 
-      is_read: true,
+      attachments: [],
+      reactions: [],
+      read_status: [],
 
       created_at: new Date('2024-07-19T08:15:00Z'),
 
@@ -171,7 +181,9 @@ const emilyConversation4Data = {
 
       content_format: MessageContentFormat.PLAIN,
 
-      is_read: true,
+      attachments: [],
+      reactions: [],
+      read_status: [],
 
       created_at: new Date('2024-07-19T09:30:00Z'),
 
@@ -190,7 +202,9 @@ const emilyConversation4Data = {
 
       content_format: MessageContentFormat.PLAIN,
 
-      is_read: true,
+      attachments: [],
+      reactions: [],
+      read_status: [],
 
       created_at: new Date('2024-07-19T10:45:00Z'),
 
@@ -209,7 +223,9 @@ const emilyConversation4Data = {
 
       content_format: MessageContentFormat.PLAIN,
 
-      is_read: false, // Most recent message from rescue staff, unread by Emily
+      attachments: [],
+      reactions: [],
+      read_status: [], // Most recent message from rescue staff, unread by Emily
 
       created_at: new Date('2024-07-19T11:30:00Z'),
 
