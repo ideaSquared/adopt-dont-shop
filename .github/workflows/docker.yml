@@ -177,14 +177,14 @@ jobs:
           EOF
 
       - name: Start services with Docker Compose
-        run: docker-compose up -d --build
+        run: docker compose up -d --build
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Wait for database to be ready
         run: |
-          timeout 60 bash -c 'until docker-compose exec -T database pg_isready -U postgres; do sleep 2; done'
+          timeout 60 bash -c 'until docker compose exec -T database pg_isready -U postgres; do sleep 2; done'
 
       - name: Wait for backend to be ready
         run: |
@@ -202,21 +202,21 @@ jobs:
 
       - name: Show container status
         if: always()
-        run: docker-compose ps
+        run: docker compose ps
 
       - name: Show service logs on failure
         if: failure()
         run: |
           echo "=== Backend logs ==="
-          docker-compose logs service-backend
+          docker compose logs service-backend
           echo "=== Database logs ==="
-          docker-compose logs database
+          docker compose logs database
           echo "=== App Client logs ==="
-          docker-compose logs app-client
+          docker compose logs app-client
 
       - name: Cleanup
         if: always()
-        run: docker-compose down -v
+        run: docker compose down -v
 
   # ============================================================================
   # Security Scanning (Optional - requires Trivy)
@@ -226,6 +226,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-backend]
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
