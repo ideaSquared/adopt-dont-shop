@@ -9,7 +9,7 @@ vi.mock('../../config/env', () => ({
   },
 }));
 
-import { v4 as uuidv4 } from 'uuid';
+import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../../models/Application';
 import Pet, { PetStatus, PetType, AgeGroup, Gender } from '../../models/Pet';
 import User, { UserStatus, UserType } from '../../models/User';

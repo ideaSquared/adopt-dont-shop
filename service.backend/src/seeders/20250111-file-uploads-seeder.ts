@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import FileUpload from '../models/FileUpload';
 import { JsonObject } from '../types/common';
 

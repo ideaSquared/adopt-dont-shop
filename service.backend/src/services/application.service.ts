@@ -1,5 +1,5 @@
 import { Includeable, Op, Order, WhereOptions } from 'sequelize';
-import { v4 as uuidv4 } from 'uuid';
+import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import ApplicationQuestion, { QuestionCategory } from '../models/ApplicationQuestion';
 import Pet from '../models/Pet';

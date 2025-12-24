@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { v4 as uuidv4 } from 'uuid';
+import { generateCryptoUuid } from '../utils/uuid-helpers';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
@@ -49,7 +49,7 @@ FileUpload.init(
   {
     upload_id: {
       type: getUuidType(),
-      defaultValue: () => uuidv4(),
+      defaultValue: () => generateCryptoUuid(),
       primaryKey: true,
     },
     original_filename: {

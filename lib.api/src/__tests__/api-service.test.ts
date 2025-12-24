@@ -139,6 +139,14 @@ describe('ApiService', () => {
       const mockResponse = { data: { id: 1, ...requestData } };
       const mockHeaders = new Headers([['content-type', 'application/json']]);
 
+      // Mock CSRF token fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ csrfToken: 'test-csrf-token' }),
+      } as Response);
+
+      // Mock actual POST request
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: mockHeaders,
@@ -153,6 +161,7 @@ describe('ApiService', () => {
           method: 'POST',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
+            'x-csrf-token': 'test-csrf-token',
           }),
           body: JSON.stringify(requestData),
         })
@@ -165,6 +174,14 @@ describe('ApiService', () => {
       const mockResponse = { data: requestData };
       const mockHeaders = new Headers([['content-type', 'application/json']]);
 
+      // Mock CSRF token fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ csrfToken: 'test-csrf-token' }),
+      } as Response);
+
+      // Mock actual PUT request
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: mockHeaders,
@@ -178,6 +195,9 @@ describe('ApiService', () => {
         expect.objectContaining({
           method: 'PUT',
           body: JSON.stringify(requestData),
+          headers: expect.objectContaining({
+            'x-csrf-token': 'test-csrf-token',
+          }),
         })
       );
       expect(result).toEqual(mockResponse);
@@ -186,6 +206,14 @@ describe('ApiService', () => {
     it('should make DELETE request', async () => {
       const mockHeaders = new Headers([['content-type', 'application/json']]);
 
+      // Mock CSRF token fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ csrfToken: 'test-csrf-token' }),
+      } as Response);
+
+      // Mock actual DELETE request
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: mockHeaders,
@@ -198,6 +226,9 @@ describe('ApiService', () => {
         'https://api.example.com/test/1',
         expect.objectContaining({
           method: 'DELETE',
+          headers: expect.objectContaining({
+            'x-csrf-token': 'test-csrf-token',
+          }),
         })
       );
       expect(result).toEqual({ success: true });
@@ -280,7 +311,7 @@ describe('ApiService', () => {
       apiService = new ApiService();
     });
 
-    it('should transform pet data from API format', async () => {
+    it('should return pet data from API as-is', async () => {
       const apiPetData = {
         pet_id: '123',
         short_description: 'Friendly dog',
@@ -313,29 +344,11 @@ describe('ApiService', () => {
 
       const result = (await apiService.get('/pets/123')) as any;
 
-      // Should transform to camelCase and handle location
-      expect(result).toEqual({
-        ...apiPetData,
-        petId: '123',
-        shortDescription: 'Friendly dog',
-        longDescription: 'A very friendly dog looking for a home',
-        photos: [
-          {
-            photoId: '456',
-            url: 'https://example.com/photo.jpg',
-            isPrimary: true,
-            order: 0,
-            caption: 'Main photo',
-          },
-        ],
-        rescueId: '789',
-        location: '37.7749, -122.4194',
-        createdAt: '2023-01-01T00:00:00Z',
-        updatedAt: '2023-01-02T00:00:00Z',
-      });
+      // ApiService returns data as-is without transformation
+      expect(result).toEqual(apiPetData);
     });
 
-    it('should handle structured location data', async () => {
+    it('should return structured location data as-is', async () => {
       const apiPetData = {
         pet_id: '123',
         location: {
@@ -354,7 +367,11 @@ describe('ApiService', () => {
 
       const result = (await apiService.get('/pets/123')) as any;
 
-      expect(result.location).toBe('San Francisco, CA');
+      // ApiService returns location data as-is without transformation
+      expect(result.location).toEqual({
+        city: 'San Francisco',
+        state: 'CA',
+      });
     });
   });
 
@@ -463,6 +480,247 @@ describe('ApiService', () => {
       const config = apiService.getConfig();
 
       expect(config.apiUrl).toBe('http://localhost:5000');
+    });
+  });
+
+  describe('CSRF Protection', () => {
+    beforeEach(() => {
+      apiService = new ApiService({
+        apiUrl: 'https://api.example.com',
+        debug: false,
+      });
+    });
+
+    it('should fetch CSRF token on first state-changing request', async () => {
+      const csrfToken = 'test-csrf-token-123';
+      const mockHeaders = new Headers([['content-type', 'application/json']]);
+
+      // Mock CSRF token endpoint
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ csrfToken }),
+      } as Response);
+
+      // Mock POST request
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ success: true }),
+      } as Response);
+
+      await apiService.post('/test', { data: 'test' });
+
+      // Should fetch CSRF token first
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
+        'https://api.example.com/api/v1/csrf-token',
+        expect.objectContaining({
+          method: 'GET',
+          credentials: 'include',
+        })
+      );
+
+      // Should include CSRF token in POST request
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        'https://api.example.com/test',
+        expect.objectContaining({
+          method: 'POST',
+          credentials: 'include',
+          headers: expect.objectContaining({
+            'x-csrf-token': csrfToken,
+          }),
+        })
+      );
+    });
+
+    it('should reuse cached CSRF token for subsequent requests', async () => {
+      const csrfToken = 'test-csrf-token-123';
+      const mockHeaders = new Headers([['content-type', 'application/json']]);
+
+      // Mock CSRF token endpoint (should only be called once)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ csrfToken }),
+      } as Response);
+
+      // Mock two POST requests
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ success: true }),
+      } as Response);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ success: true }),
+      } as Response);
+
+      await apiService.post('/test1', { data: 'test1' });
+      await apiService.post('/test2', { data: 'test2' });
+
+      // Should fetch CSRF token only once
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/v1/csrf-token',
+        expect.any(Object)
+      );
+
+      // Both POST requests should include the same CSRF token
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/test1',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'x-csrf-token': csrfToken,
+          }),
+        })
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/test2',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'x-csrf-token': csrfToken,
+          }),
+        })
+      );
+    });
+
+    it('should not add CSRF token to GET requests', async () => {
+      const mockHeaders = new Headers([['content-type', 'application/json']]);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ data: 'test' }),
+      } as Response);
+
+      await apiService.get('/test');
+
+      // Should not fetch CSRF token for GET requests
+      expect(mockFetch).not.toHaveBeenCalledWith(
+        expect.stringContaining('/csrf-token'),
+        expect.any(Object)
+      );
+
+      // Should not include x-csrf-token header
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/test',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.not.objectContaining({
+            'x-csrf-token': expect.any(String),
+          }),
+        })
+      );
+    });
+
+    it('should clear CSRF token on 403 CSRF errors', async () => {
+      const csrfToken = 'test-csrf-token-123';
+      const mockHeaders = new Headers([['content-type', 'application/json']]);
+
+      // Mock CSRF token endpoint
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ csrfToken }),
+      } as Response);
+
+      // Mock POST request with CSRF error
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        headers: mockHeaders,
+        json: () => Promise.resolve({ error: 'Invalid CSRF token' }),
+      } as Response);
+
+      await expect(apiService.post('/test', { data: 'test' })).rejects.toThrow();
+
+      // CSRF token should be cleared after 403 error
+      // Verify by checking that a subsequent request fetches a new token
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ csrfToken: 'new-token' }),
+      } as Response);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ success: true }),
+      } as Response);
+
+      await apiService.post('/test2', { data: 'test2' });
+
+      // Should have fetched CSRF token again
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/v1/csrf-token',
+        expect.any(Object)
+      );
+    });
+
+    it('should include credentials in all requests', async () => {
+      const mockHeaders = new Headers([['content-type', 'application/json']]);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ data: 'test' }),
+      } as Response);
+
+      await apiService.get('/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/test',
+        expect.objectContaining({
+          credentials: 'include',
+        })
+      );
+    });
+
+    it('should manually clear CSRF token', async () => {
+      const csrfToken = 'test-csrf-token-123';
+      const mockHeaders = new Headers([['content-type', 'application/json']]);
+
+      // Fetch initial CSRF token
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ csrfToken }),
+      } as Response);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ success: true }),
+      } as Response);
+
+      await apiService.post('/test1', { data: 'test1' });
+
+      // Clear CSRF token manually
+      apiService.clearCsrfToken();
+
+      // Next request should fetch a new token
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ csrfToken: 'new-token-456' }),
+      } as Response);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+        json: () => Promise.resolve({ success: true }),
+      } as Response);
+
+      await apiService.post('/test2', { data: 'test2' });
+
+      // Should have fetched CSRF token twice (once for each POST after clear)
+      const csrfTokenCalls = mockFetch.mock.calls.filter((call) => call[0].includes('/csrf-token'));
+      expect(csrfTokenCalls).toHaveLength(2);
     });
   });
 });

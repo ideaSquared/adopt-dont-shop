@@ -11,6 +11,8 @@ export class ApiService {
   private baseURL: string;
   private defaultTimeout: number = 10000;
   public interceptors: InterceptorManager;
+  private csrfToken: string | null = null;
+  private csrfTokenPromise: Promise<string> | null = null;
 
   constructor(config: ApiServiceConfig = {}) {
     // Set up the base URL from environment variables or fallback
@@ -33,6 +35,27 @@ export class ApiService {
   }
 
   private setupDefaultInterceptors(): void {
+    // Add default request interceptor for CSRF token (must be first)
+    this.interceptors.addRequestInterceptor(async (config) => {
+      // Only add CSRF token for state-changing requests
+      const needsCsrfToken = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method);
+
+      if (needsCsrfToken && !config.headers['x-csrf-token']) {
+        try {
+          const csrfToken = await this.getCsrfToken();
+          if (csrfToken) {
+            config.headers['x-csrf-token'] = csrfToken;
+          }
+        } catch (error) {
+          if (this.config.debug) {
+            console.warn('Failed to get CSRF token:', error);
+          }
+          // Continue without CSRF token - let the server reject if needed
+        }
+      }
+      return config;
+    });
+
     // Add default request interceptor for authentication
     this.interceptors.addRequestInterceptor(async (config) => {
       const token = this.getAuthToken();
@@ -54,6 +77,14 @@ export class ApiService {
           errorDetails = errorBody.details || errorBody.errors;
         } catch {
           // If we can't parse error as JSON, use the default message
+        }
+
+        // Clear CSRF token on 403 errors (invalid CSRF token)
+        if (response.status === 403 && errorMessage.toLowerCase().includes('csrf')) {
+          if (this.config.debug) {
+            console.warn('🔒 CSRF token validation failed - clearing cached token');
+          }
+          this.clearCsrfToken();
         }
 
         throw createHttpError(response.status, errorMessage, undefined, errorDetails);
@@ -147,6 +178,88 @@ export class ApiService {
     return null;
   }
 
+  /**
+   * Get CSRF token - fetches from server if not cached
+   * Uses promise caching to prevent multiple simultaneous requests
+   */
+  private async getCsrfToken(): Promise<string> {
+    // Return cached token if available
+    if (this.csrfToken) {
+      return this.csrfToken;
+    }
+
+    // If a fetch is already in progress, wait for it
+    if (this.csrfTokenPromise) {
+      return this.csrfTokenPromise;
+    }
+
+    // Create new fetch promise
+    this.csrfTokenPromise = this.fetchCsrfToken();
+
+    try {
+      const token = await this.csrfTokenPromise;
+      this.csrfToken = token;
+      return token;
+    } finally {
+      this.csrfTokenPromise = null;
+    }
+  }
+
+  /**
+   * Fetch CSRF token from server
+   * This method makes a direct fetch call without interceptors to avoid circular dependencies
+   */
+  private async fetchCsrfToken(): Promise<string> {
+    const url = `${this.baseURL}/api/v1/csrf-token`;
+
+    if (this.config.debug) {
+      console.log('🔒 Fetching CSRF token from:', url);
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include', // Required for cookie-based CSRF
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch CSRF token: ${response.status} ${response.statusText}`);
+      }
+
+      const data = (await response.json()) as { csrfToken: string };
+
+      if (!data.csrfToken) {
+        throw new Error('CSRF token not found in response');
+      }
+
+      if (this.config.debug) {
+        console.log('🔒 CSRF token received');
+      }
+
+      return data.csrfToken;
+    } catch (error) {
+      if (this.config.debug) {
+        console.error('🔒 Failed to fetch CSRF token:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Clear cached CSRF token (useful after 403 errors or logout)
+   */
+  public clearCsrfToken(): void {
+    this.csrfToken = null;
+    this.csrfTokenPromise = null;
+
+    if (this.config.debug) {
+      console.log('🔒 CSRF token cleared');
+    }
+  }
+
   // Core request method
   private async makeRequest<T>(url: string, options: FetchOptions = {}): Promise<T> {
     const { method = 'GET', headers = {}, body, timeout = this.config.timeout } = options;
@@ -162,11 +275,22 @@ export class ApiService {
     }
 
     // Prepare headers
-    const requestHeaders: Record<string, string> = {
+    let requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...this.config.headers,
       ...headers,
     };
+
+    // Apply request interceptors
+    const requestConfig = await this.interceptors.applyRequestInterceptors({
+      url: fullUrl,
+      method,
+      headers: requestHeaders,
+      body,
+    });
+
+    // Update headers from interceptors
+    requestHeaders = requestConfig.headers;
 
     // Prepare body
     let requestBody: string | FormData | undefined;
@@ -185,33 +309,22 @@ export class ApiService {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const response = await fetch(fullUrl, {
+      let response = await fetch(fullUrl, {
         method,
         headers: requestHeaders,
         body: requestBody,
         signal: controller.signal,
+        credentials: 'include', // Include cookies for CSRF protection and session management
       });
 
       clearTimeout(timeoutId);
 
-      // Handle HTTP errors
-      if (!response.ok) {
-        if (response.status === 401) {
-          // For 401 errors, we just throw - auth handling should be done by the auth library
-          if (this.config.debug) {
-            console.warn('API: 401 Unauthorized - token may be expired');
-          }
-        }
-
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorBody = await response.json();
-          errorMessage = errorBody.message || errorBody.error || errorMessage;
-        } catch {
-          // If we can't parse error as JSON, use the default message
-        }
-
-        throw new Error(errorMessage);
+      // Apply response interceptors
+      try {
+        response = await this.interceptors.applyResponseInterceptors(response);
+      } catch (interceptorError) {
+        // Response interceptor threw an error (e.g., due to !response.ok)
+        throw interceptorError;
       }
 
       // Parse response
@@ -226,14 +339,13 @@ export class ApiService {
     } catch (error) {
       clearTimeout(timeoutId);
 
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error(`Request timeout after ${timeout}ms`);
-      }
+      // Apply error interceptors
+      const processedError = await this.interceptors.applyErrorInterceptors(error as Error);
 
       if (this.config.debug) {
-        console.error('API request failed:', error);
+        console.error('API request failed:', processedError);
       }
-      throw error;
+      throw processedError;
     }
   }
 
@@ -362,14 +474,23 @@ export class ApiService {
 // Get environment variables with proper type checking and improved fallback
 const getApiUrl = (): string | undefined => {
   // In Vite environment (browser)
-  if (typeof window !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) {
-    const viteEnv = import.meta.env as Record<string, string>;
-    const apiUrl = viteEnv.VITE_API_BASE_URL || viteEnv.VITE_API_URL; // VITE_API_URL for legacy support
-    if (apiUrl) {
-      console.log('🔧 DEBUG: Found API URL in import.meta.env:', apiUrl);
-      return apiUrl;
+  try {
+    if (typeof window !== 'undefined') {
+      // Use eval to avoid import.meta issues in Jest
+      const importMeta = eval('import.meta');
+      if (importMeta && importMeta.env) {
+        const viteEnv = importMeta.env as Record<string, string>;
+        const apiUrl = viteEnv.VITE_API_BASE_URL || viteEnv.VITE_API_URL; // VITE_API_URL for legacy support
+        if (apiUrl) {
+          console.log('🔧 DEBUG: Found API URL in import.meta.env:', apiUrl);
+          return apiUrl;
+        }
+      }
     }
+  } catch {
+    // import.meta not available or eval failed (e.g., in test environment)
   }
+
   // In Node.js environment
   if (typeof process !== 'undefined' && process.env) {
     const apiUrl = process.env.VITE_API_BASE_URL || process.env.VITE_API_URL; // VITE_API_URL for legacy support
@@ -384,10 +505,18 @@ const getApiUrl = (): string | undefined => {
 
 const isDevelopment = (): boolean => {
   // In Vite environment
-  if (typeof window !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) {
-    const viteEnv = import.meta.env as Record<string, string>;
-    return viteEnv.MODE === 'development';
+  try {
+    if (typeof window !== 'undefined') {
+      const importMeta = eval('import.meta');
+      if (importMeta && importMeta.env) {
+        const viteEnv = importMeta.env as Record<string, string>;
+        return viteEnv.MODE === 'development';
+      }
+    }
+  } catch {
+    // import.meta not available
   }
+
   // In Node.js environment
   if (typeof process !== 'undefined' && process.env?.NODE_ENV) {
     return process.env.NODE_ENV === 'development';

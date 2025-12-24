@@ -1,7 +1,7 @@
 import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import { config } from '../config';
 import { AuthenticatedRequest } from '../types/api';
 import { JsonObject } from '../types/common';

@@ -44,7 +44,7 @@ interface SupportTicketAttributes {
   subject: string;
   description: string;
   tags?: string[];
-  attachments?: Array<{
+  attachments: Array<{
     filename: string;
     url: string;
     fileSize: number;
@@ -70,7 +70,10 @@ interface SupportTicketAttributes {
 }
 
 interface SupportTicketCreationAttributes
-  extends Optional<SupportTicketAttributes, 'ticketId' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<
+    SupportTicketAttributes,
+    'ticketId' | 'attachments' | 'createdAt' | 'updatedAt'
+  > {}
 
 class SupportTicket
   extends Model<SupportTicketAttributes, SupportTicketCreationAttributes>
@@ -87,7 +90,7 @@ class SupportTicket
   public subject!: string;
   public description!: string;
   public tags?: string[];
-  public attachments?: Array<{
+  public attachments!: Array<{
     filename: string;
     url: string;
     fileSize: number;
@@ -217,6 +220,7 @@ SupportTicket.init(
     attachments: {
       type: getJsonType(),
       allowNull: false,
+      defaultValue: [],
     },
     metadata: {
       type: getJsonType(),

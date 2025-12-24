@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import sharp from 'sharp';
-import { v4 as uuidv4 } from 'uuid';
+import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import { config } from '../../config';
 import { logger } from '../../utils/logger';
 
