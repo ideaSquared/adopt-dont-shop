@@ -1596,14 +1596,14 @@ export class PetService {
           // Prioritize exact breed matches first
           [
             sequelize.literal(
-              `CASE WHEN breed = ${sequelize.escape(referencePet.breed)} THEN 0 ELSE 1 END`
+              `CASE WHEN breed = ${sequelize.escape(referencePet.breed ?? '')} THEN 0 ELSE 1 END`
             ),
             'ASC',
           ],
           // Then by type matches
           [
             sequelize.literal(
-              `CASE WHEN type = ${sequelize.escape(referencePet.type)} THEN 0 ELSE 1 END`
+              `CASE WHEN type = ${sequelize.escape(referencePet.type ?? '')} THEN 0 ELSE 1 END`
             ),
             'ASC',
           ],
