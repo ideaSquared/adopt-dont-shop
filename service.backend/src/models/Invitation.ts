@@ -1,5 +1,4 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { User } from '.';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 
 interface InvitationAttributes {
@@ -68,7 +67,7 @@ Invitation.init(
       type: DataTypes.STRING,
       allowNull: true,
       references: {
-        model: User,
+        model: 'users',
         key: 'user_id',
       },
     },
