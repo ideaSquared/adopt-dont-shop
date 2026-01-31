@@ -378,100 +378,146 @@ export class PetService {
       // Store original data for audit
       const originalData = pet.toJSON();
 
-      // Convert camelCase to snake_case for database
-      const dbUpdateData: Record<string, unknown> = {};
-      if (updateData.shortDescription !== undefined) {
-        dbUpdateData.short_description = updateData.shortDescription;
-      }
-      if (updateData.longDescription !== undefined) {
-        dbUpdateData.long_description = updateData.longDescription;
-      }
-      if (updateData.ageYears !== undefined) {
-        dbUpdateData.age_years = updateData.ageYears;
-      }
-      if (updateData.ageMonths !== undefined) {
-        dbUpdateData.age_months = updateData.ageMonths;
-      }
-      if (updateData.ageGroup !== undefined) {
-        dbUpdateData.age_group = updateData.ageGroup;
-      }
-      if (updateData.secondaryBreed !== undefined) {
-        dbUpdateData.secondary_breed = updateData.secondaryBreed;
-      }
-      if (updateData.weightKg !== undefined) {
-        dbUpdateData.weight_kg = updateData.weightKg;
-      }
-      if (updateData.microchipId !== undefined) {
-        dbUpdateData.microchip_id = updateData.microchipId;
-      }
-      if (updateData.priorityListing !== undefined) {
-        dbUpdateData.priority_listing = updateData.priorityListing;
-      }
-      if (updateData.adoptionFee !== undefined) {
-        dbUpdateData.adoption_fee = updateData.adoptionFee;
-      }
-      if (updateData.specialNeeds !== undefined) {
-        dbUpdateData.special_needs = updateData.specialNeeds;
-      }
-      if (updateData.specialNeedsDescription !== undefined) {
-        dbUpdateData.special_needs_description = updateData.specialNeedsDescription;
-      }
-      if (updateData.houseTrained !== undefined) {
-        dbUpdateData.house_trained = updateData.houseTrained;
-      }
-      if (updateData.goodWithChildren !== undefined) {
-        dbUpdateData.good_with_children = updateData.goodWithChildren;
-      }
-      if (updateData.goodWithDogs !== undefined) {
-        dbUpdateData.good_with_dogs = updateData.goodWithDogs;
-      }
-      if (updateData.goodWithCats !== undefined) {
-        dbUpdateData.good_with_cats = updateData.goodWithCats;
-      }
-      if (updateData.goodWithSmallAnimals !== undefined) {
-        dbUpdateData.good_with_small_animals = updateData.goodWithSmallAnimals;
-      }
-      if (updateData.energyLevel !== undefined) {
-        dbUpdateData.energy_level = updateData.energyLevel;
-      }
-      if (updateData.exerciseNeeds !== undefined) {
-        dbUpdateData.exercise_needs = updateData.exerciseNeeds;
-      }
-      if (updateData.groomingNeeds !== undefined) {
-        dbUpdateData.grooming_needs = updateData.groomingNeeds;
-      }
-      if (updateData.trainingNotes !== undefined) {
-        dbUpdateData.training_notes = updateData.trainingNotes;
-      }
-      if (updateData.medicalNotes !== undefined) {
-        dbUpdateData.medical_notes = updateData.medicalNotes;
-      }
-      if (updateData.behavioralNotes !== undefined) {
-        dbUpdateData.behavioral_notes = updateData.behavioralNotes;
-      }
-      if (updateData.surrenderReason !== undefined) {
-        dbUpdateData.surrender_reason = updateData.surrenderReason;
-      }
-      if (updateData.intakeDate !== undefined) {
-        dbUpdateData.intake_date = updateData.intakeDate;
-      }
-      if (updateData.vaccinationStatus !== undefined) {
-        dbUpdateData.vaccination_status = updateData.vaccinationStatus;
-      }
-      if (updateData.vaccinationDate !== undefined) {
-        dbUpdateData.vaccination_date = updateData.vaccinationDate;
-      }
-      if (updateData.spayNeuterStatus !== undefined) {
-        dbUpdateData.spay_neuter_status = updateData.spayNeuterStatus;
-      }
-      if (updateData.spayNeuterDate !== undefined) {
-        dbUpdateData.spay_neuter_date = updateData.spayNeuterDate;
-      }
-      if (updateData.lastVetCheckup !== undefined) {
-        dbUpdateData.last_vet_checkup = updateData.lastVetCheckup;
+      // Normalize input: the API accepts both camelCase and snake_case field names.
+      // The frontend service sends snake_case, so we normalize to camelCase first,
+      // then convert to snake_case for the database.
+      const snakeToCamelMapping: Record<string, string> = {
+        short_description: 'shortDescription',
+        long_description: 'longDescription',
+        age_years: 'ageYears',
+        age_months: 'ageMonths',
+        age_group: 'ageGroup',
+        secondary_breed: 'secondaryBreed',
+        weight_kg: 'weightKg',
+        microchip_id: 'microchipId',
+        priority_listing: 'priorityListing',
+        adoption_fee: 'adoptionFee',
+        special_needs: 'specialNeeds',
+        special_needs_description: 'specialNeedsDescription',
+        house_trained: 'houseTrained',
+        good_with_children: 'goodWithChildren',
+        good_with_dogs: 'goodWithDogs',
+        good_with_cats: 'goodWithCats',
+        good_with_small_animals: 'goodWithSmallAnimals',
+        energy_level: 'energyLevel',
+        exercise_needs: 'exerciseNeeds',
+        grooming_needs: 'groomingNeeds',
+        training_notes: 'trainingNotes',
+        medical_notes: 'medicalNotes',
+        behavioral_notes: 'behavioralNotes',
+        surrender_reason: 'surrenderReason',
+        intake_date: 'intakeDate',
+        vaccination_status: 'vaccinationStatus',
+        vaccination_date: 'vaccinationDate',
+        spay_neuter_status: 'spayNeuterStatus',
+        spay_neuter_date: 'spayNeuterDate',
+        last_vet_checkup: 'lastVetCheckup',
+      };
+
+      const rawData = updateData as Record<string, unknown>;
+      const normalizedData: Record<string, unknown> = { ...rawData };
+
+      for (const [snakeKey, camelKey] of Object.entries(snakeToCamelMapping)) {
+        if (rawData[snakeKey] !== undefined && rawData[camelKey] === undefined) {
+          normalizedData[camelKey] = rawData[snakeKey];
+          delete normalizedData[snakeKey];
+        }
       }
 
-      // Handle simple field mappings
+      // Convert camelCase to snake_case for database
+      const dbUpdateData: Record<string, unknown> = {};
+      if (normalizedData.shortDescription !== undefined) {
+        dbUpdateData.short_description = normalizedData.shortDescription;
+      }
+      if (normalizedData.longDescription !== undefined) {
+        dbUpdateData.long_description = normalizedData.longDescription;
+      }
+      if (normalizedData.ageYears !== undefined) {
+        dbUpdateData.age_years = normalizedData.ageYears;
+      }
+      if (normalizedData.ageMonths !== undefined) {
+        dbUpdateData.age_months = normalizedData.ageMonths;
+      }
+      if (normalizedData.ageGroup !== undefined) {
+        dbUpdateData.age_group = normalizedData.ageGroup;
+      }
+      if (normalizedData.secondaryBreed !== undefined) {
+        dbUpdateData.secondary_breed = normalizedData.secondaryBreed;
+      }
+      if (normalizedData.weightKg !== undefined) {
+        dbUpdateData.weight_kg = normalizedData.weightKg;
+      }
+      if (normalizedData.microchipId !== undefined) {
+        dbUpdateData.microchip_id = normalizedData.microchipId;
+      }
+      if (normalizedData.priorityListing !== undefined) {
+        dbUpdateData.priority_listing = normalizedData.priorityListing;
+      }
+      if (normalizedData.adoptionFee !== undefined) {
+        dbUpdateData.adoption_fee = normalizedData.adoptionFee;
+      }
+      if (normalizedData.specialNeeds !== undefined) {
+        dbUpdateData.special_needs = normalizedData.specialNeeds;
+      }
+      if (normalizedData.specialNeedsDescription !== undefined) {
+        dbUpdateData.special_needs_description = normalizedData.specialNeedsDescription;
+      }
+      if (normalizedData.houseTrained !== undefined) {
+        dbUpdateData.house_trained = normalizedData.houseTrained;
+      }
+      if (normalizedData.goodWithChildren !== undefined) {
+        dbUpdateData.good_with_children = normalizedData.goodWithChildren;
+      }
+      if (normalizedData.goodWithDogs !== undefined) {
+        dbUpdateData.good_with_dogs = normalizedData.goodWithDogs;
+      }
+      if (normalizedData.goodWithCats !== undefined) {
+        dbUpdateData.good_with_cats = normalizedData.goodWithCats;
+      }
+      if (normalizedData.goodWithSmallAnimals !== undefined) {
+        dbUpdateData.good_with_small_animals = normalizedData.goodWithSmallAnimals;
+      }
+      if (normalizedData.energyLevel !== undefined) {
+        dbUpdateData.energy_level = normalizedData.energyLevel;
+      }
+      if (normalizedData.exerciseNeeds !== undefined) {
+        dbUpdateData.exercise_needs = normalizedData.exerciseNeeds;
+      }
+      if (normalizedData.groomingNeeds !== undefined) {
+        dbUpdateData.grooming_needs = normalizedData.groomingNeeds;
+      }
+      if (normalizedData.trainingNotes !== undefined) {
+        dbUpdateData.training_notes = normalizedData.trainingNotes;
+      }
+      if (normalizedData.medicalNotes !== undefined) {
+        dbUpdateData.medical_notes = normalizedData.medicalNotes;
+      }
+      if (normalizedData.behavioralNotes !== undefined) {
+        dbUpdateData.behavioral_notes = normalizedData.behavioralNotes;
+      }
+      if (normalizedData.surrenderReason !== undefined) {
+        dbUpdateData.surrender_reason = normalizedData.surrenderReason;
+      }
+      if (normalizedData.intakeDate !== undefined) {
+        dbUpdateData.intake_date = normalizedData.intakeDate;
+      }
+      if (normalizedData.vaccinationStatus !== undefined) {
+        dbUpdateData.vaccination_status = normalizedData.vaccinationStatus;
+      }
+      if (normalizedData.vaccinationDate !== undefined) {
+        dbUpdateData.vaccination_date = normalizedData.vaccinationDate;
+      }
+      if (normalizedData.spayNeuterStatus !== undefined) {
+        dbUpdateData.spay_neuter_status = normalizedData.spayNeuterStatus;
+      }
+      if (normalizedData.spayNeuterDate !== undefined) {
+        dbUpdateData.spay_neuter_date = normalizedData.spayNeuterDate;
+      }
+      if (normalizedData.lastVetCheckup !== undefined) {
+        dbUpdateData.last_vet_checkup = normalizedData.lastVetCheckup;
+      }
+
+      // Handle simple field mappings (fields where column name matches key)
       const simpleFields = [
         'name',
         'gender',
@@ -486,10 +532,8 @@ export class PetService {
         'location',
       ] as const;
 
-      type SimpleFieldKey = (typeof simpleFields)[number];
-
       simpleFields.forEach(field => {
-        const value = updateData[field as keyof PetUpdateData];
+        const value = normalizedData[field];
         if (value !== undefined) {
           dbUpdateData[field] = value;
         }
