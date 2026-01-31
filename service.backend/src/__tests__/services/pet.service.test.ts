@@ -1234,6 +1234,35 @@ describe('PetService', () => {
       Pet.findByPk = originalFindByPk;
       Pet.findAll = originalFindAll;
     });
+
+    it('should safely handle breed values containing SQL injection characters', async () => {
+      const maliciousPetId = uniqueId('sqli-ref');
+      await Pet.create({
+        pet_id: maliciousPetId,
+        name: 'Malicious Pet',
+        type: PetType.DOG,
+        breed: "'; DROP TABLE pets; --",
+        status: PetStatus.AVAILABLE,
+        size: Size.LARGE,
+        age_group: AgeGroup.ADULT,
+        gender: Gender.MALE,
+        energy_level: EnergyLevel.MEDIUM,
+        vaccination_status: VaccinationStatus.UP_TO_DATE,
+        spay_neuter_status: SpayNeuterStatus.NEUTERED,
+        rescue_id: testRescue.rescueId,
+        archived: false,
+        images: [],
+        videos: [],
+      });
+
+      // Should not throw - the SQL injection attempt is safely escaped
+      const result = await PetService.getSimilarPets(maliciousPetId, 6);
+      expect(Array.isArray(result)).toBe(true);
+
+      // Verify the pets table still exists and is functional
+      const petCount = await Pet.count();
+      expect(petCount).toBeGreaterThan(0);
+    });
   });
 
   describe('reportPet', () => {
