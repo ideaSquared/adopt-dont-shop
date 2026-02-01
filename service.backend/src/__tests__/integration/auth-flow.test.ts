@@ -12,6 +12,7 @@ vi.mock('../../config/env', () => ({
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import speakeasy from 'speakeasy';
 import { Op } from 'sequelize';
 import User, { UserStatus, UserType } from '../../models/User';
 import { AuthService } from '../../services/auth.service';
@@ -32,6 +33,13 @@ vi.mock('../../utils/logger');
 vi.mock('jsonwebtoken');
 vi.mock('bcryptjs');
 vi.mock('crypto');
+vi.mock('speakeasy', () => ({
+  default: {
+    totp: {
+      verify: vi.fn().mockReturnValue(false),
+    },
+  },
+}));
 
 // Mock email service
 vi.mock('../../services/email.service', () => ({
@@ -45,6 +53,7 @@ const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService
 const mockedJwt = jwt as vi.MockedObject<jwt>;
 const mockedBcrypt = bcrypt as vi.MockedObject<bcrypt>;
 const mockedCrypto = crypto as vi.MockedObject<crypto>;
+const mockedSpeakeasy = speakeasy as vi.MockedObject<typeof speakeasy>;
 
 describe('Authentication Flow Integration Tests', () => {
   const validPassword = 'SecurePass123!';
@@ -714,10 +723,12 @@ describe('Authentication Flow Integration Tests', () => {
           emailVerified: true,
           status: UserStatus.ACTIVE,
           twoFactorEnabled: true,
+          twoFactorSecret: 'JBSWY3DPEHPK3PXP',
         });
 
         setupLoginMocks(mockUser);
         mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+        (mockedSpeakeasy.totp.verify as ReturnType<typeof vi.fn>).mockReturnValue(false);
 
         const credentialsWithInvalid2FA = {
           ...loginCredentials,
@@ -737,10 +748,12 @@ describe('Authentication Flow Integration Tests', () => {
           emailVerified: true,
           status: UserStatus.ACTIVE,
           twoFactorEnabled: true,
+          twoFactorSecret: 'JBSWY3DPEHPK3PXP',
         });
 
         setupLoginMocks(mockUser);
         mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+        (mockedSpeakeasy.totp.verify as ReturnType<typeof vi.fn>).mockReturnValue(true);
 
         const credentialsWithValid2FA = {
           ...loginCredentials,
