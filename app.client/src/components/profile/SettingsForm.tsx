@@ -5,6 +5,12 @@ import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+`;
+
 const Form = styled.form`
   display: flex;
   flex-direction: column;
@@ -311,7 +317,19 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
   };
 
   return (
-    <Form onSubmit={handleSubmit}>
+    <Wrapper>
+      <Section>
+        <SectionTitle>Security</SectionTitle>
+        <SettingItem>
+          <SettingLabel>
+            <h4>Two-Factor Authentication</h4>
+            <p>Protect your account with an authenticator app</p>
+          </SettingLabel>
+        </SettingItem>
+        <TwoFactorSettings />
+      </Section>
+
+      <Form onSubmit={handleSubmit}>
       <Section>
         <SectionTitle>Notification Preferences</SectionTitle>
 
@@ -518,17 +536,6 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
       </Section>
 
       <Section>
-        <SectionTitle>Security</SectionTitle>
-        <SettingItem>
-          <SettingLabel>
-            <h4>Two-Factor Authentication</h4>
-            <p>Protect your account with an authenticator app</p>
-          </SettingLabel>
-        </SettingItem>
-        <TwoFactorSettings />
-      </Section>
-
-      <Section>
         <SectionTitle>Pet Preferences</SectionTitle>
 
         <SettingItem>
@@ -666,6 +673,8 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
         </ButtonGroup>
       )}
 
+      </Form>
+
       <DangerZone>
         <h3>Danger Zone</h3>
         <p>
@@ -676,7 +685,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
           Delete Account
         </Button>
       </DangerZone>
-    </Form>
+    </Wrapper>
   );
 };
 
