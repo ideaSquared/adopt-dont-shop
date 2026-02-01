@@ -1594,9 +1594,19 @@ export class PetService {
         ],
         order: [
           // Prioritize exact breed matches first
-          [sequelize.literal(`CASE WHEN breed = '${referencePet.breed}' THEN 0 ELSE 1 END`), 'ASC'],
+          [
+            sequelize.literal(
+              `CASE WHEN breed = ${sequelize.escape(referencePet.breed ?? '')} THEN 0 ELSE 1 END`
+            ),
+            'ASC',
+          ],
           // Then by type matches
-          [sequelize.literal(`CASE WHEN type = '${referencePet.type}' THEN 0 ELSE 1 END`), 'ASC'],
+          [
+            sequelize.literal(
+              `CASE WHEN type = ${sequelize.escape(referencePet.type ?? '')} THEN 0 ELSE 1 END`
+            ),
+            'ASC',
+          ],
           // Finally by creation date (newest first)
           ['created_at', 'DESC'],
         ],
