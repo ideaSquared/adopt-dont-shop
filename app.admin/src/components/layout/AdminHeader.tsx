@@ -257,11 +257,21 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed }) =>
           </UserButton>
 
           <DropdownMenu $isOpen={userMenuOpen}>
-            <DropdownItem onClick={() => { setUserMenuOpen(false); navigate('/account'); }}>
+            <DropdownItem
+              onClick={() => {
+                setUserMenuOpen(false);
+                navigate('/account');
+              }}
+            >
               <FiUser />
               Profile
             </DropdownItem>
-            <DropdownItem onClick={() => { setUserMenuOpen(false); navigate('/account'); }}>
+            <DropdownItem
+              onClick={() => {
+                setUserMenuOpen(false);
+                navigate('/account');
+              }}
+            >
               <FiSettings />
               Account Settings
             </DropdownItem>

@@ -750,9 +750,7 @@ Need help? Contact us at support@adoptdontshop.com
   }
 
   static generateBackupCodes(count = 10): string[] {
-    return Array.from({ length: count }, () =>
-      crypto.randomBytes(4).toString('hex')
-    );
+    return Array.from({ length: count }, () => crypto.randomBytes(4).toString('hex'));
   }
 
   static async enableTwoFactor(

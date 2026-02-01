@@ -412,7 +412,10 @@ describe('AuthService - Security Business Logic', () => {
   describe('Two-Factor Authentication Security', () => {
     it('should require 2FA token when enabled', async () => {
       // Given: User with 2FA enabled
-      const mockUser = createMockUser({ twoFactorEnabled: true, twoFactorSecret: 'JBSWY3DPEHPK3PXP' });
+      const mockUser = createMockUser({
+        twoFactorEnabled: true,
+        twoFactorSecret: 'JBSWY3DPEHPK3PXP',
+      });
       MockedUser.scope = vi.fn().mockReturnValue({
         findOne: vi.fn().mockResolvedValue(mockUser),
       });
@@ -528,7 +531,8 @@ describe('AuthService - Security Business Logic', () => {
       // Given: speakeasy returns a secret
       MockedSpeakeasy.generateSecret = vi.fn().mockReturnValue({
         base32: 'JBSWY3DPEHPK3PXP',
-        otpauth_url: 'otpauth://totp/Adopt%20Don%27t%20Shop%20(test%40example.com)?secret=JBSWY3DPEHPK3PXP',
+        otpauth_url:
+          'otpauth://totp/Adopt%20Don%27t%20Shop%20(test%40example.com)?secret=JBSWY3DPEHPK3PXP',
       });
 
       // When: Generating a secret

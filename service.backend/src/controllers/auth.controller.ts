@@ -63,15 +63,11 @@ export const authValidation = {
 
   twoFactorEnable: [
     body('secret').notEmpty().withMessage('Secret is required'),
-    body('token')
-      .isLength({ min: 6, max: 6 })
-      .withMessage('Verification code must be 6 digits'),
+    body('token').isLength({ min: 6, max: 6 }).withMessage('Verification code must be 6 digits'),
   ],
 
   twoFactorDisable: [
-    body('token')
-      .isLength({ min: 6, max: 6 })
-      .withMessage('Verification code must be 6 digits'),
+    body('token').isLength({ min: 6, max: 6 }).withMessage('Verification code must be 6 digits'),
   ],
 
   updateProfile: [
