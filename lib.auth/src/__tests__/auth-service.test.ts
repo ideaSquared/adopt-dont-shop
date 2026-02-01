@@ -238,6 +238,84 @@ describe('AuthService', () => {
     });
   });
 
+  describe('twoFactorSetup', () => {
+    it('should call the 2FA setup endpoint', async () => {
+      const mockResponse = {
+        secret: 'JBSWY3DPEHPK3PXP',
+        qrCodeDataUrl: 'data:image/png;base64,abc',
+      };
+      (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
+
+      const result = await authService.twoFactorSetup();
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/2fa/setup');
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('twoFactorEnable', () => {
+    it('should enable 2FA and update local user state', async () => {
+      const mockResponse = {
+        success: true,
+        backupCodes: ['code1', 'code2', 'code3'],
+      };
+      (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockUser));
+
+      const result = await authService.twoFactorEnable('JBSWY3DPEHPK3PXP', '123456');
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/2fa/enable', {
+        secret: 'JBSWY3DPEHPK3PXP',
+        token: '123456',
+      });
+      expect(result).toEqual(mockResponse);
+      // Should update localStorage with twoFactorEnabled: true
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.USER,
+        expect.stringContaining('"twoFactorEnabled":true')
+      );
+    });
+  });
+
+  describe('twoFactorDisable', () => {
+    it('should disable 2FA and update local user state', async () => {
+      const mockResponse = {
+        success: true,
+        message: 'Two-factor authentication has been disabled',
+      };
+      (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
+      mockLocalStorage.getItem.mockReturnValue(
+        JSON.stringify({ ...mockUser, twoFactorEnabled: true })
+      );
+
+      const result = await authService.twoFactorDisable('123456');
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/2fa/disable', {
+        token: '123456',
+      });
+      expect(result).toEqual(mockResponse);
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.USER,
+        expect.stringContaining('"twoFactorEnabled":false')
+      );
+    });
+  });
+
+  describe('twoFactorRegenerateBackupCodes', () => {
+    it('should regenerate backup codes', async () => {
+      const mockResponse = {
+        success: true,
+        backupCodes: ['new1', 'new2', 'new3'],
+      };
+      (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
+
+      const result = await authService.twoFactorRegenerateBackupCodes();
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/2fa/backup-codes');
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
   describe('refreshToken', () => {
     it('should refresh token successfully', async () => {
       const refreshResponse = {

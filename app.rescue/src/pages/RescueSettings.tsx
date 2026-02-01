@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { useAuth, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
@@ -110,7 +110,26 @@ const PlaceholderSection = styled.div`
   }
 `;
 
-type TabType = 'profile' | 'policies' | 'questions' | 'preferences';
+const SecuritySection = styled.div`
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 2rem;
+
+  h2 {
+    font-size: 1.25rem;
+    color: #374151;
+    margin: 0 0 0.5rem 0;
+  }
+
+  > p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 1.5rem 0;
+  }
+`;
+
+type TabType = 'profile' | 'policies' | 'questions' | 'preferences' | 'security';
 
 const RescueSettings: React.FC = () => {
   const { user } = useAuth();
@@ -247,6 +266,9 @@ const RescueSettings: React.FC = () => {
           <Tab $active={activeTab === 'preferences'} onClick={() => setActiveTab('preferences')}>
             Preferences
           </Tab>
+          <Tab $active={activeTab === 'security'} onClick={() => setActiveTab('security')}>
+            Security
+          </Tab>
         </TabList>
       </TabContainer>
 
@@ -280,6 +302,17 @@ const RescueSettings: React.FC = () => {
             auto-responses, and workflow preferences.
           </p>
         </PlaceholderSection>
+      </TabPanel>
+
+      <TabPanel $active={activeTab === 'security'}>
+        <SecuritySection>
+          <h2>Two-Factor Authentication</h2>
+          <p>
+            Add an extra layer of security to your account by requiring a verification code when you
+            sign in.
+          </p>
+          <TwoFactorSettings />
+        </SecuritySection>
       </TabPanel>
     </PageContainer>
   );

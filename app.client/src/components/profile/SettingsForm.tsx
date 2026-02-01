@@ -1,6 +1,7 @@
 import notificationService from '@/services/notificationService';
 import { User } from '@/types';
 import { Button } from '@adopt-dont-shop/lib.components';
+import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
@@ -514,6 +515,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
             </Switch>
           </SettingControl>
         </SettingItem>
+      </Section>
+
+      <Section>
+        <SectionTitle>Security</SectionTitle>
+        <SettingItem>
+          <SettingLabel>
+            <h4>Two-Factor Authentication</h4>
+            <p>Protect your account with an authenticator app</p>
+          </SettingLabel>
+        </SettingItem>
+        <TwoFactorSettings />
       </Section>
 
       <Section>

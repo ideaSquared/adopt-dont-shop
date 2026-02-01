@@ -19,6 +19,7 @@ import {
   Audit,
   Messages,
   Reports,
+  AccountSettings,
 } from './pages';
 
 const AdminApp: React.FC = () => {
@@ -106,6 +107,9 @@ const AdminApp: React.FC = () => {
 
             {/* Audit & Monitoring */}
             <Route path='/audit' element={<Audit />} />
+
+            {/* Account Settings */}
+            <Route path='/account' element={<AccountSettings />} />
 
             {/* Catch-all redirect */}
             <Route path='*' element={<Navigate to='/' replace />} />

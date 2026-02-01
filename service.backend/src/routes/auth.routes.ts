@@ -537,4 +537,20 @@ router.get('/me', authenticateToken, AuthController.getCurrentUser);
  */
 router.put('/me', authenticateToken, authValidation.updateProfile, AuthController.updateProfile);
 
+// Two-Factor Authentication routes
+router.post('/2fa/setup', authenticateToken, AuthController.twoFactorSetup);
+router.post(
+  '/2fa/enable',
+  authenticateToken,
+  authValidation.twoFactorEnable,
+  AuthController.twoFactorEnable
+);
+router.post(
+  '/2fa/disable',
+  authenticateToken,
+  authValidation.twoFactorDisable,
+  AuthController.twoFactorDisable
+);
+router.post('/2fa/backup-codes', authenticateToken, AuthController.twoFactorRegenerateBackupCodes);
+
 export default router;
