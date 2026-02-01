@@ -14,6 +14,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiActivity,
+  FiLock,
 } from 'react-icons/fi';
 
 interface SidebarProps {
@@ -269,6 +270,17 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           <StyledNavLink to='/reports' $collapsed={collapsed}>
             <FiFileText />
             <span>Reports</span>
+          </StyledNavLink>
+        </NavSection>
+
+        <NavDivider $collapsed={collapsed} />
+
+        {/* Account Section */}
+        <NavSection $collapsed={collapsed}>
+          <NavSectionTitle $collapsed={collapsed}>Account</NavSectionTitle>
+          <StyledNavLink to='/account' $collapsed={collapsed}>
+            <FiLock />
+            <span>Account Settings</span>
           </StyledNavLink>
         </NavSection>
       </Nav>
