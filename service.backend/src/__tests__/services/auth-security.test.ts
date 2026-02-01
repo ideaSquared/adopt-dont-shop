@@ -15,6 +15,7 @@ import { vi } from 'vitest';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import speakeasy from 'speakeasy';
 import User, { UserStatus, UserType } from '../../models/User';
 import { AuthService } from '../../services/auth.service';
 import { LoginCredentials, RegisterData } from '../../types/auth';
@@ -32,6 +33,15 @@ const MockedJwt = jwt as vi.MockedObject<jwt>;
 
 // Mock crypto
 vi.mock('crypto');
+
+// Mock speakeasy
+vi.mock('speakeasy');
+const MockedSpeakeasy = speakeasy as vi.MockedObject<typeof speakeasy>;
+
+// Mock qrcode
+vi.mock('qrcode', () => ({
+  default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,mockqrcode') },
+}));
 
 // Mock env config to avoid validation errors
 vi.mock('../../config/env', () => ({
@@ -64,6 +74,8 @@ const createMockUser = (overrides = {}) => ({
   status: UserStatus.ACTIVE,
   emailVerified: true,
   twoFactorEnabled: false,
+  twoFactorSecret: null as string | null,
+  backupCodes: null as string[] | null,
   loginAttempts: 0,
   lockedUntil: null as Date | null,
   lastLoginAt: null as Date | null,
@@ -105,6 +117,12 @@ describe('AuthService - Security Business Logic', () => {
     // Setup JWT mocks
     MockedJwt.sign = vi.fn().mockReturnValue('mock-token');
     MockedJwt.verify = vi.fn();
+
+    // Setup speakeasy mocks
+    if (!MockedSpeakeasy.totp) {
+      MockedSpeakeasy.totp = {} as typeof speakeasy.totp;
+    }
+    MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(false);
   });
 
   // ==========================================================================
@@ -394,7 +412,7 @@ describe('AuthService - Security Business Logic', () => {
   describe('Two-Factor Authentication Security', () => {
     it('should require 2FA token when enabled', async () => {
       // Given: User with 2FA enabled
-      const mockUser = createMockUser({ twoFactorEnabled: true });
+      const mockUser = createMockUser({ twoFactorEnabled: true, twoFactorSecret: 'JBSWY3DPEHPK3PXP' });
       MockedUser.scope = vi.fn().mockReturnValue({
         findOne: vi.fn().mockResolvedValue(mockUser),
       });
@@ -409,12 +427,17 @@ describe('AuthService - Security Business Logic', () => {
     });
 
     it('should reject invalid 2FA token', async () => {
-      // Given: User with 2FA enabled
-      const mockUser = createMockUser({ twoFactorEnabled: true });
+      // Given: User with 2FA enabled and a secret
+      const mockUser = createMockUser({
+        twoFactorEnabled: true,
+        twoFactorSecret: 'JBSWY3DPEHPK3PXP',
+        backupCodes: [],
+      });
       MockedUser.scope = vi.fn().mockReturnValue({
         findOne: vi.fn().mockResolvedValue(mockUser),
       });
       MockedBcrypt.compare = vi.fn().mockResolvedValue(true);
+      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(false);
 
       const credentials = createValidLoginCredentials({ twoFactorToken: 'invalid-token' });
 
@@ -424,23 +447,191 @@ describe('AuthService - Security Business Logic', () => {
       );
     });
 
-    it('should allow login with valid 2FA token', async () => {
-      // Given: User with 2FA enabled and valid token
-      const mockUser = createMockUser({ twoFactorEnabled: true });
+    it('should allow login with valid TOTP token', async () => {
+      // Given: User with 2FA enabled and valid TOTP token
+      const mockUser = createMockUser({
+        twoFactorEnabled: true,
+        twoFactorSecret: 'JBSWY3DPEHPK3PXP',
+      });
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(mockUser),
+      });
+      MockedBcrypt.compare = vi.fn().mockResolvedValue(true);
+      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+
+      const credentials = createValidLoginCredentials({ twoFactorToken: '123456' });
+
+      // When: Login with correct TOTP token
+      const result = await AuthService.login(credentials);
+
+      // Then: Login succeeds and speakeasy was called with correct params
+      expect(result).toBeDefined();
+      expect(result.user).toBeDefined();
+      expect(MockedSpeakeasy.totp.verify).toHaveBeenCalledWith({
+        secret: 'JBSWY3DPEHPK3PXP',
+        encoding: 'base32',
+        token: '123456',
+        window: 1,
+      });
+    });
+
+    it('should allow login with valid backup code when TOTP fails', async () => {
+      // Given: User with 2FA enabled and backup codes
+      const mockUser = createMockUser({
+        twoFactorEnabled: true,
+        twoFactorSecret: 'JBSWY3DPEHPK3PXP',
+        backupCodes: ['abc12345', 'def67890', 'ghi11111'],
+      });
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(mockUser),
+      });
+      MockedBcrypt.compare = vi.fn().mockResolvedValue(true);
+      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(false);
+
+      const credentials = createValidLoginCredentials({ twoFactorToken: 'def67890' });
+
+      // When: Login with backup code
+      const result = await AuthService.login(credentials);
+
+      // Then: Login succeeds and backup code is consumed
+      expect(result).toBeDefined();
+      expect(mockUser.backupCodes).toEqual(['abc12345', 'ghi11111']);
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('should throw error when 2FA is enabled but secret is not set up', async () => {
+      // Given: User with 2FA enabled but no secret (should not happen, but defensive)
+      const mockUser = createMockUser({
+        twoFactorEnabled: true,
+        twoFactorSecret: null,
+      });
       MockedUser.scope = vi.fn().mockReturnValue({
         findOne: vi.fn().mockResolvedValue(mockUser),
       });
       MockedBcrypt.compare = vi.fn().mockResolvedValue(true);
 
-      // Note: Current implementation has hardcoded 2FA validation (TODO in codebase)
       const credentials = createValidLoginCredentials({ twoFactorToken: '123456' });
 
-      // When: Login with correct 2FA token
-      const result = await AuthService.login(credentials);
+      // When & Then: Login fails with descriptive error
+      await expect(AuthService.login(credentials)).rejects.toThrow(
+        'Two-factor authentication is not set up for this user'
+      );
+    });
+  });
 
-      // Then: Login succeeds
-      expect(result).toBeDefined();
-      expect(result.user).toBeDefined();
+  // ==========================================================================
+  // Two-Factor Setup and Management
+  // ==========================================================================
+
+  describe('Two-Factor Setup and Management', () => {
+    it('should generate a TOTP secret for a user', () => {
+      // Given: speakeasy returns a secret
+      MockedSpeakeasy.generateSecret = vi.fn().mockReturnValue({
+        base32: 'JBSWY3DPEHPK3PXP',
+        otpauth_url: 'otpauth://totp/Adopt%20Don%27t%20Shop%20(test%40example.com)?secret=JBSWY3DPEHPK3PXP',
+      });
+
+      // When: Generating a secret
+      const result = AuthService.generateTwoFactorSecret('test@example.com');
+
+      // Then: Secret and URL are returned
+      expect(result.secret).toBe('JBSWY3DPEHPK3PXP');
+      expect(result.otpauthUrl).toContain('otpauth://');
+      expect(MockedSpeakeasy.generateSecret).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: expect.stringContaining('test@example.com'),
+          issuer: "Adopt Don't Shop",
+        })
+      );
+    });
+
+    it('should generate 10 backup codes by default', () => {
+      const mockCrypto = crypto as vi.MockedObject<typeof crypto>;
+      (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
+        toString: vi.fn().mockReturnValue('abcd1234'),
+      });
+
+      const codes = AuthService.generateBackupCodes();
+
+      expect(codes).toHaveLength(10);
+      expect(mockCrypto.randomBytes).toHaveBeenCalledTimes(10);
+    });
+
+    it('should generate custom number of backup codes', () => {
+      const mockCrypto = crypto as vi.MockedObject<typeof crypto>;
+      (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
+        toString: vi.fn().mockReturnValue('abcd1234'),
+      });
+
+      const codes = AuthService.generateBackupCodes(5);
+
+      expect(codes).toHaveLength(5);
+    });
+
+    it('should enable 2FA after verifying setup token', async () => {
+      // Given: Valid setup token
+      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+      const mockUser = createMockUser();
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+
+      const mockCrypto = crypto as vi.MockedObject<typeof crypto>;
+      (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
+        toString: vi.fn().mockReturnValue('backupcode1'),
+      });
+
+      // When: Enabling 2FA
+      const result = await AuthService.enableTwoFactor(mockUserId, 'JBSWY3DPEHPK3PXP', '123456');
+
+      // Then: 2FA is enabled with backup codes
+      expect(mockUser.twoFactorEnabled).toBe(true);
+      expect(mockUser.twoFactorSecret).toBe('JBSWY3DPEHPK3PXP');
+      expect(mockUser.backupCodes).toHaveLength(10);
+      expect(result.backupCodes).toHaveLength(10);
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('should reject enabling 2FA with invalid setup token', async () => {
+      // Given: Invalid setup token
+      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(false);
+
+      // When & Then: Enabling fails
+      await expect(
+        AuthService.enableTwoFactor(mockUserId, 'JBSWY3DPEHPK3PXP', 'wrong-token')
+      ).rejects.toThrow('Invalid verification code. Please try again.');
+    });
+
+    it('should disable 2FA and clear secret and backup codes', async () => {
+      // Given: User with 2FA enabled
+      const mockUser = createMockUser({
+        twoFactorEnabled: true,
+        twoFactorSecret: 'JBSWY3DPEHPK3PXP',
+        backupCodes: ['code1', 'code2'],
+      });
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+
+      // When: Disabling 2FA
+      await AuthService.disableTwoFactor(mockUserId);
+
+      // Then: 2FA is fully disabled
+      expect(mockUser.twoFactorEnabled).toBe(false);
+      expect(mockUser.twoFactorSecret).toBeNull();
+      expect(mockUser.backupCodes).toBeNull();
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('should throw error when enabling 2FA for non-existent user', async () => {
+      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+      MockedUser.findByPk = vi.fn().mockResolvedValue(null);
+
+      await expect(
+        AuthService.enableTwoFactor('non-existent', 'JBSWY3DPEHPK3PXP', '123456')
+      ).rejects.toThrow('User not found');
+    });
+
+    it('should throw error when disabling 2FA for non-existent user', async () => {
+      MockedUser.findByPk = vi.fn().mockResolvedValue(null);
+
+      await expect(AuthService.disableTwoFactor('non-existent')).rejects.toThrow('User not found');
     });
   });
 
