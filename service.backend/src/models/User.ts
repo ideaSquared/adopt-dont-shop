@@ -269,7 +269,14 @@ User.init(
       allowNull: true,
       field: 'phone_number',
       validate: {
-        len: [10, 20],
+        isNullOrValidLength(value: string | null) {
+          if (value === null || value === undefined || value === '') {
+            return;
+          }
+          if (value.length < 10 || value.length > 20) {
+            throw new Error('Phone number must be between 10 and 20 characters');
+          }
+        },
       },
     },
     phoneVerified: {

@@ -111,7 +111,13 @@ const registerSchema = z
     firstName: z.string().min(1, 'First name is required').max(50, 'First name is too long'),
     lastName: z.string().min(1, 'Last name is required').max(50, 'Last name is too long'),
     email: z.string().email('Please enter a valid email address'),
-    phoneNumber: z.string().optional(),
+    phoneNumber: z
+      .string()
+      .optional()
+      .refine(
+        (val) => !val || (val.replace(/[^\d+]/g, '').length >= 10 && val.replace(/[^\d+]/g, '').length <= 20),
+        'Please enter a valid phone number (10-20 digits)'
+      ),
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
@@ -207,7 +213,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
 
     try {
-      const { confirmPassword: _, acceptTerms: __, ...registerData } = formData;
+      const { confirmPassword: _, acceptTerms: __, phoneNumber, ...rest } = formData;
+      const registerData = {
+        ...rest,
+        ...(phoneNumber ? { phoneNumber } : {}),
+      };
       await registerUser(registerData);
       onSuccess?.();
     } catch (err: unknown) {
