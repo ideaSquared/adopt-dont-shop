@@ -145,6 +145,27 @@ export const rolePermissions: Record<RescueRole, Permission[]> = {
 export interface LoginRequest {
   email: string;
   password: string;
+  twoFactorToken?: string;
+}
+
+export interface TwoFactorSetupResponse {
+  secret: string;
+  qrCodeDataUrl: string;
+}
+
+export interface TwoFactorEnableResponse {
+  success: boolean;
+  backupCodes: string[];
+}
+
+export interface TwoFactorDisableResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface TwoFactorBackupCodesResponse {
+  success: boolean;
+  backupCodes: string[];
 }
 
 export interface RegisterRequest {

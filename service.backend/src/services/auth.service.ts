@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { Op } from 'sequelize';
+import speakeasy from 'speakeasy';
+import qrcode from 'qrcode';
 import User, { UserStatus, UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
@@ -675,9 +677,138 @@ Need help? Contact us at support@adoptdontshop.com
   }
 
   private static async verifyTwoFactorToken(user: User, token: string): Promise<boolean> {
-    // TODO: Implement 2FA verification (e.g., TOTP)
-    // This is a placeholder implementation
-    return token === '123456';
+    if (!user.twoFactorSecret) {
+      throw new Error('Two-factor authentication is not set up for this user');
+    }
+
+    // First try TOTP verification
+    const isValidTotp = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
+      window: 1,
+    });
+
+    if (isValidTotp) {
+      return true;
+    }
+
+    // Fall back to backup code verification
+    return this.verifyBackupCode(user, token);
+  }
+
+  private static async verifyBackupCode(user: User, code: string): Promise<boolean> {
+    if (!user.backupCodes || user.backupCodes.length === 0) {
+      return false;
+    }
+
+    const codeIndex = user.backupCodes.indexOf(code);
+    if (codeIndex === -1) {
+      return false;
+    }
+
+    // Remove used backup code
+    const updatedCodes = [
+      ...user.backupCodes.slice(0, codeIndex),
+      ...user.backupCodes.slice(codeIndex + 1),
+    ];
+    user.backupCodes = updatedCodes;
+    await user.save();
+
+    loggerHelpers.logSecurity('Backup code used for 2FA', {
+      userId: user.userId,
+      remainingCodes: updatedCodes.length,
+    });
+
+    return true;
+  }
+
+  static generateTwoFactorSecret(userEmail: string): { secret: string; otpauthUrl: string } {
+    const secretObj = speakeasy.generateSecret({
+      name: `Adopt Don't Shop (${userEmail})`,
+      issuer: "Adopt Don't Shop",
+      length: 20,
+    });
+
+    return {
+      secret: secretObj.base32,
+      otpauthUrl: secretObj.otpauth_url ?? '',
+    };
+  }
+
+  static async generateQrCodeDataUrl(otpauthUrl: string): Promise<string> {
+    return qrcode.toDataURL(otpauthUrl);
+  }
+
+  static verifyTwoFactorSetupToken(secret: string, token: string): boolean {
+    return speakeasy.totp.verify({
+      secret,
+      encoding: 'base32',
+      token,
+      window: 1,
+    });
+  }
+
+  static generateBackupCodes(count = 10): string[] {
+    return Array.from({ length: count }, () => crypto.randomBytes(4).toString('hex'));
+  }
+
+  static async enableTwoFactor(
+    userId: string,
+    secret: string,
+    token: string
+  ): Promise<{ backupCodes: string[] }> {
+    // Verify the token before enabling
+    const isValid = this.verifyTwoFactorSetupToken(secret, token);
+    if (!isValid) {
+      throw new Error('Invalid verification code. Please try again.');
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const backupCodes = this.generateBackupCodes();
+
+    user.twoFactorEnabled = true;
+    user.twoFactorSecret = secret;
+    user.backupCodes = backupCodes;
+    await user.save();
+
+    await AuditLogService.log({
+      userId: user.userId,
+      action: 'TWO_FACTOR_ENABLED',
+      entity: 'User',
+      entityId: user.userId,
+      details: { email: user.email },
+    });
+
+    loggerHelpers.logSecurity('2FA enabled', { userId: user.userId });
+
+    return { backupCodes };
+  }
+
+  static async disableTwoFactor(userId: string): Promise<void> {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = null;
+    user.backupCodes = null;
+    await user.save();
+
+    await AuditLogService.log({
+      userId: user.userId,
+      action: 'TWO_FACTOR_DISABLED',
+      entity: 'User',
+      entityId: user.userId,
+      details: { email: user.email },
+    });
+
+    loggerHelpers.logSecurity('2FA disabled', { userId: user.userId });
   }
 }
 

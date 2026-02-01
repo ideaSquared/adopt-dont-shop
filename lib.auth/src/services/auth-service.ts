@@ -6,6 +6,10 @@ import {
   User,
   ChangePasswordRequest,
   RefreshTokenResponse,
+  TwoFactorSetupResponse,
+  TwoFactorEnableResponse,
+  TwoFactorDisableResponse,
+  TwoFactorBackupCodesResponse,
   STORAGE_KEYS,
 } from '../types';
 
@@ -21,6 +25,10 @@ const AUTH_ENDPOINTS = {
   RESET_PASSWORD: '/api/v1/auth/reset-password',
   VERIFY_EMAIL: (token: string) => `/api/v1/auth/verify-email/${token}`,
   RESEND_VERIFICATION: '/api/v1/auth/resend-verification',
+  TWO_FACTOR_SETUP: '/api/v1/auth/2fa/setup',
+  TWO_FACTOR_ENABLE: '/api/v1/auth/2fa/enable',
+  TWO_FACTOR_DISABLE: '/api/v1/auth/2fa/disable',
+  TWO_FACTOR_BACKUP_CODES: '/api/v1/auth/2fa/backup-codes',
 } as const;
 
 /**
@@ -183,6 +191,56 @@ export class AuthService {
       throw new Error('No user email found');
     }
     await apiService.post(AUTH_ENDPOINTS.RESEND_VERIFICATION, { email: user.email });
+  }
+
+  /**
+   * Start 2FA setup - get secret and QR code
+   */
+  async twoFactorSetup(): Promise<TwoFactorSetupResponse> {
+    return apiService.post<TwoFactorSetupResponse>(AUTH_ENDPOINTS.TWO_FACTOR_SETUP);
+  }
+
+  /**
+   * Enable 2FA after verifying setup token
+   */
+  async twoFactorEnable(secret: string, token: string): Promise<TwoFactorEnableResponse> {
+    const response = await apiService.post<TwoFactorEnableResponse>(
+      AUTH_ENDPOINTS.TWO_FACTOR_ENABLE,
+      { secret, token }
+    );
+
+    // Update local user state
+    const user = this.getCurrentUser();
+    if (user) {
+      this.setUser({ ...user, twoFactorEnabled: true });
+    }
+
+    return response;
+  }
+
+  /**
+   * Disable 2FA
+   */
+  async twoFactorDisable(token: string): Promise<TwoFactorDisableResponse> {
+    const response = await apiService.post<TwoFactorDisableResponse>(
+      AUTH_ENDPOINTS.TWO_FACTOR_DISABLE,
+      { token }
+    );
+
+    // Update local user state
+    const user = this.getCurrentUser();
+    if (user) {
+      this.setUser({ ...user, twoFactorEnabled: false });
+    }
+
+    return response;
+  }
+
+  /**
+   * Regenerate backup codes
+   */
+  async twoFactorRegenerateBackupCodes(): Promise<TwoFactorBackupCodesResponse> {
+    return apiService.post<TwoFactorBackupCodesResponse>(AUTH_ENDPOINTS.TWO_FACTOR_BACKUP_CODES);
   }
 
   /**

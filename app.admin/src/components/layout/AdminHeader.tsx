@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { FiSearch, FiBell, FiUser, FiLogOut, FiSettings, FiChevronDown } from 'react-icons/fi';
 
@@ -203,6 +204,7 @@ const DropdownDivider = styled.div`
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -255,13 +257,23 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed }) =>
           </UserButton>
 
           <DropdownMenu $isOpen={userMenuOpen}>
-            <DropdownItem onClick={() => setUserMenuOpen(false)}>
+            <DropdownItem
+              onClick={() => {
+                setUserMenuOpen(false);
+                navigate('/account');
+              }}
+            >
               <FiUser />
               Profile
             </DropdownItem>
-            <DropdownItem onClick={() => setUserMenuOpen(false)}>
+            <DropdownItem
+              onClick={() => {
+                setUserMenuOpen(false);
+                navigate('/account');
+              }}
+            >
               <FiSettings />
-              Settings
+              Account Settings
             </DropdownItem>
             <DropdownDivider />
             <DropdownItem $danger onClick={handleLogout}>

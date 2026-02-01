@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { body } from 'express-validator';
 import AuthService from '../services/auth.service';
 import { UserService } from '../services/user.service';
+import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
 
@@ -37,8 +38,8 @@ export const authValidation = {
     body('password').notEmpty().withMessage('Password is required'),
     body('twoFactorToken')
       .optional()
-      .isLength({ min: 6, max: 6 })
-      .withMessage('Two-factor token must be 6 digits'),
+      .isLength({ min: 6, max: 8 })
+      .withMessage('Two-factor token must be 6-8 characters'),
   ],
 
   forgotPassword: [
@@ -58,6 +59,15 @@ export const authValidation = {
 
   resendVerification: [
     body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email address'),
+  ],
+
+  twoFactorEnable: [
+    body('secret').notEmpty().withMessage('Secret is required'),
+    body('token').isLength({ min: 6, max: 6 }).withMessage('Verification code must be 6 digits'),
+  ],
+
+  twoFactorDisable: [
+    body('token').isLength({ min: 6, max: 6 }).withMessage('Verification code must be 6 digits'),
   ],
 
   updateProfile: [
@@ -270,6 +280,118 @@ export class AuthController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Get current user failed:', error);
       res.status(500).json({ error: 'Failed to get user profile' });
+    }
+  }
+
+  /**
+   * Generate 2FA secret and QR code for setup
+   */
+  async twoFactorSetup(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const user = req.user!;
+
+      if (user.twoFactorEnabled) {
+        res.status(400).json({ error: 'Two-factor authentication is already enabled' });
+        return;
+      }
+
+      const { secret, otpauthUrl } = AuthService.generateTwoFactorSecret(user.email);
+      const qrCodeDataUrl = await AuthService.generateQrCodeDataUrl(otpauthUrl);
+
+      res.json({ secret, qrCodeDataUrl });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('2FA setup failed:', error);
+      res.status(500).json({ error: 'Failed to set up two-factor authentication' });
+    }
+  }
+
+  /**
+   * Enable 2FA after verifying the setup token
+   */
+  async twoFactorEnable(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const { secret, token } = req.body;
+
+      const result = await AuthService.enableTwoFactor(userId, secret, token);
+      res.json({ success: true, backupCodes: result.backupCodes });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('2FA enable failed:', error);
+
+      if (errorMessage.includes('Invalid verification code')) {
+        res.status(400).json({ error: errorMessage });
+        return;
+      }
+
+      res.status(500).json({ error: 'Failed to enable two-factor authentication' });
+    }
+  }
+
+  /**
+   * Disable 2FA after verifying current token
+   */
+  async twoFactorDisable(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const { token } = req.body;
+
+      if (!req.user!.twoFactorEnabled) {
+        res.status(400).json({ error: 'Two-factor authentication is not enabled' });
+        return;
+      }
+
+      // Fetch user with secrets to access twoFactorSecret
+      const userWithSecret = await User.scope('withSecrets').findByPk(userId);
+      if (!userWithSecret || !userWithSecret.twoFactorSecret) {
+        res.status(400).json({ error: 'Two-factor authentication secret not found' });
+        return;
+      }
+
+      // Verify current TOTP before disabling
+      const isValid = AuthService.verifyTwoFactorSetupToken(userWithSecret.twoFactorSecret, token);
+      if (!isValid) {
+        res.status(400).json({ error: 'Invalid verification code' });
+        return;
+      }
+
+      await AuthService.disableTwoFactor(userId);
+      res.json({ success: true, message: 'Two-factor authentication has been disabled' });
+    } catch (error) {
+      logger.error('2FA disable failed:', error);
+      res.status(500).json({ error: 'Failed to disable two-factor authentication' });
+    }
+  }
+
+  /**
+   * Regenerate backup codes
+   */
+  async twoFactorRegenerateBackupCodes(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const user = req.user!;
+
+      if (!user.twoFactorEnabled) {
+        res.status(400).json({ error: 'Two-factor authentication is not enabled' });
+        return;
+      }
+
+      const backupCodes = AuthService.generateBackupCodes();
+
+      // Need to fetch the user with write access to update
+      const dbUser = await User.findByPk(user.userId);
+      if (!dbUser) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      dbUser.backupCodes = backupCodes;
+      await dbUser.save();
+
+      res.json({ success: true, backupCodes });
+    } catch (error) {
+      logger.error('Backup codes regeneration failed:', error);
+      res.status(500).json({ error: 'Failed to regenerate backup codes' });
     }
   }
 

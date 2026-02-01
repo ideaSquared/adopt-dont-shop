@@ -12,6 +12,7 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'json'],
   testTimeout: 10000,
   moduleNameMapper: {
+    '^@adopt-dont-shop/lib\\.api$': '<rootDir>/../lib.api/src/index.ts',
     '^@adopt-dont-shop/lib-api$': '<rootDir>/../lib.api/src/index.ts',
   },
 };
