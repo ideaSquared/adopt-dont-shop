@@ -2,8 +2,10 @@ import express from 'express';
 import { ApplicationController } from '../controllers/application.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
+import { handleValidationErrors } from '../middleware/validation';
 import { UserType } from '../models/User';
 import applicationTimelineRoutes from './applicationTimeline.routes';
+import { applicationValidation } from '../validation/application.validation';
 
 const router = express.Router();
 const applicationController = new ApplicationController();
@@ -813,7 +815,7 @@ router.patch(
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/form-structure/:rescueId', applicationController.getApplicationFormStructure);
+router.get('/form-structure/:rescueId', applicationValidation.getFormStructure, handleValidationErrors, applicationController.getApplicationFormStructure);
 
 // Validate application answers
 
@@ -929,7 +931,7 @@ router.get('/form-structure/:rescueId', applicationController.getApplicationForm
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.post('/validate/:rescueId', applicationController.validateApplicationAnswers);
+router.post('/validate/:rescueId', applicationValidation.validateAnswers, handleValidationErrors, applicationController.validateApplicationAnswers);
 
 // Get application statistics (rescue staff/admin only)
 

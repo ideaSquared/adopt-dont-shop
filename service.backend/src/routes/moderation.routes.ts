@@ -3,7 +3,9 @@ import { ModerationController } from '../controllers/moderation.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { generalLimiter } from '../middleware/rate-limiter';
+import { handleValidationErrors } from '../middleware/validation';
 import { PERMISSIONS } from '../types/rbac';
+import { moderationValidation } from '../validation/moderation.validation';
 
 const router = express.Router();
 const moderationController = new ModerationController();
@@ -65,6 +67,8 @@ router.get(
   '/reports',
   requirePermission(PERMISSIONS.MODERATION_REPORTS_READ),
   generalLimiter,
+  moderationValidation.getReports,
+  handleValidationErrors,
   moderationController.getReports.bind(moderationController)
 );
 
@@ -92,6 +96,8 @@ router.get(
   '/reports/:reportId',
   requirePermission(PERMISSIONS.MODERATION_REPORTS_READ),
   generalLimiter,
+  moderationValidation.getReportById,
+  handleValidationErrors,
   moderationController.getReportById.bind(moderationController)
 );
 
@@ -139,6 +145,8 @@ router.post(
   '/reports',
   requirePermission(PERMISSIONS.MODERATION_REPORTS_CREATE),
   generalLimiter,
+  moderationValidation.submitReport,
+  handleValidationErrors,
   moderationController.submitReport.bind(moderationController)
 );
 
@@ -177,6 +185,8 @@ router.patch(
   '/reports/:reportId/status',
   requirePermission(PERMISSIONS.MODERATION_REPORTS_UPDATE),
   generalLimiter,
+  moderationValidation.updateReportStatus,
+  handleValidationErrors,
   moderationController.updateReportStatus.bind(moderationController)
 );
 
@@ -213,6 +223,8 @@ router.post(
   '/reports/:reportId/assign',
   requirePermission(PERMISSIONS.MODERATION_REPORTS_ASSIGN),
   generalLimiter,
+  moderationValidation.assignReport,
+  handleValidationErrors,
   moderationController.assignReport.bind(moderationController)
 );
 
@@ -252,6 +264,8 @@ router.post(
   '/reports/:reportId/escalate',
   requirePermission(PERMISSIONS.MODERATION_REPORTS_ESCALATE),
   generalLimiter,
+  moderationValidation.escalateReport,
+  handleValidationErrors,
   moderationController.escalateReport.bind(moderationController)
 );
 
@@ -287,6 +301,8 @@ router.post(
   '/reports/bulk-update',
   requirePermission(PERMISSIONS.MODERATION_REPORTS_BULK_UPDATE),
   generalLimiter,
+  moderationValidation.bulkUpdateReports,
+  handleValidationErrors,
   moderationController.bulkUpdateReports.bind(moderationController)
 );
 
@@ -337,6 +353,8 @@ router.post(
   '/actions',
   requirePermission(PERMISSIONS.MODERATION_ACTIONS_CREATE),
   generalLimiter,
+  moderationValidation.takeModerationAction,
+  handleValidationErrors,
   moderationController.takeModerationAction.bind(moderationController)
 );
 
@@ -362,6 +380,8 @@ router.get(
   '/actions/active',
   requirePermission(PERMISSIONS.MODERATION_ACTIONS_READ),
   generalLimiter,
+  moderationValidation.getActiveActions,
+  handleValidationErrors,
   moderationController.getActiveActions.bind(moderationController)
 );
 
@@ -381,6 +401,8 @@ router.get(
   '/metrics',
   requirePermission(PERMISSIONS.MODERATION_METRICS_READ),
   generalLimiter,
+  moderationValidation.getModerationMetrics,
+  handleValidationErrors,
   moderationController.getModerationMetrics.bind(moderationController)
 );
 

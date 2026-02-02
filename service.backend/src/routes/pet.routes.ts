@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { PetController } from '../controllers/pet.controller';
 import { authenticateToken, authenticateOptionalToken } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
+import { handleValidationErrors } from '../middleware/validation';
+import { petValidation } from '../validation/pet.validation';
 
 const router = Router();
 const petController = new PetController();
@@ -917,7 +919,7 @@ router.get('/statistics', petController.getPetStatistics);
  */
 router.get('/rescue/my', authenticateToken, petController.getMyRescuePets);
 
-router.get('/rescue/:rescueId', petController.getPetsByRescue);
+router.get('/rescue/:rescueId', petValidation.getPetsByRescue, handleValidationErrors, petController.getPetsByRescue);
 
 /**
  * @swagger
