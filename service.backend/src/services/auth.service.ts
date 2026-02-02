@@ -44,7 +44,7 @@ export class AuthService {
         lastName: userData.lastName,
         email: userData.email.toLowerCase(),
         password: userData.password,
-        phoneNumber: userData.phoneNumber,
+        phoneNumber: userData.phoneNumber || undefined,
         userType: userData.userType || UserType.ADOPTER,
         status: UserStatus.PENDING_VERIFICATION,
         emailVerified: false,
