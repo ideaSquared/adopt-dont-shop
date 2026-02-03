@@ -2,6 +2,7 @@
 import { DataTypes, Model, Op, Optional, QueryTypes, WhereOptions } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 // Pet status enum
 export enum PetStatus {

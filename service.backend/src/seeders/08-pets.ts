@@ -11,7 +11,7 @@ import Pet, {
 
 const petProfiles = [
   {
-    pet_id: 'pet_buddy_001',
+    pet_id: 'pet_0000buddy01',
     name: 'Buddy',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     short_description: 'Friendly golden retriever looking for an active family',
@@ -81,7 +81,7 @@ const petProfiles = [
     tags: ['dog-friendly', 'active', 'family-dog', 'outdoor-lover'],
   },
   {
-    pet_id: 'pet_whiskers_001',
+    pet_id: 'pet_0000whisk01',
     name: 'Whiskers',
     rescue_id: '550e8400-e29b-41d4-a716-446655440003',
     short_description: 'Sweet senior cat looking for a quiet retirement home',
@@ -143,7 +143,7 @@ const petProfiles = [
     tags: ['senior', 'quiet', 'lap-cat', 'special-needs'],
   },
   {
-    pet_id: 'pet_rocky_001',
+    pet_id: 'pet_0000rocky01',
     name: 'Rocky',
     rescue_id: '550e8400-e29b-41d4-a716-446655440002',
     short_description: 'Senior pit bull mix with a heart of gold',
@@ -205,7 +205,7 @@ const petProfiles = [
     tags: ['senior', 'gentle-giant', 'loyal', 'only-dog'],
   },
   {
-    pet_id: 'pet_luna_001',
+    pet_id: 'pet_0000luna001',
     name: 'Luna',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     short_description: 'Playful young cat with striking blue eyes',
@@ -266,7 +266,7 @@ const petProfiles = [
     tags: ['young', 'playful', 'social', 'beautiful'],
   },
   {
-    pet_id: 'pet_max_001',
+    pet_id: 'pet_0000max0001',
     name: 'Max',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     short_description: 'Energetic young shepherd mix needing training',

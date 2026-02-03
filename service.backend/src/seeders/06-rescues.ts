@@ -3,6 +3,7 @@ import Rescue from '../models/Rescue';
 const rescueOrganizations = [
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
+    readableId: 'rescue_0000paws0001',
     name: 'Paws Rescue Austin',
     email: 'info@pawsrescue.dev',
     phone: '(512) 555-0123',
@@ -59,6 +60,7 @@ const rescueOrganizations = [
   },
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440002',
+    readableId: 'rescue_0000happy001',
     name: 'Happy Tails Senior Dog Rescue',
     email: 'info@happytailsrescue.dev',
     phone: '(305) 555-0456',
@@ -127,6 +129,7 @@ const rescueOrganizations = [
     website: 'https://www.furryfriendspdx.dev',
     description:
       'Multi-species rescue focusing on cats, dogs, and small mammals in the Portland metropolitan area.',
+    readableId: 'rescue_0000furry001',
     mission:
       'To rescue, rehabilitate, and rehome companion animals while promoting responsible pet ownership.',
     ein: '55-1234567',

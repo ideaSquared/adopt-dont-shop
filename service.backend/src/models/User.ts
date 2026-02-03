@@ -2,6 +2,7 @@ import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'se
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import bcrypt from 'bcrypt';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 // Forward declarations to avoid circular imports
 interface Permission {

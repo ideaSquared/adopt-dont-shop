@@ -2,6 +2,7 @@ import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize';
 import sequelize, { getJsonType } from '../sequelize';
 import { MessageContentFormat } from '../types/chat';
 import Chat from './Chat';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 export interface MessageReaction {
   user_id: string;

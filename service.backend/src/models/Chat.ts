@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { ChatStatus } from '../types/chat';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 import { ChatParticipant } from './ChatParticipant';
 import { Message } from './Message';

@@ -7,7 +7,7 @@ import Application, {
 
 const applicationData = [
   {
-    application_id: 'app_buddy_john_001',
+    application_id: 'application_0000bjon001',
     user_id: 'user_adopter_001', // John Smith
     pet_id: 'pet_buddy_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -87,7 +87,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     user_id: 'user_adopter_002', // Emily Davis
     pet_id: 'pet_whiskers_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440003',
@@ -163,7 +163,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'app_rocky_michael_001',
+    application_id: 'application_0000rmic001',
     user_id: 'user_adopter_003', // Michael Brown
     pet_id: 'pet_rocky_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440002',
@@ -246,7 +246,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'app_luna_jessica_001',
+    application_id: 'application_0000ljes001',
     user_id: 'user_adopter_004', // Jessica Wilson
     pet_id: 'pet_luna_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -305,7 +305,7 @@ const applicationData = [
   },
   // Additional applications for testing various stages - all for rescue 550e8400-e29b-41d4-a716-446655440001
   {
-    application_id: 'app_buddy_david_002',
+    application_id: 'application_0000bdav002',
     user_id: 'user_adopter_002', // Emily Davis (reusing existing user)
     pet_id: 'pet_buddy_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -375,7 +375,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'app_max_sarah_001',
+    application_id: 'application_0000msar001',
     user_id: 'user_adopter_003', // Michael Brown (reusing existing user)
     pet_id: 'pet_max_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -454,7 +454,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'app_luna_alex_001',
+    application_id: 'application_0000lalex01',
     user_id: 'user_adopter_001', // John Smith (reusing existing user)
     pet_id: 'pet_luna_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -526,7 +526,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'app_buddy_maria_003',
+    application_id: 'application_0000bmar003',
     user_id: 'user_adopter_004', // Jessica Wilson (reusing existing user)
     pet_id: 'pet_buddy_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -621,7 +621,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'app_max_tom_002',
+    application_id: 'application_0000mtom002',
     user_id: 'user_adopter_002', // Emily Davis (reusing)
     pet_id: 'pet_max_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -695,7 +695,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'app_luna_withdrawn_001',
+    application_id: 'application_0000lwith01',
     user_id: 'user_adopter_003', // Michael Brown (reusing)
     pet_id: 'pet_luna_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -749,7 +749,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'app_buddy_expired_001',
+    application_id: 'application_0000bexpr01',
     user_id: 'user_adopter_001', // John Smith (reusing)
     pet_id: 'pet_buddy_001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',

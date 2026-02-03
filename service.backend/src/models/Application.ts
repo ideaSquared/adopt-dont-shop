@@ -1,6 +1,7 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId } from '../utils/readable-id';
 
 // Simple application status enum for small charities
 export enum ApplicationStatus {

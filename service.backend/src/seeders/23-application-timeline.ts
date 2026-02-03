@@ -5,7 +5,7 @@ const timelineData = [
   // Timeline events for John's application (VISITING stage)
   {
     timeline_id: uuidv4(),
-    application_id: 'app_buddy_john_001',
+    application_id: 'application_0000bjon001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application submitted',
     description: 'Application submitted and moved to pending stage',
@@ -15,7 +15,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_buddy_john_001',
+    application_id: 'application_0000bjon001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Review started',
     description: 'Staff member began reviewing application',
@@ -26,7 +26,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_buddy_john_001',
+    application_id: 'application_0000bjon001',
     event_type: TimelineEventType.REFERENCE_CONTACTED,
     title: 'Reference contacted: Dr. Johnson',
     description: 'Contacted veterinarian Dr. Johnson via phone',
@@ -40,7 +40,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_buddy_john_001',
+    application_id: 'application_0000bjon001',
     event_type: TimelineEventType.HOME_VISIT_SCHEDULED,
     title: 'Home visit scheduled',
     description: 'Home visit scheduled for February 20, 2024',
@@ -53,7 +53,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_buddy_john_001',
+    application_id: 'application_0000bjon001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Moved to visiting stage',
     description: 'Application automatically moved to visiting stage when home visit was scheduled',
@@ -66,7 +66,7 @@ const timelineData = [
   // Timeline events for Emily's application (RESOLVED - Approved)
   {
     timeline_id: uuidv4(),
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application submitted',
     description: 'Application submitted and moved to pending stage',
@@ -76,7 +76,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Review started',
     description: 'Staff member began reviewing application',
@@ -87,7 +87,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     event_type: TimelineEventType.REFERENCE_CONTACTED,
     title: 'Reference contacted: Dr. Martinez',
     description: 'Contacted veterinarian Dr. Martinez via phone',
@@ -101,7 +101,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     event_type: TimelineEventType.HOME_VISIT_SCHEDULED,
     title: 'Home visit scheduled',
     description: 'Home visit scheduled for February 15, 2024',
@@ -114,7 +114,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Moved to visiting stage',
     description: 'Application automatically moved to visiting stage when home visit was scheduled',
@@ -125,7 +125,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     event_type: TimelineEventType.HOME_VISIT_COMPLETED,
     title: 'Home visit completed - positive',
     description: 'Home visit completed successfully. Apartment is perfect for senior cat.',
@@ -138,7 +138,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Moved to deciding stage',
     description: 'Application automatically moved to deciding stage after positive home visit',
@@ -149,7 +149,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     event_type: TimelineEventType.DECISION_MADE,
     title: 'Application approved',
     description: 'Application approved for adoption',
@@ -162,7 +162,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_whiskers_emily_001',
+    application_id: 'application_0000wemi001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application resolved',
     description: 'Application completed with approved outcome',
@@ -175,7 +175,7 @@ const timelineData = [
   // Timeline events for Michael's application (REVIEWING stage)
   {
     timeline_id: uuidv4(),
-    application_id: 'app_rocky_michael_001',
+    application_id: 'application_0000rmic001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application submitted',
     description: 'Application submitted and moved to pending stage',
@@ -185,7 +185,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_rocky_michael_001',
+    application_id: 'application_0000rmic001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Review started',
     description: 'Staff member began reviewing application',
@@ -196,7 +196,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_rocky_michael_001',
+    application_id: 'application_0000rmic001',
     event_type: TimelineEventType.NOTE_ADDED,
     title: 'Interview note added',
     description: 'Applicant shows excellent understanding of pit bull breed needs...',
@@ -212,7 +212,7 @@ const timelineData = [
   // Timeline events for Jessica's application (RESOLVED - Rejected)
   {
     timeline_id: uuidv4(),
-    application_id: 'app_luna_jessica_001',
+    application_id: 'application_0000ljes001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application submitted',
     description: 'Application submitted and moved to pending stage',
@@ -222,7 +222,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_luna_jessica_001',
+    application_id: 'application_0000ljes001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Review started',
     description: 'Staff member began reviewing application',
@@ -233,7 +233,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_luna_jessica_001',
+    application_id: 'application_0000ljes001',
     event_type: TimelineEventType.DECISION_MADE,
     title: 'Application rejected',
     description: 'Application rejected due to insufficient experience for high-energy cat',
@@ -247,7 +247,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'app_luna_jessica_001',
+    application_id: 'application_0000ljes001',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application resolved',
     description: 'Application completed with rejected outcome',
