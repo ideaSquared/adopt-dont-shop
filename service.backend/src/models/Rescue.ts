@@ -36,7 +36,14 @@ interface RescueAttributes {
 export interface RescueCreationAttributes
   extends Optional<
     RescueAttributes,
-    'rescueId' | 'readableId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'deletedBy' | 'createdAt' | 'updatedAt'
+    | 'rescueId'
+    | 'readableId'
+    | 'verifiedAt'
+    | 'verifiedBy'
+    | 'deletedAt'
+    | 'deletedBy'
+    | 'createdAt'
+    | 'updatedAt'
   > {}
 
 class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implements RescueAttributes {
