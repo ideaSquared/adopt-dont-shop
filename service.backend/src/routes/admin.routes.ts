@@ -3,7 +3,9 @@ import { AdminController } from '../controllers/admin.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
+import { handleValidationErrors } from '../middleware/validation';
 import { PERMISSIONS } from '../types/rbac';
+import { adminValidation } from '../validation/admin.validation';
 
 const router = express.Router();
 
@@ -749,6 +751,8 @@ router.get(
   '/users',
   requirePermission(PERMISSIONS.ADMIN_USER_SEARCH),
   generalLimiter,
+  adminValidation.searchUsers,
+  handleValidationErrors,
   AdminController.searchUsers
 );
 
@@ -863,6 +867,8 @@ router.get(
   '/users/:userId',
   requirePermission(PERMISSIONS.ADMIN_USER_READ),
   generalLimiter,
+  adminValidation.getUserDetails,
+  handleValidationErrors,
   AdminController.getUserDetails
 );
 
@@ -1029,12 +1035,16 @@ router.patch(
   '/users/:userId/action',
   requirePermission(PERMISSIONS.ADMIN_USER_UPDATE),
   authLimiter,
+  adminValidation.performUserAction,
+  handleValidationErrors,
   AdminController.performUserAction
 );
 router.patch(
   '/users/:userId',
   requirePermission(PERMISSIONS.ADMIN_USER_UPDATE),
   authLimiter,
+  adminValidation.updateUserProfile,
+  handleValidationErrors,
   AdminController.updateUserProfile
 );
 
@@ -1151,6 +1161,8 @@ router.get(
   '/rescues',
   requirePermission(PERMISSIONS.ADMIN_RESCUE_MANAGEMENT),
   generalLimiter,
+  adminValidation.getRescues,
+  handleValidationErrors,
   AdminController.getRescueManagement
 );
 
@@ -1317,6 +1329,8 @@ router.patch(
   '/rescues/:rescueId/moderate',
   requirePermission(PERMISSIONS.ADMIN_RESCUE_MANAGEMENT),
   authLimiter,
+  adminValidation.moderateRescue,
+  handleValidationErrors,
   AdminController.moderateRescue
 );
 
@@ -1433,6 +1447,8 @@ router.get(
   '/audit-logs',
   requirePermission(PERMISSIONS.ADMIN_AUDIT_LOGS_READ),
   generalLimiter,
+  adminValidation.getAuditLogs,
+  handleValidationErrors,
   AdminController.getAuditLogs
 );
 
@@ -1441,6 +1457,8 @@ router.get(
   '/export/:type',
   requirePermission(PERMISSIONS.ADMIN_DATA_EXPORT),
   authLimiter, // More restrictive rate limiting for data export
+  adminValidation.exportData,
+  handleValidationErrors,
   AdminController.exportData
 );
 

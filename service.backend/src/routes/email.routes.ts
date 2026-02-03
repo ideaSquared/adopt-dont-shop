@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import * as emailController from '../controllers/email.controller';
 import { authenticateToken, requireRole } from '../middleware/auth';
+import { handleValidationErrors } from '../middleware/validation';
+import { emailValidation } from '../validation/email.validation';
 
 const router = Router();
 
@@ -68,6 +70,8 @@ router.get(
   '/templates',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.getTemplates,
+  handleValidationErrors,
   emailController.getTemplates
 );
 /**
@@ -147,6 +151,8 @@ router.post(
   '/templates',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.createTemplate,
+  handleValidationErrors,
   emailController.createTemplate
 );
 /**
@@ -217,6 +223,8 @@ router.get(
   '/templates/:templateId',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.getTemplateById,
+  handleValidationErrors,
   emailController.getTemplate
 );
 /**
@@ -287,6 +295,8 @@ router.put(
   '/templates/:templateId',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.updateTemplate,
+  handleValidationErrors,
   emailController.updateTemplate
 );
 /**
@@ -332,6 +342,8 @@ router.delete(
   '/templates/:templateId',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.deleteTemplate,
+  handleValidationErrors,
   emailController.deleteTemplate
 );
 
@@ -399,6 +411,8 @@ router.post(
   '/templates/:templateId/preview',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.previewTemplate,
+  handleValidationErrors,
   emailController.previewTemplate
 );
 /**
@@ -469,6 +483,8 @@ router.post(
   '/templates/:templateId/test',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.sendTestEmail,
+  handleValidationErrors,
   emailController.sendTestEmail
 );
 
@@ -550,6 +566,8 @@ router.post(
   '/send',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN', 'RESCUE_STAFF']),
+  emailValidation.sendEmail,
+  handleValidationErrors,
   emailController.sendEmail
 );
 /**
@@ -632,6 +650,8 @@ router.post(
   '/send/bulk',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.sendBulkEmail,
+  handleValidationErrors,
   emailController.sendBulkEmail
 );
 
@@ -735,6 +755,8 @@ router.get(
   '/queue',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.getQueueStatus,
+  handleValidationErrors,
   emailController.getQueueStatus
 );
 /**
@@ -792,6 +814,8 @@ router.post(
   '/queue/process',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.processQueue,
+  handleValidationErrors,
   emailController.processQueue
 );
 /**
@@ -848,6 +872,8 @@ router.post(
   '/queue/retry',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.retryFailedEmails,
+  handleValidationErrors,
   emailController.retryFailedEmails
 );
 
@@ -985,6 +1011,8 @@ router.get(
   '/analytics',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.getEmailAnalytics,
+  handleValidationErrors,
   emailController.getEmailAnalytics
 );
 /**
@@ -1112,6 +1140,8 @@ router.get(
   '/analytics/:templateId',
   authenticateToken,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
+  emailValidation.getTemplateAnalytics,
+  handleValidationErrors,
   emailController.getTemplateAnalytics
 );
 
@@ -1199,7 +1229,13 @@ router.get(
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/preferences/:userId', authenticateToken, emailController.getUserPreferences);
+router.get(
+  '/preferences/:userId',
+  authenticateToken,
+  emailValidation.getUserPreferences,
+  handleValidationErrors,
+  emailController.getUserPreferences
+);
 
 /**
  * @swagger
@@ -1268,7 +1304,13 @@ router.get('/preferences/:userId', authenticateToken, emailController.getUserPre
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.put('/preferences/:userId', authenticateToken, emailController.updateUserPreferences);
+router.put(
+  '/preferences/:userId',
+  authenticateToken,
+  emailValidation.updateUserPreferences,
+  handleValidationErrors,
+  emailController.updateUserPreferences
+);
 
 // Public Unsubscribe (No authentication required)
 
@@ -1320,7 +1362,12 @@ router.put('/preferences/:userId', authenticateToken, emailController.updateUser
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/unsubscribe/:token', emailController.unsubscribeUser);
+router.get(
+  '/unsubscribe/:token',
+  emailValidation.unsubscribe,
+  handleValidationErrors,
+  emailController.unsubscribeUser
+);
 
 // Webhooks (No authentication required - handled by provider verification)
 
@@ -1398,6 +1445,11 @@ router.get('/unsubscribe/:token', emailController.unsubscribeUser);
  *                   type: string
  *                   example: "Webhook verification failed"
  */
-router.post('/webhook/delivery', emailController.handleDeliveryWebhook);
+router.post(
+  '/webhook/delivery',
+  emailValidation.deliveryWebhook,
+  handleValidationErrors,
+  emailController.handleDeliveryWebhook
+);
 
 export default router;
