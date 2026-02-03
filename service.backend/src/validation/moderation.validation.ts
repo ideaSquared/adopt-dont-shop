@@ -45,33 +45,18 @@ export const moderationValidation = {
       .trim()
       .isLength({ min: 1, max: 200 })
       .withMessage('Search query must be 1-200 characters'),
-    query('dateFrom')
-      .optional()
-      .isISO8601()
-      .withMessage('dateFrom must be a valid ISO 8601 date'),
-    query('dateTo')
-      .optional()
-      .isISO8601()
-      .withMessage('dateTo must be a valid ISO 8601 date'),
+    query('dateFrom').optional().isISO8601().withMessage('dateFrom must be a valid ISO 8601 date'),
+    query('dateTo').optional().isISO8601().withMessage('dateTo must be a valid ISO 8601 date'),
   ],
 
-  getReportById: [
-    param('reportId')
-      .isUUID()
-      .withMessage('Report ID must be a valid UUID'),
-  ],
+  getReportById: [param('reportId').isUUID().withMessage('Report ID must be a valid UUID')],
 
   submitReport: [
     body('reportedEntityType')
       .isIn(ENTITY_TYPES)
       .withMessage(`Entity type must be one of: ${ENTITY_TYPES.join(', ')}`),
-    body('reportedEntityId')
-      .isUUID()
-      .withMessage('Reported entity ID must be a valid UUID'),
-    body('reportedUserId')
-      .optional()
-      .isUUID()
-      .withMessage('Reported user ID must be a valid UUID'),
+    body('reportedEntityId').isUUID().withMessage('Reported entity ID must be a valid UUID'),
+    body('reportedUserId').optional().isUUID().withMessage('Reported user ID must be a valid UUID'),
     body('category')
       .isIn(Object.values(ReportCategory))
       .withMessage(`Category must be one of: ${Object.values(ReportCategory).join(', ')}`),
@@ -98,9 +83,7 @@ export const moderationValidation = {
   ],
 
   updateReportStatus: [
-    param('reportId')
-      .isUUID()
-      .withMessage('Report ID must be a valid UUID'),
+    param('reportId').isUUID().withMessage('Report ID must be a valid UUID'),
     body('status')
       .isIn(Object.values(ReportStatus))
       .withMessage(`Status must be one of: ${Object.values(ReportStatus).join(', ')}`),
@@ -116,21 +99,13 @@ export const moderationValidation = {
   ],
 
   assignReport: [
-    param('reportId')
-      .isUUID()
-      .withMessage('Report ID must be a valid UUID'),
-    body('moderatorId')
-      .isUUID()
-      .withMessage('Moderator ID must be a valid UUID'),
+    param('reportId').isUUID().withMessage('Report ID must be a valid UUID'),
+    body('moderatorId').isUUID().withMessage('Moderator ID must be a valid UUID'),
   ],
 
   escalateReport: [
-    param('reportId')
-      .isUUID()
-      .withMessage('Report ID must be a valid UUID'),
-    body('escalatedTo')
-      .isUUID()
-      .withMessage('Escalated to must be a valid UUID'),
+    param('reportId').isUUID().withMessage('Report ID must be a valid UUID'),
+    body('escalatedTo').isUUID().withMessage('Escalated to must be a valid UUID'),
     body('reason')
       .trim()
       .isLength({ min: 3, max: 2000 })
@@ -141,12 +116,8 @@ export const moderationValidation = {
     body('reportIds')
       .isArray({ min: 1, max: 50 })
       .withMessage('Report IDs must be an array with 1-50 items'),
-    body('reportIds.*')
-      .isUUID()
-      .withMessage('Each report ID must be a valid UUID'),
-    body('updates')
-      .isObject()
-      .withMessage('Updates must be an object'),
+    body('reportIds.*').isUUID().withMessage('Each report ID must be a valid UUID'),
+    body('updates').isObject().withMessage('Updates must be an object'),
     body('updates.status')
       .optional()
       .isIn(Object.values(ReportStatus))
@@ -158,20 +129,12 @@ export const moderationValidation = {
   ],
 
   takeModerationAction: [
-    body('reportId')
-      .optional()
-      .isUUID()
-      .withMessage('Report ID must be a valid UUID'),
+    body('reportId').optional().isUUID().withMessage('Report ID must be a valid UUID'),
     body('targetEntityType')
       .isIn(ENTITY_TYPES)
       .withMessage(`Target entity type must be one of: ${ENTITY_TYPES.join(', ')}`),
-    body('targetEntityId')
-      .isUUID()
-      .withMessage('Target entity ID must be a valid UUID'),
-    body('targetUserId')
-      .optional()
-      .isUUID()
-      .withMessage('Target user ID must be a valid UUID'),
+    body('targetEntityId').isUUID().withMessage('Target entity ID must be a valid UUID'),
+    body('targetUserId').optional().isUUID().withMessage('Target user ID must be a valid UUID'),
     body('actionType')
       .isIn(Object.values(ActionType))
       .withMessage(`Action type must be one of: ${Object.values(ActionType).join(', ')}`),
@@ -194,10 +157,7 @@ export const moderationValidation = {
   ],
 
   getActiveActions: [
-    query('userId')
-      .optional()
-      .isUUID()
-      .withMessage('User ID must be a valid UUID'),
+    query('userId').optional().isUUID().withMessage('User ID must be a valid UUID'),
     query('page')
       .optional()
       .isInt({ min: 1, max: 1000 })
@@ -215,10 +175,7 @@ export const moderationValidation = {
       .optional()
       .isISO8601()
       .withMessage('Start date must be a valid ISO 8601 date'),
-    query('endDate')
-      .optional()
-      .isISO8601()
-      .withMessage('End date must be a valid ISO 8601 date'),
+    query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date'),
     query('period')
       .optional()
       .isIn(['day', 'week', 'month', 'quarter', 'year'])

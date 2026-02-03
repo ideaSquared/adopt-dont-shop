@@ -815,7 +815,12 @@ router.patch(
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/form-structure/:rescueId', applicationValidation.getFormStructure, handleValidationErrors, applicationController.getApplicationFormStructure);
+router.get(
+  '/form-structure/:rescueId',
+  applicationValidation.getFormStructure,
+  handleValidationErrors,
+  applicationController.getApplicationFormStructure
+);
 
 // Validate application answers
 
@@ -931,7 +936,12 @@ router.get('/form-structure/:rescueId', applicationValidation.getFormStructure, 
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.post('/validate/:rescueId', applicationValidation.validateAnswers, handleValidationErrors, applicationController.validateApplicationAnswers);
+router.post(
+  '/validate/:rescueId',
+  applicationValidation.validateAnswers,
+  handleValidationErrors,
+  applicationController.validateApplicationAnswers
+);
 
 // Get application statistics (rescue staff/admin only)
 

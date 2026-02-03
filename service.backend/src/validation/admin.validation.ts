@@ -31,16 +31,10 @@ export const adminValidation = {
       .withMessage('Role must be a string of 1-50 characters'),
   ],
 
-  getUserDetails: [
-    param('userId')
-      .isUUID()
-      .withMessage('User ID must be a valid UUID'),
-  ],
+  getUserDetails: [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
 
   performUserAction: [
-    param('userId')
-      .isUUID()
-      .withMessage('User ID must be a valid UUID'),
+    param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     body('action')
       .isIn(USER_ACTIONS)
       .withMessage(`Action must be one of: ${USER_ACTIONS.join(', ')}`),
@@ -55,16 +49,10 @@ export const adminValidation = {
       .withMessage('Duration must be between 1 and 8760 hours'),
   ],
 
-  updateUserProfile: [
-    param('userId')
-      .isUUID()
-      .withMessage('User ID must be a valid UUID'),
-  ],
+  updateUserProfile: [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
 
   moderateRescue: [
-    param('rescueId')
-      .isUUID()
-      .withMessage('Rescue ID must be a valid UUID'),
+    param('rescueId').isUUID().withMessage('Rescue ID must be a valid UUID'),
     body('action')
       .optional()
       .isIn(['approve', 'reject', 'suspend', 'unsuspend', 'warn'])
@@ -91,14 +79,8 @@ export const adminValidation = {
       .optional()
       .isISO8601()
       .withMessage('Start date must be a valid ISO 8601 date'),
-    query('endDate')
-      .optional()
-      .isISO8601()
-      .withMessage('End date must be a valid ISO 8601 date'),
-    query('userId')
-      .optional()
-      .isUUID()
-      .withMessage('User ID must be a valid UUID'),
+    query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date'),
+    query('userId').optional().isUUID().withMessage('User ID must be a valid UUID'),
     query('action')
       .optional()
       .isString()
@@ -114,10 +96,7 @@ export const adminValidation = {
       .optional()
       .isISO8601()
       .withMessage('Start date must be a valid ISO 8601 date'),
-    query('endDate')
-      .optional()
-      .isISO8601()
-      .withMessage('End date must be a valid ISO 8601 date'),
+    query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date'),
     query('format')
       .optional()
       .isIn(['csv', 'json'])

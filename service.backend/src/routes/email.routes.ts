@@ -1229,7 +1229,13 @@ router.get(
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/preferences/:userId', authenticateToken, emailValidation.getUserPreferences, handleValidationErrors, emailController.getUserPreferences);
+router.get(
+  '/preferences/:userId',
+  authenticateToken,
+  emailValidation.getUserPreferences,
+  handleValidationErrors,
+  emailController.getUserPreferences
+);
 
 /**
  * @swagger
@@ -1298,7 +1304,13 @@ router.get('/preferences/:userId', authenticateToken, emailValidation.getUserPre
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.put('/preferences/:userId', authenticateToken, emailValidation.updateUserPreferences, handleValidationErrors, emailController.updateUserPreferences);
+router.put(
+  '/preferences/:userId',
+  authenticateToken,
+  emailValidation.updateUserPreferences,
+  handleValidationErrors,
+  emailController.updateUserPreferences
+);
 
 // Public Unsubscribe (No authentication required)
 
@@ -1350,7 +1362,12 @@ router.put('/preferences/:userId', authenticateToken, emailValidation.updateUser
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/unsubscribe/:token', emailValidation.unsubscribe, handleValidationErrors, emailController.unsubscribeUser);
+router.get(
+  '/unsubscribe/:token',
+  emailValidation.unsubscribe,
+  handleValidationErrors,
+  emailController.unsubscribeUser
+);
 
 // Webhooks (No authentication required - handled by provider verification)
 
@@ -1428,6 +1445,11 @@ router.get('/unsubscribe/:token', emailValidation.unsubscribe, handleValidationE
  *                   type: string
  *                   example: "Webhook verification failed"
  */
-router.post('/webhook/delivery', emailValidation.deliveryWebhook, handleValidationErrors, emailController.handleDeliveryWebhook);
+router.post(
+  '/webhook/delivery',
+  emailValidation.deliveryWebhook,
+  handleValidationErrors,
+  emailController.handleDeliveryWebhook
+);
 
 export default router;

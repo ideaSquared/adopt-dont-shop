@@ -19,17 +19,10 @@ export const emailValidation = {
       .optional()
       .isIn(TEMPLATE_TYPES)
       .withMessage(`Template type must be one of: ${TEMPLATE_TYPES.join(', ')}`),
-    query('active')
-      .optional()
-      .isBoolean()
-      .withMessage('Active must be a boolean value'),
+    query('active').optional().isBoolean().withMessage('Active must be a boolean value'),
   ],
 
-  getTemplateById: [
-    param('templateId')
-      .isUUID()
-      .withMessage('Template ID must be a valid UUID'),
-  ],
+  getTemplateById: [param('templateId').isUUID().withMessage('Template ID must be a valid UUID')],
 
   createTemplate: [
     body('name')
@@ -61,16 +54,11 @@ export const emailValidation = {
       .isString()
       .isLength({ min: 1, max: 100 })
       .withMessage('Each variable must be a string of 1-100 characters'),
-    body('isActive')
-      .optional()
-      .isBoolean()
-      .withMessage('isActive must be a boolean'),
+    body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   ],
 
   updateTemplate: [
-    param('templateId')
-      .isUUID()
-      .withMessage('Template ID must be a valid UUID'),
+    param('templateId').isUUID().withMessage('Template ID must be a valid UUID'),
     body('name')
       .optional()
       .trim()
@@ -100,51 +88,28 @@ export const emailValidation = {
       .isString()
       .isLength({ min: 1, max: 100 })
       .withMessage('Each variable must be a string of 1-100 characters'),
-    body('isActive')
-      .optional()
-      .isBoolean()
-      .withMessage('isActive must be a boolean'),
+    body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   ],
 
-  deleteTemplate: [
-    param('templateId')
-      .isUUID()
-      .withMessage('Template ID must be a valid UUID'),
-  ],
+  deleteTemplate: [param('templateId').isUUID().withMessage('Template ID must be a valid UUID')],
 
   previewTemplate: [
-    param('templateId')
-      .isUUID()
-      .withMessage('Template ID must be a valid UUID'),
-    body('variables')
-      .optional()
-      .isObject()
-      .withMessage('Variables must be an object'),
+    param('templateId').isUUID().withMessage('Template ID must be a valid UUID'),
+    body('variables').optional().isObject().withMessage('Variables must be an object'),
   ],
 
   sendTestEmail: [
-    param('templateId')
-      .isUUID()
-      .withMessage('Template ID must be a valid UUID'),
+    param('templateId').isUUID().withMessage('Template ID must be a valid UUID'),
     body('testEmail')
       .isEmail()
       .normalizeEmail()
       .withMessage('Test email must be a valid email address'),
-    body('variables')
-      .optional()
-      .isObject()
-      .withMessage('Variables must be an object'),
+    body('variables').optional().isObject().withMessage('Variables must be an object'),
   ],
 
   sendEmail: [
-    body('to')
-      .isEmail()
-      .normalizeEmail()
-      .withMessage('Recipient must be a valid email address'),
-    body('templateId')
-      .optional()
-      .isUUID()
-      .withMessage('Template ID must be a valid UUID'),
+    body('to').isEmail().normalizeEmail().withMessage('Recipient must be a valid email address'),
+    body('templateId').optional().isUUID().withMessage('Template ID must be a valid UUID'),
     body('subject')
       .trim()
       .isLength({ min: 1, max: 255 })
@@ -159,10 +124,7 @@ export const emailValidation = {
       .isString()
       .isLength({ max: 50000 })
       .withMessage('Text content must be under 50000 characters'),
-    body('variables')
-      .optional()
-      .isObject()
-      .withMessage('Variables must be an object'),
+    body('variables').optional().isObject().withMessage('Variables must be an object'),
     body('priority')
       .optional()
       .isIn(PRIORITIES)
@@ -170,9 +132,7 @@ export const emailValidation = {
   ],
 
   sendBulkEmail: [
-    body('templateId')
-      .isUUID()
-      .withMessage('Template ID must be a valid UUID'),
+    body('templateId').isUUID().withMessage('Template ID must be a valid UUID'),
     body('recipients')
       .isArray({ min: 1, max: 1000 })
       .withMessage('Recipients must be an array with 1-1000 items'),
@@ -241,14 +201,8 @@ export const emailValidation = {
       .optional()
       .isISO8601()
       .withMessage('Start date must be a valid ISO 8601 date'),
-    query('endDate')
-      .optional()
-      .isISO8601()
-      .withMessage('End date must be a valid ISO 8601 date'),
-    query('templateId')
-      .optional()
-      .isUUID()
-      .withMessage('Template ID must be a valid UUID'),
+    query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date'),
+    query('templateId').optional().isUUID().withMessage('Template ID must be a valid UUID'),
     query('groupBy')
       .optional()
       .isIn(['day', 'week', 'month', 'template', 'recipient_domain'])
@@ -256,33 +210,22 @@ export const emailValidation = {
   ],
 
   getTemplateAnalytics: [
-    param('templateId')
-      .isUUID()
-      .withMessage('Template ID must be a valid UUID'),
+    param('templateId').isUUID().withMessage('Template ID must be a valid UUID'),
     query('startDate')
       .optional()
       .isISO8601()
       .withMessage('Start date must be a valid ISO 8601 date'),
-    query('endDate')
-      .optional()
-      .isISO8601()
-      .withMessage('End date must be a valid ISO 8601 date'),
+    query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date'),
     query('includeRecipients')
       .optional()
       .isBoolean()
       .withMessage('Include recipients must be a boolean'),
   ],
 
-  getUserPreferences: [
-    param('userId')
-      .isUUID()
-      .withMessage('User ID must be a valid UUID'),
-  ],
+  getUserPreferences: [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
 
   updateUserPreferences: [
-    param('userId')
-      .isUUID()
-      .withMessage('User ID must be a valid UUID'),
+    param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     body('emailNotifications')
       .optional()
       .isBoolean()
@@ -291,14 +234,8 @@ export const emailValidation = {
       .optional()
       .isBoolean()
       .withMessage('Application updates must be a boolean'),
-    body('rescueUpdates')
-      .optional()
-      .isBoolean()
-      .withMessage('Rescue updates must be a boolean'),
-    body('newsletters')
-      .optional()
-      .isBoolean()
-      .withMessage('Newsletters must be a boolean'),
+    body('rescueUpdates').optional().isBoolean().withMessage('Rescue updates must be a boolean'),
+    body('newsletters').optional().isBoolean().withMessage('Newsletters must be a boolean'),
     body('marketingEmails')
       .optional()
       .isBoolean()
@@ -327,13 +264,7 @@ export const emailValidation = {
       .isString()
       .isLength({ min: 1, max: 500 })
       .withMessage('Message ID must be a string under 500 characters'),
-    body('email')
-      .optional()
-      .isEmail()
-      .withMessage('Email must be a valid email address'),
-    body('timestamp')
-      .optional()
-      .isISO8601()
-      .withMessage('Timestamp must be a valid ISO 8601 date'),
+    body('email').optional().isEmail().withMessage('Email must be a valid email address'),
+    body('timestamp').optional().isISO8601().withMessage('Timestamp must be a valid ISO 8601 date'),
   ],
 };

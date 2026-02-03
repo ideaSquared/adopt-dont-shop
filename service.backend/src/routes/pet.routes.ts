@@ -919,7 +919,12 @@ router.get('/statistics', petController.getPetStatistics);
  */
 router.get('/rescue/my', authenticateToken, petController.getMyRescuePets);
 
-router.get('/rescue/:rescueId', petValidation.getPetsByRescue, handleValidationErrors, petController.getPetsByRescue);
+router.get(
+  '/rescue/:rescueId',
+  petValidation.getPetsByRescue,
+  handleValidationErrors,
+  petController.getPetsByRescue
+);
 
 /**
  * @swagger

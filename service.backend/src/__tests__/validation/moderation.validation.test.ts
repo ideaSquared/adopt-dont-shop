@@ -281,8 +281,9 @@ describe('Moderation Validation', () => {
     });
 
     it('should reject reportIds array exceeding 50 items', async () => {
-      const ids = Array.from({ length: 51 }, (_, i) =>
-        `550e8400-e29b-41d4-a716-44665544${String(i).padStart(4, '0')}`
+      const ids = Array.from(
+        { length: 51 },
+        (_, i) => `550e8400-e29b-41d4-a716-44665544${String(i).padStart(4, '0')}`
       );
       const result = await runValidation(moderationValidation.bulkUpdateReports, {
         body: {
