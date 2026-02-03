@@ -90,6 +90,16 @@ Rescue.init(
       defaultValue: DataTypes.UUIDV4,
       field: 'rescue_id',
     },
+    readableId: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      field: 'readable_id',
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('rescue')
+          : sequelize.literal(getReadableIdSqlLiteral('rescue')),
+    },
     name: {
       type: DataTypes.STRING,
       allowNull: false,
