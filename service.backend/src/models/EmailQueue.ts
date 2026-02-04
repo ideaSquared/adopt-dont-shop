@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-ids';
 
 export enum EmailStatus {
   QUEUED = 'queued',
@@ -282,7 +283,10 @@ EmailQueue.init(
       type: DataTypes.STRING,
       primaryKey: true,
       field: 'email_id',
-      defaultValue: () => `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('email')
+          : sequelize.literal(getReadableIdSqlLiteral('email')),
     },
     templateId: {
       type: DataTypes.STRING,

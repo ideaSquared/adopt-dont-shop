@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-ids';
 
 export enum ActionType {
   WARNING_ISSUED = 'warning_issued',
@@ -121,7 +122,10 @@ ModeratorAction.init(
       type: DataTypes.STRING,
       primaryKey: true,
       field: 'action_id',
-      defaultValue: () => `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('action')
+          : sequelize.literal(getReadableIdSqlLiteral('action')),
     },
     moderatorId: {
       type: DataTypes.STRING,

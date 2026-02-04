@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType } from '../sequelize';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-ids';
 
 export enum ResponderType {
   STAFF = 'staff',
@@ -68,7 +69,10 @@ SupportTicketResponse.init(
     responseId: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: () => `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('response')
+          : sequelize.literal(getReadableIdSqlLiteral('response')),
       field: 'response_id',
     },
     ticketId: {

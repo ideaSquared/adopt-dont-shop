@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-ids';
 
 export enum TemplateType {
   TRANSACTIONAL = 'transactional',
@@ -273,7 +274,10 @@ EmailTemplate.init(
       type: DataTypes.STRING,
       primaryKey: true,
       field: 'template_id',
-      defaultValue: () => `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('template')
+          : sequelize.literal(getReadableIdSqlLiteral('template')),
     },
     name: {
       type: DataTypes.STRING(255),
