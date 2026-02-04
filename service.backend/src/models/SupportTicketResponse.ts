@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType } from '../sequelize';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-ids';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 export enum ResponderType {
   STAFF = 'staff',
