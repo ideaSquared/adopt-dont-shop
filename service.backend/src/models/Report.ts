@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 export enum ReportCategory {
   INAPPROPRIATE_CONTENT = 'inappropriate_content',
@@ -130,7 +131,10 @@ Report.init(
       field: 'report_id',
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: () => `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('report')
+          : sequelize.literal(getReadableIdSqlLiteral('report')),
     },
     reporterId: {
       type: DataTypes.STRING,

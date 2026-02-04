@@ -3,7 +3,7 @@ import User, { UserStatus, UserType } from '../models/User';
 
 const testUsers = [
   {
-    userId: 'user_superadmin_001',
+    userId: 'user_0000admin01',
     firstName: 'Super',
     lastName: 'Admin',
     email: 'superadmin@adoptdontshop.dev',
@@ -21,7 +21,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_admin_001',
+    userId: 'user_0000admi001',
     firstName: 'System',
     lastName: 'Administrator',
     email: 'admin@adoptdontshop.dev',
@@ -37,7 +37,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_moderator_001',
+    userId: 'user_0000mode001',
     firstName: 'Content',
     lastName: 'Moderator',
     email: 'moderator@adoptdontshop.dev',
@@ -53,7 +53,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_rescue_admin_001',
+    userId: 'user_0000rscad01',
     firstName: 'Rescue',
     lastName: 'Manager',
     email: 'rescue.manager@pawsrescue.dev',
@@ -70,7 +70,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_rescue_staff_001',
+    userId: 'user_0000rscst01',
     firstName: 'Sarah',
     lastName: 'Johnson',
     email: 'sarah.johnson@pawsrescue.dev',
@@ -87,7 +87,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_rescue_admin_002',
+    userId: 'user_0000rscad02',
     firstName: 'Maria',
     lastName: 'Garcia',
     email: 'maria@happytailsrescue.dev',
@@ -104,7 +104,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_adopter_001',
+    userId: 'user_0000adopt01',
     firstName: 'John',
     lastName: 'Smith',
     email: 'john.smith@gmail.com',
@@ -124,7 +124,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_adopter_002',
+    userId: 'user_0000adopt02',
     firstName: 'Emily',
     lastName: 'Davis',
     email: 'emily.davis@yahoo.com',
@@ -144,7 +144,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_adopter_003',
+    userId: 'user_0000adopt03',
     firstName: 'Michael',
     lastName: 'Brown',
     email: 'michael.brown@outlook.com',
@@ -164,7 +164,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_adopter_004',
+    userId: 'user_0000adopt04',
     firstName: 'Jessica',
     lastName: 'Wilson',
     email: 'jessica.wilson@gmail.com',
@@ -221,40 +221,40 @@ export async function seedUsers() {
                     phone: userData.phoneNumber || '',
                     address: userData.addressLine1 || '',
                     city: userData.city || '',
-                    county: userData.userId === 'user_adopter_002' ? 'Greater Manchester' : '',
+                    county: userData.userId === 'user_0000adopt02' ? 'Greater Manchester' : '',
                     postcode: userData.postalCode || '',
                     country: userData.country || 'United Kingdom',
-                    dateOfBirth: userData.userId === 'user_adopter_002' ? '1992-03-22' : '',
+                    dateOfBirth: userData.userId === 'user_0000adopt02' ? '1992-03-22' : '',
                     occupation:
-                      userData.userId === 'user_adopter_002' ? 'Marketing Coordinator' : '',
+                      userData.userId === 'user_0000adopt02' ? 'Marketing Coordinator' : '',
                   },
                   livingSituation: {
-                    housingType: userData.userId === 'user_adopter_002' ? 'apartment' : 'house',
-                    isOwned: userData.userId === 'user_adopter_002' ? false : true,
-                    hasYard: userData.userId === 'user_adopter_002' ? true : true,
+                    housingType: userData.userId === 'user_0000adopt02' ? 'apartment' : 'house',
+                    isOwned: userData.userId === 'user_0000adopt02' ? false : true,
+                    hasYard: userData.userId === 'user_0000adopt02' ? true : true,
                     allowsPets: true,
-                    householdSize: userData.userId === 'user_adopter_002' ? 1 : 2,
+                    householdSize: userData.userId === 'user_0000adopt02' ? 1 : 2,
                     householdMembers: [],
                     hasAllergies: false,
                     allergyDetails: '',
                   },
                   petExperience: {
-                    experienceLevel: userData.userId === 'user_adopter_002' ? 'some' : 'some',
+                    experienceLevel: userData.userId === 'user_0000adopt02' ? 'some' : 'some',
                     hasPetsCurrently: false,
                     currentPets: [],
                     previousPets: [],
                     willingToTrain: true,
-                    hoursAloneDaily: userData.userId === 'user_adopter_002' ? 6 : 4,
+                    hoursAloneDaily: userData.userId === 'user_0000adopt02' ? 6 : 4,
                     exercisePlans:
-                      userData.userId === 'user_adopter_002'
+                      userData.userId === 'user_0000adopt02'
                         ? 'Daily walks in the nearby park and interactive indoor play sessions'
                         : 'Regular outdoor activities and exercise',
                   },
                   references:
-                    userData.userId !== 'user_adopter_004'
+                    userData.userId !== 'user_0000adopt04'
                       ? {
                           personal:
-                            userData.userId === 'user_adopter_002'
+                            userData.userId === 'user_0000adopt02'
                               ? [
                                   {
                                     name: 'Sophie Williams',
@@ -291,7 +291,7 @@ export async function seedUsers() {
           userData.userType === UserType.ADOPTER
             ? JSON.parse(
                 JSON.stringify({
-                  overall_percentage: userData.userId === 'user_adopter_004' ? 75 : 100,
+                  overall_percentage: userData.userId === 'user_0000adopt04' ? 75 : 100,
                   last_updated: new Date().toISOString(),
                 })
               )

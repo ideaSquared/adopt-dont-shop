@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 export enum TicketStatus {
   OPEN = 'open',
@@ -150,7 +151,10 @@ SupportTicket.init(
       type: DataTypes.STRING,
       primaryKey: true,
       field: 'ticket_id',
-      defaultValue: () => `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('ticket')
+          : sequelize.literal(getReadableIdSqlLiteral('ticket')),
     },
     userId: {
       type: DataTypes.STRING,

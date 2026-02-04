@@ -10,13 +10,13 @@ import FileUpload from '../models/FileUpload';
 
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
-// Emily Davis (user_adopter_002) conversation with Happy Tails Dog Rescue about a senior dog
+// Emily Davis (user_0000adopt02) conversation with Happy Tails Dog Rescue about a senior dog
 
 const emilyDogConversationData = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_emily_dog_inquiry_001',
+    chat_id: 'chat_0000emdg001',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440002', // Happy Tails Dog Rescue
 
@@ -33,9 +33,9 @@ const emilyDogConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      participant_id: 'user_adopter_002', // Emily Davis
+      participant_id: 'user_0000adopt02', // Emily Davis
 
       role: ParticipantRole.USER,
 
@@ -49,9 +49,9 @@ const emilyDogConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      participant_id: 'user_rescue_staff_002', // Mike Rodriguez from Happy Tails
+      participant_id: 'user_0000rscad02', // Mike Rodriguez from Happy Tails
 
       role: ParticipantRole.RESCUE,
 
@@ -67,11 +67,11 @@ const emilyDogConversationData = {
 
   messages: [
     {
-      message_id: 'msg_emily_dog_001',
+      message_id: 'message_0000emd001',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Hi! I'm interested in Charlie, the 8-year-old Golden Retriever mix you have listed. I've been considering adding a dog to my household alongside my cats. I know this would be a big change, but I've always loved goldens. Is Charlie good with cats?",
@@ -88,11 +88,11 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_002',
+      message_id: 'message_0000emd002',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      sender_id: 'user_rescue_staff_002', // Mike Rodriguez
+      sender_id: 'user_0000rscad02', // Mike Rodriguez
 
       content:
         "Hi Emily! Charlie is such a gentle soul and yes, he's excellent with cats! His previous home had 3 cats and he was their best friend. At 8 years old, he's past the puppy energy phase and just wants to be part of a loving family. How many cats do you currently have, and what are their temperaments like?",
@@ -109,11 +109,11 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_003',
+      message_id: 'message_0000emd003',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "I currently have two cats - Misty who I just adopted from Paws Rescue (she's 10 and very calm) and Shadow, who's 12 and quite laid-back. Both are pretty confident with new situations. I have a decent-sized yard and work from home, so Charlie wouldn't be alone much. Does he need a lot of exercise?",
@@ -130,11 +130,11 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_004',
+      message_id: 'message_0000emd004',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      sender_id: 'user_rescue_staff_002', // Mike Rodriguez
+      sender_id: 'user_0000rscad02', // Mike Rodriguez
 
       content:
         "That sounds like a perfect setup! Charlie needs moderate exercise - a couple of walks a day and some playtime in the yard would make him very happy. He's not a high-energy dog anymore, more of a 'let's go for a nice walk then nap together' kind of guy. Would you be interested in bringing your cats for a meet-and-greet, or would you prefer to meet Charlie first?",
@@ -151,11 +151,11 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_005',
+      message_id: 'message_0000emd005',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "I think I'd like to meet Charlie first to see if we connect, then maybe arrange a home visit if things go well? My cats are pretty adaptable but I want to make sure Charlie is the right fit before introducing everyone. When would be a good time this week?",
@@ -172,11 +172,11 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_006',
+      message_id: 'message_0000emd006',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      sender_id: 'user_rescue_staff_002', // Mike Rodriguez
+      sender_id: 'user_0000rscad02', // Mike Rodriguez
 
       content:
         "That's a great approach! Charlie would love to meet you. How about Thursday evening around 5 PM? That's when he's most relaxed but still social. If you two hit it off, we can definitely arrange a home visit with your cats. Charlie is fostered nearby so we could potentially do a home trial weekend if everyone gets along well.",
@@ -193,11 +193,11 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_007',
+      message_id: 'message_0000emd007',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Thursday at 5 PM sounds perfect! A trial weekend is exactly what I was hoping for - that would give everyone time to adjust gradually. I'm really excited about this possibility. Should I bring anything special for Charlie?",
@@ -214,11 +214,11 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_008',
+      message_id: 'message_0000emd008',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
-      sender_id: 'user_rescue_staff_002', // Mike Rodriguez
+      sender_id: 'user_0000rscad02', // Mike Rodriguez
 
       content:
         "Just bring yourself and maybe some dog treats! Charlie loves meeting new people and I have a feeling you two will be great together. He's been waiting for the right home, and a house with cats who are already calm and confident sounds ideal. See you Thursday! 🐕🐱",
@@ -245,14 +245,14 @@ const emilyDogConversationData = {
       file_size: 524288,
       mime_type: 'application/pdf',
       url: '/uploads/chat/emily-dog-conversation-document.pdf',
-      uploaded_by: 'user_adopter_002', // Emily Davis
+      uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_dog_inquiry_001',
+      entity_id: 'chat_0000emdg001',
       purpose: 'chat_attachment',
       metadata: {
         description:
           'Medical records from my previous senior dog to show experience with senior pet care',
-        attachedToMessage: 'msg_emily_dog_003',
+        attachedToMessage: 'message_0000emd003',
       },
       created_at: new Date('2024-07-15T16:45:00Z'),
       updated_at: new Date('2024-07-15T16:45:00Z'),

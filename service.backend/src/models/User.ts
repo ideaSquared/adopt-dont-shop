@@ -2,6 +2,7 @@ import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'se
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import bcrypt from 'bcrypt';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 // Forward declarations to avoid circular imports
 interface Permission {
@@ -193,8 +194,8 @@ User.init(
       field: 'user_id', // Explicit database field mapping
       defaultValue:
         process.env.NODE_ENV === 'test'
-          ? () => 'user_' + Math.random().toString(36).substr(2, 12)
-          : sequelize.literal(`'user_' || left(md5(random()::text), 12)`),
+          ? () => generateReadableId('user')
+          : sequelize.literal(getReadableIdSqlLiteral('user')),
     },
     firstName: {
       type: DataTypes.STRING(100),

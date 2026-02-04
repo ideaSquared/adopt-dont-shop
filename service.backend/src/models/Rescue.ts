@@ -1,8 +1,10 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 interface RescueAttributes {
   rescueId: string;
+  readableId: string;
   name: string;
   email: string;
   phone?: string;
@@ -34,11 +36,19 @@ interface RescueAttributes {
 export interface RescueCreationAttributes
   extends Optional<
     RescueAttributes,
-    'rescueId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'deletedBy' | 'createdAt' | 'updatedAt'
+    | 'rescueId'
+    | 'readableId'
+    | 'verifiedAt'
+    | 'verifiedBy'
+    | 'deletedAt'
+    | 'deletedBy'
+    | 'createdAt'
+    | 'updatedAt'
   > {}
 
 class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implements RescueAttributes {
   public rescueId!: string;
+  public readableId!: string;
   public name!: string;
   public email!: string;
   public phone?: string;
@@ -79,6 +89,15 @@ Rescue.init(
       primaryKey: true,
       defaultValue: DataTypes.UUIDV4,
       field: 'rescue_id',
+    },
+    readableId: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: 'readable_id',
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('rescue')
+          : sequelize.literal(getReadableIdSqlLiteral('rescue')),
     },
     name: {
       type: DataTypes.STRING,
@@ -231,6 +250,12 @@ Rescue.init(
     timestamps: true,
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
+    indexes: [
+      {
+        unique: true,
+        fields: ['readable_id'],
+      },
+    ],
     defaultScope: {
       where: {
         isDeleted: false,

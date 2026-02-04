@@ -3,8 +3,8 @@ import Rating, { RatingCategory, RatingType } from '../models/Rating';
 const ratingData = [
   {
     rating_id: 'rating_001',
-    reviewer_id: 'user_adopter_002', // Emily Davis (adopted Whiskers)
-    reviewee_id: 'user_rescue_admin_001',
+    reviewer_id: 'user_0000adopt02', // Emily Davis (adopted Whiskers)
+    reviewee_id: 'user_0000rscad01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440003',
     rating_type: RatingType.RESCUE,
     category: RatingCategory.OVERALL,
@@ -19,8 +19,8 @@ const ratingData = [
   },
   {
     rating_id: 'rating_002',
-    reviewer_id: 'user_rescue_admin_001',
-    reviewee_id: 'user_adopter_002',
+    reviewer_id: 'user_0000rscad01',
+    reviewee_id: 'user_0000adopt02',
     rescue_id: '550e8400-e29b-41d4-a716-446655440003',
     rating_type: RatingType.USER,
     category: RatingCategory.OVERALL,
@@ -35,8 +35,8 @@ const ratingData = [
   },
   {
     rating_id: 'rating_003',
-    reviewer_id: 'user_adopter_003', // Michael Brown (interested in Rocky)
-    reviewee_id: 'user_rescue_admin_002',
+    reviewer_id: 'user_0000adopt03', // Michael Brown (interested in Rocky)
+    reviewee_id: 'user_0000rscad02',
     rescue_id: '550e8400-e29b-41d4-a716-446655440002',
     rating_type: RatingType.RESCUE,
     category: RatingCategory.COMMUNICATION,
@@ -51,8 +51,8 @@ const ratingData = [
   },
   {
     rating_id: 'rating_004',
-    reviewer_id: 'user_adopter_001', // John Smith (interested in Buddy)
-    reviewee_id: 'user_rescue_staff_001',
+    reviewer_id: 'user_0000adopt01', // John Smith (interested in Buddy)
+    reviewee_id: 'user_0000rscst01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     rating_type: RatingType.RESCUE,
     category: RatingCategory.PROCESS,
@@ -67,8 +67,8 @@ const ratingData = [
   },
   {
     rating_id: 'rating_005',
-    reviewer_id: 'user_admin_001', // Admin review of a rescue
-    reviewee_id: 'user_rescue_admin_001',
+    reviewer_id: 'user_0000admin01', // Admin review of a rescue
+    reviewee_id: 'user_0000rscad01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     rating_type: RatingType.RESCUE,
     category: RatingCategory.CARE,

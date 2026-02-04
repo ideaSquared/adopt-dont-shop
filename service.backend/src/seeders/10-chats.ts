@@ -3,25 +3,25 @@ import { ChatStatus } from '../types/chat';
 
 const chatData = [
   {
-    chat_id: 'chat_buddy_john_001',
-    application_id: 'app_buddy_john_001',
+    chat_id: 'chat_0000bjon001',
+    application_id: 'application_0000bjon001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ChatStatus.ACTIVE,
   },
   {
-    chat_id: 'chat_whiskers_emily_001',
-    application_id: 'app_whiskers_emily_001',
+    chat_id: 'chat_0000wemi001',
+    application_id: 'application_0000wemi001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440003',
     status: ChatStatus.ARCHIVED,
   },
   {
-    chat_id: 'chat_rocky_michael_001',
-    application_id: 'app_rocky_michael_001',
+    chat_id: 'chat_0000rmic001',
+    application_id: 'application_0000rmic001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440002',
     status: ChatStatus.ACTIVE,
   },
   {
-    chat_id: 'chat_general_inquiry_001',
+    chat_id: 'chat_0000genr001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ChatStatus.ACTIVE,
   },

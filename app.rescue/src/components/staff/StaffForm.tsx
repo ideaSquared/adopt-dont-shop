@@ -254,8 +254,8 @@ const StaffForm: React.FC<StaffFormProps> = ({
 
     if (!formData.userId.trim()) {
       newErrors.userId = 'User ID is required';
-    } else if (!/^user_[a-zA-Z0-9_]+$/.test(formData.userId)) {
-      newErrors.userId = 'Please enter a valid user ID (format: user_*)';
+    } else if (!/^user_0000[a-z0-9]{8}$/.test(formData.userId)) {
+      newErrors.userId = 'Please enter a valid user ID (format: user_0000xxxxxxxx)';
     }
 
     if (formData.title && formData.title.length > 100) {
@@ -301,7 +301,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
               hasError={!!errors.userId}
               value={formData.userId}
               onChange={e => handleInputChange('userId', e.target.value)}
-              placeholder="Enter the user ID of the user to add as staff (e.g., user_rescue_staff_001)"
+              placeholder="Enter the user ID of the user to add as staff (e.g., user_0000rscst01)"
               disabled={isEditing || loading}
               required
             />

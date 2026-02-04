@@ -10,13 +10,13 @@ import FileUpload from '../models/FileUpload';
 
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
-// Emily Davis (user_adopter_002) conversation with Happy Tails Dog Rescue
+// Emily Davis (user_0000adopt02) conversation with Happy Tails Dog Rescue
 
 const emilyConversation2Data = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_emily_dog_inquiry_002',
+    chat_id: 'chat_0000emdg002',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440002', // Happy Tails Dog Rescue
 
@@ -33,9 +33,9 @@ const emilyConversation2Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      participant_id: 'user_adopter_002', // Emily Davis
+      participant_id: 'user_0000adopt02', // Emily Davis
 
       role: ParticipantRole.USER,
 
@@ -49,9 +49,9 @@ const emilyConversation2Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      participant_id: 'user_rescue_admin_002', // Maria Garcia from Happy Tails
+      participant_id: 'user_0000rscad02', // Maria Garcia from Happy Tails
 
       role: ParticipantRole.RESCUE,
 
@@ -67,11 +67,11 @@ const emilyConversation2Data = {
 
   messages: [
     {
-      message_id: 'msg_emily_2_001',
+      message_id: 'message_0000em2001',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Hello! I'm interested in learning more about Bella, the 2-year-old Golden Retriever mix you have listed. I have two young children (ages 5 and 8) and we're looking for a gentle, family-friendly dog. Is Bella good with kids?",
@@ -88,11 +88,11 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_002',
+      message_id: 'message_0000em2002',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      sender_id: 'user_rescue_admin_002', // Maria Garcia
+      sender_id: 'user_0000rscad02', // Maria Garcia
 
       content:
         "Hi Emily! Bella would be absolutely perfect for your family. She's wonderful with children - very patient and gentle. She came from a home with kids and loves to play fetch and give cuddles. She's medium energy, so great for active families but also happy to relax. Do you have experience with dogs?",
@@ -109,11 +109,11 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_003',
+      message_id: 'message_0000em2003',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "That sounds wonderful! I grew up with dogs and had a Lab for 12 years before she passed last year. The kids have been asking for a dog ever since. We have a fenced backyard and live near a dog park. What's Bella's personality like? Is she house trained?",
@@ -130,11 +130,11 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_004',
+      message_id: 'message_0000em2004',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      sender_id: 'user_rescue_admin_002', // Maria Garcia
+      sender_id: 'user_0000rscad02', // Maria Garcia
 
       content:
         "Bella is such a sweetheart! She's fully house trained, knows sit, stay, and down. She's very social and loves meeting new people and dogs. She's not destructive and does well when left alone for work hours. She does shed seasonally, just so you know. Would you like to bring the kids to meet her?",
@@ -151,11 +151,11 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_005',
+      message_id: 'message_0000em2005',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "The kids would be thrilled to meet her! We're definitely okay with shedding - we had that with our Lab too. Are there any specific requirements for adoption? We're available this weekend if that works for a meet and greet.",
@@ -172,11 +172,11 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_006',
+      message_id: 'message_0000em2006',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      sender_id: 'user_rescue_admin_002', // Maria Garcia
+      sender_id: 'user_0000rscad02', // Maria Garcia
 
       content:
         "Sunday at 2 PM would be great! We'll do a meet and greet with the whole family. Our adoption process includes an application, reference check, and home visit. The adoption fee is $350. If Bella's a good fit, we can start the paperwork right away. Should I put you down for Sunday?",
@@ -193,11 +193,11 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_007',
+      message_id: 'message_0000em2007',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Perfect! Sunday at 2 PM works great for us. I'll bring the kids and we're all really excited. Quick question - does Bella need any special diet or medications? Also, do you provide any transition supplies to help her settle in?",
@@ -214,11 +214,11 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_008',
+      message_id: 'message_0000em2008',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
-      sender_id: 'user_rescue_admin_002', // Maria Garcia
+      sender_id: 'user_0000rscad02', // Maria Garcia
 
       content:
         "Bella's very healthy - no special diet or meds needed! We'll provide you with a starter bag of her current food, her favorite toy, and a blanket that smells like our facility to help with the transition. We also give all adopters a welcome packet with training tips and local vet recommendations. See you Sunday! 🐾",
@@ -245,9 +245,9 @@ const emilyConversation2Data = {
       file_size: 145632,
       mime_type: 'image/jpeg',
       url: '/uploads/chat/emily-dog-conversation-2-sample.jpg',
-      uploaded_by: 'user_adopter_002', // Emily Davis
+      uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_dog_inquiry_002',
+      entity_id: 'chat_0000emdg002',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of my backyard setup for a senior dog',

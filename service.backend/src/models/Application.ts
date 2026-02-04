@@ -1,6 +1,7 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 // Simple application status enum for small charities
 export enum ApplicationStatus {
@@ -212,8 +213,10 @@ Application.init(
     application_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      // Remove default value for SQLite compatibility
-      // Application IDs will be generated in beforeCreate hook
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('application')
+          : sequelize.literal(getReadableIdSqlLiteral('application')),
     },
     user_id: {
       type: DataTypes.STRING,
@@ -484,13 +487,6 @@ Application.init(
       },
     ],
     hooks: {
-      beforeCreate: (application: Application) => {
-        // Generate application ID if not provided
-        if (!application.application_id) {
-          const randomStr = Math.random().toString(36).substring(2, 14);
-          application.application_id = `application_${randomStr}`;
-        }
-      },
       beforeValidate: (application: Application) => {
         // Auto-set submitted_at when status changes to submitted
         if (application.status === ApplicationStatus.SUBMITTED && !application.submitted_at) {

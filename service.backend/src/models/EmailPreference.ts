@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 export enum EmailFrequency {
   IMMEDIATE = 'immediate',
@@ -243,7 +244,7 @@ class EmailPreference
   }
 
   public static generateUnsubscribeToken(): string {
-    return `unsub_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
+    return generateReadableId('unsub');
   }
 
   public static getDefaultPreferences(): NotificationPreference[] {
@@ -324,7 +325,10 @@ EmailPreference.init(
       type: DataTypes.STRING,
       primaryKey: true,
       field: 'preference_id',
-      defaultValue: () => `pref_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('pref')
+          : sequelize.literal(getReadableIdSqlLiteral('pref')),
     },
     userId: {
       type: DataTypes.STRING,

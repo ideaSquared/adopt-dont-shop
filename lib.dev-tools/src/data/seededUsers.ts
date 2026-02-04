@@ -8,7 +8,7 @@ export const SEEDED_PASSWORD = 'DevPassword123!';
 export const seededDevUsers: DevUser[] = [
   // Admin users
   {
-    userId: 'user_superadmin_001',
+    userId: 'user_0000admin01',
     firstName: 'Super',
     lastName: 'Admin',
     email: 'superadmin@adoptdontshop.dev',
@@ -31,7 +31,7 @@ export const seededDevUsers: DevUser[] = [
     description: 'Super Administrator - Full system access',
   },
   {
-    userId: 'user_admin_001',
+    userId: 'user_0000admi001',
     firstName: 'System',
     lastName: 'Administrator',
     email: 'admin@adoptdontshop.dev',
@@ -54,7 +54,7 @@ export const seededDevUsers: DevUser[] = [
     description: 'System Administrator',
   },
   {
-    userId: 'user_moderator_001',
+    userId: 'user_0000mode001',
     firstName: 'Content',
     lastName: 'Moderator',
     email: 'moderator@adoptdontshop.dev',
@@ -79,7 +79,7 @@ export const seededDevUsers: DevUser[] = [
 
   // Rescue staff users
   {
-    userId: 'user_rescue_admin_001',
+    userId: 'user_0000rscad01',
     firstName: 'Rescue',
     lastName: 'Manager',
     email: 'rescue.manager@pawsrescue.dev',
@@ -102,7 +102,7 @@ export const seededDevUsers: DevUser[] = [
     description: 'Rescue Manager',
   },
   {
-    userId: 'user_rescue_staff_001',
+    userId: 'user_0000rscst01',
     firstName: 'Sarah',
     lastName: 'Johnson',
     email: 'sarah.johnson@pawsrescue.dev',
@@ -125,7 +125,7 @@ export const seededDevUsers: DevUser[] = [
     description: 'Veterinary Technician',
   },
   {
-    userId: 'user_rescue_admin_002',
+    userId: 'user_0000rscad02',
     firstName: 'Maria',
     lastName: 'Garcia',
     email: 'maria@happytailsrescue.dev',
@@ -150,7 +150,7 @@ export const seededDevUsers: DevUser[] = [
 
   // Adopter users
   {
-    userId: 'user_adopter_001',
+    userId: 'user_0000adopt01',
     firstName: 'John',
     lastName: 'Smith',
     email: 'john.smith@gmail.com',
@@ -173,7 +173,7 @@ export const seededDevUsers: DevUser[] = [
     description: 'Family dog seeker',
   },
   {
-    userId: 'user_adopter_002',
+    userId: 'user_0000adopt02',
     firstName: 'Emily',
     lastName: 'Davis',
     email: 'emily.davis@yahoo.com',
@@ -196,7 +196,7 @@ export const seededDevUsers: DevUser[] = [
     description: 'Cat lover',
   },
   {
-    userId: 'user_adopter_003',
+    userId: 'user_0000adopt03',
     firstName: 'Michael',
     lastName: 'Brown',
     email: 'michael.brown@outlook.com',
@@ -219,7 +219,7 @@ export const seededDevUsers: DevUser[] = [
     description: 'Active dog owner',
   },
   {
-    userId: 'user_adopter_004',
+    userId: 'user_0000adopt04',
     firstName: 'Jessica',
     lastName: 'Wilson',
     email: 'jessica.wilson@gmail.com',

@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
 export enum SanctionType {
   WARNING = 'warning',
@@ -162,7 +163,10 @@ UserSanction.init(
       type: DataTypes.STRING,
       primaryKey: true,
       field: 'sanction_id',
-      defaultValue: () => `sanction_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('sanction')
+          : sequelize.literal(getReadableIdSqlLiteral('sanction')),
     },
     userId: {
       type: DataTypes.STRING,
