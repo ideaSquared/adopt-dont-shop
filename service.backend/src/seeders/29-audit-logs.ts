@@ -4,14 +4,14 @@ const auditLogs = [
   // Admin actions
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_admin_001',
+    user: 'user_0000admin01',
     action: 'LOGIN',
     level: 'INFO' as const,
     status: 'success' as const,
     timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
     metadata: {
       entity: 'auth',
-      entityId: 'user_admin_001',
+      entityId: 'user_0000admin01',
       details: { method: 'email_password' },
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -22,7 +22,7 @@ const auditLogs = [
   },
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_admin_001',
+    user: 'user_0000admin01',
     action: 'UPDATE',
     level: 'INFO' as const,
     status: 'success' as const,
@@ -53,7 +53,7 @@ const auditLogs = [
       entity: 'user_sanction',
       entityId: 'sanction_001',
       details: {
-        targetUserId: 'user_adopter_002',
+        targetUserId: 'user_0000adopt02',
         type: 'warning',
         reason: 'Inappropriate language in chat',
       },
@@ -66,7 +66,7 @@ const auditLogs = [
   },
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_admin_001',
+    user: 'user_0000admin01',
     action: 'DELETE',
     level: 'WARNING' as const,
     status: 'success' as const,
@@ -89,7 +89,7 @@ const auditLogs = [
   // Rescue organization actions
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_rescue_admin_001',
+    user: 'user_0000rscad01',
     action: 'CREATE',
     level: 'INFO' as const,
     status: 'success' as const,
@@ -111,7 +111,7 @@ const auditLogs = [
   },
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_rescue_admin_001',
+    user: 'user_0000rscad01',
     action: 'UPDATE',
     level: 'INFO' as const,
     status: 'success' as const,
@@ -180,7 +180,7 @@ const auditLogs = [
   // Support ticket actions
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_admin_001',
+    user: 'user_0000admin01',
     action: 'UPDATE',
     level: 'INFO' as const,
     status: 'success' as const,
@@ -230,7 +230,7 @@ const auditLogs = [
   // Bulk operations
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_admin_001',
+    user: 'user_0000admin01',
     action: 'BULK_UPDATE',
     level: 'INFO' as const,
     status: 'success' as const,
@@ -255,7 +255,7 @@ const auditLogs = [
   // User management
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_admin_001',
+    user: 'user_0000admin01',
     action: 'USER_SUSPENDED',
     level: 'WARNING' as const,
     status: 'success' as const,
@@ -278,14 +278,14 @@ const auditLogs = [
   // Password reset
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_adopter_002',
+    user: 'user_0000adopt02',
     action: 'PASSWORD_RESET',
     level: 'INFO' as const,
     status: 'success' as const,
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), // 5 days ago
     metadata: {
       entity: 'auth',
-      entityId: 'user_adopter_002',
+      entityId: 'user_0000adopt02',
       details: {
         method: 'email_link',
       },
@@ -300,14 +300,14 @@ const auditLogs = [
   // Email verification
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_adopter_003',
+    user: 'user_0000adopt03',
     action: 'EMAIL_VERIFICATION',
     level: 'INFO' as const,
     status: 'success' as const,
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6), // 6 days ago
     metadata: {
       entity: 'auth',
-      entityId: 'user_adopter_003',
+      entityId: 'user_0000adopt03',
       details: {
         email: 'michael.brown@outlook.com',
       },
@@ -322,7 +322,7 @@ const auditLogs = [
   // Rescue verification
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_admin_001',
+    user: 'user_0000admin01',
     action: 'RESCUE_VERIFIED',
     level: 'INFO' as const,
     status: 'success' as const,

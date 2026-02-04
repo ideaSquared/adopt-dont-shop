@@ -26,7 +26,7 @@ interface NotificationSeedData {
 const notificationData: NotificationSeedData[] = [
   {
     notification_id: 'notif_001',
-    user_id: 'user_adopter_001',
+    user_id: 'user_0000adopt01',
     title: 'Application Received',
     message:
       'Thank you for your application for Buddy! We have received it and will review it within 2-3 business days.',
@@ -47,7 +47,7 @@ const notificationData: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_002',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Application Approved! 🎉',
     message:
       'Congratulations! Your application for Whiskers has been approved. Please contact us to schedule a meet and greet.',
@@ -69,7 +69,7 @@ const notificationData: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_003',
-    user_id: 'user_adopter_003',
+    user_id: 'user_0000adopt03',
     title: 'Interview Scheduled',
     message:
       'Your phone interview for Rocky has been scheduled. We will contact you this week to discuss the next steps.',
@@ -90,7 +90,7 @@ const notificationData: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_004',
-    user_id: 'user_adopter_004',
+    user_id: 'user_0000adopt04',
     title: 'Application Update',
     message:
       "Thank you for your interest in Luna. Unfortunately, we feel that a more experienced cat owner would be a better fit for Luna's high-energy needs. We encourage you to consider one of our calmer senior cats.",
@@ -111,7 +111,7 @@ const notificationData: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_005',
-    user_id: 'user_rescue_staff_001',
+    user_id: 'user_0000rscst01',
     title: 'New Application Received',
     message:
       'A new application has been submitted for Buddy by John Smith. Please review at your earliest convenience.',
@@ -133,7 +133,7 @@ const notificationData: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_006',
-    user_id: 'user_rescue_admin_002',
+    user_id: 'user_0000rscad02',
     title: 'Reference Check Complete',
     message:
       "All references for Michael Brown's application for Rocky have been verified successfully.",
@@ -154,7 +154,7 @@ const notificationData: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_007',
-    user_id: 'user_adopter_001',
+    user_id: 'user_0000adopt01',
     title: 'New Message from Paws Rescue Austin',
     message: "Sarah from Paws Rescue has sent you a message about Buddy's exercise needs.",
     type: NotificationType.MESSAGE_RECEIVED,

@@ -8,7 +8,7 @@ import Message from '../models/Message';
 
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
-// Emily Davis (user_adopter_002) conversation with Austin Animal Center
+// Emily Davis (user_0000adopt02) conversation with Austin Animal Center
 
 const emilyConversation3Data = {
   // Chat conversation
@@ -33,7 +33,7 @@ const emilyConversation3Data = {
 
       chat_id: 'chat_emily_cat_inquiry_003',
 
-      participant_id: 'user_adopter_002', // Emily Davis
+      participant_id: 'user_0000adopt02', // Emily Davis
 
       role: ParticipantRole.USER,
 
@@ -69,7 +69,7 @@ const emilyConversation3Data = {
 
       chat_id: 'chat_emily_cat_inquiry_003',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Hi! I'm looking into adopting a cat for my family. We have two children and I'm wondering about cats that would be good with kids. Do you have any recommendations? We're first-time cat owners but very committed to providing a loving home.",
@@ -111,7 +111,7 @@ const emilyConversation3Data = {
 
       chat_id: 'chat_emily_cat_inquiry_003',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "My kids are 5 and 8 - they're pretty gentle and respectful with animals. I think we'd like something in between - playful enough to interact with the kids but also calm enough to be a good family pet. What cats do you currently have available?",
@@ -153,7 +153,7 @@ const emilyConversation3Data = {
 
       chat_id: 'chat_emily_cat_inquiry_003',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Both sound wonderful! I'd love to meet them both with my kids. What should we expect for the adoption process? Also, what supplies do we need to get started? We want to be fully prepared before bringing a cat home.",
@@ -195,7 +195,7 @@ const emilyConversation3Data = {
 
       chat_id: 'chat_emily_cat_inquiry_003',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Tomorrow afternoon works perfectly! We can come by around 2 PM if that's good. I'll bring the kids and we can meet both Oliver and Luna. Should we bring anything specific, or just come ready to fall in love with a new family member? 😊",

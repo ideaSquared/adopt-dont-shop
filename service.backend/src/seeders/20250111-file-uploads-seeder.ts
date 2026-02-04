@@ -12,7 +12,7 @@ const sampleFileUploads = [
     file_size: 245760, // 240KB
     url: '/uploads/chat/sample.jpg',
     thumbnail_url: '/uploads/chat/sample-thumb.jpg',
-    uploaded_by: 'user_adopter_001', // Using existing test user
+    uploaded_by: 'user_0000adopt01', // Using existing test user
     entity_id: 'chat_abc123def456', // Using existing test chat
     entity_type: 'chat' as const,
     purpose: 'attachment' as const,
@@ -33,7 +33,7 @@ const sampleFileUploads = [
     mime_type: 'application/pdf',
     file_size: 1048576, // 1MB
     url: '/uploads/chat/document.pdf',
-    uploaded_by: 'user_rescue_staff_001', // Using existing test user
+    uploaded_by: 'user_0000rscst01', // Using existing test user
     entity_id: 'chat_abc123def456', // Using existing test chat
     entity_type: 'chat' as const,
     purpose: 'attachment' as const,
@@ -52,7 +52,7 @@ const sampleFileUploads = [
     file_size: 512000, // 500KB
     url: '/uploads/pets/profile.png',
     thumbnail_url: '/uploads/pets/profile-thumb.png',
-    uploaded_by: 'user_rescue_staff_001', // Using existing test user
+    uploaded_by: 'user_0000rscst01', // Using existing test user
     entity_id: 'pet_bella_001', // Using existing test pet
     entity_type: 'pet' as const,
     purpose: 'image' as const,
@@ -74,7 +74,7 @@ const sampleFileUploads = [
     mime_type: 'application/pdf',
     file_size: 2048576, // 2MB
     url: '/uploads/applications/vaccination-record.pdf',
-    uploaded_by: 'user_adopter_001', // Using existing test user
+    uploaded_by: 'user_0000adopt01', // Using existing test user
     entity_id: 'app_bella_001', // Using existing test application
     entity_type: 'application' as const,
     purpose: 'document' as const,

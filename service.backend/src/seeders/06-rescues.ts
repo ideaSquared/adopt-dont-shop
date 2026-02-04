@@ -24,7 +24,7 @@ const rescueOrganizations = [
     contactPhone: '(512) 555-0123',
     status: 'verified' as const,
     verifiedAt: new Date('2023-01-15'),
-    verifiedBy: 'user_admin_001',
+    verifiedBy: 'user_0000admin01',
     settings: {
       autoApproveApplications: false,
       requireHomeVisit: true,
@@ -82,7 +82,7 @@ const rescueOrganizations = [
     contactPhone: '(305) 555-0456',
     status: 'verified' as const,
     verifiedAt: new Date('2023-02-20'),
-    verifiedBy: 'user_admin_001',
+    verifiedBy: 'user_0000admin01',
     settings: {
       autoApproveApplications: false,
       requireHomeVisit: true,

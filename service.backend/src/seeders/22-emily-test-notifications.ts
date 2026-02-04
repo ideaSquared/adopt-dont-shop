@@ -26,7 +26,7 @@ interface NotificationSeedData {
 const emilyTestNotifications: NotificationSeedData[] = [
   {
     notification_id: 'notif_emily_001',
-    user_id: 'user_adopter_002', // Emily Davis
+    user_id: 'user_0000adopt02', // Emily Davis
     title: 'Application Approved! 🎉',
     message:
       'Great news! Your adoption application for Whiskers has been approved. Please contact us to schedule a meet-and-greet.',
@@ -47,7 +47,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_002',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'New Message from Paws Rescue Center',
     message: 'Sarah Johnson sent you a message about your application for Luna.',
     type: NotificationType.MESSAGE_RECEIVED,
@@ -66,7 +66,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_003',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Perfect Match Found! 🐕',
     message:
       'We found a new dog that matches your preferences: Max, a 3-year-old Golden Retriever.',
@@ -87,7 +87,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_004',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Interview Scheduled',
     message:
       'Your adoption interview has been scheduled for tomorrow at 2:00 PM with Happy Tails Rescue.',
@@ -109,7 +109,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_005',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Home Visit Scheduled',
     message:
       'A home visit has been scheduled for Friday at 10:00 AM to complete your adoption process for Bella.',
@@ -131,7 +131,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_006',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Vaccination Reminder',
     message: "Don't forget to schedule Whiskers' annual vaccination appointment.",
     type: NotificationType.REMINDER,
@@ -151,7 +151,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_007',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Platform Maintenance Notice',
     message:
       'Scheduled maintenance will occur on Sunday from 2:00 AM to 4:00 AM EST. Some features may be temporarily unavailable.',
@@ -172,7 +172,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_008',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Health Update for Luna',
     message:
       "Luna had her vet checkup today and received a clean bill of health! She's ready for adoption.",
@@ -193,7 +193,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_009',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'New Message from Happy Tails Rescue',
     message: 'Maria Garcia replied to your question about adoption fees.',
     type: NotificationType.MESSAGE_RECEIVED,
@@ -212,7 +212,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_010',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Application Under Review',
     message:
       "Your application for Charlie is currently under review. We'll get back to you within 2-3 business days.",
@@ -233,7 +233,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_011',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Reference Check Needed',
     message:
       'Please provide contact information for your veterinary reference to complete your application.',
@@ -253,7 +253,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_012',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'How is Whiskers doing?',
     message:
       "It's been a month since you adopted Whiskers! We'd love to hear how he's settling in.",
@@ -273,7 +273,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_013',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'New Cats Available! 🐱',
     message:
       'Three new cats matching your preferences just arrived: Mittens, Shadow, and Princess.',
@@ -293,7 +293,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_014',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Application Expiring Soon',
     message:
       'Your application for Ruby will expire in 3 days. Please complete the remaining requirements.',
@@ -314,7 +314,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
   },
   {
     notification_id: 'notif_emily_015',
-    user_id: 'user_adopter_002',
+    user_id: 'user_0000adopt02',
     title: 'Special Adoption Event This Weekend!',
     message:
       'Join us for our "Clear the Shelters" event with reduced adoption fees and special activities.',

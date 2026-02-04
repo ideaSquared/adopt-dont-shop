@@ -10,7 +10,7 @@ import FileUpload from '../models/FileUpload';
 
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
-// Emily Davis (user_adopter_002) conversation with Paws Rescue Austin
+// Emily Davis (user_0000adopt02) conversation with Paws Rescue Austin
 
 const emilyConversationData = {
   // Chat conversation
@@ -35,7 +35,7 @@ const emilyConversationData = {
 
       chat_id: 'chat_emily_general_inquiry_001',
 
-      participant_id: 'user_adopter_002', // Emily Davis
+      participant_id: 'user_0000adopt02', // Emily Davis
 
       role: ParticipantRole.USER,
 
@@ -51,7 +51,7 @@ const emilyConversationData = {
 
       chat_id: 'chat_emily_general_inquiry_001',
 
-      participant_id: 'user_rescue_staff_001', // Sarah Johnson from Paws Rescue
+      participant_id: 'user_0000rscst01', // Sarah Johnson from Paws Rescue
 
       role: ParticipantRole.RESCUE,
 
@@ -71,7 +71,7 @@ const emilyConversationData = {
 
       chat_id: 'chat_emily_general_inquiry_001',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Hello! I'm interested in learning more about your cat adoption process. I recently lost my senior cat and I'm looking to adopt another one, preferably a calmer, older cat.",
@@ -92,7 +92,7 @@ const emilyConversationData = {
 
       chat_id: 'chat_emily_general_inquiry_001',
 
-      sender_id: 'user_rescue_staff_001', // Sarah Johnson
+      sender_id: 'user_0000rscst01', // Sarah Johnson
 
       content:
         "Hi Emily! I'm so sorry for the loss of your senior cat. It's wonderful that you're looking to give another cat a loving home. We have several calm, older cats who would benefit from an experienced owner like yourself. Do you have any specific preferences for age, gender, or special needs?",
@@ -113,7 +113,7 @@ const emilyConversationData = {
 
       chat_id: 'chat_emily_general_inquiry_001',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Thank you for your kind words. I'm very open to special needs cats - my previous cat had kidney disease in her final years, so I'm experienced with medication schedules and special diets. I prefer female cats if possible, and age 8+ would be perfect. Do you have any available that might be a good match?",
@@ -134,7 +134,7 @@ const emilyConversationData = {
 
       chat_id: 'chat_emily_general_inquiry_001',
 
-      sender_id: 'user_rescue_staff_001', // Sarah Johnson
+      sender_id: 'user_0000rscst01', // Sarah Johnson
 
       content:
         "That experience with senior cat care is exactly what some of our cats need! I have a few wonderful ladies in mind. There's Misty, a 10-year-old calico who needs daily medication for arthritis, and Shadows, a 12-year-old black cat who is very gentle but needs a special diet. Would you like to schedule a meet-and-greet this weekend?",
@@ -155,7 +155,7 @@ const emilyConversationData = {
 
       chat_id: 'chat_emily_general_inquiry_001',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Both sound wonderful! I'd love to meet them both. Saturday afternoon would work well for me if you have availability. Should I bring anything specific or fill out any paperwork beforehand?",
@@ -176,7 +176,7 @@ const emilyConversationData = {
 
       chat_id: 'chat_emily_general_inquiry_001',
 
-      sender_id: 'user_rescue_staff_001', // Sarah Johnson
+      sender_id: 'user_0000rscst01', // Sarah Johnson
 
       content:
         "Perfect! Saturday at 2 PM would be great. I'll have our adoption application ready for you to fill out if you connect with one of them. Just bring a valid ID and we can handle everything else during your visit. Our address is 1234 Animal Way, Austin, TX. Looking forward to meeting you!",
@@ -197,7 +197,7 @@ const emilyConversationData = {
 
       chat_id: 'chat_emily_general_inquiry_001',
 
-      sender_id: 'user_adopter_002', // Emily Davis
+      sender_id: 'user_0000adopt02', // Emily Davis
 
       content:
         "Excellent! I'll see you Saturday at 2 PM. I'm really excited to meet Misty and Shadows. Thank you so much for your help - this rescue seems like exactly the kind of place I want to support. 😊",
@@ -224,7 +224,7 @@ const emilyConversationData = {
       file_size: 145632,
       mime_type: 'image/jpeg',
       url: '/uploads/chat/emily-conversation-1-sample.jpg',
-      uploaded_by: 'user_adopter_002', // Emily Davis
+      uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
       entity_id: 'chat_emily_general_inquiry_001',
       purpose: 'chat_attachment',
@@ -243,7 +243,7 @@ const emilyConversationData = {
       file_size: 89421,
       mime_type: 'image/jpeg',
       url: '/uploads/chat/emily-conversation-1-sample-thumb.jpg',
-      uploaded_by: 'user_adopter_002', // Emily Davis
+      uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
       entity_id: 'chat_emily_general_inquiry_001',
       purpose: 'chat_attachment',
