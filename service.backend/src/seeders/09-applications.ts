@@ -9,7 +9,7 @@ const applicationData = [
   {
     application_id: 'application_0000bjon001',
     user_id: 'user_0000adopt01', // John Smith
-    pet_id: 'pet_buddy_001',
+    pet_id: 'pet_0000buddy01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.VISITING, // Has multiple home visits scheduled
@@ -89,7 +89,7 @@ const applicationData = [
   {
     application_id: 'application_0000wemi001',
     user_id: 'user_0000adopt02', // Emily Davis
-    pet_id: 'pet_whiskers_001',
+    pet_id: 'pet_0000whisk01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440003',
     status: ApplicationStatus.APPROVED,
     stage: ApplicationStage.RESOLVED, // Application completed successfully
@@ -165,7 +165,7 @@ const applicationData = [
   {
     application_id: 'application_0000rmic001',
     user_id: 'user_0000adopt03', // Michael Brown
-    pet_id: 'pet_rocky_001',
+    pet_id: 'pet_0000rocky01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440002',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.REVIEWING, // Interview scheduled means in review stage
@@ -248,7 +248,7 @@ const applicationData = [
   {
     application_id: 'application_0000ljes001',
     user_id: 'user_0000adopt04', // Jessica Wilson
-    pet_id: 'pet_luna_001',
+    pet_id: 'pet_0000luna001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.REJECTED,
     stage: ApplicationStage.RESOLVED, // Application was rejected and resolved
@@ -307,7 +307,7 @@ const applicationData = [
   {
     application_id: 'application_0000bdav002',
     user_id: 'user_0000adopt02', // Emily Davis (reusing existing user)
-    pet_id: 'pet_buddy_001',
+    pet_id: 'pet_0000buddy01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.PENDING, // Just submitted, waiting for review
@@ -377,7 +377,7 @@ const applicationData = [
   {
     application_id: 'application_0000msar001',
     user_id: 'user_0000adopt03', // Michael Brown (reusing existing user)
-    pet_id: 'pet_max_001',
+    pet_id: 'pet_0000max0001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.REVIEWING, // In review, waiting for references
@@ -456,7 +456,7 @@ const applicationData = [
   {
     application_id: 'application_0000lalex01',
     user_id: 'user_0000adopt01', // John Smith (reusing existing user)
-    pet_id: 'pet_luna_001',
+    pet_id: 'pet_0000luna001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.VISITING, // Home visit scheduled
@@ -528,7 +528,7 @@ const applicationData = [
   {
     application_id: 'application_0000bmar003',
     user_id: 'user_0000adopt04', // Jessica Wilson (reusing existing user)
-    pet_id: 'pet_buddy_001',
+    pet_id: 'pet_0000buddy01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.APPROVED,
     stage: ApplicationStage.DECIDING, // Home visit completed, making final decision
@@ -623,7 +623,7 @@ const applicationData = [
   {
     application_id: 'application_0000mtom002',
     user_id: 'user_0000adopt02', // Emily Davis (reusing)
-    pet_id: 'pet_max_001',
+    pet_id: 'pet_0000max0001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.APPROVED,
     stage: ApplicationStage.RESOLVED, // Conditionally approved
@@ -697,7 +697,7 @@ const applicationData = [
   {
     application_id: 'application_0000lwith01',
     user_id: 'user_0000adopt03', // Michael Brown (reusing)
-    pet_id: 'pet_luna_001',
+    pet_id: 'pet_0000luna001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.WITHDRAWN,
     stage: ApplicationStage.WITHDRAWN, // Applicant withdrew
@@ -751,7 +751,7 @@ const applicationData = [
   {
     application_id: 'application_0000bexpr01',
     user_id: 'user_0000adopt01', // John Smith (reusing)
-    pet_id: 'pet_buddy_001',
+    pet_id: 'pet_0000buddy01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.REJECTED,
     stage: ApplicationStage.RESOLVED, // Expired without action

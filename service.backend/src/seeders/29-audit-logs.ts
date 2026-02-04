@@ -96,7 +96,7 @@ const auditLogs = [
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
     metadata: {
       entity: 'pet',
-      entityId: 'pet_max_001',
+      entityId: 'pet_0000max0001',
       details: {
         petName: 'Max',
         species: 'dog',

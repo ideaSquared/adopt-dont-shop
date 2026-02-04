@@ -6,7 +6,7 @@ import EmailTemplate, {
 
 const emailTemplateData = [
   {
-    templateId: 'tmpl_welcome_001',
+    templateId: 'template_0000welc01',
     name: 'Welcome Email',
     type: TemplateType.TRANSACTIONAL,
     subject: "Welcome to Adopt Don't Shop! 🐾",
@@ -70,7 +70,7 @@ const emailTemplateData = [
     lastModifiedBy: 'user_0000admin01',
   },
   {
-    templateId: 'tmpl_app_received_001',
+    templateId: 'template_0000recv01',
     name: 'Application Received',
     type: TemplateType.NOTIFICATION,
     subject: 'Application Received for {{petName}} 📋',
@@ -145,7 +145,7 @@ const emailTemplateData = [
     lastModifiedBy: 'user_0000admin01',
   },
   {
-    templateId: 'tmpl_app_approved_001',
+    templateId: 'template_0000appr01',
     name: 'Application Approved',
     type: TemplateType.NOTIFICATION,
     subject: '🎉 Great News! Your Application for {{petName}} is Approved!',
@@ -221,7 +221,7 @@ const emailTemplateData = [
     lastModifiedBy: 'user_0000admin01',
   },
   {
-    templateId: 'tmpl_app_rejected_001',
+    templateId: 'template_0000reje01',
     name: 'Application Not Approved',
     type: TemplateType.NOTIFICATION,
     subject: 'Update on Your Application for {{petName}}',
@@ -295,7 +295,7 @@ const emailTemplateData = [
     lastModifiedBy: 'user_0000admin01',
   },
   {
-    templateId: 'tmpl_new_message_001',
+    templateId: 'template_0000mesg01',
     name: 'New Message Notification',
     type: TemplateType.NOTIFICATION,
     subject: 'New message from {{senderName}}',
@@ -349,7 +349,7 @@ const emailTemplateData = [
     lastModifiedBy: 'user_0000admin01',
   },
   {
-    templateId: 'tmpl_rescue_welcome_001',
+    templateId: 'template_0000rwel01',
     name: 'Rescue Welcome Email',
     type: TemplateType.TRANSACTIONAL,
     subject: "Welcome to Adopt Don't Shop, {{rescueName}}! 🐾",
@@ -396,7 +396,7 @@ Thank you for joining!`,
     lastModifiedBy: 'user_0000admin01',
   },
   {
-    templateId: 'tmpl_rescue_approved_001',
+    templateId: 'template_0000rapr01',
     name: 'Rescue Verification Approved',
     type: TemplateType.TRANSACTIONAL,
     subject: '🎉 {{rescueName}} Has Been Verified!',
@@ -432,7 +432,7 @@ Thank you for joining!`,
     lastModifiedBy: 'user_0000admin01',
   },
   {
-    templateId: 'tmpl_rescue_reminder_001',
+    templateId: 'template_0000rrem01',
     name: 'Rescue Profile Reminder',
     type: TemplateType.NOTIFICATION,
     subject: 'Time to Update Your Profile 📋',
