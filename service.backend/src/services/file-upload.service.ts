@@ -472,7 +472,9 @@ export class FileUploadService {
       });
     } catch (error) {
       logger.error('SVG sanitization failed:', error);
-      throw new Error(`SVG sanitization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `SVG sanitization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
