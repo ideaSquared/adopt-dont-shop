@@ -2,7 +2,7 @@ import express from 'express';
 import { ChatController } from '../controllers/chat.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
-import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
+import { authLimiter, generalLimiter, uploadLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
 import { chatAttachmentUpload } from '../services/file-upload.service';
 import { chatValidation } from '../validation/chat.validation';
@@ -1086,7 +1086,8 @@ router.get(
  */
 router.post(
   '/:conversationId/attachments/upload',
-  generalLimiter,
+  uploadLimiter,
+  authenticateToken,
   chatAttachmentUpload.single('file'),
   ChatController.uploadAttachment
 );
