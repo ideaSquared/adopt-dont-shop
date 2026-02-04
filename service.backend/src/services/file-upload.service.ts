@@ -7,6 +7,9 @@ import { AuthenticatedRequest } from '../types/api';
 import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import FileUpload from '../models/FileUpload';
+import { fromFile as fileTypeFromFile } from 'file-type';
+import DOMPurify from 'isomorphic-dompurify';
 
 // File upload configuration
 const UPLOAD_CONFIG = {
@@ -367,10 +370,178 @@ export class FileUploadService {
       throw new Error(`File type ${file.mimetype} is not allowed`);
     }
 
-    // Additional security checks could be added here
-    // - Virus scanning
-    // - Content validation
-    // - File header validation
+    // Validate file content matches MIME type (magic byte checking)
+    await this.validateFileContent(file);
+
+    // Sanitize SVG files to prevent XSS
+    if (file.mimetype === 'image/svg+xml') {
+      await this.sanitizeSvgFile(file);
+    }
+
+    // Scan for malware
+    const isSafe = await this.scanForMalware(file.path);
+    if (!isSafe) {
+      // Delete the potentially malicious file
+      await fs.promises.unlink(file.path);
+      throw new Error('File failed malware scan and has been removed');
+    }
+  }
+
+  /**
+   * Validate file content matches declared MIME type using magic byte checking
+   */
+  private static async validateFileContent(file: Express.Multer.File): Promise<void> {
+    try {
+      const fileTypeResult = await fileTypeFromFile(file.path);
+
+      // If we can't determine the file type, reject it for security
+      if (!fileTypeResult) {
+        // Allow certain text-based files that don't have magic bytes
+        const textBasedMimeTypes = ['text/plain', 'text/csv'];
+        if (!textBasedMimeTypes.includes(file.mimetype)) {
+          throw new Error('Unable to determine file type - file may be corrupted or invalid');
+        }
+        // For text files, we allow them but log for monitoring
+        logger.warn('Text file without magic bytes uploaded', {
+          filename: file.originalname,
+          mimeType: file.mimetype,
+        });
+        return;
+      }
+
+      // Check if detected MIME type matches declared MIME type
+      if (fileTypeResult.mime !== file.mimetype) {
+        throw new Error(
+          `File type mismatch - declared: ${file.mimetype}, detected: ${fileTypeResult.mime}. Possible MIME type spoofing attack.`
+        );
+      }
+
+      logger.info('File content validation passed', {
+        filename: file.originalname,
+        mimeType: file.mimetype,
+        detectedType: fileTypeResult.mime,
+      });
+    } catch (error) {
+      logger.error('File content validation failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sanitize SVG files to prevent XSS attacks
+   */
+  private static async sanitizeSvgFile(file: Express.Multer.File): Promise<void> {
+    try {
+      // Read the SVG file content
+      const svgContent = await fs.promises.readFile(file.path, 'utf-8');
+
+      // Sanitize the SVG content using DOMPurify
+      // isomorphic-dompurify works in Node.js environment automatically
+      const cleanSvg = DOMPurify.sanitize(svgContent, {
+        USE_PROFILES: { svg: true, svgFilters: true },
+        FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+        FORBID_ATTR: [
+          'onerror',
+          'onload',
+          'onclick',
+          'onmouseover',
+          'onmouseout',
+          'onmousemove',
+          'onmouseenter',
+          'onmouseleave',
+          'onfocus',
+          'onblur',
+          'onchange',
+          'oninput',
+        ],
+        ADD_ATTR: ['xmlns'],
+      });
+
+      // If sanitization removed content, the file is suspicious
+      if (!cleanSvg || cleanSvg.length === 0) {
+        throw new Error('SVG sanitization removed all content - file may contain malicious code');
+      }
+
+      // Write the sanitized content back to the file
+      await fs.promises.writeFile(file.path, cleanSvg, 'utf-8');
+
+      logger.info('SVG file sanitized successfully', {
+        filename: file.originalname,
+        originalSize: svgContent.length,
+        sanitizedSize: cleanSvg.length,
+      });
+    } catch (error) {
+      logger.error('SVG sanitization failed:', error);
+      throw new Error(
+        `SVG sanitization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Scan file for malware
+   *
+   * TODO: Integrate with antivirus solution
+   * Options:
+   * 1. ClamAV (open-source, self-hosted)
+   *    - Install: apt-get install clamav clamav-daemon
+   *    - Node package: clamscan
+   *    - Usage: const ClamScan = require('clamscan'); const clamscan = await new ClamScan().init();
+   *
+   * 2. VirusTotal API (cloud-based)
+   *    - Requires API key from virustotal.com
+   *    - Node package: virustotal-api or node-virustotal
+   *    - Rate limits apply (free tier: 4 requests/minute)
+   *
+   * 3. AWS GuardDuty for S3 (when migrating to S3)
+   *    - Automatic malware detection for S3 uploads
+   *    - Integrates with AWS Security Hub
+   *
+   * Implementation checklist:
+   * - [ ] Choose antivirus solution based on infrastructure
+   * - [ ] Install and configure antivirus service
+   * - [ ] Install appropriate Node.js package
+   * - [ ] Update this method with actual scanning logic
+   * - [ ] Add error handling for scan failures
+   * - [ ] Implement quarantine process for infected files
+   * - [ ] Add monitoring and alerting for malware detections
+   * - [ ] Document scanning configuration in deployment docs
+   */
+  private static async scanForMalware(filePath: string): Promise<boolean> {
+    // TODO: Implement actual malware scanning
+    // For now, return true (safe) but log that scanning is not implemented
+    logger.warn('Malware scanning not yet implemented - file accepted without scan', {
+      filePath,
+    });
+
+    // Example ClamAV integration (commented out until implemented):
+    /*
+    try {
+      const ClamScan = require('clamscan');
+      const clamscan = await new ClamScan().init({
+        clamdscan: {
+          socket: '/var/run/clamav/clamd.ctl',
+          timeout: 60000,
+        },
+      });
+
+      const { isInfected, viruses } = await clamscan.isInfected(filePath);
+
+      if (isInfected) {
+        logger.error('Malware detected in file', { filePath, viruses });
+        return false;
+      }
+
+      logger.info('File passed malware scan', { filePath });
+      return true;
+    } catch (error) {
+      logger.error('Malware scan failed:', error);
+      // Fail-safe: reject file if scan fails
+      return false;
+    }
+    */
+
+    return true; // Placeholder - returns safe by default
   }
 
   /**
@@ -466,40 +637,98 @@ export class FileUploadService {
       purpose?: string;
     }
   ): Promise<FileUploadRecord> {
-    // Implementation for creating database record
-    // This would use your existing models
-    return {
-      upload_id: uuidv4(),
-      original_filename: fileMetadata.originalName,
-      stored_filename: fileMetadata.filename,
-      file_path: fileMetadata.path,
-      mime_type: fileMetadata.mimeType,
-      file_size: fileMetadata.size,
-      url: fileMetadata.url,
-      thumbnail_url: fileMetadata.thumbnailUrl,
-      uploaded_by: metadata.uploadedBy,
-      entity_id: metadata.entityId,
-      entity_type: metadata.entityType,
-      purpose: metadata.purpose,
-      metadata: fileMetadata.metadata,
-      created_at: new Date(),
-      updated_at: new Date(),
-    };
+    try {
+      const upload = await FileUpload.create({
+        original_filename: fileMetadata.originalName,
+        stored_filename: fileMetadata.filename,
+        file_path: fileMetadata.path,
+        mime_type: fileMetadata.mimeType,
+        file_size: fileMetadata.size,
+        url: fileMetadata.url,
+        thumbnail_url: fileMetadata.thumbnailUrl,
+        uploaded_by: metadata.uploadedBy,
+        entity_id: metadata.entityId,
+        entity_type: metadata.entityType,
+        purpose: metadata.purpose,
+        metadata: fileMetadata.metadata,
+      });
+
+      return {
+        upload_id: upload.upload_id,
+        original_filename: upload.original_filename,
+        stored_filename: upload.stored_filename,
+        file_path: upload.file_path,
+        mime_type: upload.mime_type,
+        file_size: upload.file_size,
+        url: upload.url,
+        thumbnail_url: upload.thumbnail_url,
+        uploaded_by: upload.uploaded_by,
+        entity_id: upload.entity_id,
+        entity_type: upload.entity_type,
+        purpose: upload.purpose,
+        metadata: upload.metadata as FileUploadMetadata,
+        created_at: upload.created_at,
+        updated_at: upload.updated_at,
+      };
+    } catch (error) {
+      logger.error('Failed to create upload record:', error);
+      throw new Error(
+        `Failed to create upload record: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 
   /**
    * Get upload record from database
    */
   private static async getUploadRecord(uploadId: string): Promise<FileUploadRecord | null> {
-    // Implementation for getting database record
-    return null;
+    try {
+      const upload = await FileUpload.findByPk(uploadId);
+      if (!upload) {
+        return null;
+      }
+
+      return {
+        upload_id: upload.upload_id,
+        original_filename: upload.original_filename,
+        stored_filename: upload.stored_filename,
+        file_path: upload.file_path,
+        mime_type: upload.mime_type,
+        file_size: upload.file_size,
+        url: upload.url,
+        thumbnail_url: upload.thumbnail_url,
+        uploaded_by: upload.uploaded_by,
+        entity_id: upload.entity_id,
+        entity_type: upload.entity_type,
+        purpose: upload.purpose,
+        metadata: upload.metadata as FileUploadMetadata,
+        created_at: upload.created_at,
+        updated_at: upload.updated_at,
+      };
+    } catch (error) {
+      logger.error('Failed to get upload record:', error);
+      throw new Error(
+        `Failed to get upload record: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 
   /**
    * Delete upload record from database
    */
   private static async deleteUploadRecord(uploadId: string): Promise<void> {
-    // Implementation for deleting database record
+    try {
+      const upload = await FileUpload.findByPk(uploadId);
+      if (upload) {
+        await upload.destroy();
+        logger.info('Upload record deleted from database', { uploadId });
+      }
+    } catch (error) {
+      logger.error('Failed to delete upload record:', error);
+      throw new Error(
+        `Failed to delete upload record: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 }
 
