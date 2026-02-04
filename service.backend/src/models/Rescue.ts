@@ -93,7 +93,6 @@ Rescue.init(
     readableId: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
       field: 'readable_id',
       defaultValue:
         process.env.NODE_ENV === 'test'
@@ -251,6 +250,12 @@ Rescue.init(
     timestamps: true,
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
+    indexes: [
+      {
+        unique: true,
+        fields: ['readable_id'],
+      },
+    ],
     defaultScope: {
       where: {
         isDeleted: false,
