@@ -16,7 +16,7 @@ const emilyConversationData = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_emily_general_inquiry_001',
+    chat_id: 'chat_0000emgn001',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440001', // Paws Rescue Austin
 
@@ -33,7 +33,7 @@ const emilyConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_general_inquiry_001',
+      chat_id: 'chat_0000emgn001',
 
       participant_id: 'user_0000adopt02', // Emily Davis
 
@@ -49,7 +49,7 @@ const emilyConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_general_inquiry_001',
+      chat_id: 'chat_0000emgn001',
 
       participant_id: 'user_0000rscst01', // Sarah Johnson from Paws Rescue
 
@@ -67,9 +67,9 @@ const emilyConversationData = {
 
   messages: [
     {
-      message_id: 'msg_emily_001',
+      message_id: 'message_0000emg001',
 
-      chat_id: 'chat_emily_general_inquiry_001',
+      chat_id: 'chat_0000emgn001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -88,9 +88,9 @@ const emilyConversationData = {
     },
 
     {
-      message_id: 'msg_emily_002',
+      message_id: 'message_0000emg002',
 
-      chat_id: 'chat_emily_general_inquiry_001',
+      chat_id: 'chat_0000emgn001',
 
       sender_id: 'user_0000rscst01', // Sarah Johnson
 
@@ -109,9 +109,9 @@ const emilyConversationData = {
     },
 
     {
-      message_id: 'msg_emily_003',
+      message_id: 'message_0000emg003',
 
-      chat_id: 'chat_emily_general_inquiry_001',
+      chat_id: 'chat_0000emgn001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -130,9 +130,9 @@ const emilyConversationData = {
     },
 
     {
-      message_id: 'msg_emily_004',
+      message_id: 'message_0000emg004',
 
-      chat_id: 'chat_emily_general_inquiry_001',
+      chat_id: 'chat_0000emgn001',
 
       sender_id: 'user_0000rscst01', // Sarah Johnson
 
@@ -151,9 +151,9 @@ const emilyConversationData = {
     },
 
     {
-      message_id: 'msg_emily_005',
+      message_id: 'message_0000emg005',
 
-      chat_id: 'chat_emily_general_inquiry_001',
+      chat_id: 'chat_0000emgn001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -172,9 +172,9 @@ const emilyConversationData = {
     },
 
     {
-      message_id: 'msg_emily_006',
+      message_id: 'message_0000emg006',
 
-      chat_id: 'chat_emily_general_inquiry_001',
+      chat_id: 'chat_0000emgn001',
 
       sender_id: 'user_0000rscst01', // Sarah Johnson
 
@@ -193,9 +193,9 @@ const emilyConversationData = {
     },
 
     {
-      message_id: 'msg_emily_007',
+      message_id: 'message_0000emg007',
 
-      chat_id: 'chat_emily_general_inquiry_001',
+      chat_id: 'chat_0000emgn001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -226,11 +226,11 @@ const emilyConversationData = {
       url: '/uploads/chat/emily-conversation-1-sample.jpg',
       uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_general_inquiry_001',
+      entity_id: 'chat_0000emgn001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of my previous senior cat to show experience with older cats',
-        attachedToMessage: 'msg_emily_003',
+        attachedToMessage: 'message_0000emg003',
       },
       created_at: new Date('2024-07-08T16:25:00Z'),
       updated_at: new Date('2024-07-08T16:25:00Z'),
@@ -245,11 +245,11 @@ const emilyConversationData = {
       url: '/uploads/chat/emily-conversation-1-sample-thumb.jpg',
       uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_general_inquiry_001',
+      entity_id: 'chat_0000emgn001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of my home setup for a senior cat',
-        attachedToMessage: 'msg_emily_005',
+        attachedToMessage: 'message_0000emg005',
       },
       created_at: new Date('2024-07-09T11:18:00Z'),
       updated_at: new Date('2024-07-09T11:18:00Z'),

@@ -14,7 +14,7 @@ const emilyConversation4Data = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_emily_special_needs_inquiry_004',
+    chat_id: 'chat_0000emsn004',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440001', // Paws Rescue Austin
 
@@ -31,7 +31,7 @@ const emilyConversation4Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       participant_id: 'user_0000adopt02', // Emily Davis
 
@@ -47,7 +47,7 @@ const emilyConversation4Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       participant_id: 'user_0000rscst01', // Sarah Johnson from Paws Rescue
 
@@ -65,9 +65,9 @@ const emilyConversation4Data = {
 
   messages: [
     {
-      message_id: 'msg_emily_4_001',
+      message_id: 'message_0000em4001',
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -86,9 +86,9 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'msg_emily_4_002',
+      message_id: 'message_0000em4002',
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       sender_id: 'user_0000rscst01', // Sarah Johnson
 
@@ -107,9 +107,9 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'msg_emily_4_003',
+      message_id: 'message_0000em4003',
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -128,9 +128,9 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'msg_emily_4_004',
+      message_id: 'message_0000em4004',
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       sender_id: 'user_0000rscst01', // Sarah Johnson
 
@@ -149,9 +149,9 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'msg_emily_4_005',
+      message_id: 'message_0000em4005',
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -170,9 +170,9 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'msg_emily_4_006',
+      message_id: 'message_0000em4006',
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       sender_id: 'user_0000rscst01', // Sarah Johnson
 
@@ -191,9 +191,9 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'msg_emily_4_007',
+      message_id: 'message_0000em4007',
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -212,9 +212,9 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'msg_emily_4_008',
+      message_id: 'message_0000em4008',
 
-      chat_id: 'chat_emily_special_needs_inquiry_004',
+      chat_id: 'chat_0000emsn004',
 
       sender_id: 'user_0000rscst01', // Sarah Johnson
 

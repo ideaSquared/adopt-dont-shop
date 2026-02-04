@@ -16,7 +16,7 @@ const emilyConversation2Data = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_emily_dog_inquiry_002',
+    chat_id: 'chat_0000emdg002',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440002', // Happy Tails Dog Rescue
 
@@ -33,7 +33,7 @@ const emilyConversation2Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       participant_id: 'user_0000adopt02', // Emily Davis
 
@@ -49,7 +49,7 @@ const emilyConversation2Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       participant_id: 'user_0000rscad02', // Maria Garcia from Happy Tails
 
@@ -67,9 +67,9 @@ const emilyConversation2Data = {
 
   messages: [
     {
-      message_id: 'msg_emily_2_001',
+      message_id: 'message_0000em2001',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -88,9 +88,9 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_002',
+      message_id: 'message_0000em2002',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       sender_id: 'user_0000rscad02', // Maria Garcia
 
@@ -109,9 +109,9 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_003',
+      message_id: 'message_0000em2003',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -130,9 +130,9 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_004',
+      message_id: 'message_0000em2004',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       sender_id: 'user_0000rscad02', // Maria Garcia
 
@@ -151,9 +151,9 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_005',
+      message_id: 'message_0000em2005',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -172,9 +172,9 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_006',
+      message_id: 'message_0000em2006',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       sender_id: 'user_0000rscad02', // Maria Garcia
 
@@ -193,9 +193,9 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_007',
+      message_id: 'message_0000em2007',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -214,9 +214,9 @@ const emilyConversation2Data = {
     },
 
     {
-      message_id: 'msg_emily_2_008',
+      message_id: 'message_0000em2008',
 
-      chat_id: 'chat_emily_dog_inquiry_002',
+      chat_id: 'chat_0000emdg002',
 
       sender_id: 'user_0000rscad02', // Maria Garcia
 
@@ -247,7 +247,7 @@ const emilyConversation2Data = {
       url: '/uploads/chat/emily-dog-conversation-2-sample.jpg',
       uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_dog_inquiry_002',
+      entity_id: 'chat_0000emdg002',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of my backyard setup for a senior dog',

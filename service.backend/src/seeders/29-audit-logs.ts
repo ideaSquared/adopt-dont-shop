@@ -44,7 +44,7 @@ const auditLogs = [
   },
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_moderator_001',
+    user: 'user_0000mode001',
     action: 'CREATE',
     level: 'WARNING' as const,
     status: 'success' as const,
@@ -205,7 +205,7 @@ const auditLogs = [
   // System configuration changes
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_superadmin_001',
+    user: 'user_0000admin01',
     action: 'UPDATE',
     level: 'WARNING' as const,
     status: 'success' as const,

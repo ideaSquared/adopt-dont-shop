@@ -14,7 +14,7 @@ const emilyConversation3Data = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_emily_cat_inquiry_003',
+    chat_id: 'chat_0000emct003',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440003', // Furry Friends Portland
 
@@ -31,7 +31,7 @@ const emilyConversation3Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
       participant_id: 'user_0000adopt02', // Emily Davis
 
@@ -47,9 +47,9 @@ const emilyConversation3Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
-      participant_id: 'user_moderator_001', // Content Moderator from Furry Friends
+      participant_id: 'user_0000mode001', // Content Moderator from Furry Friends
 
       role: ParticipantRole.RESCUE,
 
@@ -65,9 +65,9 @@ const emilyConversation3Data = {
 
   messages: [
     {
-      message_id: 'msg_emily_3_001',
+      message_id: 'message_0000em3001',
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -86,11 +86,11 @@ const emilyConversation3Data = {
     },
 
     {
-      message_id: 'msg_emily_3_002',
+      message_id: 'message_0000em3002',
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
-      sender_id: 'user_moderator_001', // Content Moderator
+      sender_id: 'user_0000mode001', // Content Moderator
 
       content:
         "Hello Emily! That's wonderful that you're considering adoption. For families with children, I'd recommend adult cats (2+ years) who have known histories with kids. We have several great options! How old are your children, and are you looking for a more active playful cat or a calm lap cat?",
@@ -107,9 +107,9 @@ const emilyConversation3Data = {
     },
 
     {
-      message_id: 'msg_emily_3_003',
+      message_id: 'message_0000em3003',
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -128,11 +128,11 @@ const emilyConversation3Data = {
     },
 
     {
-      message_id: 'msg_emily_3_004',
+      message_id: 'message_0000em3004',
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
-      sender_id: 'user_moderator_001', // Content Moderator
+      sender_id: 'user_0000mode001', // Content Moderator
 
       content:
         "Perfect ages! I have two cats in mind: Oliver, a 3-year-old orange tabby who loves gentle play and cuddles, and Luna, a 4-year-old calico who's great with kids and very social. Both are spayed/neutered, vaccinated, and have lived with children before. Would you like to meet them?",
@@ -149,9 +149,9 @@ const emilyConversation3Data = {
     },
 
     {
-      message_id: 'msg_emily_3_005',
+      message_id: 'message_0000em3005',
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -170,11 +170,11 @@ const emilyConversation3Data = {
     },
 
     {
-      message_id: 'msg_emily_3_006',
+      message_id: 'message_0000em3006',
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
-      sender_id: 'user_moderator_001', // Content Moderator
+      sender_id: 'user_0000mode001', // Content Moderator
 
       content:
         "Great question! You'll need a litter box, cat litter, food/water bowls, cat food, a scratching post, and some toys. The adoption process includes an application, brief interview, and $75 adoption fee. We can schedule a meet-and-greet tomorrow afternoon if you're available?",
@@ -191,9 +191,9 @@ const emilyConversation3Data = {
     },
 
     {
-      message_id: 'msg_emily_3_007',
+      message_id: 'message_0000em3007',
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -212,11 +212,11 @@ const emilyConversation3Data = {
     },
 
     {
-      message_id: 'msg_emily_3_008',
+      message_id: 'message_0000em3008',
 
-      chat_id: 'chat_emily_cat_inquiry_003',
+      chat_id: 'chat_0000emct003',
 
-      sender_id: 'user_moderator_001', // Content Moderator
+      sender_id: 'user_0000mode001', // Content Moderator
 
       content:
         '2 PM is perfect! Just bring yourselves and maybe a few questions about cat care - we love educating new cat families. Both Oliver and Luna will be ready to meet you in our meet-and-greet room. I have a feeling one of them will steal your hearts! Our address is 1156 W Cesar Chavez St. See you tomorrow! 🐱',

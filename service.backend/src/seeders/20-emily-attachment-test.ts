@@ -12,7 +12,7 @@ import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat
 const emilyAttachmentTestData = {
   // Chat conversation
   chat: {
-    chat_id: 'chat_emily_attachment_test_001',
+    chat_id: 'chat_0000emat001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440002', // Happy Tails Dog Rescue
     status: ChatStatus.ACTIVE,
     created_at: new Date('2024-07-20T10:00:00Z'),
@@ -23,7 +23,7 @@ const emilyAttachmentTestData = {
   participants: [
     {
       chat_participant_id: uuidv4(),
-      chat_id: 'chat_emily_attachment_test_001',
+      chat_id: 'chat_0000emat001',
       participant_id: 'user_0000adopt02', // Emily Davis
       role: ParticipantRole.USER,
       last_read_at: new Date('2024-07-20T16:30:00Z'),
@@ -32,7 +32,7 @@ const emilyAttachmentTestData = {
     },
     {
       chat_participant_id: uuidv4(),
-      chat_id: 'chat_emily_attachment_test_001',
+      chat_id: 'chat_0000emat001',
       participant_id: 'user_0000rscst01', // Sarah Johnson from Paws Rescue (using existing staff member)
       role: ParticipantRole.RESCUE,
       last_read_at: new Date('2024-07-20T16:25:00Z'),
@@ -44,8 +44,8 @@ const emilyAttachmentTestData = {
   // Messages with various file attachments
   messages: [
     {
-      message_id: 'msg_attachment_test_001',
-      chat_id: 'chat_emily_attachment_test_001',
+      message_id: 'message_0000att001',
+      chat_id: 'chat_0000emat001',
       sender_id: 'user_0000adopt02', // Emily Davis
       content:
         'Hi! Here are some photos of my current living space for the home visit preparation.',
@@ -74,8 +74,8 @@ const emilyAttachmentTestData = {
       updated_at: new Date('2024-07-20T10:00:00Z'),
     },
     {
-      message_id: 'msg_attachment_test_002',
-      chat_id: 'chat_emily_attachment_test_001',
+      message_id: 'message_0000att002',
+      chat_id: 'chat_0000emat001',
       sender_id: 'user_0000rscst01', // Sarah Johnson
       content:
         "Thanks Emily! Those photos look great. Here's our adoption contract for you to review.",
@@ -96,8 +96,8 @@ const emilyAttachmentTestData = {
       updated_at: new Date('2024-07-20T11:30:00Z'),
     },
     {
-      message_id: 'msg_attachment_test_003',
-      chat_id: 'chat_emily_attachment_test_001',
+      message_id: 'message_0000att003',
+      chat_id: 'chat_0000emat001',
       sender_id: 'user_0000adopt02', // Emily Davis
       content:
         "I've reviewed the contract and signed it. Here's the completed document back to you.",
@@ -118,8 +118,8 @@ const emilyAttachmentTestData = {
       updated_at: new Date('2024-07-20T13:15:00Z'),
     },
     {
-      message_id: 'msg_attachment_test_004',
-      chat_id: 'chat_emily_attachment_test_001',
+      message_id: 'message_0000att004',
+      chat_id: 'chat_0000emat001',
       sender_id: 'user_0000rscst01', // Sarah Johnson
       content:
         'Perfect! Here are some recent photos of Buddy to get you excited about the adoption.',
@@ -148,8 +148,8 @@ const emilyAttachmentTestData = {
       updated_at: new Date('2024-07-20T14:45:00Z'),
     },
     {
-      message_id: 'msg_attachment_test_005',
-      chat_id: 'chat_emily_attachment_test_001',
+      message_id: 'message_0000att005',
+      chat_id: 'chat_0000emat001',
       sender_id: 'user_0000adopt02', // Emily Davis
       content:
         "He's adorable! Here's a photo of the dog bed and toys I've already prepared for him.",
@@ -170,8 +170,8 @@ const emilyAttachmentTestData = {
       updated_at: new Date('2024-07-20T15:30:00Z'),
     },
     {
-      message_id: 'msg_attachment_test_006',
-      chat_id: 'chat_emily_attachment_test_001',
+      message_id: 'message_0000att006',
+      chat_id: 'chat_0000emat001',
       sender_id: 'user_0000rscst01', // Sarah Johnson
       content: "Wonderful preparation! Here's Buddy's veterinary records and care instructions.",
       content_format: MessageContentFormat.PLAIN,
@@ -212,11 +212,11 @@ const emilyAttachmentTestData = {
       url: '/uploads/chat/emily-attachment-test-living-room.jpg',
       uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_attachment_test_001',
+      entity_id: 'chat_0000emat001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of living room setup for new dog',
-        attachedToMessage: 'msg_attachment_test_001',
+        attachedToMessage: 'message_0000att001',
       },
       created_at: new Date('2024-07-20T10:02:00Z'),
       updated_at: new Date('2024-07-20T10:02:00Z'),
@@ -231,11 +231,11 @@ const emilyAttachmentTestData = {
       url: '/uploads/chat/emily-attachment-test-backyard.jpg',
       uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_attachment_test_001',
+      entity_id: 'chat_0000emat001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of secure backyard fence',
-        attachedToMessage: 'msg_attachment_test_001',
+        attachedToMessage: 'message_0000att001',
       },
       created_at: new Date('2024-07-20T10:03:00Z'),
       updated_at: new Date('2024-07-20T10:03:00Z'),
@@ -250,11 +250,11 @@ const emilyAttachmentTestData = {
       url: '/uploads/chat/emily-attachment-test-contract.pdf',
       uploaded_by: 'user_0000rscst01', // Sarah Johnson
       entity_type: 'chat',
-      entity_id: 'chat_emily_attachment_test_001',
+      entity_id: 'chat_0000emat001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Adoption contract document',
-        attachedToMessage: 'msg_attachment_test_002',
+        attachedToMessage: 'message_0000att002',
       },
       created_at: new Date('2024-07-20T11:32:00Z'),
       updated_at: new Date('2024-07-20T11:32:00Z'),
@@ -269,11 +269,11 @@ const emilyAttachmentTestData = {
       url: '/uploads/chat/emily-attachment-test-signed-contract.pdf',
       uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_attachment_test_001',
+      entity_id: 'chat_0000emat001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Completed and signed adoption contract',
-        attachedToMessage: 'msg_attachment_test_003',
+        attachedToMessage: 'message_0000att003',
       },
       created_at: new Date('2024-07-20T13:17:00Z'),
       updated_at: new Date('2024-07-20T13:17:00Z'),
@@ -288,11 +288,11 @@ const emilyAttachmentTestData = {
       url: '/uploads/chat/emily-attachment-test-buddy-playing.jpg',
       uploaded_by: 'user_0000rscst01', // Sarah Johnson
       entity_type: 'chat',
-      entity_id: 'chat_emily_attachment_test_001',
+      entity_id: 'chat_0000emat001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of Buddy playing in the yard',
-        attachedToMessage: 'msg_attachment_test_004',
+        attachedToMessage: 'message_0000att004',
       },
       created_at: new Date('2024-07-20T14:47:00Z'),
       updated_at: new Date('2024-07-20T14:47:00Z'),
@@ -307,11 +307,11 @@ const emilyAttachmentTestData = {
       url: '/uploads/chat/emily-attachment-test-buddy-sleeping.jpg',
       uploaded_by: 'user_0000rscst01', // Sarah Johnson
       entity_type: 'chat',
-      entity_id: 'chat_emily_attachment_test_001',
+      entity_id: 'chat_0000emat001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of Buddy taking a nap',
-        attachedToMessage: 'msg_attachment_test_004',
+        attachedToMessage: 'message_0000att004',
       },
       created_at: new Date('2024-07-20T14:48:00Z'),
       updated_at: new Date('2024-07-20T14:48:00Z'),
@@ -326,11 +326,11 @@ const emilyAttachmentTestData = {
       url: '/uploads/chat/emily-attachment-test-dog-bed.jpg',
       uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_attachment_test_001',
+      entity_id: 'chat_0000emat001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of prepared dog bed and toy area',
-        attachedToMessage: 'msg_attachment_test_005',
+        attachedToMessage: 'message_0000att005',
       },
       created_at: new Date('2024-07-20T15:32:00Z'),
       updated_at: new Date('2024-07-20T15:32:00Z'),
@@ -345,11 +345,11 @@ const emilyAttachmentTestData = {
       url: '/uploads/chat/emily-attachment-test-vet-records.pdf',
       uploaded_by: 'user_0000rscst01', // Sarah Johnson
       entity_type: 'chat',
-      entity_id: 'chat_emily_attachment_test_001',
+      entity_id: 'chat_0000emat001',
       purpose: 'chat_attachment',
       metadata: {
         description: "Buddy's complete veterinary records",
-        attachedToMessage: 'msg_attachment_test_006',
+        attachedToMessage: 'message_0000att006',
       },
       created_at: new Date('2024-07-20T16:26:00Z'),
       updated_at: new Date('2024-07-20T16:26:00Z'),
@@ -364,11 +364,11 @@ const emilyAttachmentTestData = {
       url: '/uploads/chat/emily-attachment-test-care-instructions.pdf',
       uploaded_by: 'user_0000rscst01', // Sarah Johnson
       entity_type: 'chat',
-      entity_id: 'chat_emily_attachment_test_001',
+      entity_id: 'chat_0000emat001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Daily care instructions and feeding schedule for Buddy',
-        attachedToMessage: 'msg_attachment_test_006',
+        attachedToMessage: 'message_0000att006',
       },
       created_at: new Date('2024-07-20T16:27:00Z'),
       updated_at: new Date('2024-07-20T16:27:00Z'),

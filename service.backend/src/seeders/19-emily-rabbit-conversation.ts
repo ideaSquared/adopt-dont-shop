@@ -16,7 +16,7 @@ const emilyRabbitConversationData = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_emily_rabbit_inquiry_001',
+    chat_id: 'chat_0000emrb001',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440003', // Bunny Haven Rabbit Rescue
 
@@ -33,7 +33,7 @@ const emilyRabbitConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       participant_id: 'user_0000adopt02', // Emily Davis
 
@@ -49,7 +49,7 @@ const emilyRabbitConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       participant_id: 'user_0000mode001', // Lisa Chen from Bunny Haven
 
@@ -67,9 +67,9 @@ const emilyRabbitConversationData = {
 
   messages: [
     {
-      message_id: 'msg_emily_rabbit_001',
+      message_id: 'message_0000emr001',
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -88,9 +88,9 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'msg_emily_rabbit_002',
+      message_id: 'message_0000emr002',
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       sender_id: 'user_0000mode001', // Lisa Chen
 
@@ -109,9 +109,9 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'msg_emily_rabbit_003',
+      message_id: 'message_0000emr003',
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -130,9 +130,9 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'msg_emily_rabbit_004',
+      message_id: 'message_0000emr004',
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       sender_id: 'user_0000mode001', // Lisa Chen
 
@@ -151,9 +151,9 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'msg_emily_rabbit_005',
+      message_id: 'message_0000emr005',
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -172,9 +172,9 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'msg_emily_rabbit_006',
+      message_id: 'message_0000emr006',
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       sender_id: 'user_0000mode001', // Lisa Chen
 
@@ -193,9 +193,9 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'msg_emily_rabbit_007',
+      message_id: 'message_0000emr007',
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -214,9 +214,9 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'msg_emily_rabbit_008',
+      message_id: 'message_0000emr008',
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       sender_id: 'user_0000mode001', // Lisa Chen
 
@@ -235,9 +235,9 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'msg_emily_rabbit_009',
+      message_id: 'message_0000emr009',
 
-      chat_id: 'chat_emily_rabbit_inquiry_001',
+      chat_id: 'chat_0000emrb001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -268,11 +268,11 @@ const emilyRabbitConversationData = {
       url: '/uploads/chat/emily-rabbit-conversation-sample.jpg',
       uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_rabbit_inquiry_001',
+      entity_id: 'chat_0000emrb001',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of my rabbit housing setup and exercise area',
-        attachedToMessage: 'msg_emily_rabbit_003',
+        attachedToMessage: 'message_0000emr003',
       },
       created_at: new Date('2024-07-18T15:30:00Z'),
       updated_at: new Date('2024-07-18T15:30:00Z'),

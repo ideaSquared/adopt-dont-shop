@@ -16,7 +16,7 @@ const emilyDogConversationData = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_emily_dog_inquiry_001',
+    chat_id: 'chat_0000emdg001',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440002', // Happy Tails Dog Rescue
 
@@ -33,7 +33,7 @@ const emilyDogConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       participant_id: 'user_0000adopt02', // Emily Davis
 
@@ -49,7 +49,7 @@ const emilyDogConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       participant_id: 'user_0000rscad02', // Mike Rodriguez from Happy Tails
 
@@ -67,9 +67,9 @@ const emilyDogConversationData = {
 
   messages: [
     {
-      message_id: 'msg_emily_dog_001',
+      message_id: 'message_0000emd001',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -88,9 +88,9 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_002',
+      message_id: 'message_0000emd002',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       sender_id: 'user_0000rscad02', // Mike Rodriguez
 
@@ -109,9 +109,9 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_003',
+      message_id: 'message_0000emd003',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -130,9 +130,9 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_004',
+      message_id: 'message_0000emd004',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       sender_id: 'user_0000rscad02', // Mike Rodriguez
 
@@ -151,9 +151,9 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_005',
+      message_id: 'message_0000emd005',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -172,9 +172,9 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_006',
+      message_id: 'message_0000emd006',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       sender_id: 'user_0000rscad02', // Mike Rodriguez
 
@@ -193,9 +193,9 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_007',
+      message_id: 'message_0000emd007',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       sender_id: 'user_0000adopt02', // Emily Davis
 
@@ -214,9 +214,9 @@ const emilyDogConversationData = {
     },
 
     {
-      message_id: 'msg_emily_dog_008',
+      message_id: 'message_0000emd008',
 
-      chat_id: 'chat_emily_dog_inquiry_001',
+      chat_id: 'chat_0000emdg001',
 
       sender_id: 'user_0000rscad02', // Mike Rodriguez
 
@@ -247,12 +247,12 @@ const emilyDogConversationData = {
       url: '/uploads/chat/emily-dog-conversation-document.pdf',
       uploaded_by: 'user_0000adopt02', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_emily_dog_inquiry_001',
+      entity_id: 'chat_0000emdg001',
       purpose: 'chat_attachment',
       metadata: {
         description:
           'Medical records from my previous senior dog to show experience with senior pet care',
-        attachedToMessage: 'msg_emily_dog_003',
+        attachedToMessage: 'message_0000emd003',
       },
       created_at: new Date('2024-07-15T16:45:00Z'),
       updated_at: new Date('2024-07-15T16:45:00Z'),
