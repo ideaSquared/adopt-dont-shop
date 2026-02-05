@@ -411,38 +411,364 @@ describe('AuthService', () => {
     });
   });
 
-  describe('verifyEmail', () => {
-    it('should verify email successfully', async () => {
-      const token = 'valid-verification-token';
-      const mockUser = {
-        userId: 'user-123',
-        emailVerified: false,
-        status: UserStatus.PENDING_VERIFICATION,
-        verificationToken: token,
-        verificationTokenExpiresAt: new Date(Date.now() + 3600000),
-        save: vi.fn(),
-      };
+  describe('Email Verification Flow', () => {
+    describe('verifyEmail', () => {
+      it('should verify email successfully with valid token', async () => {
+        const token = 'valid-verification-token';
+        const mockUser = {
+          userId: 'user-123',
+          emailVerified: false,
+          status: UserStatus.PENDING_VERIFICATION,
+          verificationToken: token,
+          verificationTokenExpiresAt: new Date(Date.now() + 3600000),
+          save: vi.fn(),
+        };
 
-      MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
-      MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+        MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
 
-      const authService = new AuthService();
-      await authService.verifyEmail(token);
+        const authService = new AuthService();
+        await authService.verifyEmail(token);
 
-      expect(mockUser.emailVerified).toBe(true);
-      expect(mockUser.verificationToken).toBe(null);
-      expect(mockUser.status).toBe(UserStatus.ACTIVE);
-      expect(mockUser.save).toHaveBeenCalled();
+        expect(mockUser.emailVerified).toBe(true);
+        expect(mockUser.verificationToken).toBe(null);
+        expect(mockUser.status).toBe(UserStatus.ACTIVE);
+        expect(mockUser.save).toHaveBeenCalled();
+      });
+
+      it('should throw error for invalid token', async () => {
+        const token = 'invalid-token';
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+
+        const authService = new AuthService();
+        await expect(authService.verifyEmail(token)).rejects.toThrow(
+          'Invalid or expired verification token'
+        );
+      });
+
+      it('should throw error for expired verification token', async () => {
+        const token = 'expired-token';
+        const mockUser = {
+          userId: 'user-123',
+          emailVerified: false,
+          status: UserStatus.PENDING_VERIFICATION,
+          verificationToken: token,
+          verificationTokenExpiresAt: new Date(Date.now() - 3600000), // Expired 1 hour ago
+          save: vi.fn(),
+        };
+
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+
+        const authService = new AuthService();
+        await expect(authService.verifyEmail(token)).rejects.toThrow(
+          'Invalid or expired verification token'
+        );
+      });
+
+      it('should handle already verified email gracefully', async () => {
+        const token = 'valid-token';
+        const mockUser = {
+          userId: 'user-123',
+          emailVerified: true,
+          status: UserStatus.ACTIVE,
+          verificationToken: null,
+          verificationTokenExpiresAt: null,
+          save: vi.fn(),
+        };
+
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+
+        const authService = new AuthService();
+        await expect(authService.verifyEmail(token)).rejects.toThrow(
+          'Invalid or expired verification token'
+        );
+      });
+
+      it('should create audit log entry on successful verification', async () => {
+        const token = 'valid-verification-token';
+        const mockUser = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          emailVerified: false,
+          status: UserStatus.PENDING_VERIFICATION,
+          verificationToken: token,
+          verificationTokenExpiresAt: new Date(Date.now() + 3600000),
+          save: vi.fn(),
+        };
+
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+        MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
+
+        const authService = new AuthService();
+        await authService.verifyEmail(token);
+
+        expect(MockedAuditLog.create).toHaveBeenCalledWith({
+          action: 'EMAIL_VERIFIED',
+          entity: 'User',
+          entityId: mockUser.userId,
+          details: { email: mockUser.email },
+          userId: mockUser.userId,
+        });
+      });
     });
 
-    it('should throw error for invalid token', async () => {
-      const token = 'invalid-token';
-      MockedUser.findOne = vi.fn().mockResolvedValue(null);
+    describe('resendVerificationEmail', () => {
+      it('should generate new token and send verification email for unverified user', async () => {
+        const email = 'test@example.com';
+        const mockUser = {
+          userId: 'user-123',
+          email,
+          firstName: 'John',
+          emailVerified: false,
+          verificationToken: 'old-token',
+          verificationTokenExpiresAt: new Date(Date.now() - 1000),
+          save: vi.fn(),
+        };
 
-      const authService = new AuthService();
-      await expect(authService.verifyEmail(token)).rejects.toThrow(
-        'Invalid or expired verification token'
-      );
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+        MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
+
+        // Mock the email service
+        const mockEmailService = {
+          sendEmail: vi.fn().mockResolvedValue(undefined),
+        };
+        vi.doMock('../../services/email.service', () => ({
+          default: mockEmailService,
+        }));
+
+        const authService = new AuthService();
+        const result = await authService.resendVerificationEmail(email);
+
+        expect(mockUser.verificationToken).toBe('mock-token');
+        expect(mockUser.verificationTokenExpiresAt).toBeInstanceOf(Date);
+        expect(mockUser.save).toHaveBeenCalled();
+        expect(result.message).toContain('verification link has been sent');
+      });
+
+      it('should not reveal if email does not exist', async () => {
+        const email = 'nonexistent@example.com';
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+
+        const authService = new AuthService();
+        const result = await authService.resendVerificationEmail(email);
+
+        expect(result.message).toContain('verification link has been sent');
+      });
+
+      it('should not reveal if email is already verified', async () => {
+        const email = 'verified@example.com';
+        const mockUser = {
+          userId: 'user-123',
+          email,
+          emailVerified: true,
+          save: vi.fn(),
+        };
+
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+
+        const authService = new AuthService();
+        const result = await authService.resendVerificationEmail(email);
+
+        expect(mockUser.save).not.toHaveBeenCalled();
+        expect(result.message).toContain('verification link has been sent');
+      });
+
+      it('should create audit log entry when resending verification email', async () => {
+        const email = 'test@example.com';
+        const mockUser = {
+          userId: 'user-123',
+          email,
+          firstName: 'John',
+          emailVerified: false,
+          save: vi.fn(),
+        };
+
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+        MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
+
+        const authService = new AuthService();
+        await authService.resendVerificationEmail(email);
+
+        expect(MockedAuditLog.create).toHaveBeenCalledWith({
+          action: 'VERIFICATION_EMAIL_RESEND',
+          entity: 'User',
+          entityId: mockUser.userId,
+          details: { email: mockUser.email },
+          userId: mockUser.userId,
+        });
+      });
+    });
+
+    describe('login - email verification enforcement', () => {
+      it('should block login for users with unverified email', async () => {
+        const credentials: LoginCredentials = {
+          email: 'unverified@example.com',
+          password: 'Password123!',
+        };
+
+        const mockUser = {
+          userId: 'user-123',
+          email: credentials.email,
+          password: 'hashedpassword',
+          status: UserStatus.PENDING_VERIFICATION,
+          emailVerified: false,
+          loginAttempts: 0,
+          lockedUntil: null,
+          isAccountLocked: vi.fn().mockReturnValue(false),
+          save: vi.fn(),
+        };
+
+        MockedUser.scope = vi.fn().mockReturnValue({
+          findOne: vi.fn().mockResolvedValue(mockUser),
+        } as unknown);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+
+        await expect(AuthService.login(credentials)).rejects.toThrow(
+          'Please verify your email before logging in'
+        );
+      });
+
+      it('should allow login for users with verified email', async () => {
+        const credentials: LoginCredentials = {
+          email: 'verified@example.com',
+          password: 'Password123!',
+        };
+
+        const mockUser = {
+          userId: 'user-123',
+          email: credentials.email,
+          password: 'hashedpassword',
+          status: UserStatus.ACTIVE,
+          emailVerified: true,
+          loginAttempts: 0,
+          lockedUntil: null,
+          lastLoginAt: null,
+          twoFactorEnabled: false,
+          userType: UserType.ADOPTER,
+          isAccountLocked: vi.fn().mockReturnValue(false),
+          isEmailVerified: vi.fn().mockReturnValue(true),
+          toJSON: vi.fn().mockReturnValue({
+            userId: 'user-123',
+            email: credentials.email,
+            userType: UserType.ADOPTER,
+          }),
+          save: vi.fn(),
+        };
+
+        MockedUser.scope = vi.fn().mockReturnValue({
+          findOne: vi.fn().mockResolvedValue(mockUser),
+        } as unknown);
+        mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+        mockedJwt.sign = vi.fn().mockReturnValue('access-token' as unknown);
+        MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
+
+        const result = await AuthService.login(credentials);
+
+        expect(result.user).toBeDefined();
+        expect(result.token).toBe('mocked-access-token');
+      });
+    });
+
+    describe('registration - verification email sending', () => {
+      it('should send verification email after successful registration', async () => {
+        const userData: RegisterData = {
+          email: 'newuser@example.com',
+          password: 'Password123!',
+          firstName: 'John',
+          lastName: 'Doe',
+          userType: UserType.ADOPTER,
+        };
+
+        const mockUser = {
+          userId: 'user-123',
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          userType: userData.userType,
+          status: UserStatus.PENDING_VERIFICATION,
+          emailVerified: false,
+          verificationToken: 'mock-token',
+          verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          toJSON: vi.fn().mockReturnValue({
+            userId: 'user-123',
+            email: userData.email,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            userType: userData.userType,
+            status: UserStatus.PENDING_VERIFICATION,
+            emailVerified: false,
+          }),
+          save: vi.fn(),
+        };
+
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+        MockedUser.create = vi.fn().mockResolvedValue(mockUser as unknown);
+        mockedJwt.sign = vi.fn().mockReturnValue('access-token' as unknown);
+        MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
+
+        // Mock the email service
+        const mockEmailService = {
+          sendEmail: vi.fn().mockResolvedValue('email-id-123'),
+        };
+        vi.doMock('../../services/email.service', () => ({
+          default: mockEmailService,
+        }));
+
+        const result = await AuthService.register(userData);
+
+        expect(result.user).toBeDefined();
+        expect(MockedUser.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            verificationToken: expect.any(String),
+            verificationTokenExpiresAt: expect.any(Date),
+            emailVerified: false,
+            status: UserStatus.PENDING_VERIFICATION,
+          })
+        );
+
+        // Note: This test will fail until we implement email sending in registration
+        // This is intentional for TDD - test first, then implement
+      });
+
+      it('should set verification token expiry to 24 hours', async () => {
+        const userData: RegisterData = {
+          email: 'newuser@example.com',
+          password: 'Password123!',
+          firstName: 'John',
+          lastName: 'Doe',
+        };
+
+        const beforeRegistration = Date.now();
+
+        const mockUser = {
+          userId: 'user-123',
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          userType: UserType.ADOPTER,
+          status: UserStatus.PENDING_VERIFICATION,
+          emailVerified: false,
+          toJSON: vi.fn().mockReturnValue({
+            userId: 'user-123',
+            email: userData.email,
+          }),
+          save: vi.fn(),
+        };
+
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+        MockedUser.create = vi.fn().mockResolvedValue(mockUser as unknown);
+        MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
+
+        await AuthService.register(userData);
+
+        const createCall = (MockedUser.create as Mock).mock.calls[0][0];
+        const expiryTime = createCall.verificationTokenExpiresAt as Date;
+        const expectedExpiry = beforeRegistration + 24 * 60 * 60 * 1000;
+
+        // Allow 1 second tolerance for test execution time
+        expect(expiryTime.getTime()).toBeGreaterThanOrEqual(expectedExpiry - 1000);
+        expect(expiryTime.getTime()).toBeLessThanOrEqual(expectedExpiry + 1000);
+      });
     });
   });
 

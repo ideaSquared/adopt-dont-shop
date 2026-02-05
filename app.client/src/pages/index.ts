@@ -11,3 +11,4 @@ export { RegisterPage } from './RegisterPage';
 export { ResetPasswordPage } from './ResetPasswordPage';
 export { RescueDetailsPage } from './RescueDetailsPage';
 export { SearchPage } from './SearchPage';
+export { VerifyEmailPage } from './VerifyEmailPage';

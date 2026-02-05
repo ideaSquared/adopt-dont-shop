@@ -19,6 +19,7 @@ import {
   ResetPasswordPage,
   RescueDetailsPage,
   SearchPage,
+  VerifyEmailPage,
 } from '@/pages';
 import { Footer } from '@adopt-dont-shop/lib.components';
 import { ChatPage } from './components/chat/ChatPage';
@@ -54,6 +55,7 @@ function App() {
                     <Route path='/chat/:conversationId' element={<ChatPage />} />
                     <Route path='/login' element={<LoginPage />} />
                     <Route path='/register' element={<RegisterPage />} />
+                    <Route path='/verify-email' element={<VerifyEmailPage />} />
                     <Route path='/forgot-password' element={<ForgotPasswordPage />} />
                     <Route path='/reset-password' element={<ResetPasswordPage />} />
                   </Routes>

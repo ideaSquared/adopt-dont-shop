@@ -83,6 +83,31 @@ export class AuthService {
         userType: userData.userType || 'ADOPTER',
       });
 
+      // Send verification email
+      try {
+        const emailService = (await import('./email.service')).default;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+        await emailService.sendEmail({
+          toEmail: user.email,
+          templateData: {
+            firstName: user.firstName,
+            verificationToken,
+            verificationUrl,
+            expiresAt: verificationExpires.toISOString(),
+          },
+          type: 'transactional',
+          priority: 'high',
+          subject: 'Verify Your Email Address - Adopt Don\'t Shop',
+        });
+
+        logger.info('Verification email sent', { userId: user.userId, email: user.email });
+      } catch (emailError) {
+        logger.error('Failed to send verification email:', emailError);
+        // Don't throw error - user is still created, they can request resend
+      }
+
       // Generate tokens
       const tokens = await this.generateTokens({
         userId: user.userId,
@@ -809,6 +834,106 @@ Need help? Contact us at support@adoptdontshop.com
     });
 
     loggerHelpers.logSecurity('2FA disabled', { userId: user.userId });
+  }
+
+  /**
+   * Send verification reminder emails to unverified users
+   * This method should be called periodically (e.g., via cron job)
+   *
+   * @param hoursOld - Send reminders to users who registered X hours ago (default: 12)
+   * @param maxHoursOld - Don't send reminders to users older than X hours (default: 72)
+   * @returns Count of reminders sent
+   */
+  static async sendVerificationReminders(
+    hoursOld = 12,
+    maxHoursOld = 72
+  ): Promise<{ sent: number; failed: number }> {
+    try {
+      const minDate = new Date(Date.now() - maxHoursOld * 60 * 60 * 1000);
+      const maxDate = new Date(Date.now() - hoursOld * 60 * 60 * 1000);
+
+      // Find users who:
+      // 1. Are not email verified
+      // 2. Have a valid verification token
+      // 3. Token hasn't expired
+      // 4. Registered between hoursOld and maxHoursOld ago
+      const unverifiedUsers = await User.findAll({
+        where: {
+          emailVerified: false,
+          status: UserStatus.PENDING_VERIFICATION,
+          verificationToken: { [Op.ne]: null },
+          verificationTokenExpiresAt: { [Op.gt]: new Date() },
+          createdAt: {
+            [Op.gte]: minDate,
+            [Op.lte]: maxDate,
+          },
+        },
+      });
+
+      logger.info(`Found ${unverifiedUsers.length} users needing verification reminders`, {
+        hoursOld,
+        maxHoursOld,
+      });
+
+      let sent = 0;
+      let failed = 0;
+
+      const emailService = (await import('./email.service')).default;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+      for (const user of unverifiedUsers) {
+        try {
+          if (!user.verificationToken) {
+            continue;
+          }
+
+          const verificationUrl = `${frontendUrl}/verify-email?token=${user.verificationToken}`;
+
+          await emailService.sendEmail({
+            toEmail: user.email,
+            templateData: {
+              firstName: user.firstName,
+              verificationToken: user.verificationToken,
+              verificationUrl,
+              expiresAt: user.verificationTokenExpiresAt?.toISOString(),
+            },
+            type: 'notification',
+            priority: 'medium',
+            subject: 'Reminder: Verify Your Email - Adopt Don\'t Shop',
+          });
+
+          await AuditLogService.log({
+            action: 'VERIFICATION_REMINDER_SENT',
+            entity: 'User',
+            entityId: user.userId,
+            details: { email: user.email },
+            userId: user.userId,
+          });
+
+          sent++;
+          logger.info('Verification reminder sent', {
+            userId: user.userId,
+            email: user.email,
+          });
+        } catch (error) {
+          failed++;
+          logger.error('Failed to send verification reminder', {
+            userId: user.userId,
+            email: user.email,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      logger.info('Verification reminders completed', { sent, failed, total: unverifiedUsers.length });
+
+      return { sent, failed };
+    } catch (error) {
+      logger.error('Failed to send verification reminders', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }
 }
 

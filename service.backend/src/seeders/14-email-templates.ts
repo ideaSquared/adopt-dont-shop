@@ -467,6 +467,202 @@ Thank you for joining!`,
     createdBy: 'user_0000admin01',
     lastModifiedBy: 'user_0000admin01',
   },
+  {
+    templateId: 'template_0000ever01',
+    name: 'Email Verification',
+    type: TemplateType.TRANSACTIONAL,
+    subject: 'Verify Your Email Address - Adopt Don\'t Shop',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9;">
+        <div style="background-color: #4CAF50; color: white; padding: 30px; text-align: center;">
+          <h1 style="margin: 0;">🔐 Verify Your Email</h1>
+        </div>
+        <div style="background-color: white; padding: 40px; margin: 20px 0;">
+          <p style="font-size: 16px; line-height: 1.6; color: #333;">Dear {{firstName}},</p>
+          <p style="font-size: 16px; line-height: 1.6; color: #333;">
+            Thank you for joining Adopt Don't Shop! To complete your registration and start your journey to find the perfect companion, please verify your email address.
+          </p>
+          <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 25px 0;">
+            <p style="margin: 0; font-size: 14px; color: #856404;">
+              <strong>⏰ Important:</strong> This verification link will expire in 24 hours.
+            </p>
+          </div>
+          <div style="text-align: center; margin: 35px 0;">
+            <a href="{{verificationUrl}}" style="background-color: #4CAF50; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              Verify Email Address
+            </a>
+          </div>
+          <p style="font-size: 14px; line-height: 1.6; color: #666; margin-top: 30px;">
+            If the button above doesn't work, copy and paste this link into your browser:
+          </p>
+          <p style="font-size: 13px; color: #4CAF50; word-break: break-all; background-color: #f5f5f5; padding: 12px; border-radius: 4px; font-family: monospace;">
+            {{verificationUrl}}
+          </p>
+          <div style="border-top: 1px solid #e0e0e0; margin-top: 35px; padding-top: 25px;">
+            <p style="font-size: 13px; line-height: 1.6; color: #999;">
+              <strong>Didn't create an account?</strong><br>
+              If you didn't sign up for Adopt Don't Shop, you can safely ignore this email. No account will be created without verification.
+            </p>
+          </div>
+          <p style="font-size: 16px; line-height: 1.6; color: #333; margin-top: 30px;">
+            Once verified, you'll be able to:
+          </p>
+          <ul style="font-size: 15px; line-height: 1.8; color: #555;">
+            <li>Browse available pets in your area</li>
+            <li>Save your favorite pets</li>
+            <li>Submit adoption applications</li>
+            <li>Connect with rescue organizations</li>
+          </ul>
+          <p style="font-size: 16px; line-height: 1.6; color: #333; margin-top: 30px;">
+            We're excited to help you find your perfect companion! 🐕🐱
+          </p>
+          <p style="font-size: 16px; line-height: 1.6; color: #333;">
+            Best regards,<br>
+            <strong>The Adopt Don't Shop Team</strong>
+          </p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #999;">
+          <p style="margin: 5px 0;">
+            This is an automated message from Adopt Don't Shop.
+          </p>
+          <p style="margin: 5px 0;">
+            Need help? Contact us at support@adoptdontshop.com
+          </p>
+        </div>
+      </div>
+    `,
+    textContent: `
+      Verify Your Email Address
+
+      Dear {{firstName}},
+
+      Thank you for joining Adopt Don't Shop! To complete your registration and start your journey to find the perfect companion, please verify your email address.
+
+      ⏰ IMPORTANT: This verification link will expire in 24 hours.
+
+      Click the link below to verify your email:
+      {{verificationUrl}}
+
+      Once verified, you'll be able to:
+      - Browse available pets in your area
+      - Save your favorite pets
+      - Submit adoption applications
+      - Connect with rescue organizations
+
+      Didn't create an account?
+      If you didn't sign up for Adopt Don't Shop, you can safely ignore this email. No account will be created without verification.
+
+      We're excited to help you find your perfect companion!
+
+      Best regards,
+      The Adopt Don't Shop Team
+
+      ---
+      This is an automated message from Adopt Don't Shop.
+      Need help? Contact us at support@adoptdontshop.com
+    `,
+    category: TemplateCategory.EMAIL_VERIFICATION,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {
+      expirationHours: 24,
+      priority: 'high',
+      requiresAction: true,
+    },
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: true,
+    priority: 10,
+    tags: ['verification', 'security', 'onboarding'],
+    usageCount: 0,
+    testEmailsSent: 0,
+    createdBy: 'user_0000admin01',
+    lastModifiedBy: 'user_0000admin01',
+  },
+  {
+    templateId: 'template_0000evrem01',
+    name: 'Email Verification Reminder',
+    type: TemplateType.NOTIFICATION,
+    subject: 'Reminder: Verify Your Email - Adopt Don\'t Shop',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9;">
+        <div style="background-color: #FF9800; color: white; padding: 30px; text-align: center;">
+          <h1 style="margin: 0;">⏰ Action Required</h1>
+        </div>
+        <div style="background-color: white; padding: 40px; margin: 20px 0;">
+          <p style="font-size: 16px; line-height: 1.6; color: #333;">Hi {{firstName}},</p>
+          <p style="font-size: 16px; line-height: 1.6; color: #333;">
+            We noticed you haven't verified your email address yet. Verification is required to access all features and start your adoption journey.
+          </p>
+          <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 25px 0;">
+            <p style="margin: 0; font-size: 14px; color: #856404;">
+              <strong>Your verification link will expire soon!</strong> Click the button below to verify your email now.
+            </p>
+          </div>
+          <div style="text-align: center; margin: 35px 0;">
+            <a href="{{verificationUrl}}" style="background-color: #FF9800; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              Verify Email Now
+            </a>
+          </div>
+          <p style="font-size: 14px; line-height: 1.6; color: #666; margin-top: 30px;">
+            If the button doesn't work, copy and paste this link:
+          </p>
+          <p style="font-size: 13px; color: #FF9800; word-break: break-all; background-color: #f5f5f5; padding: 12px; border-radius: 4px; font-family: monospace;">
+            {{verificationUrl}}
+          </p>
+          <p style="font-size: 14px; line-height: 1.6; color: #666; margin-top: 30px;">
+            <strong>Need a new verification link?</strong> Visit your account settings to resend the verification email.
+          </p>
+          <p style="font-size: 16px; line-height: 1.6; color: #333; margin-top: 30px;">
+            Thank you,<br>
+            <strong>The Adopt Don't Shop Team</strong>
+          </p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #999;">
+          <p style="margin: 5px 0;">
+            This is an automated reminder from Adopt Don't Shop.
+          </p>
+        </div>
+      </div>
+    `,
+    textContent: `
+      Action Required: Verify Your Email
+
+      Hi {{firstName}},
+
+      We noticed you haven't verified your email address yet. Verification is required to access all features and start your adoption journey.
+
+      ⚠️ Your verification link will expire soon! Click the link below to verify your email now.
+
+      {{verificationUrl}}
+
+      Need a new verification link? Visit your account settings to resend the verification email.
+
+      Thank you,
+      The Adopt Don't Shop Team
+
+      ---
+      This is an automated reminder from Adopt Don't Shop.
+    `,
+    category: TemplateCategory.REMINDER,
+    status: TemplateStatus.ACTIVE,
+    variables: [],
+    metadata: {
+      reminderType: 'email_verification',
+      priority: 'medium',
+    },
+    locale: 'en',
+    versions: [],
+    currentVersion: 1,
+    isDefault: false,
+    priority: 5,
+    tags: ['verification', 'reminder', 'security'],
+    usageCount: 0,
+    testEmailsSent: 0,
+    createdBy: 'user_0000admin01',
+    lastModifiedBy: 'user_0000admin01',
+  },
 ];
 export async function seedEmailTemplates() {
   for (const template of emailTemplateData) {
