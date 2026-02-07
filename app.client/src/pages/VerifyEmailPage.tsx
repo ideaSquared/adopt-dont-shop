@@ -144,9 +144,7 @@ export const VerifyEmailPage: React.FC = () => {
       setResendSuccess(true);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to resend verification email'
+        error instanceof Error ? error.message : 'Failed to resend verification email'
       );
     } finally {
       setIsResending(false);
@@ -174,14 +172,11 @@ export const VerifyEmailPage: React.FC = () => {
             <Header>
               <h1>Email Verified!</h1>
               <p>
-                Your email has been successfully verified. You can now access all features
-                of Adopt Don't Shop.
+                Your email has been successfully verified. You can now access all features of Adopt
+                Don't Shop.
               </p>
             </Header>
-            <Alert
-              type="success"
-              message="Verification successful! Redirecting to login..."
-            />
+            <Alert type='success' message='Verification successful! Redirecting to login...' />
             <ButtonGroup>
               <Button onClick={() => navigate('/login')}>Go to Login</Button>
             </ButtonGroup>
@@ -194,34 +189,24 @@ export const VerifyEmailPage: React.FC = () => {
             <IconContainer>⏰</IconContainer>
             <Header>
               <h1>Link Expired</h1>
-              <p>
-                Your verification link has expired. Verification links are valid for 24
-                hours.
-              </p>
+              <p>Your verification link has expired. Verification links are valid for 24 hours.</p>
             </Header>
-            <Alert type="warning" message={errorMessage} />
+            <Alert type='warning' message={errorMessage} />
             <ResendSection>
               <p>Don't worry! You can request a new verification email.</p>
-              <Button
-                onClick={handleResendEmail}
-                disabled={isResending}
-                fullWidth
-              >
+              <Button onClick={handleResendEmail} disabled={isResending} fullWidth>
                 {isResending ? 'Sending...' : 'Resend Verification Email'}
               </Button>
               {resendSuccess && (
                 <Alert
-                  type="success"
-                  message="Verification email sent! Please check your inbox."
+                  type='success'
+                  message='Verification email sent! Please check your inbox.'
                   style={{ marginTop: '1rem' }}
                 />
               )}
             </ResendSection>
             <ButtonGroup>
-              <Button
-                variant="secondary"
-                onClick={() => navigate('/login')}
-              >
+              <Button variant='secondary' onClick={() => navigate('/login')}>
                 Back to Login
               </Button>
             </ButtonGroup>
@@ -236,32 +221,28 @@ export const VerifyEmailPage: React.FC = () => {
               <h1>Verification Failed</h1>
               <p>We couldn't verify your email address.</p>
             </Header>
-            <Alert type="error" message={errorMessage} />
+            <Alert type='error' message={errorMessage} />
             <ResendSection>
               <p>You can try requesting a new verification email.</p>
-              <Button
-                onClick={handleResendEmail}
-                disabled={isResending}
-                fullWidth
-              >
+              <Button onClick={handleResendEmail} disabled={isResending} fullWidth>
                 {isResending ? 'Sending...' : 'Resend Verification Email'}
               </Button>
               {resendSuccess && (
                 <Alert
-                  type="success"
-                  message="Verification email sent! Please check your inbox."
+                  type='success'
+                  message='Verification email sent! Please check your inbox.'
                   style={{ marginTop: '1rem' }}
                 />
               )}
             </ResendSection>
             <ButtonGroup>
-              <Link to="/login">
-                <Button variant="secondary" fullWidth>
+              <Link to='/login'>
+                <Button variant='secondary' fullWidth>
                   Back to Login
                 </Button>
               </Link>
-              <Link to="/help">
-                <Button variant="tertiary" fullWidth>
+              <Link to='/help'>
+                <Button variant='tertiary' fullWidth>
                   Contact Support
                 </Button>
               </Link>

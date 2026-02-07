@@ -471,7 +471,7 @@ Thank you for joining!`,
     templateId: 'template_0000ever01',
     name: 'Email Verification',
     type: TemplateType.TRANSACTIONAL,
-    subject: 'Verify Your Email Address - Adopt Don\'t Shop',
+    subject: "Verify Your Email Address - Adopt Don't Shop",
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9;">
         <div style="background-color: #4CAF50; color: white; padding: 30px; text-align: center;">
@@ -584,7 +584,7 @@ Thank you for joining!`,
     templateId: 'template_0000evrem01',
     name: 'Email Verification Reminder',
     type: TemplateType.NOTIFICATION,
-    subject: 'Reminder: Verify Your Email - Adopt Don\'t Shop',
+    subject: "Reminder: Verify Your Email - Adopt Don't Shop",
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9;">
         <div style="background-color: #FF9800; color: white; padding: 30px; text-align: center;">

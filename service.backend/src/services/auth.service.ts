@@ -99,7 +99,7 @@ export class AuthService {
           },
           type: 'transactional',
           priority: 'high',
-          subject: 'Verify Your Email Address - Adopt Don\'t Shop',
+          subject: "Verify Your Email Address - Adopt Don't Shop",
         });
 
         logger.info('Verification email sent', { userId: user.userId, email: user.email });
@@ -899,7 +899,7 @@ Need help? Contact us at support@adoptdontshop.com
             },
             type: 'notification',
             priority: 'medium',
-            subject: 'Reminder: Verify Your Email - Adopt Don\'t Shop',
+            subject: "Reminder: Verify Your Email - Adopt Don't Shop",
           });
 
           await AuditLogService.log({
@@ -925,7 +925,11 @@ Need help? Contact us at support@adoptdontshop.com
         }
       }
 
-      logger.info('Verification reminders completed', { sent, failed, total: unverifiedUsers.length });
+      logger.info('Verification reminders completed', {
+        sent,
+        failed,
+        total: unverifiedUsers.length,
+      });
 
       return { sent, failed };
     } catch (error) {
