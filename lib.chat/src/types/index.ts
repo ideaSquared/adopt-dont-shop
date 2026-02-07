@@ -134,6 +134,28 @@ export interface MessageAttachment {
 }
 
 /**
+ * Reaction on a message
+ */
+export interface MessageReaction {
+  userId: string;
+  emoji: string;
+  createdAt: string;
+}
+
+/**
+ * Read receipt for a message
+ */
+export interface MessageReadReceipt {
+  userId: string;
+  readAt: string;
+}
+
+/**
+ * Delivery status for read receipt tracking
+ */
+export type MessageDeliveryStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+
+/**
  * Chat message
  */
 export interface Message {
@@ -144,8 +166,10 @@ export interface Message {
   content: string;
   timestamp: string;
   type: 'text' | 'image' | 'file' | 'system';
-  status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  status: MessageDeliveryStatus;
   attachments?: MessageAttachment[];
+  reactions?: MessageReaction[];
+  readBy?: MessageReadReceipt[];
   isEdited?: boolean;
   editedAt?: string;
   replyToId?: string;

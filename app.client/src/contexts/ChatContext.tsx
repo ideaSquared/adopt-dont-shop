@@ -4,6 +4,8 @@ import {
   Message as LibMessage,
   TypingIndicator,
   useConnectionStatus,
+  type ReactionUpdateEvent,
+  type ReadStatusUpdateEvent,
 } from '@/services';
 import {
   getConnectionQuality,
@@ -57,6 +59,7 @@ interface ChatContextType {
   startConversation: (rescueId: string, petId?: string) => Promise<Conversation>;
   startTyping: (conversationId: string) => void;
   stopTyping: (conversationId: string) => void;
+  toggleReaction: (messageId: string, emoji: string) => void;
   forceSyncOfflineData: () => Promise<void>;
 }
 
@@ -165,8 +168,47 @@ export function ChatProvider({ children }: ChatProviderProps) {
         }, 3000);
       };
 
+      const handleReactionUpdate = (event: ReactionUpdateEvent) => {
+        setMessages(prev =>
+          (prev || []).map(msg =>
+            msg.id === event.messageId
+              ? {
+                  ...msg,
+                  reactions: (event.reactions || []).map(r => ({
+                    userId: r.userId ?? (r as unknown as { user_id: string }).user_id,
+                    emoji: r.emoji,
+                    createdAt: r.createdAt ?? (r as unknown as { created_at: string }).created_at ?? new Date().toISOString(),
+                  })),
+                }
+              : msg
+          )
+        );
+      };
+
+      const handleReadStatusUpdate = (event: ReadStatusUpdateEvent) => {
+        // Update messages in the affected chat to reflect the new read status
+        setMessages(prev =>
+          (prev || []).map(msg =>
+            msg.conversationId === event.chatId
+              ? {
+                  ...msg,
+                  status: 'read' as const,
+                  readBy: [
+                    ...(msg.readBy || []),
+                    ...(msg.readBy?.some(r => r.userId === event.userId)
+                      ? []
+                      : [{ userId: event.userId, readAt: event.timestamp }]),
+                  ],
+                }
+              : msg
+          )
+        );
+      };
+
       chatService.onMessage(handleMessage);
       chatService.onTyping(handleTyping);
+      chatService.onReactionUpdate(handleReactionUpdate);
+      chatService.onReadStatusUpdate(handleReadStatusUpdate);
 
       // Load initial conversations - call directly to avoid dependency loop
       const loadInitialConversations = async () => {
@@ -203,6 +245,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
         // Clean up socket event listeners
         chatService.off('message');
         chatService.off('typing');
+        chatService.off('reaction');
+        chatService.off('readStatus');
         chatService.disconnect();
         initializedRef.current = null;
       };
@@ -390,6 +434,58 @@ export function ChatProvider({ children }: ChatProviderProps) {
     chatService.stopTyping(conversationId);
   }, []);
 
+  const toggleReaction = useCallback(
+    (messageId: string, emoji: string) => {
+      if (!activeConversation || !user) {
+        return;
+      }
+
+      // Check if user already reacted with this emoji
+      const targetMessage = messages.find(m => m.id === messageId);
+      const hasReacted = targetMessage?.reactions?.some(
+        r => r.userId === user.userId && r.emoji === emoji
+      );
+
+      if (hasReacted) {
+        chatService.removeReaction(activeConversation.id, messageId, emoji).catch(err => {
+          console.error('Failed to remove reaction:', err);
+        });
+      } else {
+        chatService.addReaction(activeConversation.id, messageId, emoji).catch(err => {
+          console.error('Failed to add reaction:', err);
+        });
+      }
+
+      // Optimistic update
+      setMessages(prev =>
+        (prev || []).map(msg => {
+          if (msg.id !== messageId) {
+            return msg;
+          }
+
+          const currentReactions = msg.reactions || [];
+          if (hasReacted) {
+            return {
+              ...msg,
+              reactions: currentReactions.filter(
+                r => !(r.userId === user.userId && r.emoji === emoji)
+              ),
+            };
+          }
+
+          return {
+            ...msg,
+            reactions: [
+              ...currentReactions,
+              { userId: user.userId, emoji, createdAt: new Date().toISOString() },
+            ],
+          };
+        })
+      );
+    },
+    [activeConversation, user, messages]
+  );
+
   const handleSetActiveConversation = (conversation: Conversation | null) => {
     setActiveConversation(conversation);
     setTypingUsers([]); // Clear typing indicators when switching conversations
@@ -516,6 +612,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     startConversation,
     startTyping,
     stopTyping,
+    toggleReaction,
     forceSyncOfflineData,
   };
 

@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { MdDownload, MdImage, MdInsertDriveFile, MdPictureAsPdf } from 'react-icons/md';
 import styled from 'styled-components';
 import { resolveFileUrl } from '../../utils/fileUtils';
+import { ReadReceiptIndicator } from './ReadReceiptIndicator';
+import { ReactionDisplay } from './ReactionDisplay';
+import { ReactionPicker } from './ReactionPicker';
 
 const MessageBubbleWrapper = styled.div<{ $isOwn: boolean }>`
   display: flex;
@@ -12,6 +15,18 @@ const MessageBubbleWrapper = styled.div<{ $isOwn: boolean }>`
   position: relative;
   width: 100%;
   margin-bottom: 0.125rem;
+
+  &:hover .reaction-picker-trigger {
+    opacity: 0.6;
+  }
+`;
+
+const BubbleRow = styled.div<{ $isOwn: boolean }>`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+  ${props => (props.$isOwn ? 'flex-direction: row-reverse;' : '')}
 `;
 
 const MessageBubble = styled.div<{ $isOwn: boolean }>`
@@ -195,7 +210,14 @@ const isImageFile = (mimeType: string): boolean => {
   return mimeType.startsWith('image/');
 };
 
-export function MessageBubbleComponent({ message, isOwn }: { message: Message; isOwn: boolean }) {
+type MessageBubbleProps = {
+  message: Message;
+  isOwn: boolean;
+  currentUserId?: string;
+  onToggleReaction?: (messageId: string, emoji: string) => void;
+};
+
+export function MessageBubbleComponent({ message, isOwn, currentUserId, onToggleReaction }: MessageBubbleProps) {
   const [imageError, setImageError] = useState<Record<string, boolean>>({});
 
   const handleImageClick = (url: string) => {
@@ -203,62 +225,88 @@ export function MessageBubbleComponent({ message, isOwn }: { message: Message; i
     window.open(url, '_blank');
   };
 
+  const handleReactionSelect = (emoji: string) => {
+    if (onToggleReaction) {
+      onToggleReaction(message.id, emoji);
+    }
+  };
+
   return (
     <MessageBubbleWrapper $isOwn={isOwn}>
-      <MessageBubble
-        $isOwn={isOwn}
-        tabIndex={0}
-        aria-label={isOwn ? 'Your message' : 'Received message'}
-      >
-        <MessageContent>{message.content}</MessageContent>
+      <BubbleRow $isOwn={isOwn}>
+        <MessageBubble
+          $isOwn={isOwn}
+          tabIndex={0}
+          aria-label={isOwn ? 'Your message' : 'Received message'}
+        >
+          <MessageContent>{message.content}</MessageContent>
 
-        {/* Render attachments if they exist */}
-        {message.attachments && message.attachments.length > 0 && (
-          <AttachmentsContainer>
-            {message.attachments.map((attachment, index) => (
-              <AttachmentItem key={attachment.id || index} $isOwn={isOwn}>
-                {isImageFile(attachment.mimeType) && !imageError[attachment.id] ? (
-                  <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                    <ImageAttachment
-                      src={resolveFileUrl(attachment.url) || attachment.url}
-                      alt={attachment.filename}
-                      onClick={() =>
-                        handleImageClick(resolveFileUrl(attachment.url) || attachment.url)
-                      }
-                      onError={() => {
-                        setImageError(prev => ({ ...prev, [attachment.id]: true }));
-                      }}
-                      loading="lazy"
-                      title={`Click to view ${attachment.filename}`}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <FileIcon $isOwn={isOwn}>{getFileIcon(attachment.mimeType)}</FileIcon>
-                    <FileInfo>
-                      <FileName $isOwn={isOwn}>{attachment.filename}</FileName>
-                      <FileSize $isOwn={isOwn}>{formatFileSize(attachment.size)}</FileSize>
-                    </FileInfo>
-                    <DownloadButton
-                      $isOwn={isOwn}
-                      href={resolveFileUrl(attachment.url)}
-                      download={attachment.filename}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <MdDownload size={16} />
-                    </DownloadButton>
-                  </>
-                )}
-              </AttachmentItem>
-            ))}
-          </AttachmentsContainer>
+          {/* Render attachments if they exist */}
+          {message.attachments && message.attachments.length > 0 && (
+            <AttachmentsContainer>
+              {message.attachments.map((attachment, index) => (
+                <AttachmentItem key={attachment.id || index} $isOwn={isOwn}>
+                  {isImageFile(attachment.mimeType) && !imageError[attachment.id] ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                      <ImageAttachment
+                        src={resolveFileUrl(attachment.url) || attachment.url}
+                        alt={attachment.filename}
+                        onClick={() =>
+                          handleImageClick(resolveFileUrl(attachment.url) || attachment.url)
+                        }
+                        onError={() => {
+                          setImageError(prev => ({ ...prev, [attachment.id]: true }));
+                        }}
+                        loading="lazy"
+                        title={`Click to view ${attachment.filename}`}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <FileIcon $isOwn={isOwn}>{getFileIcon(attachment.mimeType)}</FileIcon>
+                      <FileInfo>
+                        <FileName $isOwn={isOwn}>{attachment.filename}</FileName>
+                        <FileSize $isOwn={isOwn}>{formatFileSize(attachment.size)}</FileSize>
+                      </FileInfo>
+                      <DownloadButton
+                        $isOwn={isOwn}
+                        href={resolveFileUrl(attachment.url)}
+                        download={attachment.filename}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MdDownload size={16} />
+                      </DownloadButton>
+                    </>
+                  )}
+                </AttachmentItem>
+              ))}
+            </AttachmentsContainer>
+          )}
+
+          <MessageInfo $isOwn={isOwn} aria-label={'Message time'}>
+            {safeFormatDistanceToNow(message.timestamp, 'Just now')}
+            <ReadReceiptIndicator
+              status={message.status}
+              isOwn={isOwn}
+              readCount={message.readBy?.length}
+            />
+          </MessageInfo>
+        </MessageBubble>
+
+        {onToggleReaction && (
+          <ReactionPicker isOwn={isOwn} onSelectReaction={handleReactionSelect} />
         )}
+      </BubbleRow>
 
-        <MessageInfo $isOwn={isOwn} aria-label={'Message time'}>
-          {safeFormatDistanceToNow(message.timestamp, 'Just now')}
-        </MessageInfo>
-      </MessageBubble>
+      {/* Reactions display */}
+      {message.reactions && message.reactions.length > 0 && currentUserId && (
+        <ReactionDisplay
+          reactions={message.reactions}
+          currentUserId={currentUserId}
+          onToggleReaction={handleReactionSelect}
+        />
+      )}
     </MessageBubbleWrapper>
   );
 }

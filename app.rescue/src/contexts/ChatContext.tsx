@@ -1,5 +1,11 @@
-import { Conversation, Message, TypingIndicator } from '@adopt-dont-shop/lib.chat';
-import { createContext, useContext, ReactNode, useState, useEffect, useRef } from 'react';
+import {
+  Conversation,
+  Message,
+  TypingIndicator,
+  type ReactionUpdateEvent,
+  type ReadStatusUpdateEvent,
+} from '@adopt-dont-shop/lib.chat';
+import { createContext, useContext, ReactNode, useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { chatService, useConnectionStatus } from '../services/libraryServices';
 
@@ -14,6 +20,7 @@ interface ChatContextType {
   typingUsers: string[];
   startTyping: (conversationId: string) => void;
   stopTyping: (conversationId: string) => void;
+  toggleReaction: (messageId: string, emoji: string) => void;
 
   // Socket.IO connection status
   connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
@@ -94,12 +101,52 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         }, 3000);
       };
 
+      const handleReactionUpdate = (event: ReactionUpdateEvent) => {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === event.messageId
+              ? {
+                  ...msg,
+                  reactions: (event.reactions || []).map(r => ({
+                    userId: r.userId ?? (r as unknown as { user_id: string }).user_id,
+                    emoji: r.emoji,
+                    createdAt: r.createdAt ?? (r as unknown as { created_at: string }).created_at ?? new Date().toISOString(),
+                  })),
+                }
+              : msg
+          )
+        );
+      };
+
+      const handleReadStatusUpdate = (event: ReadStatusUpdateEvent) => {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.conversationId === event.chatId
+              ? {
+                  ...msg,
+                  status: 'read' as const,
+                  readBy: [
+                    ...(msg.readBy || []),
+                    ...(msg.readBy?.some(r => r.userId === event.userId)
+                      ? []
+                      : [{ userId: event.userId, readAt: event.timestamp }]),
+                  ],
+                }
+              : msg
+          )
+        );
+      };
+
       chatService.onMessage(handleMessage);
       chatService.onTyping(handleTyping);
+      chatService.onReactionUpdate(handleReactionUpdate);
+      chatService.onReadStatusUpdate(handleReadStatusUpdate);
 
       return () => {
         chatService.off('message');
         chatService.off('typing');
+        chatService.off('reaction');
+        chatService.off('readStatus');
         chatService.disconnect();
         initializedRef.current = null;
       };
@@ -197,6 +244,57 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     chatService.stopTyping(conversationId);
   };
 
+  const toggleReaction = useCallback(
+    (messageId: string, emoji: string) => {
+      if (!activeConversation || !user) {
+        return;
+      }
+
+      const targetMessage = messages.find(m => m.id === messageId);
+      const hasReacted = targetMessage?.reactions?.some(
+        r => r.userId === user.userId && r.emoji === emoji
+      );
+
+      if (hasReacted) {
+        chatService.removeReaction(activeConversation.id, messageId, emoji).catch(err => {
+          console.error('Failed to remove reaction:', err);
+        });
+      } else {
+        chatService.addReaction(activeConversation.id, messageId, emoji).catch(err => {
+          console.error('Failed to add reaction:', err);
+        });
+      }
+
+      // Optimistic update
+      setMessages(prev =>
+        prev.map(msg => {
+          if (msg.id !== messageId) {
+            return msg;
+          }
+
+          const currentReactions = msg.reactions || [];
+          if (hasReacted) {
+            return {
+              ...msg,
+              reactions: currentReactions.filter(
+                r => !(r.userId === user.userId && r.emoji === emoji)
+              ),
+            };
+          }
+
+          return {
+            ...msg,
+            reactions: [
+              ...currentReactions,
+              { userId: user.userId, emoji, createdAt: new Date().toISOString() },
+            ],
+          };
+        })
+      );
+    },
+    [activeConversation, user, messages]
+  );
+
   const value = {
     conversations,
     activeConversation,
@@ -208,6 +306,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     typingUsers,
     startTyping,
     stopTyping,
+    toggleReaction,
     connectionStatus,
     isConnected,
     isReconnecting,

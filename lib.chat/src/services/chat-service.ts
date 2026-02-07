@@ -3,12 +3,32 @@ import {
   ChatServiceConfig,
   Conversation,
   Message,
+  MessageReaction,
   TypingIndicator,
   PaginatedResponse,
   ConnectionStatus,
   ReconnectionConfig,
   QueuedMessage,
 } from '../types';
+
+/**
+ * Event payload when a reaction is added or removed
+ */
+export interface ReactionUpdateEvent {
+  messageId: string;
+  emoji: string;
+  userId: string;
+  reactions: MessageReaction[];
+}
+
+/**
+ * Event payload when messages are marked as read
+ */
+export interface ReadStatusUpdateEvent {
+  chatId: string;
+  userId: string;
+  timestamp: string;
+}
 
 /**
  * ChatService - Handles chat operations
@@ -25,6 +45,8 @@ export class ChatService {
   private connectionErrorListeners: Array<(error: Error) => void> = [];
   private messageListeners: Array<(message: Message) => void> = [];
   private typingListeners: Array<(typing: TypingIndicator) => void> = [];
+  private reactionListeners: Array<(event: ReactionUpdateEvent) => void> = [];
+  private readStatusListeners: Array<(event: ReadStatusUpdateEvent) => void> = [];
   private currentUserId: string | null = null;
   private currentToken: string | null = null;
 
@@ -161,6 +183,47 @@ export class ChatService {
     this.socket.on('user_stopped_typing', () => {
       // Handle stopped typing if needed
     });
+
+    // Reaction added
+    this.socket.on(
+      'reaction_added',
+      (data: { messageId: string; emoji: string; userId: string; reactions: MessageReaction[]; timestamp: string }) => {
+        const event: ReactionUpdateEvent = {
+          messageId: data.messageId,
+          emoji: data.emoji,
+          userId: data.userId,
+          reactions: data.reactions,
+        };
+        this.reactionListeners.forEach((listener) => listener(event));
+      }
+    );
+
+    // Reaction removed
+    this.socket.on(
+      'reaction_removed',
+      (data: { messageId: string; emoji: string; userId: string; reactions: MessageReaction[]; timestamp: string }) => {
+        const event: ReactionUpdateEvent = {
+          messageId: data.messageId,
+          emoji: data.emoji,
+          userId: data.userId,
+          reactions: data.reactions,
+        };
+        this.reactionListeners.forEach((listener) => listener(event));
+      }
+    );
+
+    // Messages read by another user
+    this.socket.on(
+      'messages_read',
+      (data: { userId: string; chatId: string; timestamp: string }) => {
+        const event: ReadStatusUpdateEvent = {
+          chatId: data.chatId,
+          userId: data.userId,
+          timestamp: new Date(data.timestamp).toISOString(),
+        };
+        this.readStatusListeners.forEach((listener) => listener(event));
+      }
+    );
 
     // Error event
     this.socket.on('error', (error: { event: string; message: string; error: string }) => {
@@ -655,6 +718,56 @@ export class ChatService {
   }
 
   /**
+   * Add a reaction to a message
+   */
+  async addReaction(conversationId: string, messageId: string, emoji: string): Promise<void> {
+    try {
+      const response = await fetch(
+        `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
+        {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ emoji }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(`${ChatService.name} addReaction error:`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Remove a reaction from a message
+   */
+  async removeReaction(conversationId: string, messageId: string, emoji: string): Promise<void> {
+    try {
+      const response = await fetch(
+        `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
+        {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ emoji }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(`${ChatService.name} removeReaction error:`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Register event listeners
    */
   onMessage(callback: (message: Message) => void): void {
@@ -665,6 +778,14 @@ export class ChatService {
     this.typingListeners.push(callback);
   }
 
+  onReactionUpdate(callback: (event: ReactionUpdateEvent) => void): void {
+    this.reactionListeners.push(callback);
+  }
+
+  onReadStatusUpdate(callback: (event: ReadStatusUpdateEvent) => void): void {
+    this.readStatusListeners.push(callback);
+  }
+
   /**
    * Remove event listeners
    */
@@ -673,6 +794,10 @@ export class ChatService {
       this.messageListeners = [];
     } else if (event === 'typing') {
       this.typingListeners = [];
+    } else if (event === 'reaction') {
+      this.reactionListeners = [];
+    } else if (event === 'readStatus') {
+      this.readStatusListeners = [];
     }
 
     if (this.socket) {
@@ -752,5 +877,19 @@ export class ChatService {
    */
   simulateError(error: Error): void {
     this.handleConnectionError(error);
+  }
+
+  /**
+   * Simulate reaction update (for testing)
+   */
+  simulateReactionUpdate(event: ReactionUpdateEvent): void {
+    this.reactionListeners.forEach((listener) => listener(event));
+  }
+
+  /**
+   * Simulate read status update (for testing)
+   */
+  simulateReadStatusUpdate(event: ReadStatusUpdateEvent): void {
+    this.readStatusListeners.forEach((listener) => listener(event));
   }
 }
