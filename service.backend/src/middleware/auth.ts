@@ -307,3 +307,62 @@ export const authenticateOptionalToken = async (
     next();
   }
 };
+
+/**
+ * Middleware to require email verification
+ * Must be used after authenticateToken middleware
+ * Prevents unverified users from accessing protected resources
+ */
+export const requireEmailVerification = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  try {
+    if (!req.user) {
+      loggerHelpers.logSecurity(
+        'Email verification check failed - no user',
+        {
+          ip: req.ip,
+          url: req.originalUrl,
+        },
+        req
+      );
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    if (!req.user.emailVerified) {
+      loggerHelpers.logSecurity(
+        'Access denied - email not verified',
+        {
+          userId: req.user.userId,
+          email: req.user.email,
+          ip: req.ip,
+          url: req.originalUrl,
+        },
+        req
+      );
+      res.status(403).json({
+        error: 'Email verification required',
+        message: 'Please verify your email address to access this resource',
+        code: 'EMAIL_NOT_VERIFIED',
+      });
+      return;
+    }
+
+    logger.debug('Email verification check passed', {
+      userId: req.user.userId,
+      email: req.user.email,
+    });
+
+    next();
+  } catch (error) {
+    logger.error('Email verification check error:', {
+      error: error instanceof Error ? error.message : String(error),
+      userId: req.user?.userId,
+      ip: req.ip,
+    });
+    res.status(500).json({ error: 'Verification check error' });
+  }
+};
