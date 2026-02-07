@@ -14,6 +14,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { AuditLog } from '../../models/AuditLog';
+import { AuditLogService } from '../../services/auditLog.service';
 import User, { UserStatus, UserType } from '../../models/User';
 import { AuthService } from '../../services/auth.service';
 import { LoginCredentials, RegisterData } from '../../types';
@@ -21,6 +22,7 @@ import { LoginCredentials, RegisterData } from '../../types';
 // Mock dependencies
 vi.mock('../../models/User');
 vi.mock('../../models/AuditLog');
+vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
 vi.mock('jsonwebtoken');
 vi.mock('bcryptjs');
@@ -29,6 +31,9 @@ vi.mock('crypto');
 // Mock User model
 const MockedUser = User as Mock<typeof User>;
 const MockedAuditLog = AuditLog as Mock<typeof AuditLog>;
+const MockedAuditLogService = AuditLogService as unknown as {
+  log: Mock;
+};
 const mockedJwt = jwt as Mock<typeof jwt>;
 const mockedBcrypt = bcrypt as Mock<typeof bcrypt>;
 
@@ -56,6 +61,9 @@ describe('AuthService', () => {
     (mockCrypto.randomBytes as unknown as Mock) = vi.fn().mockReturnValue({
       toString: vi.fn().mockReturnValue('mock-token'),
     });
+
+    // Mock AuditLogService.log
+    MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined);
 
     // Mock the generateTokens method to avoid JWT secret issues
     vi.spyOn(AuthService as unknown, 'generateTokens').mockResolvedValue({
@@ -448,16 +456,10 @@ describe('AuthService', () => {
 
       it('should throw error for expired verification token', async () => {
         const token = 'expired-token';
-        const mockUser = {
-          userId: 'user-123',
-          emailVerified: false,
-          status: UserStatus.PENDING_VERIFICATION,
-          verificationToken: token,
-          verificationTokenExpiresAt: new Date(Date.now() - 3600000), // Expired 1 hour ago
-          save: vi.fn(),
-        };
 
-        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+        // The implementation checks expiration in the WHERE clause,
+        // so expired tokens won't be found
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const authService = new AuthService();
         await expect(authService.verifyEmail(token)).rejects.toThrow(
@@ -467,16 +469,10 @@ describe('AuthService', () => {
 
       it('should handle already verified email gracefully', async () => {
         const token = 'valid-token';
-        const mockUser = {
-          userId: 'user-123',
-          emailVerified: true,
-          status: UserStatus.ACTIVE,
-          verificationToken: null,
-          verificationTokenExpiresAt: null,
-          save: vi.fn(),
-        };
 
-        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+        // The implementation checks for a valid token in the WHERE clause,
+        // so if the token is null (already verified), no user will be found
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
         const authService = new AuthService();
         await expect(authService.verifyEmail(token)).rejects.toThrow(
@@ -497,13 +493,12 @@ describe('AuthService', () => {
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
-        MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
 
         const authService = new AuthService();
         await authService.verifyEmail(token);
 
-        expect(MockedAuditLog.create).toHaveBeenCalledWith({
-          action: 'EMAIL_VERIFIED',
+        expect(MockedAuditLogService.log).toHaveBeenCalledWith({
+          action: 'EMAIL_VERIFICATION',
           entity: 'User',
           entityId: mockUser.userId,
           details: { email: mockUser.email },
@@ -584,12 +579,11 @@ describe('AuthService', () => {
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
-        MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
 
         const authService = new AuthService();
         await authService.resendVerificationEmail(email);
 
-        expect(MockedAuditLog.create).toHaveBeenCalledWith({
+        expect(MockedAuditLogService.log).toHaveBeenCalledWith({
           action: 'VERIFICATION_EMAIL_RESEND',
           entity: 'User',
           entityId: mockUser.userId,
