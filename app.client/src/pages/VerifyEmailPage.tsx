@@ -176,7 +176,7 @@ export const VerifyEmailPage: React.FC = () => {
                 Don't Shop.
               </p>
             </Header>
-            <Alert type='success' message='Verification successful! Redirecting to login...' />
+            <Alert variant='success'>Verification successful! Redirecting to login...</Alert>
             <ButtonGroup>
               <Button onClick={() => navigate('/login')}>Go to Login</Button>
             </ButtonGroup>
@@ -191,18 +191,18 @@ export const VerifyEmailPage: React.FC = () => {
               <h1>Link Expired</h1>
               <p>Your verification link has expired. Verification links are valid for 24 hours.</p>
             </Header>
-            <Alert type='warning' message={errorMessage} />
+            <Alert variant='warning'>{errorMessage}</Alert>
             <ResendSection>
               <p>Don't worry! You can request a new verification email.</p>
-              <Button onClick={handleResendEmail} disabled={isResending} fullWidth>
+              <Button onClick={handleResendEmail} disabled={isResending} isFullWidth>
                 {isResending ? 'Sending...' : 'Resend Verification Email'}
               </Button>
               {resendSuccess && (
-                <Alert
-                  type='success'
-                  message='Verification email sent! Please check your inbox.'
-                  style={{ marginTop: '1rem' }}
-                />
+                <div style={{ marginTop: '1rem' }}>
+                  <Alert variant='success'>
+                    Verification email sent! Please check your inbox.
+                  </Alert>
+                </div>
               )}
             </ResendSection>
             <ButtonGroup>
@@ -221,28 +221,28 @@ export const VerifyEmailPage: React.FC = () => {
               <h1>Verification Failed</h1>
               <p>We couldn't verify your email address.</p>
             </Header>
-            <Alert type='error' message={errorMessage} />
+            <Alert variant='error'>{errorMessage}</Alert>
             <ResendSection>
               <p>You can try requesting a new verification email.</p>
-              <Button onClick={handleResendEmail} disabled={isResending} fullWidth>
+              <Button onClick={handleResendEmail} disabled={isResending} isFullWidth>
                 {isResending ? 'Sending...' : 'Resend Verification Email'}
               </Button>
               {resendSuccess && (
-                <Alert
-                  type='success'
-                  message='Verification email sent! Please check your inbox.'
-                  style={{ marginTop: '1rem' }}
-                />
+                <div style={{ marginTop: '1rem' }}>
+                  <Alert variant='success'>
+                    Verification email sent! Please check your inbox.
+                  </Alert>
+                </div>
               )}
             </ResendSection>
             <ButtonGroup>
               <Link to='/login'>
-                <Button variant='secondary' fullWidth>
+                <Button variant='secondary' isFullWidth>
                   Back to Login
                 </Button>
               </Link>
               <Link to='/help'>
-                <Button variant='tertiary' fullWidth>
+                <Button variant='ghost' isFullWidth>
                   Contact Support
                 </Button>
               </Link>

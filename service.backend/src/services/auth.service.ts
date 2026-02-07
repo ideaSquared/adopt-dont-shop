@@ -895,7 +895,7 @@ Need help? Contact us at support@adoptdontshop.com
               firstName: user.firstName,
               verificationToken: user.verificationToken,
               verificationUrl,
-              expiresAt: user.verificationTokenExpiresAt?.toISOString(),
+              expiresAt: user.verificationTokenExpiresAt?.toISOString() ?? null,
             },
             type: 'notification',
             priority: 'medium',
