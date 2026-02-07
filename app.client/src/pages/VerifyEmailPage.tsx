@@ -199,9 +199,7 @@ export const VerifyEmailPage: React.FC = () => {
               </Button>
               {resendSuccess && (
                 <div style={{ marginTop: '1rem' }}>
-                  <Alert variant='success'>
-                    Verification email sent! Please check your inbox.
-                  </Alert>
+                  <Alert variant='success'>Verification email sent! Please check your inbox.</Alert>
                 </div>
               )}
             </ResendSection>
@@ -229,9 +227,7 @@ export const VerifyEmailPage: React.FC = () => {
               </Button>
               {resendSuccess && (
                 <div style={{ marginTop: '1rem' }}>
-                  <Alert variant='success'>
-                    Verification email sent! Please check your inbox.
-                  </Alert>
+                  <Alert variant='success'>Verification email sent! Please check your inbox.</Alert>
                 </div>
               )}
             </ResendSection>
