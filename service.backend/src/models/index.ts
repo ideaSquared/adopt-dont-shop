@@ -49,6 +49,9 @@ import { SwipeSession } from './SwipeSession';
 // Application Management Models
 import HomeVisit from './HomeVisit';
 
+// Field-Level Permissions
+import FieldPermission from './FieldPermission';
+
 // Define all models
 const models = {
   User,
@@ -81,6 +84,7 @@ const models = {
   EmailPreference,
   SwipeSession,
   SwipeAction,
+  FieldPermission,
   FileUpload,
   HomeVisit,
 };
@@ -335,6 +339,7 @@ export {
   EmailPreference,
   EmailQueue,
   EmailTemplate,
+  FieldPermission,
   FileUpload,
   HomeVisit,
   Invitation,

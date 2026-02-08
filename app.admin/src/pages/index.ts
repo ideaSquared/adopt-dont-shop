@@ -16,3 +16,4 @@ export { default as Audit } from './Audit';
 export { default as Messages } from './Messages';
 export { default as Reports } from './Reports';
 export { default as AccountSettings } from './AccountSettings';
+export { default as FieldPermissions } from './FieldPermissions';
