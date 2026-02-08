@@ -1,6 +1,12 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
 
+/**
+ * Sequelize requires enums for DataTypes.ENUM(). These values MUST match
+ * the canonical types in @adopt-dont-shop/lib.permissions (FieldAccessLevel
+ * and FieldPermissionResource). lib.permissions is the source of truth for
+ * field permission types; these enums exist solely for the ORM layer.
+ */
 export enum FieldAccessLevel {
   NONE = 'none',
   READ = 'read',

@@ -1,16 +1,10 @@
 import { NextFunction, Response } from 'express';
 import { AuthenticatedRequest } from '../types/auth';
-import { UserType } from '../models/User';
-import FieldPermission, {
-  FieldAccessLevel,
-  FieldPermissionResource,
-} from '../models/FieldPermission';
+import FieldPermission from '../models/FieldPermission';
 import AuditLog from '../models/AuditLog';
 import { logger } from '../utils/logger';
-import {
-  getDefaultFieldAccess,
-  getFieldAccessMap,
-} from '@adopt-dont-shop/lib.permissions';
+import type { FieldPermissionResource } from '@adopt-dont-shop/lib.permissions';
+import { getFieldAccessMap } from '@adopt-dont-shop/lib.permissions';
 
 /**
  * Cache for field permission overrides to avoid repeated DB queries.
@@ -72,26 +66,6 @@ const getOverrides = async (
 };
 
 /**
- * Resolve the effective access level for a field, considering overrides.
- */
-const resolveFieldAccess = async (
-  resource: FieldPermissionResource,
-  role: string,
-  fieldName: string
-): Promise<string> => {
-  const overrides = await getOverrides(resource, role);
-  const override = overrides.find((o) => o.fieldName === fieldName);
-
-  if (override) {
-    return override.accessLevel;
-  }
-
-  // Map UserType to the UserRole expected by lib.permissions
-  const userRole = role as 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
-  return getDefaultFieldAccess(resource, userRole, fieldName);
-};
-
-/**
  * Get the full effective field access map for a resource and role.
  */
 const getEffectiveAccessMap = async (
@@ -125,13 +99,13 @@ export const maskResponseFields = <T extends Record<string, unknown>>(
     const level = accessMap[key];
 
     // If field not in access map, exclude it (secure by default)
-    if (level === undefined || level === FieldAccessLevel.NONE) {
+    if (level === undefined || level === 'none') {
       continue;
     }
 
-    if (action === 'read' && (level === FieldAccessLevel.READ || level === FieldAccessLevel.WRITE)) {
+    if (action === 'read' && (level === 'read' || level === 'write')) {
       masked[key] = value;
-    } else if (action === 'write' && level === FieldAccessLevel.WRITE) {
+    } else if (action === 'write' && level === 'write') {
       masked[key] = value;
     }
   }
@@ -331,7 +305,7 @@ export const fieldWriteGuard = (
       const requestedFields = Object.keys(body);
       const blockedFields = requestedFields.filter((field) => {
         const level = accessMap[field];
-        return level !== FieldAccessLevel.WRITE;
+        return level !== 'write';
       });
 
       if (blockedFields.length > 0) {

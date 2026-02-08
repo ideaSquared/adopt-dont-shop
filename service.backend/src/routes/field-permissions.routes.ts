@@ -3,10 +3,17 @@ import { body, param, validationResult } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
 import { UserType } from '../models/User';
-import { FieldAccessLevel, FieldPermissionResource } from '../models/FieldPermission';
 import { FieldPermissionService } from '../services/field-permission.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
+// Model enums are used for service-layer type compatibility within the backend.
+// These enums mirror the canonical types in @adopt-dont-shop/lib.permissions.
+import {
+  FieldAccessLevel,
+  FieldPermissionResource,
+} from '../models/FieldPermission';
+// lib.permissions provides the default configurations and is the source of truth
+// for field permission business logic.
 import {
   defaultFieldPermissions,
   getFieldAccessMap,
