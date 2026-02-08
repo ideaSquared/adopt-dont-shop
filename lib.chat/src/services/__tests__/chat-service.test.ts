@@ -526,5 +526,211 @@ describe('ChatService', () => {
 
       expect(messageCallback).not.toHaveBeenCalled();
     });
+
+    it('should receive reaction updates in real-time', (done) => {
+      service.connect('user-123', 'token');
+
+      service.onReactionUpdate((event) => {
+        expect(event).toBeDefined();
+        expect(event.messageId).toBe('msg-123');
+        expect(event.emoji).toBe('\u{1F44D}');
+        expect(event.userId).toBe('user-456');
+        expect(event.reactions).toHaveLength(1);
+        done();
+      });
+
+      service.simulateReactionUpdate({
+        messageId: 'msg-123',
+        emoji: '\u{1F44D}',
+        userId: 'user-456',
+        reactions: [
+          { userId: 'user-456', emoji: '\u{1F44D}', createdAt: new Date().toISOString() },
+        ],
+      });
+    });
+
+    it('should receive read status updates in real-time', (done) => {
+      service.connect('user-123', 'token');
+
+      service.onReadStatusUpdate((event) => {
+        expect(event).toBeDefined();
+        expect(event.chatId).toBe('conv-123');
+        expect(event.userId).toBe('user-456');
+        expect(event.timestamp).toBeTruthy();
+        done();
+      });
+
+      service.simulateReadStatusUpdate({
+        chatId: 'conv-123',
+        userId: 'user-456',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    it('should allow removing reaction listeners', () => {
+      const reactionCallback = jest.fn();
+
+      service.onReactionUpdate(reactionCallback);
+      service.off('reaction');
+
+      service.simulateReactionUpdate({
+        messageId: 'msg-123',
+        emoji: '\u{1F44D}',
+        userId: 'user-456',
+        reactions: [],
+      });
+
+      expect(reactionCallback).not.toHaveBeenCalled();
+    });
+
+    it('should allow removing read status listeners', () => {
+      const readStatusCallback = jest.fn();
+
+      service.onReadStatusUpdate(readStatusCallback);
+      service.off('readStatus');
+
+      service.simulateReadStatusUpdate({
+        chatId: 'conv-123',
+        userId: 'user-456',
+        timestamp: new Date().toISOString(),
+      });
+
+      expect(readStatusCallback).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('message reactions', () => {
+    it('should add a reaction to a message via API', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { success: true } }),
+        status: 200,
+        statusText: 'OK',
+      } as Response);
+
+      service.updateConfig({ apiUrl: 'http://localhost:5000' });
+
+      await expect(service.addReaction('conv-123', 'msg-123', '\u{1F44D}')).resolves.not.toThrow();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:5000/api/v1/chats/conv-123/messages/msg-123/reactions',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ emoji: '\u{1F44D}' }),
+        })
+      );
+    });
+
+    it('should remove a reaction from a message via API', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { success: true } }),
+        status: 200,
+        statusText: 'OK',
+      } as Response);
+
+      service.updateConfig({ apiUrl: 'http://localhost:5000' });
+
+      await expect(
+        service.removeReaction('conv-123', 'msg-123', '\u{1F44D}')
+      ).resolves.not.toThrow();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:5000/api/v1/chats/conv-123/messages/msg-123/reactions',
+        expect.objectContaining({
+          method: 'DELETE',
+          body: JSON.stringify({ emoji: '\u{1F44D}' }),
+        })
+      );
+    });
+
+    it('should throw error when adding reaction fails', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+      } as Response);
+
+      service.updateConfig({ apiUrl: 'http://localhost:5000' });
+
+      await expect(service.addReaction('conv-123', 'msg-123', '\u{1F44D}')).rejects.toThrow(
+        'HTTP 403: Forbidden'
+      );
+    });
+
+    it('should throw error when removing reaction fails', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      } as Response);
+
+      service.updateConfig({ apiUrl: 'http://localhost:5000' });
+
+      await expect(service.removeReaction('conv-123', 'msg-123', '\u{1F44D}')).rejects.toThrow(
+        'HTTP 404: Not Found'
+      );
+    });
+
+    it('should notify multiple reaction listeners', () => {
+      const listener1 = jest.fn();
+      const listener2 = jest.fn();
+
+      service.onReactionUpdate(listener1);
+      service.onReactionUpdate(listener2);
+
+      const event = {
+        messageId: 'msg-123',
+        emoji: '\u{2764}\u{FE0F}',
+        userId: 'user-456',
+        reactions: [
+          { userId: 'user-456', emoji: '\u{2764}\u{FE0F}', createdAt: new Date().toISOString() },
+        ],
+      };
+
+      service.simulateReactionUpdate(event);
+
+      expect(listener1).toHaveBeenCalledWith(event);
+      expect(listener2).toHaveBeenCalledWith(event);
+    });
+  });
+
+  describe('read receipt tracking', () => {
+    it('should mark conversation as read via API', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({}),
+        status: 200,
+        statusText: 'OK',
+      } as Response);
+
+      service.updateConfig({ apiUrl: 'http://localhost:5000' });
+
+      await expect(service.markAsRead('conv-123')).resolves.not.toThrow();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:5000/api/v1/chats/conv-123/read',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('should notify multiple read status listeners', () => {
+      const listener1 = jest.fn();
+      const listener2 = jest.fn();
+
+      service.onReadStatusUpdate(listener1);
+      service.onReadStatusUpdate(listener2);
+
+      const event = {
+        chatId: 'conv-123',
+        userId: 'user-456',
+        timestamp: new Date().toISOString(),
+      };
+
+      service.simulateReadStatusUpdate(event);
+
+      expect(listener1).toHaveBeenCalledWith(event);
+      expect(listener2).toHaveBeenCalledWith(event);
+    });
   });
 });

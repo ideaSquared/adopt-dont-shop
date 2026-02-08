@@ -1,10 +1,14 @@
 // Main exports for @adopt-dont-shop/lib.chat
 export { ChatService } from './services/chat-service';
+export type { ReactionUpdateEvent, ReadStatusUpdateEvent } from './services/chat-service';
 export type {
   ChatServiceConfig,
   ChatServiceOptions,
   Conversation,
   Message,
+  MessageReaction,
+  MessageReadReceipt,
+  MessageDeliveryStatus,
   Participant,
   MessageAttachment,
   TypingIndicator,

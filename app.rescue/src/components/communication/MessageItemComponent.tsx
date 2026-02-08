@@ -23,9 +23,16 @@ const MessageRow = styled.div<{ $isOwn: boolean }>`
 interface MessageItemProps {
   message: Message;
   isOwn: boolean;
+  currentUserId?: string;
+  onToggleReaction?: (messageId: string, emoji: string) => void;
 }
 
-export function MessageItemComponent({ message, isOwn }: MessageItemProps) {
+export function MessageItemComponent({
+  message,
+  isOwn,
+  currentUserId,
+  onToggleReaction,
+}: MessageItemProps) {
   let initials = '';
   if (!isOwn) {
     if (message.senderName) {
@@ -43,7 +50,12 @@ export function MessageItemComponent({ message, isOwn }: MessageItemProps) {
     <MessageItem key={message.id} $isOwn={isOwn}>
       <MessageRow $isOwn={isOwn}>
         {!isOwn && <AvatarComponent initials={initials} />}
-        <MessageBubbleComponent message={message} isOwn={isOwn} />
+        <MessageBubbleComponent
+          message={message}
+          isOwn={isOwn}
+          currentUserId={currentUserId}
+          onToggleReaction={onToggleReaction}
+        />
       </MessageRow>
     </MessageItem>
   );

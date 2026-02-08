@@ -139,6 +139,7 @@ export function ChatWindow() {
     typingUsers,
     startTyping,
     stopTyping,
+    toggleReaction,
   } = useChat();
 
   const [messageText, setMessageText] = useState('');
@@ -261,7 +262,7 @@ export function ChatWindow() {
         ) : (
           <>
             <MessagesContainer ref={messagesContainerRef} onScroll={handleScroll}>
-              <MessageList messages={messages} />
+              <MessageList messages={messages} onToggleReaction={toggleReaction} />
               <div ref={messagesEndRef} />
               {typingUsers && typingUsers.length > 0 && (
                 <TypingContainer>

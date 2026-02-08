@@ -4,6 +4,7 @@ import styled from 'styled-components';
 // import { formatDistanceToNow } from 'date-fns';
 interface MessageListProps {
   messages: Message[];
+  onToggleReaction?: (messageId: string, emoji: string) => void;
 }
 
 const MessageListWrapper = styled.div`
@@ -61,7 +62,7 @@ const EmptyMessages = styled.div`
 // Components moved to their own files: AvatarComponent, MessageBubbleComponent, MessageItemComponent
 import { MessageItemComponent } from './MessageItemComponent';
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, onToggleReaction }: MessageListProps) {
   const { user } = useAuth();
 
   // Defensive check to ensure messages is an array
@@ -80,7 +81,15 @@ export function MessageList({ messages }: MessageListProps) {
     <MessageListWrapper>
       {safeMessages.map(message => {
         const isOwn = message.senderId === user?.userId;
-        return <MessageItemComponent key={message.id} message={message} isOwn={isOwn} />;
+        return (
+          <MessageItemComponent
+            key={message.id}
+            message={message}
+            isOwn={isOwn}
+            currentUserId={user?.userId}
+            onToggleReaction={onToggleReaction}
+          />
+        );
       })}
     </MessageListWrapper>
   );
