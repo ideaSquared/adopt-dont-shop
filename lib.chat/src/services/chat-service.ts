@@ -187,7 +187,13 @@ export class ChatService {
     // Reaction added
     this.socket.on(
       'reaction_added',
-      (data: { messageId: string; emoji: string; userId: string; reactions: MessageReaction[]; timestamp: string }) => {
+      (data: {
+        messageId: string;
+        emoji: string;
+        userId: string;
+        reactions: MessageReaction[];
+        timestamp: string;
+      }) => {
         const event: ReactionUpdateEvent = {
           messageId: data.messageId,
           emoji: data.emoji,
@@ -201,7 +207,13 @@ export class ChatService {
     // Reaction removed
     this.socket.on(
       'reaction_removed',
-      (data: { messageId: string; emoji: string; userId: string; reactions: MessageReaction[]; timestamp: string }) => {
+      (data: {
+        messageId: string;
+        emoji: string;
+        userId: string;
+        reactions: MessageReaction[];
+        timestamp: string;
+      }) => {
         const event: ReactionUpdateEvent = {
           messageId: data.messageId,
           emoji: data.emoji,

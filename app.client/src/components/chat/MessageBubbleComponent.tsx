@@ -240,7 +240,12 @@ type MessageBubbleProps = {
   onToggleReaction?: (messageId: string, emoji: string) => void;
 };
 
-export function MessageBubbleComponent({ message, isOwn, currentUserId, onToggleReaction }: MessageBubbleProps) {
+export function MessageBubbleComponent({
+  message,
+  isOwn,
+  currentUserId,
+  onToggleReaction,
+}: MessageBubbleProps) {
   // Statsig feature flags
   const { checkGate, logEvent } = useStatsig();
 

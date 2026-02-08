@@ -5,7 +5,15 @@ import {
   type ReactionUpdateEvent,
   type ReadStatusUpdateEvent,
 } from '@adopt-dont-shop/lib.chat';
-import { createContext, useContext, ReactNode, useState, useEffect, useRef, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { chatService, useConnectionStatus } from '../services/libraryServices';
 
@@ -110,7 +118,10 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
                   reactions: (event.reactions || []).map(r => ({
                     userId: r.userId ?? (r as unknown as { user_id: string }).user_id,
                     emoji: r.emoji,
-                    createdAt: r.createdAt ?? (r as unknown as { created_at: string }).created_at ?? new Date().toISOString(),
+                    createdAt:
+                      r.createdAt ??
+                      (r as unknown as { created_at: string }).created_at ??
+                      new Date().toISOString(),
                   })),
                 }
               : msg

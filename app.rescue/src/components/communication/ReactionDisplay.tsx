@@ -16,13 +16,9 @@ const ReactionBadge = styled.button<{ $isActive: boolean }>`
   border-radius: 12px;
   border: 1px solid
     ${props =>
-      props.$isActive
-        ? props.theme.colors.primary[300]
-        : props.theme.border.color.secondary};
+      props.$isActive ? props.theme.colors.primary[300] : props.theme.border.color.secondary};
   background: ${props =>
-    props.$isActive
-      ? props.theme.colors.primary[50]
-      : props.theme.background.primary};
+    props.$isActive ? props.theme.colors.primary[50] : props.theme.background.primary};
   cursor: pointer;
   font-size: 0.8125rem;
   line-height: 1.4;
@@ -30,9 +26,7 @@ const ReactionBadge = styled.button<{ $isActive: boolean }>`
 
   &:hover {
     background: ${props =>
-      props.$isActive
-        ? props.theme.colors.primary[100]
-        : props.theme.background.secondary};
+      props.$isActive ? props.theme.colors.primary[100] : props.theme.background.secondary};
     transform: scale(1.05);
   }
 
@@ -86,7 +80,11 @@ const groupReactions = (reactions: MessageReaction[], currentUserId: string): Re
   }));
 };
 
-export function ReactionDisplay({ reactions, currentUserId, onToggleReaction }: ReactionDisplayProps) {
+export function ReactionDisplay({
+  reactions,
+  currentUserId,
+  onToggleReaction,
+}: ReactionDisplayProps) {
   if (!reactions || reactions.length === 0) {
     return null;
   }

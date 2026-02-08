@@ -13,7 +13,9 @@ const PickerTrigger = styled.button<{ $isOwn: boolean }>`
   cursor: pointer;
   font-size: 1rem;
   opacity: 0;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
   color: ${props => props.theme.text.secondary};
 
   &:hover {
@@ -68,7 +70,14 @@ const EmojiButton = styled.button`
   }
 `;
 
-const QUICK_REACTIONS = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F622}', '\u{1F44F}', '\u{1F525}'];
+const QUICK_REACTIONS = [
+  '\u{1F44D}',
+  '\u{2764}\u{FE0F}',
+  '\u{1F602}',
+  '\u{1F622}',
+  '\u{1F44F}',
+  '\u{1F525}',
+];
 
 type ReactionPickerProps = {
   isOwn: boolean;
@@ -125,24 +134,24 @@ export function ReactionPicker({ isOwn, onSelectReaction }: ReactionPickerProps)
   }, [isOpen]);
 
   return (
-    <PickerWrapper ref={wrapperRef} className="reaction-picker-wrapper">
+    <PickerWrapper ref={wrapperRef} className='reaction-picker-wrapper'>
       <PickerTrigger
         ref={triggerRef}
         $isOwn={isOwn}
         onClick={handleToggle}
-        aria-label="Add reaction"
+        aria-label='Add reaction'
         aria-expanded={isOpen}
-        className="reaction-picker-trigger"
+        className='reaction-picker-trigger'
       >
         {'\u{1F600}'}
       </PickerTrigger>
       {isOpen && (
-        <PickerPopover $position={position} role="listbox" aria-label="Choose a reaction">
+        <PickerPopover $position={position} role='listbox' aria-label='Choose a reaction'>
           {QUICK_REACTIONS.map(emoji => (
             <EmojiButton
               key={emoji}
               onClick={() => handleSelect(emoji)}
-              role="option"
+              role='option'
               aria-label={`React with ${emoji}`}
             >
               {emoji}

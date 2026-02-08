@@ -28,7 +28,10 @@ type ReadReceiptIndicatorProps = {
   readCount?: number;
 };
 
-const statusIcons: Record<NonNullable<Message['status']>, { icon: string; filled: boolean; label: string }> = {
+const statusIcons: Record<
+  NonNullable<Message['status']>,
+  { icon: string; filled: boolean; label: string }
+> = {
   sending: { icon: '\u25CB', filled: false, label: 'Sending' },
   sent: { icon: '\u2713', filled: false, label: 'Sent' },
   delivered: { icon: '\u2713\u2713', filled: false, label: 'Delivered' },

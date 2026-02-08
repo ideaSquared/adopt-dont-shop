@@ -177,7 +177,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
                   reactions: (event.reactions || []).map(r => ({
                     userId: r.userId ?? (r as unknown as { user_id: string }).user_id,
                     emoji: r.emoji,
-                    createdAt: r.createdAt ?? (r as unknown as { created_at: string }).created_at ?? new Date().toISOString(),
+                    createdAt:
+                      r.createdAt ??
+                      (r as unknown as { created_at: string }).created_at ??
+                      new Date().toISOString(),
                   })),
                 }
               : msg

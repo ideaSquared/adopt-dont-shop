@@ -27,7 +27,12 @@ interface MessageItemProps {
   onToggleReaction?: (messageId: string, emoji: string) => void;
 }
 
-export function MessageItemComponent({ message, isOwn, currentUserId, onToggleReaction }: MessageItemProps) {
+export function MessageItemComponent({
+  message,
+  isOwn,
+  currentUserId,
+  onToggleReaction,
+}: MessageItemProps) {
   let initials = '';
   if (!isOwn) {
     if (message.senderName) {

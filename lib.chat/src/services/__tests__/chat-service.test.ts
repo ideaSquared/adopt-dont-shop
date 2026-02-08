@@ -543,7 +543,9 @@ describe('ChatService', () => {
         messageId: 'msg-123',
         emoji: '\u{1F44D}',
         userId: 'user-456',
-        reactions: [{ userId: 'user-456', emoji: '\u{1F44D}', createdAt: new Date().toISOString() }],
+        reactions: [
+          { userId: 'user-456', emoji: '\u{1F44D}', createdAt: new Date().toISOString() },
+        ],
       });
     });
 
@@ -608,9 +610,7 @@ describe('ChatService', () => {
 
       service.updateConfig({ apiUrl: 'http://localhost:5000' });
 
-      await expect(
-        service.addReaction('conv-123', 'msg-123', '\u{1F44D}')
-      ).resolves.not.toThrow();
+      await expect(service.addReaction('conv-123', 'msg-123', '\u{1F44D}')).resolves.not.toThrow();
 
       expect(global.fetch).toHaveBeenCalledWith(
         'http://localhost:5000/api/v1/chats/conv-123/messages/msg-123/reactions',
@@ -653,9 +653,9 @@ describe('ChatService', () => {
 
       service.updateConfig({ apiUrl: 'http://localhost:5000' });
 
-      await expect(
-        service.addReaction('conv-123', 'msg-123', '\u{1F44D}')
-      ).rejects.toThrow('HTTP 403: Forbidden');
+      await expect(service.addReaction('conv-123', 'msg-123', '\u{1F44D}')).rejects.toThrow(
+        'HTTP 403: Forbidden'
+      );
     });
 
     it('should throw error when removing reaction fails', async () => {
@@ -667,9 +667,9 @@ describe('ChatService', () => {
 
       service.updateConfig({ apiUrl: 'http://localhost:5000' });
 
-      await expect(
-        service.removeReaction('conv-123', 'msg-123', '\u{1F44D}')
-      ).rejects.toThrow('HTTP 404: Not Found');
+      await expect(service.removeReaction('conv-123', 'msg-123', '\u{1F44D}')).rejects.toThrow(
+        'HTTP 404: Not Found'
+      );
     });
 
     it('should notify multiple reaction listeners', () => {
@@ -683,7 +683,9 @@ describe('ChatService', () => {
         messageId: 'msg-123',
         emoji: '\u{2764}\u{FE0F}',
         userId: 'user-456',
-        reactions: [{ userId: 'user-456', emoji: '\u{2764}\u{FE0F}', createdAt: new Date().toISOString() }],
+        reactions: [
+          { userId: 'user-456', emoji: '\u{2764}\u{FE0F}', createdAt: new Date().toISOString() },
+        ],
       };
 
       service.simulateReactionUpdate(event);

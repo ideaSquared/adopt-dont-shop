@@ -13,7 +13,9 @@ const PickerTrigger = styled.button<{ $isOwn: boolean }>`
   cursor: pointer;
   font-size: 1rem;
   opacity: 0;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
   color: ${props => props.theme.text.secondary};
 
   &:hover {
@@ -68,7 +70,14 @@ const EmojiButton = styled.button`
   }
 `;
 
-const QUICK_REACTIONS = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F622}', '\u{1F44F}', '\u{1F525}'];
+const QUICK_REACTIONS = [
+  '\u{1F44D}',
+  '\u{2764}\u{FE0F}',
+  '\u{1F602}',
+  '\u{1F622}',
+  '\u{1F44F}',
+  '\u{1F525}',
+];
 
 type ReactionPickerProps = {
   isOwn: boolean;
