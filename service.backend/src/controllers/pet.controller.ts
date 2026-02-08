@@ -180,12 +180,24 @@ export class PetController {
       .withMessage('Gender must be male, female, or unknown'),
     query('sortBy')
       .optional()
-      .isIn(['name', 'age_years', 'created_at', 'adoption_fee'])
+      .isIn(['name', 'age_years', 'created_at', 'adoption_fee', 'distance'])
       .withMessage('Invalid sort field'),
     query('sortOrder')
       .optional()
       .isIn(['ASC', 'DESC'])
       .withMessage('Sort order must be ASC or DESC'),
+    query('lat')
+      .optional()
+      .isFloat({ min: -90, max: 90 })
+      .withMessage('Latitude must be between -90 and 90'),
+    query('lng')
+      .optional()
+      .isFloat({ min: -180, max: 180 })
+      .withMessage('Longitude must be between -180 and 180'),
+    query('maxDistance')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Max distance must be a positive number'),
   ];
 
   // Search pets with filters and pagination
@@ -240,6 +252,11 @@ export class PetController {
         adoptionFeeMax: req.query.adoptionFeeMax
           ? parseFloat(req.query.adoptionFeeMax as string)
           : undefined,
+        latitude: req.query.lat ? parseFloat(req.query.lat as string) : undefined,
+        longitude: req.query.lng ? parseFloat(req.query.lng as string) : undefined,
+        maxDistance: req.query.maxDistance
+          ? parseFloat(req.query.maxDistance as string)
+          : undefined,
       };
 
       // If user is authenticated and is rescue staff, and no specific rescueId is provided,
@@ -278,9 +295,20 @@ export class PetController {
 
       const result = await this.petService.searchPets(filters, options);
 
+      // Map pets to include distance field from computed column
+      const petsData = result.pets.map(pet => {
+        const petJson = pet.toJSON ? pet.toJSON() : pet;
+        const rawPet = pet as unknown as Record<string, unknown>;
+        const distance = rawPet.distance !== undefined ? Number(rawPet.distance) : undefined;
+        if (distance !== undefined && !isNaN(distance)) {
+          return { ...petJson, distance: Math.round(distance * 10) / 10 };
+        }
+        return petJson;
+      });
+
       res.status(200).json({
         success: true,
-        data: result.pets,
+        data: petsData,
         meta: {
           total: result.total,
           page: result.page,

@@ -78,8 +78,19 @@ export class PetsService {
         age: 'age_years',
         age_years: 'age_years',
         name: 'name',
+        distance: 'distance',
       };
       apiFilters.sortBy = sortByMapping[filters.sortBy] || filters.sortBy;
+    }
+
+    // Map location coordinates to backend query params
+    if (filters.latitude !== undefined) {
+      apiFilters.lat = filters.latitude;
+      delete apiFilters.latitude;
+    }
+    if (filters.longitude !== undefined) {
+      apiFilters.lng = filters.longitude;
+      delete apiFilters.longitude;
     }
 
     // Map filter field names to backend format

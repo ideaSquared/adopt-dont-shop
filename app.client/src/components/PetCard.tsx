@@ -397,8 +397,7 @@ export const PetCard: React.FC<PetCardProps> = ({
         {pet.rescue_id && (
           <RescueInfo>
             Rescue ID: {pet.rescue_id}
-            {pet.location &&
-              ` • Location: ${pet.location.coordinates[1]}, ${pet.location.coordinates[0]}`}
+            {pet.distance !== undefined && ` • ${pet.distance} mi away`}
           </RescueInfo>
         )}
 

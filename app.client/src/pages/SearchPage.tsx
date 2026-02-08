@@ -1,5 +1,6 @@
 import { PetCard } from '@/components/PetCard';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService, PaginatedResponse, Pet, PetSearchFilters } from '@/services';
@@ -153,6 +154,42 @@ const Pagination = styled.div`
   }
 `;
 
+const LocationFilterRow = styled.div`
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const LocationButton = styled(Button)`
+  white-space: nowrap;
+  min-height: 42px;
+`;
+
+const LocationStatus = styled.div<{ $variant?: 'success' | 'error' | 'info' }>`
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  color: ${props =>
+    props.$variant === 'success'
+      ? props.theme.text.primary
+      : props.$variant === 'error'
+        ? '#dc3545'
+        : props.theme.text.secondary};
+`;
+
+const DISTANCE_OPTIONS = [
+  { value: '', label: 'Any Distance' },
+  { value: '10', label: 'Within 10 miles' },
+  { value: '25', label: 'Within 25 miles' },
+  { value: '50', label: 'Within 50 miles' },
+  { value: '100', label: 'Within 100 miles' },
+  { value: '250', label: 'Within 250 miles' },
+];
+
 const PET_TYPES = [
   { value: '', label: 'All Types' },
   { value: 'dog', label: 'Dogs' },
@@ -193,6 +230,7 @@ const PET_STATUS = [
 const SORT_OPTIONS = [
   { value: 'created_at:desc', label: 'Newest First' },
   { value: 'created_at:asc', label: 'Oldest First' },
+  { value: 'distance:asc', label: 'Distance: Nearest First' },
   { value: 'name:asc', label: 'Name A-Z' },
   { value: 'name:desc', label: 'Name Z-A' },
   { value: 'age_years:asc', label: 'Youngest First' },
@@ -211,6 +249,7 @@ export const SearchPage: React.FC = () => {
   const { logEvent } = useStatsig();
   const { trackPageView, trackEvent } = useAnalytics();
   const { value: advancedFiltersEnabled } = useFeatureGate('advanced_search_filters');
+  const geolocation = useGeolocation();
 
   // Search filters state
   const [filters, setFilters] = useState<PetSearchFilters>({
@@ -278,6 +317,12 @@ export const SearchPage: React.FC = () => {
       // Add search query as general search parameter
       if (searchQuery.trim()) {
         searchFilters.search = searchQuery.trim();
+      }
+
+      // Add user location coordinates for distance-based search
+      if (geolocation.hasLocation) {
+        searchFilters.latitude = geolocation.latitude;
+        searchFilters.longitude = geolocation.longitude;
       }
 
       // Track search execution with new analytics service
@@ -361,7 +406,14 @@ export const SearchPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [filters, searchQuery, logEvent]);
+  }, [
+    filters,
+    searchQuery,
+    logEvent,
+    geolocation.hasLocation,
+    geolocation.latitude,
+    geolocation.longitude,
+  ]);
   // Update URL search params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
@@ -441,6 +493,7 @@ export const SearchPage: React.FC = () => {
       sortOrder: 'desc',
     });
     setSearchQuery('');
+    geolocation.clearLocation();
   };
 
   const hasActiveFilters = Boolean(
@@ -452,6 +505,8 @@ export const SearchPage: React.FC = () => {
       filters.ageGroup ||
       filters.status ||
       filters.location ||
+      filters.maxDistance ||
+      geolocation.hasLocation ||
       searchQuery
   );
 
@@ -516,7 +571,55 @@ export const SearchPage: React.FC = () => {
             onChange={e => handleFilterChange('location', e.target.value)}
             placeholder='City, State, or ZIP code'
           />
+
+          <SelectInput
+            label='Distance'
+            value={filters.maxDistance?.toString() || ''}
+            onChange={(value: string | string[]) => {
+              const dist = value as string;
+              setFilters(prev => ({
+                ...prev,
+                maxDistance: dist ? parseInt(dist, 10) : undefined,
+                page: 1,
+              }));
+            }}
+            options={DISTANCE_OPTIONS}
+          />
         </FiltersGrid>
+
+        <LocationFilterRow>
+          <LocationButton
+            variant='outline'
+            size='sm'
+            onClick={geolocation.requestLocation}
+            disabled={geolocation.status === 'loading'}
+          >
+            {geolocation.status === 'loading'
+              ? 'Detecting...'
+              : geolocation.hasLocation
+                ? 'Update My Location'
+                : 'Use My Location'}
+          </LocationButton>
+          {geolocation.hasLocation && (
+            <LocationButton variant='outline' size='sm' onClick={geolocation.clearLocation}>
+              Clear Location
+            </LocationButton>
+          )}
+          {geolocation.hasLocation && (
+            <LocationStatus $variant='success'>
+              Location detected - distance search enabled
+            </LocationStatus>
+          )}
+          {geolocation.status === 'denied' && (
+            <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
+          )}
+          {geolocation.status === 'error' && (
+            <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
+          )}
+          {geolocation.status === 'unavailable' && (
+            <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
+          )}
+        </LocationFilterRow>
 
         <FilterActions>
           {hasActiveFilters && (
