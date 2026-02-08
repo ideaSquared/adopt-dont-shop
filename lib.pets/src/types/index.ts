@@ -69,6 +69,9 @@ export interface Pet {
   updated_at: string;
   deleted_at?: string;
 
+  // Computed distance from user location (in miles, when location search is active)
+  distance?: number;
+
   // Rescue information (joined from rescue table)
   rescue?: {
     name: string;
@@ -110,6 +113,8 @@ export interface PetSearchFilters {
   gender?: string;
   status?: string;
   location?: string;
+  latitude?: number;
+  longitude?: number;
   maxDistance?: number;
   page?: number;
   limit?: number;

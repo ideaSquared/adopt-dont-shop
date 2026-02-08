@@ -5,6 +5,7 @@ import UserFavorite from '../models/UserFavorite';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../models/Report';
 import sequelize from '../sequelize';
 import { SequelizeOperatorFilter } from '../types/database';
+import { isValidCoordinates, milesToKilometers } from '../utils/geolocation';
 import {
   BreedStats,
   BulkPetOperation,
@@ -69,6 +70,9 @@ export class PetService {
         availableUntil,
         tags,
         location,
+        latitude,
+        longitude,
+        maxDistance,
       } = filters;
 
       const {
@@ -208,22 +212,78 @@ export class PetService {
         };
       }
 
+      // Distance-based filtering (PostgreSQL with PostGIS only)
+      const hasValidLocation =
+        latitude !== undefined &&
+        longitude !== undefined &&
+        isValidCoordinates(latitude, longitude);
+
+      const isPostgres = sequelize.getDialect() === 'postgres';
+
+      if (hasValidLocation && isPostgres && maxDistance !== undefined && maxDistance > 0) {
+        const radiusKm = milesToKilometers(maxDistance);
+        const radiusMeters = radiusKm * 1000;
+
+        // ST_DWithin filters pets within the given radius
+        whereConditions = {
+          ...whereConditions,
+          [Op.and]: [
+            ...(Array.isArray((whereConditions as Record<symbol, unknown>)[Op.and])
+              ? ((whereConditions as Record<symbol, unknown>)[Op.and] as WhereOptions[])
+              : []),
+            literal(
+              `ST_DWithin(location, ST_SetSRID(ST_MakePoint(${Number(longitude)}, ${Number(latitude)}), 4326)::geography, ${Number(radiusMeters)})`
+            ),
+          ],
+        };
+      }
+
       // Calculate offset
       const offset = (page - 1) * limit;
 
       // Build order clause
-      const orderClause: Array<[string, 'ASC' | 'DESC']> = [];
-      orderClause.push(['featured', 'DESC']);
-      orderClause.push(['priority_listing', 'DESC']);
-      orderClause.push([sortBy, sortOrder]);
+      const orderClause: Array<[string, 'ASC' | 'DESC'] | ReturnType<typeof literal>> = [];
+      orderClause.push(['featured', 'DESC'] as [string, 'ASC' | 'DESC']);
+      orderClause.push(['priority_listing', 'DESC'] as [string, 'ASC' | 'DESC']);
+
+      // Distance-based sorting
+      if (sortBy === 'distance' && hasValidLocation && isPostgres) {
+        orderClause.push(
+          literal(
+            `ST_Distance(location, ST_SetSRID(ST_MakePoint(${Number(longitude)}, ${Number(latitude)}), 4326)::geography) ASC`
+          )
+        );
+      } else {
+        orderClause.push([sortBy, sortOrder] as [string, 'ASC' | 'DESC']);
+      }
+
+      // Build attributes - include computed distance if location provided
+      const attributes: string[] | { include: ReturnType<typeof literal>[] } | undefined =
+        hasValidLocation && isPostgres
+          ? {
+              include: [
+                literal(
+                  `ST_Distance(location, ST_SetSRID(ST_MakePoint(${Number(longitude)}, ${Number(latitude)}), 4326)::geography) / 1609.344 AS distance`
+                ),
+              ],
+            }
+          : undefined;
 
       // Execute query
-      const { rows: pets, count: total } = await Pet.findAndCountAll({
+      const queryOptions: Record<string, unknown> = {
         where: whereConditions,
         order: orderClause,
         limit,
         offset,
-      });
+      };
+
+      if (attributes) {
+        queryOptions.attributes = {
+          include: (attributes as { include: ReturnType<typeof literal>[] }).include,
+        };
+      }
+
+      const { rows: pets, count: total } = await Pet.findAndCountAll(queryOptions);
 
       const totalPages = Math.ceil(total / limit);
 

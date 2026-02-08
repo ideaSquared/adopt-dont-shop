@@ -48,6 +48,9 @@ export interface PetSearchFilters {
     longitude: number;
     radius: number; // in kilometers
   };
+  latitude?: number;
+  longitude?: number;
+  maxDistance?: number; // in miles
 }
 
 export interface PetSearchOptions extends PaginationOptions {
