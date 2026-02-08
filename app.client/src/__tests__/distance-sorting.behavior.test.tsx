@@ -49,8 +49,12 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   }),
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   AuthService: class MockAuthService {
-    getToken() { return null; }
-    isAuthenticated() { return false; }
+    getToken() {
+      return null;
+    }
+    isAuthenticated() {
+      return false;
+    }
   },
 }));
 

@@ -41,17 +41,15 @@ const mockGeolocationSuccess = (latitude: number, longitude: number) => {
 };
 
 const mockGeolocationDenied = () => {
-  const getCurrentPosition = vi.fn(
-    (_success: PositionCallback, error: PositionErrorCallback) => {
-      error({
-        code: 1, // PERMISSION_DENIED
-        message: 'User denied geolocation',
-        PERMISSION_DENIED: 1,
-        POSITION_UNAVAILABLE: 2,
-        TIMEOUT: 3,
-      });
-    }
-  );
+  const getCurrentPosition = vi.fn((_success: PositionCallback, error: PositionErrorCallback) => {
+    error({
+      code: 1, // PERMISSION_DENIED
+      message: 'User denied geolocation',
+      PERMISSION_DENIED: 1,
+      POSITION_UNAVAILABLE: 2,
+      TIMEOUT: 3,
+    });
+  });
 
   Object.defineProperty(navigator, 'geolocation', {
     value: { getCurrentPosition },

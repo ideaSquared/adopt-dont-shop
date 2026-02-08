@@ -406,7 +406,14 @@ export const SearchPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [filters, searchQuery, logEvent, geolocation.hasLocation, geolocation.latitude, geolocation.longitude]);
+  }, [
+    filters,
+    searchQuery,
+    logEvent,
+    geolocation.hasLocation,
+    geolocation.latitude,
+    geolocation.longitude,
+  ]);
   // Update URL search params when filters change
   useEffect(() => {
     const params = new URLSearchParams();

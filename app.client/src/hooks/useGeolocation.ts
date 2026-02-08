@@ -95,8 +95,7 @@ export const useGeolocation = () => {
               ? 'Location information is unavailable.'
               : 'Location request timed out.';
 
-        const status: GeolocationStatus =
-          err.code === err.PERMISSION_DENIED ? 'denied' : 'error';
+        const status: GeolocationStatus = err.code === err.PERMISSION_DENIED ? 'denied' : 'error';
 
         setState(prev => ({
           ...prev,

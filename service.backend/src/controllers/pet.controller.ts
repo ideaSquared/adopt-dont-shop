@@ -254,7 +254,9 @@ export class PetController {
           : undefined,
         latitude: req.query.lat ? parseFloat(req.query.lat as string) : undefined,
         longitude: req.query.lng ? parseFloat(req.query.lng as string) : undefined,
-        maxDistance: req.query.maxDistance ? parseFloat(req.query.maxDistance as string) : undefined,
+        maxDistance: req.query.maxDistance
+          ? parseFloat(req.query.maxDistance as string)
+          : undefined,
       };
 
       // If user is authenticated and is rescue staff, and no specific rescueId is provided,
