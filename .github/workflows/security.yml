@@ -3,8 +3,24 @@ name: Security
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'service.backend/**'
+      - 'app.client/**'
+      - 'app.admin/**'
+      - 'app.rescue/**'
+      - 'lib.*/**'
+      - 'package.json'
+      - 'package-lock.json'
   pull_request:
     branches: [main, develop]
+    paths:
+      - 'service.backend/**'
+      - 'app.client/**'
+      - 'app.admin/**'
+      - 'app.rescue/**'
+      - 'lib.*/**'
+      - 'package.json'
+      - 'package-lock.json'
   schedule:
     - cron: '0 6 * * 1'
 

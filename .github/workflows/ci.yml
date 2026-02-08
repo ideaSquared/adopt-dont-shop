@@ -11,8 +11,46 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'service.backend/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig.json'
+              - 'turbo.json'
+              - 'eslint-config-base/**'
+              - 'eslint-config-node/**'
+            frontend:
+              - 'app.client/**'
+              - 'app.admin/**'
+              - 'app.rescue/**'
+              - 'lib.*/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig.json'
+              - 'turbo.json'
+              - 'vite.shared.config.ts'
+              - 'eslint-config-base/**'
+              - 'eslint-config-react/**'
+
   test-backend:
     name: Backend Tests
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
 
     services:
@@ -60,6 +98,8 @@ jobs:
 
   test-frontend-apps:
     name: Frontend App Tests (Vitest)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
 
     strategy:
@@ -95,84 +135,3 @@ jobs:
         working-directory: ${{ matrix.app }}
         env:
           CI: true
-
-  # Temporarily disabled frontend tests
-  # test-frontend:
-  #   name: Frontend Tests
-  #   runs-on: ubuntu-latest
-
-  #   strategy:
-  #     matrix:
-  #       app: [app.admin, app.rescue, lib.components]
-
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '20'
-
-  #     - name: Install root dependencies
-  #       run: npm install
-
-  #     - name: Build components library first (if not already built)
-  #       run: npm run build
-  #       working-directory: lib.components
-
-  #     - name: Install dependencies
-  #       run: npm install
-  #       working-directory: ${{ matrix.app }}
-
-  #     - name: Lint code
-  #       run: npm run lint
-  #       working-directory: ${{ matrix.app }}
-
-  #     - name: Run tests
-  #       run: npm test -- --passWithNoTests
-  #       working-directory: ${{ matrix.app }}
-
-  #     - name: Build application
-  #       run: npm run build
-  #       working-directory: ${{ matrix.app }}
-  #       env:
-  #         CI: true
-
-  # test-client-app:
-  #   name: Client App Tests
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '20'
-
-  #     - name: Install root dependencies
-  #       run: npm install
-
-  #     - name: Build components library
-  #       run: npm run build
-  #       working-directory: lib.components
-
-  #     - name: Install client dependencies
-  #       run: npm install
-  #       working-directory: app.client
-
-  #     - name: Lint code
-  #       run: npm run lint
-  #       working-directory: app.client
-
-  #     - name: Run tests
-  #       run: npm test -- --passWithNoTests
-  #       working-directory: app.client
-
-  #     - name: Build application
-  #       run: npm run build
-  #       working-directory: app.client
-  #       env:
-  #         CI: true

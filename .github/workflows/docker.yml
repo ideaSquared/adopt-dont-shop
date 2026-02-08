@@ -29,9 +29,6 @@ env:
   COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
-  # ============================================================================
-  # Build Backend Image
-  # ============================================================================
   build-backend:
     name: Build Backend Image
     runs-on: ubuntu-latest
@@ -82,15 +79,11 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
-      # Temp fix for cache growth
-      - name: Move cache
+      - name: Rotate cache
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-  # ============================================================================
-  # Build Frontend App Images
-  # ============================================================================
   build-apps:
     name: Build Frontend Apps
     runs-on: ubuntu-latest
@@ -146,15 +139,11 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.app }}
           cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.app }}-new,mode=max
 
-      # Temp fix for cache growth
-      - name: Move cache
+      - name: Rotate cache
         run: |
           rm -rf /tmp/.buildx-cache-${{ matrix.app }}
           mv /tmp/.buildx-cache-${{ matrix.app }}-new /tmp/.buildx-cache-${{ matrix.app }}
 
-  # ============================================================================
-  # Test Docker Compose Stack
-  # ============================================================================
   test-compose:
     name: Test Docker Compose Stack
     runs-on: ubuntu-latest
@@ -193,25 +182,19 @@ jobs:
           CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
           EOF
 
-      - name: Build and start core services first
+      - name: Build and start core services
         run: |
           docker compose up -d database redis
           echo "Waiting for database to be ready..."
           timeout 60 bash -c 'until docker compose exec -T database pg_isready -U postgres; do sleep 2; done'
-        env:
-          DOCKER_BUILDKIT: 1
-          COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Build and start backend service
         run: |
           docker compose up -d service-backend
           echo "Waiting for backend to be ready..."
           timeout 90 bash -c 'until curl -f http://localhost:5000/health; do sleep 3; done'
-        env:
-          DOCKER_BUILDKIT: 1
-          COMPOSE_DOCKER_CLI_BUILD: 1
 
-      - name: Build and start frontend apps (one at a time to avoid resource issues)
+      - name: Build and start frontend apps
         run: |
           echo "Starting app-client..."
           docker compose up -d app-client
@@ -222,9 +205,6 @@ jobs:
           echo "Starting app-rescue..."
           docker compose up -d app-rescue
           sleep 10
-        env:
-          DOCKER_BUILDKIT: 1
-          COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Wait for all services to be ready
         run: |
@@ -259,9 +239,6 @@ jobs:
         if: always()
         run: docker compose down -v
 
-  # ============================================================================
-  # Security Scanning (Optional - requires Trivy)
-  # ============================================================================
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
