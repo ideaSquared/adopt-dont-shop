@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { useAuth, authService } from '@adopt-dont-shop/lib.auth';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import { FiShield, FiSave, FiRefreshCw, FiInfo } from 'react-icons/fi';
 import {
@@ -191,7 +191,7 @@ const StatusBar = styled.div`
 `;
 
 const FieldPermissions: React.FC = () => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [selectedResource, setSelectedResource] = useState<(typeof RESOURCES)[number]>('users');
   const [selectedRole, setSelectedRole] = useState<(typeof ROLES)[number]>('admin');
   const [defaults, setDefaults] = useState<AccessMap>({});
@@ -207,6 +207,7 @@ const FieldPermissions: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      const token = authService.getToken();
       const [defaultsRes, overridesRes] = await Promise.all([
         fetch(`${apiBase}/api/v1/field-permissions/defaults/${selectedResource}/${selectedRole}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -232,13 +233,13 @@ const FieldPermissions: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [apiBase, selectedResource, selectedRole, token]);
+  }, [apiBase, selectedResource, selectedRole]);
 
   useEffect(() => {
-    if (token) {
+    if (isAuthenticated) {
       fetchData();
     }
-  }, [fetchData, token]);
+  }, [fetchData, isAuthenticated]);
 
   const getEffectiveLevel = (fieldName: string): FieldAccessLevel => {
     if (pendingChanges[fieldName] !== undefined) {
@@ -266,6 +267,7 @@ const FieldPermissions: React.FC = () => {
     setError(null);
 
     try {
+      const token = authService.getToken();
       const bulkOverrides = Object.entries(pendingChanges).map(([fieldName, accessLevel]) => ({
         resource: selectedResource,
         fieldName,
@@ -302,7 +304,7 @@ const FieldPermissions: React.FC = () => {
       <PageHeader>
         <HeaderLeft>
           <FiShield size={24} />
-          <Heading level={1}>Field Permissions</Heading>
+          <Heading level="h1">Field Permissions</Heading>
         </HeaderLeft>
         <HeaderActions>
           <Button variant='secondary' onClick={fetchData} disabled={loading}>
