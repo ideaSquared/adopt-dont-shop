@@ -304,7 +304,7 @@ const FieldPermissions: React.FC = () => {
       <PageHeader>
         <HeaderLeft>
           <FiShield size={24} />
-          <Heading level="h1">Field Permissions</Heading>
+          <Heading level='h1'>Field Permissions</Heading>
         </HeaderLeft>
         <HeaderActions>
           <Button variant='secondary' onClick={fetchData} disabled={loading}>
