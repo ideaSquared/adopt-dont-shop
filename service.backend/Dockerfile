@@ -47,8 +47,21 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
+# Copy required shared libraries
+COPY lib.permissions/ lib.permissions/
+COPY lib.api/ lib.api/
+
 # Copy backend service
 COPY service.backend/ service.backend/
+
+# Build shared libraries first
+WORKDIR /app/lib.api
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline && npm run build
+
+WORKDIR /app/lib.permissions
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline && npm run build
 
 WORKDIR /app/service.backend
 
@@ -75,8 +88,21 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
+# Copy required shared libraries
+COPY lib.permissions/ lib.permissions/
+COPY lib.api/ lib.api/
+
 # Copy backend service
 COPY service.backend/ service.backend/
+
+# Build shared libraries first (required for backend TypeScript compilation)
+WORKDIR /app/lib.api
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline && npm run build
+
+WORKDIR /app/lib.permissions
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline && npm run build
 
 WORKDIR /app/service.backend
 
