@@ -13,7 +13,10 @@ export class FieldPermissionService {
   static async getByResource(resource: FieldPermissionResource): Promise<FieldPermission[]> {
     return FieldPermission.findAll({
       where: { resource },
-      order: [['fieldName', 'ASC'], ['role', 'ASC']],
+      order: [
+        ['fieldName', 'ASC'],
+        ['role', 'ASC'],
+      ],
     });
   }
 
@@ -170,7 +173,12 @@ export class FieldPermissionService {
         },
       });
 
-      logger.info('Field permission overrides bulk deleted', { resource, role, deleted, deletedBy });
+      logger.info('Field permission overrides bulk deleted', {
+        resource,
+        role,
+        deleted,
+        deletedBy,
+      });
     }
 
     return deleted;

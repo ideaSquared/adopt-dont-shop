@@ -48,7 +48,7 @@ const getOverrides = async (
       where: { resource, role },
     });
 
-    const overrides = records.map((r) => ({
+    const overrides = records.map(r => ({
       fieldName: r.fieldName,
       accessLevel: r.accessLevel,
     }));
@@ -189,7 +189,7 @@ export const fieldMask = (
               const data = body.data;
 
               if (Array.isArray(data)) {
-                const maskedItems = data.map((item) => {
+                const maskedItems = data.map(item => {
                   if (item && typeof item === 'object') {
                     return maskResponseFields(item as Record<string, unknown>, accessMap, 'read');
                   }
@@ -197,13 +197,10 @@ export const fieldMask = (
                 });
 
                 if (audit) {
-                  const allFields = data.length > 0
-                    ? Object.keys(data[0] as Record<string, unknown>)
-                    : [];
-                  const visibleFields = maskedItems.length > 0
-                    ? Object.keys(maskedItems[0])
-                    : [];
-                  const maskedFields = allFields.filter((f) => !visibleFields.includes(f));
+                  const allFields =
+                    data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [];
+                  const visibleFields = maskedItems.length > 0 ? Object.keys(maskedItems[0]) : [];
+                  const maskedFields = allFields.filter(f => !visibleFields.includes(f));
 
                   await logFieldAccess(
                     req.user?.userId ?? 'unknown',
@@ -230,7 +227,7 @@ export const fieldMask = (
                 if (audit) {
                   const allFields = Object.keys(data as Record<string, unknown>);
                   const visibleFields = Object.keys(maskedData);
-                  const maskedFields = allFields.filter((f) => !visibleFields.includes(f));
+                  const maskedFields = allFields.filter(f => !visibleFields.includes(f));
 
                   await logFieldAccess(
                     req.user?.userId ?? 'unknown',
@@ -303,7 +300,7 @@ export const fieldWriteGuard = (
     try {
       const accessMap = await getEffectiveAccessMap(resource, role);
       const requestedFields = Object.keys(body);
-      const blockedFields = requestedFields.filter((field) => {
+      const blockedFields = requestedFields.filter(field => {
         const level = accessMap[field];
         return level !== 'write';
       });
@@ -322,7 +319,7 @@ export const fieldWriteGuard = (
             req.user.userId,
             resource,
             req.params.id || '',
-            requestedFields.filter((f) => !blockedFields.includes(f)),
+            requestedFields.filter(f => !blockedFields.includes(f)),
             blockedFields,
             'write',
             req.ip,

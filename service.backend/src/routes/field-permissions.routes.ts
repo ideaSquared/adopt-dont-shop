@@ -8,16 +8,10 @@ import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 // Model enums are used for service-layer type compatibility within the backend.
 // These enums mirror the canonical types in @adopt-dont-shop/lib.permissions.
-import {
-  FieldAccessLevel,
-  FieldPermissionResource,
-} from '../models/FieldPermission';
+import { FieldAccessLevel, FieldPermissionResource } from '../models/FieldPermission';
 // lib.permissions provides the default configurations and is the source of truth
 // for field permission business logic.
-import {
-  defaultFieldPermissions,
-  getFieldAccessMap,
-} from '@adopt-dont-shop/lib.permissions';
+import { defaultFieldPermissions, getFieldAccessMap } from '@adopt-dont-shop/lib.permissions';
 
 const router = Router();
 
@@ -49,8 +43,12 @@ router.get(
   authenticateToken,
   requireRole(UserType.ADMIN),
   [
-    param('resource').isIn(validResources).withMessage(`Resource must be one of: ${validResources.join(', ')}`),
-    param('role').isIn(validRoles).withMessage(`Role must be one of: ${validRoles.join(', ')}`),
+    param('resource')
+      .isIn(validResources)
+      .withMessage(`Resource must be one of: ${validResources.join(', ')}`),
+    param('role')
+      .isIn(validRoles)
+      .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
   ],
   (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -61,10 +59,7 @@ router.get(
 
     const { resource, role } = req.params;
     const userRole = role as 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
-    const accessMap = getFieldAccessMap(
-      resource as keyof typeof defaultFieldPermissions,
-      userRole
-    );
+    const accessMap = getFieldAccessMap(resource as keyof typeof defaultFieldPermissions, userRole);
     res.json({ success: true, data: accessMap });
   }
 );
@@ -79,7 +74,9 @@ router.get(
   authenticateToken,
   requireRole(UserType.ADMIN),
   [
-    param('resource').isIn(validResources).withMessage(`Resource must be one of: ${validResources.join(', ')}`),
+    param('resource')
+      .isIn(validResources)
+      .withMessage(`Resource must be one of: ${validResources.join(', ')}`),
   ],
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -110,8 +107,12 @@ router.get(
   authenticateToken,
   requireRole(UserType.ADMIN),
   [
-    param('resource').isIn(validResources).withMessage(`Resource must be one of: ${validResources.join(', ')}`),
-    param('role').isIn(validRoles).withMessage(`Role must be one of: ${validRoles.join(', ')}`),
+    param('resource')
+      .isIn(validResources)
+      .withMessage(`Resource must be one of: ${validResources.join(', ')}`),
+    param('role')
+      .isIn(validRoles)
+      .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
   ],
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -143,10 +144,16 @@ router.post(
   authenticateToken,
   requireRole(UserType.ADMIN),
   [
-    body('resource').isIn(validResources).withMessage(`Resource must be one of: ${validResources.join(', ')}`),
+    body('resource')
+      .isIn(validResources)
+      .withMessage(`Resource must be one of: ${validResources.join(', ')}`),
     body('fieldName').isString().trim().notEmpty().withMessage('Field name is required'),
-    body('role').isIn(validRoles).withMessage(`Role must be one of: ${validRoles.join(', ')}`),
-    body('accessLevel').isIn(validAccessLevels).withMessage(`Access level must be one of: ${validAccessLevels.join(', ')}`),
+    body('role')
+      .isIn(validRoles)
+      .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
+    body('accessLevel')
+      .isIn(validAccessLevels)
+      .withMessage(`Access level must be one of: ${validAccessLevels.join(', ')}`),
   ],
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -186,10 +193,20 @@ router.post(
   requireRole(UserType.ADMIN),
   [
     body('overrides').isArray({ min: 1 }).withMessage('Overrides must be a non-empty array'),
-    body('overrides.*.resource').isIn(validResources).withMessage(`Resource must be one of: ${validResources.join(', ')}`),
-    body('overrides.*.fieldName').isString().trim().notEmpty().withMessage('Field name is required'),
-    body('overrides.*.role').isIn(validRoles).withMessage(`Role must be one of: ${validRoles.join(', ')}`),
-    body('overrides.*.accessLevel').isIn(validAccessLevels).withMessage(`Access level must be one of: ${validAccessLevels.join(', ')}`),
+    body('overrides.*.resource')
+      .isIn(validResources)
+      .withMessage(`Resource must be one of: ${validResources.join(', ')}`),
+    body('overrides.*.fieldName')
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage('Field name is required'),
+    body('overrides.*.role')
+      .isIn(validRoles)
+      .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
+    body('overrides.*.accessLevel')
+      .isIn(validAccessLevels)
+      .withMessage(`Access level must be one of: ${validAccessLevels.join(', ')}`),
   ],
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -219,8 +236,12 @@ router.delete(
   authenticateToken,
   requireRole(UserType.ADMIN),
   [
-    param('resource').isIn(validResources).withMessage(`Resource must be one of: ${validResources.join(', ')}`),
-    param('role').isIn(validRoles).withMessage(`Role must be one of: ${validRoles.join(', ')}`),
+    param('resource')
+      .isIn(validResources)
+      .withMessage(`Resource must be one of: ${validResources.join(', ')}`),
+    param('role')
+      .isIn(validRoles)
+      .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
     param('fieldName').isString().trim().notEmpty().withMessage('Field name is required'),
   ],
   async (req: AuthenticatedRequest, res: Response) => {
