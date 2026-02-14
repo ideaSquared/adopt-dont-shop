@@ -42,6 +42,7 @@ import supportTicketRoutes from './routes/supportTicket.routes';
 import userSupportRoutes from './routes/userSupport.routes';
 import moderationRoutes from './routes/moderation.routes';
 import userRoutes from './routes/user.routes';
+import fieldPermissionsRoutes from './routes/field-permissions.routes';
 
 // Import additional routes for PRD compliance
 import path from 'path';
@@ -222,6 +223,7 @@ app.use('/api/v1/admin/support', supportTicketRoutes); // Admin support ticket m
 app.use('/api/v1/admin/moderation', moderationRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/config', configRoutes);
+app.use('/api/v1/field-permissions', fieldPermissionsRoutes);
 
 // Simple health check (no dependencies)
 app.get('/api/v1/health/simple', (req, res) => {

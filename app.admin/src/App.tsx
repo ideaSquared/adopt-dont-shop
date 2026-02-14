@@ -20,6 +20,7 @@ import {
   Messages,
   Reports,
   AccountSettings,
+  FieldPermissions,
 } from './pages';
 
 const AdminApp: React.FC = () => {
@@ -104,6 +105,9 @@ const AdminApp: React.FC = () => {
             <Route path='/configuration/features' element={<Configuration />} />
             <Route path='/configuration/settings' element={<Configuration />} />
             <Route path='/configuration/questions' element={<Configuration />} />
+
+            {/* Field-Level Permissions */}
+            <Route path='/field-permissions' element={<FieldPermissions />} />
 
             {/* Audit & Monitoring */}
             <Route path='/audit' element={<Audit />} />
