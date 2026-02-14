@@ -63,9 +63,9 @@ const Tab = styled.button<{ $active: boolean }>`
   border: none;
   background: none;
   cursor: pointer;
-  font-weight: ${(props) => (props.$active ? '600' : '400')};
-  color: ${(props) => (props.$active ? '#2563eb' : '#6b7280')};
-  border-bottom: 2px solid ${(props) => (props.$active ? '#2563eb' : 'transparent')};
+  font-weight: ${props => (props.$active ? '600' : '400')};
+  color: ${props => (props.$active ? '#2563eb' : '#6b7280')};
+  border-bottom: 2px solid ${props => (props.$active ? '#2563eb' : 'transparent')};
   margin-bottom: -2px;
   text-transform: capitalize;
   transition: all 0.2s;
@@ -84,9 +84,9 @@ const RoleSelector = styled.div`
 const RoleChip = styled.button<{ $active: boolean }>`
   padding: 0.5rem 1rem;
   border-radius: 20px;
-  border: 1px solid ${(props) => (props.$active ? '#2563eb' : '#d1d5db')};
-  background: ${(props) => (props.$active ? '#2563eb' : 'white')};
-  color: ${(props) => (props.$active ? 'white' : '#374151')};
+  border: 1px solid ${props => (props.$active ? '#2563eb' : '#d1d5db')};
+  background: ${props => (props.$active ? '#2563eb' : 'white')};
+  color: ${props => (props.$active ? 'white' : '#374151')};
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
@@ -115,10 +115,10 @@ const TableHeader = styled.th`
 `;
 
 const TableRow = styled.tr<{ $modified?: boolean }>`
-  background: ${(props) => (props.$modified ? '#fffbeb' : 'transparent')};
+  background: ${props => (props.$modified ? '#fffbeb' : 'transparent')};
 
   &:hover {
-    background: ${(props) => (props.$modified ? '#fef3c7' : '#f9fafb')};
+    background: ${props => (props.$modified ? '#fef3c7' : '#f9fafb')};
   }
 `;
 
@@ -143,7 +143,7 @@ const AccessSelect = styled.select<{ $level: FieldAccessLevel }>`
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  background: ${(props) => {
+  background: ${props => {
     switch (props.$level) {
       case 'write':
         return '#dcfce7';
@@ -155,7 +155,7 @@ const AccessSelect = styled.select<{ $level: FieldAccessLevel }>`
         return 'white';
     }
   }};
-  color: ${(props) => {
+  color: ${props => {
     switch (props.$level) {
       case 'write':
         return '#166534';
@@ -192,8 +192,8 @@ const StatusBar = styled.div`
 
 const FieldPermissions: React.FC = () => {
   const { token } = useAuth();
-  const [selectedResource, setSelectedResource] = useState<typeof RESOURCES[number]>('users');
-  const [selectedRole, setSelectedRole] = useState<typeof ROLES[number]>('admin');
+  const [selectedResource, setSelectedResource] = useState<(typeof RESOURCES)[number]>('users');
+  const [selectedRole, setSelectedRole] = useState<(typeof ROLES)[number]>('admin');
   const [defaults, setDefaults] = useState<AccessMap>({});
   const [overrides, setOverrides] = useState<FieldPermissionRecord[]>([]);
   const [pendingChanges, setPendingChanges] = useState<Record<string, FieldAccessLevel>>({});
@@ -244,7 +244,7 @@ const FieldPermissions: React.FC = () => {
     if (pendingChanges[fieldName] !== undefined) {
       return pendingChanges[fieldName];
     }
-    const override = overrides.find((o) => o.fieldName === fieldName);
+    const override = overrides.find(o => o.fieldName === fieldName);
     if (override) {
       return override.accessLevel;
     }
@@ -252,11 +252,13 @@ const FieldPermissions: React.FC = () => {
   };
 
   const isOverridden = (fieldName: string): boolean => {
-    return overrides.some((o) => o.fieldName === fieldName) || pendingChanges[fieldName] !== undefined;
+    return (
+      overrides.some(o => o.fieldName === fieldName) || pendingChanges[fieldName] !== undefined
+    );
   };
 
   const handleChange = (fieldName: string, level: FieldAccessLevel) => {
-    setPendingChanges((prev) => ({ ...prev, [fieldName]: level }));
+    setPendingChanges(prev => ({ ...prev, [fieldName]: level }));
   };
 
   const handleSave = async () => {
@@ -321,16 +323,15 @@ const FieldPermissions: React.FC = () => {
         <div>
           <Text>
             Field permissions control which data fields are visible or editable for each role.
-            Changes here create overrides on top of the default configuration.
-            Fields set to <strong>none</strong> are completely hidden,{' '}
-            <strong>read</strong> fields are visible but not editable, and{' '}
-            <strong>write</strong> fields can be both viewed and modified.
+            Changes here create overrides on top of the default configuration. Fields set to{' '}
+            <strong>none</strong> are completely hidden, <strong>read</strong> fields are visible
+            but not editable, and <strong>write</strong> fields can be both viewed and modified.
           </Text>
         </div>
       </InfoBanner>
 
       <TabRow>
-        {RESOURCES.map((resource) => (
+        {RESOURCES.map(resource => (
           <Tab
             key={resource}
             $active={selectedResource === resource}
@@ -342,7 +343,7 @@ const FieldPermissions: React.FC = () => {
       </TabRow>
 
       <RoleSelector>
-        {ROLES.map((role) => (
+        {ROLES.map(role => (
           <RoleChip
             key={role}
             $active={selectedRole === role}
@@ -353,11 +354,7 @@ const FieldPermissions: React.FC = () => {
         ))}
       </RoleSelector>
 
-      {error && (
-        <StatusBar style={{ background: '#fee2e2', color: '#991b1b' }}>
-          {error}
-        </StatusBar>
-      )}
+      {error && <StatusBar style={{ background: '#fee2e2', color: '#991b1b' }}>{error}</StatusBar>}
 
       {pendingCount > 0 && (
         <StatusBar style={{ background: '#fffbeb', color: '#92400e' }}>
@@ -387,7 +384,7 @@ const FieldPermissions: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {fieldNames.map((fieldName) => {
+                {fieldNames.map(fieldName => {
                   const defaultLevel = defaults[fieldName] || 'none';
                   const effectiveLevel = getEffectiveLevel(fieldName);
                   const modified = pendingChanges[fieldName] !== undefined;
@@ -407,7 +404,7 @@ const FieldPermissions: React.FC = () => {
                         <AccessSelect
                           $level={effectiveLevel}
                           value={effectiveLevel}
-                          onChange={(e) =>
+                          onChange={e =>
                             handleChange(fieldName, e.target.value as FieldAccessLevel)
                           }
                         >
