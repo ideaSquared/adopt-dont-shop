@@ -17,11 +17,7 @@ export type FieldAccessLevel = 'none' | 'read' | 'write';
 /**
  * Resources that support field-level permissions
  */
-export type FieldPermissionResource =
-  | 'users'
-  | 'pets'
-  | 'applications'
-  | 'rescues';
+export type FieldPermissionResource = 'users' | 'pets' | 'applications' | 'rescues';
 
 /**
  * A single field permission rule mapping a role to an access level for a field on a resource.

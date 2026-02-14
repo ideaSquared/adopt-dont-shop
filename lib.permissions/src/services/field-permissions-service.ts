@@ -205,9 +205,7 @@ export class FieldPermissionsService {
     fieldName: string
   ): Promise<boolean> {
     try {
-      await this.apiService.delete(
-        `/api/v1/field-permissions/${resource}/${role}/${fieldName}`
-      );
+      await this.apiService.delete(`/api/v1/field-permissions/${resource}/${role}/${fieldName}`);
       this.clearCache(resource, role);
       return true;
     } catch (error) {
@@ -225,9 +223,9 @@ export class FieldPermissionsService {
     resource: FieldPermissionResource
   ): Promise<FieldPermissionRecord[]> {
     try {
-      const response = (await this.apiService.get(
-        `/api/v1/field-permissions/${resource}`
-      )) as { data: FieldPermissionRecord[] };
+      const response = (await this.apiService.get(`/api/v1/field-permissions/${resource}`)) as {
+        data: FieldPermissionRecord[];
+      };
       return response.data || [];
     } catch (error) {
       if (this.config.debug) {

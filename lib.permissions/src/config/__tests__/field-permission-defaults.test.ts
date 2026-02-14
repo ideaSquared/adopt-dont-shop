@@ -134,9 +134,7 @@ describe('Field Permission Defaults', () => {
 
     it('should not allow moderators to write application fields', () => {
       const moderatorMap = getFieldAccessMap('applications', 'moderator');
-      const writableFields = Object.entries(moderatorMap).filter(
-        ([, level]) => level === 'write'
-      );
+      const writableFields = Object.entries(moderatorMap).filter(([, level]) => level === 'write');
 
       expect(writableFields).toHaveLength(0);
     });
@@ -168,10 +166,7 @@ describe('Field Permission Defaults', () => {
     });
 
     it('should return empty object for unknown resource', () => {
-      const map = getFieldAccessMap(
-        'unknown' as keyof typeof defaultFieldPermissions,
-        'admin'
-      );
+      const map = getFieldAccessMap('unknown' as keyof typeof defaultFieldPermissions, 'admin');
       expect(map).toEqual({});
     });
   });
