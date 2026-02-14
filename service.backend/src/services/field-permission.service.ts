@@ -52,7 +52,7 @@ export class FieldPermissionService {
         accessLevel,
       },
       {
-        conflictFields: ['resource', 'field_name', 'role'],
+        conflictFields: ['resource', 'fieldName', 'role'],
       }
     );
 
