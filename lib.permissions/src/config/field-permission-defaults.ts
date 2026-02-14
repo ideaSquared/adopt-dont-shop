@@ -449,5 +449,5 @@ export const getFieldAccessMap = (
     return {};
   }
 
-  return { ...resourceConfig[role] } ?? {};
+  return { ...resourceConfig[role] };
 };
