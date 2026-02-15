@@ -132,13 +132,21 @@ RUN apk update && apk upgrade && apk add --no-cache \
 
 WORKDIR /app
 
+# Copy built shared libraries from build stage (required at runtime via workspace symlinks)
+COPY --from=build --chown=backend:nodejs /app/lib.api/package.json ./lib.api/package.json
+COPY --from=build --chown=backend:nodejs /app/lib.api/dist ./lib.api/dist
+COPY --from=build --chown=backend:nodejs /app/lib.permissions/package.json ./lib.permissions/package.json
+COPY --from=build --chown=backend:nodejs /app/lib.permissions/dist ./lib.permissions/dist
+
 # Copy built application and production dependencies from build stage
-COPY --from=build --chown=backend:nodejs /app/service.backend/dist ./dist
-COPY --from=build --chown=backend:nodejs /app/service.backend/node_modules ./node_modules
-COPY --from=build --chown=backend:nodejs /app/service.backend/package*.json ./
+COPY --from=build --chown=backend:nodejs /app/service.backend/dist ./service.backend/dist
+COPY --from=build --chown=backend:nodejs /app/service.backend/node_modules ./service.backend/node_modules
+COPY --from=build --chown=backend:nodejs /app/service.backend/package*.json ./service.backend/
 
 # Switch to non-root user (security best practice)
 USER backend
+
+WORKDIR /app/service.backend
 
 # Expose application port
 EXPOSE 5000
