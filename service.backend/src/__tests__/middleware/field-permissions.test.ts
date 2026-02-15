@@ -1,33 +1,5 @@
 import { describe, it, expect } from 'vitest';
-
-/**
- * Pure function replicated from middleware for isolated testing.
- * Tests the core field masking logic without pulling in DB/model dependencies.
- */
-const maskResponseFields = <T extends Record<string, unknown>>(
-  data: T,
-  accessMap: Record<string, string>,
-  action: 'read' | 'write'
-): Partial<T> => {
-  const masked: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(data)) {
-    const level = accessMap[key];
-
-    if (level === undefined || level === 'none') {
-      continue;
-    }
-
-    if (action === 'read' && (level === 'read' || level === 'write')) {
-      masked[key] = value;
-    } else if (action === 'write' && level === 'write') {
-      masked[key] = value;
-    }
-  }
-
-  return masked as Partial<T>;
-};
-
+import { maskResponseFields } from '../../middleware/field-permissions';
 describe('Field Permissions Middleware - maskResponseFields', () => {
   const adminAccessMap: Record<string, string> = {
     userId: 'read',
