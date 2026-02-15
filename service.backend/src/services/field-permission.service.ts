@@ -1,8 +1,10 @@
+import { Transaction } from 'sequelize';
 import FieldPermission, {
   FieldAccessLevel,
   FieldPermissionResource,
 } from '../models/FieldPermission';
 import AuditLog from '../models/AuditLog';
+import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
 import { clearFieldPermissionCache } from '../middleware/field-permissions';
 
@@ -36,13 +38,15 @@ export class FieldPermissionService {
   /**
    * Create or update a field permission override.
    * Uses upsert to handle both create and update in one operation.
+   * Accepts an optional transaction for use within bulk operations.
    */
   static async upsert(
     resource: FieldPermissionResource,
     fieldName: string,
     role: string,
     accessLevel: FieldAccessLevel,
-    updatedBy: string
+    updatedBy: string,
+    transaction?: Transaction
   ): Promise<FieldPermission> {
     const [record] = await FieldPermission.upsert(
       {
@@ -53,6 +57,7 @@ export class FieldPermissionService {
       },
       {
         conflictFields: ['resource', 'fieldName', 'role'],
+        transaction,
       }
     );
 
@@ -60,20 +65,23 @@ export class FieldPermissionService {
     clearFieldPermissionCache(resource, role);
 
     // Audit log the change
-    await AuditLog.create({
-      service: 'field-permissions',
-      user: updatedBy,
-      action: `field_permission_upsert`,
-      level: 'INFO',
-      status: 'success',
-      category: 'FIELD_PERMISSION_CHANGE',
-      metadata: {
-        resource,
-        fieldName,
-        role,
-        accessLevel,
+    await AuditLog.create(
+      {
+        service: 'field-permissions',
+        user: updatedBy,
+        action: `field_permission_upsert`,
+        level: 'INFO',
+        status: 'success',
+        category: 'FIELD_PERMISSION_CHANGE',
+        metadata: {
+          resource,
+          fieldName,
+          role,
+          accessLevel,
+        },
       },
-    });
+      { transaction }
+    );
 
     logger.info('Field permission upserted', { resource, fieldName, role, accessLevel, updatedBy });
 
@@ -82,6 +90,8 @@ export class FieldPermissionService {
 
   /**
    * Bulk upsert field permission overrides.
+   * All operations run within a single database transaction for atomicity —
+   * either all overrides are saved or none are.
    */
   static async bulkUpsert(
     overrides: ReadonlyArray<{
@@ -92,20 +102,23 @@ export class FieldPermissionService {
     }>,
     updatedBy: string
   ): Promise<FieldPermission[]> {
-    const results: FieldPermission[] = [];
+    return sequelize.transaction(async (transaction: Transaction) => {
+      const results: FieldPermission[] = [];
 
-    for (const override of overrides) {
-      const record = await FieldPermissionService.upsert(
-        override.resource,
-        override.fieldName,
-        override.role,
-        override.accessLevel,
-        updatedBy
-      );
-      results.push(record);
-    }
+      for (const override of overrides) {
+        const record = await FieldPermissionService.upsert(
+          override.resource,
+          override.fieldName,
+          override.role,
+          override.accessLevel,
+          updatedBy,
+          transaction
+        );
+        results.push(record);
+      }
 
-    return results;
+      return results;
+    });
   }
 
   /**
