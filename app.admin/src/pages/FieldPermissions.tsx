@@ -217,14 +217,24 @@ const FieldPermissions: React.FC = () => {
         }),
       ]);
 
+      const errors: string[] = [];
+
       if (defaultsRes.ok) {
         const defaultsData = await defaultsRes.json();
         setDefaults(defaultsData.data || {});
+      } else {
+        errors.push(`Failed to load defaults (${defaultsRes.status})`);
       }
 
       if (overridesRes.ok) {
         const overridesData = await overridesRes.json();
         setOverrides(overridesData.data || []);
+      } else {
+        errors.push(`Failed to load overrides (${overridesRes.status})`);
+      }
+
+      if (errors.length > 0) {
+        setError(errors.join('; '));
       }
 
       setPendingChanges({});
