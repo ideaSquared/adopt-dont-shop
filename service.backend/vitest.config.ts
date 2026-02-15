@@ -60,6 +60,7 @@ export default defineConfig({
       '@/utils': path.resolve(__dirname, './src/utils'),
       '@/config': path.resolve(__dirname, './src/config'),
       '@/types': path.resolve(__dirname, './src/types'),
+      '@adopt-dont-shop/lib.types': path.resolve(__dirname, '../lib.types/src/index.ts'),
     },
   },
 });

@@ -1,0 +1,6 @@
+# CI override - removes dev volume mounts that shadow built artifacts
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+
+services:
+  service-backend:
+    volumes: []

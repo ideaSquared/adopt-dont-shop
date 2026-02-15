@@ -8,7 +8,9 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/index.js"
     }
   },
   "files": [
@@ -16,7 +18,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json','{\\\"type\\\":\\\"commonjs\\\"}')\"",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "test": "jest",
@@ -37,7 +39,8 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^20.0.0",
-    "@adopt-dont-shop/lib.api": "file:../lib.api"
+    "@adopt-dont-shop/lib.api": "file:../lib.api",
+    "@adopt-dont-shop/lib.types": "file:../lib.types"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
