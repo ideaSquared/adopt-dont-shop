@@ -1,26 +1,27 @@
 # @adopt-dont-shop/lib.permissions
 
-Source of truth for all permission types, constants, and client-side permission services in the Adopt Don't Shop monorepo.
+Frontend permission services for the Adopt Don't Shop monorepo.
 
-This library provides two permission systems:
-
-1. **RBAC (Role-Based Access Control)** - controls which actions a role can perform on a resource (e.g. "can rescue_staff create pets?")
-2. **Field-Level Permissions** - controls which fields on a resource a role can read or write (e.g. "can adopters see a user's email?")
+This package re-exports all types from `@adopt-dont-shop/lib.types` and adds frontend-only service classes that depend on `lib.api`.
 
 ## Architecture
 
 ```
+lib.types (source of truth)
+  = Pure types, constants, and default configs
+  = Zero dependencies - safe for both frontend and backend
+
 lib.permissions (this package)
-  = Source of truth for types, defaults, and client-side services
+  = Re-exports everything from lib.types
+  = Adds frontend service classes (PermissionsService, FieldPermissionsService)
+  = Depends on lib.api (frontend HTTP client)
 
 service.backend
-  = Consumes lib.permissions types
-  = Has its own ORM-layer enums that mirror lib.permissions values (required by Sequelize)
-  = Provides middleware (fieldMask, fieldWriteGuard) and REST API for runtime overrides
+  = Imports from lib.types directly (no frontend deps)
+  = Has ORM-layer enums that mirror lib.types values (required by Sequelize)
 
 app.admin / app.client / app.rescue
-  = Import types and services from lib.permissions
-  = Never import permission types from service.backend
+  = Import types + services from lib.permissions
 ```
 
 ### Import Rules
@@ -28,12 +29,10 @@ app.admin / app.client / app.rescue
 | Consumer | Import from | What |
 |----------|------------|------|
 | Frontend apps | `@adopt-dont-shop/lib.permissions` | Types, services, defaults |
-| Backend middleware | `@adopt-dont-shop/lib.permissions` | Types, default config functions |
-| Backend middleware | `../models/FieldPermission` | Model class for DB queries only |
-| Backend service layer | `../models/FieldPermission` | Model + ORM enums |
-| Backend routes | Both (documented in code) | Model enums for service calls, lib.permissions for defaults |
+| Backend (all files) | `@adopt-dont-shop/lib.types` | Types, default config functions |
+| Backend ORM layer | `../models/FieldPermission` | Model + ORM enums |
 
-The backend model file (`service.backend/src/models/FieldPermission.ts`) contains enums that **must match** the types in this library. Those enums exist solely for the Sequelize ORM layer. This library is the canonical source.
+The backend **never** imports from `lib.permissions` or `lib.api`.
 
 ---
 

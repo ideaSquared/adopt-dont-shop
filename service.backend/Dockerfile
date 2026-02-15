@@ -47,19 +47,14 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
-# Copy required shared libraries
-COPY lib.permissions/ lib.permissions/
-COPY lib.api/ lib.api/
+# Copy required shared libraries (lib.types has zero deps - no frontend code)
+COPY lib.types/ lib.types/
 
 # Copy backend service
 COPY service.backend/ service.backend/
 
-# Build shared libraries first
-WORKDIR /app/lib.api
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline && npm run build
-
-WORKDIR /app/lib.permissions
+# Build shared library first
+WORKDIR /app/lib.types
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline && npm run build
 
@@ -88,19 +83,14 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
-# Copy required shared libraries
-COPY lib.permissions/ lib.permissions/
-COPY lib.api/ lib.api/
+# Copy required shared libraries (lib.types has zero deps - no frontend code)
+COPY lib.types/ lib.types/
 
 # Copy backend service
 COPY service.backend/ service.backend/
 
-# Build shared libraries first (required for backend TypeScript compilation)
-WORKDIR /app/lib.api
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline && npm run build
-
-WORKDIR /app/lib.permissions
+# Build shared library first (required for backend TypeScript compilation)
+WORKDIR /app/lib.types
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline && npm run build
 
@@ -132,11 +122,9 @@ RUN apk update && apk upgrade && apk add --no-cache \
 
 WORKDIR /app
 
-# Copy built shared libraries from build stage (required at runtime via workspace symlinks)
-COPY --from=build --chown=backend:nodejs /app/lib.api/package.json ./lib.api/package.json
-COPY --from=build --chown=backend:nodejs /app/lib.api/dist ./lib.api/dist
-COPY --from=build --chown=backend:nodejs /app/lib.permissions/package.json ./lib.permissions/package.json
-COPY --from=build --chown=backend:nodejs /app/lib.permissions/dist ./lib.permissions/dist
+# Copy built shared library from build stage (required at runtime via workspace symlinks)
+COPY --from=build --chown=backend:nodejs /app/lib.types/package.json ./lib.types/package.json
+COPY --from=build --chown=backend:nodejs /app/lib.types/dist ./lib.types/dist
 
 # Copy built application and production dependencies from build stage
 COPY --from=build --chown=backend:nodejs /app/service.backend/dist ./service.backend/dist

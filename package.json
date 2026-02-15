@@ -29,6 +29,7 @@
     "lib.rescue",
     "lib.search",
     "lib.support-tickets",
+    "lib.types",
     "lib.utils",
     "lib.validation",
     "service.backend"

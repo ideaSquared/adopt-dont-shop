@@ -28,6 +28,7 @@ jobs:
           filters: |
             backend:
               - 'service.backend/**'
+              - 'lib.types/**'
               - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
