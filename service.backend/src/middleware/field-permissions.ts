@@ -165,103 +165,104 @@ export const fieldMask = (
 ) => {
   const { audit = false, resourceIdParam = 'id' } = options;
 
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      next();
+      return;
+    }
+
+    const role = req.user.userType;
+
+    let accessMap: Record<string, string>;
+    try {
+      accessMap = await getEffectiveAccessMap(resource, role);
+    } catch (error) {
+      logger.error('Failed to fetch field access map', { error, resource, role });
+      next();
+      return;
+    }
+
     const originalJson = res.json.bind(res);
 
     res.json = function (body: Record<string, unknown>) {
-      // If no authenticated user, pass through unmodified
-      if (!req.user) {
-        return originalJson(body);
-      }
+      try {
+        const resourceId = req.params[resourceIdParam] || '';
 
-      const role = req.user.userType;
+        if (body && typeof body === 'object') {
+          // Handle { data: ... } wrapper pattern
+          if ('data' in body && body.data !== null && body.data !== undefined) {
+            const data = body.data;
 
-      // Wrap the async masking in a promise
-      const maskAndSend = async () => {
-        try {
-          const accessMap = await getEffectiveAccessMap(resource, role);
-          const resourceId = req.params[resourceIdParam] || '';
-
-          if (body && typeof body === 'object') {
-            // Handle { data: ... } wrapper pattern
-            if ('data' in body && body.data !== null && body.data !== undefined) {
-              const data = body.data;
-
-              if (Array.isArray(data)) {
-                const maskedItems = data.map(item => {
-                  if (item && typeof item === 'object') {
-                    return maskResponseFields(item as Record<string, unknown>, accessMap, 'read');
-                  }
-                  return item;
-                });
-
-                if (audit) {
-                  const allFields =
-                    data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [];
-                  const visibleFields = maskedItems.length > 0 ? Object.keys(maskedItems[0]) : [];
-                  const maskedFields = allFields.filter(f => !visibleFields.includes(f));
-
-                  await logFieldAccess(
-                    req.user?.userId ?? 'unknown',
-                    resource,
-                    resourceId,
-                    visibleFields,
-                    maskedFields,
-                    'read',
-                    req.ip,
-                    req.get('User-Agent')
-                  );
+            if (Array.isArray(data)) {
+              const maskedItems = data.map(item => {
+                if (item && typeof item === 'object') {
+                  return maskResponseFields(item as Record<string, unknown>, accessMap, 'read');
                 }
+                return item;
+              });
 
-                return originalJson({ ...body, data: maskedItems });
-              }
+              if (audit) {
+                const allFields =
+                  data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [];
+                const visibleFields = maskedItems.length > 0 ? Object.keys(maskedItems[0]) : [];
+                const maskedFields = allFields.filter(f => !visibleFields.includes(f));
 
-              if (typeof data === 'object') {
-                const maskedData = maskResponseFields(
-                  data as Record<string, unknown>,
-                  accessMap,
-                  'read'
+                void logFieldAccess(
+                  req.user?.userId ?? 'unknown',
+                  resource,
+                  resourceId,
+                  visibleFields,
+                  maskedFields,
+                  'read',
+                  req.ip,
+                  req.get('User-Agent')
                 );
-
-                if (audit) {
-                  const allFields = Object.keys(data as Record<string, unknown>);
-                  const visibleFields = Object.keys(maskedData);
-                  const maskedFields = allFields.filter(f => !visibleFields.includes(f));
-
-                  await logFieldAccess(
-                    req.user?.userId ?? 'unknown',
-                    resource,
-                    resourceId,
-                    visibleFields,
-                    maskedFields,
-                    'read',
-                    req.ip,
-                    req.get('User-Agent')
-                  );
-                }
-
-                return originalJson({ ...body, data: maskedData });
               }
+
+              return originalJson({ ...body, data: maskedItems });
             }
 
-            // Handle direct object response (no wrapper)
-            if (!('data' in body) && !('error' in body)) {
-              const maskedBody = maskResponseFields(body, accessMap, 'read');
-              return originalJson(maskedBody);
+            if (typeof data === 'object') {
+              const maskedData = maskResponseFields(
+                data as Record<string, unknown>,
+                accessMap,
+                'read'
+              );
+
+              if (audit) {
+                const allFields = Object.keys(data as Record<string, unknown>);
+                const visibleFields = Object.keys(maskedData);
+                const maskedFields = allFields.filter(f => !visibleFields.includes(f));
+
+                void logFieldAccess(
+                  req.user?.userId ?? 'unknown',
+                  resource,
+                  resourceId,
+                  visibleFields,
+                  maskedFields,
+                  'read',
+                  req.ip,
+                  req.get('User-Agent')
+                );
+              }
+
+              return originalJson({ ...body, data: maskedData });
             }
           }
 
-          return originalJson(body);
-        } catch (error) {
-          logger.error('Field masking middleware error', { error, resource, role });
-          // On error, return the original response to avoid breaking the API
-          return originalJson(body);
+          // Handle direct object response (no wrapper)
+          if (!('data' in body) && !('error' in body)) {
+            const maskedBody = maskResponseFields(body, accessMap, 'read');
+            return originalJson(maskedBody);
+          }
         }
-      };
 
-      maskAndSend();
-      // Return res to maintain chainability expected by Express
-      return res;
+        return originalJson(body);
+      } catch (error) {
+        logger.error('Field masking middleware error', { error, resource, role });
+        // On error, return the original response to avoid breaking the API
+        return originalJson(body);
+      }
     } as Response['json'];
 
     next();
