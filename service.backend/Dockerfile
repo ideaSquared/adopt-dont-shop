@@ -64,6 +64,14 @@ WORKDIR /app/service.backend
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 
+# Ensure workspace symlinks exist for @adopt-dont-shop/lib.types resolution.
+# npm ci in a partial workspace may not set up cross-package symlinks correctly,
+# so we create them explicitly at both possible resolution paths.
+RUN mkdir -p /app/node_modules/@adopt-dont-shop && \
+    ln -sf /app/lib.types /app/node_modules/@adopt-dont-shop/lib.types && \
+    mkdir -p /app/service.backend/node_modules/@adopt-dont-shop && \
+    ln -sf /app/lib.types /app/service.backend/node_modules/@adopt-dont-shop/lib.types
+
 # Expose application port
 EXPOSE 5000
 
@@ -100,10 +108,22 @@ WORKDIR /app/service.backend
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 
+# Ensure workspace symlinks exist for @adopt-dont-shop/lib.types resolution
+RUN mkdir -p /app/node_modules/@adopt-dont-shop && \
+    ln -sf /app/lib.types /app/node_modules/@adopt-dont-shop/lib.types && \
+    mkdir -p /app/service.backend/node_modules/@adopt-dont-shop && \
+    ln -sf /app/lib.types /app/service.backend/node_modules/@adopt-dont-shop/lib.types
+
 # Build the application
 # Set NODE_ENV=production to use compiled library exports instead of source
 RUN NODE_ENV=production npm run build && \
     npm prune --omit=dev
+
+# Re-create workspace symlink after prune (prune may have removed it).
+# Docker COPY follows symlinks, so this ensures lib.types content is included
+# in the production stage's node_modules copy.
+RUN mkdir -p /app/service.backend/node_modules/@adopt-dont-shop && \
+    ln -sf /app/lib.types /app/service.backend/node_modules/@adopt-dont-shop/lib.types
 
 # ============================================================================
 # PRODUCTION STAGE - Minimal image with only runtime dependencies
