@@ -50,7 +50,7 @@ export class FieldPermissionService {
   ): Promise<FieldPermission> {
     const [record] = await FieldPermission.upsert(
       {
-        resource,
+      resource,
         fieldName,
         role,
         accessLevel,
