@@ -7,11 +7,11 @@ import { FieldPermissionService } from '../services/field-permission.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 // Model enums are used for service-layer type compatibility within the backend.
-// These enums mirror the canonical types in @adopt-dont-shop/lib.permissions.
+// These enums mirror the canonical types in @adopt-dont-shop/lib.types.
 import { FieldAccessLevel, FieldPermissionResource } from '../models/FieldPermission';
-// lib.permissions provides the default configurations and is the source of truth
-// for field permission business logic.
-import { defaultFieldPermissions, getFieldAccessMap } from '@adopt-dont-shop/lib.permissions';
+// lib.types provides the default configurations and is the source of truth
+// for permission types and business logic. No frontend dependencies.
+import { defaultFieldPermissions, getFieldAccessMap } from '@adopt-dont-shop/lib.types';
 
 const router = Router();
 

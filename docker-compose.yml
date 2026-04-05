@@ -59,8 +59,7 @@ services:
       - '5000:5000'
     volumes:
       - ./service.backend:/app/service.backend
-      - ./lib.permissions:/app/lib.permissions
-      - ./lib.api:/app/lib.api
+      - ./lib.types:/app/lib.types
       - /app/service.backend/node_modules
       - ./uploads:/app/service.backend/uploads
     environment:

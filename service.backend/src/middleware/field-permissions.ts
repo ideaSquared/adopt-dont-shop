@@ -3,7 +3,7 @@ import { AuthenticatedRequest } from '../types/auth';
 import FieldPermission from '../models/FieldPermission';
 import AuditLog from '../models/AuditLog';
 import { logger } from '../utils/logger';
-import { type FieldPermissionResource, getFieldAccessMap } from '@adopt-dont-shop/lib.permissions';
+import { type FieldPermissionResource, getFieldAccessMap } from '@adopt-dont-shop/lib.types';
 
 /**
  * Cache for field permission overrides to avoid repeated DB queries.
