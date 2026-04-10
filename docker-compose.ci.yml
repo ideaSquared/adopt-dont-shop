@@ -4,3 +4,8 @@
 services:
   service-backend:
     volumes: []
+    # Restore default CMD from Dockerfile — the docker-compose.yml command
+    # override creates a runtime symlink for bind-mounted lib.types, which
+    # doesn't apply in CI (no bind mounts).  The Dockerfile already copies
+    # built lib.types into node_modules via cp.
+    command: ["npm", "run", "dev"]
