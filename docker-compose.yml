@@ -62,6 +62,14 @@ services:
       - ./lib.types:/app/lib.types
       - /app/service.backend/node_modules
       - ./uploads:/app/service.backend/uploads
+    # Create symlink at startup so the bind-mounted lib.types is always used,
+    # regardless of what the anonymous node_modules volume contains.
+    # lib.types must be built on the host first (npm run build in lib.types/).
+    command: >
+      sh -c "mkdir -p /app/service.backend/node_modules/@adopt-dont-shop &&
+             rm -rf /app/service.backend/node_modules/@adopt-dont-shop/lib.types &&
+             ln -s /app/lib.types /app/service.backend/node_modules/@adopt-dont-shop/lib.types &&
+             npm run dev"
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 5000
