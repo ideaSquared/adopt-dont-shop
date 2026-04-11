@@ -44,7 +44,7 @@ describe('FieldPermissionsService', () => {
       mockApiService.get = jest.fn().mockResolvedValue({
         data: [
           {
-            fieldPermissionId: '1',
+            fieldPermissionId: 1,
             resource: 'users',
             fieldName: 'email',
             role: 'adopter',
@@ -67,7 +67,8 @@ describe('FieldPermissionsService', () => {
     it('should deny access to hidden fields for adopters by default', async () => {
       mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
 
-      const result = await service.getFieldAccess('users', 'adopter', 'email');
+      // status is an internal admin field that adopters should never see.
+      const result = await service.getFieldAccess('users', 'adopter', 'status');
 
       expect(result).toEqual({
         allowed: false,
@@ -101,7 +102,8 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should deny read access when field is hidden', async () => {
-      const result = await service.checkFieldAccess('users', 'adopter', 'email', 'read');
+      // userType is internal metadata that adopters cannot see.
+      const result = await service.checkFieldAccess('users', 'adopter', 'userType', 'read');
 
       expect(result).toBe(false);
     });
@@ -126,6 +128,8 @@ describe('FieldPermissionsService', () => {
         email: 'jane@example.com',
         password: 'hashed',
         status: 'active',
+        userType: 'adopter',
+        lastLoginAt: '2024-01-01T00:00:00Z',
       };
 
       const masked = await service.maskFields(userData, {
@@ -137,9 +141,13 @@ describe('FieldPermissionsService', () => {
       expect(masked).toHaveProperty('userId');
       expect(masked).toHaveProperty('firstName');
       expect(masked).toHaveProperty('lastName');
-      expect(masked).not.toHaveProperty('email');
+      // Adopters can see their own email on the profile endpoint.
+      expect(masked).toHaveProperty('email');
+      // Security + internal admin fields are still hidden.
       expect(masked).not.toHaveProperty('password');
       expect(masked).not.toHaveProperty('status');
+      expect(masked).not.toHaveProperty('userType');
+      expect(masked).not.toHaveProperty('lastLoginAt');
     });
 
     it('should show more fields to admin than to adopter', async () => {
@@ -149,6 +157,7 @@ describe('FieldPermissionsService', () => {
         lastName: 'Doe',
         email: 'jane@example.com',
         status: 'active',
+        userType: 'adopter',
         password: 'hashed',
       };
 
@@ -168,8 +177,11 @@ describe('FieldPermissionsService', () => {
       const adopterKeys = Object.keys(adopterMasked);
 
       expect(adminKeys.length).toBeGreaterThan(adopterKeys.length);
-      expect(adminMasked).toHaveProperty('email');
-      expect(adopterMasked).not.toHaveProperty('email');
+      // Admins see user status / userType; adopters do not.
+      expect(adminMasked).toHaveProperty('status');
+      expect(adopterMasked).not.toHaveProperty('status');
+      expect(adminMasked).toHaveProperty('userType');
+      expect(adopterMasked).not.toHaveProperty('userType');
     });
 
     it('should never expose password to any role', async () => {
@@ -222,8 +234,20 @@ describe('FieldPermissionsService', () => {
 
     it('should mask fields consistently across all items', async () => {
       const users = [
-        { userId: '1', firstName: 'Alice', email: 'alice@test.com', password: 'hash1' },
-        { userId: '2', firstName: 'Bob', email: 'bob@test.com', password: 'hash2' },
+        {
+          userId: '1',
+          firstName: 'Alice',
+          email: 'alice@test.com',
+          password: 'hash1',
+          userType: 'adopter',
+        },
+        {
+          userId: '2',
+          firstName: 'Bob',
+          email: 'bob@test.com',
+          password: 'hash2',
+          userType: 'adopter',
+        },
       ];
 
       const masked = await service.maskFieldsArray(users, {
@@ -236,8 +260,9 @@ describe('FieldPermissionsService', () => {
       for (const item of masked) {
         expect(item).toHaveProperty('userId');
         expect(item).toHaveProperty('firstName');
-        expect(item).not.toHaveProperty('email');
+        // Security + internal admin fields are hidden from adopters.
         expect(item).not.toHaveProperty('password');
+        expect(item).not.toHaveProperty('userType');
       }
     });
   });
@@ -259,15 +284,20 @@ describe('FieldPermissionsService', () => {
       expect(blocked).not.toContain('firstName');
     });
 
-    it('should block all fields for adopter on user resource', async () => {
+    it('should block admin-only fields from adopter writes', async () => {
       const blocked = await service.getWriteBlockedFields('users', 'adopter', [
-        'firstName',
-        'email',
-        'status',
+        'firstName', // adopter can write (self-edit)
+        'email', // read-only even for self
+        'status', // admin-only
+        'userType', // admin-only
       ]);
 
-      // Adopters have no write access to other users' fields
-      expect(blocked.length).toBeGreaterThan(0);
+      // Adopters can write firstName (self-edit is enforced upstream),
+      // but email/status/userType are not writable.
+      expect(blocked).not.toContain('firstName');
+      expect(blocked).toContain('email');
+      expect(blocked).toContain('status');
+      expect(blocked).toContain('userType');
     });
   });
 
@@ -277,13 +307,14 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should hide internal notes from adopters', async () => {
+      // Application model serializes to snake_case
       const application = {
-        applicationId: 'app-1',
-        userId: 'user-1',
+        application_id: 'app-1',
+        user_id: 'user-1',
         status: 'submitted',
         answers: { q1: 'answer1' },
-        interviewNotes: 'Staff notes here',
-        homeVisitNotes: 'Home visit notes',
+        interview_notes: 'Staff notes here',
+        home_visit_notes: 'Home visit notes',
         score: 85,
       };
 
@@ -293,16 +324,20 @@ describe('FieldPermissionsService', () => {
         action: 'read',
       });
 
-      expect(masked).toHaveProperty('applicationId');
+      expect(masked).toHaveProperty('application_id');
       expect(masked).toHaveProperty('status');
       expect(masked).toHaveProperty('answers');
-      expect(masked).not.toHaveProperty('interviewNotes');
-      expect(masked).not.toHaveProperty('homeVisitNotes');
+      expect(masked).not.toHaveProperty('interview_notes');
+      expect(masked).not.toHaveProperty('home_visit_notes');
       expect(masked).not.toHaveProperty('score');
     });
 
     it('should allow rescue staff to see and edit internal notes', async () => {
-      const result = await service.getFieldAccess('applications', 'rescue_staff', 'interviewNotes');
+      const result = await service.getFieldAccess(
+        'applications',
+        'rescue_staff',
+        'interview_notes'
+      );
 
       expect(result.effectiveLevel).toBe('write');
       expect(result.allowed).toBe(true);
@@ -312,13 +347,13 @@ describe('FieldPermissionsService', () => {
       const readCheck = await service.checkFieldAccess(
         'applications',
         'moderator',
-        'interviewNotes',
+        'interview_notes',
         'read'
       );
       const writeCheck = await service.checkFieldAccess(
         'applications',
         'moderator',
-        'interviewNotes',
+        'interview_notes',
         'write'
       );
 
@@ -333,14 +368,15 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should hide medical history from adopters', async () => {
+      // Pet model serializes to snake_case
       const pet = {
-        petId: 'pet-1',
+        pet_id: 'pet-1',
         name: 'Buddy',
         type: 'dog',
         breed: 'Labrador',
-        medicalHistory: 'Vaccinated, neutered',
-        microchipId: 'CHIP123',
-        internalNotes: 'Needs experienced owner',
+        medical_notes: 'Vaccinated, neutered',
+        microchip_id: 'CHIP123',
+        behavioral_notes: 'Needs experienced owner',
       };
 
       const masked = await service.maskFields(pet, {
@@ -352,17 +388,17 @@ describe('FieldPermissionsService', () => {
       expect(masked).toHaveProperty('name');
       expect(masked).toHaveProperty('type');
       expect(masked).toHaveProperty('breed');
-      expect(masked).not.toHaveProperty('medicalHistory');
-      expect(masked).not.toHaveProperty('microchipId');
-      expect(masked).not.toHaveProperty('internalNotes');
+      expect(masked).not.toHaveProperty('medical_notes');
+      expect(masked).not.toHaveProperty('microchip_id');
+      expect(masked).not.toHaveProperty('behavioral_notes');
     });
 
     it('should allow rescue staff full write access to pet fields', async () => {
       const blocked = await service.getWriteBlockedFields('pets', 'rescue_staff', [
         'name',
-        'description',
-        'medicalHistory',
-        'internalNotes',
+        'short_description',
+        'medical_notes',
+        'behavioral_notes',
       ]);
 
       expect(blocked).toEqual([]);

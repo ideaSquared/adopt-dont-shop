@@ -1348,7 +1348,7 @@ router.put(
   '/:petId',
   authenticateToken,
   requirePermission('pets.update'),
-  fieldWriteGuard('pets', { audit: true }),
+  fieldWriteGuard('pets', { audit: true, resourceIdParam: 'petId' }),
   PetController.validateUpdatePet,
   petController.updatePet
 );
@@ -1357,7 +1357,7 @@ router.patch(
   '/:petId',
   authenticateToken,
   requirePermission('pets.update'),
-  fieldWriteGuard('pets', { audit: true }),
+  fieldWriteGuard('pets', { audit: true, resourceIdParam: 'petId' }),
   PetController.validateUpdatePet,
   petController.updatePet
 );

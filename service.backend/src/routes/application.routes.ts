@@ -379,7 +379,7 @@ router.get(
 // Update application (owner only for submitted applications)
 router.put(
   '/:applicationId',
-  fieldWriteGuard('applications', { audit: true }),
+  fieldWriteGuard('applications', { audit: true, resourceIdParam: 'applicationId' }),
   ApplicationController.validateUpdateApplication,
   applicationController.updateApplication
 );

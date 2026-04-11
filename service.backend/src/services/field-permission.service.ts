@@ -37,7 +37,15 @@ export class FieldPermissionService {
 
   /**
    * Create or update a field permission override.
-   * Uses upsert to handle both create and update in one operation.
+   *
+   * Uses an explicit find-then-update/create pattern rather than
+   * `FieldPermission.upsert()` because Sequelize's `conflictFields`
+   * type expects model attribute names (camelCase) but emits them
+   * verbatim in the SQL `ON CONFLICT` clause — i.e. it does not
+   * translate `fieldName` → `field_name`. Mixing the two naming
+   * conventions would either require an unsafe `as never[]` cast
+   * (losing type safety) or produce a runtime SQL error.
+   *
    * Accepts an optional transaction for use within bulk operations.
    */
   static async upsert(
@@ -48,22 +56,14 @@ export class FieldPermissionService {
     updatedBy: string,
     transaction?: Transaction
   ): Promise<FieldPermission> {
-    const [record] = await FieldPermission.upsert(
-      {
-        resource,
-        fieldName,
-        role,
-        accessLevel,
-      },
-      {
-        // Sequelize's conflictFields type expects model attribute names but does not
-        // translate them to column names in the ON CONFLICT clause. 'fieldName' maps
-        // to column 'field_name' via the model's field option, but Sequelize emits
-        // the JS name verbatim — causing a DB error. We pass the column name directly.
-        conflictFields: ['resource', 'field_name', 'role'] as never[],
-        transaction,
-      }
-    );
+    const existing = await FieldPermission.findOne({
+      where: { resource, fieldName, role },
+      transaction,
+    });
+
+    const record = existing
+      ? await existing.update({ accessLevel }, { transaction })
+      : await FieldPermission.create({ resource, fieldName, role, accessLevel }, { transaction });
 
     // Clear cache so changes take effect immediately
     clearFieldPermissionCache(resource, role);

@@ -217,33 +217,38 @@ describe('Field Permissions Middleware - maskResponseFields', () => {
   });
 
   describe('pet field masking scenarios', () => {
+    // Pet model attributes are snake_case, so toJSON() emits snake_case —
+    // the access map keys must match the serialized shape.
     const publicPetMap: Record<string, string> = {
-      petId: 'read',
+      pet_id: 'read',
       name: 'read',
       type: 'read',
       breed: 'read',
-      description: 'read',
-      medicalHistory: 'none',
-      internalNotes: 'none',
+      short_description: 'read',
+      medical_notes: 'none',
+      behavioral_notes: 'none',
+      surrender_reason: 'none',
     };
 
     it('should show basic pet info but hide medical details from public', () => {
       const pet = {
-        petId: 'pet-1',
+        pet_id: 'pet-1',
         name: 'Buddy',
         type: 'dog',
         breed: 'Labrador',
-        description: 'Friendly and energetic',
-        medicalHistory: 'Heart condition - requires medication',
-        internalNotes: 'Previous owner reported aggression',
+        short_description: 'Friendly and energetic',
+        medical_notes: 'Heart condition - requires medication',
+        behavioral_notes: 'Previous owner reported aggression',
+        surrender_reason: 'Owner moved abroad',
       };
 
       const masked = maskResponseFields(pet, publicPetMap, 'read');
 
       expect(masked).toHaveProperty('name', 'Buddy');
-      expect(masked).toHaveProperty('description');
-      expect(masked).not.toHaveProperty('medicalHistory');
-      expect(masked).not.toHaveProperty('internalNotes');
+      expect(masked).toHaveProperty('short_description');
+      expect(masked).not.toHaveProperty('medical_notes');
+      expect(masked).not.toHaveProperty('behavioral_notes');
+      expect(masked).not.toHaveProperty('surrender_reason');
     });
   });
 
@@ -334,12 +339,32 @@ describe('Field Permissions Middleware - fieldMask (Express integration)', () =>
     mockNext = vi.fn();
   });
 
-  it('should skip masking when user is not authenticated', async () => {
+  it('should apply adopter-level masking for unauthenticated requests', async () => {
+    // Anonymous / optional-auth routes should NOT return raw models.
+    // The middleware treats unauthenticated callers as 'adopter' so
+    // sensitive fields (password, status, etc.) are still stripped.
     const middleware = fieldMask('users');
     await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
     expect(mockNext).toHaveBeenCalled();
-    expect(FieldPermission.findAll).not.toHaveBeenCalled();
+    expect(FieldPermission.findAll).toHaveBeenCalledWith({
+      where: { resource: 'users', role: 'adopter' },
+    });
+
+    (mockResponse.json as (body: unknown) => Response)({
+      data: {
+        userId: 'user-1',
+        firstName: 'Jane',
+        email: 'jane@example.com',
+        password: 'hashed-secret',
+        status: 'active',
+      },
+    });
+
+    const body = capturedJson as { data: Record<string, unknown> };
+    expect(body.data).not.toHaveProperty('password');
+    expect(body.data).not.toHaveProperty('status');
+    expect(body.data).toHaveProperty('firstName', 'Jane');
   });
 
   it('should mask sensitive fields for an adopter reading a user object', async () => {
@@ -537,9 +562,10 @@ describe('Field Permissions Middleware - fieldWriteGuard (Express integration)',
       userId: 'adopter-1',
       userType: UserType.ADOPTER,
     } as AuthenticatedRequest['user'];
-    // Adopters can READ firstName but cannot WRITE it by default
+    // Adopters can READ email (visible in their own profile) but not WRITE it
+    // — changing email should go through a dedicated verification flow.
     mockRequest.body = {
-      firstName: 'Jane',
+      email: 'new@example.com',
     };
 
     const middleware = fieldWriteGuard('users');
@@ -547,7 +573,7 @@ describe('Field Permissions Middleware - fieldWriteGuard (Express integration)',
 
     expect(statusCode).toBe(403);
     const body = jsonBody as { error: string; blockedFields: string[] };
-    expect(body.blockedFields).toContain('firstName');
+    expect(body.blockedFields).toContain('email');
     expect(mockNext).not.toHaveBeenCalled();
   });
 

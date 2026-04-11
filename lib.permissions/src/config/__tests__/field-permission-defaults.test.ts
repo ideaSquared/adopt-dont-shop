@@ -70,18 +70,25 @@ describe('Field Permission Defaults', () => {
   });
 
   describe('adopter restrictions', () => {
-    it('should not allow adopters to see other users email addresses', () => {
+    // Note: Users/Rescues serialize to camelCase; Pets/Applications serialize
+    // to snake_case. Field names must match what the API actually returns.
+
+    it('should allow adopters to see their own email but not write it', () => {
+      // Adopters see their own email in /users/profile; writes go through a
+      // dedicated verification flow, not the generic PUT endpoint.
       const level = getDefaultFieldAccess('users', 'adopter', 'email');
-      expect(level).toBe('none');
+      expect(level).toBe('read');
     });
 
-    it('should not allow adopters to see phone numbers', () => {
+    it('should allow adopters to update their own phone number', () => {
+      // Ownership is enforced by requirePermissionOrOwnership upstream; the
+      // field default unblocks self-edits via the profile endpoint.
       const level = getDefaultFieldAccess('users', 'adopter', 'phoneNumber');
-      expect(level).toBe('none');
+      expect(level).toBe('write');
     });
 
     it('should not allow adopters to see application interview notes', () => {
-      const level = getDefaultFieldAccess('applications', 'adopter', 'interviewNotes');
+      const level = getDefaultFieldAccess('applications', 'adopter', 'interview_notes');
       expect(level).toBe('none');
     });
 
@@ -90,8 +97,13 @@ describe('Field Permission Defaults', () => {
       expect(level).toBe('none');
     });
 
-    it('should not allow adopters to see pet medical history', () => {
-      const level = getDefaultFieldAccess('pets', 'adopter', 'medicalHistory');
+    it('should not allow adopters to see pet medical notes', () => {
+      const level = getDefaultFieldAccess('pets', 'adopter', 'medical_notes');
+      expect(level).toBe('none');
+    });
+
+    it('should not allow adopters to see pet behavioral notes', () => {
+      const level = getDefaultFieldAccess('pets', 'adopter', 'behavioral_notes');
       expect(level).toBe('none');
     });
 
@@ -99,7 +111,7 @@ describe('Field Permission Defaults', () => {
       expect(getDefaultFieldAccess('pets', 'adopter', 'name')).toBe('read');
       expect(getDefaultFieldAccess('pets', 'adopter', 'type')).toBe('read');
       expect(getDefaultFieldAccess('pets', 'adopter', 'breed')).toBe('read');
-      expect(getDefaultFieldAccess('pets', 'adopter', 'description')).toBe('read');
+      expect(getDefaultFieldAccess('pets', 'adopter', 'short_description')).toBe('read');
     });
 
     it('should allow adopters to read their own application status', () => {
@@ -109,15 +121,19 @@ describe('Field Permission Defaults', () => {
 
   describe('rescue staff access', () => {
     it('should allow rescue staff to write application internal notes', () => {
-      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'interviewNotes')).toBe('write');
-      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'homeVisitNotes')).toBe('write');
+      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'interview_notes')).toBe(
+        'write'
+      );
+      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'home_visit_notes')).toBe(
+        'write'
+      );
       expect(getDefaultFieldAccess('applications', 'rescue_staff', 'score')).toBe('write');
     });
 
     it('should allow rescue staff to write pet details', () => {
       expect(getDefaultFieldAccess('pets', 'rescue_staff', 'name')).toBe('write');
-      expect(getDefaultFieldAccess('pets', 'rescue_staff', 'medicalHistory')).toBe('write');
-      expect(getDefaultFieldAccess('pets', 'rescue_staff', 'internalNotes')).toBe('write');
+      expect(getDefaultFieldAccess('pets', 'rescue_staff', 'medical_notes')).toBe('write');
+      expect(getDefaultFieldAccess('pets', 'rescue_staff', 'behavioral_notes')).toBe('write');
     });
 
     it('should not allow rescue staff to see user status or type', () => {

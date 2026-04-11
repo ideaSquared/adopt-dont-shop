@@ -1108,7 +1108,7 @@ router.get(
 router.put(
   '/:userId',
   requirePermissionOrOwnership(PERMISSIONS.USER_UPDATE, 'userId'),
-  fieldWriteGuard('users', { audit: true }),
+  fieldWriteGuard('users', { audit: true, resourceIdParam: 'userId' }),
   userValidation.updateProfile,
   UserController.updateUser
 );

@@ -3,9 +3,12 @@ import sequelize from '../sequelize';
 
 /**
  * Sequelize requires enums for DataTypes.ENUM(). These values MUST match
- * the canonical types in @adopt-dont-shop/lib.permissions (FieldAccessLevel
- * and FieldPermissionResource). lib.permissions is the source of truth for
- * field permission types; these enums exist solely for the ORM layer.
+ * the canonical types in @adopt-dont-shop/lib.types (FieldAccessLevel
+ * and FieldPermissionResource). lib.types is the source of truth for
+ * field permission types — the backend imports from lib.types directly
+ * and never from lib.permissions, which is frontend-only. These enums
+ * exist solely for the ORM layer because Sequelize's DataTypes.ENUM
+ * cannot accept a TypeScript string-literal union.
  */
 export enum FieldAccessLevel {
   NONE = 'none',

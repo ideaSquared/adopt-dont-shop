@@ -187,21 +187,26 @@ The defaults are defined in `src/config/field-permission-defaults.ts` and cover 
 
 Key security invariants enforced by defaults:
 - `password`, `resetToken`, `twoFactorSecret`, `backupCodes`, and other security fields are **always `none`** for all roles
-- Adopters cannot see `email`, `phoneNumber`, `dateOfBirth`, or internal fields on other users
-- Adopters cannot see `interviewNotes`, `homeVisitNotes`, or `score` on applications
-- Adopters cannot see `medicalHistory`, `vaccinations`, `microchipId`, or `internalNotes` on pets
+- Adopters can read/write their OWN profile (`firstName`, `lastName`, `phoneNumber`, address fields). Ownership is enforced by `requirePermissionOrOwnership` upstream, so `fieldWriteGuard` can safely allow writes at the field layer.
+- Adopters cannot see `interview_notes`, `home_visit_notes`, or `score` on applications
+- Adopters cannot see `medical_notes`, `behavioral_notes`, `microchip_id`, or `surrender_reason` on pets
 - Rescue staff cannot see other users' `status`, `userType`, or login-related fields
+
+**Note on field naming:** Field-permission keys must exactly match the shape
+of each resource's serialized API response. Users and Rescues models emit
+camelCase (e.g. `phoneNumber`, `contactEmail`), while Pets and Applications
+models emit snake_case (e.g. `medical_notes`, `interview_notes`).
 
 ```typescript
 import { getDefaultFieldAccess, getFieldAccessMap, defaultFieldPermissions } from '@adopt-dont-shop/lib.permissions';
 
-// Check a single field
+// Check a single field — adopters can see their own email on /users/profile
 const level = getDefaultFieldAccess('users', 'adopter', 'email');
-// => 'none'
+// => 'read'
 
 // Get full access map for a role on a resource
 const accessMap = getFieldAccessMap('pets', 'rescue_staff');
-// => { petId: 'read', name: 'write', breed: 'write', medicalHistory: 'write', ... }
+// => { pet_id: 'read', name: 'write', breed: 'write', medical_notes: 'write', ... }
 
 // Access the full config object
 const allDefaults = defaultFieldPermissions;
@@ -217,7 +222,7 @@ const fieldService = new FieldPermissionsService({ debug: false });
 
 // Get effective access for a single field
 const result = await fieldService.getFieldAccess('users', 'adopter', 'email');
-// => { allowed: false, effectiveLevel: 'none', source: 'default' }
+// => { allowed: true, effectiveLevel: 'read', source: 'default' }
 
 // Get full effective access map (defaults + overrides)
 const accessMap = await fieldService.getEffectiveFieldAccessMap('pets', 'rescue_staff');

@@ -30,10 +30,14 @@ export type FieldPermissionRule = {
 };
 
 /**
- * Database-persisted field permission record
+ * Database-persisted field permission record.
+ *
+ * Note: `fieldPermissionId` is an auto-incrementing integer primary key
+ * from the backend (`field_permissions.field_permission_id`), so it is
+ * typed as `number` here to match what the API actually returns.
  */
 export type FieldPermissionRecord = FieldPermissionRule & {
-  fieldPermissionId: string;
+  fieldPermissionId: number;
   createdAt: string;
   updatedAt: string;
 };

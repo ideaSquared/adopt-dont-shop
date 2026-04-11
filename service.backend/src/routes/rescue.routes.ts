@@ -915,7 +915,7 @@ router.put(
   validateRescueId,
   validateUpdateRescue,
   requirePermission('rescues.update'),
-  fieldWriteGuard('rescues', { audit: true }),
+  fieldWriteGuard('rescues', { audit: true, resourceIdParam: 'rescueId' }),
   rescueController.updateRescue
 );
 
@@ -924,7 +924,7 @@ router.patch(
   validateRescueId,
   validateUpdateRescue,
   requirePermission('rescues.update'),
-  fieldWriteGuard('rescues', { audit: true }),
+  fieldWriteGuard('rescues', { audit: true, resourceIdParam: 'rescueId' }),
   rescueController.updateRescue
 );
 

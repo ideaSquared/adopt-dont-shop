@@ -166,12 +166,11 @@ export const fieldMask = (
   const { audit = false, resourceIdParam = 'id' } = options;
 
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-    if (!req.user) {
-      next();
-      return;
-    }
-
-    const role = req.user.userType;
+    // Treat unauthenticated requests as the most restrictive public role ('adopter').
+    // This ensures routes that allow optional auth (e.g. public GET /pets) still
+    // strip sensitive fields (medical_notes, internal notes, etc.) for anonymous
+    // callers rather than returning the raw model.
+    const role = req.user?.userType ?? 'adopter';
 
     let accessMap: Record<string, string>;
     try {
@@ -279,9 +278,9 @@ export const fieldMask = (
  */
 export const fieldWriteGuard = (
   resource: FieldPermissionResource,
-  options: { audit?: boolean } = {}
+  options: { audit?: boolean; resourceIdParam?: string } = {}
 ) => {
-  const { audit = false } = options;
+  const { audit = false, resourceIdParam = 'id' } = options;
 
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
@@ -318,7 +317,7 @@ export const fieldWriteGuard = (
           await logFieldAccess(
             req.user.userId,
             resource,
-            req.params.id || '',
+            req.params[resourceIdParam] || '',
             requestedFields.filter(f => !blockedFields.includes(f)),
             blockedFields,
             'write',
