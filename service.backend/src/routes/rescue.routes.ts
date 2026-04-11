@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import { RescueController } from '../controllers/rescue.controller';
 import { authenticateToken } from '../middleware/auth';
+import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { isUKPostcode, isUKPhoneNumber } from '../utils/uk-validators-middleware';
 import { requirePermission } from '../middleware/rbac';
 
@@ -395,7 +396,7 @@ const validateSendEmail = [
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/', validateSearchQuery, rescueController.searchRescues);
+router.get('/', validateSearchQuery, fieldMask('rescues'), rescueController.searchRescues);
 
 /**
  * @swagger
@@ -571,7 +572,12 @@ router.get('/', validateSearchQuery, rescueController.searchRescues);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/:rescueId', validateRescueId, rescueController.getRescueById);
+router.get(
+  '/:rescueId',
+  validateRescueId,
+  fieldMask('rescues', { audit: true, resourceIdParam: 'rescueId' }),
+  rescueController.getRescueById
+);
 
 /**
  * @swagger
@@ -896,7 +902,12 @@ router.use(authenticateToken);
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.post('/', validateCreateRescue, rescueController.createRescue);
+router.post(
+  '/',
+  validateCreateRescue,
+  fieldWriteGuard('rescues', { audit: true }),
+  rescueController.createRescue
+);
 
 // Update rescue (rescue admin or staff)
 router.put(
@@ -904,6 +915,7 @@ router.put(
   validateRescueId,
   validateUpdateRescue,
   requirePermission('rescues.update'),
+  fieldWriteGuard('rescues', { audit: true }),
   rescueController.updateRescue
 );
 
@@ -912,6 +924,7 @@ router.patch(
   validateRescueId,
   validateUpdateRescue,
   requirePermission('rescues.update'),
+  fieldWriteGuard('rescues', { audit: true }),
   rescueController.updateRescue
 );
 

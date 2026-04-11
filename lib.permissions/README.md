@@ -296,6 +296,50 @@ The backend exposes REST endpoints under `/api/v1/field-permissions/` for managi
 | POST | `/bulk` | Bulk create/update overrides |
 | DELETE | `/:resource/:role/:fieldName` | Delete a single override |
 
+### Wired endpoints
+
+`fieldMask` / `fieldWriteGuard` are currently wired into the following
+endpoints. When adding a new endpoint that touches a sensitive resource,
+apply the appropriate middleware so field-level controls are consistent
+across the API.
+
+**Users** (`service.backend/src/routes/user.routes.ts`):
+- `GET /users/profile` — `fieldMask('users')`
+- `PUT /users/profile` — `fieldWriteGuard('users')`
+- `GET /users/search` — `fieldMask('users')`
+- `GET /users/:userId` — `fieldMask('users')`
+- `PUT /users/:userId` — `fieldWriteGuard('users')`
+
+**Pets** (`service.backend/src/routes/pet.routes.ts`):
+- `GET /pets` — `fieldMask('pets')`
+- `GET /pets/:petId` — `fieldMask('pets')`
+- `POST /pets` — `fieldWriteGuard('pets')`
+- `PUT /pets/:petId` — `fieldWriteGuard('pets')`
+- `PATCH /pets/:petId` — `fieldWriteGuard('pets')`
+
+**Applications** (`service.backend/src/routes/application.routes.ts`):
+- `GET /applications` — `fieldMask('applications')`
+- `GET /applications/:applicationId` — `fieldMask('applications')`
+- `POST /applications` — `fieldWriteGuard('applications')`
+- `PUT /applications/:applicationId` — `fieldWriteGuard('applications')`
+
+**Rescues** (`service.backend/src/routes/rescue.routes.ts`):
+- `GET /rescues` — `fieldMask('rescues')`
+- `GET /rescues/:rescueId` — `fieldMask('rescues')`
+- `POST /rescues` — `fieldWriteGuard('rescues')`
+- `PUT /rescues/:rescueId` — `fieldWriteGuard('rescues')`
+- `PATCH /rescues/:rescueId` — `fieldWriteGuard('rescues')`
+
+### Performance notes
+
+- The middleware caches DB override lookups keyed by `resource:role` with
+  a 60-second TTL. Writes via `FieldPermissionService` invalidate the
+  cache automatically.
+- Masking runs in memory after the controller has built the response, so
+  it does not add extra DB queries beyond the one cached override fetch.
+- Set `audit: true` on sensitive endpoints to persist access events to
+  the audit log; default is off to avoid noise on high-traffic routes.
+
 ---
 
 ## Project Structure

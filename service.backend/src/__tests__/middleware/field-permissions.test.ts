@@ -1,5 +1,26 @@
-import { describe, it, expect } from 'vitest';
-import { maskResponseFields } from '../../middleware/field-permissions';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { NextFunction, Response } from 'express';
+import {
+  clearFieldPermissionCache,
+  fieldMask,
+  fieldWriteGuard,
+  maskResponseFields,
+} from '../../middleware/field-permissions';
+import FieldPermission from '../../models/FieldPermission';
+import { UserType } from '../../models/User';
+import { AuthenticatedRequest } from '../../types/auth';
+
+vi.mock('../../models/FieldPermission', () => ({
+  default: {
+    findAll: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+vi.mock('../../models/AuditLog', () => ({
+  default: {
+    create: vi.fn().mockResolvedValue({}),
+  },
+}));
 describe('Field Permissions Middleware - maskResponseFields', () => {
   const adminAccessMap: Record<string, string> = {
     userId: 'read',
@@ -283,5 +304,304 @@ describe('Field Permissions Middleware - maskResponseFields', () => {
       expect(masked).toHaveProperty('tags');
       expect(masked).not.toHaveProperty('secret');
     });
+  });
+});
+
+describe('Field Permissions Middleware - fieldMask (Express integration)', () => {
+  let mockRequest: Partial<AuthenticatedRequest>;
+  let mockResponse: Partial<Response>;
+  let mockNext: NextFunction;
+  let capturedJson: unknown;
+
+  beforeEach(() => {
+    clearFieldPermissionCache();
+    vi.clearAllMocks();
+    (FieldPermission.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    mockRequest = {
+      params: {},
+      ip: '127.0.0.1',
+      get: vi.fn().mockReturnValue('test-agent') as unknown as AuthenticatedRequest['get'],
+    };
+
+    capturedJson = undefined;
+    mockResponse = {
+      json: vi.fn().mockImplementation((body: unknown) => {
+        capturedJson = body;
+        return mockResponse as Response;
+      }) as unknown as Response['json'],
+    };
+    mockNext = vi.fn();
+  });
+
+  it('should skip masking when user is not authenticated', async () => {
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(FieldPermission.findAll).not.toHaveBeenCalled();
+  });
+
+  it('should mask sensitive fields for an adopter reading a user object', async () => {
+    mockRequest.user = {
+      userId: 'user-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    // Controller calls res.json with a user object
+    (mockResponse.json as (body: unknown) => Response)({
+      data: {
+        userId: 'user-1',
+        firstName: 'Jane',
+        email: 'jane@example.com',
+        password: 'hashed-secret',
+        resetToken: 'tok-abc',
+      },
+    });
+
+    const body = capturedJson as { data: Record<string, unknown> };
+    expect(body.data).not.toHaveProperty('password');
+    expect(body.data).not.toHaveProperty('resetToken');
+  });
+
+  it('should expose admin-only fields when an admin reads a user object', async () => {
+    mockRequest.user = {
+      userId: 'admin-1',
+      userType: UserType.ADMIN,
+    } as AuthenticatedRequest['user'];
+
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    (mockResponse.json as (body: unknown) => Response)({
+      data: {
+        userId: 'user-1',
+        firstName: 'Jane',
+        email: 'jane@example.com',
+        status: 'active',
+      },
+    });
+
+    const body = capturedJson as { data: Record<string, unknown> };
+    expect(body.data).toHaveProperty('email');
+    expect(body.data).toHaveProperty('status');
+  });
+
+  it('should mask every item in an array response', async () => {
+    mockRequest.user = {
+      userId: 'user-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    (mockResponse.json as (body: unknown) => Response)({
+      data: [
+        { userId: 'u1', firstName: 'A', password: 'h1' },
+        { userId: 'u2', firstName: 'B', password: 'h2' },
+      ],
+    });
+
+    const body = capturedJson as { data: Array<Record<string, unknown>> };
+    expect(body.data).toHaveLength(2);
+    body.data.forEach(item => {
+      expect(item).not.toHaveProperty('password');
+    });
+  });
+
+  it('should apply DB-level overrides on top of role defaults', async () => {
+    mockRequest.user = {
+      userId: 'adopter-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+
+    // Override: explicitly grant adopter read access to email on users
+    (FieldPermission.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { fieldName: 'email', accessLevel: 'read' },
+    ]);
+
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    (mockResponse.json as (body: unknown) => Response)({
+      data: {
+        userId: 'user-1',
+        email: 'override@example.com',
+        password: 'hashed',
+      },
+    });
+
+    const body = capturedJson as { data: Record<string, unknown> };
+    expect(body.data).toHaveProperty('email', 'override@example.com');
+    expect(body.data).not.toHaveProperty('password');
+  });
+
+  it('should leave error responses unmodified', async () => {
+    mockRequest.user = {
+      userId: 'user-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    const errorBody = { error: 'Not found' };
+    (mockResponse.json as (body: unknown) => Response)(errorBody);
+
+    expect(capturedJson).toEqual(errorBody);
+  });
+
+  it('should cache override lookups across subsequent requests', async () => {
+    mockRequest.user = {
+      userId: 'u',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    // Should hit DB only once due to 1-minute cache
+    expect(FieldPermission.findAll).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Field Permissions Middleware - fieldWriteGuard (Express integration)', () => {
+  let mockRequest: Partial<AuthenticatedRequest>;
+  let mockResponse: Partial<Response>;
+  let mockNext: NextFunction;
+  let statusCode: number | undefined;
+  let jsonBody: unknown;
+
+  beforeEach(() => {
+    clearFieldPermissionCache();
+    vi.clearAllMocks();
+    (FieldPermission.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    statusCode = undefined;
+    jsonBody = undefined;
+
+    mockRequest = {
+      params: {},
+      path: '/api/test',
+      ip: '127.0.0.1',
+      body: {},
+      get: vi.fn().mockReturnValue('test-agent') as unknown as AuthenticatedRequest['get'],
+    };
+
+    mockResponse = {
+      status: vi.fn().mockImplementation((code: number) => {
+        statusCode = code;
+        return mockResponse as Response;
+      }) as unknown as Response['status'],
+      json: vi.fn().mockImplementation((body: unknown) => {
+        jsonBody = body;
+        return mockResponse as Response;
+      }) as unknown as Response['json'],
+    };
+    mockNext = vi.fn();
+  });
+
+  it('should reject request with 401 when user is not authenticated', async () => {
+    const middleware = fieldWriteGuard('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    expect(statusCode).toBe(401);
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  it('should allow writes when all fields have write access', async () => {
+    mockRequest.user = {
+      userId: 'admin-1',
+      userType: UserType.ADMIN,
+    } as AuthenticatedRequest['user'];
+    mockRequest.body = {
+      firstName: 'Updated',
+      lastName: 'Name',
+    };
+
+    const middleware = fieldWriteGuard('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(statusCode).toBeUndefined();
+  });
+
+  it('should reject write with 403 when body contains read-only field', async () => {
+    mockRequest.user = {
+      userId: 'adopter-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+    // Adopters can READ firstName but cannot WRITE it by default
+    mockRequest.body = {
+      firstName: 'Jane',
+    };
+
+    const middleware = fieldWriteGuard('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    expect(statusCode).toBe(403);
+    const body = jsonBody as { error: string; blockedFields: string[] };
+    expect(body.blockedFields).toContain('firstName');
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  it('should reject write with 403 when body contains a hidden field', async () => {
+    mockRequest.user = {
+      userId: 'admin-1',
+      userType: UserType.ADMIN,
+    } as AuthenticatedRequest['user'];
+    // password should never be directly writable via normal update endpoint
+    mockRequest.body = {
+      firstName: 'Updated',
+      password: 'newPassword123',
+    };
+
+    const middleware = fieldWriteGuard('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    expect(statusCode).toBe(403);
+    const body = jsonBody as { blockedFields: string[] };
+    expect(body.blockedFields).toContain('password');
+  });
+
+  it('should pass through when body is empty or not an object', async () => {
+    mockRequest.user = {
+      userId: 'adopter-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+    mockRequest.body = undefined;
+
+    const middleware = fieldWriteGuard('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(statusCode).toBeUndefined();
+  });
+
+  it('should honor DB overrides that grant write access', async () => {
+    mockRequest.user = {
+      userId: 'adopter-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+    mockRequest.body = {
+      email: 'new@example.com',
+    };
+
+    // Override: grant adopters write access to email (default is 'none')
+    (FieldPermission.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { fieldName: 'email', accessLevel: 'write' },
+    ]);
+
+    const middleware = fieldWriteGuard('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(statusCode).toBeUndefined();
   });
 });

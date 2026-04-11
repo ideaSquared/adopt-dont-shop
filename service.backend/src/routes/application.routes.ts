@@ -1,6 +1,7 @@
 import express from 'express';
 import { ApplicationController } from '../controllers/application.controller';
 import { authenticateToken } from '../middleware/auth';
+import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { requireRole } from '../middleware/rbac';
 import { handleValidationErrors } from '../middleware/validation';
 import { UserType } from '../models/User';
@@ -129,6 +130,7 @@ router.use(authenticateToken);
  */
 router.get(
   '/',
+  fieldMask('applications', { audit: true }),
   ApplicationController.validateGetApplications,
   applicationController.getApplications
 );
@@ -201,6 +203,7 @@ router.get(
 router.post(
   '/',
   requireRole(UserType.ADOPTER),
+  fieldWriteGuard('applications', { audit: true }),
   ApplicationController.validateCreateApplication,
   applicationController.createApplication
 );
@@ -311,6 +314,7 @@ router.post(
  */
 router.get(
   '/:applicationId',
+  fieldMask('applications', { audit: true, resourceIdParam: 'applicationId' }),
   ApplicationController.validateApplicationId,
   applicationController.getApplicationById
 );
@@ -375,6 +379,7 @@ router.get(
 // Update application (owner only for submitted applications)
 router.put(
   '/:applicationId',
+  fieldWriteGuard('applications', { audit: true }),
   ApplicationController.validateUpdateApplication,
   applicationController.updateApplication
 );
