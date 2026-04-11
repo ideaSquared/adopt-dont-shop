@@ -2,7 +2,7 @@ import { ApiService, AuthenticationError } from '@adopt-dont-shop/lib.api';
 
 // Create the global API service instance with auth token function
 export const globalApiService = new ApiService({
-  apiUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
+  apiUrl: import.meta.env.VITE_API_BASE_URL ?? '',
   debug: import.meta.env.DEV,
   // Provide function to get auth token from localStorage
   getAuthToken: () => {

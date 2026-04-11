@@ -56,7 +56,11 @@ export class FieldPermissionService {
         accessLevel,
       },
       {
-        conflictFields: ['resource', 'fieldName', 'role'],
+        // Sequelize's conflictFields type expects model attribute names but does not
+        // translate them to column names in the ON CONFLICT clause. 'fieldName' maps
+        // to column 'field_name' via the model's field option, but Sequelize emits
+        // the JS name verbatim — causing a DB error. We pass the column name directly.
+        conflictFields: ['resource', 'field_name', 'role'] as never[],
         transaction,
       }
     );

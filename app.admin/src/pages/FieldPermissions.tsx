@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
-import { useAuth, authService } from '@adopt-dont-shop/lib.auth';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
+import { apiService } from '../services/libraryServices';
 import { FiShield, FiSave, FiRefreshCw, FiInfo } from 'react-icons/fi';
 import {
   PageContainer,
@@ -201,49 +202,28 @@ const FieldPermissions: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiBase = import.meta.env.VITE_API_URL || '';
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const token = authService.getToken();
-      const [defaultsRes, overridesRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/field-permissions/defaults/${selectedResource}/${selectedRole}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${apiBase}/api/v1/field-permissions/${selectedResource}/${selectedRole}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      const [defaultsData, overridesData] = await Promise.all([
+        apiService.get<{ data: AccessMap }>(
+          `/api/v1/field-permissions/defaults/${selectedResource}/${selectedRole}`
+        ),
+        apiService.get<{ data: FieldPermissionRecord[] }>(
+          `/api/v1/field-permissions/${selectedResource}/${selectedRole}`
+        ),
       ]);
 
-      const errors: string[] = [];
-
-      if (defaultsRes.ok) {
-        const defaultsData = await defaultsRes.json();
-        setDefaults(defaultsData.data || {});
-      } else {
-        errors.push(`Failed to load defaults (${defaultsRes.status})`);
-      }
-
-      if (overridesRes.ok) {
-        const overridesData = await overridesRes.json();
-        setOverrides(overridesData.data || []);
-      } else {
-        errors.push(`Failed to load overrides (${overridesRes.status})`);
-      }
-
-      if (errors.length > 0) {
-        setError(errors.join('; '));
-      }
-
+      setDefaults(defaultsData.data || {});
+      setOverrides(overridesData.data || []);
       setPendingChanges({});
     } catch (err) {
       setError('Failed to load field permissions');
     } finally {
       setLoading(false);
     }
-  }, [apiBase, selectedResource, selectedRole]);
+  }, [selectedResource, selectedRole]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -277,7 +257,6 @@ const FieldPermissions: React.FC = () => {
     setError(null);
 
     try {
-      const token = authService.getToken();
       const bulkOverrides = Object.entries(pendingChanges).map(([fieldName, accessLevel]) => ({
         resource: selectedResource,
         fieldName,
@@ -285,18 +264,7 @@ const FieldPermissions: React.FC = () => {
         accessLevel,
       }));
 
-      const response = await fetch(`${apiBase}/api/v1/field-permissions/bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ overrides: bulkOverrides }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save changes');
-      }
+      await apiService.post('/api/v1/field-permissions/bulk', { overrides: bulkOverrides });
 
       await fetchData();
     } catch (err) {
