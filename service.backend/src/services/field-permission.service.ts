@@ -1,4 +1,4 @@
-import { Transaction } from 'sequelize';
+import { Transaction, UniqueConstraintError } from 'sequelize';
 import FieldPermission, {
   FieldAccessLevel,
   FieldPermissionResource,
@@ -46,6 +46,13 @@ export class FieldPermissionService {
    * conventions would either require an unsafe `as never[]` cast
    * (losing type safety) or produce a runtime SQL error.
    *
+   * Concurrency: two requests hitting this path in parallel could both
+   * observe `existing === null` and then both attempt `create`, causing
+   * one to fail with the `unique_field_permission` constraint. We handle
+   * this by catching the unique-constraint error, re-reading the row,
+   * and updating it in place. This converts the race condition into a
+   * deterministic update.
+   *
    * Accepts an optional transaction for use within bulk operations.
    */
   static async upsert(
@@ -56,14 +63,13 @@ export class FieldPermissionService {
     updatedBy: string,
     transaction?: Transaction
   ): Promise<FieldPermission> {
-    const existing = await FieldPermission.findOne({
-      where: { resource, fieldName, role },
-      transaction,
-    });
-
-    const record = existing
-      ? await existing.update({ accessLevel }, { transaction })
-      : await FieldPermission.create({ resource, fieldName, role, accessLevel }, { transaction });
+    const record = await FieldPermissionService.findOrCreateAndUpdate(
+      resource,
+      fieldName,
+      role,
+      accessLevel,
+      transaction
+    );
 
     // Clear cache so changes take effect immediately
     clearFieldPermissionCache(resource, role);
@@ -90,6 +96,54 @@ export class FieldPermissionService {
     logger.info('Field permission upserted', { resource, fieldName, role, accessLevel, updatedBy });
 
     return record;
+  }
+
+  /**
+   * Find-or-create a FieldPermission row, then update its accessLevel.
+   * Retries once on unique-constraint violation to handle the race where
+   * two concurrent callers both observe "not found" and both try to insert.
+   */
+  private static async findOrCreateAndUpdate(
+    resource: FieldPermissionResource,
+    fieldName: string,
+    role: string,
+    accessLevel: FieldAccessLevel,
+    transaction?: Transaction
+  ): Promise<FieldPermission> {
+    const existing = await FieldPermission.findOne({
+      where: { resource, fieldName, role },
+      transaction,
+    });
+
+    if (existing) {
+      return existing.update({ accessLevel }, { transaction });
+    }
+
+    try {
+      return await FieldPermission.create(
+        { resource, fieldName, role, accessLevel },
+        { transaction }
+      );
+    } catch (error) {
+      if (!(error instanceof UniqueConstraintError)) {
+        throw error;
+      }
+
+      // Another request inserted the row between our findOne and create.
+      // Re-read and update in place.
+      const conflict = await FieldPermission.findOne({
+        where: { resource, fieldName, role },
+        transaction,
+      });
+
+      if (!conflict) {
+        // Extremely unlikely: constraint fired but row isn't visible.
+        // Re-throw the original error so the caller sees a real failure.
+        throw error;
+      }
+
+      return conflict.update({ accessLevel }, { transaction });
+    }
   }
 
   /**

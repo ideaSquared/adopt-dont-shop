@@ -3,7 +3,12 @@ import { AuthenticatedRequest } from '../types/auth';
 import FieldPermission from '../models/FieldPermission';
 import AuditLog from '../models/AuditLog';
 import { logger } from '../utils/logger';
-import { type FieldPermissionResource, getFieldAccessMap } from '@adopt-dont-shop/lib.types';
+import {
+  enforceSensitiveDenylist,
+  type FieldAccessLevel,
+  type FieldPermissionResource,
+  getFieldAccessMap,
+} from '@adopt-dont-shop/lib.types';
 
 /**
  * Cache for field permission overrides to avoid repeated DB queries.
@@ -66,21 +71,28 @@ const getOverrides = async (
 
 /**
  * Get the full effective field access map for a resource and role.
+ *
+ * Layering order (lowest to highest precedence):
+ *   1. Hardcoded defaults from lib.types
+ *   2. Database overrides (per-field)
+ *   3. Sensitive-field denylist — sensitive fields (password, tokens, 2FA
+ *      secrets, etc.) are hard-set to 'none' after overrides are applied,
+ *      so even a misconfigured override cannot expose them.
  */
 const getEffectiveAccessMap = async (
   resource: FieldPermissionResource,
   role: string
-): Promise<Record<string, string>> => {
+): Promise<Record<string, FieldAccessLevel>> => {
   const userRole = role as 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
   const defaults = getFieldAccessMap(resource, userRole);
   const overrides = await getOverrides(resource, role);
 
-  const effective: Record<string, string> = { ...defaults };
+  const effective: Record<string, FieldAccessLevel> = { ...defaults };
   for (const override of overrides) {
-    effective[override.fieldName] = override.accessLevel;
+    effective[override.fieldName] = override.accessLevel as FieldAccessLevel;
   }
 
-  return effective;
+  return enforceSensitiveDenylist(resource, effective);
 };
 
 /**
@@ -172,7 +184,7 @@ export const fieldMask = (
     // callers rather than returning the raw model.
     const role = req.user?.userType ?? 'adopter';
 
-    let accessMap: Record<string, string>;
+    let accessMap: Record<string, FieldAccessLevel>;
     try {
       accessMap = await getEffectiveAccessMap(resource, role);
     } catch (error) {
@@ -183,79 +195,120 @@ export const fieldMask = (
 
     const originalJson = res.json.bind(res);
 
+    const maskItem = (item: unknown): unknown => {
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        return maskResponseFields(item as Record<string, unknown>, accessMap, 'read');
+      }
+      return item;
+    };
+
+    const auditMasking = (originalFields: string[], visibleFields: string[]): void => {
+      if (!audit) {
+        return;
+      }
+      const resourceId = req.params[resourceIdParam] || '';
+      const maskedFields = originalFields.filter(f => !visibleFields.includes(f));
+      void logFieldAccess(
+        req.user?.userId ?? 'unknown',
+        resource,
+        resourceId,
+        visibleFields,
+        maskedFields,
+        'read',
+        req.ip,
+        req.get('User-Agent')
+      );
+    };
+
+    /**
+     * Heuristic: does this object look like a single resource, i.e. does at least
+     * one of its top-level keys match a field in the access map? If so, we treat
+     * it as a resource and run masking. Otherwise we leave it alone — this keeps
+     * metadata-only responses (e.g. health checks, stats) untouched.
+     */
+    const looksLikeResource = (obj: Record<string, unknown>): boolean => {
+      for (const key of Object.keys(obj)) {
+        if (key in accessMap) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     res.json = function (body: Record<string, unknown>) {
       try {
-        const resourceId = req.params[resourceIdParam] || '';
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+          return originalJson(body);
+        }
 
-        if (body && typeof body === 'object') {
-          // Handle { data: ... } wrapper pattern
-          if ('data' in body && body.data !== null && body.data !== undefined) {
-            const data = body.data;
+        // Never mask error responses
+        if ('error' in body || ('success' in body && body.success === false)) {
+          return originalJson(body);
+        }
 
-            if (Array.isArray(data)) {
-              const maskedItems = data.map(item => {
-                if (item && typeof item === 'object') {
-                  return maskResponseFields(item as Record<string, unknown>, accessMap, 'read');
-                }
-                return item;
-              });
+        // Pattern 1: { success, data, ... } or { data } wrapper
+        if ('data' in body && body.data !== null && body.data !== undefined) {
+          const data = body.data;
 
-              if (audit) {
-                const allFields =
-                  data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [];
-                const visibleFields = maskedItems.length > 0 ? Object.keys(maskedItems[0]) : [];
-                const maskedFields = allFields.filter(f => !visibleFields.includes(f));
-
-                void logFieldAccess(
-                  req.user?.userId ?? 'unknown',
-                  resource,
-                  resourceId,
-                  visibleFields,
-                  maskedFields,
-                  'read',
-                  req.ip,
-                  req.get('User-Agent')
-                );
-              }
-
-              return originalJson({ ...body, data: maskedItems });
-            }
-
-            if (typeof data === 'object') {
-              const maskedData = maskResponseFields(
-                data as Record<string, unknown>,
-                accessMap,
-                'read'
-              );
-
-              if (audit) {
-                const allFields = Object.keys(data as Record<string, unknown>);
-                const visibleFields = Object.keys(maskedData);
-                const maskedFields = allFields.filter(f => !visibleFields.includes(f));
-
-                void logFieldAccess(
-                  req.user?.userId ?? 'unknown',
-                  resource,
-                  resourceId,
-                  visibleFields,
-                  maskedFields,
-                  'read',
-                  req.ip,
-                  req.get('User-Agent')
-                );
-              }
-
-              return originalJson({ ...body, data: maskedData });
-            }
+          if (Array.isArray(data)) {
+            const maskedItems = data.map(maskItem);
+            const first = data[0] as Record<string, unknown> | undefined;
+            const firstMasked = maskedItems[0] as Record<string, unknown> | undefined;
+            auditMasking(
+              first ? Object.keys(first) : [],
+              firstMasked ? Object.keys(firstMasked) : []
+            );
+            return originalJson({ ...body, data: maskedItems });
           }
 
-          // Handle direct object response (no wrapper)
-          if (!('data' in body) && !('error' in body)) {
-            const maskedBody = maskResponseFields(body, accessMap, 'read');
-            return originalJson(maskedBody);
+          if (typeof data === 'object') {
+            const dataObj = data as Record<string, unknown>;
+            const maskedData = maskResponseFields(dataObj, accessMap, 'read');
+            auditMasking(Object.keys(dataObj), Object.keys(maskedData));
+            return originalJson({ ...body, data: maskedData });
+          }
+
+          // Primitive data payload — nothing to mask
+          return originalJson(body);
+        }
+
+        // Pattern 2: composite response keyed by resource name,
+        // e.g. { users: [...], total, page, totalPages } from /users/search.
+        // We mask the nested resource list/object but preserve the pagination
+        // metadata alongside it.
+        if (resource in body) {
+          const nested = body[resource];
+
+          if (Array.isArray(nested)) {
+            const maskedItems = nested.map(maskItem);
+            const first = nested[0] as Record<string, unknown> | undefined;
+            const firstMasked = maskedItems[0] as Record<string, unknown> | undefined;
+            auditMasking(
+              first ? Object.keys(first) : [],
+              firstMasked ? Object.keys(firstMasked) : []
+            );
+            return originalJson({ ...body, [resource]: maskedItems });
+          }
+
+          if (nested && typeof nested === 'object') {
+            const nestedObj = nested as Record<string, unknown>;
+            const maskedNested = maskResponseFields(nestedObj, accessMap, 'read');
+            auditMasking(Object.keys(nestedObj), Object.keys(maskedNested));
+            return originalJson({ ...body, [resource]: maskedNested });
           }
         }
 
+        // Pattern 3: direct resource-shaped object (no wrapper),
+        // e.g. GET /users/profile returns the user object directly.
+        // Only mask if the body actually looks like a resource — otherwise
+        // we'd strip all keys from non-resource composite responses.
+        if (looksLikeResource(body)) {
+          const maskedBody = maskResponseFields(body, accessMap, 'read');
+          auditMasking(Object.keys(body), Object.keys(maskedBody));
+          return originalJson(maskedBody);
+        }
+
+        // Nothing resource-shaped found — passthrough untouched
         return originalJson(body);
       } catch (error) {
         logger.error('Field masking middleware error', { error, resource, role });

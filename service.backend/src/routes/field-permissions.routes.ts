@@ -11,13 +11,44 @@ import { logger } from '../utils/logger';
 import { FieldAccessLevel, FieldPermissionResource } from '../models/FieldPermission';
 // lib.types provides the default configurations and is the source of truth
 // for permission types and business logic. No frontend dependencies.
-import { defaultFieldPermissions, getFieldAccessMap } from '@adopt-dont-shop/lib.types';
+import {
+  defaultFieldPermissions,
+  getFieldAccessMap,
+  isSensitiveField,
+  SENSITIVE_FIELD_DENYLIST,
+} from '@adopt-dont-shop/lib.types';
 
 const router = Router();
 
 const validResources = Object.values(FieldPermissionResource);
 const validAccessLevels = Object.values(FieldAccessLevel);
 const validRoles = ['admin', 'moderator', 'rescue_staff', 'adopter'];
+
+/**
+ * Reject any attempt to create or modify an override for a field that is on
+ * the sensitive-field denylist (password, tokens, 2FA secrets, etc.). Even
+ * admins cannot loosen these — they are hard-coded to 'none' for every role
+ * and enforced a second time by the middleware at request time. Rejecting
+ * here gives admins a clearer error message than silently coercing the
+ * stored override to 'none'.
+ */
+const rejectSensitiveOverrides = (
+  overrides: ReadonlyArray<{ resource: string; fieldName: string }>
+): string[] => {
+  const blocked: string[] = [];
+  for (const override of overrides) {
+    if (
+      (override.resource as keyof typeof SENSITIVE_FIELD_DENYLIST) in SENSITIVE_FIELD_DENYLIST &&
+      isSensitiveField(
+        override.resource as keyof typeof SENSITIVE_FIELD_DENYLIST,
+        override.fieldName
+      )
+    ) {
+      blocked.push(`${override.resource}.${override.fieldName}`);
+    }
+  }
+  return blocked;
+};
 
 /**
  * GET /api/v1/field-permissions/defaults
@@ -164,6 +195,17 @@ router.post(
 
     try {
       const { resource, fieldName, role, accessLevel } = req.body;
+
+      const blocked = rejectSensitiveOverrides([{ resource, fieldName }]);
+      if (blocked.length > 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Cannot override sensitive fields',
+          blockedFields: blocked,
+        });
+        return;
+      }
+
       const userId = req.user?.userId ?? 'unknown';
 
       const record = await FieldPermissionService.upsert(
@@ -216,6 +258,21 @@ router.post(
     }
 
     try {
+      const overrides = req.body.overrides as ReadonlyArray<{
+        resource: string;
+        fieldName: string;
+      }>;
+
+      const blocked = rejectSensitiveOverrides(overrides);
+      if (blocked.length > 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Cannot override sensitive fields',
+          blockedFields: blocked,
+        });
+        return;
+      }
+
       const userId = req.user?.userId ?? 'unknown';
       const records = await FieldPermissionService.bulkUpsert(req.body.overrides, userId);
       res.status(200).json({ success: true, data: records });

@@ -185,133 +185,161 @@ const userFieldPermissions: FieldPermissionConfig['users'] = {
 /**
  * Application resource field permissions
  *
- * Application model defines attributes as snake_case — toJSON emits
- * snake_case, so defaults MUST use snake_case keys.
+ * Applications have a dual-cased shape:
+ *
+ *  - RESPONSE shape (FrontendApplication) is camelCase. The ApplicationController
+ *    transforms the Sequelize model into a frontend-friendly DTO with keys like
+ *    `id`, `petId`, `userId`, `rescueId`, `status`, `submittedAt`, `reviewedAt`,
+ *    `reviewedBy`, `reviewNotes`, `createdAt`, `updatedAt`, `petName`, `petType`,
+ *    `petBreed`, `userName`, `userEmail`. This is what `fieldMask('applications')`
+ *    sees.
+ *
+ *  - REQUEST shape (CreateApplicationRequest / UpdateApplicationRequest) is
+ *    snake_case. Clients POST / PUT bodies like `{ pet_id, answers, references,
+ *    interview_notes, home_visit_notes, score, ... }`. This is what
+ *    `fieldWriteGuard('applications')` sees.
+ *
+ * Because `fieldMask` and `fieldWriteGuard` both look up keys in the same
+ * access map, we include BOTH camelCase (response) and snake_case (request)
+ * keys in every role's map. Each key's access level is specified independently
+ * so we can, for example, mark `petId` as `read` (so the response includes it)
+ * while marking `pet_id` as `write` (so adopters can submit it on POST).
  *
  * Interview notes, home visit notes, and scoring are restricted.
  * Applicants see their own application data but not internal notes.
  */
 const applicationFieldPermissions: FieldPermissionConfig['applications'] = {
   admin: {
-    application_id: READ,
-    user_id: READ,
-    pet_id: READ,
-    rescue_id: READ,
-    status: WRITE,
-    priority: WRITE,
-    stage: WRITE,
-    final_outcome: WRITE,
-    review_started_at: READ,
-    visit_scheduled_at: WRITE,
-    visit_completed_at: WRITE,
-    resolved_at: READ,
-    withdrawal_reason: READ,
-    rejection_reason: WRITE,
-    answers: READ,
-    references: READ,
+    // camelCase RESPONSE keys (FrontendApplication)
+    id: READ,
+    petId: READ,
+    userId: READ,
+    rescueId: READ,
+    status: READ,
+    submittedAt: READ,
+    reviewedAt: READ,
+    reviewedBy: READ,
+    reviewNotes: READ,
+    data: READ,
     documents: READ,
+    createdAt: READ,
+    updatedAt: READ,
+    petName: READ,
+    petType: READ,
+    petBreed: READ,
+    userName: READ,
+    userEmail: READ,
+    // snake_case REQUEST keys (CreateApplicationRequest / UpdateApplicationRequest)
+    pet_id: WRITE,
+    answers: WRITE,
+    references: WRITE,
+    priority: WRITE,
+    notes: WRITE,
+    tags: WRITE,
     interview_notes: WRITE,
     home_visit_notes: WRITE,
     score: WRITE,
-    tags: WRITE,
-    notes: WRITE,
-    actioned_by: READ,
-    actioned_at: READ,
-    submitted_at: READ,
-    reviewed_at: READ,
-    decision_at: READ,
-    expires_at: READ,
-    follow_up_date: WRITE,
-    created_at: READ,
-    updated_at: READ,
   },
   moderator: {
-    application_id: READ,
-    user_id: READ,
-    pet_id: READ,
-    rescue_id: READ,
+    // camelCase RESPONSE keys
+    id: READ,
+    petId: READ,
+    userId: READ,
+    rescueId: READ,
     status: READ,
-    priority: READ,
-    stage: READ,
-    final_outcome: READ,
-    answers: READ,
-    references: NONE,
+    submittedAt: READ,
+    reviewedAt: READ,
+    reviewedBy: READ,
+    reviewNotes: READ,
+    data: READ,
     documents: NONE,
+    createdAt: READ,
+    updatedAt: READ,
+    petName: READ,
+    petType: READ,
+    petBreed: READ,
+    userName: READ,
+    userEmail: READ,
+    // snake_case REQUEST / policy keys — moderators can READ assessment
+    // fields (the frontend service uses this map for client-side policy
+    // checks) but cannot WRITE any of them; fieldWriteGuard rejects
+    // anything that isn't `write`, so READ is sufficient to block writes.
+    pet_id: READ,
+    answers: READ,
+    references: READ,
+    priority: READ,
+    notes: READ,
+    tags: READ,
     interview_notes: READ,
     home_visit_notes: READ,
     score: READ,
-    actioned_by: READ,
-    actioned_at: READ,
-    submitted_at: READ,
-    reviewed_at: READ,
-    decision_at: READ,
-    created_at: READ,
-    updated_at: READ,
   },
   rescue_staff: {
-    application_id: READ,
-    user_id: READ,
+    // camelCase RESPONSE keys
+    id: READ,
+    petId: READ,
+    userId: READ,
+    rescueId: READ,
+    status: READ,
+    submittedAt: READ,
+    reviewedAt: READ,
+    reviewedBy: READ,
+    reviewNotes: READ,
+    data: READ,
+    documents: READ,
+    createdAt: READ,
+    updatedAt: READ,
+    petName: READ,
+    petType: READ,
+    petBreed: READ,
+    userName: READ,
+    userEmail: READ,
+    // snake_case REQUEST keys — rescue staff can edit review state
     pet_id: READ,
-    rescue_id: READ,
-    status: WRITE,
-    priority: WRITE,
-    stage: WRITE,
-    final_outcome: WRITE,
-    review_started_at: WRITE,
-    visit_scheduled_at: WRITE,
-    visit_completed_at: WRITE,
-    resolved_at: WRITE,
-    withdrawal_reason: READ,
-    rejection_reason: WRITE,
     answers: READ,
     references: READ,
-    documents: READ,
+    priority: WRITE,
+    notes: WRITE,
+    tags: WRITE,
     interview_notes: WRITE,
     home_visit_notes: WRITE,
     score: WRITE,
-    tags: WRITE,
-    notes: WRITE,
-    actioned_by: READ,
-    actioned_at: READ,
-    submitted_at: READ,
-    reviewed_at: READ,
-    decision_at: READ,
-    expires_at: READ,
-    follow_up_date: WRITE,
-    created_at: READ,
-    updated_at: READ,
   },
   adopter: {
-    application_id: READ,
-    user_id: READ,
-    pet_id: READ,
-    rescue_id: READ,
+    // camelCase RESPONSE keys — adopters see their own application data
+    // but internal assessment fields (reviewNotes, score, interview notes)
+    // are stripped. reviewNotes is considered internal metadata and hidden.
+    id: READ,
+    petId: READ,
+    userId: READ,
+    rescueId: READ,
     status: READ,
-    priority: NONE,
-    stage: READ,
-    final_outcome: READ,
-    // Applicants can provide/update their own answers and references until submission
+    submittedAt: READ,
+    reviewedAt: READ,
+    reviewedBy: NONE,
+    reviewNotes: NONE,
+    data: READ,
+    documents: READ,
+    createdAt: READ,
+    updatedAt: READ,
+    petName: READ,
+    petType: READ,
+    petBreed: READ,
+    userName: READ,
+    userEmail: READ,
+    // snake_case REQUEST keys — adopters can submit creation/update bodies.
+    // Ownership is enforced by requirePermissionOrOwnership upstream; the
+    // field defaults unblock POST /applications for the adopter role.
+    pet_id: WRITE,
     answers: WRITE,
     references: WRITE,
-    documents: WRITE,
-    // Internal assessment fields are hidden
+    priority: NONE,
+    notes: WRITE,
+    tags: NONE,
+    // Internal staff assessment fields are NEVER writable by adopters
     interview_notes: NONE,
     home_visit_notes: NONE,
     score: NONE,
-    review_started_at: NONE,
-    visit_scheduled_at: READ,
-    visit_completed_at: READ,
-    resolved_at: READ,
-    rejection_reason: READ,
-    withdrawal_reason: WRITE,
-    notes: WRITE,
-    actioned_by: NONE,
-    actioned_at: NONE,
-    submitted_at: READ,
-    reviewed_at: NONE,
-    decision_at: READ,
-    created_at: READ,
-    updated_at: READ,
   },
 };
 
@@ -323,10 +351,15 @@ const applicationFieldPermissions: FieldPermissionConfig['applications'] = {
  *
  * Most pet fields are publicly readable. Internal notes (behavioral,
  * medical, surrender reason) are restricted.
+ *
+ * `distance` is a computed field added by PetController.searchPets when
+ * the request includes location parameters; it is never a DB column but
+ * appears in the response so it needs a permission entry.
  */
 const petFieldPermissions: FieldPermissionConfig['pets'] = {
   admin: {
     pet_id: READ,
+    distance: READ,
     name: WRITE,
     rescue_id: READ,
     short_description: WRITE,
@@ -385,6 +418,7 @@ const petFieldPermissions: FieldPermissionConfig['pets'] = {
   },
   moderator: {
     pet_id: READ,
+    distance: READ,
     name: READ,
     rescue_id: READ,
     short_description: READ,
@@ -443,6 +477,7 @@ const petFieldPermissions: FieldPermissionConfig['pets'] = {
   },
   rescue_staff: {
     pet_id: READ,
+    distance: READ,
     name: WRITE,
     rescue_id: READ,
     short_description: WRITE,
@@ -503,6 +538,7 @@ const petFieldPermissions: FieldPermissionConfig['pets'] = {
     // Public pet-browsing view: basic details only. No internal notes,
     // no medical/behavioral history, no surrender reason, no microchip.
     pet_id: READ,
+    distance: READ,
     name: READ,
     rescue_id: READ,
     short_description: READ,
@@ -693,6 +729,72 @@ export const defaultFieldPermissions: FieldPermissionConfig = {
 };
 
 /**
+ * Fields that are NEVER writable or readable via the field-permission system,
+ * regardless of role or database override. This is a hard security floor
+ * that cannot be loosened from the admin UI.
+ *
+ * Enforced in two places:
+ *  1. `isSensitiveField` / `enforceSensitiveDenylist` — called by the backend
+ *     middleware after merging defaults + overrides, so even if an admin
+ *     sets an override like `{ resource: 'users', field: 'password', role:
+ *     'admin', level: 'write' }` in the DB, it will be forced back to 'none'.
+ *  2. Admin API routes (POST/bulk upsert) reject any attempt to create an
+ *     override for a sensitive field at request-validation time.
+ */
+export const SENSITIVE_FIELD_DENYLIST: Readonly<
+  Record<keyof FieldPermissionConfig, ReadonlyArray<string>>
+> = {
+  users: [
+    'password',
+    'resetToken',
+    'resetTokenExpiration',
+    'resetTokenForceFlag',
+    'verificationToken',
+    'verificationTokenExpiresAt',
+    'twoFactorSecret',
+    'backupCodes',
+  ],
+  pets: [],
+  applications: [],
+  rescues: [],
+};
+
+/**
+ * Check whether a field is on the sensitive denylist for its resource.
+ * Sensitive fields must always resolve to 'none' access regardless of
+ * role, default, or database override.
+ */
+export const isSensitiveField = (
+  resource: keyof FieldPermissionConfig,
+  fieldName: string
+): boolean => {
+  const denylist = SENSITIVE_FIELD_DENYLIST[resource];
+  if (!denylist) {
+    return false;
+  }
+  return denylist.includes(fieldName);
+};
+
+/**
+ * Apply the sensitive-field denylist to an access map in place.
+ * Any sensitive field present in the map is forced to 'none'.
+ * Returns the same map for chaining.
+ */
+export const enforceSensitiveDenylist = (
+  resource: keyof FieldPermissionConfig,
+  accessMap: Record<string, FieldAccessLevel>
+): Record<string, FieldAccessLevel> => {
+  const denylist = SENSITIVE_FIELD_DENYLIST[resource];
+  if (!denylist || denylist.length === 0) {
+    return accessMap;
+  }
+  for (const field of denylist) {
+    accessMap[field] = 'none';
+  }
+  return accessMap;
+};
+
+/**
  * Get the default access level for a field on a resource for a given role.
  * Returns 'none' if no default is configured for the field.
  */
@@ -701,6 +803,11 @@ export const getDefaultFieldAccess = (
   role: UserRole,
   fieldName: string
 ): FieldAccessLevel => {
+  // Sensitive fields are hard-denied regardless of role or defaults.
+  if (isSensitiveField(resource, fieldName)) {
+    return 'none';
+  }
+
   const resourceConfig = defaultFieldPermissions[resource];
   if (!resourceConfig) {
     return 'none';
@@ -716,6 +823,7 @@ export const getDefaultFieldAccess = (
 
 /**
  * Get all field access levels for a role on a resource.
+ * Sensitive fields are forced to 'none' regardless of configuration.
  */
 export const getFieldAccessMap = (
   resource: keyof FieldPermissionConfig,
@@ -726,5 +834,6 @@ export const getFieldAccessMap = (
     return {};
   }
 
-  return { ...resourceConfig[role] };
+  const map = { ...resourceConfig[role] };
+  return enforceSensitiveDenylist(resource, map);
 };

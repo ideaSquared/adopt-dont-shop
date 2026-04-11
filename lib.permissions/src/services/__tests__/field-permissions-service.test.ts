@@ -307,12 +307,19 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should hide internal notes from adopters', async () => {
-      // Application model serializes to snake_case
+      // ApplicationController transforms DB records into the camelCase
+      // FrontendApplication shape before responding — that's what
+      // fieldMask('applications') actually sees. Internal assessment
+      // fields (interview_notes, home_visit_notes, score) only exist on
+      // PUT/POST request bodies; they should still be stripped if they
+      // ever appear in a response.
       const application = {
-        application_id: 'app-1',
-        user_id: 'user-1',
+        id: 'app-1',
+        userId: 'user-1',
+        petId: 'pet-1',
+        rescueId: 'rescue-1',
         status: 'submitted',
-        answers: { q1: 'answer1' },
+        data: { answers: { q1: 'answer1' } },
         interview_notes: 'Staff notes here',
         home_visit_notes: 'Home visit notes',
         score: 85,
@@ -324,9 +331,9 @@ describe('FieldPermissionsService', () => {
         action: 'read',
       });
 
-      expect(masked).toHaveProperty('application_id');
+      expect(masked).toHaveProperty('id');
       expect(masked).toHaveProperty('status');
-      expect(masked).toHaveProperty('answers');
+      expect(masked).toHaveProperty('data');
       expect(masked).not.toHaveProperty('interview_notes');
       expect(masked).not.toHaveProperty('home_visit_notes');
       expect(masked).not.toHaveProperty('score');

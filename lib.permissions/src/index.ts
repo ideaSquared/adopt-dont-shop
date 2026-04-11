@@ -13,4 +13,7 @@ export {
   defaultFieldPermissions,
   getDefaultFieldAccess,
   getFieldAccessMap,
+  SENSITIVE_FIELD_DENYLIST,
+  isSensitiveField,
+  enforceSensitiveDenylist,
 } from './config/field-permission-defaults';

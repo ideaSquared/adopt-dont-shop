@@ -5,4 +5,7 @@ export {
   defaultFieldPermissions,
   getDefaultFieldAccess,
   getFieldAccessMap,
+  SENSITIVE_FIELD_DENYLIST,
+  isSensitiveField,
+  enforceSensitiveDenylist,
 } from '@adopt-dont-shop/lib.types';

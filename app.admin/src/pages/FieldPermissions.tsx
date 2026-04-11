@@ -2,6 +2,13 @@ import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
+import type {
+  FieldAccessLevel,
+  FieldAccessMap,
+  FieldPermissionRecord,
+  FieldPermissionResource,
+  UserRole,
+} from '@adopt-dont-shop/lib.permissions';
 import { apiService } from '../services/libraryServices';
 import { FiShield, FiSave, FiRefreshCw, FiInfo } from 'react-icons/fi';
 import {
@@ -14,20 +21,13 @@ import {
   CardContent,
 } from '../components/ui';
 
-type FieldAccessLevel = 'none' | 'read' | 'write';
-
-type FieldPermissionRecord = {
-  fieldPermissionId: number;
-  resource: string;
-  fieldName: string;
-  role: string;
-  accessLevel: FieldAccessLevel;
-};
-
-type AccessMap = Record<string, FieldAccessLevel>;
-
-const RESOURCES = ['users', 'pets', 'applications', 'rescues'] as const;
-const ROLES = ['admin', 'moderator', 'rescue_staff', 'adopter'] as const;
+const RESOURCES: ReadonlyArray<FieldPermissionResource> = [
+  'users',
+  'pets',
+  'applications',
+  'rescues',
+];
+const ROLES: ReadonlyArray<UserRole> = ['admin', 'moderator', 'rescue_staff', 'adopter'];
 
 const HeaderActions = styled.div`
   display: flex;
@@ -193,9 +193,9 @@ const StatusBar = styled.div`
 
 const FieldPermissions: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  const [selectedResource, setSelectedResource] = useState<(typeof RESOURCES)[number]>('users');
-  const [selectedRole, setSelectedRole] = useState<(typeof ROLES)[number]>('admin');
-  const [defaults, setDefaults] = useState<AccessMap>({});
+  const [selectedResource, setSelectedResource] = useState<FieldPermissionResource>('users');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('admin');
+  const [defaults, setDefaults] = useState<FieldAccessMap>({});
   const [overrides, setOverrides] = useState<FieldPermissionRecord[]>([]);
   const [pendingChanges, setPendingChanges] = useState<Record<string, FieldAccessLevel>>({});
   const [loading, setLoading] = useState(false);
@@ -207,7 +207,7 @@ const FieldPermissions: React.FC = () => {
     setError(null);
     try {
       const [defaultsData, overridesData] = await Promise.all([
-        apiService.get<{ data: AccessMap }>(
+        apiService.get<{ data: FieldAccessMap }>(
           `/api/v1/field-permissions/defaults/${selectedResource}/${selectedRole}`
         ),
         apiService.get<{ data: FieldPermissionRecord[] }>(
@@ -257,14 +257,53 @@ const FieldPermissions: React.FC = () => {
     setError(null);
 
     try {
-      const bulkOverrides = Object.entries(pendingChanges).map(([fieldName, accessLevel]) => ({
-        resource: selectedResource,
-        fieldName,
-        role: selectedRole,
-        accessLevel,
-      }));
+      // Partition pending changes into:
+      //  - bulkOverrides: entries that differ from the default (upsert)
+      //  - deletions: entries that match the default AND already have an
+      //    override stored in the DB (revert by DELETE)
+      // Entries that match the default and have no existing override are
+      // dropped entirely — we never persist rows that duplicate defaults.
+      const bulkOverrides: Array<{
+        resource: FieldPermissionResource;
+        fieldName: string;
+        role: UserRole;
+        accessLevel: FieldAccessLevel;
+      }> = [];
+      const deletions: string[] = [];
 
-      await apiService.post('/api/v1/field-permissions/bulk', { overrides: bulkOverrides });
+      for (const [fieldName, accessLevel] of Object.entries(pendingChanges) as Array<
+        [string, FieldAccessLevel]
+      >) {
+        const defaultLevel = defaults[fieldName] ?? 'none';
+        const hasExistingOverride = overrides.some(o => o.fieldName === fieldName);
+
+        if (accessLevel === defaultLevel) {
+          if (hasExistingOverride) {
+            deletions.push(fieldName);
+          }
+          // Otherwise: matches default with no override — nothing to persist.
+          continue;
+        }
+
+        bulkOverrides.push({
+          resource: selectedResource,
+          fieldName,
+          role: selectedRole,
+          accessLevel,
+        });
+      }
+
+      if (bulkOverrides.length > 0) {
+        await apiService.post('/api/v1/field-permissions/bulk', { overrides: bulkOverrides });
+      }
+
+      await Promise.all(
+        deletions.map(fieldName =>
+          apiService.delete(
+            `/api/v1/field-permissions/${selectedResource}/${selectedRole}/${fieldName}`
+          )
+        )
+      );
 
       await fetchData();
     } catch (err) {
