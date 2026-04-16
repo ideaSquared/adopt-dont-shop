@@ -494,6 +494,76 @@ describe('Field Permissions Middleware - fieldMask (Express integration)', () =>
     // Should hit DB only once due to 1-minute cache
     expect(FieldPermission.findAll).toHaveBeenCalledTimes(1);
   });
+
+  it('should correctly mask a Sequelize model instance inside body.data', async () => {
+    // Sequelize model instances expose attributes via toJSON() / get({plain:true}).
+    // Object.keys/Object.entries on a raw model only see wrapper properties
+    // (dataValues, _previousDataValues, etc.), not the actual field values.
+    // The middleware must call toJSON() before masking so fields are visible.
+    mockRequest.user = {
+      userId: 'adopter-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    // Simulate a Sequelize model instance: a wrapper object whose own enumerable
+    // keys are dataValues/isNewRecord, but whose toJSON() returns the real shape.
+    const sequelizeLike = {
+      dataValues: { userId: 'u1', firstName: 'Jane', password: 'hashed', status: 'active' },
+      isNewRecord: false,
+      toJSON() {
+        return { userId: 'u1', firstName: 'Jane', password: 'hashed', status: 'active' };
+      },
+    };
+
+    (mockResponse.json as (body: unknown) => Response)({ data: sequelizeLike });
+
+    const body = capturedJson as { data: Record<string, unknown> };
+    // Attributes exposed via toJSON should be available to mask
+    expect(body.data).toHaveProperty('userId');
+    expect(body.data).toHaveProperty('firstName');
+    // Sensitive fields must be removed
+    expect(body.data).not.toHaveProperty('password');
+    // Admin-only fields must be removed for adopter
+    expect(body.data).not.toHaveProperty('status');
+    // The Sequelize wrapper properties must not bleed through
+    expect(body.data).not.toHaveProperty('dataValues');
+    expect(body.data).not.toHaveProperty('isNewRecord');
+  });
+
+  it('should correctly mask Sequelize model instances in an array response', async () => {
+    mockRequest.user = {
+      userId: 'adopter-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    const makeSequelizeLike = (userId: string, firstName: string) => ({
+      dataValues: { userId, firstName, password: 'hash', status: 'active' },
+      isNewRecord: false,
+      toJSON() {
+        return { userId, firstName, password: 'hash', status: 'active' };
+      },
+    });
+
+    (mockResponse.json as (body: unknown) => Response)({
+      data: [makeSequelizeLike('u1', 'Alice'), makeSequelizeLike('u2', 'Bob')],
+    });
+
+    const body = capturedJson as { data: Array<Record<string, unknown>> };
+    expect(body.data).toHaveLength(2);
+    body.data.forEach(item => {
+      expect(item).toHaveProperty('userId');
+      expect(item).toHaveProperty('firstName');
+      expect(item).not.toHaveProperty('password');
+      expect(item).not.toHaveProperty('status');
+      expect(item).not.toHaveProperty('dataValues');
+    });
+  });
 });
 
 describe('Field Permissions Middleware - fieldWriteGuard (Express integration)', () => {

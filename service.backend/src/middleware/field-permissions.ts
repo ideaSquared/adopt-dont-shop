@@ -195,11 +195,30 @@ export const fieldMask = (
 
     const originalJson = res.json.bind(res);
 
-    const maskItem = (item: unknown): unknown => {
-      if (item && typeof item === 'object' && !Array.isArray(item)) {
-        return maskResponseFields(item as Record<string, unknown>, accessMap, 'read');
+    /**
+     * Normalize a value to a plain object if it has a toJSON() method
+     * (e.g. Sequelize model instances). Express normally calls toJSON()
+     * during JSON.stringify, but our override runs before that — so we
+     * must call it ourselves before reading Object.keys / Object.entries.
+     */
+    const toPlain = (value: unknown): unknown => {
+      if (
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        typeof (value as Record<string, unknown>).toJSON === 'function'
+      ) {
+        return (value as { toJSON: () => unknown }).toJSON();
       }
-      return item;
+      return value;
+    };
+
+    const maskItem = (item: unknown): unknown => {
+      const plain = toPlain(item);
+      if (plain && typeof plain === 'object' && !Array.isArray(plain)) {
+        return maskResponseFields(plain as Record<string, unknown>, accessMap, 'read');
+      }
+      return plain;
     };
 
     const auditMasking = (originalFields: string[], visibleFields: string[]): void => {
@@ -252,17 +271,18 @@ export const fieldMask = (
 
           if (Array.isArray(data)) {
             const maskedItems = data.map(maskItem);
-            const first = data[0] as Record<string, unknown> | undefined;
+            // Use the normalized first item for audit key counts
+            const firstPlain = toPlain(data[0]) as Record<string, unknown> | undefined;
             const firstMasked = maskedItems[0] as Record<string, unknown> | undefined;
             auditMasking(
-              first ? Object.keys(first) : [],
+              firstPlain ? Object.keys(firstPlain) : [],
               firstMasked ? Object.keys(firstMasked) : []
             );
             return originalJson({ ...body, data: maskedItems });
           }
 
           if (typeof data === 'object') {
-            const dataObj = data as Record<string, unknown>;
+            const dataObj = toPlain(data) as Record<string, unknown>;
             const maskedData = maskResponseFields(dataObj, accessMap, 'read');
             auditMasking(Object.keys(dataObj), Object.keys(maskedData));
             return originalJson({ ...body, data: maskedData });
@@ -281,17 +301,17 @@ export const fieldMask = (
 
           if (Array.isArray(nested)) {
             const maskedItems = nested.map(maskItem);
-            const first = nested[0] as Record<string, unknown> | undefined;
+            const firstPlain = toPlain(nested[0]) as Record<string, unknown> | undefined;
             const firstMasked = maskedItems[0] as Record<string, unknown> | undefined;
             auditMasking(
-              first ? Object.keys(first) : [],
+              firstPlain ? Object.keys(firstPlain) : [],
               firstMasked ? Object.keys(firstMasked) : []
             );
             return originalJson({ ...body, [resource]: maskedItems });
           }
 
           if (nested && typeof nested === 'object') {
-            const nestedObj = nested as Record<string, unknown>;
+            const nestedObj = toPlain(nested) as Record<string, unknown>;
             const maskedNested = maskResponseFields(nestedObj, accessMap, 'read');
             auditMasking(Object.keys(nestedObj), Object.keys(maskedNested));
             return originalJson({ ...body, [resource]: maskedNested });
@@ -300,11 +320,12 @@ export const fieldMask = (
 
         // Pattern 3: direct resource-shaped object (no wrapper),
         // e.g. GET /users/profile returns the user object directly.
-        // Only mask if the body actually looks like a resource — otherwise
-        // we'd strip all keys from non-resource composite responses.
-        if (looksLikeResource(body)) {
-          const maskedBody = maskResponseFields(body, accessMap, 'read');
-          auditMasking(Object.keys(body), Object.keys(maskedBody));
+        // Normalize before heuristic check so Sequelize instances are
+        // evaluated against their actual attributes, not their wrapper keys.
+        const plainBody = toPlain(body) as Record<string, unknown>;
+        if (looksLikeResource(plainBody)) {
+          const maskedBody = maskResponseFields(plainBody, accessMap, 'read');
+          auditMasking(Object.keys(plainBody), Object.keys(maskedBody));
           return originalJson(maskedBody);
         }
 

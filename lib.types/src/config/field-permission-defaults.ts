@@ -30,6 +30,50 @@ const NONE: FieldAccessLevel = 'none';
  * Adopters can write their own profile fields; ownership is enforced by
  * route-level middleware before fieldWriteGuard runs.
  */
+/**
+ * snake_case request-body aliases for the user resource.
+ *
+ * The User Sequelize model emits camelCase in toJSON(), so response masking
+ * uses camelCase keys. However, `userValidation.updateProfile` validates
+ * snake_case body fields (first_name, last_name, phone_number,
+ * profile_image_url). fieldWriteGuard checks request body keys against this
+ * map, so without aliases those writes would be falsely rejected as 'none'.
+ * Each alias carries the same access level as its camelCase counterpart.
+ */
+type UserRequestAliases = {
+  first_name: FieldAccessLevel;
+  last_name: FieldAccessLevel;
+  phone_number: FieldAccessLevel;
+  profile_image_url: FieldAccessLevel;
+};
+
+const userRequestAliases: Record<UserRole, UserRequestAliases> = {
+  admin: {
+    first_name: WRITE,
+    last_name: WRITE,
+    phone_number: WRITE,
+    profile_image_url: WRITE,
+  },
+  moderator: {
+    first_name: READ,
+    last_name: READ,
+    phone_number: NONE,
+    profile_image_url: READ,
+  },
+  rescue_staff: {
+    first_name: READ,
+    last_name: READ,
+    phone_number: NONE,
+    profile_image_url: READ,
+  },
+  adopter: {
+    first_name: WRITE,
+    last_name: WRITE,
+    phone_number: WRITE,
+    profile_image_url: WRITE,
+  },
+};
+
 const userFieldPermissions: FieldPermissionConfig['users'] = {
   admin: {
     userId: READ,
@@ -67,6 +111,8 @@ const userFieldPermissions: FieldPermissionConfig['users'] = {
     twoFactorSecret: NONE,
     backupCodes: NONE,
     lockedUntil: READ,
+    // Request-body snake_case aliases
+    ...userRequestAliases.admin,
   },
   moderator: {
     userId: READ,
@@ -103,6 +149,8 @@ const userFieldPermissions: FieldPermissionConfig['users'] = {
     twoFactorSecret: NONE,
     backupCodes: NONE,
     lockedUntil: READ,
+    // Request-body snake_case aliases
+    ...userRequestAliases.moderator,
   },
   rescue_staff: {
     userId: READ,
@@ -139,6 +187,8 @@ const userFieldPermissions: FieldPermissionConfig['users'] = {
     twoFactorSecret: NONE,
     backupCodes: NONE,
     lockedUntil: NONE,
+    // Request-body snake_case aliases
+    ...userRequestAliases.rescue_staff,
   },
   adopter: {
     userId: READ,
@@ -179,6 +229,8 @@ const userFieldPermissions: FieldPermissionConfig['users'] = {
     twoFactorSecret: NONE,
     backupCodes: NONE,
     lockedUntil: NONE,
+    // Request-body snake_case aliases
+    ...userRequestAliases.adopter,
   },
 };
 
