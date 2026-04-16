@@ -408,6 +408,106 @@ const applicationFieldPermissions: FieldPermissionConfig['applications'] = {
  * the request includes location parameters; it is never a DB column but
  * appears in the response so it needs a permission entry.
  */
+/**
+ * camelCase request-body aliases for the pets resource.
+ *
+ * The Pet model emits snake_case in toJSON(), so response masking uses
+ * snake_case keys. However, PetController.validateCreatePet /
+ * validateUpdatePet validate camelCase body fields (ageYears,
+ * shortDescription, adoptionFee, etc.). fieldWriteGuard checks req.body
+ * keys against the access map, so without aliases those writes would be
+ * falsely rejected. Each alias carries the same access level as its
+ * snake_case counterpart.
+ */
+type PetRequestAliases = {
+  ageYears: FieldAccessLevel;
+  ageMonths: FieldAccessLevel;
+  shortDescription: FieldAccessLevel;
+  longDescription: FieldAccessLevel;
+  adoptionFee: FieldAccessLevel;
+  energyLevel: FieldAccessLevel;
+  goodWithChildren: FieldAccessLevel;
+  goodWithCats: FieldAccessLevel;
+  goodWithDogs: FieldAccessLevel;
+  houseTrained: FieldAccessLevel;
+  spayNeuterStatus: FieldAccessLevel;
+  secondaryBreed: FieldAccessLevel;
+  weightKg: FieldAccessLevel;
+  specialNeeds: FieldAccessLevel;
+  specialNeedsDescription: FieldAccessLevel;
+};
+
+const petRequestAliases: Record<UserRole, PetRequestAliases> = {
+  admin: {
+    ageYears: WRITE,
+    ageMonths: WRITE,
+    shortDescription: WRITE,
+    longDescription: WRITE,
+    adoptionFee: WRITE,
+    energyLevel: WRITE,
+    goodWithChildren: WRITE,
+    goodWithCats: WRITE,
+    goodWithDogs: WRITE,
+    houseTrained: WRITE,
+    spayNeuterStatus: WRITE,
+    secondaryBreed: WRITE,
+    weightKg: WRITE,
+    specialNeeds: WRITE,
+    specialNeedsDescription: WRITE,
+  },
+  moderator: {
+    ageYears: READ,
+    ageMonths: READ,
+    shortDescription: READ,
+    longDescription: READ,
+    adoptionFee: READ,
+    energyLevel: READ,
+    goodWithChildren: READ,
+    goodWithCats: READ,
+    goodWithDogs: READ,
+    houseTrained: READ,
+    spayNeuterStatus: READ,
+    secondaryBreed: READ,
+    weightKg: READ,
+    specialNeeds: READ,
+    specialNeedsDescription: READ,
+  },
+  rescue_staff: {
+    ageYears: WRITE,
+    ageMonths: WRITE,
+    shortDescription: WRITE,
+    longDescription: WRITE,
+    adoptionFee: WRITE,
+    energyLevel: WRITE,
+    goodWithChildren: WRITE,
+    goodWithCats: WRITE,
+    goodWithDogs: WRITE,
+    houseTrained: WRITE,
+    spayNeuterStatus: WRITE,
+    secondaryBreed: WRITE,
+    weightKg: WRITE,
+    specialNeeds: WRITE,
+    specialNeedsDescription: WRITE,
+  },
+  adopter: {
+    ageYears: READ,
+    ageMonths: READ,
+    shortDescription: READ,
+    longDescription: READ,
+    adoptionFee: READ,
+    energyLevel: READ,
+    goodWithChildren: READ,
+    goodWithCats: READ,
+    goodWithDogs: READ,
+    houseTrained: READ,
+    spayNeuterStatus: READ,
+    secondaryBreed: READ,
+    weightKg: READ,
+    specialNeeds: READ,
+    specialNeedsDescription: READ,
+  },
+};
+
 const petFieldPermissions: FieldPermissionConfig['pets'] = {
   admin: {
     pet_id: READ,
@@ -467,6 +567,7 @@ const petFieldPermissions: FieldPermissionConfig['pets'] = {
     tags: WRITE,
     created_at: READ,
     updated_at: READ,
+    ...petRequestAliases.admin,
   },
   moderator: {
     pet_id: READ,
@@ -526,6 +627,7 @@ const petFieldPermissions: FieldPermissionConfig['pets'] = {
     tags: READ,
     created_at: READ,
     updated_at: READ,
+    ...petRequestAliases.moderator,
   },
   rescue_staff: {
     pet_id: READ,
@@ -585,6 +687,7 @@ const petFieldPermissions: FieldPermissionConfig['pets'] = {
     tags: WRITE,
     created_at: READ,
     updated_at: READ,
+    ...petRequestAliases.rescue_staff,
   },
   adopter: {
     // Public pet-browsing view: basic details only. No internal notes,
@@ -647,6 +750,7 @@ const petFieldPermissions: FieldPermissionConfig['pets'] = {
     view_count: NONE,
     favorite_count: NONE,
     application_count: NONE,
+    ...petRequestAliases.adopter,
   },
 };
 

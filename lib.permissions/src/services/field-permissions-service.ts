@@ -9,7 +9,12 @@ import type {
   FieldPermissionUpdateRequest,
   FieldMaskingOptions,
 } from '../types/field-permissions';
-import { getDefaultFieldAccess, getFieldAccessMap } from '../config/field-permission-defaults';
+import {
+  getDefaultFieldAccess,
+  getFieldAccessMap,
+  isSensitiveField,
+  enforceSensitiveDenylist,
+} from '../config/field-permission-defaults';
 
 /**
  * FieldPermissionsService - Handles field-level access control
@@ -44,6 +49,10 @@ export class FieldPermissionsService {
     role: UserRole,
     fieldName: string
   ): Promise<FieldPermissionCheckResult> {
+    if (isSensitiveField(resource, fieldName)) {
+      return { allowed: false, effectiveLevel: 'none', source: 'default' };
+    }
+
     const overrides = await this.getOverrides(resource, role);
     const override = overrides.find((o) => o.fieldName === fieldName);
 
@@ -79,7 +88,7 @@ export class FieldPermissionsService {
       effective[override.fieldName] = override.accessLevel;
     }
 
-    return effective;
+    return enforceSensitiveDenylist(resource, effective);
   }
 
   /**
