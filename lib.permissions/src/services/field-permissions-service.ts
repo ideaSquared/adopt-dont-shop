@@ -17,6 +17,24 @@ import {
 } from '../config/field-permission-defaults';
 
 /**
+ * Normalize a value to a plain object if it exposes a toJSON() method
+ * (e.g. Sequelize model instances). Calling Object.entries on a raw
+ * Sequelize model only yields wrapper properties (dataValues, isNewRecord)
+ * rather than the actual field attributes — toJSON() returns the plain shape.
+ */
+const toPlain = <T extends Record<string, unknown>>(value: T): T => {
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    typeof (value as Record<string, unknown>).toJSON === 'function'
+  ) {
+    return (value as unknown as { toJSON: () => T }).toJSON();
+  }
+  return value;
+};
+
+/**
  * FieldPermissionsService - Handles field-level access control
  *
  * Provides methods to check, resolve, and manage field-level permissions.
@@ -124,9 +142,10 @@ export class FieldPermissionsService {
     options: FieldMaskingOptions
   ): Promise<Partial<T>> {
     const accessMap = await this.getEffectiveFieldAccessMap(options.resource, options.role);
+    const plain = toPlain(data) as T;
     const masked: Record<string, unknown> = {};
 
-    for (const [key, value] of Object.entries(data)) {
+    for (const [key, value] of Object.entries(plain)) {
       const level = accessMap[key];
       // If field is not in the access map, default to 'none' (hide unknown fields)
       if (level === undefined) {
@@ -151,8 +170,9 @@ export class FieldPermissionsService {
   ): Promise<Array<Partial<T>>> {
     const accessMap = await this.getEffectiveFieldAccessMap(options.resource, options.role);
     return data.map((item) => {
+      const plain = toPlain(item) as T;
       const masked: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(item)) {
+      for (const [key, value] of Object.entries(plain)) {
         const level = accessMap[key];
         if (level === undefined) {
           continue;
