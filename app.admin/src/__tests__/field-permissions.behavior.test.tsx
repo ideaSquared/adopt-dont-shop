@@ -158,9 +158,7 @@ describe('FieldPermissions page', () => {
       await user.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
-        expect(mockDelete).toHaveBeenCalledWith(
-          '/api/v1/field-permissions/users/admin/email'
-        );
+        expect(mockDelete).toHaveBeenCalledWith('/api/v1/field-permissions/users/admin/email');
         expect(mockPost).not.toHaveBeenCalled();
       });
     });
@@ -215,9 +213,7 @@ describe('FieldPermissions page', () => {
 
       await userEvent.setup().click(screen.getByRole('button', { name: /^pets$/i }));
 
-      await waitFor(() =>
-        expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('/pets/'))
-      );
+      await waitFor(() => expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('/pets/')));
     });
 
     it('fetches new data when admin switches to a different role', async () => {
