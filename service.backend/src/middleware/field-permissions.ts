@@ -332,9 +332,11 @@ export const fieldMask = (
         // Nothing resource-shaped found — passthrough untouched
         return originalJson(body);
       } catch (error) {
-        logger.error('Field masking middleware error', { error, resource, role });
-        // On error, return the original response to avoid breaking the API
-        return originalJson(body);
+        logger.error('Field masking middleware error — failing closed', { error, resource, role });
+        // Fail closed: sending the unmasked body risks exposing restricted fields.
+        // Use originalJson directly (not the overridden res.json) to avoid recursion.
+        res.status(500);
+        return originalJson({ error: 'Internal server error' });
       }
     } as Response['json'];
 
