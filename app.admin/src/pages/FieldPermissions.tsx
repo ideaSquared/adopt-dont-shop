@@ -250,9 +250,7 @@ const FieldPermissions: React.FC = () => {
 
   const handleChange = (fieldName: string, level: FieldAccessLevel) => {
     const savedLevel =
-      overrides.find(o => o.fieldName === fieldName)?.accessLevel ??
-      defaults[fieldName] ??
-      'none';
+      overrides.find(o => o.fieldName === fieldName)?.accessLevel ?? defaults[fieldName] ?? 'none';
     setPendingChanges(prev => {
       if (level === savedLevel) {
         const next = { ...prev };
