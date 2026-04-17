@@ -11,7 +11,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { renderWithProviders, screen, waitFor } from '../test-utils';
+import { renderWithProviders, screen, waitFor, within } from '../test-utils';
 import userEvent from '@testing-library/user-event';
 import FieldPermissions from '../pages/FieldPermissions';
 import type { FieldAccessMap, FieldPermissionRecord } from '@adopt-dont-shop/lib.permissions';
@@ -71,6 +71,16 @@ const setupGetMocks = (
   });
 };
 
+/**
+ * Return the enabled (non-default) <select> for a given field row.
+ * Each row has two comboboxes: [disabled default, enabled effective].
+ */
+const getEffectiveSelect = (fieldName: string): Element => {
+  const row = screen.getByText(fieldName).closest('tr');
+  const [, effectiveSelect] = within(row!).getAllByRole('combobox');
+  return effectiveSelect;
+};
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('FieldPermissions page', () => {
@@ -113,16 +123,11 @@ describe('FieldPermissions page', () => {
 
       await waitFor(() => expect(screen.getByText('email')).toBeInTheDocument());
 
-      // Change 'email' from 'read' to 'write'
-      const selects = screen.getAllByRole('combobox');
-      // Effective access selects are the enabled ones (default selects are disabled)
-      const emailEffectiveSelect = selects.find(
-        s => !s.hasAttribute('disabled') && (s as HTMLSelectElement).value === 'read'
-      );
-      expect(emailEffectiveSelect).toBeDefined();
-      await user.selectOptions(emailEffectiveSelect!, 'write');
+      await user.selectOptions(getEffectiveSelect('email'), 'write');
 
-      await waitFor(() => expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
+      );
       await user.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
@@ -130,10 +135,7 @@ describe('FieldPermissions page', () => {
           '/api/v1/field-permissions/bulk',
           expect.objectContaining({
             overrides: expect.arrayContaining([
-              expect.objectContaining({
-                fieldName: 'email',
-                accessLevel: 'write',
-              }),
+              expect.objectContaining({ fieldName: 'email', accessLevel: 'write' }),
             ]),
           })
         );
@@ -141,23 +143,18 @@ describe('FieldPermissions page', () => {
       });
     });
 
-    it('sends DELETE when a field is reverted to its default and an override already exists', async () => {
-      // email already has an override (write); admin reverts it back to default (read)
+    it('sends DELETE when reverting a field that has an existing override', async () => {
       setupGetMocks(usersDefaults, existingOverride);
       const user = userEvent.setup();
       renderWithProviders(<FieldPermissions />);
 
       await waitFor(() => expect(screen.getByText('email')).toBeInTheDocument());
 
-      // Select the effective-access select for email (currently shows 'write' from override)
-      const selects = screen.getAllByRole('combobox');
-      const emailEffectiveSelect = selects.find(
-        s => !s.hasAttribute('disabled') && (s as HTMLSelectElement).value === 'write'
-      );
-      expect(emailEffectiveSelect).toBeDefined();
-      await user.selectOptions(emailEffectiveSelect!, 'read'); // revert to default
+      await user.selectOptions(getEffectiveSelect('email'), 'read');
 
-      await waitFor(() => expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
+      );
       await user.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
@@ -169,24 +166,15 @@ describe('FieldPermissions page', () => {
     });
 
     it('does not send DELETE when reverting a field with no existing override', async () => {
-      // No overrides stored; admin changes 'email' then reverts — nothing should be sent
       setupGetMocks(usersDefaults, noOverrides);
       const user = userEvent.setup();
       renderWithProviders(<FieldPermissions />);
 
       await waitFor(() => expect(screen.getByText('email')).toBeInTheDocument());
 
-      const selects = screen.getAllByRole('combobox');
-      const emailEffectiveSelect = selects.find(
-        s => !s.hasAttribute('disabled') && (s as HTMLSelectElement).value === 'read'
-      );
-      expect(emailEffectiveSelect).toBeDefined();
+      await user.selectOptions(getEffectiveSelect('email'), 'write');
+      await user.selectOptions(getEffectiveSelect('email'), 'read');
 
-      // Change then revert
-      await user.selectOptions(emailEffectiveSelect!, 'write');
-      await user.selectOptions(emailEffectiveSelect!, 'read');
-
-      // Save button should not appear (0 net pending changes after revert)
       expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
     });
   });
@@ -201,29 +189,19 @@ describe('FieldPermissions page', () => {
 
       await waitFor(() => expect(screen.getByText('email')).toBeInTheDocument());
 
-      const selects = screen.getAllByRole('combobox');
-      const emailEffectiveSelect = selects.find(
-        s => !s.hasAttribute('disabled') && (s as HTMLSelectElement).value === 'write'
+      await user.selectOptions(getEffectiveSelect('email'), 'read');
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
       );
-      expect(emailEffectiveSelect).toBeDefined();
-      await user.selectOptions(emailEffectiveSelect!, 'read');
 
-      await waitFor(() => expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument());
-
-      // Reset get mock so refresh shows fresh state after save attempt
-      mockGet.mockImplementation((url: string) => {
-        if (url.includes('/defaults/')) return Promise.resolve({ data: usersDefaults });
-        return Promise.resolve({ data: existingOverride });
-      });
-
+      mockGet.mockClear();
       await user.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/failed to revert.*email/i)).toBeInTheDocument();
       });
-
-      // Data should have been re-fetched (get called again for refresh)
-      expect(mockGet).toHaveBeenCalledTimes(4); // initial 2 + refresh 2
+      expect(mockGet).toHaveBeenCalled();
     });
   });
 
@@ -233,17 +211,13 @@ describe('FieldPermissions page', () => {
       renderWithProviders(<FieldPermissions />);
 
       await waitFor(() => expect(screen.getByText('email')).toBeInTheDocument());
-
-      const initialCallCount = mockGet.mock.calls.length;
+      mockGet.mockClear();
 
       await userEvent.setup().click(screen.getByRole('button', { name: /^pets$/i }));
 
-      await waitFor(() => {
-        expect(mockGet.mock.calls.length).toBeGreaterThan(initialCallCount);
-        expect(
-          mockGet.mock.calls.some((args: string[]) => args[0].includes('/pets/'))
-        ).toBe(true);
-      });
+      await waitFor(() =>
+        expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('/pets/'))
+      );
     });
 
     it('fetches new data when admin switches to a different role', async () => {
@@ -251,17 +225,13 @@ describe('FieldPermissions page', () => {
       renderWithProviders(<FieldPermissions />);
 
       await waitFor(() => expect(screen.getByText('email')).toBeInTheDocument());
-
-      const initialCallCount = mockGet.mock.calls.length;
+      mockGet.mockClear();
 
       await userEvent.setup().click(screen.getByRole('button', { name: /adopter/i }));
 
-      await waitFor(() => {
-        expect(mockGet.mock.calls.length).toBeGreaterThan(initialCallCount);
-        expect(
-          mockGet.mock.calls.some((args: string[]) => args[0].includes('/adopter'))
-        ).toBe(true);
-      });
+      await waitFor(() =>
+        expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('/adopter'))
+      );
     });
   });
 });

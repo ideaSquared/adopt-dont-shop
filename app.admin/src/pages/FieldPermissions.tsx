@@ -308,9 +308,7 @@ const FieldPermissions: React.FC = () => {
         );
         const failed = deletions.filter((_, i) => results[i].status === 'rejected');
         if (failed.length > 0) {
-          setError(
-            `Failed to revert ${failed.length} field(s) to default: ${failed.join(', ')}`
-          );
+          setError(`Failed to revert ${failed.length} field(s) to default: ${failed.join(', ')}`);
         }
       }
     } catch (err) {
