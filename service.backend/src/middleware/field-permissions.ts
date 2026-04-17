@@ -188,8 +188,8 @@ export const fieldMask = (
     try {
       accessMap = await getEffectiveAccessMap(resource, role);
     } catch (error) {
-      logger.error('Failed to fetch field access map', { error, resource, role });
-      next();
+      logger.error('Failed to fetch field access map — failing closed', { error, resource, role });
+      res.status(500).json({ error: 'Field permission check failed' });
       return;
     }
 
