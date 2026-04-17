@@ -249,7 +249,18 @@ const FieldPermissions: React.FC = () => {
   };
 
   const handleChange = (fieldName: string, level: FieldAccessLevel) => {
-    setPendingChanges(prev => ({ ...prev, [fieldName]: level }));
+    const savedLevel =
+      overrides.find(o => o.fieldName === fieldName)?.accessLevel ??
+      defaults[fieldName] ??
+      'none';
+    setPendingChanges(prev => {
+      if (level === savedLevel) {
+        const next = { ...prev };
+        delete next[fieldName];
+        return next;
+      }
+      return { ...prev, [fieldName]: level };
+    });
   };
 
   const handleSave = async () => {
@@ -292,6 +303,10 @@ const FieldPermissions: React.FC = () => {
       });
     }
 
+    // Capture error text so we can re-apply it after fetchData (which calls
+    // setError(null) internally, clearing any error set before it runs).
+    let saveError: string | null = null;
+
     try {
       if (bulkOverrides.length > 0) {
         await apiService.post('/api/v1/field-permissions/bulk', { overrides: bulkOverrides });
@@ -308,14 +323,20 @@ const FieldPermissions: React.FC = () => {
         );
         const failed = deletions.filter((_, i) => results[i].status === 'rejected');
         if (failed.length > 0) {
-          setError(`Failed to revert ${failed.length} field(s) to default: ${failed.join(', ')}`);
+          const count = failed.length;
+          const fields = failed.join(', ');
+          saveError = `Failed to revert ${count} field(s) to default: ${fields}`;
         }
       }
     } catch (err) {
-      setError('Failed to save field permissions');
+      saveError = 'Failed to save field permissions';
     } finally {
       // Always re-fetch to show actual DB state, even after partial failures.
       await fetchData();
+      // Re-apply save error after fetchData, which resets error state internally.
+      if (saveError !== null) {
+        setError(saveError);
+      }
       setSaving(false);
     }
   };
