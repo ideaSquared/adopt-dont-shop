@@ -48,7 +48,7 @@ export class FieldPermissionsService {
     string,
     { overrides: FieldPermissionRecord[]; expires: number }
   >();
-  private cacheTimeout = 2 * 60 * 1000; // 2 minutes
+  private cacheTimeout = 60 * 1000; // 60 seconds — matches backend CACHE_TTL
 
   constructor(config: Partial<PermissionsServiceConfig> = {}, apiService?: ApiService) {
     this.config = {
@@ -71,7 +71,12 @@ export class FieldPermissionsService {
       return { allowed: false, effectiveLevel: 'none', source: 'default' };
     }
 
-    const overrides = await this.getOverrides(resource, role);
+    let overrides: FieldPermissionRecord[] = [];
+    try {
+      overrides = await this.getOverrides(resource, role);
+    } catch {
+      // API unavailable — fall back to defaults rather than failing the check
+    }
     const override = overrides.find((o) => o.fieldName === fieldName);
 
     if (override) {
@@ -99,7 +104,12 @@ export class FieldPermissionsService {
     role: UserRole
   ): Promise<FieldAccessMap> {
     const defaults = getFieldAccessMap(resource, role);
-    const overrides = await this.getOverrides(resource, role);
+    let overrides: FieldPermissionRecord[] = [];
+    try {
+      overrides = await this.getOverrides(resource, role);
+    } catch {
+      // API unavailable — fall back to defaults rather than failing the map build
+    }
 
     const effective = { ...defaults };
     for (const override of overrides) {
@@ -305,8 +315,10 @@ export class FieldPermissionsService {
       if (this.config.debug) {
         console.error(`Failed to fetch field permission overrides for ${cacheKey}:`, error);
       }
-      // Return empty on error - defaults will be used
-      return [];
+      // Re-throw so callers can distinguish a fetch failure from a legitimate empty
+      // override list. Callers catch and fall back to defaults; we must not silently
+      // swallow the error here as that would hide misconfiguration or outages.
+      throw error;
     }
   }
 }

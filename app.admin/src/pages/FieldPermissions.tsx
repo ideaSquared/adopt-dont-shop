@@ -256,59 +256,68 @@ const FieldPermissions: React.FC = () => {
     setSaving(true);
     setError(null);
 
-    try {
-      // Partition pending changes into:
-      //  - bulkOverrides: entries that differ from the default (upsert)
-      //  - deletions: entries that match the default AND already have an
-      //    override stored in the DB (revert by DELETE)
-      // Entries that match the default and have no existing override are
-      // dropped entirely — we never persist rows that duplicate defaults.
-      const bulkOverrides: Array<{
-        resource: FieldPermissionResource;
-        fieldName: string;
-        role: UserRole;
-        accessLevel: FieldAccessLevel;
-      }> = [];
-      const deletions: string[] = [];
+    // Partition pending changes into:
+    //  - bulkOverrides: entries that differ from the default (upsert)
+    //  - deletions: entries that match the default AND already have an
+    //    override stored in the DB (revert by DELETE)
+    // Entries that match the default and have no existing override are
+    // dropped entirely — we never persist rows that duplicate defaults.
+    const bulkOverrides: Array<{
+      resource: FieldPermissionResource;
+      fieldName: string;
+      role: UserRole;
+      accessLevel: FieldAccessLevel;
+    }> = [];
+    const deletions: string[] = [];
 
-      for (const [fieldName, accessLevel] of Object.entries(pendingChanges) as Array<
-        [string, FieldAccessLevel]
-      >) {
-        const defaultLevel = defaults[fieldName] ?? 'none';
-        const hasExistingOverride = overrides.some(o => o.fieldName === fieldName);
+    for (const [fieldName, accessLevel] of Object.entries(pendingChanges) as Array<
+      [string, FieldAccessLevel]
+    >) {
+      const defaultLevel = defaults[fieldName] ?? 'none';
+      const hasExistingOverride = overrides.some(o => o.fieldName === fieldName);
 
-        if (accessLevel === defaultLevel) {
-          if (hasExistingOverride) {
-            deletions.push(fieldName);
-          }
-          // Otherwise: matches default with no override — nothing to persist.
-          continue;
+      if (accessLevel === defaultLevel) {
+        if (hasExistingOverride) {
+          deletions.push(fieldName);
         }
-
-        bulkOverrides.push({
-          resource: selectedResource,
-          fieldName,
-          role: selectedRole,
-          accessLevel,
-        });
+        // Otherwise: matches default with no override — nothing to persist.
+        continue;
       }
 
+      bulkOverrides.push({
+        resource: selectedResource,
+        fieldName,
+        role: selectedRole,
+        accessLevel,
+      });
+    }
+
+    try {
       if (bulkOverrides.length > 0) {
         await apiService.post('/api/v1/field-permissions/bulk', { overrides: bulkOverrides });
       }
 
-      await Promise.all(
-        deletions.map(fieldName =>
-          apiService.delete(
-            `/api/v1/field-permissions/${selectedResource}/${selectedRole}/${fieldName}`
+      if (deletions.length > 0) {
+        // Use allSettled so one failing delete doesn't hide the others.
+        const results = await Promise.allSettled(
+          deletions.map(fieldName =>
+            apiService.delete(
+              `/api/v1/field-permissions/${selectedResource}/${selectedRole}/${fieldName}`
+            )
           )
-        )
-      );
-
-      await fetchData();
+        );
+        const failed = deletions.filter((_, i) => results[i].status === 'rejected');
+        if (failed.length > 0) {
+          setError(
+            `Failed to revert ${failed.length} field(s) to default: ${failed.join(', ')}`
+          );
+        }
+      }
     } catch (err) {
       setError('Failed to save field permissions');
     } finally {
+      // Always re-fetch to show actual DB state, even after partial failures.
+      await fetchData();
       setSaving(false);
     }
   };

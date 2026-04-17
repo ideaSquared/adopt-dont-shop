@@ -25,6 +25,55 @@ const validAccessLevels = Object.values(FieldAccessLevel);
 const validRoles = ['admin', 'moderator', 'rescue_staff', 'adopter'];
 
 /**
+ * Return all known field names for a resource by reading the admin access map
+ * (admin sees the most fields, so its key set is the full field universe).
+ */
+const getKnownFields = (resource: string): ReadonlySet<string> => {
+  const map = getFieldAccessMap(resource as FieldPermissionResource, 'admin');
+  return new Set(Object.keys(map));
+};
+
+/**
+ * Custom express-validator for a single fieldName given a companion resource.
+ * Used in the single-upsert POST body validator.
+ */
+const validateFieldNameForResource = (
+  value: string,
+  { req }: { req: { body?: unknown } }
+): true => {
+  const resource = (req.body as { resource?: string } | undefined)?.resource;
+  if (!resource || !validResources.includes(resource as FieldPermissionResource)) {
+    return true; // resource validator will catch an invalid resource
+  }
+  if (!getKnownFields(resource).has(value)) {
+    throw new Error(`Unknown field "${value}" for resource "${resource}"`);
+  }
+  return true;
+};
+
+/**
+ * Custom express-validator for a wildcard fieldName inside the bulk array.
+ * Reads the companion resource at the same array index.
+ */
+const validateBulkFieldName = (
+  value: string,
+  { req, path }: { req: { body?: unknown }; path?: string }
+): true => {
+  const match = /overrides\[(\d+)\]/.exec(path ?? '');
+  if (!match) return true;
+  const index = parseInt(match[1], 10);
+  const overridesArr = (req.body as { overrides?: Array<{ resource?: string }> })?.overrides;
+  const resource = overridesArr?.[index]?.resource;
+  if (!resource || !validResources.includes(resource as FieldPermissionResource)) {
+    return true; // resource validator will catch an invalid resource
+  }
+  if (!getKnownFields(resource).has(value)) {
+    throw new Error(`Unknown field "${value}" for resource "${resource}"`);
+  }
+  return true;
+};
+
+/**
  * Reject any attempt to create or modify an override for a field that is on
  * the sensitive-field denylist (password, tokens, 2FA secrets, etc.). Even
  * admins cannot loosen these — they are hard-coded to 'none' for every role
@@ -178,7 +227,12 @@ router.post(
     body('resource')
       .isIn(validResources)
       .withMessage(`Resource must be one of: ${validResources.join(', ')}`),
-    body('fieldName').isString().trim().notEmpty().withMessage('Field name is required'),
+    body('fieldName')
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage('Field name is required')
+      .custom(validateFieldNameForResource),
     body('role')
       .isIn(validRoles)
       .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
@@ -242,7 +296,8 @@ router.post(
       .isString()
       .trim()
       .notEmpty()
-      .withMessage('Field name is required'),
+      .withMessage('Field name is required')
+      .custom(validateBulkFieldName),
     body('overrides.*.role')
       .isIn(validRoles)
       .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
