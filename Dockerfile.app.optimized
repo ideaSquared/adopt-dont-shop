@@ -55,6 +55,7 @@ COPY --chown=viteuser:nodejs lib.pets/package.json ./lib.pets/
 COPY --chown=viteuser:nodejs lib.rescue/package.json ./lib.rescue/
 COPY --chown=viteuser:nodejs lib.search/package.json ./lib.search/
 COPY --chown=viteuser:nodejs lib.support-tickets/package.json ./lib.support-tickets/
+COPY --chown=viteuser:nodejs lib.types/package.json ./lib.types/
 COPY --chown=viteuser:nodejs lib.utils/package.json ./lib.utils/
 COPY --chown=viteuser:nodejs lib.validation/package.json ./lib.validation/
 
@@ -84,6 +85,7 @@ COPY --chown=viteuser:nodejs lib.pets/ ./lib.pets/
 COPY --chown=viteuser:nodejs lib.rescue/ ./lib.rescue/
 COPY --chown=viteuser:nodejs lib.search/ ./lib.search/
 COPY --chown=viteuser:nodejs lib.support-tickets/ ./lib.support-tickets/
+COPY --chown=viteuser:nodejs lib.types/ ./lib.types/
 COPY --chown=viteuser:nodejs lib.utils/ ./lib.utils/
 COPY --chown=viteuser:nodejs lib.validation/ ./lib.validation/
 
