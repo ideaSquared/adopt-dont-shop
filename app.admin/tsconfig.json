@@ -30,6 +30,6 @@
     }
   },
   "include": ["src", "src/vite-env.d.ts"],
-  "exclude": ["dist", "node_modules", "**/*.test.*", "**/*.spec.*"],
+  "exclude": ["dist", "node_modules", "**/*.test.*", "**/*.spec.*", "src/test-utils", "src/setup-tests.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
