@@ -47,13 +47,13 @@ const noOverrides: FieldPermissionRecord[] = [];
 
 const existingOverride: FieldPermissionRecord[] = [
   {
-    fieldPermissionId: 1,
+    field_permission_id: 1,
     resource: 'users',
-    fieldName: 'email',
+    field_name: 'email',
     role: 'admin',
-    accessLevel: 'write',
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
+    access_level: 'write',
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
   },
 ];
 
@@ -135,7 +135,7 @@ describe('FieldPermissions page', () => {
           '/api/v1/field-permissions/bulk',
           expect.objectContaining({
             overrides: expect.arrayContaining([
-              expect.objectContaining({ fieldName: 'email', accessLevel: 'write' }),
+              expect.objectContaining({ field_name: 'email', access_level: 'write' }),
             ]),
           })
         );

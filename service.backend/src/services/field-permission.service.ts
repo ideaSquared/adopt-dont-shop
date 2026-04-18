@@ -16,7 +16,7 @@ export class FieldPermissionService {
     return FieldPermission.findAll({
       where: { resource },
       order: [
-        ['fieldName', 'ASC'],
+        ['field_name', 'ASC'],
         ['role', 'ASC'],
       ],
     });
@@ -31,50 +31,36 @@ export class FieldPermissionService {
   ): Promise<FieldPermission[]> {
     return FieldPermission.findAll({
       where: { resource, role },
-      order: [['fieldName', 'ASC']],
+      order: [['field_name', 'ASC']],
     });
   }
 
   /**
    * Create or update a field permission override.
    *
-   * Uses an explicit find-then-update/create pattern rather than
-   * `FieldPermission.upsert()` because Sequelize's `conflictFields`
-   * type expects model attribute names (camelCase) but emits them
-   * verbatim in the SQL `ON CONFLICT` clause — i.e. it does not
-   * translate `fieldName` → `field_name`. Mixing the two naming
-   * conventions would either require an unsafe `as never[]` cast
-   * (losing type safety) or produce a runtime SQL error.
-   *
-   * Concurrency: two requests hitting this path in parallel could both
-   * observe `existing === null` and then both attempt `create`, causing
-   * one to fail with the `unique_field_permission` constraint. We handle
-   * this by catching the unique-constraint error, re-reading the row,
-   * and updating it in place. This converts the race condition into a
-   * deterministic update.
+   * Uses an explicit find-then-update/create pattern with retry on
+   * unique-constraint violation to handle concurrent inserts safely.
    *
    * Accepts an optional transaction for use within bulk operations.
    */
   static async upsert(
     resource: FieldPermissionResource,
-    fieldName: string,
+    field_name: string,
     role: string,
-    accessLevel: FieldAccessLevel,
+    access_level: FieldAccessLevel,
     updatedBy: string,
     transaction?: Transaction
   ): Promise<FieldPermission> {
     const record = await FieldPermissionService.findOrCreateAndUpdate(
       resource,
-      fieldName,
+      field_name,
       role,
-      accessLevel,
+      access_level,
       transaction
     );
 
-    // Clear cache so changes take effect immediately
     clearFieldPermissionCache(resource, role);
 
-    // Audit log the change
     await AuditLog.create(
       {
         service: 'field-permissions',
@@ -85,43 +71,49 @@ export class FieldPermissionService {
         category: 'FIELD_PERMISSION_CHANGE',
         metadata: {
           resource,
-          fieldName,
+          field_name,
           role,
-          accessLevel,
+          access_level,
         },
       },
       { transaction }
     );
 
-    logger.info('Field permission upserted', { resource, fieldName, role, accessLevel, updatedBy });
+    logger.info('Field permission upserted', {
+      resource,
+      field_name,
+      role,
+      access_level,
+      updatedBy,
+    });
 
     return record;
   }
 
   /**
-   * Find-or-create a FieldPermission row, then update its accessLevel.
+   * Find-or-create a FieldPermission row, then update its access_level.
    * Retries once on unique-constraint violation to handle the race where
    * two concurrent callers both observe "not found" and both try to insert.
    */
   private static async findOrCreateAndUpdate(
     resource: FieldPermissionResource,
-    fieldName: string,
+    field_name: string,
     role: string,
-    accessLevel: FieldAccessLevel,
+    access_level: FieldAccessLevel,
     transaction?: Transaction
   ): Promise<FieldPermission> {
     const existing = await FieldPermission.findOne({
-      where: { resource, fieldName, role },
+      where: { resource, field_name, role },
       transaction,
     });
 
     if (existing) {
-      return existing.update({ accessLevel }, { transaction });
+      return existing.update({ access_level }, { transaction });
     }
 
     try {
       return await FieldPermission.create(
-        { resource, fieldName, role, accessLevel },
+        { resource, field_name, role, access_level },
         { transaction }
       );
     } catch (error) {
@@ -129,34 +121,29 @@ export class FieldPermissionService {
         throw error;
       }
 
-      // Another request inserted the row between our findOne and create.
-      // Re-read and update in place.
       const conflict = await FieldPermission.findOne({
-        where: { resource, fieldName, role },
+        where: { resource, field_name, role },
         transaction,
       });
 
       if (!conflict) {
-        // Extremely unlikely: constraint fired but row isn't visible.
-        // Re-throw the original error so the caller sees a real failure.
         throw error;
       }
 
-      return conflict.update({ accessLevel }, { transaction });
+      return conflict.update({ access_level }, { transaction });
     }
   }
 
   /**
    * Bulk upsert field permission overrides.
-   * All operations run within a single database transaction for atomicity —
-   * either all overrides are saved or none are.
+   * All operations run within a single database transaction for atomicity.
    */
   static async bulkUpsert(
     overrides: ReadonlyArray<{
       resource: FieldPermissionResource;
-      fieldName: string;
+      field_name: string;
       role: string;
-      accessLevel: FieldAccessLevel;
+      access_level: FieldAccessLevel;
     }>,
     updatedBy: string
   ): Promise<FieldPermission[]> {
@@ -166,9 +153,9 @@ export class FieldPermissionService {
       for (const override of overrides) {
         const record = await FieldPermissionService.upsert(
           override.resource,
-          override.fieldName,
+          override.field_name,
           override.role,
-          override.accessLevel,
+          override.access_level,
           updatedBy,
           transaction
         );
@@ -185,11 +172,11 @@ export class FieldPermissionService {
   static async deleteOverride(
     resource: FieldPermissionResource,
     role: string,
-    fieldName: string,
+    field_name: string,
     deletedBy: string
   ): Promise<boolean> {
     const deleted = await FieldPermission.destroy({
-      where: { resource, role, fieldName },
+      where: { resource, role, field_name },
     });
 
     if (deleted > 0) {
@@ -204,12 +191,12 @@ export class FieldPermissionService {
         category: 'FIELD_PERMISSION_CHANGE',
         metadata: {
           resource,
-          fieldName,
+          field_name,
           role,
         },
       });
 
-      logger.info('Field permission override deleted', { resource, fieldName, role, deletedBy });
+      logger.info('Field permission override deleted', { resource, field_name, role, deletedBy });
     }
 
     return deleted > 0;

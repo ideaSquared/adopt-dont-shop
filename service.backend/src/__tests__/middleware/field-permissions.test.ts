@@ -446,7 +446,7 @@ describe('Field Permissions Middleware - fieldMask (Express integration)', () =>
 
     // Override: explicitly grant adopter read access to email on users
     (FieldPermission.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { fieldName: 'email', accessLevel: 'read' },
+      { field_name: 'email', access_level: 'read' },
     ]);
 
     const middleware = fieldMask('users');
@@ -691,7 +691,7 @@ describe('Field Permissions Middleware - fieldWriteGuard (Express integration)',
 
     // Override: grant adopters write access to email (default is 'none')
     (FieldPermission.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { fieldName: 'email', accessLevel: 'write' },
+      { field_name: 'email', access_level: 'write' },
     ]);
 
     const middleware = fieldWriteGuard('users');

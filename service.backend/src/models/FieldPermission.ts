@@ -24,66 +24,61 @@ export enum FieldPermissionResource {
 }
 
 interface FieldPermissionAttributes {
-  fieldPermissionId: number;
+  field_permission_id: number;
   resource: FieldPermissionResource;
-  fieldName: string;
+  field_name: string;
   role: string;
-  accessLevel: FieldAccessLevel;
-  createdAt?: Date;
-  updatedAt?: Date;
+  access_level: FieldAccessLevel;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 interface FieldPermissionCreationAttributes
-  extends Optional<FieldPermissionAttributes, 'fieldPermissionId'> {}
+  extends Optional<FieldPermissionAttributes, 'field_permission_id'> {}
 
 class FieldPermission
   extends Model<FieldPermissionAttributes, FieldPermissionCreationAttributes>
   implements FieldPermissionAttributes
 {
-  public fieldPermissionId!: number;
+  public field_permission_id!: number;
   public resource!: FieldPermissionResource;
-  public fieldName!: string;
+  public field_name!: string;
   public role!: string;
-  public accessLevel!: FieldAccessLevel;
-  public createdAt!: Date;
-  public updatedAt!: Date;
+  public access_level!: FieldAccessLevel;
+  public created_at!: Date;
+  public updated_at!: Date;
 }
 
 FieldPermission.init(
   {
-    fieldPermissionId: {
+    field_permission_id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
-      field: 'field_permission_id',
     },
     resource: {
       type: DataTypes.ENUM(...Object.values(FieldPermissionResource)),
       allowNull: false,
     },
-    fieldName: {
+    field_name: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      field: 'field_name',
     },
     role: {
       type: DataTypes.STRING(50),
       allowNull: false,
     },
-    accessLevel: {
+    access_level: {
       type: DataTypes.ENUM(...Object.values(FieldAccessLevel)),
       allowNull: false,
-      field: 'access_level',
     },
-    createdAt: {
+    created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
-      field: 'created_at',
     },
-    updatedAt: {
+    updated_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
-      field: 'updated_at',
     },
   },
   {
@@ -92,7 +87,7 @@ FieldPermission.init(
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
-    underscored: false,
+    paranoid: false,
     indexes: [
       {
         unique: true,

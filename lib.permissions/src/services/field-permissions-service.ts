@@ -77,12 +77,12 @@ export class FieldPermissionsService {
     } catch {
       // API unavailable — fall back to defaults rather than failing the check
     }
-    const override = overrides.find((o) => o.fieldName === fieldName);
+    const override = overrides.find((o) => o.field_name === fieldName);
 
     if (override) {
       return {
-        allowed: override.accessLevel !== 'none',
-        effectiveLevel: override.accessLevel,
+        allowed: override.access_level !== 'none',
+        effectiveLevel: override.access_level,
         source: 'override',
       };
     }
@@ -113,7 +113,7 @@ export class FieldPermissionsService {
 
     const effective = { ...defaults };
     for (const override of overrides) {
-      effective[override.fieldName] = override.accessLevel;
+      effective[override.field_name] = override.access_level;
     }
 
     return enforceSensitiveDenylist(resource, effective);
@@ -223,7 +223,7 @@ export class FieldPermissionsService {
 
       if (this.config.debug) {
         console.log(
-          `Updated field permission: ${request.resource}.${request.fieldName} = ${request.accessLevel} for ${request.role}`
+          `Updated field permission: ${request.resource}.${request.field_name} = ${request.access_level} for ${request.role}`
         );
       }
       return true;

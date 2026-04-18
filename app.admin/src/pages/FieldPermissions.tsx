@@ -235,22 +235,24 @@ const FieldPermissions: React.FC = () => {
     if (pendingChanges[fieldName] !== undefined) {
       return pendingChanges[fieldName];
     }
-    const override = overrides.find(o => o.fieldName === fieldName);
+    const override = overrides.find(o => o.field_name === fieldName);
     if (override) {
-      return override.accessLevel;
+      return override.access_level;
     }
     return defaults[fieldName] || 'none';
   };
 
   const isOverridden = (fieldName: string): boolean => {
     return (
-      overrides.some(o => o.fieldName === fieldName) || pendingChanges[fieldName] !== undefined
+      overrides.some(o => o.field_name === fieldName) || pendingChanges[fieldName] !== undefined
     );
   };
 
   const handleChange = (fieldName: string, level: FieldAccessLevel) => {
     const savedLevel =
-      overrides.find(o => o.fieldName === fieldName)?.accessLevel ?? defaults[fieldName] ?? 'none';
+      overrides.find(o => o.field_name === fieldName)?.access_level ??
+      defaults[fieldName] ??
+      'none';
     setPendingChanges(prev => {
       if (level === savedLevel) {
         const next = { ...prev };
@@ -273,9 +275,9 @@ const FieldPermissions: React.FC = () => {
     // dropped entirely — we never persist rows that duplicate defaults.
     const bulkOverrides: Array<{
       resource: FieldPermissionResource;
-      fieldName: string;
+      field_name: string;
       role: UserRole;
-      accessLevel: FieldAccessLevel;
+      access_level: FieldAccessLevel;
     }> = [];
     const deletions: string[] = [];
 
@@ -283,7 +285,7 @@ const FieldPermissions: React.FC = () => {
       [string, FieldAccessLevel]
     >) {
       const defaultLevel = defaults[fieldName] ?? 'none';
-      const hasExistingOverride = overrides.some(o => o.fieldName === fieldName);
+      const hasExistingOverride = overrides.some(o => o.field_name === fieldName);
 
       if (accessLevel === defaultLevel) {
         if (hasExistingOverride) {
@@ -295,9 +297,9 @@ const FieldPermissions: React.FC = () => {
 
       bulkOverrides.push({
         resource: selectedResource,
-        fieldName,
+        field_name: fieldName,
         role: selectedRole,
-        accessLevel,
+        access_level: accessLevel,
       });
     }
 

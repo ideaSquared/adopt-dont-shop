@@ -34,7 +34,7 @@ const getKnownFields = (resource: string): ReadonlySet<string> => {
 };
 
 /**
- * Custom express-validator for a single fieldName given a companion resource.
+ * Custom express-validator for a single field_name given a companion resource.
  * Used in the single-upsert POST body validator.
  */
 const validateFieldNameForResource = (
@@ -52,7 +52,7 @@ const validateFieldNameForResource = (
 };
 
 /**
- * Custom express-validator for a wildcard fieldName inside the bulk array.
+ * Custom express-validator for a wildcard field_name inside the bulk array.
  * Reads the companion resource at the same array index.
  */
 const validateBulkFieldName = (
@@ -82,7 +82,7 @@ const validateBulkFieldName = (
  * stored override to 'none'.
  */
 const rejectSensitiveOverrides = (
-  overrides: ReadonlyArray<{ resource: string; fieldName: string }>
+  overrides: ReadonlyArray<{ resource: string; field_name: string }>
 ): string[] => {
   const blocked: string[] = [];
   for (const override of overrides) {
@@ -90,10 +90,10 @@ const rejectSensitiveOverrides = (
       (override.resource as keyof typeof SENSITIVE_FIELD_DENYLIST) in SENSITIVE_FIELD_DENYLIST &&
       isSensitiveField(
         override.resource as keyof typeof SENSITIVE_FIELD_DENYLIST,
-        override.fieldName
+        override.field_name
       )
     ) {
-      blocked.push(`${override.resource}.${override.fieldName}`);
+      blocked.push(`${override.resource}.${override.field_name}`);
     }
   }
   return blocked;
@@ -227,7 +227,7 @@ router.post(
     body('resource')
       .isIn(validResources)
       .withMessage(`Resource must be one of: ${validResources.join(', ')}`),
-    body('fieldName')
+    body('field_name')
       .isString()
       .trim()
       .notEmpty()
@@ -236,7 +236,7 @@ router.post(
     body('role')
       .isIn(validRoles)
       .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
-    body('accessLevel')
+    body('access_level')
       .isIn(validAccessLevels)
       .withMessage(`Access level must be one of: ${validAccessLevels.join(', ')}`),
   ],
@@ -248,9 +248,9 @@ router.post(
     }
 
     try {
-      const { resource, fieldName, role, accessLevel } = req.body;
+      const { resource, field_name, role, access_level } = req.body;
 
-      const blocked = rejectSensitiveOverrides([{ resource, fieldName }]);
+      const blocked = rejectSensitiveOverrides([{ resource, field_name }]);
       if (blocked.length > 0) {
         res.status(400).json({
           success: false,
@@ -264,9 +264,9 @@ router.post(
 
       const record = await FieldPermissionService.upsert(
         resource as FieldPermissionResource,
-        fieldName,
+        field_name,
         role,
-        accessLevel as FieldAccessLevel,
+        access_level as FieldAccessLevel,
         userId
       );
 
@@ -292,7 +292,7 @@ router.post(
     body('overrides.*.resource')
       .isIn(validResources)
       .withMessage(`Resource must be one of: ${validResources.join(', ')}`),
-    body('overrides.*.fieldName')
+    body('overrides.*.field_name')
       .isString()
       .trim()
       .notEmpty()
@@ -301,7 +301,7 @@ router.post(
     body('overrides.*.role')
       .isIn(validRoles)
       .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
-    body('overrides.*.accessLevel')
+    body('overrides.*.access_level')
       .isIn(validAccessLevels)
       .withMessage(`Access level must be one of: ${validAccessLevels.join(', ')}`),
   ],
@@ -315,7 +315,7 @@ router.post(
     try {
       const overrides = req.body.overrides as ReadonlyArray<{
         resource: string;
-        fieldName: string;
+        field_name: string;
       }>;
 
       const blocked = rejectSensitiveOverrides(overrides);
@@ -339,12 +339,12 @@ router.post(
 );
 
 /**
- * DELETE /api/v1/field-permissions/:resource/:role/:fieldName
+ * DELETE /api/v1/field-permissions/:resource/:role/:field_name
  * Delete a single field permission override.
  * Admin only.
  */
 router.delete(
-  '/:resource/:role/:fieldName',
+  '/:resource/:role/:field_name',
   authenticateToken,
   requireRole(UserType.ADMIN),
   [
@@ -354,7 +354,7 @@ router.delete(
     param('role')
       .isIn(validRoles)
       .withMessage(`Role must be one of: ${validRoles.join(', ')}`),
-    param('fieldName').isString().trim().notEmpty().withMessage('Field name is required'),
+    param('field_name').isString().trim().notEmpty().withMessage('Field name is required'),
   ],
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -364,13 +364,13 @@ router.delete(
     }
 
     try {
-      const { resource, role, fieldName } = req.params;
+      const { resource, role, field_name } = req.params;
       const userId = req.user?.userId ?? 'unknown';
 
       const deleted = await FieldPermissionService.deleteOverride(
         resource as FieldPermissionResource,
         role,
-        fieldName,
+        field_name,
         userId
       );
 

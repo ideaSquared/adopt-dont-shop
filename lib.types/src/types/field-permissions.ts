@@ -24,22 +24,22 @@ export type FieldPermissionResource = 'users' | 'pets' | 'applications' | 'rescu
  */
 export type FieldPermissionRule = {
   resource: FieldPermissionResource;
-  fieldName: string;
+  field_name: string;
   role: UserRole;
-  accessLevel: FieldAccessLevel;
+  access_level: FieldAccessLevel;
 };
 
 /**
  * Database-persisted field permission record.
  *
- * Note: `fieldPermissionId` is an auto-incrementing integer primary key
+ * Note: `field_permission_id` is an auto-incrementing integer primary key
  * from the backend (`field_permissions.field_permission_id`), so it is
  * typed as `number` here to match what the API actually returns.
  */
 export type FieldPermissionRecord = FieldPermissionRule & {
-  fieldPermissionId: number;
-  createdAt: string;
-  updatedAt: string;
+  field_permission_id: number;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -64,8 +64,8 @@ export type FieldPermissionCheckRequest = {
   userId: string;
   role: UserRole;
   resource: FieldPermissionResource;
-  fieldName: string;
-  accessLevel: FieldAccessLevel;
+  field_name: string;
+  access_level: FieldAccessLevel;
 };
 
 /**
@@ -82,9 +82,9 @@ export type FieldPermissionCheckResult = {
  */
 export type FieldPermissionUpdateRequest = {
   resource: FieldPermissionResource;
-  fieldName: string;
+  field_name: string;
   role: UserRole;
-  accessLevel: FieldAccessLevel;
+  access_level: FieldAccessLevel;
   updatedBy: string;
 };
 

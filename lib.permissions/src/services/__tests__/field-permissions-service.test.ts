@@ -44,13 +44,13 @@ describe('FieldPermissionsService', () => {
       mockApiService.get = jest.fn().mockResolvedValue({
         data: [
           {
-            fieldPermissionId: 1,
+            field_permission_id: 1,
             resource: 'users',
-            fieldName: 'email',
+            field_name: 'email',
             role: 'adopter',
-            accessLevel: 'read',
-            createdAt: '2024-01-01',
-            updatedAt: '2024-01-01',
+            access_level: 'read',
+            created_at: '2024-01-01',
+            updated_at: '2024-01-01',
           },
         ],
       });
@@ -440,18 +440,18 @@ describe('FieldPermissionsService', () => {
 
       const result = await service.updateFieldPermission({
         resource: 'users',
-        fieldName: 'email',
+        field_name: 'email',
         role: 'adopter',
-        accessLevel: 'read',
+        access_level: 'read',
         updatedBy: 'admin-1',
       });
 
       expect(result).toBe(true);
       expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/field-permissions', {
         resource: 'users',
-        fieldName: 'email',
+        field_name: 'email',
         role: 'adopter',
-        accessLevel: 'read',
+        access_level: 'read',
         updatedBy: 'admin-1',
       });
     });

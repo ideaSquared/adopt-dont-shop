@@ -26,6 +26,9 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
+# Copy required shared libraries so npm ci can resolve workspace references
+COPY lib.types/ lib.types/
+
 # Copy backend service package files
 COPY service.backend/package*.json service.backend/
 
@@ -66,7 +69,8 @@ RUN --mount=type=cache,target=/root/.npm \
 
 # Copy built lib.types directly into node_modules for reliable module resolution.
 # This avoids symlink issues with partial npm workspace installations in Docker.
-RUN mkdir -p node_modules/@adopt-dont-shop/lib.types && \
+RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
+    mkdir -p node_modules/@adopt-dont-shop/lib.types && \
     cp /app/lib.types/package.json node_modules/@adopt-dont-shop/lib.types/ && \
     cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/
 
@@ -107,7 +111,8 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 
 # Copy built lib.types into node_modules for TypeScript compilation
-RUN mkdir -p node_modules/@adopt-dont-shop/lib.types && \
+RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
+    mkdir -p node_modules/@adopt-dont-shop/lib.types && \
     cp /app/lib.types/package.json node_modules/@adopt-dont-shop/lib.types/ && \
     cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/
 
@@ -117,7 +122,8 @@ RUN NODE_ENV=production npm run build && \
     npm prune --omit=dev
 
 # Re-copy lib.types into node_modules after prune (prune removes it)
-RUN mkdir -p node_modules/@adopt-dont-shop/lib.types && \
+RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
+    mkdir -p node_modules/@adopt-dont-shop/lib.types && \
     cp /app/lib.types/package.json node_modules/@adopt-dont-shop/lib.types/ && \
     cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/
 

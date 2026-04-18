@@ -16,7 +16,7 @@ import {
  */
 const overrideCache = new Map<
   string,
-  { overrides: Array<{ fieldName: string; accessLevel: string }>; expires: number }
+  { overrides: Array<{ field_name: string; access_level: string }>; expires: number }
 >();
 
 const CACHE_TTL = 60 * 1000; // 1 minute
@@ -39,7 +39,7 @@ export const clearFieldPermissionCache = (resource?: string, role?: string): voi
 const getOverrides = async (
   resource: string,
   role: string
-): Promise<Array<{ fieldName: string; accessLevel: string }>> => {
+): Promise<Array<{ field_name: string; access_level: string }>> => {
   const cacheKey = `${resource}:${role}`;
   const cached = overrideCache.get(cacheKey);
 
@@ -53,8 +53,8 @@ const getOverrides = async (
     });
 
     const overrides = records.map(r => ({
-      fieldName: r.fieldName,
-      accessLevel: r.accessLevel,
+      field_name: r.field_name,
+      access_level: r.access_level,
     }));
 
     overrideCache.set(cacheKey, {
@@ -89,7 +89,7 @@ const getEffectiveAccessMap = async (
 
   const effective: Record<string, FieldAccessLevel> = { ...defaults };
   for (const override of overrides) {
-    effective[override.fieldName] = override.accessLevel as FieldAccessLevel;
+    effective[override.field_name] = override.access_level as FieldAccessLevel;
   }
 
   return enforceSensitiveDenylist(resource, effective);
