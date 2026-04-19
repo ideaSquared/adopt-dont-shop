@@ -273,8 +273,7 @@ type BooleanPreferenceKey = {
 }[keyof NotificationPreferencesData];
 
 const NotificationPreferencesForm: React.FC = () => {
-  const [preferences, setPreferences] =
-    useState<NotificationPreferencesData>(DEFAULT_PREFERENCES);
+  const [preferences, setPreferences] = useState<NotificationPreferencesData>(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -464,9 +463,7 @@ const NotificationPreferencesForm: React.FC = () => {
 
       <Section>
         <SectionTitle>Delivery Frequency</SectionTitle>
-        <SectionDescription>
-          Control how often you receive notification digests.
-        </SectionDescription>
+        <SectionDescription>Control how often you receive notification digests.</SectionDescription>
 
         <FrequencyOptions>
           <FrequencyOption
@@ -543,12 +540,8 @@ const NotificationPreferencesForm: React.FC = () => {
         <SaveButton onClick={handleSave} disabled={saving}>
           {saving ? 'Saving...' : 'Save Preferences'}
         </SaveButton>
-        {success && (
-          <SuccessMessage role="status">Preferences saved successfully.</SuccessMessage>
-        )}
-        {error !== null && !success && (
-          <ErrorMessage role="alert">{error}</ErrorMessage>
-        )}
+        {success && <SuccessMessage role="status">Preferences saved successfully.</SuccessMessage>}
+        {error !== null && !success && <ErrorMessage role="alert">{error}</ErrorMessage>}
       </ActionRow>
     </Container>
   );

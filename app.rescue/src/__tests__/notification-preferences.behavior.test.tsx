@@ -79,9 +79,7 @@ describe('Notification Preferences - Behavioral Tests', () => {
       renderWithProviders(<NotificationPreferencesForm />);
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/failed to load notification preferences/i)
-        ).toBeInTheDocument();
+        expect(screen.getByText(/failed to load notification preferences/i)).toBeInTheDocument();
       });
 
       expect(screen.getByText('Notification Channels')).toBeInTheDocument();
@@ -103,7 +101,9 @@ describe('Notification Preferences - Behavioral Tests', () => {
       renderWithProviders(<NotificationPreferencesForm />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /toggle email notifications/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /toggle email notifications/i })
+        ).toBeInTheDocument();
       });
 
       const emailToggle = screen.getByRole('button', { name: /toggle email notifications/i });
@@ -142,7 +142,9 @@ describe('Notification Preferences - Behavioral Tests', () => {
 
       const smsToggle = screen.getByRole('button', { name: /toggle sms notifications/i });
       expect(smsToggle).toHaveAttribute('aria-disabled', 'true');
-      expect(screen.getByText(/sms notifications are not currently available/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/sms notifications are not currently available/i)
+      ).toBeInTheDocument();
     });
 
     it('does not change SMS preference when staff clicks the disabled toggle', async () => {
@@ -150,7 +152,9 @@ describe('Notification Preferences - Behavioral Tests', () => {
       renderWithProviders(<NotificationPreferencesForm />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /toggle sms notifications/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /toggle sms notifications/i })
+        ).toBeInTheDocument();
       });
 
       const smsToggle = screen.getByRole('button', { name: /toggle sms notifications/i });
@@ -352,10 +356,7 @@ describe('Notification Preferences - Behavioral Tests', () => {
         expect(screen.getByLabelText(/timezone/i)).toBeInTheDocument();
       });
 
-      await user.selectOptions(
-        screen.getByLabelText(/timezone/i),
-        'America/New_York'
-      );
+      await user.selectOptions(screen.getByLabelText(/timezone/i), 'America/New_York');
 
       expect(screen.getByLabelText(/timezone/i)).toHaveValue('America/New_York');
     });
@@ -381,9 +382,7 @@ describe('Notification Preferences - Behavioral Tests', () => {
       await user.click(screen.getByRole('button', { name: /save preferences/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('status')).toHaveTextContent(
-          'Preferences saved successfully.'
-        );
+        expect(screen.getByRole('status')).toHaveTextContent('Preferences saved successfully.');
       });
     });
 
@@ -392,7 +391,9 @@ describe('Notification Preferences - Behavioral Tests', () => {
       renderWithProviders(<NotificationPreferencesForm />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /toggle email notifications/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /toggle email notifications/i })
+        ).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole('button', { name: /toggle email notifications/i }));
@@ -428,7 +429,10 @@ describe('Notification Preferences - Behavioral Tests', () => {
       const user = userEvent.setup();
       let resolveRequest: (value: unknown) => void;
       vi.mocked(apiService.put).mockImplementation(
-        () => new Promise(resolve => { resolveRequest = resolve; })
+        () =>
+          new Promise(resolve => {
+            resolveRequest = resolve;
+          })
       );
       renderWithProviders(<NotificationPreferencesForm />);
 

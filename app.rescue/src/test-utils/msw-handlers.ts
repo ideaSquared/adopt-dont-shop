@@ -108,7 +108,6 @@ export const mswHandlers = [
     });
   }),
 
-
   // Pet management endpoints
   http.get('/api/v1/pets', ({ request }) => {
     const url = new URL(request.url);
