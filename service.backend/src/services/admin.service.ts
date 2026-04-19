@@ -894,17 +894,17 @@ class AdminService {
       const adoptedPets = await Pet.count({
         where: {
           status: 'adopted',
-          created_at: {
+          createdAt: {
             [Op.between]: [startOfMonth, now],
           },
         },
       });
 
-      // Application statistics - use created_at
+      // Application statistics - use createdAt
       const totalApplications = Number(
         await Application.count({
           where: {
-            created_at: {
+            createdAt: {
               [Op.between]: [startOfMonth, now],
             },
           },
@@ -915,7 +915,7 @@ class AdminService {
         await Application.count({
           where: {
             status: 'approved',
-            created_at: {
+            createdAt: {
               [Op.between]: [startOfMonth, now],
             },
           },

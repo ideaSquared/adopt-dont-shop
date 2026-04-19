@@ -359,16 +359,16 @@ export class AnalyticsService {
         where: {
           ...whereConditions,
           status: 'approved',
-          updated_at: { [Op.not]: null } as unknown as Date,
+          updatedAt: { [Op.not]: null } as unknown as Date,
         },
-        attributes: ['created_at', 'updated_at'],
+        attributes: ['createdAt', 'updatedAt'],
       });
 
       const avgTimeToAdoption =
         adoptedApplications.length > 0
           ? adoptedApplications.reduce((sum, app) => {
               const adoptionTime =
-                new Date(app.updated_at!).getTime() - new Date(app.created_at).getTime();
+                new Date(app.updatedAt!).getTime() - new Date(app.createdAt).getTime();
               return sum + adoptionTime / (1000 * 60 * 60 * 24); // Convert to days
             }, 0) / adoptedApplications.length
           : 0;
@@ -628,7 +628,7 @@ export class AnalyticsService {
       );
       const previousStorageCount = await Pet.count({
         where: {
-          created_at: {
+          createdAt: {
             [Op.between]: [previousPeriodStart, defaultStartDate],
           } as unknown as Date,
           images: { [Op.not]: null } as unknown as string[],
@@ -637,7 +637,7 @@ export class AnalyticsService {
 
       const currentStorageCount = await Pet.count({
         where: {
-          created_at: {
+          createdAt: {
             [Op.between]: [defaultStartDate, defaultEndDate],
           } as unknown as Date,
           images: { [Op.not]: null } as unknown as string[],
@@ -753,16 +753,16 @@ export class AnalyticsService {
         where: {
           ...whereConditions,
           status: { [Op.in]: ['approved', 'rejected'] },
-          updated_at: { [Op.not]: null } as unknown as Date,
+          updatedAt: { [Op.not]: null } as unknown as Date,
         },
-        attributes: ['created_at', 'updated_at'],
+        attributes: ['createdAt', 'updatedAt'],
       });
 
       const avgProcessingTime =
         completedApplications.length > 0
           ? completedApplications.reduce((sum, app) => {
               const processingTime =
-                new Date(app.updated_at!).getTime() - new Date(app.created_at).getTime();
+                new Date(app.updatedAt!).getTime() - new Date(app.createdAt).getTime();
               return sum + processingTime / (1000 * 60 * 60); // Convert to hours
             }, 0) / completedApplications.length
           : 0;
@@ -1022,7 +1022,7 @@ export class AnalyticsService {
 
         // New applications today
         Application.count({
-          where: { created_at: { [Op.gte]: last24Hours } },
+          where: { createdAt: { [Op.gte]: last24Hours } },
         }),
 
         // Messages in last hour
@@ -1032,7 +1032,7 @@ export class AnalyticsService {
 
         // New pets today
         Pet.count({
-          where: { created_at: { [Op.gte]: last24Hours } },
+          where: { createdAt: { [Op.gte]: last24Hours } },
         }),
 
         // Active chats
@@ -1161,21 +1161,21 @@ export class AnalyticsService {
       const whereConditions: SequelizeWhereConditions = {};
 
       if (rescueId) {
-        whereConditions.rescue_id = rescueId;
+        whereConditions.rescueId = rescueId;
       }
 
-      // Get adoption counts - use created_at instead of adoptedDate
+      // Get adoption counts - use createdAt instead of adoptedDate
       const adoptedPets = await Pet.count({
         where: {
           ...whereConditions,
           status: 'adopted',
-          created_at: dateFilter,
+          createdAt: dateFilter,
         },
       });
 
       // Get total pets for adoption rate calculation
       const totalPets = await Pet.count({
-        where: rescueId ? { rescue_id: rescueId } : {},
+        where: rescueId ? { rescueId } : {},
       });
 
       // Get adoptions by pet type
@@ -1183,7 +1183,7 @@ export class AnalyticsService {
         where: {
           ...whereConditions,
           status: 'adopted',
-          created_at: dateFilter,
+          createdAt: dateFilter,
         },
         attributes: ['type', [sequelize.fn('COUNT', sequelize.col('pet_id')), 'count']],
         group: ['type'],
@@ -1196,7 +1196,7 @@ export class AnalyticsService {
         where: {
           ...whereConditions,
           status: 'adopted',
-          created_at: dateFilter,
+          createdAt: dateFilter,
         },
         attributes: [
           [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
@@ -1210,7 +1210,7 @@ export class AnalyticsService {
       const rescuePerformanceQuery = (await Pet.findAll({
         where: {
           status: 'adopted',
-          created_at: dateFilter,
+          createdAt: dateFilter,
         },
         include: [
           {
@@ -1232,7 +1232,8 @@ export class AnalyticsService {
       }));
 
       // Calculate adoption rate safely
-      const adoptionRate = totalPets > 0 ? Math.round((adoptedPets / totalPets) * 100) : 0;
+      const adoptionRate =
+        Number(totalPets) > 0 ? Math.round((Number(adoptedPets) / Number(totalPets)) * 100) : 0;
 
       loggerHelpers.logPerformance('Pet Analytics', {
         duration: Date.now() - startTime,
@@ -1299,23 +1300,22 @@ export class AnalyticsService {
         order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
       })) as unknown as ApplicationTrendQueryResult[];
 
-      // Calculate average processing time using snake_case field names
+      // Calculate average processing time
       const completedApplications = await Application.findAll({
         where: {
           ...whereConditions,
           status: { [Op.in]: ['approved', 'rejected'] },
-          updated_at: { [Op.not]: null } as unknown as Date,
+          updatedAt: { [Op.not]: null } as unknown as Date,
         },
-        attributes: ['created_at', 'updated_at'],
+        attributes: ['createdAt', 'updatedAt'],
       });
 
       const averageProcessingTime =
         completedApplications.length > 0
           ? Math.round(
               completedApplications.reduce((sum, app) => {
-                // Use snake_case field names that actually exist in the model
                 const processingTime =
-                  new Date(app.updated_at!).getTime() - new Date(app.created_at).getTime();
+                  new Date(app.updatedAt!).getTime() - new Date(app.createdAt).getTime();
                 return sum + processingTime / (1000 * 60 * 60); // Convert to hours
               }, 0) / completedApplications.length
             )

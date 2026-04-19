@@ -801,11 +801,11 @@ export class ApplicationService {
       }
 
       const newDocument = {
-        document_id: uuidv4(),
-        document_type: documentData.documentType,
-        file_name: documentData.fileName,
-        file_url: documentData.fileUrl,
-        uploaded_at: new Date(),
+        documentId: uuidv4(),
+        documentType: documentData.documentType,
+        fileName: documentData.fileName,
+        fileUrl: documentData.fileUrl,
+        uploadedAt: new Date(),
         verified: false,
       };
 
@@ -822,7 +822,7 @@ export class ApplicationService {
         created_by: userId,
         created_by_system: false,
         metadata: {
-          document_id: newDocument.document_id,
+          document_id: newDocument.documentId,
           document_type: documentData.documentType,
           file_name: documentData.fileName,
           upload_date: new Date(),
@@ -1279,7 +1279,25 @@ export class ApplicationService {
           if (!acc[question.category]) {
             acc[question.category] = [];
           }
-          acc[question.category].push(question.toJSON());
+          const raw = question.toJSON();
+          const mapped: QuestionConfigData = {
+            questionId: raw.question_id,
+            rescueId: raw.rescue_id,
+            questionKey: raw.question_key,
+            scope: raw.scope as 'core' | 'rescue_specific',
+            category: raw.category,
+            questionType: raw.question_type,
+            questionText: raw.question_text,
+            helpText: raw.help_text,
+            placeholder: raw.placeholder,
+            options: raw.options,
+            validationRules: raw.validation_rules,
+            displayOrder: raw.display_order,
+            isEnabled: raw.is_enabled,
+            isRequired: raw.is_required,
+            conditionalLogic: raw.conditional_logic,
+          };
+          acc[question.category].push(mapped);
           return acc;
         },
         {} as Record<QuestionCategory, QuestionConfigData[]>

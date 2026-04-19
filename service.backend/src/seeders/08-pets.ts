@@ -11,9 +11,9 @@ import Pet, {
 
 const petProfiles = [
   {
-    pet_id: 'pet_0000buddy01',
+    petId: 'pet_0000buddy01',
     name: 'Buddy',
-    rescue_id: '550e8400-e29b-41d4-a716-446655440001',
+    rescueId: '550e8400-e29b-41d4-a716-446655440001',
     shortDescription: 'Friendly golden retriever looking for an active family',
     longDescription:
       'Buddy is a wonderful 3-year-old golden retriever who loves playing fetch, going on hikes, and meeting new people. He is great with children and other dogs. Buddy is house trained and knows basic commands. He would make a perfect addition to an active family who can give him the exercise and attention he deserves.',
@@ -81,9 +81,9 @@ const petProfiles = [
     tags: ['dog-friendly', 'active', 'family-dog', 'outdoor-lover'],
   },
   {
-    pet_id: 'pet_0000whisk01',
+    petId: 'pet_0000whisk01',
     name: 'Whiskers',
-    rescue_id: '550e8400-e29b-41d4-a716-446655440003',
+    rescueId: '550e8400-e29b-41d4-a716-446655440003',
     shortDescription: 'Sweet senior cat looking for a quiet retirement home',
     longDescription:
       'Whiskers is a gentle 12-year-old tabby cat who enjoys sunny windowsills, gentle pets, and quiet companionship. She is perfect for someone looking for a calm, loving companion. Whiskers is litter trained and gets along well with other calm cats. She would do best in a quiet home without young children.',
@@ -143,9 +143,9 @@ const petProfiles = [
     tags: ['senior', 'quiet', 'lap-cat', 'special-needs'],
   },
   {
-    pet_id: 'pet_0000rocky01',
+    petId: 'pet_0000rocky01',
     name: 'Rocky',
-    rescue_id: '550e8400-e29b-41d4-a716-446655440002',
+    rescueId: '550e8400-e29b-41d4-a716-446655440002',
     shortDescription: 'Senior pit bull mix with a heart of gold',
     longDescription:
       'Rocky is a 9-year-old pit bull mix who is the definition of a gentle giant. Despite his tough appearance, he is incredibly sweet and loving. Rocky enjoys leisurely walks, car rides, and spending time with his human friends. He is looking for a patient family who understands that senior dogs make the most grateful companions.',
@@ -205,9 +205,9 @@ const petProfiles = [
     tags: ['senior', 'gentle-giant', 'loyal', 'only-dog'],
   },
   {
-    pet_id: 'pet_0000luna001',
+    petId: 'pet_0000luna001',
     name: 'Luna',
-    rescue_id: '550e8400-e29b-41d4-a716-446655440001',
+    rescueId: '550e8400-e29b-41d4-a716-446655440001',
     shortDescription: 'Playful young cat with striking blue eyes',
     longDescription:
       'Luna is a beautiful 2-year-old Siamese mix with stunning blue eyes and a playful personality. She loves interactive toys, climbing cat trees, and chatting with her humans. Luna is very social and would do well with another cat or in a home where she gets plenty of attention and stimulation.',
@@ -266,9 +266,9 @@ const petProfiles = [
     tags: ['young', 'playful', 'social', 'beautiful'],
   },
   {
-    pet_id: 'pet_0000max0001',
+    petId: 'pet_0000max0001',
     name: 'Max',
-    rescue_id: '550e8400-e29b-41d4-a716-446655440001',
+    rescueId: '550e8400-e29b-41d4-a716-446655440001',
     shortDescription: 'Energetic young shepherd mix needing training',
     longDescription:
       'Max is a 1-year-old German Shepherd mix who is full of energy and potential. He is still learning his manners and would benefit from an experienced dog owner who can provide consistent training and socialization. Max is very smart and eager to please, he just needs someone to help him channel his energy in positive ways.',
@@ -331,11 +331,11 @@ const petProfiles = [
 export async function seedPets() {
   for (const petData of petProfiles) {
     await Pet.findOrCreate({
-      where: { pet_id: petData.pet_id },
+      where: { petId: petData.petId },
       defaults: {
         ...petData,
-        created_at: new Date(),
-        updated_at: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
   }

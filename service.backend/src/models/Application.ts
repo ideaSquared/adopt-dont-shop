@@ -70,11 +70,11 @@ interface ApplicationAttributes {
     contacted_by?: string;
   }>;
   documents: Array<{
-    document_id: string;
-    document_type: string;
-    file_name: string;
-    file_url: string;
-    uploaded_at: Date;
+    documentId: string;
+    documentType: string;
+    fileName: string;
+    fileUrl: string;
+    uploadedAt: Date;
     verified: boolean;
   }>;
   interviewNotes?: string | null;
@@ -135,11 +135,11 @@ class Application
     contacted_by?: string;
   }>;
   public documents!: Array<{
-    document_id: string;
-    document_type: string;
-    file_name: string;
-    file_url: string;
-    uploaded_at: Date;
+    documentId: string;
+    documentType: string;
+    fileName: string;
+    fileUrl: string;
+    uploadedAt: Date;
     verified: boolean;
   }>;
   public interviewNotes!: string | null;
@@ -554,7 +554,7 @@ Application.init(
       },
       expiringSoon: {
         where: {
-          expires_at: {
+          expiresAt: {
             [Op.between]: [new Date(), new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)],
           },
           status: {

@@ -7,7 +7,7 @@ import Application, {
 
 const applicationData = [
   {
-    application_id: 'application_0000bjon001',
+    applicationId: 'application_0000bjon001',
     user_id: 'user_0000adopt01', // John Smith
     pet_id: 'pet_0000buddy01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -87,7 +87,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'application_0000wemi001',
+    applicationId: 'application_0000wemi001',
     user_id: 'user_0000adopt02', // Emily Davis
     pet_id: 'pet_0000whisk01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440003',
@@ -163,7 +163,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'application_0000rmic001',
+    applicationId: 'application_0000rmic001',
     user_id: 'user_0000adopt03', // Michael Brown
     pet_id: 'pet_0000rocky01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440002',
@@ -246,7 +246,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'application_0000ljes001',
+    applicationId: 'application_0000ljes001',
     user_id: 'user_0000adopt04', // Jessica Wilson
     pet_id: 'pet_0000luna001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -305,7 +305,7 @@ const applicationData = [
   },
   // Additional applications for testing various stages - all for rescue 550e8400-e29b-41d4-a716-446655440001
   {
-    application_id: 'application_0000bdav002',
+    applicationId: 'application_0000bdav002',
     user_id: 'user_0000adopt02', // Emily Davis (reusing existing user)
     pet_id: 'pet_0000buddy01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -375,7 +375,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'application_0000msar001',
+    applicationId: 'application_0000msar001',
     user_id: 'user_0000adopt03', // Michael Brown (reusing existing user)
     pet_id: 'pet_0000max0001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -454,7 +454,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'application_0000lalex01',
+    applicationId: 'application_0000lalex01',
     user_id: 'user_0000adopt01', // John Smith (reusing existing user)
     pet_id: 'pet_0000luna001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -526,7 +526,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'application_0000bmar003',
+    applicationId: 'application_0000bmar003',
     user_id: 'user_0000adopt04', // Jessica Wilson (reusing existing user)
     pet_id: 'pet_0000buddy01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -621,7 +621,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'application_0000mtom002',
+    applicationId: 'application_0000mtom002',
     user_id: 'user_0000adopt02', // Emily Davis (reusing)
     pet_id: 'pet_0000max0001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -695,7 +695,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'application_0000lwith01',
+    applicationId: 'application_0000lwith01',
     user_id: 'user_0000adopt03', // Michael Brown (reusing)
     pet_id: 'pet_0000luna001',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -749,7 +749,7 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    application_id: 'application_0000bexpr01',
+    applicationId: 'application_0000bexpr01',
     user_id: 'user_0000adopt01', // John Smith (reusing)
     pet_id: 'pet_0000buddy01',
     rescue_id: '550e8400-e29b-41d4-a716-446655440001',
@@ -813,12 +813,12 @@ export async function seedApplications() {
     // to support various rescue organization requirements
     const defaults = {
       ...appData,
-      created_at: new Date(),
-      updated_at: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     await Application.findOrCreate({
-      where: { application_id: appData.application_id },
+      where: { applicationId: appData.applicationId },
       // Type assertion justified: Application form data structure is intentionally flexible
       // to support various rescue organization requirements and nested JSON structures
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
