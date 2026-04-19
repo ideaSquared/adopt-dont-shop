@@ -22,7 +22,7 @@ vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
 vi.mock('jsonwebtoken');
 vi.mock('bcryptjs');
-vi.mock('crypto', async (importOriginal) => {
+vi.mock('crypto', async importOriginal => {
   const actual = await importOriginal<typeof import('crypto')>();
   return {
     ...actual,
@@ -86,12 +86,14 @@ describe('Refresh token rotation', () => {
   });
 
   describe('Token rotation on refresh', () => {
-    const buildStoredToken = (overrides: Partial<{
-      is_revoked: boolean;
-      family_id: string;
-      user_id: string;
-      expires_at: Date;
-    }> = {}) => ({
+    const buildStoredToken = (
+      overrides: Partial<{
+        is_revoked: boolean;
+        family_id: string;
+        user_id: string;
+        expires_at: Date;
+      }> = {}
+    ) => ({
       token_id: 'old-token-id',
       user_id: 'user-123',
       family_id: 'family-abc',

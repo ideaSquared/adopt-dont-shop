@@ -664,11 +664,9 @@ Need help? Contact us at support@adoptdontshop.com
       expiresIn: this.JWT_EXPIRES_IN,
     } as SignOptions);
 
-    const refreshToken = jwt.sign(
-      { ...payload, jti: tokenId },
-      jwtRefreshSecret,
-      { expiresIn: this.JWT_REFRESH_EXPIRES_IN } as SignOptions
-    );
+    const refreshToken = jwt.sign({ ...payload, jti: tokenId }, jwtRefreshSecret, {
+      expiresIn: this.JWT_REFRESH_EXPIRES_IN,
+    } as SignOptions);
 
     return {
       token,
@@ -682,9 +680,7 @@ Need help? Contact us at support@adoptdontshop.com
     tokenId: string,
     familyId: string
   ): Promise<void> {
-    const expiresAt = new Date(
-      Date.now() + this.parseExpirationTime(this.JWT_REFRESH_EXPIRES_IN)
-    );
+    const expiresAt = new Date(Date.now() + this.parseExpirationTime(this.JWT_REFRESH_EXPIRES_IN));
     await RefreshToken.create({
       token_id: tokenId,
       user_id: userId,

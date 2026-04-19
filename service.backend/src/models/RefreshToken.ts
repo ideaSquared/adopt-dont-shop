@@ -13,7 +13,10 @@ interface RefreshTokenAttributes {
 }
 
 interface RefreshTokenCreationAttributes
-  extends Optional<RefreshTokenAttributes, 'is_revoked' | 'replaced_by_token_id' | 'created_at' | 'updated_at'> {}
+  extends Optional<
+    RefreshTokenAttributes,
+    'is_revoked' | 'replaced_by_token_id' | 'created_at' | 'updated_at'
+  > {}
 
 class RefreshToken
   extends Model<RefreshTokenAttributes, RefreshTokenCreationAttributes>
