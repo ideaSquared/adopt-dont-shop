@@ -480,6 +480,35 @@ describe('Field Permissions Middleware - fieldMask (Express integration)', () =>
     expect(capturedJson).toEqual(errorBody);
   });
 
+  it('should fall back to defaults and not 500 when the DB query throws', async () => {
+    // This covers the paranoid-column bug: if the field_permissions table is
+    // missing a deleted_at column (or any other DB error), the middleware must
+    // still serve the request using hardcoded defaults rather than returning 500.
+    mockRequest.user = {
+      userId: 'adopter-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+
+    (FieldPermission.findAll as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('column "deleted_at" does not exist')
+    );
+
+    const middleware = fieldMask('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    // Must continue to the controller — no 500
+    expect(mockNext).toHaveBeenCalled();
+
+    // Default adopter mask strips sensitive fields
+    (mockResponse.json as (body: unknown) => Response)({
+      data: { userId: 'u1', firstName: 'Jane', password: 'hashed', status: 'active' },
+    });
+
+    const body = capturedJson as { data: Record<string, unknown> };
+    expect(body.data).toHaveProperty('firstName');
+    expect(body.data).not.toHaveProperty('password');
+  });
+
   it('should cache override lookups across subsequent requests', async () => {
     mockRequest.user = {
       userId: 'u',
@@ -676,6 +705,25 @@ describe('Field Permissions Middleware - fieldWriteGuard (Express integration)',
     const middleware = fieldWriteGuard('users');
     await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
+    expect(mockNext).toHaveBeenCalled();
+    expect(statusCode).toBeUndefined();
+  });
+
+  it('should fall back to defaults and not 500 when the DB query throws', async () => {
+    mockRequest.user = {
+      userId: 'admin-1',
+      userType: UserType.ADMIN,
+    } as AuthenticatedRequest['user'];
+    mockRequest.body = { firstName: 'Updated' };
+
+    (FieldPermission.findAll as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('column "deleted_at" does not exist')
+    );
+
+    const middleware = fieldWriteGuard('users');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    // Admin has write access to firstName by default — must not 403 or 500
     expect(mockNext).toHaveBeenCalled();
     expect(statusCode).toBeUndefined();
   });
