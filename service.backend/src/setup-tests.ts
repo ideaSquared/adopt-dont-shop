@@ -68,11 +68,13 @@ vi.mock('./utils/logger', () => ({
 }));
 
 // Mock bcryptjs for password hashing (slow operation, doesn't need real testing)
-vi.mock('bcryptjs', () => ({
-  hash: vi.fn(),
-  compare: vi.fn(),
-  genSalt: vi.fn(),
-}));
+vi.mock('bcryptjs', () => {
+  const mockHash = vi.fn().mockResolvedValue('hashed-password');
+  const mockCompare = vi.fn().mockResolvedValue(true);
+  const mockGenSalt = vi.fn().mockResolvedValue('salt');
+  const mock = { hash: mockHash, compare: mockCompare, genSalt: mockGenSalt };
+  return { default: mock, ...mock };
+});
 
 // Mock jsonwebtoken (JWT operations don't need real testing)
 vi.mock('jsonwebtoken', () => ({
