@@ -800,7 +800,9 @@ describe('Authentication Flow Integration Tests', () => {
         });
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        mockedJwt.verify = vi
+          .fn()
+          .mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
         MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
@@ -812,10 +814,16 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should verify refresh token with correct secret', async () => {
-        const mockUser = createMockUser({ userId: 'user-123', emailVerified: true, status: UserStatus.ACTIVE });
+        const mockUser = createMockUser({
+          userId: 'user-123',
+          emailVerified: true,
+          status: UserStatus.ACTIVE,
+        });
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        mockedJwt.verify = vi
+          .fn()
+          .mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
         MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
@@ -833,11 +841,15 @@ describe('Authentication Flow Integration Tests', () => {
           email: 'test@example.com',
           emailVerified: true,
           status: UserStatus.ACTIVE,
-          Roles: [{ roleId: 'role-1', name: 'adopter', description: 'Adopter role', Permissions: [] }],
+          Roles: [
+            { roleId: 'role-1', name: 'adopter', description: 'Adopter role', Permissions: [] },
+          ],
         });
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        mockedJwt.verify = vi
+          .fn()
+          .mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
         MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
@@ -870,8 +882,12 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject refresh for non-existent user', async () => {
-        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'non-existent-user', jti: 'token-123' } as never);
-        MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken({ user_id: 'non-existent-user' }) as never);
+        mockedJwt.verify = vi
+          .fn()
+          .mockReturnValue({ userId: 'non-existent-user', jti: 'token-123' } as never);
+        MockedRefreshToken.findByPk = vi
+          .fn()
+          .mockResolvedValue(buildStoredToken({ user_id: 'non-existent-user' }) as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
         await expect(AuthService.refreshToken(validRefreshToken)).rejects.toThrow(
@@ -883,7 +899,9 @@ describe('Authentication Flow Integration Tests', () => {
         const mockUser = createMockUser({ userId: 'user-123', status: UserStatus.SUSPENDED });
         mockUser.canLogin = vi.fn().mockReturnValue(false);
 
-        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        mockedJwt.verify = vi
+          .fn()
+          .mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
         MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
@@ -901,7 +919,9 @@ describe('Authentication Flow Integration Tests', () => {
         });
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        mockedJwt.verify = vi
+          .fn()
+          .mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
         MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
@@ -1317,7 +1337,9 @@ describe('Authentication Flow Integration Tests', () => {
 
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue({ userId: mockUser.userId, jti: 'token-123' } as never);
+        mockedJwt.verify = vi
+          .fn()
+          .mockReturnValue({ userId: mockUser.userId, jti: 'token-123' } as never);
         MockedRefreshToken.findByPk = vi.fn().mockResolvedValue({
           token_id: 'token-123',
           user_id: mockUser.userId,
