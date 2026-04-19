@@ -1,35 +1,36 @@
 import { render, RenderOptions } from '@testing-library/react';
 import { ReactElement } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import { lightTheme } from '@adopt-dont-shop/lib.components';
 
-/**
- * All providers wrapper for tests
- * Wraps components with Router, Theme, and other necessary providers
- */
-type AllProvidersProps = {
-  children: React.ReactNode;
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+export type RenderWithProvidersOptions = Omit<RenderOptions, 'wrapper'> & {
+  initialRoute?: string;
 };
 
-const AllProviders = ({ children }: AllProvidersProps) => (
-  <BrowserRouter>
-    <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>
-  </BrowserRouter>
-);
+export const renderWithProviders = (ui: ReactElement, options?: RenderWithProvidersOptions) => {
+  const { initialRoute = '/', ...renderOptions } = options ?? {};
+  const queryClient = createTestQueryClient();
 
-/**
- * Custom render function that wraps components with all necessary providers
- * Use this instead of plain render() from @testing-library/react
- *
- * @example
- * renderWithProviders(<MyComponent />);
- * renderWithProviders(<MyComponent />, { route: '/admin/users' });
- */
-export const renderWithProviders = (ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) => {
-  return render(ui, { wrapper: AllProviders, ...options });
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[initialRoute]}>
+        <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+
+  return render(ui, { wrapper: Wrapper, ...renderOptions });
 };
 
-// Re-export everything from @testing-library/react
 export * from '@testing-library/react';
 export { renderWithProviders as render };
