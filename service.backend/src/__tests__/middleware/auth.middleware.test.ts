@@ -56,6 +56,7 @@ vi.mock('../../config/env', () => ({
     POSTGRES_PASSWORD: 'test',
     POSTGRES_DB: 'test',
   },
+  getDatabaseName: () => 'test_db',
 }));
 
 // Mock User model before it is imported

@@ -7,6 +7,7 @@ vi.mock('../../config/env', () => ({
     SESSION_SECRET: 'test-session-secret-min-32-characters-long',
     CSRF_SECRET: 'test-csrf-secret-min-32-characters-long-123',
   },
+  getDatabaseName: () => 'test_db',
 }));
 
 import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
