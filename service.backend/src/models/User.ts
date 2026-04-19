@@ -1,6 +1,6 @@
 import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
-import bcrypt from 'bcrypt';
+import { hashPassword, verifyPassword } from '../utils/password';
 import { JsonObject } from '../types/common';
 import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
@@ -178,7 +178,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
 
   // Password comparison method
   public async comparePassword(candidatePassword: string): Promise<boolean> {
-    return bcrypt.compare(candidatePassword, this.password);
+    return verifyPassword(candidatePassword, this.password);
   }
 
   public canLogin(): boolean {
@@ -511,14 +511,12 @@ User.init(
     hooks: {
       beforeCreate: async (user: User) => {
         if (user.password) {
-          const salt = await bcrypt.genSalt(10);
-          user.password = await bcrypt.hash(user.password, salt);
+          user.password = await hashPassword(user.password);
         }
       },
       beforeUpdate: async (user: User) => {
         if (user.changed('password') && user.password) {
-          const salt = await bcrypt.genSalt(10);
-          user.password = await bcrypt.hash(user.password, salt);
+          user.password = await hashPassword(user.password);
         }
       },
     },
