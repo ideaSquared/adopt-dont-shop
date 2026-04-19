@@ -48,4 +48,7 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
 
 export async function down(queryInterface: QueryInterface): Promise<void> {
   await queryInterface.dropTable('field_permissions');
+  await queryInterface.sequelize.query(
+    'DROP TYPE IF EXISTS "enum_field_permissions_resource"; DROP TYPE IF EXISTS "enum_field_permissions_access_level";'
+  );
 }
