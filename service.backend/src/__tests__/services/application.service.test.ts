@@ -48,10 +48,10 @@ describe('ApplicationService - Business Logic', () => {
   });
 
   const createMockApplication = (status = ApplicationStatus.SUBMITTED, overrides = {}) => ({
-    application_id: mockApplicationId,
-    user_id: mockUserId,
-    pet_id: mockPetId,
-    rescue_id: mockRescueId,
+    applicationId: mockApplicationId,
+    userId: mockUserId,
+    petId: mockPetId,
+    rescueId: mockRescueId,
     status,
     answers: { experience: 'yes', has_yard: 'yes' },
     references: [
@@ -64,7 +64,7 @@ describe('ApplicationService - Business Logic', () => {
       },
     ],
     priority: ApplicationPriority.NORMAL,
-    submitted_at: new Date(),
+    submittedAt: new Date(),
     update: vi.fn().mockResolvedValue(true),
     reload: vi.fn().mockResolvedValue(true),
     save: vi.fn().mockResolvedValue(true),
@@ -75,7 +75,7 @@ describe('ApplicationService - Business Logic', () => {
   });
 
   const createValidApplicationRequest = (): CreateApplicationRequest => ({
-    pet_id: mockPetId,
+    petId: mockPetId,
     answers: {
       experience: 'I have owned dogs for 10 years',
       has_yard: 'yes',
@@ -121,16 +121,16 @@ describe('ApplicationService - Business Logic', () => {
       expect(MockedApplication.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            user_id: mockUserId,
-            pet_id: mockPetId,
+            userId: mockUserId,
+            petId: mockPetId,
           }),
         })
       );
       expect(MockedApplication.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          user_id: mockUserId,
-          pet_id: mockPetId,
-          rescue_id: mockRescueId,
+          userId: mockUserId,
+          petId: mockPetId,
+          rescueId: mockRescueId,
           status: ApplicationStatus.SUBMITTED,
           answers: request.answers,
         })
@@ -212,7 +212,7 @@ describe('ApplicationService - Business Logic', () => {
       // When: Rescue approves application
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.APPROVED,
-        actioned_by: 'rescue-staff-123',
+        actionedBy: 'rescue-staff-123',
       };
 
       await ApplicationService.updateApplicationStatus(
@@ -239,8 +239,8 @@ describe('ApplicationService - Business Logic', () => {
       // When: Rescue rejects application
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.REJECTED,
-        rejection_reason: 'Not a good fit for this pet',
-        actioned_by: 'rescue-staff-123',
+        rejectionReason: 'Not a good fit for this pet',
+        actionedBy: 'rescue-staff-123',
       };
 
       await ApplicationService.updateApplicationStatus(
@@ -253,7 +253,7 @@ describe('ApplicationService - Business Logic', () => {
       expect(mockApplication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: ApplicationStatus.REJECTED,
-          rejection_reason: 'Not a good fit for this pet',
+          rejectionReason: 'Not a good fit for this pet',
         })
       );
     });
@@ -268,7 +268,7 @@ describe('ApplicationService - Business Logic', () => {
       // When & Then: Cannot reverse approval
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.REJECTED,
-        actioned_by: 'rescue-staff-123',
+        actionedBy: 'rescue-staff-123',
       };
 
       await expect(
@@ -292,7 +292,7 @@ describe('ApplicationService - Business Logic', () => {
       // When & Then: Cannot reverse rejection
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.APPROVED,
-        actioned_by: 'rescue-staff-123',
+        actionedBy: 'rescue-staff-123',
       };
 
       await expect(
@@ -316,7 +316,7 @@ describe('ApplicationService - Business Logic', () => {
       // When: Adopter withdraws application
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.WITHDRAWN,
-        actioned_by: mockUserId,
+        actionedBy: mockUserId,
       };
 
       await ApplicationService.updateApplicationStatus(
@@ -343,7 +343,7 @@ describe('ApplicationService - Business Logic', () => {
       // When & Then: Cannot withdraw approved application
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.WITHDRAWN,
-        actioned_by: mockUserId,
+        actionedBy: mockUserId,
       };
 
       await expect(
@@ -356,7 +356,7 @@ describe('ApplicationService - Business Logic', () => {
     it('allows user to update their own SUBMITTED application', async () => {
       // Given: User owns application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
-      mockApplication.user_id = mockUserId;
+      mockApplication.userId = mockUserId;
 
       MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
@@ -381,7 +381,7 @@ describe('ApplicationService - Business Logic', () => {
     it('prevents modifications to APPROVED applications', async () => {
       // Given: Application is APPROVED
       const mockApplication = createMockApplication(ApplicationStatus.APPROVED);
-      mockApplication.user_id = mockUserId;
+      mockApplication.userId = mockUserId;
 
       MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
@@ -398,7 +398,7 @@ describe('ApplicationService - Business Logic', () => {
     it('prevents modifications to REJECTED applications', async () => {
       // Given: Application is REJECTED
       const mockApplication = createMockApplication(ApplicationStatus.REJECTED);
-      mockApplication.user_id = mockUserId;
+      mockApplication.userId = mockUserId;
 
       MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
@@ -415,7 +415,7 @@ describe('ApplicationService - Business Logic', () => {
     it("prevents user from modifying another user's application", async () => {
       // Given: Application belongs to different user
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
-      mockApplication.user_id = 'other-user-456';
+      mockApplication.userId = 'other-user-456';
 
       MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
 
@@ -434,7 +434,7 @@ describe('ApplicationService - Business Logic', () => {
     it('allows user to view their own application', async () => {
       // Given: User owns application
       const mockApplication = createMockApplication();
-      mockApplication.user_id = mockUserId;
+      mockApplication.userId = mockUserId;
 
       MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
 
@@ -450,7 +450,7 @@ describe('ApplicationService - Business Logic', () => {
       expect(MockedApplication.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            application_id: mockApplicationId,
+            applicationId: mockApplicationId,
           }),
         })
       );
@@ -459,7 +459,7 @@ describe('ApplicationService - Business Logic', () => {
     it("prevents user from viewing another user's application", async () => {
       // Given: Application belongs to different user
       const mockApplication = createMockApplication();
-      mockApplication.user_id = 'other-user-456';
+      mockApplication.userId = 'other-user-456';
 
       MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
 
@@ -472,7 +472,7 @@ describe('ApplicationService - Business Logic', () => {
     it('allows rescue staff to view applications for their pets', async () => {
       // Given: Application for pet belonging to rescue
       const mockApplication = createMockApplication();
-      mockApplication.rescue_id = mockRescueId;
+      mockApplication.rescueId = mockRescueId;
 
       MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
 
@@ -529,15 +529,15 @@ describe('ApplicationService - Business Logic', () => {
       );
     });
 
-    it('sets submitted_at timestamp on creation', async () => {
-      // Given: Valid application request with submitted_at in mock
+    it('sets submittedAt timestamp on creation', async () => {
+      // Given: Valid application request with submittedAt in mock
       const mockUser = createMockUser();
       const mockPet = createMockPet();
       const mockApplication = createMockApplication();
-      mockApplication.submitted_at = new Date();
+      mockApplication.submittedAt = new Date();
       mockApplication.toJSON = vi.fn().mockReturnValue({
         ...mockApplication,
-        submitted_at: mockApplication.submitted_at,
+        submittedAt: mockApplication.submittedAt,
       });
       const request = createValidApplicationRequest();
 
@@ -549,12 +549,12 @@ describe('ApplicationService - Business Logic', () => {
       // When: Application is created
       const result = await ApplicationService.createApplication(request, mockUserId);
 
-      // Then: Application was created and has submitted_at (set by model default)
+      // Then: Application was created and has submittedAt (set by model default)
       expect(MockedApplication.create).toHaveBeenCalled();
       expect(mockApplication.toJSON).toHaveBeenCalled();
     });
 
-    it('sets decision_at timestamp when application is approved', async () => {
+    it('sets decisionAt timestamp when application is approved', async () => {
       // Given: Application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
       (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
@@ -564,7 +564,7 @@ describe('ApplicationService - Business Logic', () => {
       // When: Application is approved
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.APPROVED,
-        actioned_by: 'rescue-staff-123',
+        actionedBy: 'rescue-staff-123',
       };
 
       await ApplicationService.updateApplicationStatus(
@@ -573,15 +573,15 @@ describe('ApplicationService - Business Logic', () => {
         'rescue-staff-123'
       );
 
-      // Then: decision_at timestamp is set
+      // Then: decisionAt timestamp is set
       expect(mockApplication.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          decision_at: expect.any(Date),
+          decisionAt: expect.any(Date),
         })
       );
     });
 
-    it('sets decision_at timestamp when application is rejected', async () => {
+    it('sets decisionAt timestamp when application is rejected', async () => {
       // Given: Application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
       (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
@@ -591,8 +591,8 @@ describe('ApplicationService - Business Logic', () => {
       // When: Application is rejected
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.REJECTED,
-        rejection_reason: 'Not suitable',
-        actioned_by: 'rescue-staff-123',
+        rejectionReason: 'Not suitable',
+        actionedBy: 'rescue-staff-123',
       };
 
       await ApplicationService.updateApplicationStatus(
@@ -601,15 +601,15 @@ describe('ApplicationService - Business Logic', () => {
         'rescue-staff-123'
       );
 
-      // Then: decision_at timestamp is set
+      // Then: decisionAt timestamp is set
       expect(mockApplication.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          decision_at: expect.any(Date),
+          decisionAt: expect.any(Date),
         })
       );
     });
 
-    it('preserves rescue_id from pet when creating application', async () => {
+    it('preserves rescueId from pet when creating application', async () => {
       // Given: Pet belongs to specific rescue
       const mockUser = createMockUser();
       const mockPet = createMockPet({ rescueId: 'rescue-xyz-789', rescue_id: 'rescue-xyz-789' });
@@ -624,10 +624,10 @@ describe('ApplicationService - Business Logic', () => {
       // When: Application is created
       await ApplicationService.createApplication(request, mockUserId);
 
-      // Then: Application has correct rescue_id
+      // Then: Application has correct rescueId
       expect(MockedApplication.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          rescue_id: 'rescue-xyz-789',
+          rescueId: 'rescue-xyz-789',
         })
       );
     });
@@ -637,7 +637,7 @@ describe('ApplicationService - Business Logic', () => {
     it('allows user to withdraw their own SUBMITTED application', async () => {
       // Given: User owns application in SUBMITTED status
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
-      mockApplication.user_id = mockUserId;
+      mockApplication.userId = mockUserId;
       (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
 
       MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
@@ -645,7 +645,7 @@ describe('ApplicationService - Business Logic', () => {
       // When: User withdraws application
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.WITHDRAWN,
-        actioned_by: mockUserId,
+        actionedBy: mockUserId,
       };
 
       await ApplicationService.updateApplicationStatus(
@@ -665,7 +665,7 @@ describe('ApplicationService - Business Logic', () => {
     it('prevents withdrawal of approved applications', async () => {
       // Given: Application is APPROVED
       const mockApplication = createMockApplication(ApplicationStatus.APPROVED);
-      mockApplication.user_id = mockUserId;
+      mockApplication.userId = mockUserId;
       (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(false);
 
       MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
@@ -673,7 +673,7 @@ describe('ApplicationService - Business Logic', () => {
       // When & Then: Withdrawal is rejected
       const updateRequest: ApplicationStatusUpdateRequest = {
         status: ApplicationStatus.WITHDRAWN,
-        actioned_by: mockUserId,
+        actionedBy: mockUserId,
       };
 
       await expect(
@@ -693,7 +693,7 @@ describe('ApplicationService - Business Logic', () => {
       await expect(
         ApplicationService.updateApplicationStatus(
           'non-existent-id',
-          { status: ApplicationStatus.APPROVED, actioned_by: 'staff-123' },
+          { status: ApplicationStatus.APPROVED, actionedBy: 'staff-123' },
           'staff-123'
         )
       ).rejects.toThrow('Application not found');

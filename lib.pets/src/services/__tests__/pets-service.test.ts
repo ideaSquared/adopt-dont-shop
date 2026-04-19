@@ -41,32 +41,30 @@ describe('PetsService', () => {
     it('should search pets successfully', async () => {
       const mockResponse = {
         success: true,
-        data: {
-          data: [
-            {
-              pet_id: '1',
-              name: 'Buddy',
-              type: 'dog',
-              breed: 'Golden Retriever',
-              age_years: 3,
-              age_months: 6,
-              status: 'available',
-              images: [],
-              videos: [],
-              location: { type: 'Point', coordinates: [0, 0] },
-              tags: [],
-              temperament: [],
-              created_at: '2023-01-01',
-              updated_at: '2023-01-01',
-            },
-          ],
-          meta: {
-            page: 1,
-            total: 1,
-            totalPages: 1,
-            hasNext: false,
-            hasPrev: false,
+        data: [
+          {
+            petId: '1',
+            name: 'Buddy',
+            type: 'dog',
+            breed: 'Golden Retriever',
+            ageYears: 3,
+            ageMonths: 6,
+            status: 'available',
+            images: [],
+            videos: [],
+            location: { type: 'Point', coordinates: [0, 0] },
+            tags: [],
+            temperament: [],
+            createdAt: '2023-01-01',
+            updatedAt: '2023-01-01',
           },
+        ],
+        meta: {
+          page: 1,
+          total: 1,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
         },
       };
 

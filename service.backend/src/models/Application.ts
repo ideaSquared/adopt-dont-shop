@@ -37,26 +37,26 @@ export enum ApplicationOutcome {
 }
 
 interface ApplicationAttributes {
-  application_id: string;
-  user_id: string;
-  pet_id: string;
-  rescue_id: string;
+  applicationId: string;
+  userId: string;
+  petId: string;
+  rescueId: string;
   status: ApplicationStatus;
   priority: ApplicationPriority;
 
   // Stage-based workflow fields
   stage: ApplicationStage;
-  final_outcome?: ApplicationOutcome | null;
-  review_started_at?: Date | null;
-  visit_scheduled_at?: Date | null;
-  visit_completed_at?: Date | null;
-  resolved_at?: Date | null;
-  withdrawal_reason?: string | null;
-  rejection_reason?: string | null;
+  finalOutcome?: ApplicationOutcome | null;
+  reviewStartedAt?: Date | null;
+  visitScheduledAt?: Date | null;
+  visitCompletedAt?: Date | null;
+  resolvedAt?: Date | null;
+  withdrawalReason?: string | null;
+  rejectionReason?: string | null;
 
   // Action tracking
-  actioned_by?: string | null;
-  actioned_at?: Date | null;
+  actionedBy?: string | null;
+  actionedAt?: Date | null;
   answers: JsonObject;
   references: Array<{
     id: string;
@@ -77,51 +77,51 @@ interface ApplicationAttributes {
     uploaded_at: Date;
     verified: boolean;
   }>;
-  interview_notes?: string | null;
-  home_visit_notes?: string | null;
+  interviewNotes?: string | null;
+  homeVisitNotes?: string | null;
   score?: number | null;
   tags?: string[] | null;
   notes?: string | null;
-  submitted_at?: Date | null;
-  reviewed_at?: Date | null;
-  decision_at?: Date | null;
-  expires_at?: Date | null;
-  follow_up_date?: Date | null;
-  created_at?: Date;
-  updated_at?: Date;
-  deleted_at?: Date | null;
+  submittedAt?: Date | null;
+  reviewedAt?: Date | null;
+  decisionAt?: Date | null;
+  expiresAt?: Date | null;
+  followUpDate?: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 interface ApplicationCreationAttributes
   extends Optional<
     ApplicationAttributes,
-    'application_id' | 'status' | 'priority' | 'stage' | 'created_at' | 'updated_at' | 'deleted_at'
+    'applicationId' | 'status' | 'priority' | 'stage' | 'createdAt' | 'updatedAt' | 'deletedAt'
   > {}
 
 class Application
   extends Model<ApplicationAttributes, ApplicationCreationAttributes>
   implements ApplicationAttributes
 {
-  public application_id!: string;
-  public user_id!: string;
-  public pet_id!: string;
-  public rescue_id!: string;
+  public applicationId!: string;
+  public userId!: string;
+  public petId!: string;
+  public rescueId!: string;
   public status!: ApplicationStatus;
   public priority!: ApplicationPriority;
 
   // Stage-based workflow fields
   public stage!: ApplicationStage;
-  public final_outcome!: ApplicationOutcome | null;
-  public review_started_at!: Date | null;
-  public visit_scheduled_at!: Date | null;
-  public visit_completed_at!: Date | null;
-  public resolved_at!: Date | null;
-  public withdrawal_reason!: string | null;
-  public rejection_reason!: string | null;
+  public finalOutcome!: ApplicationOutcome | null;
+  public reviewStartedAt!: Date | null;
+  public visitScheduledAt!: Date | null;
+  public visitCompletedAt!: Date | null;
+  public resolvedAt!: Date | null;
+  public withdrawalReason!: string | null;
+  public rejectionReason!: string | null;
 
   // Action tracking
-  public actioned_by!: string | null;
-  public actioned_at!: Date | null;
+  public actionedBy!: string | null;
+  public actionedAt!: Date | null;
   public answers!: JsonObject;
   public references!: Array<{
     id: string;
@@ -142,19 +142,19 @@ class Application
     uploaded_at: Date;
     verified: boolean;
   }>;
-  public interview_notes!: string | null;
-  public home_visit_notes!: string | null;
+  public interviewNotes!: string | null;
+  public homeVisitNotes!: string | null;
   public score!: number | null;
   public tags!: string[] | null;
   public notes!: string | null;
-  public submitted_at!: Date | null;
-  public reviewed_at!: Date | null;
-  public decision_at!: Date | null;
-  public expires_at!: Date | null;
-  public follow_up_date!: Date | null;
-  public created_at!: Date;
-  public updated_at!: Date;
-  public deleted_at!: Date | null;
+  public submittedAt!: Date | null;
+  public reviewedAt!: Date | null;
+  public decisionAt!: Date | null;
+  public expiresAt!: Date | null;
+  public followUpDate!: Date | null;
+  public createdAt!: Date;
+  public updatedAt!: Date;
+  public deletedAt!: Date | null;
 
   // Workflow management methods for small charities
   public canTransitionTo(newStatus: ApplicationStatus): boolean {
@@ -210,35 +210,39 @@ class Application
 
 Application.init(
   {
-    application_id: {
+    applicationId: {
       type: DataTypes.STRING,
       primaryKey: true,
+      field: 'application_id',
       defaultValue:
         process.env.NODE_ENV === 'test'
           ? () => generateReadableId('application')
           : sequelize.literal(getReadableIdSqlLiteral('application')),
     },
-    user_id: {
+    userId: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'user_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
       onDelete: 'CASCADE',
     },
-    pet_id: {
+    petId: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'pet_id',
       references: {
         model: 'pets',
         key: 'pet_id',
       },
       onDelete: 'CASCADE',
     },
-    rescue_id: {
+    rescueId: {
       type: getUuidType(),
       allowNull: false,
+      field: 'rescue_id',
       references: {
         model: 'rescues',
         key: 'rescue_id',
@@ -262,50 +266,59 @@ Application.init(
       allowNull: false,
       defaultValue: ApplicationStage.PENDING,
     },
-    final_outcome: {
+    finalOutcome: {
       type: DataTypes.ENUM(...Object.values(ApplicationOutcome)),
       allowNull: true,
+      field: 'final_outcome',
     },
-    review_started_at: {
+    reviewStartedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'review_started_at',
     },
-    visit_scheduled_at: {
+    visitScheduledAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'visit_scheduled_at',
     },
-    visit_completed_at: {
+    visitCompletedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'visit_completed_at',
     },
-    resolved_at: {
+    resolvedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'resolved_at',
     },
-    withdrawal_reason: {
+    withdrawalReason: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'withdrawal_reason',
     },
-    rejection_reason: {
+    rejectionReason: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'rejection_reason',
       validate: {
         len: [10, 2000],
       },
     },
 
     // Action tracking
-    actioned_by: {
+    actionedBy: {
       type: DataTypes.STRING,
       allowNull: true,
+      field: 'actioned_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
     },
-    actioned_at: {
+    actionedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'actioned_at',
     },
     answers: {
       type: getJsonType(),
@@ -368,13 +381,15 @@ Application.init(
         },
       },
     },
-    interview_notes: {
+    interviewNotes: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'interview_notes',
     },
-    home_visit_notes: {
+    homeVisitNotes: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'home_visit_notes',
     },
     score: {
       type: DataTypes.INTEGER,
@@ -393,39 +408,47 @@ Application.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    submitted_at: {
+    submittedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'submitted_at',
     },
-    reviewed_at: {
+    reviewedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'reviewed_at',
     },
-    decision_at: {
+    decisionAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'decision_at',
     },
-    expires_at: {
+    expiresAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'expires_at',
     },
-    follow_up_date: {
+    followUpDate: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'follow_up_date',
     },
-    created_at: {
+    createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: 'created_at',
       defaultValue: DataTypes.NOW,
     },
-    updated_at: {
+    updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: 'updated_at',
       defaultValue: DataTypes.NOW,
     },
-    deleted_at: {
+    deletedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'deleted_at',
     },
   },
   {
@@ -434,9 +457,6 @@ Application.init(
     modelName: 'Application',
     timestamps: true,
     paranoid: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    deletedAt: 'deleted_at',
     indexes: [
       {
         fields: ['user_id'],
@@ -488,29 +508,29 @@ Application.init(
     ],
     hooks: {
       beforeValidate: (application: Application) => {
-        // Auto-set submitted_at when status changes to submitted
-        if (application.status === ApplicationStatus.SUBMITTED && !application.submitted_at) {
-          application.submitted_at = new Date();
+        // Auto-set submittedAt when status changes to submitted
+        if (application.status === ApplicationStatus.SUBMITTED && !application.submittedAt) {
+          application.submittedAt = new Date();
         }
 
-        // Auto-set decision_at for final statuses
+        // Auto-set decisionAt for final statuses
         if (
           [
             ApplicationStatus.APPROVED,
             ApplicationStatus.REJECTED,
             ApplicationStatus.WITHDRAWN,
           ].includes(application.status) &&
-          !application.decision_at
+          !application.decisionAt
         ) {
-          application.decision_at = new Date();
+          application.decisionAt = new Date();
         }
       },
       beforeSave: (application: Application) => {
-        // Auto-set expires_at for submitted applications (30 days)
-        if (application.status === ApplicationStatus.SUBMITTED && !application.expires_at) {
+        // Auto-set expiresAt for submitted applications (30 days)
+        if (application.status === ApplicationStatus.SUBMITTED && !application.expiresAt) {
           const expiryDate = new Date();
           expiryDate.setDate(expiryDate.getDate() + 30);
-          application.expires_at = expiryDate;
+          application.expiresAt = expiryDate;
         }
       },
     },

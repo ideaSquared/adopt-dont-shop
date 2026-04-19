@@ -19,7 +19,7 @@ import { BaseController } from './base.controller';
 export class ApplicationController extends BaseController {
   // Validation rules
   static validateCreateApplication = [
-    body('pet_id').isUUID().withMessage('Valid pet ID is required'),
+    body('petId').isUUID().withMessage('Valid pet ID is required'),
     body('answers').isObject().withMessage('Answers must be an object'),
     body('references')
       .isArray({ min: 1, max: 5 })
@@ -68,12 +68,12 @@ export class ApplicationController extends BaseController {
       .isLength({ max: 2000 })
       .withMessage('Notes must not exceed 2000 characters'),
     body('tags').optional().isArray().withMessage('Tags must be an array'),
-    body('interview_notes')
+    body('interviewNotes')
       .optional()
       .trim()
       .isLength({ max: 2000 })
       .withMessage('Interview notes must not exceed 2000 characters'),
-    body('home_visit_notes')
+    body('homeVisitNotes')
       .optional()
       .trim()
       .isLength({ max: 2000 })
@@ -90,7 +90,7 @@ export class ApplicationController extends BaseController {
       .isLength({ min: 1, max: 255 })
       .withMessage('Valid application ID is required'),
     body('status').isIn(Object.values(ApplicationStatus)).withMessage('Invalid status value'),
-    body('rejection_reason')
+    body('rejectionReason')
       .optional()
       .trim()
       .isLength({ max: 1000 })
@@ -100,7 +100,7 @@ export class ApplicationController extends BaseController {
       .trim()
       .isLength({ max: 2000 })
       .withMessage('Notes must not exceed 2000 characters'),
-    body('follow_up_date')
+    body('followUpDate')
       .optional()
       .isISO8601()
       .toDate()
@@ -120,9 +120,9 @@ export class ApplicationController extends BaseController {
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
-    query('user_id').optional().isUUID().withMessage('Valid user ID required'),
-    query('pet_id').optional().isUUID().withMessage('Valid pet ID required'),
-    query('rescue_id').optional().isUUID().withMessage('Valid rescue ID required'),
+    query('userId').optional().isUUID().withMessage('Valid user ID required'),
+    query('petId').optional().isUUID().withMessage('Valid pet ID required'),
+    query('rescueId').optional().isUUID().withMessage('Valid rescue ID required'),
     query('status')
       .optional()
       .isIn(Object.values(ApplicationStatus))
@@ -133,7 +133,7 @@ export class ApplicationController extends BaseController {
       .withMessage('Invalid priority value'),
     query('sortBy')
       .optional()
-      .isIn(['created_at', 'updated_at', 'submitted_at', 'status', 'priority', 'score'])
+      .isIn(['createdAt', 'updatedAt', 'submittedAt', 'status', 'priority', 'score'])
       .withMessage('Invalid sort field'),
     query('sortOrder')
       .optional()
@@ -159,15 +159,15 @@ export class ApplicationController extends BaseController {
       .isString()
       .isLength({ min: 1, max: 255 })
       .withMessage('Valid application ID is required'),
-    body('document_type')
+    body('documentType')
       .trim()
       .isLength({ min: 1, max: 100 })
       .withMessage('Document type is required and must be less than 100 characters'),
-    body('file_name')
+    body('fileName')
       .trim()
       .isLength({ min: 1, max: 255 })
       .withMessage('File name is required and must be less than 255 characters'),
-    body('file_url').isURL().withMessage('Valid file URL is required'),
+    body('fileUrl').isURL().withMessage('Valid file URL is required'),
   ];
 
   static validateReferenceUpdate = [
@@ -182,7 +182,7 @@ export class ApplicationController extends BaseController {
       }
       return true;
     }),
-    body('reference_index')
+    body('referenceIndex')
       .optional()
       .isInt({ min: 0, max: 4 })
       .withMessage('Reference index must be between 0 and 4'),
@@ -198,7 +198,7 @@ export class ApplicationController extends BaseController {
       .trim()
       .isLength({ max: 500 })
       .withMessage('Notes must not exceed 500 characters'),
-    body('contacted_at')
+    body('contactedAt')
       .optional()
       .isISO8601()
       .toDate()
@@ -206,10 +206,10 @@ export class ApplicationController extends BaseController {
   ];
 
   static validateBulkUpdate = [
-    body('application_ids')
+    body('applicationIds')
       .isArray({ min: 1 })
       .withMessage('Application IDs must be a non-empty array'),
-    body('application_ids.*').isUUID().withMessage('Each application ID must be a valid UUID'),
+    body('applicationIds.*').isUUID().withMessage('Each application ID must be a valid UUID'),
     body('updates').isObject().withMessage('Updates must be an object'),
     body('updates.status')
       .optional()
@@ -241,31 +241,31 @@ export class ApplicationController extends BaseController {
 
     const personalInfo = {
       firstName:
-        (User?.first_name as string) ||
+        (User?.firstName as string) ||
         (answers.firstName as string) ||
         (answers.first_name as string),
       lastName:
-        (User?.last_name as string) ||
+        (User?.lastName as string) ||
         (answers.lastName as string) ||
         (answers.last_name as string),
       email: (User?.email as string) || (answers.email as string),
       phone:
-        (User?.phone_number as string) ||
+        (User?.phoneNumber as string) ||
         (answers.phone as string) ||
         (answers.phoneNumber as string) ||
         (answers.phone_number as string),
       address:
-        (User?.address_line_1 as string) ||
+        (User?.addressLine1 as string) ||
         (answers.address as string) ||
         (answers.street_address as string),
       city: (User?.city as string) || (answers.city as string),
       state: answers.state as string, // State typically comes from form answers
       zipCode:
-        (User?.postal_code as string) ||
+        (User?.postalCode as string) ||
         (answers.zipCode as string) ||
         (answers.zip_code as string),
-      dateOfBirth: User?.date_of_birth
-        ? new Date(User.date_of_birth as string).toISOString().split('T')[0]
+      dateOfBirth: User?.dateOfBirth
+        ? new Date(User.dateOfBirth as string).toISOString().split('T')[0]
         : (answers.dateOfBirth as string),
       occupation: answers.occupation as string, // Occupation typically comes from form answers
     };
@@ -314,14 +314,14 @@ export class ApplicationController extends BaseController {
     // Type assertion justified: The data structure is intentionally flexible to accommodate
     // varying application form schemas across different rescues
     const transformed: FrontendApplication = {
-      id: applicationModel.application_id as string,
-      petId: applicationModel.pet_id as string,
-      userId: applicationModel.user_id as string,
-      rescueId: applicationModel.rescue_id as string,
+      id: applicationModel.applicationId as string,
+      petId: applicationModel.petId as string,
+      userId: applicationModel.userId as string,
+      rescueId: applicationModel.rescueId as string,
       status: applicationModel.status as ApplicationStatus,
-      submittedAt: applicationModel.submitted_at as string,
-      reviewedAt: applicationModel.reviewed_at as string,
-      reviewedBy: applicationModel.actioned_by as string,
+      submittedAt: applicationModel.submittedAt as string,
+      reviewedAt: applicationModel.reviewedAt as string,
+      reviewedBy: applicationModel.actionedBy as string,
       reviewNotes: applicationModel.notes as string,
       data: {
         personalInfo,
@@ -333,14 +333,14 @@ export class ApplicationController extends BaseController {
       },
       documents:
         (applicationModel.documents as ApplicationDocument[])?.map(doc => ({
-          id: doc.document_id,
-          type: doc.document_type,
-          filename: doc.file_name,
-          url: doc.file_url,
-          uploadedAt: doc.uploaded_at?.toString() || new Date().toISOString(),
+          id: doc.documentId,
+          type: doc.documentType,
+          filename: doc.fileName,
+          url: doc.fileUrl,
+          uploadedAt: doc.uploadedAt?.toString() || new Date().toISOString(),
         })) || [],
-      createdAt: applicationModel.created_at as string,
-      updatedAt: applicationModel.updated_at as string,
+      createdAt: applicationModel.createdAt as string,
+      updatedAt: applicationModel.updatedAt as string,
     };
 
     // Add pet information if available
@@ -352,7 +352,7 @@ export class ApplicationController extends BaseController {
 
     // Add user information if available
     if (User) {
-      transformed.userName = `${User.first_name as string} ${User.last_name as string}`.trim();
+      transformed.userName = `${User.firstName as string} ${User.lastName as string}`.trim();
       transformed.userEmail = User.email as string;
     }
 
@@ -369,29 +369,29 @@ export class ApplicationController extends BaseController {
 
       const filters: ApplicationSearchFilters = {
         search: req.query.search as string,
-        user_id: req.query.user_id as string,
-        pet_id: req.query.pet_id as string,
-        rescue_id: req.query.rescue_id as string,
+        userId: req.query.userId as string,
+        petId: req.query.petId as string,
+        rescueId: req.query.rescueId as string,
         status: req.query.status as ApplicationStatus,
         priority: req.query.priority as ApplicationPriority,
         score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
         score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
-        created_from: req.query.created_from
-          ? new Date(req.query.created_from as string)
+        createdFrom: req.query.createdFrom
+          ? new Date(req.query.createdFrom as string)
           : undefined,
-        created_to: req.query.created_to ? new Date(req.query.created_to as string) : undefined,
-        submitted_from: req.query.submitted_from
-          ? new Date(req.query.submitted_from as string)
+        createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
+        submittedFrom: req.query.submittedFrom
+          ? new Date(req.query.submittedFrom as string)
           : undefined,
-        submitted_to: req.query.submitted_to
-          ? new Date(req.query.submitted_to as string)
+        submittedTo: req.query.submittedTo
+          ? new Date(req.query.submittedTo as string)
           : undefined,
       };
 
       const options: ApplicationSearchOptions = {
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
-        sortBy: (req.query.sortBy as string) || 'created_at',
+        sortBy: (req.query.sortBy as string) || 'createdAt',
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
         include_user: true,
         include_pet: true,
@@ -440,7 +440,7 @@ export class ApplicationController extends BaseController {
       }
 
       const applicationData: CreateApplicationRequest = {
-        pet_id: req.body.pet_id,
+        petId: req.body.petId,
         answers: req.body.answers,
         references: req.body.references,
         priority: req.body.priority,
@@ -676,10 +676,10 @@ export class ApplicationController extends BaseController {
       const { applicationId } = req.params;
       const statusUpdate: ApplicationStatusUpdateRequest = {
         status: req.body.status,
-        actioned_by: req.user!.userId,
-        rejection_reason: req.body.rejection_reason,
+        actionedBy: req.user!.userId,
+        rejectionReason: req.body.rejectionReason,
         notes: req.body.notes,
-        follow_up_date: req.body.follow_up_date,
+        followUpDate: req.body.followUpDate,
       };
 
       const application = await ApplicationService.updateApplicationStatus(
@@ -1151,7 +1151,7 @@ export class ApplicationController extends BaseController {
       const Application = (await import('../models/Application')).default;
       await Application.update(
         { status: ApplicationStatus.SUBMITTED },
-        { where: { application_id: applicationId } }
+        { where: { applicationId: applicationId } }
       );
 
       res.status(201).json({
@@ -1246,7 +1246,7 @@ export class ApplicationController extends BaseController {
 
         await Application.update(
           { status: applicationStatus },
-          { where: { application_id: applicationId } }
+          { where: { applicationId: applicationId } }
         );
       }
 

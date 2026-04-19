@@ -310,7 +310,7 @@ describe('FieldPermissionsService', () => {
       // ApplicationController transforms DB records into the camelCase
       // FrontendApplication shape before responding — that's what
       // fieldMask('applications') actually sees. Internal assessment
-      // fields (interview_notes, home_visit_notes, score) only exist on
+      // fields (interviewNotes, homeVisitNotes, score) only exist on
       // PUT/POST request bodies; they should still be stripped if they
       // ever appear in a response.
       const application = {
@@ -320,8 +320,8 @@ describe('FieldPermissionsService', () => {
         rescueId: 'rescue-1',
         status: 'submitted',
         data: { answers: { q1: 'answer1' } },
-        interview_notes: 'Staff notes here',
-        home_visit_notes: 'Home visit notes',
+        interviewNotes: 'Staff notes here',
+        homeVisitNotes: 'Home visit notes',
         score: 85,
       };
 
@@ -334,8 +334,8 @@ describe('FieldPermissionsService', () => {
       expect(masked).toHaveProperty('id');
       expect(masked).toHaveProperty('status');
       expect(masked).toHaveProperty('data');
-      expect(masked).not.toHaveProperty('interview_notes');
-      expect(masked).not.toHaveProperty('home_visit_notes');
+      expect(masked).not.toHaveProperty('interviewNotes');
+      expect(masked).not.toHaveProperty('homeVisitNotes');
       expect(masked).not.toHaveProperty('score');
     });
 
@@ -343,7 +343,7 @@ describe('FieldPermissionsService', () => {
       const result = await service.getFieldAccess(
         'applications',
         'rescue_staff',
-        'interview_notes'
+        'interviewNotes'
       );
 
       expect(result.effectiveLevel).toBe('write');
@@ -354,13 +354,13 @@ describe('FieldPermissionsService', () => {
       const readCheck = await service.checkFieldAccess(
         'applications',
         'moderator',
-        'interview_notes',
+        'interviewNotes',
         'read'
       );
       const writeCheck = await service.checkFieldAccess(
         'applications',
         'moderator',
-        'interview_notes',
+        'interviewNotes',
         'write'
       );
 
@@ -375,15 +375,15 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should hide medical history from adopters', async () => {
-      // Pet model serializes to snake_case
+      // Pet model serializes to camelCase
       const pet = {
-        pet_id: 'pet-1',
+        petId: 'pet-1',
         name: 'Buddy',
         type: 'dog',
         breed: 'Labrador',
-        medical_notes: 'Vaccinated, neutered',
-        microchip_id: 'CHIP123',
-        behavioral_notes: 'Needs experienced owner',
+        medicalNotes: 'Vaccinated, neutered',
+        microchipId: 'CHIP123',
+        behavioralNotes: 'Needs experienced owner',
       };
 
       const masked = await service.maskFields(pet, {
@@ -395,17 +395,17 @@ describe('FieldPermissionsService', () => {
       expect(masked).toHaveProperty('name');
       expect(masked).toHaveProperty('type');
       expect(masked).toHaveProperty('breed');
-      expect(masked).not.toHaveProperty('medical_notes');
-      expect(masked).not.toHaveProperty('microchip_id');
-      expect(masked).not.toHaveProperty('behavioral_notes');
+      expect(masked).not.toHaveProperty('medicalNotes');
+      expect(masked).not.toHaveProperty('microchipId');
+      expect(masked).not.toHaveProperty('behavioralNotes');
     });
 
     it('should allow rescue staff full write access to pet fields', async () => {
       const blocked = await service.getWriteBlockedFields('pets', 'rescue_staff', [
         'name',
-        'short_description',
-        'medical_notes',
-        'behavioral_notes',
+        'shortDescription',
+        'medicalNotes',
+        'behavioralNotes',
       ]);
 
       expect(blocked).toEqual([]);

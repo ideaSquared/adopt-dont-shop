@@ -38,30 +38,30 @@ const mockPetId = 'pet-789';
 // ============================================================================
 
 const createMockPet = (overrides = {}) => ({
-  pet_id: mockPetId,
+  petId: mockPetId,
   petId: mockPetId,
   name: 'Buddy',
   type: PetType.DOG,
   breed: 'Golden Retriever',
   gender: Gender.MALE,
   status: PetStatus.AVAILABLE,
-  age_group: AgeGroup.ADULT,
+  ageGroup: AgeGroup.ADULT,
   size: Size.LARGE,
-  energy_level: EnergyLevel.MEDIUM,
-  vaccination_status: VaccinationStatus.UP_TO_DATE,
-  spay_neuter_status: SpayNeuterStatus.NEUTERED,
-  rescue_id: mockRescueId,
+  energyLevel: EnergyLevel.MEDIUM,
+  vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+  spayNeuterStatus: SpayNeuterStatus.NEUTERED,
+  rescueId: mockRescueId,
   rescueId: mockRescueId,
   archived: false,
   featured: false,
-  priority_listing: false,
-  special_needs: false,
-  house_trained: true,
+  priorityListing: false,
+  specialNeeds: false,
+  houseTrained: true,
   images: [],
   videos: [],
-  view_count: 0,
-  favorite_count: 0,
-  application_count: 0,
+  viewCount: 0,
+  favoriteCount: 0,
+  applicationCount: 0,
   created_at: new Date(),
   updated_at: new Date(),
   update: vi.fn().mockResolvedValue(undefined),
@@ -80,12 +80,12 @@ const createValidPetData = (overrides = {}): PetCreateData => ({
   breed: 'Golden Retriever',
   gender: Gender.MALE,
   status: PetStatus.AVAILABLE,
-  age_group: AgeGroup.ADULT,
+  ageGroup: AgeGroup.ADULT,
   size: Size.MEDIUM,
-  energy_level: EnergyLevel.MEDIUM,
-  vaccination_status: VaccinationStatus.UP_TO_DATE,
-  spay_neuter_status: SpayNeuterStatus.NEUTERED,
-  rescue_id: mockRescueId,
+  energyLevel: EnergyLevel.MEDIUM,
+  vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+  spayNeuterStatus: SpayNeuterStatus.NEUTERED,
+  rescueId: mockRescueId,
   images: [],
   videos: [],
   ...overrides,
@@ -142,7 +142,7 @@ describe('PetService - Business Logic', () => {
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: PetStatus.ADOPTED,
-          adopted_date: expect.any(Date),
+          adoptedDate: expect.any(Date),
         })
       );
     });
@@ -165,7 +165,7 @@ describe('PetService - Business Logic', () => {
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: PetStatus.FOSTER,
-          foster_start_date: expect.any(Date),
+          fosterStartDate: expect.any(Date),
         })
       );
     });
@@ -212,7 +212,7 @@ describe('PetService - Business Logic', () => {
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: PetStatus.AVAILABLE,
-          available_since: expect.any(Date),
+          availableSince: expect.any(Date),
         })
       );
     });
@@ -235,7 +235,7 @@ describe('PetService - Business Logic', () => {
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: PetStatus.ADOPTED,
-          adopted_date: expect.any(Date),
+          adoptedDate: expect.any(Date),
         })
       );
     });
@@ -347,18 +347,18 @@ describe('PetService - Business Logic', () => {
     it('should create pet with valid data', async () => {
       // Given: Valid pet creation data
       const petData = createValidPetData();
-      const mockCreatedPet = createMockPet({ pet_id: 'new-pet-123' });
+      const mockCreatedPet = createMockPet({ petId: 'new-pet-123' });
 
       MockedPet.create = vi.fn().mockResolvedValue(mockCreatedPet);
 
       // When: Creating a new pet
       const result = await PetService.createPet(petData, mockRescueId, mockUserId);
 
-      // Then: Pet is created with correct rescue_id
+      // Then: Pet is created with correct rescueId
       expect(MockedPet.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...petData,
-          rescue_id: mockRescueId,
+          rescueId: mockRescueId,
         })
       );
       expect(result).toEqual(mockCreatedPet);
@@ -481,8 +481,8 @@ describe('PetService - Business Logic', () => {
       // Then: Fields are updated with correct snake_case conversion
       expect(mockPet.update).toHaveBeenCalledWith({
         name: 'Max',
-        short_description: 'Friendly and energetic',
-        long_description: 'A wonderful companion who loves to play and cuddle.',
+        shortDescription: 'Friendly and energetic',
+        longDescription: 'A wonderful companion who loves to play and cuddle.',
       });
     });
 
@@ -506,11 +506,11 @@ describe('PetService - Business Logic', () => {
       // Then: Medical fields are updated
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          vaccination_status: VaccinationStatus.UP_TO_DATE,
-          vaccination_date: expect.any(Date),
-          spay_neuter_status: SpayNeuterStatus.NEUTERED,
-          spay_neuter_date: expect.any(Date),
-          medical_notes: 'All vaccinations current, healthy checkup',
+          vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+          vaccinationDate: expect.any(Date),
+          spayNeuterStatus: SpayNeuterStatus.NEUTERED,
+          spayNeuterDate: expect.any(Date),
+          medicalNotes: 'All vaccinations current, healthy checkup',
         })
       );
     });
@@ -537,13 +537,13 @@ describe('PetService - Business Logic', () => {
       // Then: Behavioral fields are updated
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          good_with_children: true,
-          good_with_dogs: true,
-          good_with_cats: false,
-          good_with_small_animals: false,
-          house_trained: true,
-          energy_level: EnergyLevel.HIGH,
-          behavioral_notes: 'Very friendly but needs space from cats',
+          goodWithChildren: true,
+          goodWithDogs: true,
+          goodWithCats: false,
+          goodWithSmallAnimals: false,
+          houseTrained: true,
+          energyLevel: EnergyLevel.HIGH,
+          behavioralNotes: 'Very friendly but needs space from cats',
         })
       );
     });
@@ -797,26 +797,26 @@ describe('PetService - Business Logic', () => {
   describe('View Count Tracking', () => {
     it('should increment view count when pet is viewed', async () => {
       // Given: A pet
-      const mockPet = createMockPet({ view_count: 10 });
+      const mockPet = createMockPet({ viewCount: 10 });
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When: Getting pet by ID
       await PetService.getPetById(mockPetId, mockUserId);
 
       // Then: View count is incremented
-      expect(mockPet.increment).toHaveBeenCalledWith('view_count');
+      expect(mockPet.increment).toHaveBeenCalledWith('viewCount');
     });
 
     it('should increment view count even for anonymous users', async () => {
       // Given: A pet viewed by anonymous user
-      const mockPet = createMockPet({ view_count: 5 });
+      const mockPet = createMockPet({ viewCount: 5 });
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       // When: Getting pet without user ID
       await PetService.getPetById(mockPetId);
 
       // Then: View count is still incremented
-      expect(mockPet.increment).toHaveBeenCalledWith('view_count');
+      expect(mockPet.increment).toHaveBeenCalledWith('viewCount');
     });
   });
 
@@ -825,8 +825,8 @@ describe('PetService - Business Logic', () => {
   // ==========================================================================
 
   describe('Business Invariants', () => {
-    it('should maintain rescue_id relationship on creation', async () => {
-      // Given: Pet data with rescue_id
+    it('should maintain rescueId relationship on creation', async () => {
+      // Given: Pet data with rescueId
       const petData = createValidPetData();
       const mockCreatedPet = createMockPet();
       MockedPet.create = vi.fn().mockResolvedValue(mockCreatedPet);
@@ -834,27 +834,27 @@ describe('PetService - Business Logic', () => {
       // When: Creating pet
       await PetService.createPet(petData, mockRescueId, mockUserId);
 
-      // Then: rescue_id is set from parameter, not data
+      // Then: rescueId is set from parameter, not data
       expect(MockedPet.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          rescue_id: mockRescueId, // From parameter
+          rescueId: mockRescueId, // From parameter
         })
       );
     });
 
-    it('should preserve rescue_id even if provided in update data', async () => {
+    it('should preserve rescueId even if provided in update data', async () => {
       // Given: Existing pet
-      const mockPet = createMockPet({ rescue_id: mockRescueId });
+      const mockPet = createMockPet({ rescueId: mockRescueId });
       mockPet.reload.mockResolvedValue(mockPet);
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
-      // Note: rescue_id is not in PetUpdateData type, so it cannot be updated
+      // Note: rescueId is not in PetUpdateData type, so it cannot be updated
       const updateData: PetUpdateData = { name: 'Updated Name' };
 
       // When: Updating pet
       await PetService.updatePet(mockPetId, updateData, mockUserId);
 
-      // Then: rescue_id is not in the update call (immutable)
+      // Then: rescueId is not in the update call (immutable)
       expect(mockPet.update).toHaveBeenCalledWith({ name: 'Updated Name' });
     });
 

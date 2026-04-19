@@ -385,7 +385,7 @@ export class SwipeService {
             userId,
             type: pet.type,
             breed: pet.breed || 'unknown',
-            ageGroup: pet.age_group,
+            ageGroup: pet.ageGroup,
             size: pet.size,
             gender: pet.gender,
             weight,

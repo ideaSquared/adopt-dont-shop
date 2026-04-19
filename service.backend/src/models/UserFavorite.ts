@@ -18,11 +18,11 @@ class UserFavorite extends Model<
   InferCreationAttributes<UserFavorite>
 > {
   declare id: CreationOptional<string>;
-  declare user_id: ForeignKey<User['userId']>;
-  declare pet_id: ForeignKey<Pet['pet_id']>;
-  declare created_at: CreationOptional<Date>;
-  declare updated_at: CreationOptional<Date>;
-  declare deleted_at: CreationOptional<Date>;
+  declare userId: ForeignKey<User['userId']>;
+  declare petId: ForeignKey<Pet['petId']>;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+  declare deletedAt: CreationOptional<Date>;
 
   // Associations
   declare getUser: BelongsToGetAssociationMixin<User>;
@@ -44,9 +44,10 @@ UserFavorite.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    user_id: {
+    userId: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'user_id',
       references: {
         model: 'users',
         key: 'user_id',
@@ -54,9 +55,10 @@ UserFavorite.init(
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     },
-    pet_id: {
+    petId: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'pet_id',
       references: {
         model: 'pets',
         key: 'pet_id',
@@ -64,17 +66,20 @@ UserFavorite.init(
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     },
-    created_at: {
+    createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: 'created_at',
     },
-    updated_at: {
+    updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: 'updated_at',
     },
-    deleted_at: {
+    deletedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'deleted_at',
     },
   },
   {
@@ -82,9 +87,6 @@ UserFavorite.init(
     modelName: 'UserFavorite',
     tableName: 'user_favorites',
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    deletedAt: 'deleted_at',
     paranoid: true,
     indexes: [
       {

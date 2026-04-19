@@ -79,13 +79,13 @@ describe('SwipeService', () => {
             {
               type: 'dog',
               breed: 'Golden Retriever',
-              age_group: 'adult',
+              ageGroup: 'adult',
               size: 'large',
               gender: 'male',
-              good_with_children: true,
-              good_with_dogs: true,
-              good_with_cats: false,
-              energy_level: 'high',
+              goodWithChildren: true,
+              goodWithDogs: true,
+              goodWithCats: false,
+              energyLevel: 'high',
             },
           ],
         ]) // Second call for getting pet details
@@ -125,7 +125,7 @@ describe('SwipeService', () => {
             {
               type: 'cat',
               breed: 'Persian',
-              age_group: 'young',
+              ageGroup: 'young',
               size: 'medium',
               gender: 'female',
             },
@@ -416,13 +416,13 @@ describe('SwipeService', () => {
       {
         type: 'dog',
         breed: 'Golden Retriever',
-        age_group: 'adult',
+        ageGroup: 'adult',
         size: 'large',
         gender: 'male',
-        good_with_children: true,
-        good_with_dogs: true,
-        good_with_cats: false,
-        energy_level: 'high',
+        goodWithChildren: true,
+        goodWithDogs: true,
+        goodWithCats: false,
+        energyLevel: 'high',
       },
     ];
 

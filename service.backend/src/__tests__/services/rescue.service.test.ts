@@ -266,7 +266,7 @@ describe('RescueService - Behavioral Testing', () => {
 
       // Create some pets for statistics
       await Pet.create({
-        rescue_id: rescue.rescueId,
+        rescueId: rescue.rescueId,
         name: 'Buddy',
         type: 'dog',
         breed: 'Labrador',
@@ -624,11 +624,11 @@ describe('RescueService - Behavioral Testing', () => {
 
       // Create pets
       await Pet.create({
-        rescue_id: rescue.rescueId,
+        rescueId: rescue.rescueId,
         name: 'Buddy',
         type: 'dog',
         breed: 'Labrador',
-        age_years: 3,
+        ageYears: 3,
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
@@ -637,11 +637,11 @@ describe('RescueService - Behavioral Testing', () => {
       });
 
       await Pet.create({
-        rescue_id: rescue.rescueId,
+        rescueId: rescue.rescueId,
         name: 'Max',
         type: 'dog',
         breed: 'Golden Retriever',
-        age_years: 5,
+        ageYears: 5,
         gender: 'male',
         size: 'large',
         status: PetStatus.ADOPTED,
@@ -701,11 +701,11 @@ describe('RescueService - Behavioral Testing', () => {
       });
 
       await Pet.create({
-        rescue_id: rescue.rescueId,
+        rescueId: rescue.rescueId,
         name: 'Buddy',
         type: 'dog',
         breed: 'Labrador',
-        age_years: 3,
+        ageYears: 3,
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
@@ -733,11 +733,11 @@ describe('RescueService - Behavioral Testing', () => {
       });
 
       await Pet.create({
-        rescue_id: rescue.rescueId,
+        rescueId: rescue.rescueId,
         name: 'Buddy',
         type: 'dog',
         breed: 'Labrador',
-        age_years: 3,
+        ageYears: 3,
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
@@ -746,11 +746,11 @@ describe('RescueService - Behavioral Testing', () => {
       });
 
       await Pet.create({
-        rescue_id: rescue.rescueId,
+        rescueId: rescue.rescueId,
         name: 'Max',
         type: 'dog',
         breed: 'Golden Retriever',
-        age_years: 5,
+        ageYears: 5,
         gender: 'male',
         size: 'large',
         status: PetStatus.ADOPTED,

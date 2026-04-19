@@ -62,7 +62,7 @@ export class DiscoveryService {
         pets: discoveryPets,
         sessionId,
         hasMore: pets.length === limit,
-        nextCursor: pets.length > 0 ? pets[pets.length - 1].pet_id : undefined,
+        nextCursor: pets.length > 0 ? pets[pets.length - 1].petId : undefined,
       };
     } catch (error) {
       logger.error('Error generating discovery queue', {
@@ -90,7 +90,7 @@ export class DiscoveryService {
       // Get pets after the last pet ID
       const pets = await Pet.findAll({
         where: {
-          pet_id: {
+          petId: {
             [Op.gt]: lastPetId,
           },
           status: PetStatus.AVAILABLE,
@@ -136,7 +136,7 @@ export class DiscoveryService {
         };
       }
       if (filters.ageGroup) {
-        whereConditions.age_group = filters.ageGroup;
+        whereConditions.ageGroup = filters.ageGroup;
       }
       if (filters.size) {
         whereConditions.size = filters.size;
@@ -166,7 +166,7 @@ export class DiscoveryService {
           literal(`CASE WHEN jsonb_array_length("Pet"."images") > 2 THEN 0 ELSE 1 END`),
 
           // 4. Boost puppies and kittens (young pets are popular)
-          literal(`CASE WHEN "Pet"."age_group" IN ('baby', 'young') THEN 0 ELSE 1 END`),
+          literal(`CASE WHEN "Pet"."ageGroup" IN ('baby', 'young') THEN 0 ELSE 1 END`),
 
           // 5. Random factor for diversity
           fn('RANDOM'),
@@ -253,7 +253,7 @@ export class DiscoveryService {
       };
 
       // Ensure petId is never undefined
-      const petId = pet.pet_id || `pet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const petId = pet.petId || `pet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       // Get image URLs - only return valid URLs, let frontend handle placeholders
       let imageUrls: string[] = [];
@@ -268,13 +268,13 @@ export class DiscoveryService {
         name: pet.name || 'Unknown',
         type: pet.type,
         breed: pet.breed || undefined,
-        ageGroup: pet.age_group,
-        ageYears: pet.age_years || undefined,
-        ageMonths: pet.age_months || undefined,
+        ageGroup: pet.ageGroup,
+        ageYears: pet.ageYears || undefined,
+        ageMonths: pet.ageMonths || undefined,
         size: pet.size,
         gender: pet.gender,
         images: imageUrls,
-        shortDescription: pet.short_description || undefined,
+        shortDescription: pet.shortDescription || undefined,
         rescueName: petWithRescue.Rescue?.name || 'Unknown Rescue',
         isSponsored: petWithRescue.Rescue?.status === 'verified' || false,
         compatibilityScore: this.calculateCompatibilityScore(pet),
@@ -294,23 +294,23 @@ export class DiscoveryService {
     }
 
     // Boost for detailed description
-    if (pet.long_description && pet.long_description.length > 100) {
+    if (pet.longDescription && pet.longDescription.length > 100) {
       score += 10;
     }
 
     // Boost for young pets
-    if (pet.age_group === AgeGroup.BABY || pet.age_group === AgeGroup.YOUNG) {
+    if (pet.ageGroup === AgeGroup.BABY || pet.ageGroup === AgeGroup.YOUNG) {
       score += 10;
     }
 
     // Boost for special attributes
-    if (pet.good_with_children) {
+    if (pet.goodWithChildren) {
       score += 5;
     }
-    if (pet.good_with_dogs) {
+    if (pet.goodWithDogs) {
       score += 5;
     }
-    if (pet.good_with_cats) {
+    if (pet.goodWithCats) {
       score += 5;
     }
 

@@ -47,7 +47,7 @@ export class ApplicationService {
       }
 
       // Validate pet exists and is available
-      const pet = await Pet.findByPk(applicationData.pet_id);
+      const pet = await Pet.findByPk(applicationData.petId);
       if (!pet) {
         throw new Error('Pet not found');
       }
@@ -59,8 +59,8 @@ export class ApplicationService {
       // Check for existing active application for this pet by this user
       const existingApplication = await Application.findOne({
         where: {
-          user_id: userId,
-          pet_id: applicationData.pet_id,
+          userId: userId,
+          petId: applicationData.petId,
           status: {
             [Op.notIn]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
           },
@@ -74,7 +74,7 @@ export class ApplicationService {
       // Validate answers against required questions
       const validationResult = await this.validateApplicationAnswers(
         applicationData.answers,
-        pet.rescue_id
+        pet.rescueId
       );
 
       if (!validationResult.is_valid) {
@@ -92,10 +92,9 @@ export class ApplicationService {
 
       // Create application
       const application = await Application.create({
-        application_id: uuidv4(),
-        user_id: userId,
-        pet_id: applicationData.pet_id,
-        rescue_id: pet.rescue_id,
+        userId: userId,
+        petId: applicationData.petId,
+        rescueId: pet.rescueId,
         status: ApplicationStatus.SUBMITTED,
         priority: applicationData.priority || ApplicationPriority.NORMAL,
         answers: applicationData.answers,
@@ -107,7 +106,7 @@ export class ApplicationService {
 
       // Create initial timeline event
       await ApplicationTimelineService.createEvent({
-        application_id: application.application_id,
+        application_id: application.applicationId,
         event_type: TimelineEventType.STATUS_UPDATE,
         title: 'Application Submitted',
         description: 'Application was submitted for review',
@@ -115,8 +114,8 @@ export class ApplicationService {
         created_by_system: false,
         new_status: ApplicationStatus.SUBMITTED,
         metadata: {
-          pet_id: applicationData.pet_id,
-          rescue_id: pet.rescue_id,
+          pet_id: applicationData.petId,
+          rescue_id: pet.rescueId,
           priority: application.priority,
           submission_date: new Date(),
         },
@@ -126,10 +125,10 @@ export class ApplicationService {
       await AuditLogService.log({
         action: 'CREATE',
         entity: 'Application',
-        entityId: application.application_id,
+        entityId: application.applicationId,
         details: {
-          pet_id: applicationData.pet_id,
-          rescue_id: pet.rescue_id,
+          pet_id: applicationData.petId,
+          rescue_id: pet.rescueId,
           priority: application.priority,
         },
         userId,
@@ -138,9 +137,9 @@ export class ApplicationService {
       loggerHelpers.logBusiness(
         'Application Created',
         {
-          applicationId: application.application_id,
-          petId: application.pet_id,
-          userId: application.user_id,
+          applicationId: application.applicationId,
+          petId: application.petId,
+          userId: application.userId,
           createdBy: userId,
           duration: Date.now() - startTime,
         },
@@ -175,37 +174,37 @@ export class ApplicationService {
           model: User,
           as: 'User',
           attributes: [
-            'user_id',
-            'first_name',
-            'last_name',
+            'userId',
+            'firstName',
+            'lastName',
             'email',
-            'phone_number',
-            'date_of_birth',
-            'address_line_1',
-            'address_line_2',
+            'phoneNumber',
+            'dateOfBirth',
+            'addressLine1',
+            'addressLine2',
             'city',
             'country',
-            'postal_code',
+            'postalCode',
           ],
         },
         {
           model: Pet,
           as: 'Pet',
           attributes: [
-            'pet_id',
+            'petId',
             'name',
             'type',
             'breed',
-            'age_years',
-            'age_months',
-            'age_group',
+            'ageYears',
+            'ageMonths',
+            'ageGroup',
             'status',
           ],
         },
       ];
 
       const application = await Application.findOne({
-        where: { application_id: applicationId },
+        where: { applicationId: applicationId },
         include: includeOptions,
       });
 
@@ -223,7 +222,7 @@ export class ApplicationService {
       if (userId && userType !== UserType.ADMIN) {
         // Users can only see their own applications
         // Rescue staff can see applications for their rescue
-        if (userType === UserType.ADOPTER && application.user_id !== userId) {
+        if (userType === UserType.ADOPTER && application.userId !== userId) {
           throw new Error('Access denied');
         }
         // Additional rescue staff permission check would go here
@@ -255,7 +254,7 @@ export class ApplicationService {
       const {
         page = 1,
         limit = 20,
-        sortBy = 'created_at',
+        sortBy = 'createdAt',
         sortOrder = 'DESC',
         include_user = true,
         include_pet = true,
@@ -267,11 +266,11 @@ export class ApplicationService {
 
       // Permission-based filtering
       if (userId && userType === UserType.ADOPTER) {
-        whereConditions.user_id = userId;
+        whereConditions.userId = userId;
       }
 
-      // Auto-filter by rescue for rescue staff (unless rescue_id explicitly provided)
-      if (userId && userType === UserType.RESCUE_STAFF && !filters.rescue_id) {
+      // Auto-filter by rescue for rescue staff (unless rescueId explicitly provided)
+      if (userId && userType === UserType.RESCUE_STAFF && !filters.rescueId) {
         try {
           const StaffMember = (await import('../models/StaffMember')).default;
           const staffMember = await StaffMember.findOne({
@@ -283,7 +282,7 @@ export class ApplicationService {
           });
 
           if (staffMember) {
-            whereConditions.rescue_id = staffMember.rescueId;
+            whereConditions.rescueId = staffMember.rescueId;
             logger.info('Auto-filtering applications by user rescue:', {
               userId: userId,
               rescueId: staffMember.rescueId,
@@ -314,17 +313,17 @@ export class ApplicationService {
       }
 
       // User/Pet/Rescue filtering
-      if (filters.user_id) {
-        whereConditions.user_id = filters.user_id;
+      if (filters.userId) {
+        whereConditions.userId = filters.userId;
       }
-      if (filters.pet_id) {
-        whereConditions.pet_id = filters.pet_id;
+      if (filters.petId) {
+        whereConditions.petId = filters.petId;
       }
-      if (filters.rescue_id) {
-        whereConditions.rescue_id = filters.rescue_id;
+      if (filters.rescueId) {
+        whereConditions.rescueId = filters.rescueId;
       }
-      if (filters.actioned_by) {
-        whereConditions.actioned_by = filters.actioned_by;
+      if (filters.actionedBy) {
+        whereConditions.actionedBy = filters.actionedBy;
       }
 
       // Score filtering
@@ -345,37 +344,37 @@ export class ApplicationService {
       }
 
       // Date range filtering
-      if (filters.submitted_from || filters.submitted_to) {
+      if (filters.submittedFrom || filters.submittedTo) {
         const submittedDateFilter: Record<symbol, Date> = {};
-        if (filters.submitted_from) {
-          submittedDateFilter[Op.gte] = filters.submitted_from;
+        if (filters.submittedFrom) {
+          submittedDateFilter[Op.gte] = filters.submittedFrom;
         }
-        if (filters.submitted_to) {
-          submittedDateFilter[Op.lte] = filters.submitted_to;
+        if (filters.submittedTo) {
+          submittedDateFilter[Op.lte] = filters.submittedTo;
         }
-        whereConditions.submitted_at = submittedDateFilter;
+        whereConditions.submittedAt = submittedDateFilter;
       }
 
-      if (filters.created_from || filters.created_to) {
+      if (filters.createdFrom || filters.createdTo) {
         const createdDateFilter: Record<symbol, Date> = {};
-        if (filters.created_from) {
-          createdDateFilter[Op.gte] = filters.created_from;
+        if (filters.createdFrom) {
+          createdDateFilter[Op.gte] = filters.createdFrom;
         }
-        if (filters.created_to) {
-          createdDateFilter[Op.lte] = filters.created_to;
+        if (filters.createdTo) {
+          createdDateFilter[Op.lte] = filters.createdTo;
         }
-        whereConditions.created_at = createdDateFilter;
+        whereConditions.createdAt = createdDateFilter;
       }
 
       // Boolean field filtering
-      if (filters.has_interview_notes !== undefined) {
-        whereConditions.interview_notes = filters.has_interview_notes
+      if (filters.hasInterviewNotes !== undefined) {
+        whereConditions.interviewNotes = filters.hasInterviewNotes
           ? { [Op.not]: null }
           : { [Op.is]: null };
       }
 
-      if (filters.has_home_visit_notes !== undefined) {
-        whereConditions.home_visit_notes = filters.has_home_visit_notes
+      if (filters.hasHomeVisitNotes !== undefined) {
+        whereConditions.homeVisitNotes = filters.hasHomeVisitNotes
           ? { [Op.not]: null }
           : { [Op.is]: null };
       }
@@ -384,9 +383,9 @@ export class ApplicationService {
       if (filters.search) {
         const searchConditions = [
           { notes: { [Op.iLike]: `%${filters.search}%` } },
-          { rejection_reason: { [Op.iLike]: `%${filters.search}%` } },
-          { interview_notes: { [Op.iLike]: `%${filters.search}%` } },
-          { home_visit_notes: { [Op.iLike]: `%${filters.search}%` } },
+          { rejectionReason: { [Op.iLike]: `%${filters.search}%` } },
+          { interviewNotes: { [Op.iLike]: `%${filters.search}%` } },
+          { homeVisitNotes: { [Op.iLike]: `%${filters.search}%` } },
           // Search in user fields
           { '$User.first_name$': { [Op.iLike]: `%${filters.search}%` } },
           { '$User.last_name$': { [Op.iLike]: `%${filters.search}%` } },
@@ -400,7 +399,7 @@ export class ApplicationService {
 
       // Soft delete handling
       if (!include_deleted) {
-        whereConditions.deleted_at = null;
+        whereConditions.deletedAt = null;
       }
 
       // Build include options
@@ -409,7 +408,7 @@ export class ApplicationService {
         includeOptions.push({
           model: User,
           as: 'User',
-          attributes: ['user_id', 'first_name', 'last_name', 'email', 'phone_number'],
+          attributes: ['userId', 'firstName', 'lastName', 'email', 'phoneNumber'],
         });
       }
       if (include_pet) {
@@ -417,13 +416,13 @@ export class ApplicationService {
           model: Pet,
           as: 'Pet',
           attributes: [
-            'pet_id',
+            'petId',
             'name',
             'type',
             'breed',
-            'age_years',
-            'age_months',
-            'age_group',
+            'ageYears',
+            'ageMonths',
+            'ageGroup',
             'status',
           ],
         });
@@ -495,7 +494,7 @@ export class ApplicationService {
       }
 
       // Check permissions - only owner can update their own applications
-      if (application.user_id !== userId) {
+      if (application.userId !== userId) {
         throw new Error('Access denied');
       }
 
@@ -576,7 +575,7 @@ export class ApplicationService {
       }
 
       // Check permissions
-      if (application.user_id !== userId) {
+      if (application.userId !== userId) {
         throw new Error('Access denied');
       }
 
@@ -589,7 +588,7 @@ export class ApplicationService {
       // Validate application completeness
       const validationResult = await this.validateApplicationAnswers(
         application.answers,
-        application.rescue_id
+        application.rescueId
       );
 
       if (!validationResult.is_valid) {
@@ -601,7 +600,7 @@ export class ApplicationService {
       // Submit application
       await application.update({
         status: ApplicationStatus.SUBMITTED,
-        submitted_at: new Date(),
+        submittedAt: new Date(),
       });
 
       // Log submission
@@ -609,7 +608,7 @@ export class ApplicationService {
         userId: userId,
         action: 'APPLICATION_SUBMITTED',
         entity: 'Application',
-        entityId: application.application_id,
+        entityId: application.applicationId,
         details: { submitted_at: new Date().toISOString() },
       });
 
@@ -646,27 +645,27 @@ export class ApplicationService {
       // Update application status
       const updateFields: Record<string, unknown> = {
         status: statusUpdate.status,
-        actioned_by: actionedBy,
-        actioned_at: new Date(),
+        actionedBy: actionedBy,
+        actionedAt: new Date(),
       };
 
-      if (statusUpdate.rejection_reason) {
-        updateFields.rejection_reason = statusUpdate.rejection_reason;
+      if (statusUpdate.rejectionReason) {
+        updateFields.rejectionReason = statusUpdate.rejectionReason;
       }
 
       if (statusUpdate.notes) {
         updateFields.notes = statusUpdate.notes;
       }
 
-      if (statusUpdate.follow_up_date) {
-        updateFields.follow_up_date = statusUpdate.follow_up_date;
+      if (statusUpdate.followUpDate) {
+        updateFields.followUpDate = statusUpdate.followUpDate;
       }
 
       // Set specific timestamps based on status
       switch (statusUpdate.status) {
         case ApplicationStatus.APPROVED:
         case ApplicationStatus.REJECTED:
-          updateFields.decision_at = new Date();
+          updateFields.decisionAt = new Date();
           break;
       }
 
@@ -678,7 +677,7 @@ export class ApplicationService {
         event_type: ApplicationService.getTimelineEventTypeForStatus(statusUpdate.status),
         title: `Application ${ApplicationService.formatStatusName(statusUpdate.status)}`,
         description:
-          statusUpdate.rejection_reason ||
+          statusUpdate.rejectionReason ||
           statusUpdate.notes ||
           `Application status changed from ${ApplicationService.formatStatusName(previousStatus)} to ${ApplicationService.formatStatusName(statusUpdate.status)}`,
         created_by: actionedBy,
@@ -686,8 +685,8 @@ export class ApplicationService {
         previous_status: previousStatus,
         new_status: statusUpdate.status,
         metadata: {
-          rejection_reason: statusUpdate.rejection_reason,
-          follow_up_date: statusUpdate.follow_up_date,
+          rejection_reason: statusUpdate.rejectionReason,
+          follow_up_date: statusUpdate.followUpDate,
           notes: statusUpdate.notes,
         },
       });
@@ -699,7 +698,7 @@ export class ApplicationService {
         entity: 'Application',
         entityId: applicationId,
         details: {
-          reason: statusUpdate.rejection_reason || 'No reason provided',
+          reason: statusUpdate.rejectionReason || 'No reason provided',
           previousStatus: application.status,
           newStatus: statusUpdate.status,
         },
@@ -733,7 +732,7 @@ export class ApplicationService {
       }
 
       // Check permissions
-      if (application.user_id !== userId) {
+      if (application.userId !== userId) {
         throw new Error('Access denied');
       }
 
@@ -744,8 +743,8 @@ export class ApplicationService {
 
       await application.update({
         status: ApplicationStatus.WITHDRAWN,
-        actioned_by: userId,
-        actioned_at: new Date(),
+        actionedBy: userId,
+        actionedAt: new Date(),
       });
 
       // Create timeline event for withdrawal
@@ -797,13 +796,15 @@ export class ApplicationService {
       }
 
       // Check permissions
-      if (application.user_id !== userId) {
+      if (application.userId !== userId) {
         throw new Error('Access denied');
       }
 
       const newDocument = {
         document_id: uuidv4(),
-        ...documentData,
+        document_type: documentData.documentType,
+        file_name: documentData.fileName,
+        file_url: documentData.fileUrl,
         uploaded_at: new Date(),
         verified: false,
       };
@@ -817,13 +818,13 @@ export class ApplicationService {
         application_id: applicationId,
         event_type: TimelineEventType.DOCUMENT_UPLOADED,
         title: 'Document Uploaded',
-        description: `${documentData.document_type} document "${documentData.file_name}" was uploaded`,
+        description: `${documentData.documentType} document "${documentData.fileName}" was uploaded`,
         created_by: userId,
         created_by_system: false,
         metadata: {
           document_id: newDocument.document_id,
-          document_type: documentData.document_type,
-          file_name: documentData.file_name,
+          document_type: documentData.documentType,
+          file_name: documentData.fileName,
           upload_date: new Date(),
         },
       });
@@ -833,13 +834,13 @@ export class ApplicationService {
         action: 'DOCUMENT_UPLOAD',
         entity: 'Application',
         entityId: applicationId,
-        details: { document_type: documentData.document_type, file_name: documentData.file_name },
+        details: { document_type: documentData.documentType, file_name: documentData.fileName },
         userId,
       });
 
       logger.info('Document added to application', {
         applicationId,
-        documentType: documentData.document_type,
+        documentType: documentData.documentType,
         userId,
       });
 
@@ -1000,7 +1001,7 @@ export class ApplicationService {
         ...updatedReferences[referenceIndex],
         status: referenceUpdate.status,
         notes: referenceUpdate.notes,
-        contacted_at: referenceUpdate.contacted_at,
+        contacted_at: referenceUpdate.contactedAt,
       };
 
       await application.update({ references: updatedReferences });
@@ -1026,7 +1027,7 @@ export class ApplicationService {
           reference_index: referenceIndex,
           reference_id: referenceUpdate.referenceId,
           reference_status: referenceUpdate.status,
-          contacted_at: referenceUpdate.contacted_at,
+          contacted_at: referenceUpdate.contactedAt,
           notes: referenceUpdate.notes,
         },
       });
@@ -1067,7 +1068,7 @@ export class ApplicationService {
     try {
       const whereConditions: WhereOptions = {};
       if (rescueId) {
-        whereConditions.rescue_id = rescueId;
+        whereConditions.rescueId = rescueId;
       }
 
       // Get total applications
@@ -1117,7 +1118,7 @@ export class ApplicationService {
       const applicationsThisMonth = await Application.count({
         where: {
           ...whereConditions,
-          created_at: { [Op.gte]: startOfMonth },
+          createdAt: { [Op.gte]: startOfMonth },
         },
       });
 
@@ -1130,7 +1131,7 @@ export class ApplicationService {
       const applicationsLastMonth = await Application.count({
         where: {
           ...whereConditions,
-          created_at: {
+          createdAt: {
             [Op.between]: [startOfLastMonth, endOfLastMonth],
           },
         },
@@ -1165,7 +1166,7 @@ export class ApplicationService {
       const averageProcessingTime = 7; // days
       const overdueApplications = 0;
       const topRejectionReasons: Array<{ reason: string; count: number }> = [];
-      const applicationsByRescue: Array<{ rescue_id: string; rescue_name: string; count: number }> =
+      const applicationsByRescue: Array<{ rescueId: string; rescueName: string; count: number }> =
         [];
       const applicationsByMonth: Array<{ month: string; count: number }> = [];
 
@@ -1178,22 +1179,22 @@ export class ApplicationService {
       });
 
       return {
-        total_applications: totalApplications,
-        applications_by_status: applicationsByStatus,
-        applications_by_priority: applicationsByPriority,
-        average_processing_time: averageProcessingTime,
-        approval_rate: approvalRate,
-        rejection_rate: rejectionRate,
-        withdrawal_rate: withdrawalRate,
-        pending_applications: pendingApplications,
-        overdue_applications: overdueApplications,
-        applications_this_month: applicationsThisMonth,
-        applications_last_month: applicationsLastMonth,
-        growth_rate: growthRate,
-        average_score: averageScore,
-        top_rejection_reasons: topRejectionReasons,
-        applications_by_rescue: applicationsByRescue,
-        applications_by_month: applicationsByMonth,
+        totalApplications: totalApplications,
+        applicationsByStatus: applicationsByStatus,
+        applicationsByPriority: applicationsByPriority,
+        averageProcessingTime: averageProcessingTime,
+        approvalRate: approvalRate,
+        rejectionRate: rejectionRate,
+        withdrawalRate: withdrawalRate,
+        pendingApplications: pendingApplications,
+        overdueApplications: overdueApplications,
+        applicationsThisMonth: applicationsThisMonth,
+        applicationsLastMonth: applicationsLastMonth,
+        growthRate: growthRate,
+        averageScore: averageScore,
+        topRejectionReasons: topRejectionReasons,
+        applicationsByRescue: applicationsByRescue,
+        applicationsByMonth: applicationsByMonth,
       };
     } catch (error) {
       logger.error('Failed to get application statistics:', {
@@ -1214,27 +1215,27 @@ export class ApplicationService {
   ): Promise<BulkApplicationResult> {
     try {
       const results: BulkApplicationResult = {
-        success_count: 0,
-        failure_count: 0,
+        successCount: 0,
+        failureCount: 0,
         successes: [],
         failures: [],
       };
 
-      for (const applicationId of bulkUpdate.application_ids) {
+      for (const applicationId of bulkUpdate.applicationIds) {
         try {
           const application = await Application.findByPk(applicationId);
           if (!application) {
             results.failures.push({
-              application_id: applicationId,
+              applicationId: applicationId,
               error: 'Application not found',
             });
-            results.failure_count++;
+            results.failureCount++;
             continue;
           }
 
           await application.update(bulkUpdate.updates);
           results.successes.push(applicationId);
-          results.success_count++;
+          results.successCount++;
 
           // Log bulk update
           await AuditLogService.log({
@@ -1246,15 +1247,15 @@ export class ApplicationService {
           });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          results.failures.push({ application_id: applicationId, error: errorMessage });
-          results.failure_count++;
+          results.failures.push({ applicationId: applicationId, error: errorMessage });
+          results.failureCount++;
         }
       }
 
       logger.info('Bulk application update completed', {
-        totalRequested: bulkUpdate.application_ids.length,
-        successCount: results.success_count,
-        failureCount: results.failure_count,
+        totalRequested: bulkUpdate.applicationIds.length,
+        successCount: results.successCount,
+        failureCount: results.failureCount,
         userId,
       });
 
@@ -1378,7 +1379,7 @@ export class ApplicationService {
       }
 
       // Check permissions
-      if (application.user_id !== userId) {
+      if (application.userId !== userId) {
         throw new Error('Access denied');
       }
 
