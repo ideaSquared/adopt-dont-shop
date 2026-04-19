@@ -61,14 +61,18 @@ services:
       - ./service.backend:/app/service.backend
       - ./lib.types:/app/lib.types
       - /app/service.backend/node_modules
+      - lib_types_node_modules:/app/lib.types/node_modules
       - ./uploads:/app/service.backend/uploads
-    # Create symlink at startup so the bind-mounted lib.types is always used,
-    # regardless of what the anonymous node_modules volume contains.
-    # lib.types must be built on the host first (npm run build in lib.types/).
+    # Build lib.types from the bind-mounted source at startup, using the
+    # Docker-installed TypeScript (preserved by lib_types_node_modules volume).
+    # Then symlink lib.types into the backend's node_modules so require()
+    # always resolves to the freshly-built dist, regardless of host state.
     command: >
-      sh -c "mkdir -p /app/service.backend/node_modules/@adopt-dont-shop &&
-             rm -rf /app/service.backend/node_modules/@adopt-dont-shop/lib.types &&
-             ln -s /app/lib.types /app/service.backend/node_modules/@adopt-dont-shop/lib.types &&
+      sh -c "cd /app/lib.types && npm run build &&
+             cd /app/service.backend &&
+             mkdir -p node_modules/@adopt-dont-shop &&
+             rm -rf node_modules/@adopt-dont-shop/lib.types &&
+             ln -s /app/lib.types node_modules/@adopt-dont-shop/lib.types &&
              npm run dev"
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -253,6 +257,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  lib_types_node_modules:
 
 # ============================================================================
 # NETWORKS
