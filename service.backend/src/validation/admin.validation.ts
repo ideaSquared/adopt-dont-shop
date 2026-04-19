@@ -80,7 +80,11 @@ export const adminValidation = {
       .isISO8601()
       .withMessage('Start date must be a valid ISO 8601 date'),
     query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date'),
-    query('userId').optional().isString().notEmpty().withMessage('User ID must be a non-empty string'),
+    query('userId')
+      .optional()
+      .isString()
+      .notEmpty()
+      .withMessage('User ID must be a non-empty string'),
     query('action')
       .optional()
       .isString()
