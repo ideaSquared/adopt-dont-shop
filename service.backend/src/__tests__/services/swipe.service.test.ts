@@ -416,13 +416,13 @@ describe('SwipeService', () => {
       {
         type: 'dog',
         breed: 'Golden Retriever',
-        ageGroup: 'adult',
+        age_group: 'adult',
         size: 'large',
         gender: 'male',
-        goodWithChildren: true,
-        goodWithDogs: true,
-        goodWithCats: false,
-        energyLevel: 'high',
+        good_with_children: true,
+        good_with_dogs: true,
+        good_with_cats: false,
+        energy_level: 'high',
       },
     ];
 
