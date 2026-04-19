@@ -68,7 +68,47 @@ const mockStaff = [
   },
 ];
 
+const BASE_URL = 'http://localhost:5000';
+
+const mockNotificationPreferences = {
+  email: true,
+  push: true,
+  sms: false,
+  applications: true,
+  messages: true,
+  system: true,
+  marketing: false,
+  reminders: true,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '08:00',
+  timezone: 'UTC',
+  frequency: 'immediate',
+};
+
 export const mswHandlers = [
+  // CSRF token endpoint
+  http.get(`${BASE_URL}/api/v1/csrf-token`, () => {
+    return HttpResponse.json({ csrfToken: 'test-csrf-token' });
+  }),
+
+  // Notification preferences endpoints
+  http.get(`${BASE_URL}/api/v1/notifications/preferences`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: mockNotificationPreferences,
+    });
+  }),
+
+  http.put(`${BASE_URL}/api/v1/notifications/preferences`, async ({ request }) => {
+    const body = (await request.json()) as typeof mockNotificationPreferences;
+    return HttpResponse.json({
+      success: true,
+      message: 'Notification preferences updated successfully',
+      data: { ...mockNotificationPreferences, ...body },
+    });
+  }),
+
+
   // Pet management endpoints
   http.get('/api/v1/pets', ({ request }) => {
     const url = new URL(request.url);

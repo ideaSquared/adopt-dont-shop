@@ -6,6 +6,7 @@ import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import RescueProfileForm from '../components/rescue/RescueProfileForm';
 import AdoptionPolicyForm from '../components/rescue/AdoptionPolicyForm';
+import NotificationPreferencesForm from '../components/rescue/NotificationPreferencesForm';
 import type { RescueProfile, AdoptionPolicy } from '../types/rescue';
 
 const PageContainer = styled.div`
@@ -295,13 +296,7 @@ const RescueSettings: React.FC = () => {
       </TabPanel>
 
       <TabPanel $active={activeTab === 'preferences'}>
-        <PlaceholderSection>
-          <h2>⚙️ System Preferences</h2>
-          <p>
-            This feature is coming soon. You'll be able to configure notification settings,
-            auto-responses, and workflow preferences.
-          </p>
-        </PlaceholderSection>
+        <NotificationPreferencesForm />
       </TabPanel>
 
       <TabPanel $active={activeTab === 'security'}>

@@ -61,6 +61,11 @@ export default defineConfig({
       '@adopt-dont-shop/lib.discovery': path.resolve(__dirname, '../lib.discovery/src/index.ts'),
       '@adopt-dont-shop/lib.validation': path.resolve(__dirname, '../lib.validation/src/index.ts'),
       '@adopt-dont-shop/lib.utils': path.resolve(__dirname, '../lib.utils/src/index.ts'),
+      '@adopt-dont-shop/lib.invitations': path.resolve(
+        __dirname,
+        '../lib.invitations/src/index.ts'
+      ),
+      '@adopt-dont-shop/lib.dev-tools': path.resolve(__dirname, '../lib.dev-tools/src/index.ts'),
     },
   },
 });
