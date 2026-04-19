@@ -18,6 +18,7 @@ import Notification from './Notification';
 
 // Auth & Permissions Models
 import Permission from './Permission';
+import RefreshToken from './RefreshToken';
 import Role from './Role';
 import RolePermission from './RolePermission';
 import UserRole from './UserRole';
@@ -66,6 +67,7 @@ const models = {
   Message,
   Notification,
   DeviceToken,
+  RefreshToken,
   Role,
   Permission,
   RolePermission,
@@ -155,6 +157,9 @@ try {
 
   User.hasMany(DeviceToken, { foreignKey: 'user_id', as: 'DeviceTokens' });
   DeviceToken.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+
+  User.hasMany(RefreshToken, { foreignKey: 'user_id', as: 'RefreshTokens' });
+  RefreshToken.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
   // RBAC associations
   User.belongsToMany(Role, {
@@ -336,6 +341,7 @@ export {
   Chat,
   ChatParticipant,
   DeviceToken,
+  RefreshToken,
   EmailPreference,
   EmailQueue,
   EmailTemplate,
