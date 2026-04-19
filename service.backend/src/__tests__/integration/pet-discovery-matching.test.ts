@@ -95,8 +95,7 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     name: overrides.name || 'Test Pet',
     rescueId: overrides.rescueId || 'rescue-123',
     shortDescription: overrides.shortDescription || 'A lovely pet',
-    longDescription:
-      overrides.longDescription || 'This is a detailed description of a lovely pet.',
+    longDescription: overrides.longDescription || 'This is a detailed description of a lovely pet.',
     ageYears: overrides.ageYears !== undefined ? overrides.ageYears : 2,
     ageMonths: overrides.ageMonths !== undefined ? overrides.ageMonths : 6,
     ageGroup: overrides.ageGroup || AgeGroup.ADULT,
@@ -117,8 +116,7 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     specialNeeds: overrides.specialNeeds !== undefined ? overrides.specialNeeds : false,
     specialNeedsDescription: overrides.specialNeedsDescription || null,
     houseTrained: overrides.houseTrained !== undefined ? overrides.houseTrained : true,
-    goodWithChildren:
-      overrides.goodWithChildren !== undefined ? overrides.goodWithChildren : true,
+    goodWithChildren: overrides.goodWithChildren !== undefined ? overrides.goodWithChildren : true,
     goodWithDogs: overrides.goodWithDogs !== undefined ? overrides.goodWithDogs : true,
     goodWithCats: overrides.goodWithCats !== undefined ? overrides.goodWithCats : false,
     goodWithSmallAnimals: overrides.goodWithSmallAnimals || null,

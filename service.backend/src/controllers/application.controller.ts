@@ -245,9 +245,7 @@ export class ApplicationController extends BaseController {
         (answers.firstName as string) ||
         (answers.first_name as string),
       lastName:
-        (User?.lastName as string) ||
-        (answers.lastName as string) ||
-        (answers.last_name as string),
+        (User?.lastName as string) || (answers.lastName as string) || (answers.last_name as string),
       email: (User?.email as string) || (answers.email as string),
       phone:
         (User?.phoneNumber as string) ||
@@ -261,9 +259,7 @@ export class ApplicationController extends BaseController {
       city: (User?.city as string) || (answers.city as string),
       state: answers.state as string, // State typically comes from form answers
       zipCode:
-        (User?.postalCode as string) ||
-        (answers.zipCode as string) ||
-        (answers.zip_code as string),
+        (User?.postalCode as string) || (answers.zipCode as string) || (answers.zip_code as string),
       dateOfBirth: User?.dateOfBirth
         ? new Date(User.dateOfBirth as string).toISOString().split('T')[0]
         : (answers.dateOfBirth as string),
@@ -376,16 +372,12 @@ export class ApplicationController extends BaseController {
         priority: req.query.priority as ApplicationPriority,
         score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
         score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
-        createdFrom: req.query.createdFrom
-          ? new Date(req.query.createdFrom as string)
-          : undefined,
+        createdFrom: req.query.createdFrom ? new Date(req.query.createdFrom as string) : undefined,
         createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
         submittedFrom: req.query.submittedFrom
           ? new Date(req.query.submittedFrom as string)
           : undefined,
-        submittedTo: req.query.submittedTo
-          ? new Date(req.query.submittedTo as string)
-          : undefined,
+        submittedTo: req.query.submittedTo ? new Date(req.query.submittedTo as string) : undefined,
       };
 
       const options: ApplicationSearchOptions = {

@@ -72,8 +72,7 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     specialNeeds: overrides.specialNeeds !== undefined ? overrides.specialNeeds : false,
     specialNeedsDescription: overrides.specialNeedsDescription || null,
     houseTrained: overrides.houseTrained !== undefined ? overrides.houseTrained : true,
-    goodWithChildren:
-      overrides.goodWithChildren !== undefined ? overrides.goodWithChildren : true,
+    goodWithChildren: overrides.goodWithChildren !== undefined ? overrides.goodWithChildren : true,
     goodWithDogs: overrides.goodWithDogs !== undefined ? overrides.goodWithDogs : true,
     goodWithCats: overrides.goodWithCats !== undefined ? overrides.goodWithCats : false,
     goodWithSmallAnimals: overrides.goodWithSmallAnimals || null,
